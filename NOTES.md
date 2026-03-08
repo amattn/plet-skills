@@ -304,6 +304,7 @@ Principles and understanding that inform decisions.
 - "We highly value the ability to start with a new agent for various reasons. One is parallelization. Another is the fresh context is important for things like independent verification."
 - "The quality of blocker documentation determines whether the human can help."
 - Agents prefer making a decision + documenting in emergent.md over blocking — blockers are last resort.
+- **Self-improvement is load-bearing:** As models improve, skills like plet go out of date. plet needs instrumentation and the ability to improve itself. A separate skill or mode should analyze runtime artifacts (progress, learnings, emergent, trace) and use that analysis to inform improvements to the plet PRD, which can then be implemented and result in a version bump. Not v1, but an important architectural insight — plet must be designed with this evolution path in mind.
 
 ### Emergent
 - **Use subagents to explore and validate during design:** During the execute.md build session, we used subagents to research ridler2's trace mechanism, check Claude Code's `--output-format stream-json` flag, test whether Agent tool subagents accept CLI flags, and verify that subagent transcript files exist on disk. This turned a speculative design question ("can we capture agent I/O?") into a confirmed approach backed by evidence. Subagents are cheap and fast for this kind of exploratory validation — use them proactively during brainstorming, not just for delegated work.
@@ -328,3 +329,29 @@ Principles and understanding that inform decisions.
   - #5: Pre-flight "clean tree" on retries — resolved. Clarified "clean" means no uncommitted changes (staged or unstaged). Prior commits on the branch from previous attempts are expected.
 - **Fingerprint-based sync**: Lightweight consistency checking across requirements.md → iterations.md → state.json without file hashing. Future Considerations and Open Questions excluded from fingerprints.
 - **NOTES.md as institutional memory**: The notes file is the connective tissue between CLAUDE.md (project config) and the PRD (spec). It captures the "why" so the PRD can stay clean.
+
+## Self-Improvement Analysis (Future Consideration #11)
+
+As models improve, skills like plet go out of date. plet needs instrumentation and the ability to improve itself. This section captures the analysis of that insight and its implications for plet's design.
+
+### Why this is load-bearing
+
+Most skills are static instructions written for today's model capabilities. They accumulate workarounds for model weaknesses that become dead weight as models improve. execute.md alone is ~430 lines of detailed guidance — some of that will be unnecessary in 6 months. Without a feedback loop, plet calcifies.
+
+### Runtime artifacts are uniquely well-positioned
+
+plet already produces structured, categorized data about its own performance: learnings capture what tripped agents up, emergent items capture spec gaps, trace files capture the full decision chain, progress captures pass/fail patterns. That's exactly the telemetry needed for self-analysis. Most systems would have to bolt on instrumentation — plet already has it as a core design feature.
+
+### Design tension: meta-loop symmetry
+
+plet improving its own PRD is a meta-loop — refine-on-refine. The refine phase already analyzes runtime artifacts to improve the *target project's* spec. Self-improvement is the same pattern aimed inward. That symmetry is elegant, but it also means there needs to be a clear boundary between "improve the project" and "improve the tool." Mixing them in the same refine phase would be messy. A separate skill or mode is the right approach.
+
+### Things to watch for
+
+- **Model-capability vs design-flaw distinction:** The analysis skill needs to distinguish model-capability improvements (remove guardrails that are no longer needed) from genuine design flaws (the heuristic was always wrong). Different remedies for each.
+- **Testability of version bumps:** PRD changes need to be testable — plet should be able to run its own iterations against a reference project to validate that a PRD change actually improves outcomes. Otherwise self-edits are flying blind.
+- **Bootstrapping question:** Can plet use plet to implement improvements to plet? Appealing but introduces a version consistency problem — the tool being improved is also the tool doing the improving.
+
+### Why capturing this now matters
+
+Thinking about self-improvement during v1 design means the v1 artifacts won't accidentally make it hard to do later. The runtime artifact formats, the structured trace data, the separation of concerns between artifacts — all of these serve double duty as both operational output and self-improvement telemetry. No retrofit needed.
