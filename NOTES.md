@@ -141,7 +141,7 @@ The user identified several gaps in the current ridl.json format:
 - This principle belongs in both the Design Principles section and the VF section intro
 
 ### Git branch strategy
-- Each iteration works on its own branch (`plet/{iteration_id}`)
+- Each iteration works on its own branch (`plet/loop/{iteration_id}`)
 - Branch persists across impl and verify phases
 - After iteration reaches `complete`, rebase onto main working branch and fast-forward merge
 - Linear history is strongly preferred
@@ -233,6 +233,30 @@ The PRD is at `prd.md`. Sections reviewed and approved so far:
 - **Milestone assignment during refine (RF_14, RF_15):** Frozen milestones (all iterations `complete`) don't accept new iterations, except the most recent milestone which is never considered frozen ("complete for now") — without this exception, late-stage refinements would produce a series of single-iteration milestones, which defeats the purpose of milestones as organizational units. Any unfrozen milestone is fair game. In early refine, multiple milestones may be unfrozen — append to whichever fits thematically. In late refine, typically only the most recent is unfrozen, simplifying the decision to "append or create new." Heuristics for new milestone: scope magnitude (3+), version significance, origin clustering, milestone size (6+), theme coherence. Agent states which heuristic; user overrides.
 - **Fingerprint scheme (resolved):** Keep both ID arrays AND `lastNonTrivialUpdate` timestamp. ID arrays track structural changes and are useful in git history. Timestamp catches content-only drift. Agents determine triviality — typo fixes don't bump the timestamp. Edge cases: ask the human. Timestamp format: ISO 8601 UTC, second resolution. Also simplified: state.json only stores the iterations fingerprint (which embeds the requirements fingerprint) — no need for both separately since staleness is checked sequentially. SY_1–SY_5, SF_1 updated, PRD resolved question #11 added.
 
+- **Trace capture split: raw I/O + semantic events (EX_10, RT_4, RT_5):** Subagents don't self-log full I/O — that's impractical and wasteful of context. Instead, trace is split into two files per phase: (1) raw I/O transcript (`-transcript.jsonl`) captured automatically by the orchestrator from Claude Code's `--output-format stream-json` output or copied from the subagent transcript at `~/.claude/projects/.../subagents/agent-{id}.jsonl`, and (2) semantic events (`-events.ndjson`) written by the subagent for decisions, criterion updates, lifecycle changes, activity changes, and errors. Both have timestamps; a GUI merges and sorts by time. Inspired by ridler2's approach of using `--output-format stream-json` to capture full agent I/O externally.
+
+- **`tagBeforeSquash` — audit tags before squash (EX_17):** Incremental commits are squashed at end of each phase for clean history. `tagBeforeSquash` preserves the pre-squash state as a git tag so the chain of work can be audited. Tag naming: `plet/audit/{iteration_id}/{phase}-{attempt}` — hierarchical `/` separators allow GUI tools to filter at three levels (`plet/audit/*`, `plet/audit/ID_001/*`, `plet/audit/ID_001/impl-*`). Config: global default in `state.json` (inherited at initialization), per-iteration override in per-iteration state file. Auto-enables if verification fails for an iteration. Default off.
+
+- **Test suite execution strategy for green step (EX_4):** On large projects, the full test suite can take 4-5 minutes. With 5 acceptance criteria, 7 full suite runs compounds to ~35 minutes of test waiting. Adopted tiered approach (option A): agent times the first full run and decides strategy. ~30s is a recommended threshold but agent uses discretion. Fast suite = full suite every green step. Slow suite = most relevant subset using the project's test grouping mechanisms (module, package, directory, marker/tag, explicit list of test names). Agent can create groupings (e.g., add tags/markers) if none exist. Full suite only at phase end as a final gate.
+  - **Rejected/deferred options:**
+    - (B) Full suite only at phase end — fastest but regressions caught too late
+    - (C) Full suite at checkpoints (every N criteria or module switch) — interesting but adds complexity
+    - (D) Pure agent discretion with no guidance — too unstructured for v1
+  - Future consideration #10 added to revisit as projects grow. Options to explore: batched runs, test impact analysis, parallel execution, per-project learned thresholds.
+
+- **`elapsedSeconds` tracking:** Added to both per-criterion implementation/verification objects and at the iteration level. Per-criterion captures time from start to completion of that criterion. Iteration level tracks per-phase-attempt durations (`impl_1`, `verify_1`, etc.) and `total`. Updated opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. Pre-flight check also logs time elapsed to establish baseline suite duration.
+
+- **Branch naming: `plet/loop/{iteration_id}`:** Changed from `plet/{iteration_id}` to match the hierarchical `/` convention used by audit tags (`plet/audit/...`). GUI tools get clean second-level filtering: `plet/loop/*` for active branches, `plet/audit/*` for audit tags.
+
+- **Trace file naming: `-transcript` and `-events` suffixes:** Two trace files per phase: `{id}-{phase}-{attempt}-transcript.jsonl` (raw I/O, orchestrator-managed) and `{id}-{phase}-{attempt}-events.ndjson` (semantic events, subagent-written). Considered `-raw`, `-stream`, `-io`, `-session` for the I/O transcript suffix. Chose `-transcript` for clarity and because it describes what the file contains rather than how it was captured.
+
+- **Context window management for subagent reads:** Runtime artifacts grow unbounded, so subagents can't naively read everything on a mature project. Tiered approach per artifact:
+  - **requirements.md, emergent.md** — orchestrator-managed. Orchestrator injects relevant sections/entries based on the iteration's requirement IDs (option D).
+  - **progress.md** — skip if large, read last ~10 entries if medium-sized. State files already cover "what's done"; progress adds narrative but isn't essential at scale (options B + C).
+  - **learnings.md** — skip if large; orchestrator filters by relevance to current iteration (matching files/modules, requirement IDs, category tags) plus project-wide entries like patterns and gotchas (options B + E).
+  - **CLAUDE.md, README.md, iteration definition, state file** — always read in full (small, essential).
+  - Rejected: reading everything always (fills context window). Deferred to future considerations: graduating high-value learnings to CLAUDE.md (#8), curating learnings during refine (#9).
+
 ### Full review pass changes:
 - OR_4: added `verifying` lifecycle to routing
 - OR_13: skip mechanism scoped to individual acceptance criteria (not entire iterations). User or agent can mark a criterion as `skipped` with rationale. Skipping entire iterations deferred to Future Considerations.
@@ -282,9 +306,25 @@ Principles and understanding that inform decisions.
 - Agents prefer making a decision + documenting in emergent.md over blocking — blockers are last resort.
 
 ### Emergent
+- **Use subagents to explore and validate during design:** During the execute.md build session, we used subagents to research ridler2's trace mechanism, check Claude Code's `--output-format stream-json` flag, test whether Agent tool subagents accept CLI flags, and verify that subagent transcript files exist on disk. This turned a speculative design question ("can we capture agent I/O?") into a confirmed approach backed by evidence. Subagents are cheap and fast for this kind of exploratory validation — use them proactively during brainstorming, not just for delegated work.
 - **When in doubt, add the dependency**: Missing dependencies are dangerous (agent wastes a cycle, must self-correct). False dependencies are harmless (only reduce parallelism slightly). Always err on the side of adding a dependency rather than omitting one.
 - **No metrics that reward lousy verification**: First-pass verification rate (how often iterations pass verify on first try) sounds useful but incentivizes the verifier to rubber-stamp. Never use metrics that reward the verification agent for passing easily.
 - **Review discipline**: At every review step: (1) show the full content first for context, (2) proactively surface recommendations before asking for approval, (3) after approval, update NOTES.md with the decision and rationale, (4) finish with a consistency pass across affected artifacts. Catch drift early.
 - **No performance requirements**: Unusual but intentional — plet's performance is determined by the Claude Code platform, not the skill itself.
+- **execute.md size (~430 lines, ~5,500 tokens):** This entire file gets injected into every implementation subagent. Estimated total prompt overhead per subagent:
+  - execute.md: ~5,500 tokens
+  - formats.md: ~3,500 tokens
+  - state-schema sections: ~3,000 tokens
+  - requirements.md: varies (5K-15K depending on project)
+  - learnings.md: varies (filtered for relevance)
+  - iteration definition: ~500 tokens
+  - **Total: ~15K-30K tokens**, leaving 170K+ of 200K for actual work. Comfortable for now.
+  - If context pressure becomes an issue, edge case sections (blocker, failed attempt, missing dependency, skip) could be split into a separate reference file only injected when relevant (e.g., retry attempts). Monitor during real usage.
+
+- **Execute.md open design questions (from build session):** Five issues surfaced during execute.md review. #1 (trace self-logging) resolved via ridler2-inspired split. Remaining:
+  - #2: Atomic rename vs Write tool — resolved. Atomic rename is ideal, Write tool is acceptable for v1. Single writer per state file (one subagent per iteration) means no concurrent write corruption. GUI readers get transient parse errors at worst. Agent should use Bash temp+rename when practical, Write tool when simpler. A future plet helper tool or MCP server could enforce true atomic writes.
+  - #3: Failed attempt wrap-up — resolved. Added "Failed Attempt Protocol" section to execute.md. Key distinction from blocker: agent isn't asking for human help, just saying "a fresh context might succeed." Sets lifecycle back to `queued` for retry. Orchestrator evaluates retry limits (EX_14).
+  - #4: `agentId` source — resolved. Try Claude Code session ID if accessible, fall back to random ID (`agent_` + 12 hex chars). Not prescriptive — agent figures it out.
+  - #5: Pre-flight "clean tree" on retries — resolved. Clarified "clean" means no uncommitted changes (staged or unstaged). Prior commits on the branch from previous attempts are expected.
 - **Fingerprint-based sync**: Lightweight consistency checking across requirements.md → iterations.md → state.json without file hashing. Future Considerations and Open Questions excluded from fingerprints.
 - **NOTES.md as institutional memory**: The notes file is the connective tissue between CLAUDE.md (project config) and the PRD (spec). It captures the "why" so the PRD can stay clean.

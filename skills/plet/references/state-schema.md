@@ -14,9 +14,9 @@ This document defines the JSON schemas for state files and trace NDJSON lines. A
 
 ### Atomic Writes (SF_15, SF_16) — CRITICAL
 
-**Every state file write MUST use atomic rename.** No exceptions. External consumers (GUI tools, other agents, monitoring scripts) may read state files at any time. A partial write produces corrupt JSON that breaks consumers silently.
+**State file writes should use atomic rename when practical.** External consumers (GUI tools, other agents, monitoring scripts) may read state files at any time. A partial write produces corrupt JSON that breaks consumers.
 
-**Procedure:**
+**Ideal procedure:**
 1. Write the complete file to a temp file in the same directory
 2. Rename the temp file to the target path (POSIX rename is atomic)
 
@@ -25,7 +25,7 @@ Write to:  plet/state/.ID_001.json.tmp
 Rename to: plet/state/ID_001.json
 ```
 
-**Never write directly to the target file.** This applies to both `plet/state.json` and all per-iteration `plet/state/{id}.json` files.
+**Acceptable for v1:** Direct file writes (e.g., Claude Code's Write tool) are acceptable because each state file has a single writer (one subagent per iteration), so concurrent write corruption is not a risk. External readers that encounter a partial write get a transient parse error and retry on next poll. Use atomic rename when practical; don't let the atomicity concern block work.
 
 ### Real-Time Updates (SF_6) — CRITICAL
 
@@ -82,6 +82,8 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
     "after": ["ID_003"]
   },
 
+  "tagBeforeSquash": false,
+
   "iterationsFingerprint": {
     "requirementsFingerprint": {
       "lastNonTrivialUpdate": "2026-03-07T14:30:00Z",
@@ -114,6 +116,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `parallelGroups` | array of arrays | no | Groups of iterations that can execute concurrently (SF_19) |
 | `breakpoints.before` | array of strings | no | Iteration IDs — orchestrator pauses before these (SF_21) |
 | `breakpoints.after` | array of strings | no | Iteration IDs — orchestrator pauses after these (SF_21) |
+| `tagBeforeSquash` | boolean | no | Global default for audit tagging before squash. When `true`, agents create a git tag preserving incremental commits before squashing. Default `false`. Per-iteration state inherits this value at initialization. (EX_17) |
 | `iterationsFingerprint` | object | yes | Iterations fingerprint — embeds `requirementsFingerprint`, plus `lastNonTrivialUpdate` timestamp and iteration IDs grouped by milestone (SY_2, SY_3) |
 
 ---
@@ -153,12 +156,20 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
     "verify_1_end": null
   },
 
+  "elapsedSeconds": {
+    "impl_1": null,
+    "verify_1": null,
+    "total": null
+  },
+
   "summary": "Initializing project structure with pyproject.toml, ruff, pytest",
   "filesChanged": [
     "pyproject.toml",
     "src/__init__.py",
     "src/main.py"
   ],
+
+  "tagBeforeSquash": false,
 
   "criteria": [
     {
@@ -168,7 +179,8 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
       "implementation": {
         "status": "pass",
         "evidence": "ruff check exits 0, ruff format --check exits 0",
-        "timestamp": "2026-03-07T15:20:00Z"
+        "timestamp": "2026-03-07T15:20:00Z",
+        "elapsedSeconds": 12
       },
       "verification": null
     },
@@ -179,19 +191,21 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
       "implementation": {
         "status": "pass",
         "evidence": "pytest exits 0, 1 test passing (sanity check)",
-        "timestamp": "2026-03-07T15:25:00Z"
+        "timestamp": "2026-03-07T15:25:00Z",
+        "elapsedSeconds": 8
       },
       "verification": null
     },
     {
       "id": "AC_3",
-      "description": "Legacy migration script handles edge cases",
+      "description": "Payment webhook processes external service events end-to-end",
       "status": "skipped",
-      "skipRationale": "No legacy data exists in this project — criterion is impossible to satisfy",
+      "skipRationale": "No access to external service API keys or sandbox environment — cannot test real webhook delivery",
       "implementation": {
         "status": "skipped",
-        "evidence": "No legacy data to migrate",
-        "timestamp": "2026-03-07T15:28:00Z"
+        "evidence": "External service sandbox requires API keys not available in this environment",
+        "timestamp": "2026-03-07T15:28:00Z",
+        "elapsedSeconds": 0
       },
       "verification": null
     }
@@ -216,8 +230,10 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 | `attempts.impl` | number | yes | Implementation attempt count (SF_22) |
 | `attempts.verify` | number | yes | Verification attempt count (SF_22) |
 | `phaseTimestamps` | object | no | Start/end timestamps per phase per attempt (SF_22) |
+| `elapsedSeconds` | object | no | Time elapsed in seconds per phase attempt (`impl_1`, `verify_1`, etc.) and `total` across all attempts. Updated opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. |
 | `summary` | string | no | Current work summary (SF_22) |
 | `filesChanged` | array of strings | no | Files modified in current/last phase (SF_22) |
+| `tagBeforeSquash` | boolean | no | When `true`, agent creates a git tag (`plet/audit/{id}/{phase}-{attempt}`) preserving incremental commits before squashing. Inherited from global `state.json` at initialization. Auto-set to `true` if verification fails. Default `false`. (EX_17) |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
 
 ### Lifecycle Values (SF_3)
@@ -260,12 +276,14 @@ Each acceptance criterion has separate `implementation` and `verification` objec
   "implementation": {
     "status": "pass",
     "evidence": "Test test_FR_1_valid_request passes — asserts 200 status and correct body",
-    "timestamp": "2026-03-07T15:20:00Z"
+    "timestamp": "2026-03-07T15:20:00Z",
+    "elapsedSeconds": 45
   },
   "verification": {
     "status": "pass",
     "evidence": "Independently ran test suite — test_FR_1_valid_request passes. Also manually tested with curl: POST /api/data returns 200 with expected JSON structure.",
-    "timestamp": "2026-03-07T16:10:00Z"
+    "timestamp": "2026-03-07T16:10:00Z",
+    "elapsedSeconds": 30
   }
 }
 ```
@@ -284,16 +302,21 @@ Each acceptance criterion has separate `implementation` and `verification` objec
 
 ---
 
-## Trace NDJSON Line Schema (RT_4, RT_5)
+## Trace Schemas (RT_4, RT_5)
 
-Each line in a trace file (`plet/trace/{iteration_id}-{phase}-{attempt}.ndjson`) is a JSON object capturing one event in the agent's execution.
+Trace capture is split into two files per phase:
 
-### Line Schema
+- **`plet/trace/{id}-{phase}-{attempt}-transcript.jsonl`** — raw I/O transcript in Claude Code's native JSONL format. Captured automatically by the orchestrator. Subagents do not write this file.
+- **`plet/trace/{id}-{phase}-{attempt}-events.ndjson`** — semantic events written by the subagent. Schema defined below.
+
+### Semantic Event Line Schema
+
+Each line in a `-events.ndjson` file is a JSON object capturing one semantic event:
 
 ```json
 {
   "timestamp": "2026-03-07T15:20:01Z",
-  "type": "assistant_text",
+  "type": "decision",
   "iterationId": "ID_001",
   "phase": "impl",
   "attempt": 1,
@@ -301,31 +324,30 @@ Each line in a trace file (`plet/trace/{iteration_id}-{phase}-{attempt}.ndjson`)
 }
 ```
 
-### Event Types
+### Semantic Event Types
 
 | Type | `data` Contents | Description |
 |------|-----------------|-------------|
-| `assistant_text` | `{"text": "..."}` | Assistant's text output |
-| `tool_use` | `{"tool": "name", "parameters": {...}}` | Tool invocation |
-| `tool_result` | `{"tool": "name", "result": "...", "error": null}` | Tool result (truncate large results) |
-| `error` | `{"message": "...", "code": "...", "context": "..."}` | Error encountered |
-| `system_message` | `{"text": "..."}` | System message received |
 | `decision` | `{"description": "...", "rationale": "...", "alternatives": [...]}` | Decision made by the agent |
 | `criterion_update` | `{"criterionId": "AC_1", "phase": "implementation", "status": "pass", "evidence": "..."}` | Criterion status change |
 | `lifecycle_change` | `{"from": "queued", "to": "implementing"}` | Iteration lifecycle transition |
 | `activity_change` | `{"activity": "running_checks", "detail": "green: all tests passing"}` | Agent activity state change |
+| `error` | `{"message": "...", "code": "...", "context": "...", "recovery": "..."}` | Error encountered and recovery action |
 
-### Example Trace Lines
+### Example Semantic Event Lines
 
 ```ndjson
 {"timestamp":"2026-03-07T15:00:00Z","type":"lifecycle_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"from":"queued","to":"implementing"}}
 {"timestamp":"2026-03-07T15:00:01Z","type":"activity_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"activity":"reading_context","detail":"reading requirements.md and learnings.md"}}
-{"timestamp":"2026-03-07T15:01:00Z","type":"assistant_text","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"text":"Starting implementation of project scaffolding. Reading requirements..."}}
-{"timestamp":"2026-03-07T15:02:00Z","type":"tool_use","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"tool":"Write","parameters":{"file_path":"pyproject.toml"}}}
-{"timestamp":"2026-03-07T15:02:01Z","type":"tool_result","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"tool":"Write","result":"File created successfully","error":null}}
 {"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"description":"Using pytest over unittest for testing","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}}
 {"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}}
 ```
+
+### Raw I/O Transcript
+
+The raw transcript uses Claude Code's native JSONL format from `--output-format stream-json`. Each line contains the full message object including role, content, tool use, and tool results. The orchestrator copies the subagent's transcript file to `plet/trace/` after the subagent completes.
+
+A GUI merges both files by timestamp for a unified view: raw I/O for full fidelity, semantic events for high-level structure and annotations.
 
 ---
 

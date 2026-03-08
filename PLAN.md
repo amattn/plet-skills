@@ -108,7 +108,7 @@ Implementation subagent prompt. Injected into each implementation subagent.
 - Runtime artifact appends (progress, learnings, emergent)
 - Atomic write semantics
 - Commit conventions (`plet: [ID_xxx] impl-N - title`)
-- Git branch management (`plet/{iteration_id}`)
+- Git branch management (`plet/loop/{iteration_id}`)
 - Pre-flight checks
 - Blocker documentation (all 4 artifact types)
 - Heartbeat updates

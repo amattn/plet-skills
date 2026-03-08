@@ -122,7 +122,7 @@ Agents prefer making a decision and documenting it in `emergent.md` over blockin
 
 ### Git Branch Strategy
 
-Each iteration works on its own branch (`plet/{iteration_id}`). Agents commit incrementally for crash recovery, then squash into a single commit per phase. Completed iterations rebase onto the main branch with fast-forward merge for linear history.
+Each iteration works on its own branch (`plet/loop/{iteration_id}`). Agents commit incrementally for crash recovery, then squash into a single commit per phase. Completed iterations rebase onto the main branch with fast-forward merge for linear history.
 
 ## Advantages over Ralph Loops
 
