@@ -158,6 +158,7 @@ Split state architecture: global `plet/state.json` for project-wide data and per
 | SF_16 | Per-iteration state files follow the same write semantics as the global state file (atomic rename when practical, direct writes acceptable for v1) | P0 |
 | SF_17 | Runtime artifact writes (progress.md, learnings.md, emergent.md) should be complete, self-contained blocks. Use Bash append (`cat >>`) rather than read-then-overwrite. POSIX O_APPEND is ideal but not required for v1 — runtime artifacts are append-only markdown, so a partial append only affects the last entry; prior entries are never corrupted. | P0 |
 | SF_18 | Runtime artifact entries should stay under ~4KB as a readability constraint. On local filesystems (the only target per NF_5), append operations are atomic at any reasonable size, so size limits are about maintainability, not atomicity. Entries exceeding ~4KB should be split into multiple self-contained entries. | P0 |
+| SF_25 | Runtime artifact entries are wrapped in start/end fences that produce unique, non-identical boundary lines for each entry. When parallel agents append to the same file, git merge can distinguish entries and resolve without conflicts. Fencing implementation defined in `references/formats.md`. | P0 |
 | SF_19 | The global state file includes a top-level `parallelGroups` array that groups iterations which can execute concurrently | P1 |
 | SF_20 | Each per-iteration state file includes a `lastHeartbeat` timestamp for stale agent detection (> 5 min = potentially crashed) | P1 |
 | SF_21 | The global state file includes `breakpoints` with `before` and `after` arrays of iteration IDs — the orchestrator pauses at these points. Breakpoints are a user directive to the orchestrator, separate from iteration lifecycle. | P1 |
@@ -242,6 +243,52 @@ Formats are defined at a high level here. Detailed templates and entry schemas a
 | RT_8 | Runtime artifact files are created with headers on first invocation if they do not exist. Headers include the plet version that created the file. | P0 |
 | RT_9 | Emergent items with `Outcome: pending` are surfaced to the user during the Refine phase | P0 |
 | RT_10 | Runtime artifact format changes are additive only — never remove or rename fields. Breaking changes require a major version bump. | P0 |
+| RT_11 | Every runtime artifact entry includes a globally unique, two-way decodable plet ID per the Plet ID Scheme defined below. Plet IDs serve as git merge fences (SF_25) and cross-references — trace events and state files can reference specific entries by ID. | P0 |
+
+#### Plet ID Scheme
+
+Plet IDs are a composable, globally unique identifier scheme used across plet artifacts.
+
+**Structure:** `{type}_{crockford32}_{...context segments}`
+
+| Segment | Position | Rules | Description |
+|---------|----------|-------|-------------|
+| Type prefix | 1st | 3 chars by convention, 4 allowed. First char must be a letter (a-z). Remaining chars: letters or digits (a-z, 0-9). Lowercase by convention. | Identifies the ID type |
+| Crockford timestamp | 2nd | Always 10 chars. Crockford Base32 encoding of Unix millisecond timestamp. Alphanumeric only (0-9, A-Z excluding I/L/O/U). Uppercase by convention. Lexicographically sortable. | When the ID was created |
+| Context segments | 3rd+ | Type-specific. Underscore-separated. No casing or format conventions at the scheme level — individual type specifications may define their own casing requirements, conventions, or constraints for their context segments. | Additional context defined per type |
+
+**Casing conventions:** Type prefix lowercase, Crockford timestamp uppercase. Parsers and readers must be case-insensitive and tolerate mixed case.
+
+**Parsing:** Split on `_`. Segment 1 is the type prefix (3-4 chars, starts with a letter, lowercase). Segment 2 is the Crockford timestamp (always 10 chars, uppercase). Remaining segments are type-specific context.
+
+**Example:** `epr_01JD8X3K7M_id001_i1`
+
+**Runtime artifact entry IDs** use the following context segments:
+
+| Context Segment | Description |
+|-----------------|-------------|
+| iteration | Iteration ID normalized: lowercase, underscores removed (`ID_001` → `id001`) |
+| phase_attempt | Phase and attempt: `i1` (impl attempt 1), `v2` (verify attempt 2) |
+
+**Known type prefixes:**
+
+| Prefix | Artifact | Description |
+|--------|----------|-------------|
+| `epr` | progress.md | Entry progress |
+| `eln` | learnings.md | Entry learnings |
+| `eem` | emergent.md | Entry emergent |
+
+Reserved for future use: `ttr` (trace transcript), `tev` (trace events).
+
+**Note:** Emergent items have two IDs: the `EM_N` semantic ID (human-facing, stable, referenced in refine) and the plet ID (structural, for fencing and cross-references). `EM_N` is assigned by append-only numbering (GC_1). The plet ID is generated per the scheme above. Both appear on every emergent entry.
+
+**Properties:**
+- Globally unique — type + millisecond timestamp + context makes collisions impossible in practice
+- Time-sortable — Crockford Base32 preserves lexicographic sort order within the same type prefix
+- Two-way decodable — split on `_`, decode each segment
+- Self-describing — type prefix identifies the artifact without file context
+- Composable — context segments are type-specific; new ID types define their own segments
+- Extensible — new type prefixes can be added without changing the scheme
 
 ### 3.7 Refine Phase (RF)
 

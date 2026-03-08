@@ -189,37 +189,25 @@ We considered several approaches to keep IDs stable when editing PRDs:
 
 ## PRD Status
 
-The PRD is at `prd.md`. Sections reviewed and approved so far:
+All sections reviewed and approved. PRD written to `prd.md`. The PRD is the source of truth for requirement IDs and counts — see `prd.md` directly.
 
-### Approved sections (counts reflect PRD after reorder/renumber):
-- **Global Conventions (GC)** — 3 requirements (GC_1-GC_3). GC_2: agents prefer making decisions + logging over blocking. GC_3: zero-padded IDs in filenames for lexical sorting.
-- **2. User Personas** — 4 personas (Solo Developer, Tech Lead, Agent Operator, GUI Builder).
-- **3.1 Orchestration & Routing (OR)** — 12 requirements (OR_1-OR_13, gap at OR_11). OR_4 includes `verifying` lifecycle. OR_13: skip mechanism (user or agent).
-- **3.1.1 Artifact Sync (SY)** — 8 requirements (SY_1-SY_8).
-- **3.2 Plan Phase (PL)** — 16 requirements (PL_1-PL_16). Plan phase intro is prose above the table (interactive, human-driven, structured conversation). PL_12: write to disk on approval. PL_13-PL_14 are P1.
-- **3.3 State File (SF)** — 24 requirements (SF_1-SF_24). P0s first. Split state architecture. SF_24: schema version migration.
-- **3.4 Execute Phase (EX)** — 25 requirements (EX_1-EX_25). Includes git branch strategy, commit conventions, pre-flight checks, retry logic, context management. EX_23: heartbeat writes. EX_24: missing dependency self-correction (fix DAG in place, set to ineligible, document in all 4 artifacts, does not count against retries). EX_25: false dependencies are harmless.
-- **3.5 Verify Phase (VF)** — 20 requirements (VF_1-VF_20). Key insight: verification independence (verify the result, not the process). VF_7-VF_13 are the VSDD-inspired deep verification items (spec fidelity, test quality, code quality, security surface, spec gaps, anti-slop bias, convergence signal). VF_14-VF_16 are outcome handling. VF_17-VF_18 are artifact writes. VF_19-VF_20 are P1.
-- **3.6 Runtime Artifacts (RT)** — 10 requirements (RT_1-RT_10). Formats defined at high level here, templates in references/formats.md. Stable contract (additive only).
-- **3.7 Refine Phase (RF)** — 13 requirements (RF_1-RF_13). RF_1 establishes that refine is human-driven with clean UX. Blocked iterations surfaced alongside emergent items. Deferred items go to Open Questions.
-- **3.8 Prompt & Reference Files (PT)** — 6 requirements (PT_1-PT_6). Physical reference files only. Trace NDJSON schema in state-schema.md (PT_6).
-- **4. Distribution (DS)** — 3 requirements (DS_1-DS_3). Claude Code plugin marketplace. DS_4 (coexistence with ridl-skills) removed — noted in Platform & Distribution instead.
-- **5. Non-Functional Requirements (NF)** — 8 requirements (NF_1-NF_8). No performance section (unusual but intentional). No priority column (all fundamental). Reliability + compatibility only. NF_8: state format designed for external GUI consumers.
-- **6.1 Plet Skill DX (DX)** — 5 requirements (DX_1-DX_5). DX of working with the plet skill itself.
-- **6.2 Plan-Phase DX Template (PL_DX)** — 25 requirements (PL_DX_1-PL_DX_25). Renamed from PT_DX. Three principles: Readability, Debug-ability, Resilience. PL_DX_17 is the living notes doc. User expects to add more over time.
-- **7. Technical Architecture** — Component diagram, key dependencies, directory structure, dependency graph diagram.
-- **8. User Flows** — 4 flows (new project, execute+verify loop, refine, resume after interruption).
-- **9. Release Milestones** — 3 milestones (v0.1 scaffolding+plan, v0.2 execute+verify, v0.3 refine+polish).
-- **10. Resolved Questions** — 11 resolved questions. No open questions.
-- **11.1 Critical Test Areas (CT)** — 11 areas for plet itself.
-- **11.2 Plan-Phase CT Template (PL_CT)** — 3 requirements (PL_CT_1-PL_CT_3). Renamed from PT_CT.
-- **12.1 Testing & Verification (TV)** — 8 requirements (TV_1-TV_8). Reframed for skill context (no traditional unit tests).
-- **12.2 Plan-Phase TV Template (PL_TV)** — 18 requirements (PL_TV_1-PL_TV_18). Renamed from PT_TV. Red/green first (PL_TV_1). Includes sanity check test (PL_TV_9), anti-mock-overreliance (PL_TV_10), mutation/fuzz testing (P2), full traceability chain.
-- **13. Future Considerations** — 7 items: (1) AI model selection per phase, (2) GUI/monitoring app (separate repo), (3) multi-project orchestration, (4) formal verification tooling, (5) plugin ecosystem for custom phase hooks, (6) metrics/analytics dashboard, (7) skip entire iterations.
-- **14.1 Success Metrics (SM)** — 4 metrics for plet itself. >99% completion rate (aspirational). No verification independence metric.
-- **14.2 Plan-Phase SM Template (PL_SM)** — 5 requirements (PL_SM_1-PL_SM_5). Renamed from PT_SM.
-
-### All PRD sections reviewed. PRD written to prd.md. Consistency pass completed.
+### Key design annotations by section (not duplicated in PRD)
+- **GC**: GC_2 — agents prefer making decisions + logging over blocking
+- **OR**: OR_4 includes `verifying` lifecycle. OR_11 removed (merged into `/plet loop`). OR_13 — skip scoped to individual acceptance criteria, not iterations
+- **PL**: Plan phase intro is prose above the table (interactive, human-driven). PL_12 — write to disk on approval. PL_13–PL_14 are P1
+- **SF**: P0s first. Split state architecture. SF_24 — schema version migration. SF_25 — entry fencing for git merge safety
+- **EX**: EX_23 — heartbeat writes. EX_24 — missing dependency self-correction (does not count against retries). EX_25 — false dependencies are harmless
+- **VF**: VF_7–VF_13 are the VSDD-inspired deep verification items. VF_19–VF_20 are P1
+- **RT**: Formats defined at high level; templates in references/formats.md. Stable contract (additive only). RT_11 — plet ID scheme for entry IDs
+- **RF**: RF_1 — refine is human-driven with clean UX. Blocked iterations surfaced alongside emergent items
+- **PT**: Physical reference files only. Trace NDJSON schema in state-schema.md (PT_6)
+- **DS**: DS_4 removed — coexistence noted in Platform & Distribution instead
+- **NF**: No performance section (intentional). No priority column (all fundamental). NF_8 — state format for external GUI consumers
+- **DX**: DX_1 — dev dependency, downgraded to P1
+- **PL_DX**: Renamed from PT_DX. Three principles: Readability, Debug-ability, Resilience. PL_DX_17 — living notes doc
+- **PL_CT**: Renamed from PT_CT
+- **PL_TV**: Renamed from PT_TV. Red/green first (PL_TV_1). Sanity check test (PL_TV_9), anti-mock-overreliance (PL_TV_10)
+- **PL_SM**: Renamed from PT_SM
 
 ### Post-PRD decisions:
 - **Missing dependency self-correction:** If an agent discovers a missing dependency during execution (prerequisite work doesn't exist), it fixes the DAG in place — adds the dependency to state.json and per-iteration state, sets lifecycle to `ineligible`, documents across all four runtime artifacts, and returns. Not a blocker — the loop continues and the iteration auto-queues when the missing dep completes. Does not count against retry limit. Dependency graph validation step added to plan phase iteration review.
@@ -257,6 +245,80 @@ The PRD is at `prd.md`. Sections reviewed and approved so far:
   - **CLAUDE.md, README.md, iteration definition, state file** — always read in full (small, essential).
   - Rejected: reading everything always (fills context window). Deferred to future considerations: graduating high-value learnings to CLAUDE.md (#8), curating learnings during refine (#9).
 
+- **Entry IDs and merge-safe fencing for runtime artifacts:** Runtime artifacts (progress.md, learnings.md, emergent.md) are append-only markdown files. When parallel agents append entries at nearly the same time, git merge conflicts arise because every entry boundary is an identical `---` separator — git can't distinguish blocks.
+
+  **Problem:** The `---` thematic break is generic. Git's merge algorithm sees two additions at the same "end of file" region with identical context lines and conflicts.
+
+  **Solution:** Plet IDs + start/end fences. Each entry gets a globally unique, two-way decodable plet ID and is wrapped in fences that give git unique anchor lines.
+
+  **Plet ID scheme (inspired by UUIDv7, evolved from entry ID to composable scheme):**
+  - Format: `{type}_{crockford32}_{...context segments}`
+  - The type prefix and Crockford timestamp are the fixed structure. Context segments after that are type-specific, underscore-separated.
+  - Type prefix rules: 3 chars by convention, 4 allowed. First char must be a letter (a-z). Remaining chars: letters or digits (a-z, 0-9). Examples: `epr`, `eln`, `eem`, `ttr`, `tev`, `p2p`.
+  - Crockford timestamp: Unix milliseconds encoded as Crockford Base32 (always 10 chars). Alphanumeric only (0-9, A-Z excluding I/L/O/U), lexicographically sortable.
+  - Casing conventions: type prefix lowercase, Crockford timestamp uppercase, context segments have no casing convention at the scheme level (individual type specs may define their own). Parsers and readers must be case-insensitive and tolerate mixed case.
+  - Runtime artifact entry IDs use context segments: `{iteration}_{phase_attempt}` (e.g., `id001_i1`)
+  - Known type prefixes: `epr` (entry progress), `eln` (entry learnings), `eem` (entry emergent). Reserved: `ttr` (trace transcript), `tev` (trace events).
+  - Example: `epr_01JD8X3K7M_id001_i1`
+  - Properties: globally unique, time-sortable, two-way decodable (split on `_`), self-describing (type prefix identifies artifact), composable (context segments are type-specific), extensible (new type prefixes added without changing the scheme)
+
+  **Fence structure:**
+  - Start fence: `<div id="plet-epr_01JD8X3K7M_id001_i1"></div>` — invisible HTML anchor, unique for git
+  - Visual separator: `---` on its own line (renders as horizontal rule)
+  - End fence: `<div id="END-plet-epr_01JD8X3K7M_id001_i1"></div>` — invisible HTML anchor, symmetric with start fence
+  - Entry ID also appears visibly as `**PletId:** \`epr_01JD8X3K7M_id001_i1\`` in the metadata block
+
+  **Plet ID is the portable reference.** The `plet-` prefix only appears in HTML anchors (namespace hygiene). In JSON fields, grep, conversation, etc., the plet ID (e.g., `epr_01JD8X3K7M_id001_i1`) is used directly. A trace event or state file can reference an entry: `{"relatedEntry": "epr_01JD8X3K7M_id001_i1"}`.
+
+  **Namespace convention for HTML anchors:** `plet-{pletId}` where the 3-letter type prefix in the plet ID itself provides disambiguation. No additional `-entry-` or `-trace-` suffix needed in the anchor — the type is already in the ID.
+
+  **Resulting progress.md entry format:**
+  ```markdown
+  <div id="plet-epr_01JD8X3K7M_id001_i1"></div>
+
+  ---
+
+  ### [ID_001] impl-1 — COMPLETE
+  **PletId:** `epr_01JD8X3K7M_id001_i1`
+  **Timestamp:** 2026-03-07T15:20:00Z
+  **Iteration:** [ID_001] Project scaffolding
+  **Phase:** impl
+  **Attempt:** 1
+
+  **Summary:**
+  Initialized project structure with pyproject.toml, ruff, and pytest.
+
+  **Files changed:**
+  - `pyproject.toml` — project metadata and dependencies
+  - `src/main.py` — entry point stub
+
+  <div id="END-plet-epr_01JD8X3K7M_id001_i1"></div>
+  ```
+
+  **Alternatives considered:**
+  - (A) Unique separator lines (`--- plet 01JD8X3K7M_id001_i1 ---`): adds text to the `---` line, which breaks the thematic break — renders as plain text paragraph instead of a horizontal rule. Rejected.
+  - (B) HTML comment pairs for both start and end (`<!-- plet:start ... -->` / `<!-- plet:end ... -->`): both fences invisible. Works but no HTML anchor for linking/jumping. The `<div>` approach adds addressable anchors.
+  - (C) Hybrid unique separator + end marker: mixed markdown separator + HTML comment. Inconsistent metaphors.
+  - (D) One entry per file (`plet/progress/ID_001-impl-1.md`): eliminates merge conflicts entirely but contradicts the "single file for humans to scan" design decision. Rejected.
+  - (E) Embedding entry ID in the H3 heading: considered several layouts (subtitle, ID-leads, status-first, pipe-delimited). Decided to keep the existing H3 format and add entry ID as a separate `**PletId:**` KV line — minimal change, maintains scanning ergonomics.
+  - (F) Single `plet-entry-` prefix for all artifact types: works but entry IDs are not self-describing — you need file context to know if it's a progress, learnings, or emergent entry. Replaced by 3-letter type prefixes (`epr`, `eln`, `eem`) baked into the entry ID itself, making IDs self-describing everywhere (grep, JSON, conversation). The `plet-entry-` anchor prefix simplifies to just `plet-` since the type is in the ID.
+  - Earlier type prefix candidates were rejected for readability. Settled on `epr`/`eln`/`eem` (entry progress/learnings/emergent) — `e` groups them as entries, second two letters identify the artifact, and `eem` echoes the existing `EM_N` convention in emergent items.
+  - (G) End fence as HTML comment (`<!-- /plet-entry:... -->`): works but lacks visual symmetry with the `<div>` start fence. Replaced by symmetric `<div id="END-plet-..."></div>` — both fences are the same element type, both invisible when rendered.
+
+- **Entry ID → Plet ID Scheme generalization (RT_11):** Entry IDs were originally a fixed 4-segment format (`type_timestamp_iteration_phase`). Generalized to a composable plet ID scheme: type prefix (3 chars by convention, 4 allowed) + Crockford Base32 timestamp (always 10 chars) + type-specific context segments. The first two segments are the universal contract; context segments are defined per type. This allows future ID types (trace, state, etc.) to use the same scheme with different context segments. PRD subsection renamed from "Entry ID Format" to "Plet ID Scheme."
+
+- **Type prefix rules:** First character must be a letter (a-z), remaining characters can be letters or digits (a-z, 0-9). Allows prefixes like `p2p`. 3 chars is the strong convention; 4 is allowed for cases where 3 is insufficient.
+
+- **Casing conventions for plet IDs:** Type prefix lowercase by convention, Crockford timestamp uppercase by convention — this creates natural visual grouping where the timestamp pops against the lowercase segments. Context segments have no casing convention at the scheme level; individual type specifications define their own. Parsers and readers must be case-insensitive and tolerate mixed case.
+
+- **EM_N vs plet ID distinction (RT_3, RT_11):** Emergent items carry two IDs: the `EM_N` semantic ID (human-facing, stable, referenced in refine conversations) and the plet ID (structural, for fencing and cross-references). They serve different purposes and both appear on every emergent entry.
+
+- **SF_25 — git merge fencing requirement:** Runtime artifact entries are wrapped in start/end fences with unique boundary lines. When parallel agents append to the same file, git merge can distinguish entries and resolve without conflicts. Implementation details (div tags, plet IDs) in formats.md; the PRD only requires that fences produce unique, non-identical boundaries.
+
+- **PRD Status section simplified:** Dropped requirement counts and ID ranges from NOTES.md — the PRD is the source of truth for those. NOTES.md now only records design annotations that aren't in the PRD itself (the "why" and "watch out for" notes). One less thing to keep in sync.
+
+- **Consistency pass flavors formalized (CLAUDE.md):** Four flavors codified: (1) pattern grep, (2) section read, (3) cross-reference check, (4) full structural scan. Flavors 1-3 use standard read-only tools (Grep, Read, Glob, wc, etc.) and need no confirmation. Flavor 4 spawns an Explore agent and should be confirmed first unless clearly warranted. Custom scripts only acceptable for flavor 4. Always state which flavor was used and recommend escalation if results suggest it.
+
 ### Full review pass changes:
 - OR_4: added `verifying` lifecycle to routing
 - OR_13: skip mechanism scoped to individual acceptance criteria (not entire iterations). User or agent can mark a criterion as `skipped` with rationale. Skipping entire iterations deferred to Future Considerations.
@@ -270,6 +332,22 @@ The PRD is at `prd.md`. Sections reviewed and approved so far:
 - NF_8: state format designed for external GUI consumers
 - DS_4: removed (coexistence noted in NOTES.md instead)
 - Fingerprint example: fixed invalid JSON comments
+
+- **Crockford Base32 prefix filtering:** Because Crockford Base32 is lexicographically sortable, the leading characters of the timestamp correspond to rough time buckets. Useful for grep-based temporal filtering of plet IDs without decoding.
+
+  | Prefix chars | Time span per prefix value | Practical use |
+  |-------------|---------------------------|---------------|
+  | 1 | ~1,115 years | Epoch-level (all modern dates share `0`) |
+  | 2 | ~34.8 years | Generational (all 2020s-2050s share `01`) |
+  | 3 | ~1.1 years | Annual (`01K` ≈ 2026) |
+  | 4 | ~12.4 days | Biweekly sprint (`01KK` ≈ a week in March 2026) |
+  | 5 | ~9.3 hours | Work session |
+  | 6 | ~17.5 minutes | Fine-grained session segment |
+  | 7 | ~32.8 seconds | Near-exact moment |
+  | 8 | ~1.0 second | Subsecond precision |
+  | 9 | ~32 ms | Millisecond precision (rarely useful for grep) |
+
+  For precise date filtering, decode the Crockford timestamp to Unix ms. Prefix matching is for rough temporal buckets — but the practical sweet spots are prefix 4 (sprint/week), prefix 5 (session), and prefix 3 (annual). Potentially powerful for a GUI or analysis tool: filter all entries from "this sprint" with a simple 4-char prefix grep, no date parsing needed.
 
 ### Key structural decision: PT_ → PL_ rename
 All "plan-template" sections (PT_DX, PT_CT, PT_TV, PT_SM) were renamed to PL_ prefixes because they describe plan phase *behavior* (what plet's plan phase includes in target PRDs), not prompt/reference file *contents*. PT (3.8) stays as the 6 requirements about the physical reference files that ship with the skill. PL_12 added: write approved sections to disk immediately (prevents loss on context compaction).
