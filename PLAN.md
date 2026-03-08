@@ -1,14 +1,14 @@
 # Build Plan: plet-skills
 
-## Phase 1: SKILL.md — Main Orchestrator
+## Current State
+
+Phases 1, 2a, and 2b.1–2b.2 are complete. Next up: verify.md (2b.3). Remaining: verify.md, refine.md, packaging, notes skill. Phase 2c (examples) is deferred until after the first real plet run.
+
+---
+
+## Phase 1: SKILL.md — Main Orchestrator ✓ COMPLETE
 
 The core skill file. Single entry point `/plet` with routing logic based on state detection. Everything else depends on this.
-
-**Covers PRD sections:**
-- OR_1–OR_13 (Orchestration & Routing)
-- SY_1–SY_8 (Artifact Sync / fingerprints)
-- GC_1–GC_3 (Global Conventions)
-- DS_1–DS_3 (Distribution)
 
 **Key responsibilities:**
 - Read `plet/` directory state and route to correct phase
@@ -31,17 +31,13 @@ Build the 6 reference files that get injected into subagent prompts. Schemas fir
 
 All reference files live under `skills/plet/references/` to keep the skill self-contained and distributable.
 
-### Phase 2a: Schemas
+### Phase 2a: Schemas ✓ COMPLETE
 
 Build format and state schemas first — the phase prompts reference these for concrete field names and structures.
 
-#### 2a.1 `references/formats.md`
+#### 2a.1 `references/formats.md` ✓ COMPLETE
 
 Runtime artifact format specifications. Referenced by all subagent prompts.
-
-**Covers PRD sections:**
-- All RT_ requirements (Runtime Artifacts)
-- SF_17, SF_18 (Atomic append semantics), SF_25 (Entry fencing)
 
 **Key responsibilities:**
 - progress.md entry format (iteration ID, phase, attempt, status, timestamp, summary, files changed)
@@ -51,13 +47,9 @@ Runtime artifact format specifications. Referenced by all subagent prompts.
 - Atomic append rules (~4KB limit, self-contained blocks)
 - Format stability contract (additive only)
 
-#### 2a.2 `references/state-schema.md`
+#### 2a.2 `references/state-schema.md` ✓ COMPLETE
 
 JSON schemas for state files and trace NDJSON.
-
-**Covers PRD sections:**
-- SF_1–SF_24 (State File)
-- RT_4–RT_5 (Trace)
 
 **Key responsibilities:**
 - Global `plet/state.json` schema (project metadata, schema version, dependency map, milestones, parallel groups, breakpoints, fingerprints)
@@ -67,38 +59,29 @@ JSON schemas for state files and trace NDJSON.
 - Schema version field and migration rules
 - Example JSON for each schema
 
+**Validation checkpoint (Phase 2a):** Review schemas against PRD requirement tables. Confirm all fields from PRD are represented. Validate example JSON against the schema.
+
 ### Phase 2b: Phase Prompts
 
 Build the 4 phase reference files. These can reference schemas from Phase 2a by relative path.
 
-#### 2b.1 `references/plan.md`
+#### 2b.1 `references/plan.md` ✓ COMPLETE
 
 Interactive planning phase instructions. Human-driven conversation that produces requirements.md and iterations.md.
-
-**Covers PRD sections:**
-- PL_1–PL_14 (Plan Phase)
-- PL_DX_1–PL_DX_25 (Plan-Phase DX Template)
-- PL_TV_1–PL_TV_18 (Plan-Phase Testing & Verification Template)
-- PL_CT_1–PL_CT_3 (Plan-Phase Critical Test Areas Template)
-- PL_SM_1–PL_SM_5 (Plan-Phase Success Metrics Template)
 
 **Key responsibilities:**
 - Clarifying questions with lettered options
 - Requirements document generation (ridl-skills:prd format conventions)
-- Per-feature acceptance criteria review
+- Section-by-section requirements review
 - Iteration decomposition with dependencies
 - Per-iteration review
 - Fingerprint generation
 - Emergent item triage (if updating existing requirements)
 - Write-to-disk-on-approval discipline (PL_12)
 
-#### 2b.2 `references/execute.md`
+#### 2b.2 `references/execute.md` ✓ COMPLETE
 
 Implementation subagent prompt. Injected into each implementation subagent.
-
-**Covers PRD sections:**
-- EX_1–EX_23 (Execute Phase)
-- SF_1–SF_24 (State File — subagent's responsibilities)
 
 **Key responsibilities:**
 - Red/green test discipline
@@ -111,14 +94,14 @@ Implementation subagent prompt. Injected into each implementation subagent.
 - Git branch management (`plet/loop/{iteration_id}`)
 - Pre-flight checks
 - Blocker documentation (all 4 artifact types)
+- Failed attempt protocol (return to queue for retry)
+- Missing dependency self-correction (EX_24)
+- Criteria skip rules (OR_13)
 - Heartbeat updates
 
-#### 2b.3 `references/verify.md`
+#### 2b.3 `references/verify.md` — PENDING
 
-Verification subagent prompt. Fresh context, independent validation.
-
-**Covers PRD sections:**
-- VF_1–VF_20 (Verify Phase)
+Verification subagent prompt. Fresh context, independent validation. Depends heavily on `state-schema.md` (two-state criterion model, lifecycle transitions).
 
 **Key responsibilities:**
 - Result-first verification (no initial diff reading)
@@ -134,12 +117,9 @@ Verification subagent prompt. Fresh context, independent validation.
 - Trace NDJSON writing
 - Runtime artifact appends
 
-#### 2b.4 `references/refine.md`
+#### 2b.4 `references/refine.md` — PENDING
 
-Refine phase instructions. Human-driven triage and re-planning.
-
-**Covers PRD sections:**
-- RF_1–RF_15 (Refine Phase)
+Refine phase instructions. Human-driven triage and re-planning. Depends on both `state-schema.md` (lifecycle, fingerprints) and `formats.md` (emergent/learnings entry formats).
 
 **Key responsibilities:**
 - Emergent item triage (approve/modify/reject/defer)
@@ -153,11 +133,29 @@ Refine phase instructions. Human-driven triage and re-planning.
 - Breakpoint management
 - Status summary
 
-### Phase 2c: Examples
+**Validation checkpoint (Phase 2b):** For each phase prompt, verify every PRD requirement listed in the phase's section is addressed. Cross-check with NOTES.md invariants. Confirm reference file cross-references (e.g., "see `references/formats.md`") point to real sections.
 
-Create `examples/` directory with representative sample artifacts based on the finalized schemas from Phase 2a.
+---
+
+## Phase 3: Packaging
+
+Plugin metadata and distribution scaffolding. Done last so marketplace fields reflect the actual built skill.
 
 **Files:**
+- `.claude-plugin/plugin.json`
+- `.claude-plugin/marketplace.json`
+
+**Validation checkpoint:** Install the plugin locally and confirm `/plet` is available as a skill.
+
+---
+
+## Phase 4: Examples (deferred)
+
+Deferred until after the first real plet run on a project. Speculative examples written before real usage tend to drift from actual output. Instead, capture real artifacts from the first plet run and use those as canonical examples.
+
+When ready, create `examples/` directory with representative sample artifacts based on real output, validated against schemas from Phase 2a.
+
+**Files (planned):**
 - `examples/README.md` — overview of examples
 - `examples/requirements-snippet.md` — sample requirements.md excerpt
 - `examples/iterations-snippet.md` — sample iterations.md excerpt
@@ -170,17 +168,7 @@ Create `examples/` directory with representative sample artifacts based on the f
 
 ---
 
-## Phase 3: Packaging
-
-Plugin metadata and distribution scaffolding. Done last so marketplace fields reflect the actual built skill.
-
-**Files:**
-- `.claude-plugin/plugin.json`
-- `.claude-plugin/marketplace.json`
-
----
-
-## Phase 4: Notes Skill
+## Phase 5: Notes Skill
 
 A standalone `/notes` skill that formalizes the living development notes pattern used during plet-skills development.
 
@@ -222,18 +210,18 @@ A standalone `/notes` skill that formalizes the living development notes pattern
 ## Sequencing
 
 ```
-Phase 1     SKILL.md                          ── foundation
+Phase 1     SKILL.md                          ── foundation           ✓ COMPLETE
               ↓
-Phase 2a    formats.md + state-schema.md      ── schemas
+Phase 2a    formats.md + state-schema.md      ── schemas              ✓ COMPLETE
               ↓
-Phase 2b    plan.md, execute.md,              ── phase prompts
-            verify.md, refine.md                 (reference schemas)
-              ↓
-Phase 2c    examples/                         ── illustrate finalized formats
+Phase 2b    plan.md, execute.md,              ── phase prompts        ◐ PARTIAL
+            verify.md, refine.md                 (reference schemas)    (2/4 done)
               ↓
 Phase 3     plugin metadata                   ── packaging
               ↓
-Phase 4     notes skill                       ── standalone /notes skill
+Phase 4     examples/ (deferred)               ── capture from first real run
+              ↓
+Phase 5     notes skill                       ── standalone /notes skill
 ```
 
 ## Notes

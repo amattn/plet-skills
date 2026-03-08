@@ -221,7 +221,7 @@ Independent verification in a fresh context window. The verification agent verif
 | VF_15 | If issues are found that are minor and obvious to fix (typos, missing edge case tests, small corrections): add new acceptance criteria, fix with red/green discipline, then complete. For anything substantial, cycle back to implementation per VF_16. | P0 |
 | VF_16 | If issues are found that cannot be fixed in this context: add new criteria set to `fail`, set lifecycle back to `implementing`, document in emergent.md and learnings.md | P0 |
 | VF_17 | The verification agent appends to progress.md, learnings.md, and emergent.md following atomic write semantics | P0 |
-| VF_18 | The verification agent writes trace entries in NDJSON format to `plet/trace/{iteration_id}-verify-{attempt}.ndjson` | P0 |
+| VF_18 | The verification agent writes semantic event trace entries to `plet/trace/{iteration_id}-verify-{attempt}-events.ndjson`. The orchestrator captures the raw I/O transcript to `plet/trace/{iteration_id}-verify-{attempt}-transcript.jsonl`. (Matches split trace format defined in EX_10.) | P0 |
 | VF_19 | After verification completes (pass or fail), the orchestrator re-evaluates eligible iterations and continues the loop | P1 |
 | VF_20 | The verification agent checks that all runtime artifacts were properly written by the implementation agent (progress, learnings, emergent entries exist for this iteration) | P1 |
 

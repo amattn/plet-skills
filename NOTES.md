@@ -124,7 +124,7 @@ The user identified several gaps in the current ridl.json format:
 - **progress.md** — what was done (historical record, append-only narrative log)
 - **learnings.md** — agent-facing knowledge (helps future agents)
 - **emergent.md** — human-facing items (needs human decision)
-- **trace/** — full agent I/O logs per iteration in NDJSON format (`{iteration_id}-{phase}-{attempt}.ndjson`), capturing all assistant text, tool use, tool results, errors, system messages. Inspired by ridler2's logging approach.
+- **trace/** — two files per iteration per phase: `{id}-{phase}-{attempt}-transcript.jsonl` (raw I/O, orchestrator-captured) and `{id}-{phase}-{attempt}-events.ndjson` (semantic events, subagent-written). Inspired by ridler2's logging approach.
 
 ### Runtime artifact write safety
 - All three .md artifacts are single files (humans scan one file better than multiple)
@@ -317,6 +317,10 @@ All sections reviewed and approved. PRD written to `prd.md`. The PRD is the sour
 
 - **PRD Status section simplified:** Dropped requirement counts and ID ranges from NOTES.md — the PRD is the source of truth for those. NOTES.md now only records design annotations that aren't in the PRD itself (the "why" and "watch out for" notes). One less thing to keep in sync.
 
+- **Phase 2c (examples) deferred:** Examples written before real usage are speculative and tend to drift from actual output. Deferred until after the first real plet run on a project — capture real artifacts as canonical examples instead. PLAN.md updated.
+
+- **PLAN.md PRD ranges removed:** PRD requirement ranges (e.g., `EX_1–EX_25`) in PLAN.md caused excessive drift — every time a requirement was added, the range needed updating. Removed all "Covers PRD sections" blocks. The PRD is the source of truth for which requirements exist; PLAN.md focuses on key responsibilities and completion status.
+
 - **Consistency pass flavors formalized (CLAUDE.md):** Four flavors codified: (1) pattern grep, (2) section read, (3) cross-reference check, (4) full structural scan. Flavors 1-3 use standard read-only tools (Grep, Read, Glob, wc, etc.) and need no confirmation. Flavor 4 spawns an Explore agent and should be confirmed first unless clearly warranted. Custom scripts only acceptable for flavor 4. Always state which flavor was used and recommend escalation if results suggest it.
 
 ### Full review pass changes:
@@ -420,6 +424,94 @@ plet is currently designed for a single developer driving a single Claude Code s
 - Parallelization today is agent-level (multiple subagents). Multiplayer adds human-level parallelism on top of that.
 
 Not a v1 concern, but the state file architecture and artifact formats should not accidentally preclude multiplayer use.
+
+#### Multiplayer scenarios identified
+
+1. **Small team, single PRD (2-3 devs):** Low coupling. Each dev runs their own plet session on their own branch with their own `plet/state.json`. The merge point is git, not the state file. This mostly works already.
+
+2. **Large team, large PRD (10+ devs):** Higher coupling. Natural decomposition is one PRD per feature or subsection of the codebase. The hard part is the *seams* between features — when one dev's iteration changes an API that another dev's iteration consumes. Each plet session only sees its own plan/DAG. A lightweight manifest listing what each PRD's iterations *touch* (files, APIs, schemas) could provide overlap visibility proactively, rather than relying on "git + CI catches it" reactively.
+
+3. **Handoff mid-loop:** One dev starts a plet session, goes on vacation, another dev picks it up. The state files need to be legible to a *new* human+orchestrator pair. Stresses the "institutional memory" design — are `emergent.md`, `learnings.md`, and `state.json` enough for a stranger to resume?
+
+4. **Parallel PRDs with cross-cutting dependencies:** PRD A (API layer) blocks PRD B (frontend). Two separate plet loops with a sequencing constraint between them. Neither orchestrator knows about the other.
+
+5. **Build + QA in parallel:** Dev runs plet to implement; QA runs a separate plet loop to write test plans and exploratory tests against the same code. Two plet sessions, same codebase, different goals, overlapping files.
+
+6. **Refactor + feature collision:** One dev's plet loop is a broad refactor (touches 50 files lightly), another's is a deep feature (touches 5 files heavily). Maximally painful merge conflicts.
+
+7. **Spec change mid-flight:** Stakeholder updates the PRD while multiple devs are mid-loop. How does the change propagate to active sessions? Each orchestrator reads `prd.md` at launch — a mid-session change is invisible until restart.
+
+#### Multiplayer analysis
+
+**The pattern across these scenarios:** They differ not in team size but in *coupling*. 2-3 devs on one PRD have high coupling (same plan, same iterations). 10 devs with per-feature PRDs have low coupling *until they don't* (shared schemas, APIs, infrastructure). The handoff and spec-change scenarios are about *temporal* coupling — the state must survive across time, not just across people.
+
+**Git-first isolation is probably the answer for v1 compatibility.** Each developer runs their own `/plet` session on their own branch. They each have their own `plet/state.json`. The merge point is git, not the state file.
+
+**The hard problem is shared iterations, not shared state.** If two developers are both running plet loops on the same iteration set, you get conflicts on state files, runtime artifacts, and branches. But if they're working on *different* iterations from the same plan, the split state architecture (global state + per-iteration state files) already minimizes conflicts — each developer's subagents write to different per-iteration files.
+
+**Three multiplayer modes to consider:**
+
+- **Fork mode** (easiest): Each developer forks the plet directory to their branch. Fully independent. Merge via git. Runtime artifacts may conflict on merge but they're append-only, so conflict resolution is straightforward (keep both).
+- **Claim mode** (medium): Shared plan, developers "claim" iterations. The `agentId` / lifecycle fields in per-iteration state already support this — `implementing` with an agent ID is effectively a claim. A human could mark iterations as "mine" and the orchestrator would skip them for others. Minimal new machinery.
+- **Shared orchestration** (hardest): A single orchestrator aware of multiple humans. Probably not worth it — the orchestrator is a Claude Code session, and Claude Code sessions are single-user.
+
+**Emergent/blocker ownership:** In single-player, the human resolves everything. In multiplayer, you'd want emergent items tagged with who should resolve them (the iteration's "owner" or "anyone"). A simple `assignee` field on emergent entries — additive to the current format.
+
+**Refine is naturally single-threaded.** It's an interactive conversation that changes the spec. Having multiple humans refine concurrently would create conflicting spec edits. Best to keep refine as a serialized activity — one human refines at a time, others consume the updated spec.
+
+**Key architectural insight:** plet's split state architecture and per-iteration files already do most of the heavy lifting for multiplayer. The main gap is human-level coordination (who's working on what), not agent-level coordination (that's already solved by the DAG + lifecycle states).
+
+#### Open question: `subplets/` directory for hierarchical decomposition
+
+Could a simpler multiplayer model use a `subplets/` directory containing multiple individual `plet/` directories? The top-level `plet/` holds the high-level PRD (architecture, APIs, milestones) and can reference child plets for detailed feature work:
+
+```
+plet/                          # top-level PRD (high-level architecture, API contracts)
+  requirements.md              # references subplets/ children for detailed features
+  iterations.md                # high-level iterations
+  state.json
+subplets/
+  auth/
+    plet/                      # detailed PRD for auth feature
+      requirements.md
+      iterations.md
+      state.json
+  billing/
+    plet/                      # detailed PRD for billing
+      requirements.md
+      iterations.md
+      state.json
+```
+
+This provides:
+- Namespace isolation without git branch gymnastics
+- Each `plet/` instance is fully self-contained (own state.json, own runtime artifacts, own iterations)
+- Cross-PRD visibility by scanning sibling directories under `subplets/`
+- A natural place for shared manifest or coordination metadata at the `subplets/` level
+- Simpler than claim mode or shared orchestration — just multiple independent plet instances colocated
+- The name `subplets/` makes the parent-child hierarchy explicit
+
+**Multiplayer complexity spectrum:**
+
+| Mode | Coupling | New machinery |
+|------|----------|---------------|
+| Fork | None | None (git only) |
+| Flat `subplets/` | Colocated, independent | Naming convention |
+| Hierarchical `plet/` + `subplets/` | Parent references children | Reference syntax in requirements.md, rollup status |
+| Claim | Shared plan, divided ownership | Locking/claim semantics in state |
+| Shared orchestration | Single plan, multiple humans | Multi-user orchestrator |
+
+Open threads: Does the orchestrator need to know about sibling directories under `subplets/`? How do iterations in one subplet express dependencies on iterations in a sibling? Does this compose with the git branch strategy (each iteration branch is already scoped to one `plet/` instance)? Is the naming convention `subplets/{feature-name}/` or `subplets/{developer-name}/` or something else?
+
+### Consistency checking as a skill?
+
+Could the consistency pass flavors (currently CLAUDE.md conventions) become a standalone skill (`/consistency`) or plet subcommand (`/plet check`)? Premature for v1 — the CLAUDE.md instructions work well as agent conventions. The value of a skill emerges after we see patterns in *what* keeps drifting, then codify those specific checks as procedures.
+
+Key questions:
+- Is it plet-specific (knows PRD ↔ NOTES ↔ PLAN ↔ reference files) or general-purpose (user tells it what to check)?
+- Flavors 1-3 are essentially "use Grep/Read intelligently" — does a skill add value over agent instructions?
+- What recurring drift patterns emerge from real usage? Those would become the skill's procedures.
+- Should it compose with plet phases (auto-run after plan changes or refine)?
 
 ### Disambiguating PRD styles: snarktank, ridl, plet
 

@@ -31,6 +31,8 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 | progress md | progress.md |
 | nd jason | NDJSON |
 | harness, ridler | Ridler.app (optional GUI) |
+| sublet, sub plet | subplet |
+| Maine | main (git branch) |
 
 ## Preferences
 
@@ -39,12 +41,15 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - Never use JavaScript or TypeScript in examples. Prefer Python or Go.
 - When reviewing PRD sections, always ask "anything to add, change, or remove?" and offer "ok" to approve.
 - At every review step: (1) show the full content first for context, (2) proactively surface recommendations before asking for approval, (3) after approval, update NOTES.md with the decision and rationale, (4) finish with a consistency pass across affected artifacts.
+- **Never push to remote without asking first.** Never force push without explicit permission.
 
 ## Consistency Pass Flavors
 
 After making changes, run a consistency pass appropriate to the scope. Default to flavors 1-3 (no special permissions needed). Only use flavor 4 for conceptual reframes.
 
 > **Note:** Consistency passes are primarily a PRD/spec concern — keeping documentation, schemas, and format definitions aligned — but the same flavors apply to implementation and code. We are trying out these formalized flavors in this repo. If they work well, they may be added to the PL_DX requirements so plet's plan phase teaches them to target projects.
+
+> **Discovery request:** As you use consistency passes, note what keeps drifting (which files, which patterns, which flavors catch it). Record observations in NOTES.md under "Open Questions > Consistency checking as a skill?" — this data will inform whether to build a dedicated skill or subcommand.
 
 **1. Pattern grep** — `Grep` for a specific string or regex across the repo. Use for renames, old format references, stale values. Fast and targeted.
 
