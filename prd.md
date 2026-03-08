@@ -154,10 +154,10 @@ Split state architecture: global `plet/state.json` for project-wide data and per
 | SF_12 | The state file includes a `schemaVersion` field independent of the spec version, for format evolution | P0 |
 | SF_13 | State file format changes are additive only — never remove or rename fields. Breaking changes require a major version bump of schemaVersion. | P0 |
 | SF_14 | All state files are valid JSON parseable by external tools without special libraries | P0 |
-| SF_15 | Agents use atomic writes for state files: write to a temp file then rename (POSIX atomic rename) | P0 |
-| SF_16 | Per-iteration state files follow the same atomic write semantics as the global state file | P0 |
-| SF_17 | Runtime artifact writes (progress.md, learnings.md, emergent.md) use POSIX atomic append semantics (O_APPEND) — complete self-contained blocks in a single write | P0 |
-| SF_18 | Runtime artifact entries should stay under ~4KB. On local filesystems (the only target per NF_5), O_APPEND is atomic at any reasonable size, so this is a readability constraint, not a technical one. Entries exceeding ~4KB should be split into multiple self-contained entries. | P0 |
+| SF_15 | State file writes should use atomic rename when practical (write to temp file, then POSIX rename). Direct writes (e.g., Claude Code's Write tool) are acceptable for v1 — each state file has a single writer (one subagent per iteration), so concurrent write corruption is not a risk. External readers may encounter transient parse errors on partial writes and should retry. | P0 |
+| SF_16 | Per-iteration state files follow the same write semantics as the global state file (atomic rename when practical, direct writes acceptable for v1) | P0 |
+| SF_17 | Runtime artifact writes (progress.md, learnings.md, emergent.md) should be complete, self-contained blocks. Use Bash append (`cat >>`) rather than read-then-overwrite. POSIX O_APPEND is ideal but not required for v1 — runtime artifacts are append-only markdown, so a partial append only affects the last entry; prior entries are never corrupted. | P0 |
+| SF_18 | Runtime artifact entries should stay under ~4KB as a readability constraint. On local filesystems (the only target per NF_5), append operations are atomic at any reasonable size, so size limits are about maintainability, not atomicity. Entries exceeding ~4KB should be split into multiple self-contained entries. | P0 |
 | SF_19 | The global state file includes a top-level `parallelGroups` array that groups iterations which can execute concurrently | P1 |
 | SF_20 | Each per-iteration state file includes a `lastHeartbeat` timestamp for stale agent detection (> 5 min = potentially crashed) | P1 |
 | SF_21 | The global state file includes `breakpoints` with `before` and `after` arrays of iteration IDs — the orchestrator pauses at these points. Breakpoints are a user directive to the orchestrator, separate from iteration lifecycle. | P1 |
@@ -179,13 +179,13 @@ Implementation of iteration definitions using subagents with red/green test disc
 | EX_6 | The subagent updates per-iteration state file criterion statuses in real time as it works | P0 |
 | EX_7 | The subagent updates its `agentActivity` and `activityDetail` in the per-iteration state file as it transitions between activities | P0 |
 | EX_8 | The subagent sets the iteration lifecycle to `implementing` when it starts and updates it on completion | P0 |
-| EX_9 | The subagent appends to `plet/progress.md`, `plet/learnings.md`, and `plet/emergent.md` as things come up during work, not only at the end. Follows atomic write semantics defined in SF_17/SF_18. | P0 |
-| EX_10 | The subagent writes trace entries in NDJSON format to `plet/trace/{iteration_id}-{phase}-{attempt}.ndjson`, capturing all assistant text, tool use, tool results, errors, and system messages | P0 |
+| EX_9 | The subagent appends to `plet/progress.md`, `plet/learnings.md`, and `plet/emergent.md` as things come up during work, not only at the end. Each append is a complete, self-contained block per SF_17/SF_18. | P0 |
+| EX_10 | Trace capture is split into two files per phase: (1) `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl` — raw I/O captured automatically by the orchestrator from Claude Code's output, subagent does not write this; (2) `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` — semantic events (decisions, criterion updates, lifecycle changes, activity changes, errors) written by the subagent during work | P0 |
 | EX_11 | On implementation completion, the subagent commits changes and the iteration lifecycle moves to `verifying` | P0 |
 | EX_12 | After implementation completes, automatically spawn a verification subagent in a fresh context | P0 |
 | EX_13 | If a subagent encounters a blocker, it documents the issue across ALL four artifact types before returning: (1) trace log with full detail of attempts, failures, error messages, paths explored; (2) progress.md with BLOCKED status, work completed, and what remains; (3) emergent.md with blocker category entry describing what the human needs to resolve; (4) learnings.md with diagnostic context for next agent attempt. Then sets lifecycle to `blocked`. Every blocker represents loss of progress and requires human investigation. The quality of blocker documentation determines whether the human can help. | P0 |
 | EX_14 | Default maximum 3 retry attempts per iteration. If the failure count is strictly decreasing across attempts (trend improving), extend to a maximum of 6 attempts. Abort immediately if failures are not decreasing. | P0 |
-| EX_15 | Each iteration works on its own git branch (`plet/{iteration_id}`). Branch persists across implementation and verification phases. | P0 |
+| EX_15 | Each iteration works on its own git branch (`plet/loop/{iteration_id}`). Branch persists across implementation and verification phases. | P0 |
 | EX_16 | After an iteration reaches `complete` lifecycle, rebase onto the main working branch and fast-forward merge. Linear history is strongly preferred. | P0 |
 | EX_17 | Agents commit incrementally during each phase for crash recovery. At end of each phase, squash into a single commit. If an iteration cycles (impl-1, verify-1, impl-2, verify-2), each phase is a separate squashed commit. Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}` | P0 |
 | EX_18 | Per RT_6/RT_7, agents read runtime artifacts at start. If the agent has been working for an extended period or has accumulated substantial context, write current insights to learnings.md and emergent.md before wrapping up. | P0 |
@@ -235,8 +235,8 @@ Formats are defined at a high level here. Detailed templates and entry schemas a
 | RT_1 | `plet/progress.md` is an append-only log of what was implemented and verified each iteration, with iteration ID, phase, attempt number, status, timestamp, summary, and files changed | P0 |
 | RT_2 | `plet/learnings.md` is an agent-facing append-only knowledge base: codebase patterns, tool quirks, techniques, debugging tips — each entry tagged with category (pattern, gotcha, technique, tool, debug, context), iteration ID, and timestamp. If no category fits, use the closest one and create an emergent.md entry explaining why the categories were insufficient. | P0 |
 | RT_3 | `plet/emergent.md` captures human-facing items: design decisions made without human input, requirement gaps, assumptions, scope questions, edge cases — each with a unique `EM_N` ID, iteration source, category, and an `Outcome: pending` field | P0 |
-| RT_4 | `plet/trace/` contains per-iteration per-phase trace files in NDJSON format named `{iteration_id}-{phase}-{attempt}.ndjson` (e.g., `ID_001-impl-1.ndjson`, `ID_001-verify-1.ndjson`). NDJSON schema is defined in `references/state-schema.md`. | P0 |
-| RT_5 | Trace files capture all assistant text, tool use, tool results, errors encountered, system messages, decisions, and outcomes | P0 |
+| RT_4 | `plet/trace/` contains two trace files per phase per iteration: `{iteration_id}-{phase}-{attempt}-transcript.jsonl` (raw I/O in Claude Code's native format, orchestrator-managed) and `{iteration_id}-{phase}-{attempt}-events.ndjson` (semantic events, subagent-written). Semantic event schema defined in `references/state-schema.md`. | P0 |
+| RT_5 | The transcript file captures all assistant text, tool use, tool results, errors, and system messages (automatic). The events file captures decisions, criterion updates, lifecycle transitions, activity changes, and errors with recovery actions (subagent-written). A GUI merges both by timestamp for a unified view. | P0 |
 | RT_6 | All agents read learnings.md and emergent.md at the start of their work to benefit from prior knowledge | P0 |
 | RT_7 | All agents read progress.md to understand what has been completed in prior iterations | P0 |
 | RT_8 | Runtime artifact files are created with headers on first invocation if they do not exist. Headers include the plet version that created the file. | P0 |
@@ -299,8 +299,8 @@ plet has no performance requirements, which is unusual but intentional. plet's p
 | ID | Requirement |
 |----|-------------|
 | NF_1 | If a subagent crashes or times out, the iteration lifecycle remains at its current phase and does not corrupt the state file |
-| NF_2 | Concurrent writes to per-iteration state files by parallel subagents must not cause data loss (atomic write via temp file + rename) |
-| NF_3 | Concurrent appends to runtime artifact .md files must not cause data loss (POSIX O_APPEND atomic semantics) |
+| NF_2 | Per-iteration state files are written by a single subagent per iteration, eliminating concurrent write conflicts. Use atomic writes when practical; direct writes acceptable for v1. External readers should handle transient parse errors gracefully. |
+| NF_3 | Runtime artifact appends should be complete, self-contained blocks. Use Bash append (`cat >>`) for true appends. Append-only markdown format ensures a partial append only affects the last entry — prior entries are never corrupted. |
 | NF_4 | If a state file is malformed or unreadable, the skill reports a clear error and does not overwrite the file |
 
 ### Compatibility
@@ -636,6 +636,9 @@ Testing and verification requirements that the plan phase should include in targ
 | 5 | Custom phase plugins | Allow users to add custom phases (e.g., a "deploy" phase after verify) via plugin hooks |
 | 6 | Metrics and analytics dashboard | Track iteration completion times, verification pass rates, blocker rates, and refinement cycles to identify bottlenecks |
 | 7 | Skip entire iterations | Allow users to skip entire iterations (not just individual criteria), adding a `skipped` lifecycle state with rationale tracking |
+| 8 | Learnings graduation to CLAUDE.md | During refine, learnings that prove consistently useful get promoted into the project's `CLAUDE.md`. Once graduated, the original entry is marked as absorbed. Keeps learnings.md manageable as high-value entries migrate to the always-loaded project config. |
+| 9 | Learnings curation during refine | The refine phase explicitly curates learnings: consolidate duplicates, remove entries that are no longer true (codebase changed), merge related entries. Bounded growth rather than unbounded append-only. |
+| 10 | Smart test suite execution strategy | Revisit the green-step test execution strategy as projects grow. Current approach: tier by suite speed (fast = full suite every green step, slow = targeted tests per criterion + full suite at phase end). Future options to explore: batched full runs every N criteria, checkpoint-based runs when switching modules/subsystems, test impact analysis to run only affected tests, parallel test execution, and letting the agent learn optimal thresholds per project. |
 
 ---
 

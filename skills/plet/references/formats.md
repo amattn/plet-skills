@@ -12,7 +12,7 @@ This document defines the entry formats for the four PLET runtime artifacts. All
 
 ### Atomic Appends (SF_17)
 
-Runtime artifact writes (`progress.md`, `learnings.md`, `emergent.md`) use POSIX atomic append semantics (`O_APPEND`). Each write is a complete, self-contained block — never a partial entry.
+Runtime artifact writes (`progress.md`, `learnings.md`, `emergent.md`) should be complete, self-contained blocks — never a partial entry. True POSIX `O_APPEND` semantics are ideal but not required for v1. Runtime artifacts are append-only markdown, so a partial append only affects the last entry — prior entries are never corrupted.
 
 ### Size Limit (SF_18)
 
@@ -165,6 +165,14 @@ The default SQLite journal mode blocks readers during writes. Tests with concurr
 **Timestamp:** 2026-03-07T14:35:00Z
 
 Every error string in this project includes a unique 12-digit debug number at the throw site (e.g., `[814209375142]`). When adding new error handling, generate a random 12-digit number and hard-code it. Never reuse numbers across the codebase. Grep for the number to find the exact source location.
+
+---
+
+### [debug] OAuth token refresh returns 500 in sandbox
+**Iteration:** [ID_003]
+**Timestamp:** 2026-03-07T16:45:00Z
+
+The OAuth provider's sandbox environment returns HTTP 500 on all token refresh requests. Tried: direct API calls with curl, SDK wrapper, different grant types (authorization_code, client_credentials), different scopes. All fail with the same 500 response body: `{"error": "internal_server_error"}`. The initial token exchange works fine — only refresh is broken. Next agent should check if the sandbox is back up before attempting. If still down, consider mocking the refresh endpoint for testing.
 ```
 
 ---
@@ -257,34 +265,40 @@ Token refresh requests to the OAuth provider's sandbox environment consistently 
 ## trace/ (RT_4, RT_5)
 
 **Audience:** Debugging / accountability
-**Purpose:** Full agent I/O logs per iteration per phase. NDJSON format.
+**Purpose:** Full agent I/O and semantic event logs per iteration per phase.
 
-### File Naming
+Trace capture is split into two files per phase:
+
+### Raw I/O Transcript (orchestrator-managed)
 
 ```
-plet/trace/{iteration_id}-{phase}-{attempt}.ndjson
+plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl
 ```
+
+Captured automatically by the orchestrator from Claude Code's `--output-format stream-json` output. Contains all assistant text, tool use, tool results, errors, and system messages in Claude Code's native JSONL format. **Subagents do not write this file.**
 
 Examples:
-- `ID_001-impl-1.ndjson` — ID_001, implementation phase, attempt 1
-- `ID_001-verify-1.ndjson` — ID_001, verification phase, attempt 1
-- `ID_002-impl-2.ndjson` — ID_002, implementation phase, attempt 2 (retry)
+- `ID_001-impl-1-transcript.jsonl` — ID_001, implementation phase, attempt 1
+- `ID_001-verify-1-transcript.jsonl` — ID_001, verification phase, attempt 1
+- `ID_002-impl-2-transcript.jsonl` — ID_002, implementation phase, attempt 2 (retry)
+
+### Semantic Events (subagent-written)
+
+```
+plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson
+```
+
+Written by the subagent during work. Contains high-level semantic events: decisions, criterion status changes, lifecycle transitions, activity changes, errors and recovery actions. Each line is a valid JSON object following the schema in `references/state-schema.md`.
+
+Examples:
+- `ID_001-impl-1-events.ndjson`
+- `ID_001-verify-1-events.ndjson`
 
 Filenames use zero-padded IDs (GC_3): `ID_001`, not `ID_1`.
 
-### NDJSON Format
+### GUI Integration
 
-Each line is a valid JSON object. The full trace line schema is defined in `references/state-schema.md`.
-
-### What Gets Traced (RT_5)
-
-- All assistant text output
-- All tool use (tool name, parameters)
-- All tool results
-- Errors encountered
-- System messages
-- Decisions made and their rationale
-- Outcomes (criterion status changes, lifecycle transitions)
+A GUI merges both files and sorts by timestamp for a unified view. The raw transcript provides full fidelity; the semantic events provide high-level annotations and structure.
 
 ---
 

@@ -243,7 +243,7 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
    - `plet/requirements.md` (universal context)
    - `plet/learnings.md` (prior knowledge)
 3. Spawn subagents for independent iterations in parallel
-4. Monitor subagent completion
+4. Monitor subagent completion. After each subagent finishes, copy its transcript to `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl` (raw I/O capture). The subagent writes its own semantic events to `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` during work.
 5. After implementation completes (lifecycle → `verifying`), spawn a **verification subagent** in a fresh context with:
    - The iteration definition from `plet/iterations.md`
    - The full contents of `references/verify.md`
@@ -326,11 +326,14 @@ Default maximum **3** retry attempts per iteration. If the failure count is stri
 
 ## Git Strategy
 
-Each iteration works on its own branch: `plet/{iteration_id}`
+Each iteration works on its own branch: `plet/loop/{iteration_id}`
 
 - Branch persists across implementation and verification phases
 - Agents commit incrementally during each phase for crash recovery
 - At end of each phase, squash into a single commit
+- If `tagBeforeSquash` is enabled, create a tag before squashing to preserve incremental history
+- Tag convention: `plet/audit/{iteration_id}/{phase}-{attempt}` (hierarchical `/` separators for GUI filtering)
+- `tagBeforeSquash` auto-enables for an iteration if verification fails — keeps audit trail for troublesome loops
 - Commit convention: `plet: [ID_xxx] {phase}-{attempt} - {title}`
 - After `complete`, rebase onto main branch and fast-forward merge (linear history)
 

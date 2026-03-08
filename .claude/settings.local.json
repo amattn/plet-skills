@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:gist.github.com)"
+      "WebFetch(domain:gist.github.com)",
+      "Bash(git status:*)",
+      "Bash(grep:*)",
+      "Bash(git commit:*)",
+      "Bash(wc:*)"
     ]
   }
 }
