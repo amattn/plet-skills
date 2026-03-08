@@ -40,8 +40,8 @@ Build format and state schemas first — the phase prompts reference these for c
 Runtime artifact format specifications. Referenced by all subagent prompts.
 
 **Covers PRD sections:**
-- RT_1–RT_10 (Runtime Artifacts)
-- SF_17–SF_18 (Atomic append semantics)
+- All RT_ requirements (Runtime Artifacts)
+- SF_17, SF_18 (Atomic append semantics), SF_25 (Entry fencing)
 
 **Key responsibilities:**
 - progress.md entry format (iteration ID, phase, attempt, status, timestamp, summary, files changed)

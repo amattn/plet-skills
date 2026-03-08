@@ -40,6 +40,30 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - When reviewing PRD sections, always ask "anything to add, change, or remove?" and offer "ok" to approve.
 - At every review step: (1) show the full content first for context, (2) proactively surface recommendations before asking for approval, (3) after approval, update NOTES.md with the decision and rationale, (4) finish with a consistency pass across affected artifacts.
 
+## Consistency Pass Flavors
+
+After making changes, run a consistency pass appropriate to the scope. Default to flavors 1-3 (no special permissions needed). Only use flavor 4 for conceptual reframes.
+
+> **Note:** Consistency passes are primarily a PRD/spec concern — keeping documentation, schemas, and format definitions aligned — but the same flavors apply to implementation and code. We are trying out these formalized flavors in this repo. If they work well, they may be added to the PL_DX requirements so plet's plan phase teaches them to target projects.
+
+**1. Pattern grep** — `Grep` for a specific string or regex across the repo. Use for renames, old format references, stale values. Fast and targeted.
+
+**2. Section read** — `Read` the 2-3 files known to be affected, check for drift. Use for changes scoped to a known set of files.
+
+**3. Cross-reference check** — grep for all mentions of a requirement ID (e.g., `RT_11`, `SF_25`) or concept name, verify each mention is current. Use for new or modified requirements.
+
+**4. Full structural scan** — spawn an Explore agent to read all relevant files and check semantic consistency (not just string matches). Use for conceptual reframes where you're checking meaning, not patterns. This is the slowest and most expensive flavor.
+
+**When to run:**
+- Flavors 1-3 are cheap — just run them when asked, no need to confirm.
+- Flavor 4 is expensive — ask before spawning a full structural scan. But use your best judgment on the balance; if the change clearly warrants it, don't make the user ask twice.
+
+**Feedback:** Always state which flavor you ran (e.g., "Ran a pattern grep (flavor 1) for..."). If the results suggest a different or deeper flavor would be worthwhile, recommend it.
+
+**Tooling rules:**
+- Read-only CLI tools (`wc`, `grep`, `sort`, `head`, `tail`, `diff`, etc.) and the built-in `Grep`/`Glob`/`Read` tools are always fine for flavors 1-3.
+- Custom scripts (Python, etc.) are only acceptable for flavor 4. Do not write custom scripts for simple pattern matching or cross-reference checks.
+
 ## NOTES.md Rules
 
 NOTES.md is the institutional memory for this project. **Always update it automatically** — never wait to be asked.
