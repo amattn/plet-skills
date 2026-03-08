@@ -330,6 +330,32 @@ Principles and understanding that inform decisions.
 - **Fingerprint-based sync**: Lightweight consistency checking across requirements.md → iterations.md → state.json without file hashing. Future Considerations and Open Questions excluded from fingerprints.
 - **NOTES.md as institutional memory**: The notes file is the connective tissue between CLAUDE.md (project config) and the PRD (spec). It captures the "why" so the PRD can stay clean.
 
+## Open Questions
+
+### How does plet work in a multiplayer scenario?
+
+plet is currently designed for a single developer driving a single Claude Code session. What happens when multiple humans are involved? Open threads:
+- Multiple developers working on the same plet project simultaneously — do they share a single state.json? Separate branches? Separate plet directories?
+- Who resolves emergent items and blockers when there are multiple humans?
+- Does the orchestrator need to be aware of multiple concurrent human operators, or is that handled at the git layer (each developer on their own branch, merge later)?
+- How does refine work with multiple stakeholders — is it still one interactive session, or does it need async review/approval?
+- Parallelization today is agent-level (multiple subagents). Multiplayer adds human-level parallelism on top of that.
+
+Not a v1 concern, but the state file architecture and artifact formats should not accidentally preclude multiplayer use.
+
+### Disambiguating PRD styles: snarktank, ridl, plet
+
+There are now multiple PRD-generation approaches in the ecosystem. They serve different purposes and produce different artifacts:
+
+- **snarktank** — adversarial multi-persona PRD generation. Multiple simulated stakeholders debate and stress-test requirements. Produces a comprehensive PRD through conflict and resolution. Good for surfacing blind spots and edge cases early.
+- **ridl (ridl-skills:prd)** — structured PRD generation with requirement tables, technical architecture, user flows, and release milestones. Produces a detailed, human-readable spec. The original PRD pipeline.
+- **plet (plan phase)** — interactive, iterative spec refinement inside Claude Code. Produces three artifacts (requirements.md, iterations.md, state.json). The PRD is a living document that evolves through the refine loop.
+
+Key questions:
+- Can these be composed? e.g., snarktank generates the initial PRD, plet's plan phase refines it into iterations?
+- Should plet's plan phase be opinionated about PRD format, or accept any reasonable PRD as input?
+- Is there a clean handoff point between "PRD generation" (snarktank/ridl) and "PRD operationalization" (plet)?
+
 ## Self-Improvement Analysis (Future Consideration #11)
 
 As models improve, skills like plet go out of date. plet needs instrumentation and the ability to improve itself. This section captures the analysis of that insight and its implications for plet's design.
