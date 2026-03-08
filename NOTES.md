@@ -377,6 +377,7 @@ Rules that must not be violated. An agent breaking these breaks the system.
 - **IDs are stable once assigned** — never renumber, never reuse. Gaps are expected and acceptable.
 - **Each approved section is written to disk immediately** — the file on disk is the source of truth. Never defer writing approved content to the end of a session.
 - **Each iteration must fit in a single context window without compaction** — this is the single most important decomposition constraint. Context compaction mid-iteration causes the agent to lose implementation state. Err aggressively on smaller iterations; two small iterations are always safer than one large one.
+- **Agents must surface improvements to their own instructions** — when an agent notices a pattern, convention, or recurring issue not yet captured in CLAUDE.md or project instructions, it offers to write it down. Human approves, instructions improve, next session is better. This is the micro self-improvement loop (session-to-session via CLAUDE.md). The macro loop is Future Consideration #11 (plet analyzing runtime artifacts to improve its own PRD). Both are human-gated. Both are load-bearing — without them, instructions calcify as the project evolves.
 
 ## Important Concepts & Insights
 
@@ -387,6 +388,8 @@ Principles and understanding that inform decisions.
 - "The quality of blocker documentation determines whether the human can help."
 - Agents prefer making a decision + documenting in emergent.md over blocking — blockers are last resort.
 - **Self-improvement is load-bearing:** As models improve, skills like plet go out of date. plet needs instrumentation and the ability to improve itself. A separate skill or mode should analyze runtime artifacts (progress, learnings, emergent, trace) and use that analysis to inform improvements to the plet PRD, which can then be implemented and result in a version bump. Not v1, but an important architectural insight — plet must be designed with this evolution path in mind.
+
+- **Agents can improve their own instructions as they go.** Two examples already in CLAUDE.md: (1) consistency pass discovery request — agents record what drifts and offer to update the consistency section, (2) commit conventions marked as draft — agents surface recommendations and offer to incorporate them. This is the micro self-improvement loop (session-to-session via CLAUDE.md), thematically identical to Future Consideration #11 (macro loop: plet analyzing runtime artifacts to improve its own PRD). Both are human-gated, both are load-bearing. No special tooling needed — just "notice something, offer to write it down." Promoted to invariant.
 
 ### Emergent
 - **Use subagents to explore and validate during design:** During the execute.md build session, we used subagents to research ridler2's trace mechanism, check Claude Code's `--output-format stream-json` flag, test whether Agent tool subagents accept CLI flags, and verify that subagent transcript files exist on disk. This turned a speculative design question ("can we capture agent I/O?") into a confirmed approach backed by evidence. Subagents are cheap and fast for this kind of exploratory validation — use them proactively during brainstorming, not just for delegated work.

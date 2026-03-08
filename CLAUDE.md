@@ -43,6 +43,21 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - At every review step: (1) show the full content first for context, (2) proactively surface recommendations before asking for approval, (3) after approval, update NOTES.md with the decision and rationale, (4) finish with a consistency pass across affected artifacts.
 - **Never push to remote without asking first.** Never force push without explicit permission.
 
+## Self-Improvement
+
+You are expected to improve the instructions you operate under. When you notice a recurring pattern, convention, drift, or issue that isn't yet captured in CLAUDE.md, NOTES.md, or equivalent project instructions — **surface it immediately and offer to write it down.** Do not wait to be asked. Do not save it for later. The observation is most valuable while the context is fresh.
+
+This applies to everything: naming conventions, commit patterns, file organization, review workflows, testing strategies, communication preferences. If you've seen it twice, it's a pattern. If it's not written down, it will be forgotten by the next session.
+
+The human approves all changes — you propose, they decide. But the responsibility to *notice and propose* is yours.
+
+**Where to write it depends on what it is:**
+- **NOTES.md** — observations, emerging patterns, things worth watching. Low commitment. "We've done this twice, might be a pattern."
+- **CLAUDE.md** — formalized processes, policies, behaviors. High commitment. "This is how we do things."
+- **Other artifacts as appropriate** — PRD for requirements, PLAN.md for build sequencing, README for user-facing docs, reference files for phase-specific guidance. Use judgment about where the insight belongs.
+
+Not every observation needs to become policy immediately. Capture it first, promote when the pattern is confirmed.
+
 ## Consistency Pass Flavors
 
 After making changes, run a consistency pass appropriate to the scope. Default to flavors 1-3 (no special permissions needed). Only use flavor 4 for conceptual reframes.
@@ -68,6 +83,48 @@ After making changes, run a consistency pass appropriate to the scope. Default t
 **Tooling rules:**
 - Read-only CLI tools (`wc`, `grep`, `sort`, `head`, `tail`, `diff`, etc.) and the built-in `Grep`/`Glob`/`Read` tools are always fine for flavors 1-3.
 - Custom scripts (Python, etc.) are only acceptable for flavor 4. Do not write custom scripts for simple pattern matching or cross-reference checks.
+
+## Commit Conventions (draft)
+
+> **Draft convention.** This is evolving based on observed patterns in this repo. If you notice something that doesn't fit, or have a recommendation for improvement, surface it and offer to update this section.
+
+**Note:** These conventions are for *this repo* (plet-skills). plet's own commit convention for target projects is separate: `plet: [ID_xxx] impl-N - title` (defined in execute.md).
+
+### Title line (strong convention)
+- Format: `prefix: short description`
+- Keep under ~70 characters
+- Lowercase after prefix, verb-first (e.g., `add`, `fix`, `restructure`)
+
+### Prefixes
+| Prefix | Use for |
+|--------|---------|
+| `spec` | PRD changes, new requirements, requirement modifications |
+| `skill` | Skill implementation files (SKILL.md, reference files) |
+| `plan` | PLAN.md changes (build plan, phase tracking) |
+| `notes` | NOTES.md-only changes (decisions, analysis, open questions) |
+
+When a commit spans multiple categories, use the prefix of the *primary* change.
+
+### Body (strong convention, exceptions ok)
+- Group bullets by theme when touching 3+ files — don't use a flat list
+- Each bullet should be one idea; use sub-bullets for detail
+- Parentheticals for brief rationale: `Strip PRD ranges (drift-prone)`
+- No need to list every file — describe *what changed* conceptually
+- Simple single-file changes may not need a body at all
+
+### Example
+```
+plan: restructure build phases, incorporate multiplayer analysis
+
+PLAN.md overhaul:
+- Strip PRD ranges (drift-prone, PRD is source of truth)
+- Add completion markers and validation checkpoints
+- Renumber: examples → Phase 4, notes skill → Phase 5
+
+Multiplayer design (NOTES.md):
+- 7 scenarios, 3 modes (fork/claim/shared orchestration)
+- subplets/ directory for hierarchical decomposition
+```
 
 ## NOTES.md Rules
 
