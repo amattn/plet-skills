@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(GOROOT=/usr/local/go go build:*)",
+      "Bash(GOROOT=/usr/local/go go test:*)",
+      "Bash(cp:*)",
+      "Bash(plet/progress.md:*)",
+      "Bash(plet/learnings.md:*)",
+      "Bash(mkdir:*)",
+      "Bash(git:*)",
+      "Bash(GOROOT=/usr/local/go /usr/local/go/bin/go build:*)",
+      "Bash(GOROOT=/usr/local/go /usr/local/go/bin/go test:*)",
+      "Bash(GOROOT=/usr/local/go /usr/local/go/bin/go vet:*)",
+      "Bash(GOROOT=/usr/local/go /usr/local/go/bin/gofmt:*)",
+      "Bash(GOROOT=/usr/local/go /usr/local/go/bin/go list:*)",
+      "Bash(/Users/kai/github.com/amattn/plet-skills/examples/logalyzer/plet/progress.md:*)",
+      "Bash(/Users/kai/github.com/amattn/plet-skills/examples/logalyzer/plet/learnings.md:*)",
+      "Bash(/Users/kai/github.com/amattn/plet-skills/examples/logalyzer/FEEDBACK.md:*)",
+      "Bash(env:*)",
+      "Bash(GOROOT=/usr/local/go /usr/local/go/bin/go:*)"
+    ],
+    "defaultMode": "bypassPermissions"
+  }
+}

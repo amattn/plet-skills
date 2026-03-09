@@ -26,6 +26,9 @@ func runSearch(args []string) int {
 	level := fs.String("level", "", "filter by log level (comma-separated)")
 	keyword := fs.String("keyword", "", "filter by keyword in any string field")
 	jsonOut := fs.Bool("json", false, "output each matching entry as a JSON object, one per line")
+	caseSensitive := fs.Bool("case-sensitive", false, "make --keyword match case-sensitive (default is case-insensitive)")
+	regex := fs.String("regex", "", "filter entries matching a regex across string fields")
+	invert := fs.Bool("invert", false, "show entries that do NOT match the other filters")
 
 	if err := fs.Parse(args); err != nil {
 		// 529174836201 — flag parse error in search
@@ -63,7 +66,25 @@ func runSearch(args []string) int {
 		filters = append(filters, filter.NewLevelFilter(levels))
 	}
 	if *keyword != "" {
-		filters = append(filters, filter.NewKeywordFilter(*keyword))
+		if *caseSensitive {
+			filters = append(filters, filter.NewCaseSensitiveKeywordFilter(*keyword))
+		} else {
+			filters = append(filters, filter.NewKeywordFilter(*keyword))
+		}
+	}
+	if *regex != "" {
+		rf, regexErr := filter.NewRegexFilter(*regex)
+		if regexErr != nil {
+			// 849271365042 — invalid regex pattern in search command
+			fmt.Fprintf(os.Stderr, "error [849271365042]: %v\n", regexErr)
+			return 1
+		}
+		filters = append(filters, rf)
+	}
+	// --invert: wrap all collected filters in an InvertFilter
+	if *invert && len(filters) > 0 {
+		combined := &compositeFilter{filters: filters}
+		filters = []filter.Filter{filter.NewInvertFilter(combined)}
 	}
 	if len(filters) > 0 {
 		entries = filter.Apply(entries, filters...)
@@ -105,6 +126,22 @@ func runSearch(args []string) int {
 	}
 
 	return 0
+}
+
+// compositeFilter combines multiple filters with AND semantics into a single Filter.
+// Used internally to wrap filters before inverting with --invert.
+type compositeFilter struct {
+	filters []filter.Filter
+}
+
+// Match returns true if all inner filters match the entry.
+func (c *compositeFilter) Match(entry parser.LogEntry) bool {
+	for _, f := range c.filters {
+		if !f.Match(entry) {
+			return false
+		}
+	}
+	return true
 }
 
 // printGroupByCounts prints group-by results sorted by key.

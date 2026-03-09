@@ -1,12 +1,12 @@
 {
   "iterationId": "ID_010",
-  "lifecycle": "ineligible",
+  "lifecycle": "verifying",
   "agentId": null,
   "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "attempts": { "impl": 1, "verify": 0 },
   "criteria": [
-    { "id": "AC_1", "description": "--search is case-insensitive by default; --case-sensitive makes it exact", "status": "not_started" },
-    { "id": "AC_2", "description": "--regex <pattern> filters entries matching a regex across string fields", "status": "not_started" },
-    { "id": "AC_3", "description": "--invert shows entries that do NOT match the other filters", "status": "not_started" }
+    { "id": "AC_1", "description": "--search is case-insensitive by default; --case-sensitive makes it exact", "status": "passed" },
+    { "id": "AC_2", "description": "--regex <pattern> filters entries matching a regex across string fields", "status": "passed" },
+    { "id": "AC_3", "description": "--invert shows entries that do NOT match the other filters", "status": "passed" }
   ]
 }
