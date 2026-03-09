@@ -253,3 +253,20 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
   - `internal/output/text_test.go` — 3 StreamEntry color integration tests
   - `internal/output/tty_test.go` — 2 TTY detection tests
 - **Pre-flight:** build clean, 14 color-related tests pass, vet clean, gofmt clean
+
+## ID_013: Negated field filter & --no-color — COMPLETE (passed, frozen)
+- **Verified:** 2026-03-09, verify-1
+- **Criteria:** AC_1 pass, AC_2 pass
+- **Summary:** Negated field filter (`--field !key`) matches entries missing a specific key. `--no-color` flag disables colored output even when outputting to a TTY. Both features wired into CLI and verified with unit + integration tests.
+- **Key files:**
+  - `internal/filter/filter.go` — NegatedFieldFilter struct, NewNegatedFieldFilter()
+  - `internal/filter/filter_test.go` — 4 unit tests (TestSF9_*)
+  - `cmd/logalyzer/search.go` — --field !key parsing, --no-color flag
+  - `cmd/logalyzer/search_test.go` — 2 integration tests (TestSF9_SearchNegatedFieldFlag, TestOU4_NoColorFlag)
+- **Pre-flight:** build clean, all tests pass, vet clean, gofmt clean
+
+---
+
+## PLET LOOP COMPLETE
+
+All 13 iterations implemented and verified. Milestones MS_1, MS_2, MS_3 complete.
