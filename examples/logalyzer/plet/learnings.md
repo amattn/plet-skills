@@ -14,3 +14,16 @@ plet v1.0.0
 The system has a stale GOROOT env var pointing to `/Users/kai/BTSync/gostuff/go/` which causes `go build` to fail with "package fmt is not in std". Fix: prefix commands with `GOROOT=/usr/local/go` or ensure the environment is clean. This affects all Go commands (build, test, vet, etc.).
 
 <div id="END-plet-eln_01JD9X1001_id001_i1"></div>
+
+<div id="plet-eln_01JD9X2002_id001_v1"></div>
+
+---
+
+### [practice] Testable main pattern works well for CLI verification
+**PletId:** `eln_01JD9X2002_id001_v1`
+**Iteration:** [ID_001]
+**Timestamp:** 2026-03-09T08:00:19Z
+
+The `run(args []string) int` pattern separating logic from `main()` is effective but the test (TestVersionFlag) still builds a binary and uses exec.Command. For simple flag tests, testing the `run` function directly would be faster and avoid build overhead. Consider this approach for future iterations.
+
+<div id="END-plet-eln_01JD9X2002_id001_v1"></div>

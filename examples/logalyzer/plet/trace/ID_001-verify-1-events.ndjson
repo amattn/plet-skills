@@ -1,0 +1,8 @@
+{"event":"verify_start","pletId":"evt_01JD9X2003_id001_v1","iterationId":"ID_001","phase":"verify","attempt":1,"timestamp":"2026-03-09T08:00:00Z"}
+{"event":"criterion_check","pletId":"evt_01JD9X2004_id001_v1","iterationId":"ID_001","criterionId":"AC_1","status":"pass","detail":"go build ./... exits 0","timestamp":"2026-03-09T08:00:05Z"}
+{"event":"criterion_check","pletId":"evt_01JD9X2005_id001_v1","iterationId":"ID_001","criterionId":"AC_2","status":"pass","detail":"go test ./... passes TestVersionFlag and TestSanity","timestamp":"2026-03-09T08:00:08Z"}
+{"event":"criterion_check","pletId":"evt_01JD9X2006_id001_v1","iterationId":"ID_001","criterionId":"AC_3","status":"pass","detail":"Inverted sanity test fails as expected","timestamp":"2026-03-09T08:00:12Z"}
+{"event":"criterion_check","pletId":"evt_01JD9X2007_id001_v1","iterationId":"ID_001","criterionId":"AC_4","status":"pass","detail":"--version and -v both print logalyzer v0.1.0-dev","timestamp":"2026-03-09T08:00:15Z"}
+{"event":"criterion_check","pletId":"evt_01JD9X2008_id001_v1","iterationId":"ID_001","criterionId":"AC_5","status":"pass","detail":"CLAUDE.md, PLET.md, README.md all present with required content","timestamp":"2026-03-09T08:00:17Z"}
+{"event":"quality_check","pletId":"evt_01JD9X2009_id001_v1","iterationId":"ID_001","detail":"go vet clean, gofmt clean, no external deps","timestamp":"2026-03-09T08:00:18Z"}
+{"event":"verify_end","pletId":"evt_01JD9X2010_id001_v1","iterationId":"ID_001","phase":"verify","attempt":1,"verdict":"passed","timestamp":"2026-03-09T08:00:19Z"}
