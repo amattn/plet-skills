@@ -2,7 +2,7 @@
 
 ## Current State
 
-Phases 1, 2a, and 2b.1–2b.3 are complete. Next up: refine.md (2b.4). Remaining: refine.md, packaging, notes skill. Phase 2c (examples) is deferred until after the first real plet run.
+Phases 1, 2a, and 2b are complete. All 4 phase prompts done. Next up: packaging (Phase 3). Phase 4 (examples) is deferred until after the first real plet run.
 
 ---
 
@@ -117,20 +117,23 @@ Verification subagent prompt. Fresh context, independent validation. Depends hea
 - Trace NDJSON writing
 - Runtime artifact appends
 
-#### 2b.4 `references/refine.md` — PENDING
+#### 2b.4 `references/refine.md` ✓ COMPLETE
 
 Refine phase instructions. Human-driven triage and re-planning. Depends on both `state-schema.md` (lifecycle, fingerprints) and `formats.md` (emergent/learnings entry formats).
 
 **Key responsibilities:**
-- Emergent item triage (approve/modify/reject/defer)
-- Learnings pattern analysis
-- Blocked iteration surfacing with full context from all 4 artifacts
+- Blocked iteration surfacing first (priority over triage)
+- Emergent item triage (approve/modify/reject/defer) with per-decision progress.md writes
+- Learnings pattern analysis with plet ID traceability
 - Requirements update with EM_N references
-- Iteration re-decomposition preserving frozen iterations
-- Partially complete iteration handling (preserve/reset/replace decision)
-- Fingerprint updates across all artifacts
-- Milestone assignment rules (frozen milestones, heuristics for new vs append)
+- Iteration re-decomposition with revise/reset/withdraw options
+- Withdraw protocol with full impact summary and cascading resolution
+- Partially complete iteration "more detail" option with agent recommendation
+- Explicit user confirmation before re-queuing
+- Fingerprint updates across all artifacts (withdrawn iterations excluded)
+- Milestone assignment rules (frozen milestones, all-complete explicit ask, heuristics)
 - Breakpoint management
+- Cascading consistency pass (decisions → requirements → iterations → state)
 - Status summary
 
 **Validation checkpoint (Phase 2b):** For each phase prompt, verify every PRD requirement listed in the phase's section is addressed. Cross-check with NOTES.md invariants. Confirm reference file cross-references (e.g., "see `references/formats.md`") point to real sections.
@@ -214,8 +217,8 @@ Phase 1     SKILL.md                          ── foundation           ✓ CO
               ↓
 Phase 2a    formats.md + state-schema.md      ── schemas              ✓ COMPLETE
               ↓
-Phase 2b    plan.md, execute.md,              ── phase prompts        ◐ PARTIAL
-            verify.md, refine.md                 (reference schemas)    (3/4 done)
+Phase 2b    plan.md, execute.md,              ── phase prompts        ✓ COMPLETE
+            verify.md, refine.md                 (reference schemas)
               ↓
 Phase 3     plugin metadata                   ── packaging
               ↓
