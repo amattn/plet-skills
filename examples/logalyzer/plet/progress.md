@@ -105,3 +105,22 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - **AC_2**: Summary includes total entry count, time range covered, and parse error count (AG_2) — PASS
 - **AC_3**: Summary output is human-readable text to stdout — PASS
 - **Commit**: `plet: [ID_007] impl-1 - Summary command`
+
+## ID_004: Basic search & filter — verify-1 PASS
+
+- **Criteria:** 5/5 pass (AC_1 through AC_5)
+- **Tests:** 16 tests, all passing, non-tautological
+- **Pre-flight:** build, test, vet, gofmt all clean
+- **Code quality:** doc comments on all exports, stdlib only, requirement IDs in test names
+- **Lifecycle:** complete
+
+## ID_007: Summary command — COMPLETE
+- **Verified:** 2026-03-09, verify-1
+- **Criteria:** AC_1 pass, AC_2 pass, AC_3 pass
+- **Summary:** `logalyzer summary <file>` parses NDJSON, counts entries by severity level, reports total count/time range/parse errors in human-readable text to stdout. 11 unit tests + 1 integration test. ParseResult extension is backward-compatible. All pre-flight checks clean.
+- **Key files:**
+  - `internal/aggregate/aggregate.go` — Summary struct, Summarize(), Format()
+  - `internal/aggregate/aggregate_test.go` — 10 unit tests covering AG_1, AG_2, AC_3
+  - `internal/parser/parser.go` — ParseResult struct, ParseNDJSONResult()
+  - `cmd/logalyzer/main.go` — summary subcommand routing, runSummary()
+  - `cmd/logalyzer/main_test.go` — TestAG1_AG2_SummaryCommand integration test

@@ -2,22 +2,48 @@
   "schemaVersion": "1.0.0",
   "iterationId": "ID_007",
   "title": "Summary command",
-  "lastUpdated": "2026-03-09T14:30:00Z",
-  "lastHeartbeat": "2026-03-09T14:30:00Z",
-  "lifecycle": "verifying",
+  "lastUpdated": "2026-03-09T15:00:00Z",
+  "lastHeartbeat": "2026-03-09T15:00:00Z",
+  "lifecycle": "complete",
   "dependencies": ["ID_003"],
   "agentId": null,
   "agentActivity": "idle",
   "activityDetail": null,
-  "attempts": { "impl": 1, "verify": 0 },
+  "attempts": { "impl": 1, "verify": 1 },
   "phaseTimestamps": {
     "impl_1_start": "2026-03-09T13:00:00Z",
-    "impl_1_end": "2026-03-09T14:30:00Z"
+    "impl_1_end": "2026-03-09T14:30:00Z",
+    "verify_1_start": "2026-03-09T14:45:00Z",
+    "verify_1_end": "2026-03-09T15:00:00Z"
   },
   "elapsedSeconds": {},
   "criteria": [
     { "id": "AC_1", "description": "logalyzer summary <file> outputs count by severity level", "status": "pass" },
     { "id": "AC_2", "description": "Summary includes total entry count, time range covered, and parse error count", "status": "pass" },
     { "id": "AC_3", "description": "Summary output is human-readable text to stdout", "status": "pass" }
+  ],
+  "verification": [
+    {
+      "criterion": "AC_1",
+      "status": "pass",
+      "evidence": "Summarize() builds LevelCounts map by incrementing per entry.Level. Format() outputs sorted 'Counts by level:' section. Unit tests TestAG1_CountBySeverity (info=2, warn=1, error=2), TestAG1_CountBySeverityEmpty (empty input), TestAG1_CountBySeverityMissingLevel (empty-string level). Integration test TestAG1_AG2_SummaryCommand verifies 'error' and 'info' appear in CLI output from a real NDJSON file."
+    },
+    {
+      "criterion": "AC_2",
+      "status": "pass",
+      "evidence": "Summary struct has TotalCount (len(entries)), Earliest/Latest (min/max timestamps), ParseErrorCount (passed from parser). ParseNDJSONResult returns ParseResult with ParseErrors count. Unit tests: TestAG2_TotalCount (5 entries), TestAG2_TimeRange (correct earliest/latest), TestAG2_TimeRangeNoTimestamps (zero values), TestAG2_ParseErrorCount (3 errors), TestAG2_ParseResultErrorCount (2 malformed lines counted). Integration test checks 'Total entries: 3', 'Parse errors: 1', both timestamp strings."
+    },
+    {
+      "criterion": "AC_3",
+      "status": "pass",
+      "evidence": "Format() builds human-readable text with '=== Log Summary ===' header, labeled fields, aligned columns. runSummary() prints via fmt.Print to stdout; errors go to stderr. TestAG1_AG2_FormatOutput checks all key sections present. TestAG1_AG2_FormatNoTimestamps checks '(no timestamps)' fallback. Integration test captures stdout from compiled binary."
+    }
+  ],
+  "verificationReports": [
+    {
+      "attempt": 1,
+      "outcome": "pass",
+      "summary": "All 3 acceptance criteria pass. Pre-flight clean: build, test (11 aggregate + 1 integration), vet, gofmt all green. Summarize() correctly counts by severity, computes time range, tracks parse errors. Format() produces deterministic sorted output. ParseResult/ParseNDJSONResult is additive and backward-compatible with existing ParseNDJSON/ParseNDJSONWithWarnings signatures. All error strings have unique 12-digit debug numbers. Edge cases covered: empty input, no timestamps, missing levels, parse errors. No TODOs, no placeholders, no external deps."
+    }
   ]
 }

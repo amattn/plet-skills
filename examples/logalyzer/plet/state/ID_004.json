@@ -2,23 +2,65 @@
   "schemaVersion": "1.0.0",
   "iterationId": "ID_004",
   "title": "Basic search & filter",
-  "lastUpdated": "2026-03-09T13:00:00Z",
-  "lastHeartbeat": "2026-03-09T13:00:00Z",
-  "lifecycle": "verifying",
+  "lastUpdated": "2026-03-09T14:00:00Z",
+  "lastHeartbeat": "2026-03-09T14:00:00Z",
+  "lifecycle": "complete",
   "dependencies": ["ID_003"],
   "agentId": null,
   "agentActivity": "idle",
   "activityDetail": null,
-  "attempts": { "impl": 1, "verify": 0 },
+  "attempts": { "impl": 1, "verify": 1 },
   "phaseTimestamps": {
-    "impl_1_start": "2026-03-09T13:00:00Z"
+    "impl_1_start": "2026-03-09T13:00:00Z",
+    "verify_1_start": "2026-03-09T14:00:00Z",
+    "verify_1_end": "2026-03-09T14:00:00Z"
   },
   "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "--level error filters to entries with level=error", "status": "pass" },
-    { "id": "AC_2", "description": "--level warn,error filters to entries matching either level", "status": "pass" },
-    { "id": "AC_3", "description": "--from and --to filter by time range with RFC 3339 timestamps", "status": "pass" },
-    { "id": "AC_4", "description": "--search <keyword> matches across all string fields", "status": "pass" },
-    { "id": "AC_5", "description": "Multiple filters combine with AND semantics", "status": "pass" }
+    {
+      "id": "AC_1",
+      "description": "--level error filters to entries with level=error",
+      "status": "pass",
+      "verificationDetails": "LevelFilter with single level tested by TestSF1_LevelFilterSingle (count + value assertion) and TestSF1_LevelFilterCaseInsensitive. Non-tautological with mixed-level test data."
+    },
+    {
+      "id": "AC_2",
+      "description": "--level warn,error filters to entries matching either level",
+      "status": "pass",
+      "verificationDetails": "Multi-level filter tested by TestSF1_LevelFilterMultiple (3 results from 5 entries, each verified). Negative case TestSF1_LevelFilterNoMatch confirms zero results for absent level."
+    },
+    {
+      "id": "AC_3",
+      "description": "--from and --to filter by time range with RFC 3339 timestamps",
+      "status": "pass",
+      "verificationDetails": "TimeRangeFilter tested by 4 tests: both bounds (inclusive), from-only, to-only, and explicit RFC3339 parsing via time.Parse. Open-ended ranges use zero-value time.Time."
+    },
+    {
+      "id": "AC_4",
+      "description": "--search <keyword> matches across all string fields",
+      "status": "pass",
+      "verificationDetails": "KeywordFilter searches Level, Message, and string-typed Extra values. Tested across message (TestSF3_KeywordSearchMessage), extra fields (TestSF3_KeywordSearchExtraField), level (TestSF3_KeywordSearchLevel), case-insensitive (TestSF3_KeywordSearchCaseInsensitive), and no-match."
+    },
+    {
+      "id": "AC_5",
+      "description": "Multiple filters combine with AND semantics",
+      "status": "pass",
+      "verificationDetails": "Apply() accepts variadic filters with short-circuit AND. Tested with 2-filter combo (TestSF5_CombineFiltersAND), 3-filter combo (TestSF5_CombineAllThreeFilters), and AND-producing-empty (TestSF5_CombineFiltersNoMatch)."
+    }
+  ],
+  "verificationReports": [
+    {
+      "attempt": 1,
+      "timestamp": "2026-03-09T14:00:00Z",
+      "result": "pass",
+      "summary": "All 5 acceptance criteria pass. 16 tests cover all filter types with non-tautological assertions. Pre-flight clean: build, test, vet, gofmt all pass. Code quality good: doc comments on all exports, stdlib only, requirement IDs in test names.",
+      "criteriaResults": {
+        "AC_1": "pass",
+        "AC_2": "pass",
+        "AC_3": "pass",
+        "AC_4": "pass",
+        "AC_5": "pass"
+      }
+    }
   ]
 }
