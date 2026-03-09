@@ -569,6 +569,69 @@ func TestSF8_InvertFilterAll(t *testing.T) {
 	}
 }
 
+// TestSF9_NegatedFieldFilterMissingKey verifies --field !key matches entries missing a specific key (SF_9, AC_1).
+func TestSF9_NegatedFieldFilterMissingKey(t *testing.T) {
+	entries := []parser.LogEntry{
+		{Level: "info", Message: "has region", Extra: map[string]any{"service": "web", "region": "us"}},
+		{Level: "info", Message: "no region", Extra: map[string]any{"service": "api"}},
+		{Level: "error", Message: "also no region", Extra: map[string]any{"service": "db"}},
+	}
+	f := NewNegatedFieldFilter("region")
+	result := Apply(entries, f)
+
+	// Only 2 entries are missing "region"
+	if len(result) != 2 {
+		t.Fatalf("expected 2 entries missing 'region', got %d", len(result))
+	}
+	for _, e := range result {
+		if _, exists := e.Extra["region"]; exists {
+			t.Errorf("negated filter should exclude entries with 'region', got entry with region=%v", e.Extra["region"])
+		}
+	}
+}
+
+// TestSF9_NegatedFieldFilterAllPresent verifies negated field returns empty when all entries have the key (SF_9, AC_1).
+func TestSF9_NegatedFieldFilterAllPresent(t *testing.T) {
+	entries := makeEntries()
+	f := NewNegatedFieldFilter("service")
+	result := Apply(entries, f)
+
+	// All entries have "service" in Extra
+	if len(result) != 0 {
+		t.Fatalf("expected 0 entries (all have 'service'), got %d", len(result))
+	}
+}
+
+// TestSF9_NegatedFieldFilterNonePresent verifies negated field returns all when no entries have the key (SF_9, AC_1).
+func TestSF9_NegatedFieldFilterNonePresent(t *testing.T) {
+	entries := makeEntries()
+	f := NewNegatedFieldFilter("nonexistent_key")
+	result := Apply(entries, f)
+
+	if len(result) != 5 {
+		t.Fatalf("expected 5 entries (none have 'nonexistent_key'), got %d", len(result))
+	}
+}
+
+// TestSF9_NegatedFieldFilterWellKnownLevel verifies negated filter on well-known field 'level' (SF_9, AC_1).
+func TestSF9_NegatedFieldFilterWellKnownLevel(t *testing.T) {
+	entries := []parser.LogEntry{
+		{Level: "info", Message: "has level"},
+		{Level: "", Message: "no level"},
+		{Level: "error", Message: "also has level"},
+	}
+	f := NewNegatedFieldFilter("level")
+	result := Apply(entries, f)
+
+	// Only 1 entry has empty level
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry missing 'level', got %d", len(result))
+	}
+	if result[0].Message != "no level" {
+		t.Errorf("expected message='no level', got %q", result[0].Message)
+	}
+}
+
 // TestSF5_CombineFiltersNoMatch verifies AND semantics can produce empty results (AC_5).
 func TestSF5_CombineFiltersNoMatch(t *testing.T) {
 	entries := makeEntries()

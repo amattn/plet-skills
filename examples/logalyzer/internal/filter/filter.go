@@ -163,6 +163,32 @@ func (f *FieldFilter) Match(entry parser.LogEntry) bool {
 	return fmt.Sprint(v) == f.value
 }
 
+// NegatedFieldFilter matches entries that are MISSING a specific field.
+// For well-known fields (level, message), "missing" means the field is empty.
+// For Extra fields, "missing" means the key does not exist in the Extra map.
+type NegatedFieldFilter struct {
+	key string
+}
+
+// NewNegatedFieldFilter creates a NegatedFieldFilter for the given key.
+// It matches entries where the specified key is absent.
+func NewNegatedFieldFilter(key string) *NegatedFieldFilter {
+	return &NegatedFieldFilter{key: key}
+}
+
+// Match returns true if the entry does NOT have the specified field.
+func (f *NegatedFieldFilter) Match(entry parser.LogEntry) bool {
+	// 736284951037 — NegatedFieldFilter.Match: true when key is missing
+	switch f.key {
+	case "level":
+		return entry.Level == ""
+	case "message":
+		return entry.Message == ""
+	}
+	_, exists := entry.Extra[f.key]
+	return !exists
+}
+
 // CaseSensitiveKeywordFilter matches entries that contain the keyword in any
 // string field using exact (case-sensitive) comparison.
 type CaseSensitiveKeywordFilter struct {

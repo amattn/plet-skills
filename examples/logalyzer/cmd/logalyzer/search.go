@@ -32,6 +32,8 @@ func runSearch(args []string) int {
 	invert := fs.Bool("invert", false, "show entries that do NOT match the other filters")
 	histogramFlag := fs.Bool("histogram", false, "produce a time-bucketed histogram of entry counts")
 	bucketFlag := fs.String("bucket", "1h", "bucket duration for histogram (e.g., 1m, 5m, 1h)")
+	fieldFlag := fs.String("field", "", "filter by field presence (key), exact value (key=value), or absence (!key)")
+	noColor := fs.Bool("no-color", false, "disable colored output even when outputting to a TTY")
 
 	if err := fs.Parse(args); err != nil {
 		// 529174836201 — flag parse error in search
@@ -84,6 +86,17 @@ func runSearch(args []string) int {
 		}
 		filters = append(filters, rf)
 	}
+	if *fieldFlag != "" {
+		spec := *fieldFlag
+		if strings.HasPrefix(spec, "!") {
+			// 482917365024 — negated field filter: match entries missing key
+			filters = append(filters, filter.NewNegatedFieldFilter(spec[1:]))
+		} else if idx := strings.Index(spec, "="); idx >= 0 {
+			filters = append(filters, filter.NewFieldFilter(spec[:idx], spec[idx+1:], false))
+		} else {
+			filters = append(filters, filter.NewFieldFilter(spec, "", true))
+		}
+	}
 	// --invert: wrap all collected filters in an InvertFilter
 	if *invert && len(filters) > 0 {
 		combined := &compositeFilter{filters: filters}
@@ -128,8 +141,11 @@ func runSearch(args []string) int {
 		fieldList = strings.Split(*fields, ",")
 	}
 
-	// Detect TTY for color output (OU_3)
+	// Detect TTY for color output (OU_3), with --no-color override (OU_4)
 	colorEnabled := output.IsTerminal(os.Stdout)
+	if *noColor {
+		colorEnabled = false
+	}
 
 	// Output entries: JSON when --json or --fields, text otherwise
 	for _, e := range entries {

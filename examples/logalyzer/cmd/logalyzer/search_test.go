@@ -412,6 +412,53 @@ func TestOU2_SummaryJSONOutput(t *testing.T) {
 	}
 }
 
+// TestOU4_NoColorFlag verifies --no-color disables ANSI color codes in output (OU_4, AC_2).
+func TestOU4_NoColorFlag(t *testing.T) {
+	bin, cleanup := buildBinary(t)
+	defer cleanup()
+
+	// Use an error-level entry which would normally be colored red
+	content := `{"level":"error","msg":"connection refused","timestamp":"2025-01-01T11:00:00Z"}
+`
+	tmpFile := writeTempFile(t, content)
+	defer os.Remove(tmpFile)
+
+	cmd := exec.Command(bin, "search", "--no-color", tmpFile)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("search --no-color failed with %v: %s", err, out)
+	}
+
+	output := string(out)
+	if strings.Contains(output, "\033[") {
+		t.Errorf("--no-color should suppress ANSI codes, but output contains escape sequences: %q", output)
+	}
+}
+
+// TestSF9_SearchNegatedFieldFlag verifies 'search --field !key' matches entries missing a key (SF_9, AC_1).
+func TestSF9_SearchNegatedFieldFlag(t *testing.T) {
+	bin, cleanup := buildBinary(t)
+	defer cleanup()
+
+	content := `{"level":"info","msg":"has region","service":"web","region":"us","timestamp":"2025-01-01T10:00:00Z"}
+{"level":"info","msg":"no region","service":"api","timestamp":"2025-01-01T11:00:00Z"}
+{"level":"error","msg":"also no region","service":"db","timestamp":"2025-01-01T12:00:00Z"}
+`
+	tmpFile := writeTempFile(t, content)
+	defer os.Remove(tmpFile)
+
+	cmd := exec.Command(bin, "search", "--field", "!region", tmpFile)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("search --field !region failed with %v: %s", err, out)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(lines) != 2 {
+		t.Errorf("expected 2 entries missing 'region', got %d: %q", len(lines), string(out))
+	}
+}
+
 // TestOU7_SearchCountWithLevel verifies --count combined with --level filter (OU_7, AC_4).
 func TestOU7_SearchCountWithLevel(t *testing.T) {
 	bin, cleanup := buildBinary(t)
