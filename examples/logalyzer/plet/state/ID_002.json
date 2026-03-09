@@ -1,13 +1,24 @@
 {
+  "schemaVersion": "1.0.0",
   "iterationId": "ID_002",
-  "lifecycle": "ineligible",
-  "agentId": null,
-  "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "title": "NDJSON parser",
+  "lastUpdated": "2026-03-09T10:15:00Z",
+  "lastHeartbeat": "2026-03-09T10:15:00Z",
+  "lifecycle": "verifying",
+  "dependencies": ["ID_001"],
+  "agentId": "agent_id002_impl1",
+  "agentActivity": "complete",
+  "activityDetail": "all criteria green, ready for verification",
+  "attempts": { "impl": 1, "verify": 0 },
+  "phaseTimestamps": {
+    "impl_1_start": "2026-03-09T10:00:00Z",
+    "impl_1_end": "2026-03-09T10:15:00Z"
+  },
+  "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "Parse a valid NDJSON file into a slice of LogEntry structs", "status": "not_started" },
-    { "id": "AC_2", "description": "Each LogEntry has well-known fields and a map of extra fields", "status": "not_started" },
-    { "id": "AC_3", "description": "Lines missing well-known fields parse successfully with zero/empty values", "status": "not_started" },
-    { "id": "AC_4", "description": "Malformed JSON lines are skipped with a warning to stderr", "status": "not_started" }
+    { "id": "AC_1", "description": "Parse a valid NDJSON file into a slice of LogEntry structs", "status": "pass", "evidence": "TestLP1_ParseValidNDJSON, TestLP1_EmptyInput, TestLP1_BlankLines all pass" },
+    { "id": "AC_2", "description": "Each LogEntry has well-known fields and a map of extra fields", "status": "pass", "evidence": "TestLP1_LP4_AC2_WellKnownAndExtraFields passes: timestamp/level/message extracted, extra fields populated, well-known fields excluded from Extra" },
+    { "id": "AC_3", "description": "Lines missing well-known fields parse successfully with zero/empty values", "status": "pass", "evidence": "TestLP7_MissingFields, TestLP7_PartialWellKnownFields both pass: zero time, empty strings for missing fields" },
+    { "id": "AC_4", "description": "Malformed JSON lines are skipped with a warning to stderr", "status": "pass", "evidence": "TestLP4_MalformedLines, TestLP4_MalformedLinesStderrWarning both pass: malformed lines skipped, warnings written with line numbers" }
   ]
 }
