@@ -26,6 +26,15 @@ type LogEntry struct {
 	RawJSON string
 }
 
+// ParseResult holds the result of parsing NDJSON input, including
+// successfully parsed entries and the count of malformed lines that were skipped.
+type ParseResult struct {
+	// Entries contains the successfully parsed log entries.
+	Entries []LogEntry
+	// ParseErrors is the number of malformed lines that could not be parsed.
+	ParseErrors int
+}
+
 // timestampAliases maps field names to the canonical "timestamp" well-known field.
 var timestampAliases = map[string]bool{
 	"timestamp":  true,
@@ -82,12 +91,29 @@ func ParseNDJSON(r io.Reader) ([]LogEntry, error) {
 	return ParseNDJSONWithWarnings(r, os.Stderr)
 }
 
+// ParseNDJSONResult reads NDJSON from r and returns a ParseResult that includes
+// both the parsed entries and the count of parse errors (malformed lines).
+// Warnings are suppressed (written to io.Discard).
+func ParseNDJSONResult(r io.Reader) (*ParseResult, error) {
+	return parseNDJSONInternal(r, io.Discard)
+}
+
 // ParseNDJSONWithWarnings reads NDJSON from r and returns a slice of LogEntry structs.
 // Malformed JSON lines are skipped with a warning written to warnWriter.
 // Only I/O errors are returned as errors; parse errors are handled per-line.
 func ParseNDJSONWithWarnings(r io.Reader, warnWriter io.Writer) ([]LogEntry, error) {
+	result, err := parseNDJSONInternal(r, warnWriter)
+	if err != nil {
+		return result.Entries, err
+	}
+	return result.Entries, nil
+}
+
+// parseNDJSONInternal is the shared implementation for all NDJSON parsing functions.
+// It tracks parse errors and writes warnings to warnWriter.
+func parseNDJSONInternal(r io.Reader, warnWriter io.Writer) (*ParseResult, error) {
 	scanner := bufio.NewScanner(r)
-	var entries []LogEntry
+	result := &ParseResult{}
 	lineNum := 0
 
 	for scanner.Scan() {
@@ -101,6 +127,7 @@ func ParseNDJSONWithWarnings(r io.Reader, warnWriter io.Writer) ([]LogEntry, err
 		if err := json.Unmarshal([]byte(line), &raw); err != nil {
 			// 738291045623 — malformed JSON line warning (AC_4, LP_4)
 			fmt.Fprintf(warnWriter, "warning [738291045623]: skipping malformed JSON on line %d: %v\n", lineNum, err)
+			result.ParseErrors++
 			continue
 		}
 
@@ -146,13 +173,13 @@ func ParseNDJSONWithWarnings(r io.Reader, warnWriter io.Writer) ([]LogEntry, err
 			entry.Extra[k] = v
 		}
 
-		entries = append(entries, entry)
+		result.Entries = append(result.Entries, entry)
 	}
 
 	if err := scanner.Err(); err != nil {
 		// 162948573012 — I/O error during NDJSON scanning
-		return entries, fmt.Errorf("I/O error reading NDJSON [162948573012]: %w", err)
+		return result, fmt.Errorf("I/O error reading NDJSON [162948573012]: %w", err)
 	}
 
-	return entries, nil
+	return result, nil
 }

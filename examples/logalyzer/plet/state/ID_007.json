@@ -1,12 +1,23 @@
 {
+  "schemaVersion": "1.0.0",
   "iterationId": "ID_007",
-  "lifecycle": "ineligible",
+  "title": "Summary command",
+  "lastUpdated": "2026-03-09T14:30:00Z",
+  "lastHeartbeat": "2026-03-09T14:30:00Z",
+  "lifecycle": "verifying",
+  "dependencies": ["ID_003"],
   "agentId": null,
   "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "activityDetail": null,
+  "attempts": { "impl": 1, "verify": 0 },
+  "phaseTimestamps": {
+    "impl_1_start": "2026-03-09T13:00:00Z",
+    "impl_1_end": "2026-03-09T14:30:00Z"
+  },
+  "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "logalyzer summary <file> outputs count by severity level", "status": "not_started" },
-    { "id": "AC_2", "description": "Summary includes total entry count, time range covered, and parse error count", "status": "not_started" },
-    { "id": "AC_3", "description": "Summary output is human-readable text to stdout", "status": "not_started" }
+    { "id": "AC_1", "description": "logalyzer summary <file> outputs count by severity level", "status": "pass" },
+    { "id": "AC_2", "description": "Summary includes total entry count, time range covered, and parse error count", "status": "pass" },
+    { "id": "AC_3", "description": "Summary output is human-readable text to stdout", "status": "pass" }
   ]
 }

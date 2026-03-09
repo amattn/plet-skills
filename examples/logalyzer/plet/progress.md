@@ -90,3 +90,18 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - **Requirements:** LP_2, LP_5, LP_6
 - **Key files:** `internal/parser/parser.go`, `internal/parser/parser_test.go`
 - **Notes:** Alias maps for timestamp/level/message fields. parseTimestamp handles RFC3339, Unix seconds, Unix millis with sub-second precision. Well-known fields excluded from Extra map.
+
+## ID_004: Basic search & filter — COMPLETE
+
+- **Implemented:** 2026-03-09
+- **Criteria:** AC_1 (level filter), AC_2 (multi-level), AC_3 (time range), AC_4 (keyword search), AC_5 (AND combination) — all pass
+- **Requirements:** SF_1, SF_2, SF_3, SF_5
+- **Key files:** `internal/filter/filter.go`, `internal/filter/filter_test.go`
+- **Tests:** 16 tests, all passing
+- **Notes:** Filter package with LevelFilter, TimeRangeFilter, KeywordFilter types. All implement Filter interface with Match method. Apply function takes variadic filters with AND semantics. Level and keyword matching are case-insensitive. Time range supports open-ended bounds (zero time = no bound).
+
+## ID_007: Summary command — COMPLETE
+- **AC_1**: `logalyzer summary <file>` outputs count by severity level (AG_1) — PASS
+- **AC_2**: Summary includes total entry count, time range covered, and parse error count (AG_2) — PASS
+- **AC_3**: Summary output is human-readable text to stdout — PASS
+- **Commit**: `plet: [ID_007] impl-1 - Summary command`

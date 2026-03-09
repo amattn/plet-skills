@@ -1,14 +1,24 @@
 {
+  "schemaVersion": "1.0.0",
   "iterationId": "ID_004",
-  "lifecycle": "ineligible",
+  "title": "Basic search & filter",
+  "lastUpdated": "2026-03-09T13:00:00Z",
+  "lastHeartbeat": "2026-03-09T13:00:00Z",
+  "lifecycle": "verifying",
+  "dependencies": ["ID_003"],
   "agentId": null,
   "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "activityDetail": null,
+  "attempts": { "impl": 1, "verify": 0 },
+  "phaseTimestamps": {
+    "impl_1_start": "2026-03-09T13:00:00Z"
+  },
+  "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "--level error filters to entries with level=error", "status": "not_started" },
-    { "id": "AC_2", "description": "--level warn,error filters to entries matching either level", "status": "not_started" },
-    { "id": "AC_3", "description": "--from and --to filter by time range with RFC 3339 timestamps", "status": "not_started" },
-    { "id": "AC_4", "description": "--search <keyword> matches across all string fields", "status": "not_started" },
-    { "id": "AC_5", "description": "Multiple filters combine with AND semantics", "status": "not_started" }
+    { "id": "AC_1", "description": "--level error filters to entries with level=error", "status": "pass" },
+    { "id": "AC_2", "description": "--level warn,error filters to entries matching either level", "status": "pass" },
+    { "id": "AC_3", "description": "--from and --to filter by time range with RFC 3339 timestamps", "status": "pass" },
+    { "id": "AC_4", "description": "--search <keyword> matches across all string fields", "status": "pass" },
+    { "id": "AC_5", "description": "Multiple filters combine with AND semantics", "status": "pass" }
   ]
 }
