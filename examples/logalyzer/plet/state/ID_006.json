@@ -1,13 +1,19 @@
 {
+  "schemaVersion": "1.0.0",
   "iterationId": "ID_006",
-  "lifecycle": "ineligible",
-  "agentId": null,
-  "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "title": "Text output & streaming",
+  "lastUpdated": "2026-03-09T15:00:00Z",
+  "lifecycle": "verifying",
+  "dependencies": ["ID_004"],
+  "agentId": "agent_id006_impl1",
+  "agentActivity": "reading_context",
+  "attempts": { "impl": 1, "verify": 0 },
+  "phaseTimestamps": { "impl_1_start": "2026-03-09T15:00:00Z" },
+  "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "Matching entries print one per line in human-readable format", "status": "not_started" },
-    { "id": "AC_2", "description": "Results stream to stdout as produced, not batched", "status": "not_started" },
-    { "id": "AC_3", "description": "Errors and warnings go to stderr only", "status": "not_started" },
-    { "id": "AC_4", "description": "Exit code 0 on success, 1 on error, 2 on usage error", "status": "not_started" }
+    { "id": "AC_1", "description": "Matching entries print one per line in human-readable format", "status": "pass" },
+    { "id": "AC_2", "description": "Results stream to stdout as produced, not batched", "status": "pass" },
+    { "id": "AC_3", "description": "Errors and warnings go to stderr only", "status": "pass" },
+    { "id": "AC_4", "description": "Exit code 0 on success, 1 on error, 2 on usage error", "status": "pass" }
   ]
 }

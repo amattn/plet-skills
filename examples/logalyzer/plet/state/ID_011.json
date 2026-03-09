@@ -1,13 +1,19 @@
 {
+  "schemaVersion": "1.0.0",
   "iterationId": "ID_011",
-  "lifecycle": "ineligible",
-  "agentId": null,
-  "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "title": "Aggregation",
+  "lastUpdated": "2026-03-09T15:30:00Z",
+  "lifecycle": "verifying",
+  "dependencies": ["ID_007"],
+  "agentId": "agent_id011_impl1",
+  "agentActivity": "complete",
+  "attempts": { "impl": 1, "verify": 0 },
+  "phaseTimestamps": { "impl_1_start": "2026-03-09T15:00:00Z", "impl_1_end": "2026-03-09T15:30:00Z" },
+  "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "--group-by <field> groups and counts entries by field value", "status": "not_started" },
-    { "id": "AC_2", "description": "--fields <f1,f2> selects which fields to display", "status": "not_started" },
-    { "id": "AC_3", "description": "--limit <N> caps output to N entries", "status": "not_started" },
-    { "id": "AC_4", "description": "--count outputs only the count of matching entries", "status": "not_started" }
+    { "id": "AC_1", "description": "--group-by <field> groups and counts entries by field value", "status": "pass" },
+    { "id": "AC_2", "description": "--fields <f1,f2> selects which fields to display", "status": "pass" },
+    { "id": "AC_3", "description": "--limit <N> caps output to N entries", "status": "pass" },
+    { "id": "AC_4", "description": "--count outputs only the count of matching entries", "status": "pass" }
   ]
 }

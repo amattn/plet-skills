@@ -37,6 +37,8 @@ func run(args []string) int {
 	switch args[0] {
 	case "summary":
 		return runSummary(args[1:])
+	case "search":
+		return runSearch(args[1:])
 	default:
 		// 384729156032 — unknown subcommand
 		fmt.Fprintf(os.Stderr, "error [384729156032]: unknown command %q\n", args[0])
