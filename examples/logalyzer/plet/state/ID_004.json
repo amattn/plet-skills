@@ -1,0 +1,14 @@
+{
+  "iterationId": "ID_004",
+  "lifecycle": "ineligible",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "--level error filters to entries with level=error", "status": "not_started" },
+    { "id": "AC_2", "description": "--level warn,error filters to entries matching either level", "status": "not_started" },
+    { "id": "AC_3", "description": "--from and --to filter by time range with RFC 3339 timestamps", "status": "not_started" },
+    { "id": "AC_4", "description": "--search <keyword> matches across all string fields", "status": "not_started" },
+    { "id": "AC_5", "description": "Multiple filters combine with AND semantics", "status": "not_started" }
+  ]
+}

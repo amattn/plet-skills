@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "name": "logalyzer",
+    "description": "CLI tool for searching, filtering, and summarizing NDJSON log files"
+  },
+  "dependencyMap": {
+    "ID_001": [],
+    "ID_002": ["ID_001"],
+    "ID_003": ["ID_002"],
+    "ID_004": ["ID_003"],
+    "ID_005": ["ID_004"],
+    "ID_006": ["ID_004"],
+    "ID_007": ["ID_003"],
+    "ID_008": ["ID_006"],
+    "ID_009": ["ID_006"],
+    "ID_010": ["ID_005"],
+    "ID_011": ["ID_007"],
+    "ID_012": ["ID_011"],
+    "ID_013": ["ID_010", "ID_009"]
+  },
+  "milestones": {
+    "MS_1": {
+      "name": "v0.1 — Core",
+      "iterations": ["ID_001", "ID_002", "ID_003", "ID_004", "ID_005", "ID_006"]
+    },
+    "MS_2": {
+      "name": "v0.2 — Aggregation & Polish",
+      "iterations": ["ID_007", "ID_008", "ID_009", "ID_010", "ID_011"]
+    },
+    "MS_3": {
+      "name": "v0.3 — Stretch",
+      "iterations": ["ID_012", "ID_013"]
+    }
+  },
+  "parallelGroups": [
+    ["ID_004", "ID_007"],
+    ["ID_005", "ID_006"],
+    ["ID_008", "ID_009", "ID_010"]
+  ],
+  "breakpoints": {
+    "before": [],
+    "after": []
+  },
+  "iterationsFingerprint": {
+    "requirementsFingerprint": {
+      "lastNonTrivialUpdate": "2026-03-09T00:00:00Z",
+      "milestones": ["MS_1", "MS_2", "MS_3"],
+      "requirements": {
+        "LP": ["LP_1", "LP_2", "LP_3", "LP_4", "LP_5", "LP_6", "LP_7"],
+        "SF": ["SF_1", "SF_2", "SF_3", "SF_4", "SF_5", "SF_6", "SF_7", "SF_8", "SF_9"],
+        "AG": ["AG_1", "AG_2", "AG_3", "AG_5"],
+        "OU": ["OU_1", "OU_2", "OU_3", "OU_4", "OU_5", "OU_6", "OU_7"],
+        "NF": ["NF_1", "NF_2", "NF_3", "NF_4", "NF_5"],
+        "DX": ["DX_1", "DX_2", "DX_3", "DX_4", "DX_5", "DX_6", "DX_7", "DX_8", "DX_9", "DX_10", "DX_11", "DX_12"],
+        "TV": ["TV_1", "TV_2", "TV_3", "TV_4", "TV_5", "TV_6", "TV_7", "TV_8", "TV_9"]
+      }
+    },
+    "lastNonTrivialUpdate": "2026-03-09T00:00:00Z",
+    "iterations": {
+      "MS_1": ["ID_001", "ID_002", "ID_003", "ID_004", "ID_005", "ID_006"],
+      "MS_2": ["ID_007", "ID_008", "ID_009", "ID_010", "ID_011"],
+      "MS_3": ["ID_012", "ID_013"]
+    }
+  }
+}

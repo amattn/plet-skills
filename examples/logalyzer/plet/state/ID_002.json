@@ -1,0 +1,13 @@
+{
+  "iterationId": "ID_002",
+  "lifecycle": "ineligible",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "Parse a valid NDJSON file into a slice of LogEntry structs", "status": "not_started" },
+    { "id": "AC_2", "description": "Each LogEntry has well-known fields and a map of extra fields", "status": "not_started" },
+    { "id": "AC_3", "description": "Lines missing well-known fields parse successfully with zero/empty values", "status": "not_started" },
+    { "id": "AC_4", "description": "Malformed JSON lines are skipped with a warning to stderr", "status": "not_started" }
+  ]
+}

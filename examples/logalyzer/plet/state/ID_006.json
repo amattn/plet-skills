@@ -1,0 +1,13 @@
+{
+  "iterationId": "ID_006",
+  "lifecycle": "ineligible",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "Matching entries print one per line in human-readable format", "status": "not_started" },
+    { "id": "AC_2", "description": "Results stream to stdout as produced, not batched", "status": "not_started" },
+    { "id": "AC_3", "description": "Errors and warnings go to stderr only", "status": "not_started" },
+    { "id": "AC_4", "description": "Exit code 0 on success, 1 on error, 2 on usage error", "status": "not_started" }
+  ]
+}

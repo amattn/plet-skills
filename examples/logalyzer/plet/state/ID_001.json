@@ -1,0 +1,14 @@
+{
+  "iterationId": "ID_001",
+  "lifecycle": "queued",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "go build ./... compiles successfully", "status": "not_started" },
+    { "id": "AC_2", "description": "go test ./... runs and passes with a sanity check test", "status": "not_started" },
+    { "id": "AC_3", "description": "Sanity test asserts true; changing to false makes it fail", "status": "not_started" },
+    { "id": "AC_4", "description": "logalyzer --version and -v print version string", "status": "not_started" },
+    { "id": "AC_5", "description": "CLAUDE.md, PLET.md, and README.md exist with appropriate content", "status": "not_started" }
+  ]
+}

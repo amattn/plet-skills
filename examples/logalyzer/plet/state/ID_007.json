@@ -1,0 +1,12 @@
+{
+  "iterationId": "ID_007",
+  "lifecycle": "ineligible",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "logalyzer summary <file> outputs count by severity level", "status": "not_started" },
+    { "id": "AC_2", "description": "Summary includes total entry count, time range covered, and parse error count", "status": "not_started" },
+    { "id": "AC_3", "description": "Summary output is human-readable text to stdout", "status": "not_started" }
+  ]
+}

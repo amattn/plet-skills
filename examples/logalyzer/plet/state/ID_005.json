@@ -1,0 +1,12 @@
+{
+  "iterationId": "ID_005",
+  "lifecycle": "ineligible",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "--field key=value filters entries where key equals value exactly", "status": "not_started" },
+    { "id": "AC_2", "description": "--field key filters entries where key exists, regardless of value", "status": "not_started" },
+    { "id": "AC_3", "description": "Field filters combine with other filters via AND semantics", "status": "not_started" }
+  ]
+}

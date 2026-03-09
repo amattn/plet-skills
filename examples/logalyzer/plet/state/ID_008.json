@@ -1,0 +1,12 @@
+{
+  "iterationId": "ID_008",
+  "lifecycle": "ineligible",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "--json flag outputs each matching entry as a JSON object, one per line", "status": "not_started" },
+    { "id": "AC_2", "description": "JSON output is valid — re-parseable by a JSON parser", "status": "not_started" },
+    { "id": "AC_3", "description": "JSON output works with both search and summary subcommands", "status": "not_started" }
+  ]
+}

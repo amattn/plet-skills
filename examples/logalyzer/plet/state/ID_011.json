@@ -1,0 +1,13 @@
+{
+  "iterationId": "ID_011",
+  "lifecycle": "ineligible",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "--group-by <field> groups and counts entries by field value", "status": "not_started" },
+    { "id": "AC_2", "description": "--fields <f1,f2> selects which fields to display", "status": "not_started" },
+    { "id": "AC_3", "description": "--limit <N> caps output to N entries", "status": "not_started" },
+    { "id": "AC_4", "description": "--count outputs only the count of matching entries", "status": "not_started" }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "iterationId": "ID_013",
+  "lifecycle": "ineligible",
+  "agentId": null,
+  "agentActivity": "idle",
+  "attempts": { "impl": 0, "verify": 0 },
+  "criteria": [
+    { "id": "AC_1", "description": "--field !key matches entries missing a specific key", "status": "not_started" },
+    { "id": "AC_2", "description": "--no-color disables colored output even when outputting to a TTY", "status": "not_started" }
+  ]
+}
