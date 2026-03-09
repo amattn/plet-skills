@@ -24,6 +24,7 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - `README.md` — project readme (core workflow, key concepts, comparison to Ralph loops)
 - `skills/plet/SKILL.md` — the plet skill (main orchestrator)
 - `PLAN.md` — build plan for implementing the skill
+- `case_studies/` — case studies from real plet runs (logalyzer, etc.)
 
 ## Common Misspellings (voice input)
 
@@ -141,7 +142,8 @@ After making changes, run a consistency pass appropriate to the scope. Default t
 | `spec` | PRD changes, new requirements, requirement modifications |
 | `skill` | Skill implementation files (SKILL.md, reference files) |
 | `plan` | PLAN.md changes (build plan, phase tracking) |
-| `notes` | NOTES.md-only changes (decisions, analysis, open questions) |
+| `docs` | NOTES.md, CLAUDE.md, PLET.md, README, general documentation |
+| `retro` | Case studies, self-improvement analysis, post-run retrospectives |
 
 When a commit spans multiple categories, use the prefix of the *primary* change.
 

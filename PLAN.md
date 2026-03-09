@@ -152,9 +152,9 @@ Plugin metadata and distribution scaffolding. Done last so marketplace fields re
 
 ---
 
-## Phase 4: Examples (deferred)
+## Phase 4: Examples (deferred, trigger met)
 
-Deferred until after the first real plet run on a project. Speculative examples written before real usage tend to drift from actual output. Instead, capture real artifacts from the first plet run and use those as canonical examples.
+Deferred until after the first real plet run on a project. The first run (logalyzer) is now complete — real artifacts exist on the `logalyzer_workstream` branch (archived as `archive/loga/run1/*` tags). Examples can now be captured from real output rather than written speculatively.
 
 When ready, create `examples/` directory with representative sample artifacts based on real output, validated against schemas from Phase 2a.
 
@@ -210,6 +210,22 @@ A standalone `/notes` skill that formalizes the living development notes pattern
 
 ---
 
+## Phase 6: Case Study Feedback Loop
+
+First real-world usage of plet (logalyzer example) revealed 13 improvement recommendations (R_1–R_13). This phase applies those improvements and validates them with a re-run.
+
+**Detailed plan:** `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps
+
+**Summary:**
+- **Phase A:** Apply quick fixes to reference files (R_9 non-blocking, R_1/R_2 intermediate commits/state, R_3 one-verify-one-commit, R_7 mandatory learnings/emergent) and design decisions (R_4–R_6 tag lifecycle, project IDs, branch conventions)
+- **Phase B:** Re-run logalyzer from plan checkpoint (`7cecbf5`) with improved plet
+- **Phase C:** Compare Run 1 vs Run 2, identify impact of changes
+- **Phase D:** Broader testing (refine phase, harder project, case study template)
+
+**Current status:** Phase A in progress — applying quick fixes to execute.md and verify.md.
+
+---
+
 ## Sequencing
 
 ```
@@ -222,9 +238,11 @@ Phase 2b    plan.md, execute.md,              ── phase prompts        ✓ CO
               ↓
 Phase 3     plugin metadata                   ── packaging            ✓ COMPLETE
               ↓
-Phase 4     examples/ (deferred)               ── capture from first real run
+Phase 4     examples/ (deferred)               ── capture from first real run (logalyzer done)
               ↓
 Phase 5     notes skill                       ── standalone /notes skill
+              ↓
+Phase 6     case study feedback loop          ── apply R_1-R_13, re-run, compare
 ```
 
 ## Notes

@@ -434,6 +434,32 @@ Discovered during the refine.md build: we designed RF_16 (cascading consistency 
 
 **Cleanup:** Removed `TEST_REQ_READING.md`, `ACTIVE_TEST.md`, and the test entry from Required Reading. Added a permanent "SESSION GREETING" rule to CLAUDE.md (tell a joke on session start) — inspired by the test.
 
+#### Archive tag convention (2026-03-09)
+
+Format: `archive/{project}/{run}/{path}`. Example: `archive/loga/run1/loop/ID_001`, `archive/loga/run1/workstream`.
+
+Used to preserve branch tips before deletion. Created when a run is complete and we need to clear the branch namespace for a re-run. Tags are lightweight, don't pollute branch listings, and survive `git fetch --prune`. The project ID (`loga`) and run number (`run1`) provide namespacing.
+
+Run 1 of logalyzer has 11 tags under `archive/loga/run1/` (10 loop branches + workstream). These are local only — not yet pushed to remote.
+
+Long-term naming: `archive/` was chosen over `casestudy/` as the prefix. May evolve — the convention is young.
+
+#### Commit prefix update: `notes` → `docs`, add `retro` (2026-03-09)
+
+Deprecated `notes:` prefix — too narrow, only covered NOTES.md changes. Replaced with `docs:` which covers all documentation: NOTES.md, CLAUDE.md, PLET.md, README, etc.
+
+Added `retro:` prefix for case studies, self-improvement analysis, and post-run retrospectives. Ties into the self-improvement principle: the case study process (run → observe → recommend → apply → re-run) is a retrospective, and its commits should be identifiable as such.
+
+Updated prefix table in CLAUDE.md: `spec`, `skill`, `plan`, `docs`, `retro`.
+
+#### case_studies/ folder location (2026-03-09)
+
+Case studies live in `case_studies/` at project root. Considered: `examples/` (mixes source with analysis), `docs/` (too generic), `examples/logalyzer/` (colocated but wrong scope), `examples/logalyzer/case_study/` (too nested). Chose top-level `case_studies/` because: (1) case studies are about plet's performance, not the example project, (2) scales to multiple case studies across different projects, (3) self-documenting folder name.
+
+#### Logalyzer re-run plan (2026-03-09)
+
+Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from commit `7cecbf5` ("example: after plan") — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan phase output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
+
 ---
 
 ## Global Conventions
@@ -935,6 +961,18 @@ plet improving its own PRD is refine-on-refine. The refine phase already analyze
 - **Model-capability vs design-flaw distinction:** Remove guardrails no longer needed vs fix heuristics that were always wrong. Different remedies.
 - **Testability of version bumps:** PRD changes need validation against a reference project. Otherwise self-edits are flying blind.
 - **Bootstrapping question:** Can plet use plet to improve plet? Appealing but version consistency problem.
+
+### Case study as a self-improvement mechanism
+
+The logalyzer case study (LOG_ANALYZER_CASE_STUDY.md) demonstrated a concrete self-improvement workflow: run plet on a real project → collect user feedback and autonomous branch analysis → synthesize into recommendations → apply improvements → re-run the same project from the same plan checkpoint to measure the delta. This is manual self-improvement, but the structure is clear and repeatable:
+
+1. **Run** — build something with plet
+2. **Observe** — user feedback (subjective) + branch analysis (data-driven)
+3. **Recommend** — specific, actionable changes to plet artifacts
+4. **Apply** — update reference files, spec, schemas
+5. **Re-run** — same project, same plan, improved system — direct before/after comparison
+
+This pattern could eventually be automated as part of the self-improvement skill planned for v3.x.y. The case study format itself could become a template for post-loop retrospectives.
 
 ### Why capturing this now matters
 
