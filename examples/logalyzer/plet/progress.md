@@ -69,3 +69,9 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - `internal/parser/parser_test.go` — 8 acceptance criteria tests
 
 <div id="END-plet-epr_01JD9X3000_id002_i1"></div>
+
+## ID_002: NDJSON parser — COMPLETE (passed, frozen)
+- **Verified:** 2026-03-09
+- **Criteria:** AC_1 through AC_4 all pass
+- **Tests:** 9 tests, all passing (TestLP1_ParseValidNDJSON, TestLP1_LP4_AC2_WellKnownAndExtraFields, TestLP7_MissingFields, TestLP7_PartialWellKnownFields, TestLP4_MalformedLines, TestLP4_MalformedLinesStderrWarning, TestLP1_EmptyInput, TestLP1_BlankLines, TestSanity)
+- **Notes:** Clean implementation, stdlib only, no issues found

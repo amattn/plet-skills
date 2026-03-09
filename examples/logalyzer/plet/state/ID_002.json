@@ -2,23 +2,77 @@
   "schemaVersion": "1.0.0",
   "iterationId": "ID_002",
   "title": "NDJSON parser",
-  "lastUpdated": "2026-03-09T10:15:00Z",
-  "lastHeartbeat": "2026-03-09T10:15:00Z",
-  "lifecycle": "verifying",
+  "lastUpdated": "2026-03-09T10:30:00Z",
+  "lastHeartbeat": "2026-03-09T10:30:00Z",
+  "lifecycle": "complete",
   "dependencies": ["ID_001"],
-  "agentId": "agent_id002_impl1",
+  "agentId": "agent_id002_verify1",
   "agentActivity": "complete",
-  "activityDetail": "all criteria green, ready for verification",
-  "attempts": { "impl": 1, "verify": 0 },
+  "activityDetail": "all 4 criteria independently verified, merging to main",
+  "attempts": { "impl": 1, "verify": 1 },
   "phaseTimestamps": {
     "impl_1_start": "2026-03-09T10:00:00Z",
-    "impl_1_end": "2026-03-09T10:15:00Z"
+    "impl_1_end": "2026-03-09T10:15:00Z",
+    "verify_1_start": "2026-03-09T10:25:00Z",
+    "verify_1_end": "2026-03-09T10:30:00Z"
   },
   "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "Parse a valid NDJSON file into a slice of LogEntry structs", "status": "pass", "evidence": "TestLP1_ParseValidNDJSON, TestLP1_EmptyInput, TestLP1_BlankLines all pass" },
-    { "id": "AC_2", "description": "Each LogEntry has well-known fields and a map of extra fields", "status": "pass", "evidence": "TestLP1_LP4_AC2_WellKnownAndExtraFields passes: timestamp/level/message extracted, extra fields populated, well-known fields excluded from Extra" },
-    { "id": "AC_3", "description": "Lines missing well-known fields parse successfully with zero/empty values", "status": "pass", "evidence": "TestLP7_MissingFields, TestLP7_PartialWellKnownFields both pass: zero time, empty strings for missing fields" },
-    { "id": "AC_4", "description": "Malformed JSON lines are skipped with a warning to stderr", "status": "pass", "evidence": "TestLP4_MalformedLines, TestLP4_MalformedLinesStderrWarning both pass: malformed lines skipped, warnings written with line numbers" }
+    {
+      "id": "AC_1",
+      "description": "Parse a valid NDJSON file into a slice of LogEntry structs",
+      "status": "pass",
+      "evidence": "TestLP1_ParseValidNDJSON, TestLP1_EmptyInput, TestLP1_BlankLines all pass",
+      "verification": {
+        "status": "pass",
+        "evidence": "ParseNDJSON reads io.Reader line-by-line with bufio.Scanner, unmarshals each JSON line, returns []LogEntry. Tests confirm 2-line input yields 2 entries with correct messages. Empty input and blank lines handled correctly.",
+        "timestamp": "2026-03-09T10:28:00Z",
+        "elapsedSeconds": 30
+      }
+    },
+    {
+      "id": "AC_2",
+      "description": "Each LogEntry has well-known fields and a map of extra fields",
+      "status": "pass",
+      "evidence": "TestLP1_LP4_AC2_WellKnownAndExtraFields passes: timestamp/level/message extracted, extra fields populated, well-known fields excluded from Extra",
+      "verification": {
+        "status": "pass",
+        "evidence": "LogEntry struct has Timestamp(time.Time), Level(string), Message(string), Extra(map[string]any). Test verifies all three well-known fields extracted, extra fields host/code populated, well-known keys excluded from Extra map. RawJSON also preserved.",
+        "timestamp": "2026-03-09T10:28:30Z",
+        "elapsedSeconds": 30
+      }
+    },
+    {
+      "id": "AC_3",
+      "description": "Lines missing well-known fields parse successfully with zero/empty values",
+      "status": "pass",
+      "evidence": "TestLP7_MissingFields, TestLP7_PartialWellKnownFields both pass: zero time, empty strings for missing fields",
+      "verification": {
+        "status": "pass",
+        "evidence": "TestLP7_MissingFields: line with zero well-known fields produces zero Timestamp, empty Level/Message, extras preserved. TestLP7_PartialWellKnownFields: message-only line has zero Timestamp, empty Level. Go zero values used naturally.",
+        "timestamp": "2026-03-09T10:29:00Z",
+        "elapsedSeconds": 30
+      }
+    },
+    {
+      "id": "AC_4",
+      "description": "Malformed JSON lines are skipped with a warning to stderr",
+      "status": "pass",
+      "evidence": "TestLP4_MalformedLines, TestLP4_MalformedLinesStderrWarning both pass: malformed lines skipped, warnings written with line numbers",
+      "verification": {
+        "status": "pass",
+        "evidence": "TestLP4_MalformedLines: 3 lines (1 malformed) yields 2 entries. TestLP4_MalformedLinesStderrWarning: captures warning output via ParseNDJSONWithWarnings, confirms non-empty and contains line numbers. Warning includes debug number 738291045623.",
+        "timestamp": "2026-03-09T10:29:30Z",
+        "elapsedSeconds": 30
+      }
+    }
+  ],
+  "verificationReports": [
+    {
+      "attempt": 1,
+      "timestamp": "2026-03-09T10:30:00Z",
+      "result": "pass",
+      "summary": "All 4 acceptance criteria independently verified. Pre-flight clean (build, test, vet, gofmt). 9 tests pass. No TODOs, no placeholders, no external deps. Debug numbers unique. Clean testability via ParseNDJSONWithWarnings. Defensive handling of non-string well-known fields."
+    }
   ]
 }
