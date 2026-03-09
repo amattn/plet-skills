@@ -90,9 +90,17 @@ func runSearch(args []string) int {
 		fieldList = strings.Split(*fields, ",")
 	}
 
-	// Output entries
+	// Output entries: use text format by default, JSON when fields are selected
 	for _, e := range entries {
-		fmt.Println(output.FormatEntryJSON(e, fieldList))
+		if len(fieldList) > 0 {
+			fmt.Println(output.FormatEntryJSON(e, fieldList))
+		} else {
+			if err := output.StreamEntry(os.Stdout, e); err != nil {
+				// 285917463021 — write error during search output
+				fmt.Fprintf(os.Stderr, "error [285917463021]: write failed: %v\n", err)
+				return 1
+			}
+		}
 	}
 
 	return 0
