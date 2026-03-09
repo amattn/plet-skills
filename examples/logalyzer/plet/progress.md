@@ -161,3 +161,10 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
   - `cmd/logalyzer/search.go` — search subcommand with streaming output
   - `cmd/logalyzer/search_test.go` — 7 integration tests (output, stderr, exit codes, filters)
 - **Notes:** Minor observation: flag parse errors return exit code 1 rather than 2; this is acceptable since the Go flag package prints its own usage message. Pre-existing gofmt issue in filter.go is not part of this iteration.
+
+## ID_009 — Colored output (impl-1)
+- AC_1 PASS: error/fatal → red, warn/warning → yellow, info/debug → default (no ANSI)
+- AC_2 PASS: FormatTextColor(entry, false) produces identical output to FormatText (no ANSI codes)
+- Files: internal/output/color.go, internal/output/color_test.go
+- 9 new tests, all passing; full output package clean (vet, gofmt)
+- Pre-existing failures in internal/filter are unrelated (unused import, undefined symbol)
