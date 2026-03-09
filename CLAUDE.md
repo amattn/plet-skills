@@ -1,5 +1,18 @@
 # CLAUDE.md
 
+> **CRITICAL — POST-COMPACTION RULE:** When the context window is compacted (prior messages compressed), you MUST re-read this entire CLAUDE.md file immediately before continuing work. Compaction loses nuance, conventions, and decision context that live here. Do not rely on your compressed memory of these instructions — re-read the source of truth. This is non-negotiable. Every compaction is a memory loss event; this file is the recovery mechanism.
+
+> **REQUIRED READING — Always read these files on your first response in a session and after compaction:**
+> - `PLET.md` — how to work with plet (the system itself). CLAUDE.md is project-specific; PLET.md is plet-specific. This repo (plet-skills) is unusual in that it is both the project *and* the system definition, so both files apply.
+>
+> Because plet-skills is both the project and the system definition, there will be overlap and redundancy between CLAUDE.md and PLET.md. This is expected and acceptable — don't try to deduplicate them. Each file serves a different audience: CLAUDE.md for working in *this repo*, PLET.md for working with *plet in any repo*.
+
+> **MANDATORY ACKNOWLEDGMENT:** Every time you read or re-read CLAUDE.md or any file listed in the Required Reading section above — whether on your first response, after compaction, or for any other reason — you MUST immediately inform the user with an explicit, prominent acknowledgment *before addressing the user's message*. State exactly which file(s) you read. Example: "I have just read CLAUDE.md and PLET.md." This is non-negotiable. Silent reads are not acceptable. The user must never have to wonder whether you actually consumed these files and are operating from current instructions, not stale memory.
+
+> **SESSION GREETING:** On your first response in a new session, tell the user a short joke. Keep it fun and varied — don't repeat the same one.
+
+> **SESSION BOOTSTRAP:** On your first interaction in this repo, check whether the project's Claude Code auto-memory directory already contains a `MEMORY.md` file with a "Non-Negotiable Behaviors" section that includes the acknowledgment rule. If not, create or update the auto-memory `MEMORY.md` to include it. This ensures the acknowledgment rule is in context from the very first message of every session, even before CLAUDE.md or Required Reading files are read. The auto-memory entry should reference all Required Reading files generically (not by hardcoded name) so it stays correct as the list evolves.
+
 ## Project
 
 plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous development loop for Claude Code).
@@ -19,7 +32,7 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 | cloud | Claude |
 | jason | JSON |
 | riddle | RIDL |
-| plett, pleat, plate | plet |
+| plett, pleat, plate, plex | plet |
 | skill md | SKILL.md |
 | state jason | state.json |
 | sub agent | subagent |

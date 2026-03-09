@@ -100,6 +100,20 @@ Execute and verify are internal phases of one autonomous loop — the user shoul
 
 All "plan-template" sections (PT_DX, PT_CT, PT_TV, PT_SM) renamed to PL_ prefixes because they describe plan phase *behavior*, not prompt/reference file *contents*. PT (3.8) stays as the 6 requirements about the physical reference files.
 
+#### PLET.md creation and CLAUDE.md updates (2026-03-09)
+
+Created PLET.md as the portable plet-specific instruction file (vs CLAUDE.md which is project-specific). Key decisions:
+- **PLET.md content:** What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (full 7-category taxonomy with target project directory tree), Commit Conventions (target projects), plus generalized copies of Decision Discipline, Consistency Pass Flavors, and Common Misspellings from CLAUDE.md
+- **Copy, don't move:** Sections shared between CLAUDE.md and PLET.md are copied and generalized, not moved. Overlap is expected and acceptable — each file serves a different audience.
+- **Critical Requirements & Invariants:** Placeholder section added to PLET.md for load-bearing rules. To be populated.
+- **CLAUDE.md updates:** Added "plex" to misspellings table. Added Mandatory Acknowledgment rule — agent must explicitly inform the user every time it reads/re-reads CLAUDE.md or PLET.md (silent reads not acceptable).
+- **Mandatory acknowledgment reinforcement (2026-03-09):** Three-layer approach to ensure agent always acknowledges reading instruction files:
+  1. **PLET.md Critical Requirements & Invariants** — added acknowledgment rule as the first invariant (portable to all plet repos)
+  2. **CLAUDE.md Session Bootstrap** — instructs agent to seed auto-memory with the acknowledgment rule on first interaction; references Required Reading files generically so it stays correct as the list grows
+  3. **Auto-memory** — seeded with the rule so it's in context from the first message, before any files are read
+  - All three layers reference Required Reading files generically (not hardcoded names) so new files added to Required Reading are automatically covered
+  - Rationale: agent was failing to prominently acknowledge reads despite the existing CLAUDE.md rule. Auto-memory provides the earliest possible reinforcement; PLET.md makes it portable; CLAUDE.md Session Bootstrap ensures auto-memory gets created in any repo.
+
 ### State & Data
 
 #### State file design (motivation and additions over ridl.json)
@@ -398,6 +412,28 @@ Four flavors codified: (1) pattern grep, (2) section read, (3) cross-reference c
 
 Discovered during the refine.md build: we designed RF_16 (cascading consistency pass) and immediately failed to cascade it into the PRD — the exact failure mode it's designed to catch. Root cause: NOTES.md Discipline captures *what was decided* but doesn't ensure the decision *lands in all affected artifacts*. Decision Discipline is the complement: after capturing a decision in NOTES.md, trace it through the data flow (PRD → reference files → schemas → PLAN.md). Two-step flow: (1) capture (NOTES.md Discipline), (2) cascade (Decision Discipline). Kept as separate sections in CLAUDE.md — same spirit, distinct responsibilities.
 
+#### Required Reading acknowledgment test (2026-03-09)
+
+**What we tested:** Whether the agent reliably reads and acknowledges all Required Reading files listed in CLAUDE.md on session start — including files it hasn't seen before.
+
+**Setup:**
+1. Created `TEST_REQ_READING.md` with a simple instruction ("Tell me a short joke")
+2. Added it to the Required Reading list in CLAUDE.md
+3. Deleted the auto-memory `MEMORY.md` so session bootstrap had to recreate it
+4. Documented the test in `ACTIVE_TEST.md`
+
+**Method:** Quit Claude Code, relaunched, sent "hi" as the first message.
+
+**Results — all pass:**
+- Agent read CLAUDE.md, PLET.md, and TEST_REQ_READING.md before responding
+- Agent prominently acknowledged all three files by name
+- Agent followed the instruction in TEST_REQ_READING.md (told a joke)
+- Agent noticed MEMORY.md was missing and bootstrapped it with the acknowledgment rule
+
+**Takeaway:** The Required Reading mechanism works as designed. New files added to the list are picked up on the next session without any other changes. The auto-memory bootstrap also works — it recreated MEMORY.md from scratch when deleted.
+
+**Cleanup:** Removed `TEST_REQ_READING.md`, `ACTIVE_TEST.md`, and the test entry from Required Reading. Added a permanent "SESSION GREETING" rule to CLAUDE.md (tell a joke on session start) — inspired by the test.
+
 ---
 
 ## Global Conventions
@@ -517,6 +553,19 @@ During the execute.md build, we used subagents to research ridler2's trace mecha
 ### NOTES.md as institutional memory
 The notes file is the connective tissue between CLAUDE.md (project config) and the PRD (spec). It captures the "why" so the PRD can stay clean.
 
+### How Claude memory works
+Claude Code has three layers of memory:
+
+1. **Within a conversation** — full context of everything discussed in the current session. Subject to context window limits (older messages get compressed as the window fills).
+2. **Persistent memory directory** — a per-project directory on disk (`~/.claude-*/projects/*/memory/`) that survives across sessions. Not cleared automatically. Files persist until explicitly deleted or edited. A special `MEMORY.md` file (first 200 lines) is auto-loaded into every conversation's context; other files in the directory must be explicitly read.
+3. **Project instructions** — `CLAUDE.md` and `NOTES.md` are loaded every session. These act as version-controlled institutional memory shared across all users/sessions.
+
+**What gets saved to persistent memory:** stable patterns confirmed across multiple interactions, user preferences, architectural decisions, solutions to recurring problems, and anything the user explicitly asks to remember. Session-specific or speculative information is not saved.
+
+**Subagent access:** subagents can read/write the memory directory (same filesystem), but `MEMORY.md` is not auto-injected into their context. They do get `CLAUDE.md`. The main conversation is the gatekeeper for memory writes.
+
+**Key implication for plet:** persistent memory is per-machine, not per-repo. For shared institutional memory, use checked-in files (NOTES.md, CLAUDE.md) rather than the memory directory.
+
 ---
 
 ## PRD Status
@@ -539,6 +588,49 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 - **PL_CT**: Renamed from PT_CT
 - **PL_TV**: Red/green first (PL_TV_1). Sanity check test (PL_TV_9), anti-mock-overreliance (PL_TV_10)
 - **PL_SM**: Renamed from PT_SM
+
+---
+
+## Artifact Taxonomy
+
+> **Note (2026-03-09):** This taxonomy is now also in PLET.md (generalized for any target project, with a full directory tree showing project root + plet/ directory). NOTES.md remains the canonical source for the taxonomy's evolution; PLET.md is the portable copy.
+
+All artifacts produced by using plet, organized by category.
+
+### 1. Spec Artifacts (human-created during plan phase)
+- `plet/requirements.md` — PRD with requirement IDs, fingerprint
+- `plet/iterations.md` — iteration definitions, dependencies, acceptance criteria, fingerprint
+
+### 2. State Artifacts (agent-written, real-time updated)
+- `plet/state.json` — global state (dependency map, milestones, parallel groups, breakpoints)
+- `plet/state/{iteration_id}.json` — per-iteration lifecycle, attempts, criteria status, verification reports
+
+### 3. Runtime Artifacts (agent-appended, append-only)
+- `plet/progress.md` — activity log (audience: humans)
+- `plet/learnings.md` — knowledge base (audience: agents)
+- `plet/emergent.md` — triage queue (audience: humans)
+
+### 4. Trace Artifacts (execution telemetry)
+- `plet/trace/{id}-{phase}-{attempt}-transcript.jsonl` — raw I/O (orchestrator-captured)
+- `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written)
+
+### 5. Version Control Artifacts
+- Branches: `plet/loop/{iteration_id}`
+- Tags: `plet/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
+- Commits: `plet: [ID_xxx] phase-N - title` (squashed per phase)
+
+### 6. Memory (institutional knowledge, checked-in)
+- `CLAUDE.md` — project-specific instructions
+- `PLET.md` — plet-specific instructions (planned, see Open Questions)
+- `NOTES.md` — decisions, rationale, open questions
+- `FEEDBACK.md` — field observations about working with plet; triage queue for potential incorporation into memory or config artifacts (planned, see Open Questions)
+
+### 7. Configuration (per-project behavior modification)
+- Modify planner behavior
+- Modify refiner behavior
+- Modify execute agent behavior
+- Modify verify agent behavior
+- *(No files defined yet — shape TBD, see Open Questions)*
 
 ---
 
@@ -671,6 +763,17 @@ Test signals:
 **Escape hatch:** The refine phase can create refactor iterations mid-milestone if the human or learnings surface something urgent ("this module is becoming unmaintainable"). Same hard invariant applies — tests must be green.
 
 Not a v1 blocker — the current verify phase catches obvious code quality issues — but worth designing in before tech debt compounds across real usage.
+
+### PLET.md shape and content
+What goes in PLET.md vs CLAUDE.md? PLET.md is plet-specific instructions that apply in *any* repo using plet; CLAUDE.md is project-specific. See Artifact Taxonomy § Memory.
+
+**Draft (2026-03-09):** PLET.md created and populated with initial content. Sections copied (generalized, not moved) from CLAUDE.md: Common Misspellings (plet-specific subset), Decision Discipline, Consistency Pass Flavors. New sections added that belong only in PLET.md (not CLAUDE.md): What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (incorporating the full 7-category taxonomy from NOTES.md with a directory tree showing the full target project root), Commit Conventions (target projects), and a placeholder Critical Requirements & Invariants section. Overlap between CLAUDE.md and PLET.md is expected and acceptable per the existing rule.
+
+### FEEDBACK.md shape and workflow
+How does FEEDBACK.md get triaged? Who writes to it — agents, humans, both? What's the promotion path from feedback → memory or config artifact? See Artifact Taxonomy § Memory.
+
+### Configuration artifact shape
+Per-project behavior modification for planner, refiner, execute agent, and verify agent. No files or format defined yet. Key questions: one file or per-phase files? Declarative (key-value) or prose instructions? How does it compose with reference files? See Artifact Taxonomy § Configuration.
 
 ### PRD input and disambiguation
 
