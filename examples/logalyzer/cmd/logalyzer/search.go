@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/amattn/logalyzer/internal/aggregate"
 	"github.com/amattn/logalyzer/internal/filter"
@@ -29,6 +30,8 @@ func runSearch(args []string) int {
 	caseSensitive := fs.Bool("case-sensitive", false, "make --keyword match case-sensitive (default is case-insensitive)")
 	regex := fs.String("regex", "", "filter entries matching a regex across string fields")
 	invert := fs.Bool("invert", false, "show entries that do NOT match the other filters")
+	histogramFlag := fs.Bool("histogram", false, "produce a time-bucketed histogram of entry counts")
+	bucketFlag := fs.String("bucket", "1h", "bucket duration for histogram (e.g., 1m, 5m, 1h)")
 
 	if err := fs.Parse(args); err != nil {
 		// 529174836201 — flag parse error in search
@@ -88,6 +91,19 @@ func runSearch(args []string) int {
 	}
 	if len(filters) > 0 {
 		entries = filter.Apply(entries, filters...)
+	}
+
+	// --histogram: produce time-bucketed histogram
+	if *histogramFlag {
+		bucketDuration, parseErr := time.ParseDuration(*bucketFlag)
+		if parseErr != nil {
+			// 572918340625 — invalid bucket duration for histogram
+			fmt.Fprintf(os.Stderr, "error [572918340625]: invalid bucket duration %q: %v\n", *bucketFlag, parseErr)
+			return 1
+		}
+		buckets := aggregate.Histogram(entries, bucketDuration)
+		fmt.Print(aggregate.FormatHistogram(buckets))
+		return 0
 	}
 
 	// --count: output just the count

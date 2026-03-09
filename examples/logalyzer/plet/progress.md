@@ -176,3 +176,17 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - Added flag parsing to `runSummary` via `flag.NewFlagSet`
 - Tests: TestOU2_SearchJSONOutput, TestOU2_SearchJSONValid, TestOU2_SearchJSONWithFilter, TestOU2_SummaryJSONOutput
 - Also fixed GOROOT issue in `buildBinary`/`goCmd` test helper for environment compatibility
+
+## ID_009 — Colored output (impl-1)
+- AC_1 PASS: error/fatal → red, warn/warning → yellow, info/debug → default (no ANSI)
+- AC_2 PASS: FormatTextColor(entry, false) produces identical output to FormatText (no ANSI codes)
+- Files: internal/output/color.go, internal/output/color_test.go
+- 9 new tests, all passing; full output package clean (vet, gofmt)
+
+## ID_012 — Histogram bucketing
+- Added `Histogram()` function and `Bucket` struct to `internal/aggregate/histogram.go`
+- Added `FormatHistogram()` for human-readable output (one line per bucket)
+- Added `--histogram` and `--bucket` flags to `search` subcommand
+- Supports minute, hour, and arbitrary durations via `time.ParseDuration`
+- Buckets are continuous (fills gaps) and sorted chronologically
+- 8 unit tests (TestAG5_*) + 2 CLI integration tests

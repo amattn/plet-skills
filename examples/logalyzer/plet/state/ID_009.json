@@ -1,11 +1,11 @@
 {
   "iterationId": "ID_009",
-  "lifecycle": "ineligible",
-  "agentId": null,
-  "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "lifecycle": "verifying",
+  "agentId": "agent-adc70c26",
+  "agentActivity": "done",
+  "attempts": { "impl": 1, "verify": 0 },
   "criteria": [
-    { "id": "AC_1", "description": "Severity levels are color-coded when outputting to a TTY", "status": "not_started" },
-    { "id": "AC_2", "description": "Colors are disabled automatically when stdout is not a TTY", "status": "not_started" }
+    { "id": "AC_1", "description": "Severity levels are color-coded when outputting to a TTY", "status": "pass" },
+    { "id": "AC_2", "description": "Colors are disabled automatically when stdout is not a TTY", "status": "pass" }
   ]
 }
