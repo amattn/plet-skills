@@ -2,7 +2,7 @@
 
 ## Current State
 
-Phases 1, 2a, and 2b are complete. All 4 phase prompts done. Next up: packaging (Phase 3). Phase 4 (examples) is deferred until after the first real plet run.
+Phases 1, 2a, 2b, and 3 are complete. All phase prompts and packaging done. Phase 4 (examples) is deferred until after the first real plet run. Phase 5 (notes skill) is next.
 
 ---
 
@@ -140,7 +140,7 @@ Refine phase instructions. Human-driven triage and re-planning. Depends on both 
 
 ---
 
-## Phase 3: Packaging
+## Phase 3: Packaging ✓ COMPLETE
 
 Plugin metadata and distribution scaffolding. Done last so marketplace fields reflect the actual built skill.
 
@@ -220,7 +220,7 @@ Phase 2a    formats.md + state-schema.md      ── schemas              ✓ CO
 Phase 2b    plan.md, execute.md,              ── phase prompts        ✓ COMPLETE
             verify.md, refine.md                 (reference schemas)
               ↓
-Phase 3     plugin metadata                   ── packaging
+Phase 3     plugin metadata                   ── packaging            ✓ COMPLETE
               ↓
 Phase 4     examples/ (deferred)               ── capture from first real run
               ↓
