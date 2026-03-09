@@ -124,20 +124,59 @@ Agents prefer making a decision and documenting it in `emergent.md` over blockin
 
 Each iteration works on its own branch (`plet/loop/{iteration_id}`). Agents commit incrementally for crash recovery, then squash into a single commit per phase. Completed iterations rebase onto the main branch with fast-forward merge for linear history.
 
-## Advantages over Ralph Loops
+## Lineage
 
-plet builds on what Ralph loops get right — autonomous iterations, fresh context windows, PRD decomposition into agent-sized chunks, and runtime artifacts — while addressing several gaps:
+plet draws from three sources:
 
-| Area | Ralph Loops | plet |
-|------|-------------|------|
-| **Orchestration** | External loop control required (e.g., chief) | Self-sufficient — runs natively inside Claude Code |
-| **Planning** | PRD created separately, then converted | Interactive plan phase with human steering built in |
-| **Iteration ordering** | Strict sequential | Dependency graph with parallel execution |
-| **State tracking** | Single `prd.json` with pass status only | Split state architecture with lifecycle phases, agent activity, heartbeats, and two-state-per-criterion model |
-| **Real-time visibility** | GUI updates only when pass status flips | Agent activity state updates in real time (`reading_context`, `implementing`, `running_checks`, etc.) |
-| **Refinement** | Manual — re-run pipeline skills | Built-in refine phase that triages emergent items and re-plans |
-| **Spec evolution** | PRD needs manual updates to the JSON | Living document — improves as agents discover gaps |
-| **Entry point** | separate skills and loop runner | Single `/plet` command with state-driven routing |
+1. Ralph loops (both the general pattern and the snarktank/chief implementations)
+2. RIDL (the author's opinionated implementation of Ralph loops)
+3. Plan mode as seen in Claude Code, Cursor, etc. (interactive refinement)
+
+### What Ralph loops get right
+- Autonomous iterations — agents do real work, not just suggestions
+- Fresh context windows — each iteration starts clean, no contamination
+- Spec first — the PRD drives everything, not ad hoc prompting
+- PRD decomposition into agent-sized, iterable chunks
+- Runtime artifacts (progress.md, etc.) — structured output that outlives the agent session
+- State tracking via prd.json — machine-readable iteration status persisted to disk
+- Snarktank's numbered-letter Q&A system for interactive clarification — adopted by plet's plan phase
+
+### Where Ralph loops fell short
+- No verification phase — no independent check that work was done correctly
+- No refinement loop — spec is static, doesn't evolve from what agents learn
+- Fairly linear — no parallel iteration support
+- No multi-developer support — single developer, single session
+- Requires external scaffolding (runner, harness) that must stay in sync with the loop's formats — hard to iterate on one without breaking the other
+
+### What RIDL added over Ralph loops
+- Two-phase iteration split (implementation → verification) — the key structural addition
+- Separate learnings.md from progress.md — agent-facing knowledge vs historical record, different audiences
+- Three-file pipeline (prd.md → ridl.md → ridl.json) — cleaner decomposition than alternatives, each file has a clear purpose
+- Trace logging for full execution traceability
+
+### Where RIDL loops fell short
+- ridl.json too rigid (sequential ordering, no parallel iterations, no phase tracking, no agent activity state)
+- External harness dependency (Ridler.app required) — same scaffolding sync problem as Ralph loops
+- Too much logic in the runner — tight coupling between harness and loop behavior
+- Still no multi-dev support
+- Still fairly linear despite the DAG concept in ridl.json
+- Felt like using three separate tools (prd skill, ridl skill, Ridler.app) to accomplish one workflow
+
+### What plan mode brings
+- Interactive, iterative spec refinement
+- The spec is a living document that improves as agents discover gaps
+- Human steering at natural checkpoints
+
+### What plet adds
+- Self-sufficient orchestration — runs natively inside Claude Code, no external harness or runner
+- Single entry point (`/plet`) with state-driven routing — user never needs to remember which phase they're in
+- Interactive plan phase with human steering built in — PRD creation and iteration decomposition in one flow
+- Dependency graph with parallel execution — not strictly sequential
+- Split state architecture with lifecycle phases, agent activity, heartbeats, and two-state-per-criterion model
+- Real-time agent activity state — GUI can show what the agent is doing, not just pass/fail
+- Built-in refine phase — triages emergent items, updates the spec, re-plans
+- Living spec — improves as agents discover gaps, not a static document
+- Four runtime artifacts (PLET) with distinct audiences — not just a log file
 
 ## About This Repo
 
@@ -147,6 +186,6 @@ A GUI application for visualizing and monitoring plet execution is planned as a 
 
 ## Acknowledgments
 
-plet builds on [ridl-skills](https://github.com/amattn/ridl-skills), a Claude Code plugin providing a 4-step pipeline for PRD-driven autonomous development using the RIDL (Ralph Iteration Definition List) system.
+plet wouldn't exist without [Ralph skills](https://github.com/snarktank/ralph) by snarktank and [chief](https://github.com/MiniCodeMonkey/chief) by MiniCodeMonkey. These were the first implementations of Ralph loops I came across, and they fundamentally changed how I think about AI engineering. The ideas of spec-driven autonomous iteration, structured runtime artifacts, and fresh-context execution are all theirs — plet is an attempt to take those ideas further.
 
-ridl-skills and plet are both inspired by [Ralph skills](https://github.com/snarktank/ralph), an autonomous coding agent loop by snarktank, and [chief](https://github.com/MiniCodeMonkey/chief), a helper companion harness by MiniCodeMonkey.
+plet also builds directly on [ridl-skills](https://github.com/amattn/ridl-skills), the author's earlier Claude Code plugin providing a 4-step pipeline for PRD-driven autonomous development using the RIDL (Ralph Iteration Definition List) system.
