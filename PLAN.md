@@ -2,7 +2,7 @@
 
 ## Current State
 
-Phases 1, 2a, and 2b.1–2b.2 are complete. Next up: verify.md (2b.3). Remaining: verify.md, refine.md, packaging, notes skill. Phase 2c (examples) is deferred until after the first real plet run.
+Phases 1, 2a, and 2b.1–2b.3 are complete. Next up: refine.md (2b.4). Remaining: refine.md, packaging, notes skill. Phase 2c (examples) is deferred until after the first real plet run.
 
 ---
 
@@ -99,7 +99,7 @@ Implementation subagent prompt. Injected into each implementation subagent.
 - Criteria skip rules (OR_13)
 - Heartbeat updates
 
-#### 2b.3 `references/verify.md` — PENDING
+#### 2b.3 `references/verify.md` ✓ COMPLETE
 
 Verification subagent prompt. Fresh context, independent validation. Depends heavily on `state-schema.md` (two-state criterion model, lifecycle transitions).
 
@@ -215,7 +215,7 @@ Phase 1     SKILL.md                          ── foundation           ✓ CO
 Phase 2a    formats.md + state-schema.md      ── schemas              ✓ COMPLETE
               ↓
 Phase 2b    plan.md, execute.md,              ── phase prompts        ◐ PARTIAL
-            verify.md, refine.md                 (reference schemas)    (2/4 done)
+            verify.md, refine.md                 (reference schemas)    (3/4 done)
               ↓
 Phase 3     plugin metadata                   ── packaging
               ↓
@@ -231,3 +231,4 @@ Phase 5     notes skill                       ── standalone /notes skill
 - All reference files live under `skills/plet/references/` to keep the skill self-contained
 - Version starts at 0.1.0 across all files
 - The PRD stays in `prd.md` as the source of truth; these skill files implement it
+- **Watch: combined injection size.** verify.md (~515 lines) + formats.md + state-schema.md sections + requirements + learnings all get injected into the verify subagent prompt. state-schema.md has grown with two full examples. Monitor whether the combined payload leaves enough context for the verify agent to do its actual work. May need to trim examples or have the orchestrator inject only relevant state-schema.md sections rather than the full file.

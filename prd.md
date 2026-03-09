@@ -141,7 +141,7 @@ Split state architecture: global `plet/state.json` for project-wide data and per
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SF_1 | Global `plet/state.json` contains: project metadata, schema version, dependency map (`{iteration_id: [dependency_ids]}`), milestone assignments, parallel groups, breakpoints, and the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
-| SF_2 | Per-iteration state files (`plet/state/{iteration_id}.json`) contain: lifecycle, agent activity, agent ID, acceptance criteria with two-state model, heartbeat, phase timestamps, per-phase attempt counts, summary, files changed | P0 |
+| SF_2 | Per-iteration state files (`plet/state/{iteration_id}.json`) contain: lifecycle, agent activity, agent ID, acceptance criteria with two-state model, heartbeat, phase timestamps, per-phase attempt counts, summary, files changed, verification reports (VF_21–VF_24) | P0 |
 | SF_3 | Each iteration tracks a **lifecycle phase**: `ineligible` (dependencies not met), `queued` (ready for pickup), `implementing`, `verifying`, `complete`, `blocked` | P0 |
 | SF_4 | Each iteration tracks **agent activity state**: `idle`, `reading_context`, `implementing`, `running_checks`, `committing`, `wrapping_up` with a human-readable `activityDetail` string (e.g., "red: writing failing test for AC_3", "green: all tests passing") | P0 |
 | SF_5 | Each iteration has an `agentId` field identifying which agent session is working on it (null if idle) | P0 |
@@ -190,7 +190,7 @@ Implementation of iteration definitions using subagents with red/green test disc
 | EX_16 | After an iteration reaches `complete` lifecycle, rebase onto the main working branch and fast-forward merge. Linear history is strongly preferred. | P0 |
 | EX_17 | Agents commit incrementally during each phase for crash recovery. At end of each phase, squash into a single commit. If an iteration cycles (impl-1, verify-1, impl-2, verify-2), each phase is a separate squashed commit. Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}` | P0 |
 | EX_18 | Per RT_6/RT_7, agents read runtime artifacts at start. If the agent has been working for an extended period or has accumulated substantial context, write current insights to learnings.md and emergent.md before wrapping up. | P0 |
-| EX_19 | Pre-flight check before implementation: verify the project builds, tests pass, and the working tree is clean. If pre-flight fails, the agent should attempt to resolve the issue first. Only block if the issue is unresolvable. Log to all three runtime artifacts regardless of outcome. | P1 |
+| EX_19 | Pre-flight check before implementation: verify the project builds, tests pass, and the working tree is clean. If pre-flight fails, the agent should attempt to resolve the issue first. Only block if the issue is unresolvable. Log to all three runtime artifacts regardless of outcome. **Exception:** after a verification cycle-back (VF_16), the branch may contain intentionally failing tests left by the verify agent — these are expected and should be treated as inherited red-step targets, not pre-flight failures. | P1 |
 | EX_20 | If a parallel sibling iteration fails, other in-progress siblings continue. The failed iteration is retried independently after its siblings complete. | P1 |
 | EX_21 | The orchestrator re-evaluates the dependency graph and eligible work after each iteration completes | P1 |
 | EX_24 | If an implementation agent discovers a missing dependency (prerequisite work does not exist), it self-corrects without blocking: adds the missing dependency to `state.json` `dependencyMap` and the per-iteration state file `dependencies` array, sets its own lifecycle to `ineligible`, documents the correction across all four runtime artifacts (trace, progress, emergent, learnings), and returns. The loop continues — the iteration automatically becomes `queued` when the missing dependency completes. This does not count against the retry limit. | P0 |
@@ -219,11 +219,15 @@ Independent verification in a fresh context window. The verification agent verif
 | VF_13 | Convergence signal: an iteration is genuinely complete when verification critiques reduce to cosmetic/stylistic issues only | P0 |
 | VF_14 | If all criteria pass verification, the iteration lifecycle is set to `complete` and the iteration is frozen | P0 |
 | VF_15 | If issues are found that are minor and obvious to fix (typos, missing edge case tests, small corrections): add new acceptance criteria, fix with red/green discipline, then complete. For anything substantial, cycle back to implementation per VF_16. | P0 |
-| VF_16 | If issues are found that cannot be fixed in this context: add new criteria set to `fail`, set lifecycle back to `implementing`, document in emergent.md and learnings.md | P0 |
+| VF_16 | If issues are found that cannot be fixed in this context: add new criteria set to `fail`, write failing tests (red step) for each test-expressible issue as a concrete handoff to the next implementation agent, set lifecycle back to `implementing`, document in emergent.md and learnings.md. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule. For issues that aren't test-expressible (e.g., architectural concerns), document why no red test was created. | P0 |
 | VF_17 | The verification agent appends to progress.md, learnings.md, and emergent.md following atomic write semantics | P0 |
 | VF_18 | The verification agent writes semantic event trace entries to `plet/trace/{iteration_id}-verify-{attempt}-events.ndjson`. The orchestrator captures the raw I/O transcript to `plet/trace/{iteration_id}-verify-{attempt}-transcript.jsonl`. (Matches split trace format defined in EX_10.) | P0 |
 | VF_19 | After verification completes (pass or fail), the orchestrator re-evaluates eligible iterations and continues the loop | P1 |
 | VF_20 | The verification agent checks that all runtime artifacts were properly written by the implementation agent (progress, learnings, emergent entries exist for this iteration) | P1 |
+| VF_21 | The verification agent writes a consolidated verification report to the per-iteration state file's `verificationReports` array at the end of each attempt. Each report has a `vrp` plet ID and a verdict (`passed`, `rejected`, `blocked`). Reports append (never overwrite) so the full verification history is preserved. | P0 |
+| VF_22 | Each verification report includes a compact `criteriaResults` index with one entry per criterion: status, one-liner summary, `redTest` name (if a failing test was written per VF_16), and criterion-level `relatedEntries` for criterion-specific artifact references | P0 |
+| VF_23 | Each verification report includes report-level `relatedEntries` for iteration-spanning concerns (e.g., progress entry, cross-cutting learnings). Criterion-level and report-level `relatedEntries` are distinct — criterion-level for findings specific to a single AC, report-level for the iteration as a whole. | P0 |
+| VF_24 | Each verification report includes a `findings` array of free-text strings for observations, conclusions, and concerns that don't fit in the summary or per-criterion one-liners. Findings may reference plet IDs inline as plain text. Overlap with learnings is intentional — the report is self-contained while learnings persist across iterations. | P1 |
 
 ### 3.6 Runtime Artifacts (RT)
 
@@ -277,6 +281,7 @@ Plet IDs are a composable, globally unique identifier scheme used across plet ar
 | `epr` | progress.md | Entry progress |
 | `eln` | learnings.md | Entry learnings |
 | `eem` | emergent.md | Entry emergent |
+| `vrp` | per-iteration state file | Verification report |
 
 Reserved for future use: `ttr` (trace transcript), `tev` (trace events).
 

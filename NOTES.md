@@ -258,7 +258,7 @@ All sections reviewed and approved. PRD written to `prd.md`. The PRD is the sour
   - Crockford timestamp: Unix milliseconds encoded as Crockford Base32 (always 10 chars). Alphanumeric only (0-9, A-Z excluding I/L/O/U), lexicographically sortable.
   - Casing conventions: type prefix lowercase, Crockford timestamp uppercase, context segments have no casing convention at the scheme level (individual type specs may define their own). Parsers and readers must be case-insensitive and tolerate mixed case.
   - Runtime artifact entry IDs use context segments: `{iteration}_{phase_attempt}` (e.g., `id001_i1`)
-  - Known type prefixes: `epr` (entry progress), `eln` (entry learnings), `eem` (entry emergent). Reserved: `ttr` (trace transcript), `tev` (trace events).
+  - Known type prefixes: `epr` (entry progress), `eln` (entry learnings), `eem` (entry emergent), `vrp` (verification report). Reserved: `ttr` (trace transcript), `tev` (trace events).
   - Example: `epr_01JD8X3K7M_id001_i1`
   - Properties: globally unique, time-sortable, two-way decodable (split on `_`), self-describing (type prefix identifies artifact), composable (context segments are type-specific), extensible (new type prefixes added without changing the scheme)
 
@@ -322,6 +322,20 @@ All sections reviewed and approved. PRD written to `prd.md`. The PRD is the sour
 - **PLAN.md PRD ranges removed:** PRD requirement ranges (e.g., `EX_1–EX_25`) in PLAN.md caused excessive drift — every time a requirement was added, the range needed updating. Removed all "Covers PRD sections" blocks. The PRD is the source of truth for which requirements exist; PLAN.md focuses on key responsibilities and completion status.
 
 - **Consistency pass flavors formalized (CLAUDE.md):** Four flavors codified: (1) pattern grep, (2) section read, (3) cross-reference check, (4) full structural scan. Flavors 1-3 use standard read-only tools (Grep, Read, Glob, wc, etc.) and need no confirmation. Flavor 4 spawns an Explore agent and should be confirmed first unless clearly warranted. Custom scripts only acceptable for flavor 4. Always state which flavor was used and recommend escalation if results suggest it.
+
+#### Verification phase (verify.md, VF_16–VF_23)
+
+- **Verification reports in per-iteration state file (VF_21–VF_23):** Each verification attempt appends a report to the `verificationReports` array (never overwritten). VF_21: report exists, appends, has `vrp` plet ID, has verdict. VF_22: compact `criteriaResults` index (status, one-liner, redTest, criterion-level relatedEntries). VF_23: two-level `relatedEntries` — report-level for iteration-spanning concerns, criterion-level for single-AC findings. Written for all paths including blockers. Schema added to state-schema.md. `vrp` added to known type prefixes in PRD. Written after artifact entries so plet IDs are available for `relatedEntries`.
+
+- **Verification report `findings` field:** Array of strings for observations, conclusions, and concerns that don't fit in the summary or per-criterion one-liners. Each entry is a discrete finding. Can reference plet IDs inline as plain text (not structured JSON). Intentionally overlaps with learnings — the report is a self-contained snapshot of one verification attempt, while learnings persist and accumulate across iterations. Same insight, different lifespans and audiences: a future agent reads the report for "what happened in verify attempt 2," reads learnings for "what do I need to know about this codebase." The overlap is a feature, not a bug.
+
+- **Verification report dual-source resolution:** The verification report is described in two places: state-schema.md (field-level schema, types, example JSON) and verify.md (intent — what kind of information to capture and why). verify.md deliberately avoids repeating field names and types, describing the report in terms of what to capture rather than how to structure it. This prevents drift between the two files — state-schema.md is the single source for structure.
+
+- **Verification verdict enum and progress.md status semantics:** Codified three verdict values: `passed` (all pass, iteration frozen), `rejected` (issues found, returning to impl), `blocked` (needs human input). Used `passed` instead of `complete` to avoid collision with the `complete` lifecycle value. Progress.md status reflects the *phase attempt* outcome, not the iteration outcome — a cycle-back is a `COMPLETE` phase attempt (the verify agent finished its work) with a parenthetical verdict for scannability: `COMPLETE (passed, frozen)`, `COMPLETE (rejected, cycle back)`, `BLOCKED` (no parenthetical — status is the verdict). This replaces using `FAILED` for cycle-back, which was semantically misleading. Verdict values table added to state-schema.md.
+
+- **Retry exhaustion after `rejected` verdict:** When the verify agent rejects and the orchestrator determines retry limits are exhausted (EX_14), the orchestrator transitions the iteration to `lifecycle: "blocked"` and writes a progress/emergent entry explaining retry exhaustion. The verify agent is unaware of retry policy — it always reports its verdict (`rejected`); the orchestrator decides whether to cycle back or stop. Chose to reuse `blocked` lifecycle rather than adding a new value like `exhausted` — the iteration genuinely needs human intervention at that point, and keeping the enum small benefits all consumers.
+
+- **Verification cycle-back writes red tests (VF_16):** When the verify agent cycles back to implementation (Path C — substantial issues), it writes failing tests that demonstrate each finding before returning. The next implementation agent inherits these as concrete green-step targets. This completes the red/green handoff across the agent boundary: verify does red, impl does green. For issues that aren't test-expressible (e.g., wrong abstraction, coupling concerns), the verify agent skips the red test and documents the rationale in criteria evidence and learnings. The branch is left with intentionally failing tests — this is an explicit exception to the "all tests must pass" rule. execute.md's pre-flight check and retry awareness sections updated to handle inherited failing tests.
 
 ### Full review pass changes:
 - OR_4: added `verifying` lifecycle to routing
@@ -515,6 +529,14 @@ Key questions:
 - Flavors 1-3 are essentially "use Grep/Read intelligently" — does a skill add value over agent instructions?
 - What recurring drift patterns emerge from real usage? Those would become the skill's procedures.
 - Should it compose with plet phases (auto-run after plan changes or refine)?
+
+### state-schema.md size and combined injection payload
+
+state-schema.md is ~550 lines as of 2b.3 completion. Not alarming on its own, but the verify subagent receives verify.md (~520 lines) + state-schema.md + formats.md + requirements + learnings all in one prompt. Monitor whether the combined payload leaves enough context for the verify agent to do actual work.
+
+Current assessment: no split needed. The file is logically cohesive (global state, per-iteration state, verification reports, trace schemas, migration rules). Splitting would create cross-reference overhead without reducing injection size (all sections are needed by the verify agent). Revisit if the file grows past ~700 lines or if verify agents show signs of context exhaustion.
+
+Also noted in PLAN.md under "Watch: combined injection size."
 
 ### Disambiguating PRD styles: snarktank, ridl, plet
 

@@ -59,7 +59,7 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 
 ---
 
-### [ID_xxx] phase-N — STATUS
+### [ID_xxx] phase-N — STATUS (optional clarifying info)
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 **Iteration:** [ID_xxx] [iteration title]
@@ -85,6 +85,8 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 | `FAILED` | Phase failed, will be retried |
 | `SKIPPED` | Criterion or iteration was skipped |
 | `MIGRATED` | State file schema was auto-migrated |
+
+Any phase may append parenthetical metadata for clarity, e.g., `COMPLETE (passed, frozen)`. Currently used by the verify phase to echo the verdict.
 
 ### Example
 

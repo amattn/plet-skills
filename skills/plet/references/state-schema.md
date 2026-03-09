@@ -127,7 +127,7 @@ Runtime state for a single iteration. Written by the implementation and verifica
 
 Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 
-### Schema
+### Example: Mid-Implementation
 
 ```json
 {
@@ -213,6 +213,109 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 }
 ```
 
+### Example: Multi-Attempt Lifecycle (impl → verify → impl → verify)
+
+Shows state after two full cycles: first verification rejected, second passed. Reports elided — see the standalone Verification Report example below for full report structure. Note: criteria objects reflect the latest attempt only — previous attempt evidence is overwritten. Per-attempt history is preserved in `verificationReports` and progress.md entries.
+
+```json
+{
+  "schemaVersion": "0.1.0",
+  "iterationId": "ID_002",
+  "title": "User authentication endpoint",
+  "lastUpdated": "2026-03-07T19:30:00Z",
+  "lastHeartbeat": "2026-03-07T19:30:00Z",
+
+  "lifecycle": "complete",
+  "dependencies": ["ID_001"],
+
+  "agentId": null,
+  "agentActivity": "idle",
+  "activityDetail": null,
+
+  "attempts": {
+    "impl": 2,
+    "verify": 2
+  },
+
+  "phaseTimestamps": {
+    "impl_1_start": "2026-03-07T14:00:00Z",
+    "impl_1_end": "2026-03-07T15:30:00Z",
+    "verify_1_start": "2026-03-07T16:00:00Z",
+    "verify_1_end": "2026-03-07T17:00:00Z",
+    "impl_2_start": "2026-03-07T17:30:00Z",
+    "impl_2_end": "2026-03-07T18:30:00Z",
+    "verify_2_start": "2026-03-07T19:00:00Z",
+    "verify_2_end": "2026-03-07T19:30:00Z"
+  },
+
+  "elapsedSeconds": {
+    "impl_1": 5400,
+    "verify_1": 3600,
+    "impl_2": 3600,
+    "verify_2": 1800,
+    "total": 14400
+  },
+
+  "summary": "All criteria pass verification. Iteration frozen.",
+  "filesChanged": [
+    "src/auth.py",
+    "src/middleware.py",
+    "tests/test_auth.py"
+  ],
+
+  "tagBeforeSquash": true,
+  "lastVerdict": "passed",
+
+  "criteria": [
+    {
+      "id": "AC_1",
+      "description": "Login endpoint returns JWT on valid credentials",
+      "status": "pass",
+      "implementation": {
+        "status": "pass",
+        "evidence": "Test test_login_valid_creds rewritten with real credential store — passes",
+        "timestamp": "2026-03-07T18:00:00Z",
+        "elapsedSeconds": 90
+      },
+      "verification": {
+        "status": "pass",
+        "evidence": "Test exercises real credential store. Valid and invalid paths both tested. No mocking.",
+        "timestamp": "2026-03-07T19:15:00Z",
+        "elapsedSeconds": 30
+      }
+    },
+    {
+      "id": "AC_2",
+      "description": "Login endpoint validates input format before processing",
+      "status": "pass",
+      "implementation": {
+        "status": "pass",
+        "evidence": "Added email format validation and SQL injection protection. test_login_sql_injection now passes.",
+        "timestamp": "2026-03-07T18:20:00Z",
+        "elapsedSeconds": 60
+      },
+      "verification": {
+        "status": "pass",
+        "evidence": "Tested with malformed emails, SQL injection payloads, and oversized inputs. All rejected with 400.",
+        "timestamp": "2026-03-07T19:25:00Z",
+        "elapsedSeconds": 25
+      }
+    }
+  ],
+
+  "verificationReports": [
+    {
+      "pletId": "vrp_01JD8X5R2M_id002_v1",
+      "...": "..."
+    },
+    {
+      "pletId": "vrp_01JD8X7T4N_id002_v2",
+      "...": "..."
+    }
+  ]
+}
+```
+
 ### Field Reference
 
 | Field | Type | Required | Description |
@@ -235,6 +338,8 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 | `filesChanged` | array of strings | no | Files modified in current/last phase (SF_22) |
 | `tagBeforeSquash` | boolean | no | When `true`, agent creates a git tag (`plet/audit/{id}/{phase}-{attempt}`) preserving incremental commits before squashing. Inherited from global `state.json` at initialization. Auto-set to `true` if verification fails. Default `false`. (EX_17) |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
+| `lastVerdict` | string | no | Most recent verification verdict (`passed`, `rejected`, `blocked`). Absent until the first verification attempt completes. Updated by the verify agent at the same time as appending to `verificationReports`. Convenience field — canonical source is `verificationReports`. |
+| `verificationReports` | array | no | One verification report per verify attempt, ordered by attempt number. See Verification Report below. |
 
 ### Lifecycle Values (SF_3)
 
@@ -299,6 +404,72 @@ Each acceptance criterion has separate `implementation` and `verification` objec
 | `pass` | Criterion satisfied with evidence |
 | `error` | Unexpected error during criterion check |
 | `skipped` | Criterion is impossible to satisfy — requires `skipRationale` (OR_13) |
+
+### Verification Report
+
+Each verification attempt appends one report to the `verificationReports` array. Reports are never overwritten — the array is an ordered log of all verification attempts. Each report has its own plet ID (type prefix `vrp`) making it addressable and cross-referenceable.
+
+```json
+{
+  "verificationReports": [
+    {
+      "pletId": "vrp_01JD8X3K7M_id001_v1",
+      "attempt": 1,
+      "verdict": "rejected",
+      "timestamp": "2026-03-07T16:45:00Z",
+      "summary": "3 of 5 criteria pass. Test quality issues in AC_2 (tautological mock). AC_4 implementation does not match spec — returns flat list instead of paginated response. AC_5 missing input validation on user-supplied query parameter.",
+      "criteriaResults": [
+        {"id": "AC_1", "status": "pass", "oneLiner": "Handler validates input, returns correct shape. Tests are solid."},
+        {"id": "AC_2", "status": "fail", "oneLiner": "Test mocks the DB layer and asserts the mock return — tautological.", "redTest": "test_FR_2_real_db_query", "relatedEntries": ["eln_01JD8X3K7N_id001_v1"]},
+        {"id": "AC_3", "status": "pass", "oneLiner": "Error responses match spec. Edge cases covered."},
+        {"id": "AC_4", "status": "fail", "oneLiner": "Spec requires paginated response, implementation returns flat list.", "redTest": "test_FR_4_paginated_response", "relatedEntries": ["eem_01JD8X3K7P_id001_v1"]},
+        {"id": "AC_5", "status": "fail", "oneLiner": "No validation on search query param — SQL injection vector.", "redTest": null, "noTestRationale": "Architectural concern: validation should happen at middleware layer, not per-handler. Documented in learnings.", "relatedEntries": ["eln_01JD8X3K7Q_id001_v1"]}
+      ],
+      "findings": [
+        "Test suite is well-structured but relies heavily on fixtures that hide setup complexity — future iterations touching shared state should read the conftest carefully.",
+        "Error handling follows a consistent pattern except in the webhook handler, which swallows ConnectionError silently. Not a criterion failure but worth flagging — see eem_01JD8X3K7R_id001_v1.",
+        "Implementation uses an in-memory cache with no TTL — works for current requirements but will need eviction policy if data volume grows."
+      ],
+      "relatedEntries": [
+        "epr_01JD8X3K7M_id001_v1"
+      ]
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pletId` | string | Globally unique plet ID with `vrp` type prefix (e.g., `vrp_01JD8X3K7M_id001_v1`) |
+| `attempt` | number | Which verification attempt this report is from |
+| `verdict` | string | Verification outcome. See Verdict Values below. |
+| `timestamp` | string | When the report was written |
+| `summary` | string | 1-3 sentence headline of the verification outcome |
+| `findings` | array of strings | Observations, conclusions, and concerns that don't fit in the summary or per-criterion one-liners (VF_24). Each entry is a discrete finding. May reference plet IDs inline as plain text (e.g., "see eln_01JD8X3K7N_id001_v1 for details") — not structured, just readable. May overlap with learnings — that's fine; the report is self-contained while learnings persist across iterations. |
+| `criteriaResults` | array | One entry per criterion — compact summary, not full evidence |
+| `criteriaResults[].id` | string | Criterion ID |
+| `criteriaResults[].status` | string | Verification status (`pass`, `fail`, `skipped`, `error`) |
+| `criteriaResults[].oneLiner` | string | One-sentence summary of the finding |
+| `criteriaResults[].redTest` | string or null | Test name if a failing test was written (cycle-back only). `null` if no test written. |
+| `criteriaResults[].noTestRationale` | string | Why no red test was written (present only when `redTest` is `null` and `status` is `fail`) |
+| `criteriaResults[].relatedEntries` | array of strings | Plet IDs for entries specific to this criterion (e.g., a learnings entry about a test quality issue, an emergent entry about a spec gap for this AC) |
+| `relatedEntries` | array of strings | Plet IDs for iteration-spanning entries (e.g., the progress entry for this verification phase, learnings about cross-cutting patterns) |
+
+### Verdict Values
+
+| Value | Meaning | Lifecycle transition | Progress.md title |
+|-------|---------|---------------------|-------------------|
+| `passed` | All criteria pass verification. Iteration is frozen. No further work needed. | `verifying` → `complete` | `COMPLETE (passed, frozen)` |
+| `rejected` | Substantial issues found. New criteria and/or failing tests added. Iteration returns to implementation unless retry limit is exhausted — see note below. | `verifying` → `implementing` | `COMPLETE (rejected, cycle back)` |
+| `blocked` | Verification cannot proceed without human input. Spec ambiguity or environmental issue. | `verifying` → `blocked` | `BLOCKED` |
+
+The progress.md status reflects the *phase attempt* outcome (did the verify agent finish its work?), while the parenthetical echoes the verdict for scannability. `BLOCKED` needs no parenthetical — the status is the verdict.
+
+**Retry exhaustion:** A `rejected` verdict normally cycles back to implementation, but the orchestrator enforces retry limits (EX_14). If the limit is exhausted, the orchestrator transitions the iteration to `lifecycle: "blocked"` instead of allowing another implementation attempt, and writes a `BLOCKED` progress entry and `blocker` emergent entry explaining retry exhaustion. The verify agent is unaware of retry limits — it always reports its verdict; the orchestrator decides whether to act on it or stop.
+
+The `criteriaResults` array is a compact index — the full evidence stays in each criterion's `verification` object. `relatedEntries` exists at both levels: report-level for iteration-spanning concerns, criterion-level for findings specific to a single AC. This avoids duplication while giving readers a scannable overview with direct links to detailed artifacts.
+
+**Plet ID context segments for `vrp`:** Same as runtime artifact entries — `{iteration}_{phase_attempt}` (e.g., `vrp_01JD8X3K7M_id001_v1`).
 
 ---
 
