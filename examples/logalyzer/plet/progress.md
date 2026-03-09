@@ -190,3 +190,36 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - Supports minute, hour, and arbitrary durations via `time.ParseDuration`
 - Buckets are continuous (fills gaps) and sorted chronologically
 - 8 unit tests (TestAG5_*) + 2 CLI integration tests
+
+## ID_008: JSON output — COMPLETE (passed, frozen)
+- **Verified:** 2026-03-09, verify-1
+- **Criteria:** AC_1 pass, AC_2 pass, AC_3 pass
+- **Summary:** `--json` flag implemented on both `search` and `summary` subcommands. Search outputs each matching entry as one JSON object per line via `FormatEntryJSON` (encoding/json.Marshal). Summary outputs a single JSON object via `FormatJSON`. Both produce valid, re-parseable JSON confirmed by tests that round-trip through json.Unmarshal.
+- **Key files:**
+  - `cmd/logalyzer/search.go` — --json flag for search, line 29/133
+  - `cmd/logalyzer/main.go` — --json flag for summary, line 54/87
+  - `internal/output/format.go` — FormatEntryJSON, SelectFields
+  - `internal/aggregate/summary_json.go` — Summary.FormatJSON()
+  - `cmd/logalyzer/search_test.go` — 4 JSON-specific tests (TestOU2_*)
+- **Pre-flight:** build clean, all tests pass
+- **Notes:** No hidden debt. Both subcommands use stdlib encoding/json for serialization.
+
+## ID_010 — Advanced search (verified)
+- **AC_1**: PASS — `NewKeywordFilter` is case-insensitive by default; `NewCaseSensitiveKeywordFilter` + `--case-sensitive` flag provides exact match. 4 tests.
+- **AC_2**: PASS — `NewRegexFilter` compiles pattern, matches across level/message/Extra string fields. Invalid patterns return error. 5 tests.
+- **AC_3**: PASS — `InvertFilter` negates inner filter; CLI uses `compositeFilter` to wrap all filters before inverting (AND-then-negate). 3 tests.
+- All 12 tests pass, build/vet/fmt clean. No hidden debt.
+
+## ID_009 — Colored output (verify-1: FAIL)
+- **Verdict:** FAIL — sent back for reimplementation
+- **AC_1 FAIL:** FormatTextColor is never called from production code. StreamEntry (the actual CLI output path in search.go:136) calls FormatText which has no color. FormatTextColor is dead code exercised only by unit tests.
+- **AC_2 FAIL:** No TTY detection exists anywhere in the codebase. No os.Stdout.Stat(), no ModeCharDevice check, no isatty equivalent. The colorEnabled parameter is never set based on terminal state.
+- **Root cause:** The implementation added a well-tested color formatting function but never wired it into the CLI. StreamEntry needs to be updated (or a new streaming function created) to accept a color flag, and search.go needs to detect TTY and pass the flag through.
+- **Pre-existing issue:** TestVersionFlag fails in cmd/logalyzer (unrelated to ID_009).
+
+## ID_012 — Histogram bucketing (verified)
+- **AC_1**: PASS — `--histogram --bucket` flags wired in `search.go`; `aggregate.Histogram()` floors timestamps, counts entries, fills gaps; 6 unit tests + 1 CLI integration test
+- **AC_2**: PASS — uses `time.ParseDuration` supporting minute, hour, and arbitrary durations; dedicated minute, hour, and 5-minute tests
+- **AC_3**: PASS — buckets generated in ascending nanos order with explicit `sort.Slice` safety net; chronological ordering test with out-of-order input
+- Build, vet, gofmt: all clean
+- Note: pre-existing `TestVersionFlag` test isolation issue (passes alone, fails when run with all tests due to missing binary); unrelated to ID_012

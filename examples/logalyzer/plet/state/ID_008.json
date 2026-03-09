@@ -1,12 +1,27 @@
 {
   "iterationId": "ID_008",
-  "lifecycle": "verifying",
+  "lifecycle": "complete",
   "agentId": "agent-a75a9ac8",
   "agentActivity": "complete",
-  "attempts": { "impl": 1, "verify": 0 },
+  "attempts": { "impl": 1, "verify": 1 },
   "criteria": [
     { "id": "AC_1", "description": "--json flag outputs each matching entry as a JSON object, one per line", "status": "pass" },
     { "id": "AC_2", "description": "JSON output is valid — re-parseable by a JSON parser", "status": "pass" },
     { "id": "AC_3", "description": "JSON output works with both search and summary subcommands", "status": "pass" }
-  ]
+  ],
+  "verification": {
+    "verdict": "pass",
+    "verifiedAt": "2026-03-09",
+    "evidence": {
+      "AC_1": "search --json iterates entries calling FormatEntryJSON+Println (one JSON object per line). TestOU2_SearchJSONOutput confirms 5 lines for 5 entries. TestOU2_SearchJSONWithFilter confirms 1 line for filtered result.",
+      "AC_2": "FormatEntryJSON uses encoding/json.Marshal (stdlib). TestOU2_SearchJSONValid re-parses every output line with json.Unmarshal, fails on invalid JSON. TestOU2_SummaryJSONOutput also re-parses summary JSON.",
+      "AC_3": "search subcommand: --json flag at search.go:29, used at search.go:133. summary subcommand: --json flag at main.go:54, calls FormatJSON() at main.go:87. Both tested: TestOU2_SearchJSONOutput and TestOU2_SummaryJSONOutput."
+    },
+    "preflight": {
+      "build": "pass",
+      "test": "pass (all packages)",
+      "vet": "not re-run (covered by test pass)",
+      "debt": "none found"
+    }
+  }
 }

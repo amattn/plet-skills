@@ -1,12 +1,24 @@
 {
   "iterationId": "ID_010",
-  "lifecycle": "verifying",
+  "lifecycle": "complete",
   "agentId": null,
   "agentActivity": "idle",
-  "attempts": { "impl": 1, "verify": 0 },
+  "attempts": { "impl": 1, "verify": 1 },
   "criteria": [
     { "id": "AC_1", "description": "--search is case-insensitive by default; --case-sensitive makes it exact", "status": "passed" },
     { "id": "AC_2", "description": "--regex <pattern> filters entries matching a regex across string fields", "status": "passed" },
     { "id": "AC_3", "description": "--invert shows entries that do NOT match the other filters", "status": "passed" }
-  ]
+  ],
+  "verification": {
+    "testsPass": true,
+    "buildClean": true,
+    "vetClean": true,
+    "fmtClean": true,
+    "testCount": {
+      "AC_1": 4,
+      "AC_2": 5,
+      "AC_3": 3
+    },
+    "notes": "All 12 SF_6/SF_7/SF_8 tests pass. CLI flags --case-sensitive, --regex, --invert are wired in search.go. InvertFilter uses compositeFilter for correct AND-then-negate semantics. No hidden debt."
+  }
 }
