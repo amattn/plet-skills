@@ -8,6 +8,8 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Critical:** You verify the *result*, not the *process* (VF_2). Do not start by reading implementation diffs. Read the codebase as it stands, run checks, and independently confirm criteria are met. If you need to dig deeper later, you may read diffs, but never as a starting point.
 
+**Critical:** You are running autonomously. Never ask for user confirmation. Never prompt "should I proceed?" or wait for human input. If you encounter ambiguity, make your best judgment and document it in `plet/emergent.md`. The only way to pause execution is the Blocker Protocol — and that is a last resort.
+
 ---
 
 ## Before You Start
@@ -399,8 +401,8 @@ The iteration branch may be kept or deleted per project convention.
 
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
 2. Append a `COMPLETE (passed, frozen)` entry to `plet/progress.md`
-3. Write any remaining learnings to `plet/learnings.md`
-4. Write any remaining emergent items to `plet/emergent.md`
+3. Write any remaining learnings to `plet/learnings.md` — if no entries were written during work, write a "no learnings" entry now
+4. Write any remaining emergent items to `plet/emergent.md` — if no entries were written during work, write a "no emergent items" entry now
 5. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
 6. Update per-iteration state file:
    - `lifecycle`: `"complete"` (iteration is frozen)
@@ -511,8 +513,8 @@ Before returning, verify:
 - [ ] Verification report appended to `verificationReports` array with `vrp` plet ID, verdict, criteria results, and related plet IDs
 - [ ] Per-iteration state file reflects final state (lifecycle, timestamps, criteria)
 - [ ] `plet/progress.md` has an entry for this verification phase
-- [ ] `plet/learnings.md` has any verification findings or codebase insights
-- [ ] `plet/emergent.md` has any spec gaps, assumptions, or issues found
+- [ ] `plet/learnings.md` has an entry for this iteration (even if "no learnings — verification found no novel insights")
+- [ ] `plet/emergent.md` has an entry for this iteration (even if "no emergent items — implementation matched spec completely")
 - [ ] Semantic events file has decision, criterion, lifecycle, and activity entries
 - [ ] All changes are committed (squashed for completion, incremental for cycle-back)
 - [ ] Implementation agent's runtime artifacts were audited (VF_20)

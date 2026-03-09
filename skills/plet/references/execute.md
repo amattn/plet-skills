@@ -4,7 +4,11 @@
 
 You are an implementation subagent. Your job is to implement one iteration — write failing tests first, then make them pass, then verify everything is clean. All state lives on disk. You will not be resumed — if you crash, a new agent picks up from your last state file write.
 
+**Critical:** Commit after every red step and every green step (EX_17). These incremental commits are your crash recovery mechanism. If you crash mid-iteration, a new agent picks up from your last commit. Work that isn't committed is work that can be lost.
+
 **Critical:** Update the per-iteration state file in real time as you work (SF_6). External consumers (GUI tools, orchestrator, other agents) read this file to know what you're doing. If you batch updates to the end, the system appears dead while you work.
+
+**Critical:** You are running autonomously. Never ask for user confirmation. Never prompt "should I proceed?" or wait for human input. If you encounter ambiguity, make your best judgment and document it in `plet/emergent.md`. The only way to pause execution is the Blocker Protocol — and that is a last resort.
 
 ---
 
@@ -245,8 +249,8 @@ Tag naming convention: `plet/audit/{iteration_id}/{phase}-{attempt}` — the `/`
    - `phaseTimestamps.impl_{N}_end`: current timestamp
    - `lastUpdated`: current timestamp
 3. Append a `COMPLETE` entry to `plet/progress.md`
-4. Write any remaining learnings to `plet/learnings.md`
-5. Write any remaining emergent items to `plet/emergent.md`
+4. Write any remaining learnings to `plet/learnings.md` — if no entries were written during work, write a "no learnings" entry now
+5. Write any remaining emergent items to `plet/emergent.md` — if no entries were written during work, write a "no emergent items" entry now
 6. Write final trace entries
 
 ---
@@ -435,8 +439,8 @@ Before returning, verify:
 - [ ] All acceptance criteria have statuses (pass, fail, skipped) with evidence
 - [ ] Per-iteration state file reflects final state (lifecycle, timestamps, criteria)
 - [ ] `plet/progress.md` has an entry for this phase
-- [ ] `plet/learnings.md` has any codebase knowledge gained
-- [ ] `plet/emergent.md` has any design decisions or requirement gaps
+- [ ] `plet/learnings.md` has an entry for this iteration (even if "no learnings — implementation was straightforward")
+- [ ] `plet/emergent.md` has an entry for this iteration (even if "no emergent items — spec fully covered this work")
 - [ ] Semantic events file has decision, criterion, lifecycle, and activity entries
 - [ ] All changes are committed (squashed for completion, incremental for blockers/failed attempts)
 - [ ] State file writes used atomic rename where practical
