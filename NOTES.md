@@ -595,6 +595,83 @@ Key questions:
 - What recurring drift patterns emerge from real usage?
 - Should it compose with plet phases (auto-run after plan changes or refine)?
 
+### Refactor step or phase in the loop
+
+Autonomous agents accumulate tech debt iteration by iteration — each implementation subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. Regular refactoring should be built into the loop to mitigate this.
+
+Options to explore:
+- **Refactor step within each iteration:** After verify passes, a brief refactor pass before marking complete. Lightweight but frequent.
+- **Periodic refactor phase:** A dedicated refactor iteration injected every N iterations (e.g., every 3-5). Heavier but catches cross-iteration debt.
+- **Refine-triggered refactor:** The refine phase surfaces tech debt from learnings/emergent items and creates refactor iterations. Already partially supported — emergent items can capture "this code needs cleanup" — but not formalized.
+- **Milestone boundary refactor:** A refactor pass at the end of each milestone before moving to the next. Natural checkpoint.
+
+Key questions:
+- Should refactoring have its own reference file (like execute.md but for cleanup)?
+- How does a refactor iteration define acceptance criteria? ("Code is cleaner" is not verifiable.)
+- Does the verify agent already catch some of this via code quality review? If so, is a separate phase redundant?
+- Should refactor iterations be auto-generated or human-approved during refine?
+
+**Hard invariant: No refactoring unless all tests pass green.** Refactoring without green tests is rearranging code you can't verify. Regression risk is too high.
+
+**Two-tier refactoring model:**
+
+**Tier 1: Per-loop minor refactor** — cheap, obvious, local scope. Things any competent developer would clean up before committing. Handled by the implementation/verify agents as part of normal loop work, not a separate phase.
+
+- Very large or complex functions/modules/files (contextual thresholds — a 200-line parser may be fine, a 200-line controller is a red flag)
+- Functions/methods with high cyclomatic complexity or deep nesting
+- Tests requiring excessive setup or mocking (coupling smell)
+- Tests breaking across iterations that didn't directly touch that area (fragile coupling)
+- Growing parameter lists (introduce options/config object, or question whether the function does too much)
+- Unused imports/variables/dead code within touched files
+- Magic numbers or hardcoded values that should be named constants
+- Inconsistent error handling within touched files (new pattern doesn't match existing)
+- Placeholder comments (`// TODO`, `# FIXME`) left by the agent — should never survive past verify
+- Generic error handling (catching all exceptions, swallowing errors, `except Exception: pass`)
+- Missing resource cleanup (file handles, DB connections, temp files not closed)
+- Inefficient patterns (local: N+1 queries, unnecessary copies, O(n²) where O(n) is obvious)
+- Race conditions (obvious: shared mutable state without synchronization in one file)
+
+**Tier 2: Milestone boundary full refactor** — signals that require cross-iteration perspective. Triggered when all iterations in a milestone reach `complete` (tests green by definition). Full analysis across all heuristics before starting the next milestone. Produces proposed refactor iterations that go through the normal loop (acceptance criteria, verify, the whole process).
+
+Design signals (require judgment):
+- **Excessive special cases** — the signature autonomous agent smell. Each iteration adds an `if` branch. After 5 iterations, you've got a function of special cases that should be a cleaner abstraction. Detectable: conditional branch count, `if type == "X"` / `elif type == "Y"` chains, switch-like structures that grew organically.
+- **Code or logic at the wrong conceptual level** — business logic in utility functions, presentation logic in data layers, infrastructure concerns in domain code. Agent checks against `requirements.md` which defines the intended architecture.
+- **Abstraction opportunities** — multiple iterations independently wrote similar helpers. Only visible when you look across all of them.
+
+Structural signals (cheap to detect):
+- Duplicate or near-duplicate code across files touched by different iterations
+- High-churn files (touched by many iterations = likely god object or kitchen-sink module)
+- Import tangles — circular dependencies, modules importing from too many places
+- API surface area creep — modules exposing too many public functions/methods across iterations (module boundary is wrong)
+- Configuration/constants scattered across files that should be centralized
+
+Pattern signals (from plet's own artifacts):
+- `learnings.md` entries mentioning the same file or module repeatedly
+- `emergent.md` items about workarounds or inability to cleanly separate concerns
+- Multiple iterations modifying the same function/class
+- Verify agents flagging code quality issues that suggest deeper structure problems
+
+Cross-iteration accumulation signals (verify catches these per-iteration, but accumulation across iterations is a refactoring signal):
+- Placeholder comments accumulating across the codebase
+- Generic error handling patterns spreading
+- Inefficient patterns (systemic: every iteration repeats the same expensive operation that should be cached at a higher level)
+- Hidden coupling — cross-iteration implicit dependencies not in the import graph. Module A works fine until module B changes because they share assumptions.
+- Race conditions (emergent: multiple iterations independently added concurrent access to the same resource)
+- Missing resource cleanup patterns spreading across modules
+
+Convention drift signals:
+- Inconsistent naming across iterations (mixed `snake_case` / `camelCase` for similar things)
+- Mixed patterns for the same operation (different error handling strategies, etc.)
+- Dead code left behind by iterations that changed direction
+
+Test signals:
+- Test files that became catch-alls (each iteration appended to the nearest test file rather than organizing by concern)
+- Test files growing faster than implementation files
+
+**Escape hatch:** The refine phase can create refactor iterations mid-milestone if the human or learnings surface something urgent ("this module is becoming unmaintainable"). Same hard invariant applies — tests must be green.
+
+Not a v1 blocker — the current verify phase catches obvious code quality issues — but worth designing in before tech debt compounds across real usage.
+
 ### PRD input and disambiguation
 
 plet's plan phase should accept any existing PRD as input, regardless of which skill or tool created it, and use it to produce a `requirements.md`. The PRD generation step is upstream of plet — plet operationalizes whatever spec it's given.
@@ -609,6 +686,63 @@ Key questions:
 - When multiple PRD skills are loaded, how does the user signal which style they want? Need some disambiguation UX — "snarktank-style PRD? ridl-style? plet requirements doc? SKILLNAME-style?"
 - No auto-detection of existing PRDs — the user says "read this first" or "start with this doc." But plet should let the user know that if they have an existing PRD, spec, or list of requirements, that's usually a great place to start.
 - Existing docs are always just a starting point — plet's plan phase asks clarifying questions if the doc is insufficient, same as starting from scratch
+
+---
+
+## Example Projects
+
+Example projects live in subdirectories of `plet-skills/`. Their purpose is to serve as real target projects for plet's first runs — exercising the full plan → loop → refine workflow against actual code, not speculative samples.
+
+### Log Analyzer CLI (Go)
+
+**Directory:** `examples/logalyzer/` (planned)
+**Language:** Go
+**Input:** NDJSON log files (one JSON object per line)
+
+**Why this is a good plet target:**
+- Structured input, clear operations, easy to test
+- Naturally decomposes into iterations with clean boundaries
+- Each iteration is independently testable and builds on the previous
+- Go's `testing` package fits red/green discipline perfectly
+- NDJSON is conveniently the same format as plet's own trace output
+
+**Proposed iterations (to compare against plet plan mode output):**
+
+1. **Parse & validate** — read NDJSON, reject malformed lines, report line counts
+2. **Filter by field** — `logalyzer filter --level=ERROR`, `--after=2026-03-01`
+3. **Summary stats** — count by level, top N sources/keys, time range
+4. **Search** — regex or substring match across message fields
+5. **Output formats** — table, JSON summary, CSV
+6. **Time bucketing** — group events by minute/hour/day, show ASCII histograms
+7. **Pipe-friendly** — stdin support, composable with other Unix tools
+
+**Decision:** Go chosen over Python (also a good fit) for compiled binary, strong stdlib for JSON/CLI, and single-binary distribution. Shell + jq rejected — testing is clunky.
+
+### Elixir Phoenix LiveView UUID Generator (planned)
+
+**Directory:** `examples/uuidgen/` (planned)
+**Language:** Elixir, Phoenix, LiveView
+
+**Why this is a good plet target:**
+- UUID variants are well-specified — clear acceptance criteria per variant
+- Each variant is a natural iteration
+- Multiple layers (backend logic, LiveView UI) exercise different concerns
+- Elixir's `mix test` fits red/green discipline
+- LiveView adds interactive UI complexity beyond pure CLI
+
+**Proposed iterations (to compare against plet plan mode output):**
+
+1. Project scaffold + v4 (random) generation
+2. v1 (timestamp-based)
+3. v5 (name-based, SHA-1) — needs namespace input
+4. v7 (Unix epoch timestamp) — the modern one
+5. LiveView UI — generate, display, copy-to-clipboard
+6. Batch generation, format options (with/without hyphens, uppercase)
+7. UUID parsing/validation — paste one in, show its version and components
+
+### Meta-goal
+
+Run plet plan mode on each project and compare its iteration decomposition against these brainstormed iterations. This tests whether plet's interactive planning produces comparable or better decompositions. Differences are interesting data for refine.
 
 ---
 
