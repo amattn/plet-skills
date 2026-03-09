@@ -2,6 +2,7 @@
 package filter
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -109,4 +110,54 @@ func (f *KeywordFilter) Match(entry parser.LogEntry) bool {
 		}
 	}
 	return false
+}
+
+// FieldFilter matches entries that have a specific field. When existsOnly is
+// true, it checks only for the field's presence. When existsOnly is false, it
+// checks that the field's value matches exactly.
+// Well-known fields (level, message) are checked in addition to Extra fields.
+type FieldFilter struct {
+	key       string
+	value     string
+	existsOnly bool
+}
+
+// NewFieldFilter creates a FieldFilter for the given key.
+// If existsOnly is true, the filter matches any entry that has the key.
+// If existsOnly is false, the filter matches entries where key equals value exactly.
+func NewFieldFilter(key, value string, existsOnly bool) *FieldFilter {
+	return &FieldFilter{key: key, value: value, existsOnly: existsOnly}
+}
+
+// Match returns true if the entry satisfies the field filter.
+// It checks well-known fields (level, message) and Extra fields.
+func (f *FieldFilter) Match(entry parser.LogEntry) bool {
+	// 894527361048 — FieldFilter.Match: check well-known fields first, then Extra
+	switch f.key {
+	case "level":
+		if f.existsOnly {
+			return entry.Level != ""
+		}
+		return entry.Level == f.value
+	case "message":
+		if f.existsOnly {
+			return entry.Message != ""
+		}
+		return entry.Message == f.value
+	}
+
+	// Check Extra map
+	v, exists := entry.Extra[f.key]
+	if !exists {
+		return false
+	}
+	if f.existsOnly {
+		return true
+	}
+	// Compare as string
+	if s, ok := v.(string); ok {
+		return s == f.value
+	}
+	// For non-string values, convert via fmt.Sprint for comparison
+	return fmt.Sprint(v) == f.value
 }

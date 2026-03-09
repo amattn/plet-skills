@@ -235,6 +235,173 @@ func TestSF5_CombineAllThreeFilters(t *testing.T) {
 	}
 }
 
+// TestSF4_FieldFilterExactMatch verifies --field key=value filters entries where key equals value exactly (SF_4, AC_1).
+func TestSF4_FieldFilterExactMatch(t *testing.T) {
+	entries := makeEntries()
+	f := NewFieldFilter("service", "web", false)
+	result := Apply(entries, f)
+
+	// entries 0 (service=web), 3 (service=web), 4 (service=web) should match
+	if len(result) != 3 {
+		t.Fatalf("expected 3 entries with service=web, got %d", len(result))
+	}
+	for _, e := range result {
+		if e.Extra["service"] != "web" {
+			t.Errorf("expected service=web, got %v", e.Extra["service"])
+		}
+	}
+}
+
+// TestSF4_FieldFilterExactMatchNoMatch verifies --field key=value returns empty when no match (SF_4, AC_1).
+func TestSF4_FieldFilterExactMatchNoMatch(t *testing.T) {
+	entries := makeEntries()
+	f := NewFieldFilter("service", "nonexistent", false)
+	result := Apply(entries, f)
+
+	if len(result) != 0 {
+		t.Fatalf("expected 0 entries, got %d", len(result))
+	}
+}
+
+// TestSF4_FieldFilterWellKnownLevel verifies --field level=error matches the well-known Level field (SF_4, AC_1).
+func TestSF4_FieldFilterWellKnownLevel(t *testing.T) {
+	entries := makeEntries()
+	f := NewFieldFilter("level", "error", false)
+	result := Apply(entries, f)
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 entries with level=error, got %d", len(result))
+	}
+	for _, e := range result {
+		if e.Level != "error" {
+			t.Errorf("expected level=error, got %q", e.Level)
+		}
+	}
+}
+
+// TestSF4_FieldFilterWellKnownMessage verifies --field message=timeout matches the well-known Message field (SF_4, AC_1).
+func TestSF4_FieldFilterWellKnownMessage(t *testing.T) {
+	entries := makeEntries()
+	f := NewFieldFilter("message", "timeout", false)
+	result := Apply(entries, f)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry with message=timeout, got %d", len(result))
+	}
+	if result[0].Message != "timeout" {
+		t.Errorf("expected message=timeout, got %q", result[0].Message)
+	}
+}
+
+// TestSF4_FieldFilterExistsOnly verifies --field key filters entries where key exists (SF_4, AC_2).
+func TestSF4_FieldFilterExistsOnly(t *testing.T) {
+	entries := makeEntries()
+	f := NewFieldFilter("service", "", true)
+	result := Apply(entries, f)
+
+	// All 5 entries have service in Extra
+	if len(result) != 5 {
+		t.Fatalf("expected 5 entries with service key, got %d", len(result))
+	}
+}
+
+// TestSF4_FieldFilterExistsOnlyMissing verifies --field key returns empty when key absent (SF_4, AC_2).
+func TestSF4_FieldFilterExistsOnlyMissing(t *testing.T) {
+	entries := makeEntries()
+	f := NewFieldFilter("nonexistent_key", "", true)
+	result := Apply(entries, f)
+
+	if len(result) != 0 {
+		t.Fatalf("expected 0 entries, got %d", len(result))
+	}
+}
+
+// TestSF4_FieldFilterExistsWellKnownLevel verifies --field level matches entries with non-empty level (SF_4, AC_2).
+func TestSF4_FieldFilterExistsWellKnownLevel(t *testing.T) {
+	entries := []parser.LogEntry{
+		{Level: "info", Message: "has level"},
+		{Level: "", Message: "no level"},
+		{Level: "error", Message: "also has level"},
+	}
+	f := NewFieldFilter("level", "", true)
+	result := Apply(entries, f)
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 entries with level, got %d", len(result))
+	}
+}
+
+// TestSF4_FieldFilterCombineWithLevel verifies field filter AND level filter (SF_5, AC_3).
+func TestSF4_FieldFilterCombineWithLevel(t *testing.T) {
+	entries := makeEntries()
+	fieldFilter := NewFieldFilter("service", "web", false)
+	levelFilter := NewLevelFilter([]string{"error"})
+	result := Apply(entries, fieldFilter, levelFilter)
+
+	// Only error entries with service=web: entry 3 (error, timeout, service=web)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry (error + service=web), got %d", len(result))
+	}
+	if result[0].Message != "timeout" {
+		t.Errorf("expected message=timeout, got %q", result[0].Message)
+	}
+}
+
+// TestSF4_FieldFilterCombineWithKeyword verifies field filter AND keyword filter (SF_5, AC_3).
+func TestSF4_FieldFilterCombineWithKeyword(t *testing.T) {
+	entries := makeEntries()
+	fieldFilter := NewFieldFilter("service", "web", false)
+	keywordFilter := NewKeywordFilter("starting")
+	result := Apply(entries, fieldFilter, keywordFilter)
+
+	// Only entry 0 (info, starting up, service=web)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry (service=web + keyword starting), got %d", len(result))
+	}
+	if result[0].Message != "starting up" {
+		t.Errorf("expected message='starting up', got %q", result[0].Message)
+	}
+}
+
+// TestSF4_FieldFilterCombineWithTimeAndLevel verifies field+time+level AND combination (SF_5, AC_3).
+func TestSF4_FieldFilterCombineWithTimeAndLevel(t *testing.T) {
+	entries := makeEntries()
+	fieldFilter := NewFieldFilter("service", "web", false)
+	levelFilter := NewLevelFilter([]string{"info"})
+	timeFilter := NewTimeRangeFilter(
+		time.Date(2025, 1, 1, 13, 0, 0, 0, time.UTC),
+		time.Time{},
+	)
+	result := Apply(entries, fieldFilter, levelFilter, timeFilter)
+
+	// Only entry 4 (info, shutting down, service=web, 14:00)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(result))
+	}
+	if result[0].Message != "shutting down" {
+		t.Errorf("expected message='shutting down', got %q", result[0].Message)
+	}
+}
+
+// TestSF4_MultipleFieldFilters verifies multiple field filters combine with AND (SF_5, AC_3).
+func TestSF4_MultipleFieldFilters(t *testing.T) {
+	entries := []parser.LogEntry{
+		{Level: "info", Message: "a", Extra: map[string]any{"env": "prod", "region": "us"}},
+		{Level: "info", Message: "b", Extra: map[string]any{"env": "prod", "region": "eu"}},
+		{Level: "info", Message: "c", Extra: map[string]any{"env": "staging", "region": "us"}},
+	}
+	f1 := NewFieldFilter("env", "prod", false)
+	f2 := NewFieldFilter("region", "us", false)
+	result := Apply(entries, f1, f2)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry (env=prod AND region=us), got %d", len(result))
+	}
+	if result[0].Message != "a" {
+		t.Errorf("expected message=a, got %q", result[0].Message)
+	}
+}
+
 // TestSF5_CombineFiltersNoMatch verifies AND semantics can produce empty results (AC_5).
 func TestSF5_CombineFiltersNoMatch(t *testing.T) {
 	entries := makeEntries()
