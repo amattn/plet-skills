@@ -1,0 +1,10 @@
+{
+  "name": "plet-skills",
+  "version": "0.1.0",
+  "description": "Spec-driven autonomous development loop for Claude Code. Plan interactively, execute autonomously, verify independently, refine iteratively.",
+  "author": {
+    "name": "amattn"
+  },
+  "skills": "./skills/",
+  "keywords": ["plet", "prd", "automation", "agent", "planning", "requirements", "spec-driven", "development-loop", "ralph-loop"]
+}
