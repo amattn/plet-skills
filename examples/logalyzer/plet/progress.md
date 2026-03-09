@@ -82,3 +82,11 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - AC_3: msg recognized as message alias (PASS)
 - AC_4: RFC 3339, Unix epoch seconds, Unix epoch millis all parsed correctly (PASS)
 - 14 tests total, all passing. No regressions.
+
+## ID_003: Log entry normalization & field aliases — COMPLETE (passed, frozen)
+
+- **Verdict:** passed (verify-1)
+- **Criteria:** AC_1 (timestamp aliases), AC_2 (level aliases), AC_3 (message alias), AC_4 (timestamp formats) — all pass
+- **Requirements:** LP_2, LP_5, LP_6
+- **Key files:** `internal/parser/parser.go`, `internal/parser/parser_test.go`
+- **Notes:** Alias maps for timestamp/level/message fields. parseTimestamp handles RFC3339, Unix seconds, Unix millis with sub-second precision. Well-known fields excluded from Extra map.

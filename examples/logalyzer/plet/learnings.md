@@ -36,3 +36,8 @@ The `run(args []string) int` pattern separating logic from `main()` is effective
 - Implementing all alias maps (timestamp, level, message) in one refactor pass was more natural than doing them one at a time, but the red/green discipline still applies per-criterion for test coverage.
 - The parseTimestamp helper cleanly separates format detection from field extraction, making it easy to add new formats later.
 - Threshold of 1e12 to distinguish epoch seconds from epoch millis works well for current and near-future timestamps.
+
+## ID_003 Observations
+
+- The `> 1e12` heuristic for distinguishing epoch seconds from epoch millis is pragmatic and works for timestamps in the 2001-2286 range. Worth noting as a known limitation if the project ever handles pre-2001 millisecond timestamps, but fine for log analysis.
+- Alias-to-Extra exclusion logic uses a two-pass approach (first pass extracts well-known, second pass populates Extra). This avoids double-storing but depends on map iteration order being handled correctly via the `entry.Timestamp.IsZero()` / `entry.Level == ""` guards.

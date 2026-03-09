@@ -2,23 +2,84 @@
   "schemaVersion": "1.0.0",
   "iterationId": "ID_003",
   "title": "Log entry normalization & field aliases",
-  "lastUpdated": "2026-03-09T12:15:00Z",
-  "lastHeartbeat": "2026-03-09T12:15:00Z",
-  "lifecycle": "verifying",
+  "lastUpdated": "2026-03-09T12:30:00Z",
+  "lastHeartbeat": "2026-03-09T12:30:00Z",
+  "lifecycle": "complete",
+  "lastVerdict": "passed",
   "dependencies": ["ID_002"],
   "agentId": null,
   "agentActivity": "idle",
-  "activityDetail": "all 4 criteria pass, awaiting verification",
-  "attempts": { "impl": 1, "verify": 0 },
+  "activityDetail": "verification passed — all 4 criteria confirmed independently",
+  "attempts": { "impl": 1, "verify": 1 },
   "phaseTimestamps": {
     "impl_1_start": "2026-03-09T12:00:00Z",
-    "impl_1_end": "2026-03-09T12:15:00Z"
+    "impl_1_end": "2026-03-09T12:15:00Z",
+    "verify_1_start": "2026-03-09T12:25:00Z",
+    "verify_1_end": "2026-03-09T12:30:00Z"
   },
   "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "ts, time, @timestamp are recognized as timestamp aliases", "status": "pass", "evidence": "TestLP5_AC1_TimestampAliases passes for ts, time, @timestamp — all resolve to Timestamp, none leak to Extra" },
-    { "id": "AC_2", "description": "lvl, severity are recognized as level aliases", "status": "pass", "evidence": "TestLP5_AC2_LevelAliases passes for lvl, severity — both resolve to Level, none leak to Extra" },
-    { "id": "AC_3", "description": "msg is recognized as a message alias", "status": "pass", "evidence": "TestLP5_AC3_MessageAlias passes — msg resolves to Message, does not leak to Extra" },
-    { "id": "AC_4", "description": "RFC 3339, Unix epoch seconds, and Unix epoch millis timestamps are parsed correctly", "status": "pass", "evidence": "TestLP6_AC4_TimestampFormats (4 subtests) and TestLP6_AC4_EpochMillisSubSecond pass — RFC3339, epoch sec, epoch ms all parsed correctly with sub-second precision" }
+    {
+      "id": "AC_1",
+      "description": "ts, time, @timestamp are recognized as timestamp aliases",
+      "status": "pass",
+      "evidence": "TestLP5_AC1_TimestampAliases passes for ts, time, @timestamp — all resolve to Timestamp, none leak to Extra",
+      "verification": {
+        "status": "pass",
+        "evidence": "timestampAliases map contains ts/time/@timestamp (parser.go:30-35). TestLP5_AC1_TimestampAliases runs 3 subtests, each constructing JSON with the alias, parsing, and asserting Timestamp is set and alias excluded from Extra. All pass.",
+        "timestamp": "2026-03-09T12:30:00Z",
+        "elapsedSeconds": 5
+      }
+    },
+    {
+      "id": "AC_2",
+      "description": "lvl, severity are recognized as level aliases",
+      "status": "pass",
+      "evidence": "TestLP5_AC2_LevelAliases passes for lvl, severity — both resolve to Level, none leak to Extra",
+      "verification": {
+        "status": "pass",
+        "evidence": "levelAliases map contains lvl/severity (parser.go:38-42). TestLP5_AC2_LevelAliases runs 2 subtests verifying Level field populated and alias excluded from Extra. All pass.",
+        "timestamp": "2026-03-09T12:30:00Z",
+        "elapsedSeconds": 3
+      }
+    },
+    {
+      "id": "AC_3",
+      "description": "msg is recognized as a message alias",
+      "status": "pass",
+      "evidence": "TestLP5_AC3_MessageAlias passes — msg resolves to Message, does not leak to Extra",
+      "verification": {
+        "status": "pass",
+        "evidence": "messageAliases map contains msg (parser.go:45-48). TestLP5_AC3_MessageAlias constructs JSON with msg field, verifies Message populated and msg excluded from Extra. Pass.",
+        "timestamp": "2026-03-09T12:30:00Z",
+        "elapsedSeconds": 2
+      }
+    },
+    {
+      "id": "AC_4",
+      "description": "RFC 3339, Unix epoch seconds, and Unix epoch millis timestamps are parsed correctly",
+      "status": "pass",
+      "evidence": "TestLP6_AC4_TimestampFormats (4 subtests) and TestLP6_AC4_EpochMillisSubSecond pass — RFC3339, epoch sec, epoch ms all parsed correctly with sub-second precision",
+      "verification": {
+        "status": "pass",
+        "evidence": "parseTimestamp (parser.go:58-76) handles string (RFC3339) and float64 (>1e12 = millis, else seconds). TestLP6_AC4_TimestampFormats tests all 3 formats plus millis-with-remainder. TestLP6_AC4_EpochMillisSubSecond verifies sub-second precision (123ms). All 5 subtests pass.",
+        "timestamp": "2026-03-09T12:30:00Z",
+        "elapsedSeconds": 3
+      }
+    }
+  ],
+  "verificationReports": [
+    {
+      "attempt": 1,
+      "verdict": "passed",
+      "timestamp": "2026-03-09T12:30:00Z",
+      "summary": "All 4 acceptance criteria independently verified. Pre-flight clean: build, test, vet, gofmt all pass. Code quality: 3 unique debug numbers, Go doc comments on all exports, no external deps, no TODOs. Tests are non-tautological (construct real JSON, parse, assert on struct fields). Alias maps correctly exclude recognized fields from Extra.",
+      "criteriaResults": [
+        { "id": "AC_1", "status": "pass" },
+        { "id": "AC_2", "status": "pass" },
+        { "id": "AC_3", "status": "pass" },
+        { "id": "AC_4", "status": "pass" }
+      ]
+    }
   ]
 }
