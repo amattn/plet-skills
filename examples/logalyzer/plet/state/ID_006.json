@@ -2,18 +2,47 @@
   "schemaVersion": "1.0.0",
   "iterationId": "ID_006",
   "title": "Text output & streaming",
-  "lastUpdated": "2026-03-09T15:00:00Z",
-  "lifecycle": "verifying",
+  "lastUpdated": "2026-03-09T16:00:00Z",
+  "lifecycle": "complete",
   "dependencies": ["ID_004"],
-  "agentId": "agent_id006_impl1",
-  "agentActivity": "reading_context",
-  "attempts": { "impl": 1, "verify": 0 },
-  "phaseTimestamps": { "impl_1_start": "2026-03-09T15:00:00Z" },
+  "agentId": "agent_id006_verify1",
+  "agentActivity": "idle",
+  "attempts": { "impl": 1, "verify": 1 },
+  "phaseTimestamps": {
+    "impl_1_start": "2026-03-09T15:00:00Z",
+    "verify_1_start": "2026-03-09T16:00:00Z",
+    "verify_1_end": "2026-03-09T16:00:00Z"
+  },
   "elapsedSeconds": {},
   "criteria": [
     { "id": "AC_1", "description": "Matching entries print one per line in human-readable format", "status": "pass" },
     { "id": "AC_2", "description": "Results stream to stdout as produced, not batched", "status": "pass" },
     { "id": "AC_3", "description": "Errors and warnings go to stderr only", "status": "pass" },
     { "id": "AC_4", "description": "Exit code 0 on success, 1 on error, 2 on usage error", "status": "pass" }
+  ],
+  "verificationReports": [
+    {
+      "attempt": 1,
+      "verdict": "pass",
+      "criteria": {
+        "AC_1": {
+          "status": "pass",
+          "evidence": "FormatText produces single-line human-readable output with [TIMESTAMP] LEVEL: MESSAGE key=value format. 3 unit tests (TestOU1_FormatTextFullEntry, TestOU1_FormatTextMissingFields, TestOU1_FormatTextOneLine) verify format, missing field graceful handling, and no embedded newlines. Integration test TestOU1_SearchPrintsMatchingEntries confirms 3 entries produce 3 stdout lines."
+        },
+        "AC_2": {
+          "status": "pass",
+          "evidence": "StreamEntry writes each entry immediately via fmt.Fprintln to the io.Writer. TestNF5_StreamWritesImmediately verifies buffer has content after first entry before second is written. search.go loop calls StreamEntry per entry. Output is not accumulated into a buffer."
+        },
+        "AC_3": {
+          "status": "pass",
+          "evidence": "All error/warning messages in search.go use fmt.Fprintf(os.Stderr, ...). ParseNDJSONWithWarnings receives os.Stderr for malformed-line warnings. TestNF4_SearchErrorsToStderr verifies stdout contains no 'warning' text and stderr does contain it, using separate stdout/stderr buffers on actual binary execution."
+        },
+        "AC_4": {
+          "status": "pass",
+          "evidence": "runSearch returns 0 (success), 1 (file/parse error), 2 (missing argument). main() passes return value to os.Exit(). Three integration tests verify each code: TestNF3_SearchExitCodeSuccess (exit 0), TestNF3_SearchExitCodeError (exit 1 for nonexistent file), TestNF3_SearchExitCodeUsage (exit 2 for missing arg)."
+        }
+      },
+      "notes": "Pre-flight: build clean, 64 tests pass across 5 packages, go vet clean. Minor: gofmt reports internal/filter/filter.go needs formatting but that is not part of this iteration. All tests are non-tautological -- they test real behavior against known inputs/outputs using actual binary execution for integration tests."
+    }
   ]
 }

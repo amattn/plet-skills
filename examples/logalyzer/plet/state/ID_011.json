@@ -2,18 +2,42 @@
   "schemaVersion": "1.0.0",
   "iterationId": "ID_011",
   "title": "Aggregation",
-  "lastUpdated": "2026-03-09T15:30:00Z",
-  "lifecycle": "verifying",
+  "lastUpdated": "2026-03-09T16:00:00Z",
+  "lifecycle": "complete",
   "dependencies": ["ID_007"],
-  "agentId": "agent_id011_impl1",
+  "agentId": "agent_id011_verify1",
   "agentActivity": "complete",
-  "attempts": { "impl": 1, "verify": 0 },
-  "phaseTimestamps": { "impl_1_start": "2026-03-09T15:00:00Z", "impl_1_end": "2026-03-09T15:30:00Z" },
+  "attempts": { "impl": 1, "verify": 1 },
+  "phaseTimestamps": {
+    "impl_1_start": "2026-03-09T15:00:00Z",
+    "impl_1_end": "2026-03-09T15:30:00Z",
+    "verify_1_start": "2026-03-09T15:45:00Z",
+    "verify_1_end": "2026-03-09T16:00:00Z"
+  },
   "elapsedSeconds": {},
   "criteria": [
     { "id": "AC_1", "description": "--group-by <field> groups and counts entries by field value", "status": "pass" },
     { "id": "AC_2", "description": "--fields <f1,f2> selects which fields to display", "status": "pass" },
     { "id": "AC_3", "description": "--limit <N> caps output to N entries", "status": "pass" },
     { "id": "AC_4", "description": "--count outputs only the count of matching entries", "status": "pass" }
+  ],
+  "verificationReports": [
+    {
+      "attempt": 1,
+      "verdict": "pass",
+      "criteriaResults": [
+        { "id": "AC_1", "status": "pass", "notes": "GroupBy function handles well-known fields (level, message/msg) and Extra map fields. 4 unit tests + 2 integration tests. Sorted output with (empty) label for missing fields." },
+        { "id": "AC_2", "status": "pass", "notes": "SelectFields filters to requested fields from canonical + Extra. FormatEntryJSON outputs JSON with selection. 3 unit tests + 1 integration test." },
+        { "id": "AC_3", "status": "pass", "notes": "LimitEntries caps slice to N; 0 or negative means no limit. 3 unit tests + 1 integration test." },
+        { "id": "AC_4", "status": "pass", "notes": "CountEntries returns len(entries). --count flag checked before group-by/limit. 2 unit tests + 2 integration tests (standalone and combined with --level)." }
+      ],
+      "preflight": {
+        "build": "pass",
+        "test": "pass (all 5 packages)",
+        "vet": "pass",
+        "gofmt": "pre-existing issue in internal/filter/filter.go (not this iteration)"
+      },
+      "notes": "All tests are non-tautological with concrete data and specific expected values. CLI integration tests build binary and verify end-to-end behavior. No hidden debt found."
+    }
   ]
 }

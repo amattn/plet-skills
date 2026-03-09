@@ -117,8 +117,8 @@ func (f *KeywordFilter) Match(entry parser.LogEntry) bool {
 // checks that the field's value matches exactly.
 // Well-known fields (level, message) are checked in addition to Extra fields.
 type FieldFilter struct {
-	key       string
-	value     string
+	key        string
+	value      string
 	existsOnly bool
 }
 

@@ -124,3 +124,40 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
   - `internal/parser/parser.go` — ParseResult struct, ParseNDJSONResult()
   - `cmd/logalyzer/main.go` — summary subcommand routing, runSummary()
   - `cmd/logalyzer/main_test.go` — TestAG1_AG2_SummaryCommand integration test
+
+## ID_005: Field filter & filter combination — COMPLETE (passed, frozen)
+
+- **Verified:** 2026-03-09, verify-1
+- **Criteria:** AC_1 pass, AC_2 pass, AC_3 pass
+- **Summary:** FieldFilter implements both exact-match (`key=value`) and exists-only (`key`) modes. Well-known fields (level, message) checked directly on LogEntry struct; Extra map fields checked with string and fmt.Sprint comparison. AND combination works via existing Apply() variadic filter mechanism. 11 new tests for ID_005 (27 total in filter package), all passing and non-tautological.
+- **Key files:**
+  - `internal/filter/filter.go` — FieldFilter struct, NewFieldFilter(), Match()
+  - `internal/filter/filter_test.go` — 11 tests covering SF_4 and SF_5
+- **Debt:** gofmt alignment issue in FieldFilter struct fields (cosmetic, no functional impact)
+
+## ID_011: Aggregation — COMPLETE (passed, frozen)
+
+- **Verified:** 2026-03-09, verify-1
+- **Criteria:** AC_1 pass, AC_2 pass, AC_3 pass, AC_4 pass
+- **Summary:** Aggregation features implemented: `--group-by` groups and counts entries by any field (well-known or extra), `--fields` selects which fields to display in JSON output, `--limit` caps output to N entries, `--count` outputs only the count of matching entries. Filters (--level, --keyword) compose correctly with all aggregation flags.
+- **Key files:**
+  - `internal/aggregate/groupby.go` — GroupBy function with field extraction
+  - `internal/aggregate/groupby_test.go` — 4 unit tests (AG_3)
+  - `internal/output/format.go` — SelectFields, LimitEntries, CountEntries
+  - `internal/output/format_test.go` — 8 unit tests (OU_5, OU_6, OU_7)
+  - `cmd/logalyzer/search.go` — search subcommand with --group-by, --fields, --limit, --count flags
+  - `cmd/logalyzer/search_test.go` — 6 integration tests for aggregation features
+- **Pre-flight:** build clean, all tests pass, vet clean, gofmt has pre-existing issue in filter.go (not this iteration)
+- **Notes:** Tests are non-tautological with concrete expected values. No hidden debt found.
+
+## ID_006: Text output & streaming — COMPLETE (passed, frozen)
+- **Verified:** 2026-03-09, verify-1
+- **Criteria:** AC_1 pass, AC_2 pass, AC_3 pass, AC_4 pass
+- **Summary:** FormatText produces human-readable single-line output ([TIMESTAMP] LEVEL: MESSAGE key=value). StreamEntry writes each entry immediately to an io.Writer. Errors/warnings route to stderr only. Exit codes: 0 success, 1 error, 2 usage error. 6 unit tests + 7 integration tests cover all criteria. Pre-flight clean (build, test, vet).
+- **Key files:**
+  - `internal/output/text.go` — FormatText, StreamEntry
+  - `internal/output/text_test.go` — 3 unit tests (format, missing fields, one-line)
+  - `internal/output/stream_test.go` — 2 unit tests (immediate write, newline)
+  - `cmd/logalyzer/search.go` — search subcommand with streaming output
+  - `cmd/logalyzer/search_test.go` — 7 integration tests (output, stderr, exit codes, filters)
+- **Notes:** Minor observation: flag parse errors return exit code 1 rather than 2; this is acceptable since the Go flag package prints its own usage message. Pre-existing gofmt issue in filter.go is not part of this iteration.

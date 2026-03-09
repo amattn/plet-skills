@@ -1,12 +1,35 @@
 {
+  "schemaVersion": "1.0.0",
   "iterationId": "ID_005",
-  "lifecycle": "ineligible",
+  "title": "Field filter & filter combination",
+  "lastUpdated": "2026-03-09T17:00:00Z",
+  "lifecycle": "complete",
+  "dependencies": ["ID_004"],
   "agentId": null,
   "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "attempts": { "impl": 1, "verify": 1 },
+  "phaseTimestamps": {
+    "impl_1_start": "2026-03-09T15:00:00Z",
+    "impl_1_end": "2026-03-09T16:00:00Z",
+    "verify_1_start": "2026-03-09T16:30:00Z",
+    "verify_1_end": "2026-03-09T17:00:00Z"
+  },
+  "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "--field key=value filters entries where key equals value exactly", "status": "not_started" },
-    { "id": "AC_2", "description": "--field key filters entries where key exists, regardless of value", "status": "not_started" },
-    { "id": "AC_3", "description": "Field filters combine with other filters via AND semantics", "status": "not_started" }
+    { "id": "AC_1", "description": "--field key=value filters entries where key equals value exactly", "status": "pass" },
+    { "id": "AC_2", "description": "--field key filters entries where key exists, regardless of value", "status": "pass" },
+    { "id": "AC_3", "description": "Field filters combine with other filters via AND semantics", "status": "pass" }
+  ],
+  "verificationReports": [
+    {
+      "attempt": 1,
+      "verdict": "pass",
+      "criteria": [
+        { "id": "AC_1", "status": "pass", "evidence": "4 tests: ExactMatch (3/5 entries match service=web), ExactMatchNoMatch (0 for nonexistent), WellKnownLevel (2 errors), WellKnownMessage (1 timeout). All non-tautological with distinct expected counts." },
+        { "id": "AC_2", "status": "pass", "evidence": "3 tests: ExistsOnly (all 5 have service key), ExistsOnlyMissing (0 for absent key), ExistsWellKnownLevel (2/3 with non-empty level). Tests both positive, negative, and well-known field paths." },
+        { "id": "AC_3", "status": "pass", "evidence": "4 tests: CombineWithLevel (field+level AND), CombineWithKeyword (field+keyword AND), CombineWithTimeAndLevel (3-way AND), MultipleFieldFilters (two field filters AND). All narrow results to 1, proving intersection semantics." }
+      ],
+      "notes": "Minor debt: gofmt reports alignment issue in FieldFilter struct (key/value fields). Functional correctness unaffected. 27 total filter tests pass. Build and vet clean."
+    }
   ]
 }
