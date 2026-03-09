@@ -402,6 +402,173 @@ func TestSF4_MultipleFieldFilters(t *testing.T) {
 	}
 }
 
+// TestSF6_KeywordCaseInsensitiveByDefault verifies --search is case-insensitive by default (SF_6, AC_1).
+func TestSF6_KeywordCaseInsensitiveByDefault(t *testing.T) {
+	entries := makeEntries()
+	f := NewKeywordFilter("TIMEOUT")
+	result := Apply(entries, f)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry (case-insensitive default), got %d", len(result))
+	}
+	if result[0].Message != "timeout" {
+		t.Errorf("expected message=timeout, got %q", result[0].Message)
+	}
+}
+
+// TestSF6_CaseSensitiveKeywordNoMatch verifies --case-sensitive makes keyword match exact (SF_6, AC_1).
+func TestSF6_CaseSensitiveKeywordNoMatch(t *testing.T) {
+	entries := makeEntries()
+	f := NewCaseSensitiveKeywordFilter("TIMEOUT")
+	result := Apply(entries, f)
+
+	// "TIMEOUT" should not match "timeout" with case-sensitive filter
+	if len(result) != 0 {
+		t.Fatalf("expected 0 entries (case-sensitive), got %d", len(result))
+	}
+}
+
+// TestSF6_CaseSensitiveKeywordExactMatch verifies case-sensitive filter matches exact case (SF_6, AC_1).
+func TestSF6_CaseSensitiveKeywordExactMatch(t *testing.T) {
+	entries := makeEntries()
+	f := NewCaseSensitiveKeywordFilter("timeout")
+	result := Apply(entries, f)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry (exact case match), got %d", len(result))
+	}
+	if result[0].Message != "timeout" {
+		t.Errorf("expected message=timeout, got %q", result[0].Message)
+	}
+}
+
+// TestSF6_CaseSensitiveKeywordExtraField verifies case-sensitive matching on extra fields (SF_6, AC_1).
+func TestSF6_CaseSensitiveKeywordExtraField(t *testing.T) {
+	entries := []parser.LogEntry{
+		{Level: "info", Message: "ok", Extra: map[string]any{"service": "WebServer"}},
+		{Level: "info", Message: "ok", Extra: map[string]any{"service": "webserver"}},
+	}
+	f := NewCaseSensitiveKeywordFilter("WebServer")
+	result := Apply(entries, f)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry matching exact case 'WebServer', got %d", len(result))
+	}
+}
+
+// TestSF7_RegexFilterSimple verifies --regex filters entries matching a regex across string fields (SF_7, AC_2).
+func TestSF7_RegexFilterSimple(t *testing.T) {
+	entries := makeEntries()
+	f, err := NewRegexFilter("time.*")
+	if err != nil {
+		t.Fatalf("unexpected error creating regex filter: %v", err)
+	}
+	result := Apply(entries, f)
+
+	// "timeout" matches "time.*"
+	if len(result) != 1 {
+		t.Fatalf("expected 1 entry matching regex 'time.*', got %d", len(result))
+	}
+	if result[0].Message != "timeout" {
+		t.Errorf("expected message=timeout, got %q", result[0].Message)
+	}
+}
+
+// TestSF7_RegexFilterLevel verifies regex matches level field (SF_7, AC_2).
+func TestSF7_RegexFilterLevel(t *testing.T) {
+	entries := makeEntries()
+	f, err := NewRegexFilter("^err")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := Apply(entries, f)
+
+	// "error" matches "^err"
+	if len(result) != 2 {
+		t.Fatalf("expected 2 entries with level matching '^err', got %d", len(result))
+	}
+}
+
+// TestSF7_RegexFilterExtraField verifies regex matches extra fields (SF_7, AC_2).
+func TestSF7_RegexFilterExtraField(t *testing.T) {
+	entries := makeEntries()
+	f, err := NewRegexFilter("^(web|api)$")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := Apply(entries, f)
+
+	// "web" and "api" in service field: entries 0,1,3,4
+	if len(result) != 4 {
+		t.Fatalf("expected 4 entries matching '^(web|api)$', got %d", len(result))
+	}
+}
+
+// TestSF7_RegexFilterNoMatch verifies empty result when regex matches nothing (SF_7, AC_2).
+func TestSF7_RegexFilterNoMatch(t *testing.T) {
+	entries := makeEntries()
+	f, err := NewRegexFilter("^zzz$")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := Apply(entries, f)
+
+	if len(result) != 0 {
+		t.Fatalf("expected 0 entries, got %d", len(result))
+	}
+}
+
+// TestSF7_RegexFilterInvalidPattern verifies error on invalid regex (SF_7, AC_2).
+func TestSF7_RegexFilterInvalidPattern(t *testing.T) {
+	_, err := NewRegexFilter("[invalid")
+	if err == nil {
+		t.Fatal("expected error for invalid regex pattern, got nil")
+	}
+}
+
+// TestSF8_InvertFilterBasic verifies --invert shows entries that do NOT match (SF_8, AC_3).
+func TestSF8_InvertFilterBasic(t *testing.T) {
+	entries := makeEntries()
+	levelF := NewLevelFilter([]string{"error"})
+	invertF := NewInvertFilter(levelF)
+	result := Apply(entries, invertF)
+
+	// 5 total - 2 error = 3
+	if len(result) != 3 {
+		t.Fatalf("expected 3 non-error entries, got %d", len(result))
+	}
+	for _, e := range result {
+		if e.Level == "error" {
+			t.Errorf("inverted filter should exclude error, got level=%q", e.Level)
+		}
+	}
+}
+
+// TestSF8_InvertFilterWithKeyword verifies --invert with keyword filter (SF_8, AC_3).
+func TestSF8_InvertFilterWithKeyword(t *testing.T) {
+	entries := makeEntries()
+	kwF := NewKeywordFilter("web")
+	invertF := NewInvertFilter(kwF)
+	result := Apply(entries, invertF)
+
+	// entries with "web" in Extra["service"]: 0,3,4 => inverted: 1,2
+	if len(result) != 2 {
+		t.Fatalf("expected 2 entries not matching 'web', got %d", len(result))
+	}
+}
+
+// TestSF8_InvertFilterAll verifies --invert on a filter matching nothing returns all entries (SF_8, AC_3).
+func TestSF8_InvertFilterAll(t *testing.T) {
+	entries := makeEntries()
+	kwF := NewKeywordFilter("nonexistent")
+	invertF := NewInvertFilter(kwF)
+	result := Apply(entries, invertF)
+
+	if len(result) != 5 {
+		t.Fatalf("expected all 5 entries when inverting a no-match filter, got %d", len(result))
+	}
+}
+
 // TestSF5_CombineFiltersNoMatch verifies AND semantics can produce empty results (AC_5).
 func TestSF5_CombineFiltersNoMatch(t *testing.T) {
 	entries := makeEntries()

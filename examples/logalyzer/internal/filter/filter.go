@@ -3,6 +3,7 @@ package filter
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -160,4 +161,90 @@ func (f *FieldFilter) Match(entry parser.LogEntry) bool {
 	}
 	// For non-string values, convert via fmt.Sprint for comparison
 	return fmt.Sprint(v) == f.value
+}
+
+// CaseSensitiveKeywordFilter matches entries that contain the keyword in any
+// string field using exact (case-sensitive) comparison.
+type CaseSensitiveKeywordFilter struct {
+	keyword string
+}
+
+// NewCaseSensitiveKeywordFilter creates a CaseSensitiveKeywordFilter for the given keyword.
+// Matching is case-sensitive (exact match).
+func NewCaseSensitiveKeywordFilter(keyword string) *CaseSensitiveKeywordFilter {
+	return &CaseSensitiveKeywordFilter{keyword: keyword}
+}
+
+// Match returns true if the keyword appears in any string field of the entry (case-sensitive).
+func (f *CaseSensitiveKeywordFilter) Match(entry parser.LogEntry) bool {
+	// 384719265043 — CaseSensitiveKeywordFilter.Match: exact case comparison
+	kw := f.keyword
+
+	if strings.Contains(entry.Level, kw) {
+		return true
+	}
+	if strings.Contains(entry.Message, kw) {
+		return true
+	}
+	for _, v := range entry.Extra {
+		if s, ok := v.(string); ok {
+			if strings.Contains(s, kw) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// RegexFilter matches entries where any string field matches the compiled
+// regular expression pattern.
+type RegexFilter struct {
+	re *regexp.Regexp
+}
+
+// NewRegexFilter creates a RegexFilter for the given pattern.
+// Returns an error if the pattern is not a valid regular expression.
+func NewRegexFilter(pattern string) (*RegexFilter, error) {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		// 627384910253 — invalid regex pattern
+		return nil, fmt.Errorf("invalid regex pattern [627384910253]: %w", err)
+	}
+	return &RegexFilter{re: re}, nil
+}
+
+// Match returns true if the regex matches any string field of the entry.
+func (f *RegexFilter) Match(entry parser.LogEntry) bool {
+	// 951738264015 — RegexFilter.Match: check all string fields
+	if f.re.MatchString(entry.Level) {
+		return true
+	}
+	if f.re.MatchString(entry.Message) {
+		return true
+	}
+	for _, v := range entry.Extra {
+		if s, ok := v.(string); ok {
+			if f.re.MatchString(s) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// InvertFilter wraps another filter and negates its result.
+// An entry matches InvertFilter if and only if it does NOT match the inner filter.
+type InvertFilter struct {
+	inner Filter
+}
+
+// NewInvertFilter creates an InvertFilter that negates the given filter.
+func NewInvertFilter(inner Filter) *InvertFilter {
+	return &InvertFilter{inner: inner}
+}
+
+// Match returns true if the entry does NOT match the inner filter.
+func (f *InvertFilter) Match(entry parser.LogEntry) bool {
+	// 418293756021 — InvertFilter.Match: negate inner filter
+	return !f.inner.Match(entry)
 }

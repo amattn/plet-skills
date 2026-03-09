@@ -161,3 +161,10 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
   - `cmd/logalyzer/search.go` — search subcommand with streaming output
   - `cmd/logalyzer/search_test.go` — 7 integration tests (output, stderr, exit codes, filters)
 - **Notes:** Minor observation: flag parse errors return exit code 1 rather than 2; this is acceptable since the Go flag package prints its own usage message. Pre-existing gofmt issue in filter.go is not part of this iteration.
+
+## ID_010 — Advanced search (impl-1)
+- AC_1: PASS — `NewCaseSensitiveKeywordFilter` for `--case-sensitive`; `NewKeywordFilter` remains default (case-insensitive)
+- AC_2: PASS — `NewRegexFilter` matches regex across level, message, and string extra fields
+- AC_3: PASS — `NewInvertFilter` wraps any filter, negating its `Match` result; `--invert` flag in search.go uses `compositeFilter` to wrap all active filters before inverting
+- Files: `internal/filter/filter.go`, `internal/filter/filter_test.go`, `cmd/logalyzer/search.go`
+- Tests: 14 new tests (TestSF6_*, TestSF7_*, TestSF8_*)
