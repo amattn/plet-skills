@@ -1,23 +1,28 @@
 {
   "iterationId": "ID_009",
-  "lifecycle": "verifying",
-  "agentId": "agent-impl2-009",
+  "lifecycle": "complete",
+  "agentId": "agent-verify2-009",
   "agentActivity": "done",
-  "attempts": { "impl": 2, "verify": 1 },
+  "attempts": { "impl": 2, "verify": 2 },
   "criteria": [
     {
       "id": "AC_1",
       "description": "Severity levels are color-coded when outputting to a TTY",
       "status": "pass",
-      "evidence": "StreamEntry now calls FormatTextColor with colorEnabled parameter. search.go detects TTY via output.IsTerminal(os.Stdout) and passes the result. TestOU3_StreamEntryColorEnabled confirms ANSI red codes for error level, TestOU3_StreamEntryWarnColor confirms yellow for warn."
+      "evidence": "search.go:132 calls output.IsTerminal(os.Stdout) to detect TTY. search.go:139 passes colorEnabled to StreamEntry. text.go:62 StreamEntry calls FormatTextColor(entry, colorEnabled). color.go:29-34 applies ansiRed for error/fatal, ansiYellow for warn/warning. 9 unit tests in color_test.go + 3 StreamEntry color tests in text_test.go confirm behavior. FormatTextColor is NOT dead code — it is the sole formatting path used by StreamEntry."
     },
     {
       "id": "AC_2",
       "description": "Colors are disabled automatically when stdout is not a TTY",
       "status": "pass",
-      "evidence": "IsTerminal checks os.ModeCharDevice bit, returns false for pipes. search.go passes IsTerminal result as colorEnabled to StreamEntry. TestOU3_IsTerminalPipe confirms false for pipe. TestOU3_StreamEntryColorDisabled confirms no ANSI codes when color=false."
+      "evidence": "tty.go:17 checks fi.Mode()&os.ModeCharDevice != 0, returning false for pipes. search.go:132 uses IsTerminal result as colorEnabled. color.go:25-27 returns plain FormatText output when colorEnabled=false. TestOU3_IsTerminalPipe confirms false for os.Pipe. TestOU3_StreamEntryColorDisabled and TestOU3_ColorDisabledNonTTY confirm no ANSI codes when disabled."
     }
   ],
   "verdict": "pass",
-  "failureReason": ""
+  "failureReason": "",
+  "previousRejection": {
+    "attempt": 1,
+    "reason": "FormatTextColor was dead code, never called from production path. No TTY detection existed.",
+    "resolution": "StreamEntry now calls FormatTextColor instead of FormatText. IsTerminal added in tty.go. search.go wires TTY detection to StreamEntry."
+  }
 }

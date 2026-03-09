@@ -239,3 +239,17 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - All tests pass: `go test ./...` — 0 failures
 - `gofmt -l .` — clean
 - `go vet ./...` — clean
+
+## ID_009: Colored output — COMPLETE (passed, frozen)
+- **Verified:** 2026-03-09, verify-2
+- **Criteria:** AC_1 pass, AC_2 pass
+- **Summary:** Severity levels are color-coded via ANSI escape codes when outputting to a TTY. Error/fatal = red, warn/warning = yellow, info/debug = default. Colors automatically disabled when stdout is not a TTY (piped). Previous rejection (verify-1) was because FormatTextColor was dead code; reimplementation wired it into StreamEntry and added TTY detection via IsTerminal.
+- **Key files:**
+  - `internal/output/color.go` — FormatTextColor, colorForLevel, ANSI constants
+  - `internal/output/tty.go` — IsTerminal using os.ModeCharDevice
+  - `internal/output/text.go` — StreamEntry calls FormatTextColor with colorEnabled param
+  - `cmd/logalyzer/search.go` — line 132: IsTerminal(os.Stdout), line 139: passes to StreamEntry
+  - `internal/output/color_test.go` — 9 unit tests for color formatting
+  - `internal/output/text_test.go` — 3 StreamEntry color integration tests
+  - `internal/output/tty_test.go` — 2 TTY detection tests
+- **Pre-flight:** build clean, 14 color-related tests pass, vet clean, gofmt clean
