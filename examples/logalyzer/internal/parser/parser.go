@@ -26,11 +26,53 @@ type LogEntry struct {
 	RawJSON string
 }
 
-// wellKnownFields is the set of field names extracted into LogEntry struct fields.
-var wellKnownFields = map[string]bool{
-	"timestamp": true,
-	"level":     true,
-	"message":   true,
+// timestampAliases maps field names to the canonical "timestamp" well-known field.
+var timestampAliases = map[string]bool{
+	"timestamp":  true,
+	"ts":         true,
+	"time":       true,
+	"@timestamp": true,
+}
+
+// levelAliases maps field names to the canonical "level" well-known field.
+var levelAliases = map[string]bool{
+	"level":    true,
+	"lvl":      true,
+	"severity": true,
+}
+
+// messageAliases maps field names to the canonical "message" well-known field.
+var messageAliases = map[string]bool{
+	"message": true,
+	"msg":     true,
+}
+
+// isWellKnownField returns true if the field name is a well-known field or an alias.
+func isWellKnownField(name string) bool {
+	return timestampAliases[name] || levelAliases[name] || messageAliases[name]
+}
+
+// parseTimestamp attempts to parse a timestamp value from various formats.
+// It handles string timestamps (RFC 3339) and numeric timestamps (Unix epoch
+// seconds and milliseconds). Returns the parsed time and true on success.
+func parseTimestamp(v any) (time.Time, bool) {
+	switch val := v.(type) {
+	case string:
+		if parsed, err := time.Parse(time.RFC3339, val); err == nil {
+			return parsed, true
+		}
+		return time.Time{}, false
+	case float64:
+		// Distinguish seconds vs milliseconds: values > 1e12 are millis
+		if val > 1e12 {
+			sec := int64(val / 1000)
+			msec := int64(val) % 1000
+			return time.Unix(sec, msec*int64(time.Millisecond)), true
+		}
+		return time.Unix(int64(val), 0), true
+	default:
+		return time.Time{}, false
+	}
 }
 
 // ParseNDJSON reads NDJSON from r and returns a slice of LogEntry structs.
@@ -67,42 +109,36 @@ func ParseNDJSONWithWarnings(r io.Reader, warnWriter io.Writer) ([]LogEntry, err
 			Extra:   make(map[string]any),
 		}
 
-		// Extract well-known fields
-		if ts, ok := raw["timestamp"]; ok {
-			if tsStr, ok := ts.(string); ok {
-				if parsed, err := time.Parse(time.RFC3339, tsStr); err == nil {
+		// Extract well-known fields using alias maps.
+		// First pass: find timestamp, level, message from any alias.
+		for k, v := range raw {
+			if timestampAliases[k] && entry.Timestamp.IsZero() {
+				if parsed, ok := parseTimestamp(v); ok {
 					entry.Timestamp = parsed
 				} else {
 					// 504817293641 — timestamp parse failure, store as extra field
-					fmt.Fprintf(warnWriter, "warning [504817293641]: could not parse timestamp on line %d: %v\n", lineNum, err)
-					entry.Extra["timestamp"] = ts
+					fmt.Fprintf(warnWriter, "warning [504817293641]: could not parse timestamp on line %d (field %q)\n", lineNum, k)
+					entry.Extra[k] = v
 				}
-			} else {
-				// Non-string timestamp goes to extra
-				entry.Extra["timestamp"] = ts
-			}
-		}
-
-		if lvl, ok := raw["level"]; ok {
-			if lvlStr, ok := lvl.(string); ok {
-				entry.Level = lvlStr
-			} else {
-				entry.Extra["level"] = lvl
-			}
-		}
-
-		if msg, ok := raw["message"]; ok {
-			if msgStr, ok := msg.(string); ok {
-				entry.Message = msgStr
-			} else {
-				entry.Extra["message"] = msg
+			} else if levelAliases[k] && entry.Level == "" {
+				if lvlStr, ok := v.(string); ok {
+					entry.Level = lvlStr
+				} else {
+					entry.Extra[k] = v
+				}
+			} else if messageAliases[k] && entry.Message == "" {
+				if msgStr, ok := v.(string); ok {
+					entry.Message = msgStr
+				} else {
+					entry.Extra[k] = v
+				}
 			}
 		}
 
 		// Remaining fields go to Extra
 		for k, v := range raw {
-			if wellKnownFields[k] {
-				// Already handled above; only add to Extra if type was wrong
+			if isWellKnownField(k) {
+				// Already handled above; only add to Extra if it was placed there due to type mismatch
 				if _, alreadyInExtra := entry.Extra[k]; !alreadyInExtra {
 					continue
 				}

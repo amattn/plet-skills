@@ -31,3 +31,8 @@ The `run(args []string) int` pattern separating logic from `main()` is effective
 ## ID_002 Learnings
 - **Testability pattern:** Wrapping `ParseNDJSON(r)` around `ParseNDJSONWithWarnings(r, warnWriter)` cleanly separates stderr coupling from test assertions. Good pattern for any function that writes warnings.
 - **Non-string well-known fields:** Implementation gracefully handles cases where e.g. `"level"` is a number instead of string by putting it in Extra. This is defensive and spec-compatible.
+
+## ID_003 Learnings
+- Implementing all alias maps (timestamp, level, message) in one refactor pass was more natural than doing them one at a time, but the red/green discipline still applies per-criterion for test coverage.
+- The parseTimestamp helper cleanly separates format detection from field extraction, making it easy to add new formats later.
+- Threshold of 1e12 to distinguish epoch seconds from epoch millis works well for current and near-future timestamps.

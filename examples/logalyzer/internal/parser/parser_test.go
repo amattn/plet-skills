@@ -193,6 +193,171 @@ func TestLP1_EmptyInput(t *testing.T) {
 	}
 }
 
+// TestLP5_AC1_TimestampAliases verifies AC_1: ts, time, @timestamp are
+// recognized as timestamp aliases and parsed into LogEntry.Timestamp.
+func TestLP5_AC1_TimestampAliases(t *testing.T) {
+	cases := []struct {
+		name  string
+		field string
+	}{
+		{"ts", "ts"},
+		{"time", "time"},
+		{"@timestamp", "@timestamp"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := `{"` + tc.field + `":"2026-03-09T10:00:00Z","level":"INFO","message":"hello"}` + "\n"
+			entries, err := ParseNDJSON(strings.NewReader(input))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(entries) != 1 {
+				t.Fatalf("expected 1 entry, got %d", len(entries))
+			}
+			e := entries[0]
+			wantTime, _ := time.Parse(time.RFC3339, "2026-03-09T10:00:00Z")
+			if !e.Timestamp.Equal(wantTime) {
+				t.Errorf("field %q: Timestamp = %v, want %v", tc.field, e.Timestamp, wantTime)
+			}
+			// Alias field name should NOT appear in Extra
+			if _, ok := e.Extra[tc.field]; ok {
+				t.Errorf("Extra should not contain alias %q", tc.field)
+			}
+		})
+	}
+}
+
+// TestLP5_AC2_LevelAliases verifies AC_2: lvl, severity are recognized as
+// level aliases and parsed into LogEntry.Level.
+func TestLP5_AC2_LevelAliases(t *testing.T) {
+	cases := []struct {
+		name  string
+		field string
+	}{
+		{"lvl", "lvl"},
+		{"severity", "severity"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := `{"timestamp":"2026-03-09T10:00:00Z","` + tc.field + `":"ERROR","message":"boom"}` + "\n"
+			entries, err := ParseNDJSON(strings.NewReader(input))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(entries) != 1 {
+				t.Fatalf("expected 1 entry, got %d", len(entries))
+			}
+			e := entries[0]
+			if e.Level != "ERROR" {
+				t.Errorf("field %q: Level = %q, want %q", tc.field, e.Level, "ERROR")
+			}
+			// Alias field name should NOT appear in Extra
+			if _, ok := e.Extra[tc.field]; ok {
+				t.Errorf("Extra should not contain alias %q", tc.field)
+			}
+		})
+	}
+}
+
+// TestLP5_AC3_MessageAlias verifies AC_3: msg is recognized as a message alias
+// and parsed into LogEntry.Message.
+func TestLP5_AC3_MessageAlias(t *testing.T) {
+	input := `{"timestamp":"2026-03-09T10:00:00Z","level":"INFO","msg":"hello via msg"}` + "\n"
+	entries, err := ParseNDJSON(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	e := entries[0]
+	if e.Message != "hello via msg" {
+		t.Errorf("Message = %q, want %q", e.Message, "hello via msg")
+	}
+	if _, ok := e.Extra["msg"]; ok {
+		t.Error("Extra should not contain alias 'msg'")
+	}
+}
+
+// TestLP6_AC4_TimestampFormats verifies AC_4: RFC 3339, Unix epoch seconds,
+// and Unix epoch millis timestamps are all parsed correctly.
+func TestLP6_AC4_TimestampFormats(t *testing.T) {
+	// 2026-03-09T10:00:00Z = Unix 1773054000
+	wantTime, _ := time.Parse(time.RFC3339, "2026-03-09T10:00:00Z")
+
+	cases := []struct {
+		name     string
+		input    string
+		wantUnix int64
+	}{
+		{
+			name:     "RFC3339",
+			input:    `{"timestamp":"2026-03-09T10:00:00Z","message":"rfc3339"}`,
+			wantUnix: wantTime.Unix(),
+		},
+		{
+			name:     "Unix_epoch_seconds",
+			input:    `{"timestamp":1773054000,"message":"epoch_sec"}`,
+			wantUnix: 1773054000,
+		},
+		{
+			name:     "Unix_epoch_millis",
+			input:    `{"timestamp":1773054000000,"message":"epoch_ms"}`,
+			wantUnix: 1773054000,
+		},
+		{
+			name:     "Unix_epoch_millis_with_remainder",
+			input:    `{"timestamp":1773054000123,"message":"epoch_ms_rem"}`,
+			wantUnix: 1773054000,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			entries, err := ParseNDJSON(strings.NewReader(tc.input + "\n"))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(entries) != 1 {
+				t.Fatalf("expected 1 entry, got %d", len(entries))
+			}
+			e := entries[0]
+			if e.Timestamp.IsZero() {
+				t.Fatal("Timestamp should not be zero")
+			}
+			if e.Timestamp.Unix() != tc.wantUnix {
+				t.Errorf("Timestamp.Unix() = %d, want %d", e.Timestamp.Unix(), tc.wantUnix)
+			}
+			// Timestamp should not leak to Extra
+			if _, ok := e.Extra["timestamp"]; ok {
+				t.Error("Extra should not contain 'timestamp'")
+			}
+		})
+	}
+}
+
+// TestLP6_AC4_EpochMillisSubSecond verifies that Unix epoch millis preserves
+// sub-second precision.
+func TestLP6_AC4_EpochMillisSubSecond(t *testing.T) {
+	// 1773054000123 = 2026-03-09T10:00:00.123Z
+	input := `{"timestamp":1773054000123,"message":"precision"}` + "\n"
+	entries, err := ParseNDJSON(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	e := entries[0]
+	// Check millisecond component
+	ms := e.Timestamp.UnixMilli() % 1000
+	if ms != 123 {
+		t.Errorf("millisecond component = %d, want 123", ms)
+	}
+}
+
 // TestLP1_BlankLines verifies blank lines are skipped silently.
 func TestLP1_BlankLines(t *testing.T) {
 	input := `

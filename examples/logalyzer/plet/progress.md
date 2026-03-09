@@ -75,3 +75,10 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - **Criteria:** AC_1 through AC_4 all pass
 - **Tests:** 9 tests, all passing (TestLP1_ParseValidNDJSON, TestLP1_LP4_AC2_WellKnownAndExtraFields, TestLP7_MissingFields, TestLP7_PartialWellKnownFields, TestLP4_MalformedLines, TestLP4_MalformedLinesStderrWarning, TestLP1_EmptyInput, TestLP1_BlankLines, TestSanity)
 - **Notes:** Clean implementation, stdlib only, no issues found
+
+## ID_003: Log entry normalization & field aliases — COMPLETE
+- AC_1: ts, time, @timestamp recognized as timestamp aliases (PASS)
+- AC_2: lvl, severity recognized as level aliases (PASS)
+- AC_3: msg recognized as message alias (PASS)
+- AC_4: RFC 3339, Unix epoch seconds, Unix epoch millis all parsed correctly (PASS)
+- 14 tests total, all passing. No regressions.

@@ -1,13 +1,24 @@
 {
+  "schemaVersion": "1.0.0",
   "iterationId": "ID_003",
-  "lifecycle": "ineligible",
+  "title": "Log entry normalization & field aliases",
+  "lastUpdated": "2026-03-09T12:15:00Z",
+  "lastHeartbeat": "2026-03-09T12:15:00Z",
+  "lifecycle": "verifying",
+  "dependencies": ["ID_002"],
   "agentId": null,
   "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "activityDetail": "all 4 criteria pass, awaiting verification",
+  "attempts": { "impl": 1, "verify": 0 },
+  "phaseTimestamps": {
+    "impl_1_start": "2026-03-09T12:00:00Z",
+    "impl_1_end": "2026-03-09T12:15:00Z"
+  },
+  "elapsedSeconds": {},
   "criteria": [
-    { "id": "AC_1", "description": "ts, time, @timestamp are recognized as timestamp aliases", "status": "not_started" },
-    { "id": "AC_2", "description": "lvl, severity are recognized as level aliases", "status": "not_started" },
-    { "id": "AC_3", "description": "msg is recognized as a message alias", "status": "not_started" },
-    { "id": "AC_4", "description": "RFC 3339, Unix epoch seconds, and Unix epoch millis timestamps are parsed correctly", "status": "not_started" }
+    { "id": "AC_1", "description": "ts, time, @timestamp are recognized as timestamp aliases", "status": "pass", "evidence": "TestLP5_AC1_TimestampAliases passes for ts, time, @timestamp — all resolve to Timestamp, none leak to Extra" },
+    { "id": "AC_2", "description": "lvl, severity are recognized as level aliases", "status": "pass", "evidence": "TestLP5_AC2_LevelAliases passes for lvl, severity — both resolve to Level, none leak to Extra" },
+    { "id": "AC_3", "description": "msg is recognized as a message alias", "status": "pass", "evidence": "TestLP5_AC3_MessageAlias passes — msg resolves to Message, does not leak to Extra" },
+    { "id": "AC_4", "description": "RFC 3339, Unix epoch seconds, and Unix epoch millis timestamps are parsed correctly", "status": "pass", "evidence": "TestLP6_AC4_TimestampFormats (4 subtests) and TestLP6_AC4_EpochMillisSubSecond pass — RFC3339, epoch sec, epoch ms all parsed correctly with sub-second precision" }
   ]
 }
