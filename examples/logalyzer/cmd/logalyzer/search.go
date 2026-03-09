@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/amattn/logalyzer/internal/aggregate"
 	"github.com/amattn/logalyzer/internal/filter"
@@ -25,6 +26,8 @@ func runSearch(args []string) int {
 	count := fs.Bool("count", false, "output only the count of matching entries")
 	level := fs.String("level", "", "filter by log level (comma-separated)")
 	keyword := fs.String("keyword", "", "filter by keyword in any string field")
+	histogramFlag := fs.Bool("histogram", false, "produce a time-bucketed histogram of entry counts")
+	bucketFlag := fs.String("bucket", "1h", "bucket duration for histogram (e.g., 1m, 5m, 1h)")
 
 	if err := fs.Parse(args); err != nil {
 		// 529174836201 — flag parse error in search
@@ -66,6 +69,19 @@ func runSearch(args []string) int {
 	}
 	if len(filters) > 0 {
 		entries = filter.Apply(entries, filters...)
+	}
+
+	// --histogram: produce time-bucketed histogram
+	if *histogramFlag {
+		bucketDuration, parseErr := time.ParseDuration(*bucketFlag)
+		if parseErr != nil {
+			// 572918340625 — invalid bucket duration for histogram
+			fmt.Fprintf(os.Stderr, "error [572918340625]: invalid bucket duration %q: %v\n", *bucketFlag, parseErr)
+			return 1
+		}
+		buckets := aggregate.Histogram(entries, bucketDuration)
+		fmt.Print(aggregate.FormatHistogram(buckets))
+		return 0
 	}
 
 	// --count: output just the count

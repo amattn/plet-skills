@@ -1,12 +1,12 @@
 {
   "iterationId": "ID_012",
-  "lifecycle": "ineligible",
-  "agentId": null,
-  "agentActivity": "idle",
-  "attempts": { "impl": 0, "verify": 0 },
+  "lifecycle": "verifying",
+  "agentId": "agent-a972e364",
+  "agentActivity": "green",
+  "attempts": { "impl": 1, "verify": 0 },
   "criteria": [
-    { "id": "AC_1", "description": "--histogram --bucket <duration> produces time-bucketed entry counts", "status": "not_started" },
-    { "id": "AC_2", "description": "Supports minute and hour bucket durations at minimum", "status": "not_started" },
-    { "id": "AC_3", "description": "Output sorted chronologically", "status": "not_started" }
+    { "id": "AC_1", "description": "--histogram --bucket <duration> produces time-bucketed entry counts", "status": "pass" },
+    { "id": "AC_2", "description": "Supports minute and hour bucket durations at minimum", "status": "pass" },
+    { "id": "AC_3", "description": "Output sorted chronologically", "status": "pass" }
   ]
 }

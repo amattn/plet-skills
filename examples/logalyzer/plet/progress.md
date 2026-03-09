@@ -168,3 +168,11 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - Files: internal/output/color.go, internal/output/color_test.go
 - 9 new tests, all passing; full output package clean (vet, gofmt)
 - Pre-existing failures in internal/filter are unrelated (unused import, undefined symbol)
+
+## ID_012 — Histogram bucketing
+- Added `Histogram()` function and `Bucket` struct to `internal/aggregate/histogram.go`
+- Added `FormatHistogram()` for human-readable output (one line per bucket)
+- Added `--histogram` and `--bucket` flags to `search` subcommand
+- Supports minute, hour, and arbitrary durations via `time.ParseDuration`
+- Buckets are continuous (fills gaps) and sorted chronologically
+- 8 unit tests (TestAG5_*) + 2 CLI integration tests
