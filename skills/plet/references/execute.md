@@ -51,7 +51,7 @@ Before writing any code, verify the project is in a clean state:
 
 1. Update activity: `"running_checks"` / `"pre-flight: verifying project builds and tests pass"`
 2. Run the build command — confirm it succeeds
-3. Run the full test suite — confirm all tests pass
+3. Run the full test suite — confirm all tests pass. **Exception:** on a retry after a verification cycle-back, the branch may contain intentionally failing tests left by the verify agent — see Inherited Failing Tests under Retry Awareness below.
 4. Check the working tree is clean — no uncommitted changes, staged or unstaged (`git status`). Prior commits on the branch from previous attempts are expected.
 
 If pre-flight fails:
@@ -362,6 +362,16 @@ If this is a retry attempt (attempt > 1):
 3. Review the previous trace file if needed for detailed failure context
 4. **Do not repeat the same approach that failed** — try a different strategy
 5. Criteria that already have `implementation.status: "pass"` from a previous attempt should be re-verified (re-run their tests) but don't need to be re-implemented if tests still pass
+
+### Inherited Failing Tests
+
+If the previous phase was a verification cycle-back (verify agent found substantial issues), the branch may contain **intentionally failing tests** written by the verify agent. These are your green-step targets — they encode exactly what needs to be fixed. This is an explicit exception to the "all tests must pass" pre-flight rule.
+
+1. Read the most recent entry in `verificationReports` in the per-iteration state file — this is the consolidated summary of what the verify agent found, including a `criteriaResults` array with one-liner findings and `redTest` names for each failing test
+2. Run the test suite during pre-flight — note which tests fail
+3. Cross-reference failing tests against the `criteriaResults` entries and the new acceptance criteria added by the verify agent
+4. Treat each failing test as if you wrote it in a red step — implement until it passes
+5. Once all inherited failing tests pass, continue with any remaining criteria using normal red/green discipline
 
 The orchestrator enforces retry limits:
 - Default: 3 attempts maximum
