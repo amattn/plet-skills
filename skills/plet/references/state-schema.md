@@ -83,6 +83,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
   },
 
   "tagBeforeSquash": false,
+  "refineSessionCount": 0,
 
   "iterationsFingerprint": {
     "requirementsFingerprint": {
@@ -117,6 +118,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `breakpoints.before` | array of strings | no | Iteration IDs — orchestrator pauses before these (SF_21) |
 | `breakpoints.after` | array of strings | no | Iteration IDs — orchestrator pauses after these (SF_21) |
 | `tagBeforeSquash` | boolean | no | Global default for audit tagging before squash. When `true`, agents create a git tag preserving incremental commits before squashing. Default `false`. Per-iteration state inherits this value at initialization. (EX_17) |
+| `refineSessionCount` | integer | no | Number of refine sessions completed. Incremented at the start of each refine phase entry. Used as the attempt number in refine-phase plet ID context segments (e.g., `r1`, `r2`). Default `0`. |
 | `iterationsFingerprint` | object | yes | Iterations fingerprint — embeds `requirementsFingerprint`, plus `lastNonTrivialUpdate` timestamp and iteration IDs grouped by milestone (SY_2, SY_3) |
 
 ---
@@ -351,6 +353,7 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `verifying` | Verification subagent is working |
 | `complete` | All criteria pass verification — iteration is frozen (SF_10) |
 | `blocked` | Agent encountered an unresolvable issue |
+| `withdrawn` | Deliberately retired during refine — superseded, descoped, or user changed direction. Terminal state. |
 
 ### Agent Activity Values (SF_4)
 

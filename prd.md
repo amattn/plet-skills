@@ -140,9 +140,9 @@ Split state architecture: global `plet/state.json` for project-wide data and per
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SF_1 | Global `plet/state.json` contains: project metadata, schema version, dependency map (`{iteration_id: [dependency_ids]}`), milestone assignments, parallel groups, breakpoints, and the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
+| SF_1 | Global `plet/state.json` contains: project metadata, schema version, dependency map (`{iteration_id: [dependency_ids]}`), milestone assignments, parallel groups, breakpoints, refine session count, and the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
 | SF_2 | Per-iteration state files (`plet/state/{iteration_id}.json`) contain: lifecycle, agent activity, agent ID, acceptance criteria with two-state model, heartbeat, phase timestamps, per-phase attempt counts, summary, files changed, verification reports (VF_21–VF_24) | P0 |
-| SF_3 | Each iteration tracks a **lifecycle phase**: `ineligible` (dependencies not met), `queued` (ready for pickup), `implementing`, `verifying`, `complete`, `blocked` | P0 |
+| SF_3 | Each iteration tracks a **lifecycle phase**: `ineligible` (dependencies not met), `queued` (ready for pickup), `implementing`, `verifying`, `complete`, `blocked`, `withdrawn` (deliberately retired during refine — terminal state) | P0 |
 | SF_4 | Each iteration tracks **agent activity state**: `idle`, `reading_context`, `implementing`, `running_checks`, `committing`, `wrapping_up` with a human-readable `activityDetail` string (e.g., "red: writing failing test for AC_3", "green: all tests passing") | P0 |
 | SF_5 | Each iteration has an `agentId` field identifying which agent session is working on it (null if idle) | P0 |
 | SF_6 | Agent activity state updates are written to per-iteration state files in real time as the agent works, not batched at the end | P0 |
@@ -271,8 +271,8 @@ Plet IDs are a composable, globally unique identifier scheme used across plet ar
 
 | Context Segment | Description |
 |-----------------|-------------|
-| iteration | Iteration ID normalized: lowercase, underscores removed (`ID_001` → `id001`) |
-| phase_attempt | Phase and attempt: `i1` (impl attempt 1), `v2` (verify attempt 2) |
+| iteration | Iteration ID normalized: lowercase, underscores removed (`ID_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`. |
+| phase_attempt | Phase and attempt: `i1` (impl attempt 1), `v2` (verify attempt 2), `r1` (refine session 1) |
 
 **Known type prefixes:**
 
@@ -316,6 +316,7 @@ The refine phase is human-driven. The ergonomics should be clean and clear — t
 | RF_13 | If the user wants to adjust breakpoints, update the global state file's breakpoint arrays | P1 |
 | RF_14 | When adding new iterations during refine, a milestone is considered frozen if all its iterations are `complete`. New iterations must not be added to frozen milestones. Exception: the most recent milestone is never considered frozen — it is "complete for now" and can always accept new iterations. Any unfrozen milestone is fair game — append to whichever is thematically appropriate. If no unfrozen milestone fits, create a new one. | P0 |
 | RF_15 | Heuristics for creating a new milestone vs appending to an existing unfrozen one: (1) **Scope magnitude** — 3+ new iterations with their own dependency chain warrant a new milestone. (2) **Version significance** — changes that would be a changelog entry or minor version bump deserve a new milestone. (3) **Origin clustering** — emergent items cluster around a theme distinct from any unfrozen milestone. (4) **Milestone size** — target milestone already has 6+ iterations, prefer splitting. (5) **Theme coherence** — new iterations don't fit any unfrozen milestone's theme. The agent states which heuristic it's applying; the user can override. Default: append to the nearest thematically appropriate unfrozen milestone. | P0 |
+| RF_16 | Before wrapping up, run a cascading consistency pass following the data flow: (1) every decision from the session is reflected in `requirements.md`, (2) `iterations.md` reflects the current spec (all requirements covered, no dangling references, frozen iterations untouched, withdrawn iterations excluded), (3) state files and `state.json` reflect current iterations (dependency map, milestones, fingerprints cascade correctly, no orphaned state files, no dependencies on withdrawn iterations) | P0 |
 
 ### 3.8 Prompt & Reference Files (PT)
 

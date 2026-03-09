@@ -43,6 +43,33 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - At every review step: (1) show the full content first for context, (2) proactively surface recommendations before asking for approval, (3) after approval, update NOTES.md with the decision and rationale, (4) finish with a consistency pass across affected artifacts.
 - **Never push to remote without asking first.** Never force push without explicit permission.
 
+## NOTES.md Discipline
+
+**Update NOTES.md after every decision, before moving to the next topic.** This is not optional and not deferrable. The pattern of "I'll catch up on notes later" always fails — decisions accumulate faster than memory, and by the end of a session the rationale is lost.
+
+During build/review sessions where decisions come rapid-fire:
+- Each user decision (approve, reject, rename, reorder, add, remove) gets a NOTES.md entry *before* presenting the next item
+- If you realize you've fallen behind, stop and catch up immediately — do not continue accumulating debt
+- Batch answers (e.g., "1A, 2C, 3D") still get individual NOTES.md entries for each decision
+
+The cost of writing notes is seconds. The cost of lost rationale is re-litigating settled decisions in the next session.
+
+## Decision Discipline
+
+After every decision, **cascade it through all affected artifacts before moving to the next topic.** A decision that lives only in NOTES.md or only in conversation is a decision that will be lost or contradicted.
+
+NOTES.md Discipline handles step 1 — *capturing* the decision. Decision Discipline handles step 2 — *cascading* it. They are complementary: NOTES.md is the first stop, not the last.
+
+Trace each decision through the project's data flow:
+
+1. **NOTES.md** — capture the decision, rationale, alternatives
+2. **PRD** — if it changes a requirement, add/update the requirement
+3. **Reference files** — if it changes agent behavior, update the relevant reference file
+4. **Schemas** — if it changes a data structure, update state-schema.md and/or formats.md
+5. **PLAN.md** — if it changes build status or sequencing
+
+Not every decision touches all 5. Most touch 1-2. But always ask: "does this decision affect any other artifact?" If unsure, scan the list. The cost of checking is seconds. The cost of missing one is a consistency pass failure discovered later — or worse, an agent operating on stale instructions.
+
 ## Self-Improvement
 
 You are expected to improve the instructions you operate under. When you notice a recurring pattern, convention, drift, or issue that isn't yet captured in CLAUDE.md, NOTES.md, or equivalent project instructions — **surface it immediately and offer to write it down.** Do not wait to be asked. Do not save it for later. The observation is most valuable while the context is fresh.
