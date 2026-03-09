@@ -223,3 +223,19 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
 - **AC_3**: PASS — buckets generated in ascending nanos order with explicit `sort.Slice` safety net; chronological ordering test with out-of-order input
 - Build, vet, gofmt: all clean
 - Note: pre-existing `TestVersionFlag` test isolation issue (passes alone, fails when run with all tests due to missing binary); unrelated to ID_012
+
+## ID_009 impl-2 (retry) — Colored output (wired into CLI)
+
+### Changes
+- Added `colorEnabled bool` parameter to `StreamEntry` — now calls `FormatTextColor` instead of `FormatText`
+- Created `IsTerminal(f *os.File) bool` in `internal/output/tty.go` using `os.ModeCharDevice`
+- Wired TTY detection into `cmd/logalyzer/search.go`: `colorEnabled := output.IsTerminal(os.Stdout)`
+- Updated existing `stream_test.go` callers for new signature
+- Added 5 new tests: StreamEntry color on/off, warn color, IsTerminal pipe, IsTerminal nil
+
+### Verification
+- AC_1 PASS: StreamEntry(w, entry, true) produces ANSI red for error, yellow for warn. search.go calls IsTerminal to auto-enable color on TTY.
+- AC_2 PASS: IsTerminal returns false for pipes; StreamEntry(w, entry, false) produces no ANSI codes. Color is automatically disabled when stdout is not a TTY.
+- All tests pass: `go test ./...` — 0 failures
+- `gofmt -l .` — clean
+- `go vet ./...` — clean

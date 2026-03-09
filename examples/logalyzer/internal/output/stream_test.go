@@ -25,7 +25,7 @@ func TestNF5_StreamWritesImmediately(t *testing.T) {
 	}
 
 	// Write first entry, check buffer has content before writing second
-	if err := StreamEntry(&buf, entry1); err != nil {
+	if err := StreamEntry(&buf, entry1, false); err != nil {
 		t.Fatalf("StreamEntry failed: %v", err)
 	}
 	afterFirst := buf.String()
@@ -36,7 +36,7 @@ func TestNF5_StreamWritesImmediately(t *testing.T) {
 		t.Errorf("first entry not in output: %q", afterFirst)
 	}
 
-	if err := StreamEntry(&buf, entry2); err != nil {
+	if err := StreamEntry(&buf, entry2, false); err != nil {
 		t.Fatalf("StreamEntry failed: %v", err)
 	}
 	afterSecond := buf.String()
@@ -54,7 +54,7 @@ func TestNF5_StreamEntryAddsNewline(t *testing.T) {
 		Message:   "test",
 	}
 
-	if err := StreamEntry(&buf, entry); err != nil {
+	if err := StreamEntry(&buf, entry, false); err != nil {
 		t.Fatalf("StreamEntry failed: %v", err)
 	}
 

@@ -128,12 +128,15 @@ func runSearch(args []string) int {
 		fieldList = strings.Split(*fields, ",")
 	}
 
+	// Detect TTY for color output (OU_3)
+	colorEnabled := output.IsTerminal(os.Stdout)
+
 	// Output entries: JSON when --json or --fields, text otherwise
 	for _, e := range entries {
 		if *jsonOut || len(fieldList) > 0 {
 			fmt.Println(output.FormatEntryJSON(e, fieldList))
 		} else {
-			if err := output.StreamEntry(os.Stdout, e); err != nil {
+			if err := output.StreamEntry(os.Stdout, e, colorEnabled); err != nil {
 				// 285917463021 — write error during search output
 				fmt.Fprintf(os.Stderr, "error [285917463021]: write failed: %v\n", err)
 				return 1

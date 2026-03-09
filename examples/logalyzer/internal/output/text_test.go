@@ -1,6 +1,8 @@
 package output
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 	"time"
 
@@ -97,4 +99,66 @@ func containsStr(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// TestOU3_StreamEntryColorEnabled verifies that StreamEntry produces ANSI
+// color codes for error-level entries when color is enabled (AC_1, OU_3).
+func TestOU3_StreamEntryColorEnabled(t *testing.T) {
+	entry := parser.LogEntry{
+		Timestamp: time.Date(2025, 1, 15, 10, 30, 0, 0, time.UTC),
+		Level:     "error",
+		Message:   "disk full",
+	}
+
+	var buf bytes.Buffer
+	if err := StreamEntry(&buf, entry, true); err != nil {
+		t.Fatalf("StreamEntry returned error: %v", err)
+	}
+
+	result := buf.String()
+	if !strings.Contains(result, "\033[31m") {
+		t.Errorf("StreamEntry with color=true should produce red ANSI code for error, got: %q", result)
+	}
+	if !strings.Contains(result, "\033[0m") {
+		t.Errorf("StreamEntry with color=true should produce ANSI reset, got: %q", result)
+	}
+}
+
+// TestOU3_StreamEntryColorDisabled verifies that StreamEntry produces no
+// ANSI codes when color is disabled (AC_2, OU_3).
+func TestOU3_StreamEntryColorDisabled(t *testing.T) {
+	entry := parser.LogEntry{
+		Timestamp: time.Date(2025, 1, 15, 10, 30, 0, 0, time.UTC),
+		Level:     "error",
+		Message:   "disk full",
+	}
+
+	var buf bytes.Buffer
+	if err := StreamEntry(&buf, entry, false); err != nil {
+		t.Fatalf("StreamEntry returned error: %v", err)
+	}
+
+	result := buf.String()
+	if strings.Contains(result, "\033[") {
+		t.Errorf("StreamEntry with color=false should not produce ANSI codes, got: %q", result)
+	}
+}
+
+// TestOU3_StreamEntryWarnColor verifies that StreamEntry produces yellow
+// ANSI codes for warn-level entries when color is enabled (AC_1, OU_3).
+func TestOU3_StreamEntryWarnColor(t *testing.T) {
+	entry := parser.LogEntry{
+		Level:   "warn",
+		Message: "high memory usage",
+	}
+
+	var buf bytes.Buffer
+	if err := StreamEntry(&buf, entry, true); err != nil {
+		t.Fatalf("StreamEntry returned error: %v", err)
+	}
+
+	result := buf.String()
+	if !strings.Contains(result, "\033[33m") {
+		t.Errorf("StreamEntry with color=true should produce yellow ANSI code for warn, got: %q", result)
+	}
 }

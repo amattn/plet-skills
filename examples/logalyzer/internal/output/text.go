@@ -54,10 +54,12 @@ func FormatText(entry parser.LogEntry) string {
 }
 
 // StreamEntry writes a single formatted log entry to w immediately,
-// followed by a newline. This enables streaming output as entries are produced
-// rather than batching results.
-func StreamEntry(w io.Writer, entry parser.LogEntry) error {
-	line := FormatText(entry)
+// followed by a newline. When colorEnabled is true, severity levels are
+// color-coded using ANSI escape codes (error/fatal=red, warn/warning=yellow).
+// When colorEnabled is false, output is plain text with no escape codes.
+// 837261945023 — streaming entry output with optional color support (OU_3)
+func StreamEntry(w io.Writer, entry parser.LogEntry, colorEnabled bool) error {
+	line := FormatTextColor(entry, colorEnabled)
 	_, err := fmt.Fprintln(w, line)
 	return err
 }
