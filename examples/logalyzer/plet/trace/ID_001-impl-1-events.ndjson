@@ -1,0 +1,10 @@
+{"timestamp":"2026-03-09T08:00:00Z","type":"lifecycle_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"from":"queued","to":"implementing"}}
+{"timestamp":"2026-03-09T08:00:01Z","type":"activity_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"activity":"reading_context","detail":"reading requirements.md, learnings.md, iteration definition"}}
+{"timestamp":"2026-03-09T09:05:00Z","type":"activity_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"activity":"running_checks","detail":"pre-flight: verifying project builds and tests pass"}}
+{"timestamp":"2026-03-09T09:06:00Z","type":"criterion_update","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"go build ./... exits 0"}}
+{"timestamp":"2026-03-09T09:06:30Z","type":"criterion_update","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"criterionId":"AC_2","phase":"implementation","status":"pass","evidence":"go test ./... passes all tests"}}
+{"timestamp":"2026-03-09T09:08:00Z","type":"criterion_update","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"criterionId":"AC_3","phase":"implementation","status":"pass","evidence":"Sanity test fails when inverted"}}
+{"timestamp":"2026-03-09T09:10:00Z","type":"criterion_update","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"criterionId":"AC_4","phase":"implementation","status":"pass","evidence":"--version and -v both print version string"}}
+{"timestamp":"2026-03-09T09:14:00Z","type":"activity_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"activity":"implementing","detail":"creating CLAUDE.md, PLET.md, README.md"}}
+{"timestamp":"2026-03-09T09:14:30Z","type":"criterion_update","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"criterionId":"AC_5","phase":"implementation","status":"pass","evidence":"All three doc files created with appropriate content"}}
+{"timestamp":"2026-03-09T09:15:00Z","type":"lifecycle_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"from":"implementing","to":"verifying"}}
