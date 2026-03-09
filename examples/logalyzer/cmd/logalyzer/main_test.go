@@ -10,7 +10,7 @@ import (
 // TestVersionFlag verifies that --version and -v print the version string (AC_4).
 func TestVersionFlag(t *testing.T) {
 	// Build the binary first
-	buildCmd := exec.Command("go", "build", "-o", "logalyzer_test_bin", ".")
+	buildCmd := exec.Command(goCmd(), "build", "-o", "logalyzer_test_bin", ".")
 	buildCmd.Dir = "."
 	if out, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to build binary: %v\n%s", err, out)
@@ -64,7 +64,7 @@ not valid json
 	tmpFile.Close()
 
 	// Build the binary
-	buildCmd := exec.Command("go", "build", "-o", "logalyzer_test_bin", ".")
+	buildCmd := exec.Command(goCmd(), "build", "-o", "logalyzer_test_bin", ".")
 	buildCmd.Dir = "."
 	if out, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to build binary: %v\n%s", err, out)

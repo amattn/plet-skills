@@ -1,16 +1,26 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 )
 
+// goCmd returns the path to the Go binary, respecting GOROOT.
+func goCmd() string {
+	goroot := os.Getenv("GOROOT")
+	if goroot != "" {
+		return goroot + "/bin/go"
+	}
+	return "go"
+}
+
 // buildBinary builds the logalyzer binary for testing and returns a cleanup function.
 func buildBinary(t *testing.T) (string, func()) {
 	t.Helper()
-	buildCmd := exec.Command("go", "build", "-o", "logalyzer_test_bin", ".")
+	buildCmd := exec.Command(goCmd(), "build", "-o", "logalyzer_test_bin", ".")
 	buildCmd.Dir = "."
 	if out, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to build binary: %v\n%s", err, out)
@@ -298,6 +308,107 @@ func TestOU7_SearchCount(t *testing.T) {
 	output := strings.TrimSpace(string(out))
 	if output != "5" {
 		t.Errorf("expected count '5', got: %q", output)
+	}
+}
+
+// TestOU2_SearchJSONOutput verifies that 'search --json' outputs each matching entry
+// as a JSON object, one per line (OU_2, AC_1).
+func TestOU2_SearchJSONOutput(t *testing.T) {
+	bin, cleanup := buildBinary(t)
+	defer cleanup()
+
+	tmpFile := writeTempFile(t, testNDJSON)
+	defer os.Remove(tmpFile)
+
+	cmd := exec.Command(bin, "search", "--json", tmpFile)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("search --json failed with %v: %s", err, out)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(lines) != 5 {
+		t.Errorf("expected 5 JSON lines, got %d:\n%s", len(lines), string(out))
+	}
+}
+
+// TestOU2_SearchJSONValid verifies that each line of --json output is valid JSON
+// re-parseable by encoding/json (OU_2, AC_2).
+func TestOU2_SearchJSONValid(t *testing.T) {
+	bin, cleanup := buildBinary(t)
+	defer cleanup()
+
+	tmpFile := writeTempFile(t, testNDJSON)
+	defer os.Remove(tmpFile)
+
+	cmd := exec.Command(bin, "search", "--json", tmpFile)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("search --json failed with %v: %s", err, out)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	for i, line := range lines {
+		var obj map[string]any
+		if jsonErr := json.Unmarshal([]byte(line), &obj); jsonErr != nil {
+			t.Errorf("line %d is not valid JSON: %v\nline: %q", i+1, jsonErr, line)
+		}
+	}
+}
+
+// TestOU2_SearchJSONWithFilter verifies --json works combined with --level filter (OU_2, AC_1).
+func TestOU2_SearchJSONWithFilter(t *testing.T) {
+	bin, cleanup := buildBinary(t)
+	defer cleanup()
+
+	tmpFile := writeTempFile(t, testNDJSON)
+	defer os.Remove(tmpFile)
+
+	cmd := exec.Command(bin, "search", "--json", "--level", "error", tmpFile)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("search --json --level failed with %v: %s", err, out)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(lines) != 1 {
+		t.Errorf("expected 1 JSON line for error level, got %d:\n%s", len(lines), string(out))
+	}
+
+	var obj map[string]any
+	if jsonErr := json.Unmarshal([]byte(lines[0]), &obj); jsonErr != nil {
+		t.Errorf("output is not valid JSON: %v", jsonErr)
+	}
+}
+
+// TestOU2_SummaryJSONOutput verifies that 'summary --json' outputs the summary
+// as a valid JSON object (OU_2, AC_3).
+func TestOU2_SummaryJSONOutput(t *testing.T) {
+	bin, cleanup := buildBinary(t)
+	defer cleanup()
+
+	tmpFile := writeTempFile(t, testNDJSON)
+	defer os.Remove(tmpFile)
+
+	cmd := exec.Command(bin, "summary", "--json", tmpFile)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("summary --json failed with %v: %s", err, out)
+	}
+
+	output := strings.TrimSpace(string(out))
+
+	var obj map[string]any
+	if jsonErr := json.Unmarshal([]byte(output), &obj); jsonErr != nil {
+		t.Errorf("summary --json output is not valid JSON: %v\noutput: %q", jsonErr, output)
+	}
+
+	// Should contain expected summary fields
+	if _, ok := obj["total_entries"]; !ok {
+		t.Errorf("expected 'total_entries' in summary JSON, got: %v", obj)
+	}
+	if _, ok := obj["level_counts"]; !ok {
+		t.Errorf("expected 'level_counts' in summary JSON, got: %v", obj)
 	}
 }
 

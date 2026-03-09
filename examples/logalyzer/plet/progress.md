@@ -161,3 +161,18 @@ NDJSON parser implementation complete. All 8 parser tests pass (plus 1 sanity te
   - `cmd/logalyzer/search.go` — search subcommand with streaming output
   - `cmd/logalyzer/search_test.go` — 7 integration tests (output, stderr, exit codes, filters)
 - **Notes:** Minor observation: flag parse errors return exit code 1 rather than 2; this is acceptable since the Go flag package prints its own usage message. Pre-existing gofmt issue in filter.go is not part of this iteration.
+
+## ID_010 — Advanced search (impl-1)
+- AC_1: PASS — `NewCaseSensitiveKeywordFilter` for `--case-sensitive`; `NewKeywordFilter` remains default (case-insensitive)
+- AC_2: PASS — `NewRegexFilter` matches regex across level, message, and string extra fields
+- AC_3: PASS — `NewInvertFilter` wraps any filter, negating its `Match` result; `--invert` flag in search.go uses `compositeFilter` to wrap all active filters before inverting
+- Files: `internal/filter/filter.go`, `internal/filter/filter_test.go`, `cmd/logalyzer/search.go`
+- Tests: 14 new tests (TestSF6_*, TestSF7_*, TestSF8_*)
+
+## ID_008 — JSON output (OU_2)
+- Added `--json` flag to `search` subcommand: outputs each matching entry as a JSON object, one per line
+- Added `--json` flag to `summary` subcommand: outputs summary as a single JSON object
+- FormatJSON for summary already existed in `summary_json.go` (from prior iteration); reused it
+- Added flag parsing to `runSummary` via `flag.NewFlagSet`
+- Tests: TestOU2_SearchJSONOutput, TestOU2_SearchJSONValid, TestOU2_SearchJSONWithFilter, TestOU2_SummaryJSONOutput
+- Also fixed GOROOT issue in `buildBinary`/`goCmd` test helper for environment compatibility

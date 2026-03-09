@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -49,14 +50,23 @@ func run(args []string) int {
 // runSummary implements the 'summary' subcommand, which parses an NDJSON file
 // and prints a human-readable summary to stdout.
 func runSummary(args []string) int {
-	if len(args) < 1 {
-		// 927461538204 — missing file argument for summary
-		fmt.Fprintln(os.Stderr, "error [927461538204]: summary requires a file argument")
-		fmt.Fprintln(os.Stderr, "usage: logalyzer summary <file>")
+	fs := flag.NewFlagSet("summary", flag.ContinueOnError)
+	jsonOut := fs.Bool("json", false, "output summary as a JSON object")
+
+	if err := fs.Parse(args); err != nil {
+		// 738291465032 — flag parse error in summary
+		fmt.Fprintf(os.Stderr, "error [738291465032]: %v\n", err)
 		return 1
 	}
 
-	filePath := args[0]
+	if fs.NArg() < 1 {
+		// 927461538204 — missing file argument for summary
+		fmt.Fprintln(os.Stderr, "error [927461538204]: summary requires a file argument")
+		fmt.Fprintln(os.Stderr, "usage: logalyzer summary [flags] <file>")
+		return 1
+	}
+
+	filePath := fs.Arg(0)
 	f, err := os.Open(filePath)
 	if err != nil {
 		// 615283947120 — could not open file for summary
@@ -73,6 +83,10 @@ func runSummary(args []string) int {
 	}
 
 	summary := aggregate.Summarize(result.Entries, result.ParseErrors)
-	fmt.Print(summary.Format())
+	if *jsonOut {
+		fmt.Println(summary.FormatJSON())
+	} else {
+		fmt.Print(summary.Format())
+	}
 	return 0
 }

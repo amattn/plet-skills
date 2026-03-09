@@ -25,6 +25,7 @@ func runSearch(args []string) int {
 	count := fs.Bool("count", false, "output only the count of matching entries")
 	level := fs.String("level", "", "filter by log level (comma-separated)")
 	keyword := fs.String("keyword", "", "filter by keyword in any string field")
+	jsonOut := fs.Bool("json", false, "output each matching entry as a JSON object, one per line")
 
 	if err := fs.Parse(args); err != nil {
 		// 529174836201 — flag parse error in search
@@ -90,9 +91,9 @@ func runSearch(args []string) int {
 		fieldList = strings.Split(*fields, ",")
 	}
 
-	// Output entries: use text format by default, JSON when fields are selected
+	// Output entries: JSON when --json or --fields, text otherwise
 	for _, e := range entries {
-		if len(fieldList) > 0 {
+		if *jsonOut || len(fieldList) > 0 {
 			fmt.Println(output.FormatEntryJSON(e, fieldList))
 		} else {
 			if err := output.StreamEntry(os.Stdout, e); err != nil {
