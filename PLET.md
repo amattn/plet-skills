@@ -1,6 +1,6 @@
 # PLET.md
 
-How to work with plet — the spec-driven autonomous development loop for Claude Code. This file applies to any repo using plet. CLAUDE.md is project-specific instructions; PLET.md is plet-specific instructions that are portable across projects.
+How to work with plet — the spec-driven autonomous development orchestrator for Claude Code. This file applies to any repo using plet. CLAUDE.md is project-specific instructions; PLET.md is plet-specific instructions that are portable across projects.
 
 ## Critical Requirements & Invariants
 
@@ -10,7 +10,7 @@ How to work with plet — the spec-driven autonomous development loop for Claude
 
 **PLET = Progress, Learnings, Emergent, Trace** — the four runtime artifacts the system produces. Also works phonetically as Plan + Execute.
 
-plet is a Claude Code skill that provides a spec-driven autonomous development loop. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness.
+plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness.
 
 A single entry point (`/plet`) reads the project state, determines which phase the project is in, and routes to the appropriate workflow. All state lives on disk so any fresh agent can pick up where the last one left off.
 

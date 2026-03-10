@@ -1,11 +1,11 @@
 ---
 name: plet
 version: 0.1.0
-description: "Spec-driven autonomous development loop. Use when the user asks to 'plet', 'start plet', 'plan and execute', 'autonomous loop', 'iterate on this feature', or 'run the dev loop'. Single entry point that reads project state and routes to the correct phase: plan, execute, verify, or refine."
+description: "Spec-driven autonomous development orchestrator. Use when the user asks to 'plet', 'start plet', 'plan and execute', 'autonomous loop', 'iterate on this feature', or 'run the dev loop'. Single entry point that reads project state and routes to the correct session: plan (interactive requirements and iteration design), loop (autonomous implementation and verification phases for each iteration), or refine (human-driven triage of emergent items, spec updates, and re-planning)."
 user-invocable: true
 ---
 
-# plet — Spec-Driven Autonomous Development Loop
+# plet — Spec-Driven Autonomous Development Orchestrator
 
 Plan interactively, execute autonomously, verify independently, refine iteratively. All state lives on disk so any fresh agent can pick up where the last one left off.
 

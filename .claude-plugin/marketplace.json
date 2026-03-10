@@ -4,16 +4,16 @@
     "name": "amattn"
   },
   "metadata": {
-    "description": "Spec-driven autonomous development loop for Claude Code. Plan interactively, execute autonomously, verify independently, refine iteratively.",
+    "description": "Spec-driven autonomous development orchestrator for Claude Code. Plan interactively, execute autonomously, verify independently, refine iteratively.",
     "version": "0.1.0"
   },
   "plugins": [
     {
       "name": "plet-skills",
       "source": "./",
-      "description": "Spec-driven autonomous development loop for Claude Code. Plan interactively, execute autonomously, verify independently, refine iteratively.",
+      "description": "Spec-driven autonomous development orchestrator for Claude Code. Plan interactively, execute autonomously, verify independently, refine iteratively.",
       "version": "0.1.0",
-      "keywords": ["plet", "prd", "automation", "agent", "planning", "requirements", "spec-driven", "development-loop", "ralph-loop"],
+      "keywords": ["plet", "prd", "automation", "agent", "planning", "requirements", "spec-driven", "development-orchestrator", "ralph-loop"],
       "category": "productivity",
       "skills": "./skills/"
     }

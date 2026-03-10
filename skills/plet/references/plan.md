@@ -55,7 +55,36 @@ Continue asking until you have enough understanding to draft a complete requirem
 
 ---
 
-## Step 2: Requirements Document (PL_2, PL_3, PL_5)
+## Step 2: Project Name & ID
+
+After clarifying questions, confirm the project name and choose a short project ID. The agent suggests options based on what it learned during Step 1 — the user picks or overrides.
+
+```
+Before I draft requirements, let's nail down naming:
+
+1. Project name?
+   A. Log Analyzer
+   B. LogAlyzer
+   C. Something else — please specify
+
+2. Project ID? (3-6 uppercase chars, used in branch names and tags)
+   A. LOGA
+   B. LOGZ
+   C. ANLZR
+   D. Something else — please specify
+```
+
+**Rules:**
+- Format: `[A-Z][A-Z0-9]{2,5}` — 3-6 characters, starts with a letter, uppercase alphanumeric only
+- Must not collide with requirement ID prefixes (e.g., don't use `FR` or `NF`)
+- Shorter is better for branch names; descriptive enough to recognize at a glance
+- The agent always suggests at least 2-3 options — don't make the user invent one from scratch
+
+The project name goes into the PRD header. The project ID goes into `state.json` as `projectId` and drives all branch/tag naming (`plet/{projectId}/loop1/workstream`, etc.).
+
+---
+
+## Step 3: Requirements Document (PL_2, PL_3, PL_5)
 
 Generate a structured requirements document saved to `plet/requirements.md`. Follow the conventions of the ridl-skills:prd format.
 
@@ -163,7 +192,7 @@ Include a fingerprint at the end of `requirements.md` in a fenced JSON block:
 
 ---
 
-## Step 3: Section-by-Section Review (PL_4)
+## Step 4: Section-by-Section Review (PL_4)
 
 Present each feature area's requirements to the user for review. For each section:
 
@@ -178,7 +207,7 @@ The user may batch answers or go one-by-one — follow their lead.
 
 ---
 
-## Step 4: Iteration Decomposition (PL_8, PL_9)
+## Step 5: Iteration Decomposition (PL_8, PL_9)
 
 After requirements are approved, break them into iteration definitions small enough to fit in a single context window, with dependency relationships.
 
@@ -240,7 +269,7 @@ Assign iterations to milestones based on the release milestones defined in the r
 
 ---
 
-## Step 5: Iteration Review (PL_10)
+## Step 6: Iteration Review (PL_10)
 
 Present each iteration definition to the user for review:
 
@@ -253,7 +282,7 @@ Present each iteration definition to the user for review:
 
 ---
 
-## Step 6: Initialize State (PL_11)
+## Step 7: Initialize State (PL_11)
 
 After all iterations are approved:
 
@@ -271,7 +300,7 @@ After all iterations are approved:
 
 2. Initialize `plet/state.json` with:
    - `schemaVersion`: `"0.1.0"`
-   - `projectId`: short project identifier (3-6 chars, `[A-Z][A-Z0-9]{2,5}`). Ask the user to choose one during planning.
+   - `projectId`: the project ID chosen in Step 2
    - `project`: name and description
    - `dependencyMap`: `{iteration_id: [dependency_ids]}`
    - `milestones`: `{milestone_id: {name, iterations[]}}`

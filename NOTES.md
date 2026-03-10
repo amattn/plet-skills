@@ -6,6 +6,7 @@
 - Invariants & Critical Requirements
 - Key Design Decisions
 - Global Conventions
+- Taxonomy
 - Lineage
 - Important Concepts & Insights
 - PRD Status
@@ -18,7 +19,7 @@
 
 **PLET = Progress, Learnings, Emergent, Trace** — the four runtime artifacts the system produces. Also works phonetically as Plan + Execute.
 
-plet is a Claude Code skill that provides a spec-driven autonomous development loop. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness. Inspired by and builds on Ralph loops — a spec-driven autonomous coding pattern — via RIDL (Ralph Iteration Definition List), the author's implementation of that pattern. plet is a merger between Claude Code's plan mode (interactive, iterative planning) and the RIDL PRD-driven autonomous loop (structured execution with runtime artifacts).
+plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness. Inspired by and builds on Ralph loops — a spec-driven autonomous coding pattern — via RIDL (Ralph Iteration Definition List), the author's implementation of that pattern. plet is a merger between Claude Code's plan mode (interactive, iterative planning) and the RIDL PRD-driven autonomous loop (structured execution with runtime artifacts).
 
 ---
 
@@ -254,7 +255,7 @@ All branches and tags are namespaced under `plet/{projectId}/`. Agents never com
 
 #### Project ID (R_6)
 
-Short project identifier defined during plan session, stored in `state.json` as `projectId`. Used in branch names, tag names, and potentially state file paths (e.g., `plet/LOGA/workstream`).
+Short project identifier defined during plan session (Step 2, alongside project name), stored in `state.json` as `projectId`. Used in branch names, tag names, and potentially state file paths (e.g., `plet/LOGA/workstream`). Agent suggests 2-3 options using the numbered-letter style; user picks or overrides.
 
 **Format:** `[A-Z][A-Z0-9]{2,5}` — 3-6 characters, starts with a letter, uppercase alphanumeric only. User-chosen during plan session.
 
@@ -532,6 +533,26 @@ Case studies live in `case_studies/` at project root. Considered: `examples/` (m
 
 Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from commit `7cecbf5` ("example: after plan") — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan session output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
 
+### Vocabulary and taxonomy — DECIDED
+
+Standardized hierarchy to eliminate overloaded terms. See **Taxonomy > Vocabulary Hierarchy** for the canonical definitions.
+
+Key decisions:
+- **"session"** for Level 1 (was "phase") — pluralizes naturally, aligns with `*SessionCount` fields
+- **"phase"** freed up for Level 3 (impl/verify) — zero rename cost, already in file formats
+- **"cycle"** reserved as informal only — not a formal level
+- **`sessionHistory`** field with `type` key (not `phase`) inside each entry
+
+**Rejected alternatives:**
+- "mode" for Level 1 — doesn't pluralize naturally ("two loop modes" is awkward)
+- "stage" for Level 1 — could also describe Level 2/3, ambiguous
+- "step" for Level 3 — felt too small for a full impl or verify run
+- "round" for cycle — workable but "cycle" is more intuitive
+- "pass" for cycle — collides with pass/fail terminology
+- `"phase"` as the key in `sessionHistory` entries — "what phase of session?" doesn't make sense; `"type"` is more natural ("what type of session?")
+
+**Note:** In code/filenames, `{phase}` in `{phase}-{attempt}` patterns continues to refer to impl/verify (Level 3). This is consistent with the new vocabulary — no rename needed.
+
 ---
 
 ## Global Conventions
@@ -554,6 +575,104 @@ Considered approaches for stable IDs when editing PRDs:
 2. Deleted items leave a gap
 3. Numbers don't imply ordering — document position determines order
 4. IDs are stable once assigned — never renumber, never reuse
+
+---
+
+## Taxonomy
+
+Canonical definitions for plet's vocabulary, document terms, and artifact categories. Decision rationale and rejected alternatives live in Key Design Decisions; this section is the reference.
+
+### Vocabulary Hierarchy
+
+```
+project (LOGA)
+  └─ session (plan, loop1, refine1, loop2, ...)
+       └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
+            └─ phase (impl, verify)
+```
+
+**Example showing interleaved sessions:**
+```
+project (LOGA)
+├─ plan session
+├─ loop session (loop1)
+│  ├─ iteration (ID_001)
+│  │  ├─ impl phase
+│  │  └─ verify phase
+│  ├─ iteration (ID_002)
+│  │  └─ ...
+│  └─ ...
+├─ refine session (refine1)
+├─ loop session (loop2)
+│  └─ ...
+├─ refine session (refine2)
+├─ refine session (refine3)
+├─ loop session (loop3)
+│  └─ ...
+└─ ...
+```
+
+| Level | Term | Formal? | Example |
+|-------|------|---------|---------|
+| 0 | **project** | yes | LOGA |
+| 1 | **session** | yes | loop session, refine session, plan session |
+| 2 | **iteration** | yes | ID_001 (loop sessions only) |
+| 3 | **phase** | yes | impl phase, verify phase |
+
+- **Session** = a `/plet` invocation: plan session, loop session, refine session
+- **Iteration** = a unit of work with acceptance criteria (loop sessions only)
+- **Phase** = impl or verify within an iteration (not plan/loop/refine)
+- Retry numbering (`impl-1`, `impl-2`) is a detail within phases, not a formal hierarchy level
+- "Cycle" is informal shorthand for one impl run + one verify run
+
+### Document Terms
+
+| Term | Refers to | Scope |
+|------|-----------|-------|
+| **requirements** / **requirements doc** | `plet/requirements.md` | plet-specific — the file plet produces and consumes |
+| **PRD** | A requirements document in the ridl-skills:prd format | Generic — any tool can produce a PRD (ridl-skills:prd, plet, manual) |
+| **spec** | `requirements.md` + `iterations.md` together | plet-specific — the full plan output |
+
+"The PRD" and "the requirements doc" are synonyms inside a plet project. "Spec" is broader — it includes iterations.
+
+### Artifact Categories
+
+> Also in PLET.md (generalized for any target project, with full directory tree). This section is the canonical source for the taxonomy's evolution; PLET.md is the portable copy.
+
+**1. Spec artifacts** (human-created during plan session)
+- `plet/requirements.md` — PRD with requirement IDs, fingerprint
+- `plet/iterations.md` — iteration definitions, dependencies, acceptance criteria, fingerprint
+
+**2. State artifacts** (agent-written, real-time updated)
+- `plet/state.json` — global state (dependency map, milestones, parallel groups, breakpoints)
+- `plet/state/{iteration_id}.json` — per-iteration lifecycle, attempts, criteria status, verification reports
+
+**3. Runtime artifacts** (agent-appended, append-only)
+- `plet/progress.md` — activity log (audience: humans)
+- `plet/learnings.md` — knowledge base (audience: agents)
+- `plet/emergent.md` — triage queue (audience: humans)
+
+**4. Trace artifacts** (execution telemetry)
+- `plet/trace/{id}-{phase}-{attempt}-transcript.jsonl` — raw I/O (orchestrator-captured)
+- `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written)
+
+**5. Version control artifacts**
+- Integration branch: `plet/{projectId}/loop{N}/workstream`
+- Iteration branch: `plet/{projectId}/loop{N}/{iteration_id}`
+- Audit tags: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
+- Refine branch: `plet/{projectId}/refine{N}/workstream`
+- Archive tags: `archive/plet/{projectId}/loop{N}/{path}`
+- Commits: `plet: [ID_xxx] phase-N - title` (squashed per phase)
+
+**6. Memory** (institutional knowledge, checked-in)
+- `CLAUDE.md` — project-specific instructions
+- `PLET.md` — plet-specific instructions
+- `NOTES.md` — decisions, rationale, open questions
+- `FEEDBACK.md` — field observations about working with plet (planned)
+
+**7. Configuration** (per-project behavior modification)
+- Modify planner, refiner, execute agent, verify agent behavior
+- *(No files defined yet — shape TBD, see Open Questions)*
 
 ---
 
@@ -689,52 +808,6 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 
 ---
 
-## Artifact Taxonomy
-
-> **Note (2026-03-09):** This taxonomy is now also in PLET.md (generalized for any target project, with a full directory tree showing project root + plet/ directory). NOTES.md remains the canonical source for the taxonomy's evolution; PLET.md is the portable copy.
-
-All artifacts produced by using plet, organized by category.
-
-### 1. Spec Artifacts (human-created during plan session)
-- `plet/requirements.md` — PRD with requirement IDs, fingerprint
-- `plet/iterations.md` — iteration definitions, dependencies, acceptance criteria, fingerprint
-
-### 2. State Artifacts (agent-written, real-time updated)
-- `plet/state.json` — global state (dependency map, milestones, parallel groups, breakpoints)
-- `plet/state/{iteration_id}.json` — per-iteration lifecycle, attempts, criteria status, verification reports
-
-### 3. Runtime Artifacts (agent-appended, append-only)
-- `plet/progress.md` — activity log (audience: humans)
-- `plet/learnings.md` — knowledge base (audience: agents)
-- `plet/emergent.md` — triage queue (audience: humans)
-
-### 4. Trace Artifacts (execution telemetry)
-- `plet/trace/{id}-{phase}-{attempt}-transcript.jsonl` — raw I/O (orchestrator-captured)
-- `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written)
-
-### 5. Version Control Artifacts
-- Integration branch: `plet/{projectId}/loop{N}/workstream`
-- Iteration branch: `plet/{projectId}/loop{N}/{iteration_id}`
-- Audit tags: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
-- Refine branch: `plet/{projectId}/refine{N}/workstream`
-- Archive tags: `archive/plet/{projectId}/loop{N}/{path}`
-- Commits: `plet: [ID_xxx] phase-N - title` (squashed per phase)
-
-### 6. Memory (institutional knowledge, checked-in)
-- `CLAUDE.md` — project-specific instructions
-- `PLET.md` — plet-specific instructions (planned, see Open Questions)
-- `NOTES.md` — decisions, rationale, open questions
-- `FEEDBACK.md` — field observations about working with plet; triage queue for potential incorporation into memory or config artifacts (planned, see Open Questions)
-
-### 7. Configuration (per-project behavior modification)
-- Modify planner behavior
-- Modify refiner behavior
-- Modify execute agent behavior
-- Modify verify agent behavior
-- *(No files defined yet — shape TBD, see Open Questions)*
-
----
-
 ## Things to Monitor
 
 ### Injection payload sizes
@@ -777,70 +850,6 @@ As consistency passes are used, note what keeps drifting (which files, which pat
 ---
 
 ## Open Questions
-
-### Vocabulary and taxonomy — DECIDED
-
-Standardized hierarchy to eliminate overloaded terms. Key decisions:
-- **"session"** for Level 1 (was "phase") — pluralizes naturally, aligns with `*SessionCount` fields
-- **"phase"** freed up for Level 2 (impl/verify) — zero rename cost, already in file formats
-- **"cycle"** reserved as informal only — not a formal level
-- **`sessionHistory`** field with `type` key (not `phase`) inside each entry
-
-```
-project (LOGA)
-├─ plan session
-├─ loop session (loop1)
-│  ├─ iteration (ID_001)
-│  │  ├─ impl phase
-│  │  │  └─ attempt (impl-1, impl-2, ...)
-│  │  └─ verify phase
-│  │     └─ attempt (verify-1, verify-2, ...)
-│  ├─ iteration (ID_002)
-│  │  ├─ impl phase
-│  │  │  └─ attempt (impl-1)
-│  │  └─ verify phase
-│  │     └─ attempt (verify-1)
-│  └─ ...
-├─ refine session (refine1)
-├─ loop session (loop2)
-│  ├─ iteration (ID_005)
-│  │  └─ ...
-│  └─ ...
-├─ refine session (refine2)
-├─ refine session (refine3)
-├─ loop session (loop3)
-│  └─ ...
-└─ ...
-```
-
-**Nesting (what contains what):**
-```
-project (LOGA)
-  └─ session (plan, loop1, refine1, loop2, ...)
-       └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
-            └─ phase (impl, verify)
-```
-
-**Term assignments:**
-
-| Level | Term | Formal? | Example |
-|-------|------|---------|---------|
-| 0 | **project** | yes | LOGA |
-| 1 | **session** | yes | loop session, refine session, plan session |
-| 2 | **iteration** | yes | ID_001 (loop sessions only) |
-| 3 | **phase** | yes | impl phase, verify phase |
-
-Retry numbering (`impl-1`, `impl-2`) is a detail within phases, not a formal hierarchy level. "Cycle" is informal shorthand for one impl run + one verify run.
-
-**Rejected alternatives:**
-- "mode" for Level 1 — doesn't pluralize naturally ("two loop modes" is awkward)
-- "stage" for Level 1 — could also describe Level 2/3, ambiguous
-- "step" for Level 3 — felt too small for a full impl or verify run
-- "round" for cycle — workable but "cycle" is more intuitive
-- "pass" for cycle — collides with pass/fail terminology
-- `"phase"` as the key in `sessionHistory` entries — "what phase of session?" doesn't make sense; `"type"` is more natural ("what type of session?")
-
-**Note:** In code/filenames, `{phase}` in `{phase}-{attempt}` patterns continues to refer to impl/verify (Level 3). This is consistent with the new vocabulary — no rename needed.
 
 ### Consistency checking as a skill?
 

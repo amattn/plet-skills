@@ -1,6 +1,6 @@
 # Product Requirements Document: plet
 
-## Spec-Driven Autonomous Development Loop for Claude Code
+## Spec-Driven Autonomous Development Orchestrator for Claude Code
 
 **Version:** 1.0
 **Date:** 2026-03-07
@@ -12,7 +12,7 @@
 
 ## 1. Overview
 
-plet is a Claude Code skill that provides a spec-driven autonomous development loop. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness.
+plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness.
 
 The name **PLET** stands for the four runtime artifacts the system produces: **P**rogress, **L**earnings, **E**mergent items, and **T**race. These artifacts serve distinct audiences (agents, humans, and debugging tools) and together form a complete record of what happened, what was learned, what needs human attention, and the full execution trace for accountability. PLET also works phonetically as Plan + Execute.
 

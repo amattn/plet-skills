@@ -15,7 +15,7 @@
 
 ## Project
 
-plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous development loop for Claude Code).
+plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous development orchestrator for Claude Code).
 
 ## Key Files
 
