@@ -445,13 +445,13 @@ The orchestrator is the longest-lived agent and most vulnerable to context compa
 
 1. **Canary writes** — after each significant action (loop start, subagent spawn, subagent completion), the orchestrator writes/updates a progress.md entry with `Phase: orchestrator`, `Status: ACTIVE`, and critical state: `projectId`, `loopSessionCount`, branch name, iteration lifecycle counts.
 2. **Detection** — after compaction, the orchestrator won't remember writing the canary. If it can't recall its operational state, it reads the last orchestrator ACTIVE entry for immediate orientation.
-3. **Recovery** — re-read SKILL.md → state.json (including `phaseHistory`) → active per-iteration state files → confirm git branch → write recovery canary → resume.
+3. **Recovery** — re-read SKILL.md → state.json (including `sessionHistory`) → active per-iteration state files → confirm git branch → write recovery canary → resume.
 
 **Rationale:** All state lives on disk by design, but the orchestrator needs to *know* to re-read it. The canary serves dual purpose: compaction detection and fast re-orientation without reading every file.
 
-#### Phase history ledger
+#### Session history ledger
 
-Append-only array in `state.json` tracking the sequence of loop and refine phases. Each entry has `phase`, `session`, `branch`, `startedAt`, `endedAt`. The last entry is the current/active phase (`endedAt: null`); the previous entry is the parent branch that the current phase branched from. Solves two problems: (1) the orchestrator always knows where to branch from for the next phase, (2) the full phase sequence is visible without git archaeology.
+Append-only array in `state.json` (`sessionHistory`) tracking the sequence of loop and refine sessions. Each entry has `type`, `session`, `branch`, `startedAt`, `endedAt`. The last entry is the current/active session (`endedAt: null`); the previous entry is the parent branch that the current session branched from. Solves two problems: (1) the orchestrator always knows where to branch from for the next session, (2) the full session sequence is visible without git archaeology.
 
 **Chaining model:** Each workstream branches off the previous one — `loop1/workstream` → `refine1/workstream` → `loop2/workstream`. The first phase branches from `main`. Merge to main is always a human decision — never automatic. Merging to main may trigger deployments, CI/CD pipelines, or other side effects. The target may also not be main — the human may merge to `staging`, `test`, `qa`, or other branches depending on their workflow. plet has no opinion on the target; it only manages the workstream chain.
 
@@ -777,6 +777,71 @@ As consistency passes are used, note what keeps drifting (which files, which pat
 ---
 
 ## Open Questions
+
+### Vocabulary and taxonomy — DECIDED
+
+Standardized hierarchy to eliminate overloaded terms. Key decisions:
+- **"session"** for Level 1 (was "phase") — pluralizes naturally, aligns with `*SessionCount` fields
+- **"phase"** freed up for Level 2 (impl/verify) — zero rename cost, already in file formats
+- **"cycle"** reserved as informal only — not a formal level
+- **`sessionHistory`** field with `type` key (not `phase`) inside each entry
+
+```
+project (LOGA)
+├─ plan session
+├─ loop session (loop1)
+│  ├─ iteration (ID_001)
+│  │  ├─ impl phase
+│  │  │  └─ attempt (impl-1, impl-2, ...)
+│  │  └─ verify phase
+│  │     └─ attempt (verify-1, verify-2, ...)
+│  ├─ iteration (ID_002)
+│  │  ├─ impl phase
+│  │  │  └─ attempt (impl-1)
+│  │  └─ verify phase
+│  │     └─ attempt (verify-1)
+│  └─ ...
+├─ refine session (refine1)
+├─ loop session (loop2)
+│  ├─ iteration (ID_005)
+│  │  └─ ...
+│  └─ ...
+├─ refine session (refine2)
+├─ refine session (refine3)
+├─ loop session (loop3)
+│  └─ ...
+└─ ...
+```
+
+**Nesting (what contains what):**
+```
+project (LOGA)
+  └─ session (loop1, refine1, loop2, ...)
+       └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
+            └─ phase (impl, verify)
+                 └─ attempt (1, 2, 3, ...)
+```
+
+**Term assignments:**
+
+| Level | Term | Formal? | Example |
+|-------|------|---------|---------|
+| 0 | **project** | yes | LOGA |
+| 1 | **session** | yes | loop session, refine session, plan session |
+| 2 | **iteration** | yes | ID_001 (loop sessions only) |
+| 3 | **phase** | yes | impl phase, verify phase |
+| 4 | **attempt** | yes | impl-1, verify-2 |
+| — | **cycle** | informal | one impl attempt + one verify attempt |
+
+**Rejected alternatives:**
+- "mode" for Level 1 — doesn't pluralize naturally ("two loop modes" is awkward)
+- "stage" for Level 1 — could also describe Level 2/3, ambiguous
+- "step" for Level 3 — felt too small for a full impl or verify run
+- "round" for cycle — workable but "cycle" is more intuitive
+- "pass" for cycle — collides with pass/fail terminology
+- `"phase"` as the key in `sessionHistory` entries — "what phase of session?" doesn't make sense; `"type"` is more natural ("what type of session?")
+
+**Note:** In code/filenames, `{phase}` in `{phase}-{attempt}` patterns continues to refer to impl/verify (Level 3). This is consistent with the new vocabulary — no rename needed.
 
 ### Consistency checking as a skill?
 

@@ -87,9 +87,9 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
   "loopSessionCount": 0,
   "refineSessionCount": 0,
 
-  "phaseHistory": [
-    {"phase": "loop", "session": 1, "branch": "plet/MYPR/loop1/workstream", "startedAt": "2026-03-07T14:00:00Z", "endedAt": "2026-03-07T16:30:00Z"},
-    {"phase": "refine", "session": 1, "branch": "plet/MYPR/refine1/workstream", "startedAt": "2026-03-07T17:00:00Z", "endedAt": null}
+  "sessionHistory": [
+    {"type": "loop", "session": 1, "branch": "plet/MYPR/loop1/workstream", "startedAt": "2026-03-07T14:00:00Z", "endedAt": "2026-03-07T16:30:00Z"},
+    {"type": "refine", "session": 1, "branch": "plet/MYPR/refine1/workstream", "startedAt": "2026-03-07T17:00:00Z", "endedAt": null}
   ],
 
   "iterationsFingerprint": {
@@ -128,7 +128,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `tagBeforeSquash` | boolean | no | Global default for audit tagging before squash. When `true`, agents create a git tag preserving incremental commits before squashing. Default `false`. Per-iteration state inherits this value at initialization. (EX_17) |
 | `loopSessionCount` | integer | no | Number of loop sessions invoked. Incremented at the start of each `/plet loop` invocation. Used in branch names (`loop1`, `loop2`). Default `0`. |
 | `refineSessionCount` | integer | no | Number of refine sessions completed. Incremented at the start of each refine phase entry. Used as the attempt number in refine-phase plet ID context segments (e.g., `r1`, `r2`). Default `0`. |
-| `phaseHistory` | array | no | Append-only ledger of phase transitions. Each entry: `{phase, session, branch, startedAt, endedAt}`. `phase` is `"loop"` or `"refine"`. `session` matches `loopSessionCount` or `refineSessionCount`. `branch` is the workstream branch for this phase. `endedAt` is `null` while the phase is active. Last entry is the current phase; previous entry is the parent branch. Default `[]`. (OR_14) |
+| `sessionHistory` | array | no | Append-only ledger of session transitions. Each entry: `{type, session, branch, startedAt, endedAt}`. `type` is `"loop"` or `"refine"`. `session` matches `loopSessionCount` or `refineSessionCount`. `branch` is the workstream branch for this session. `endedAt` is `null` while the session is active. Last entry is the current session; previous entry is the parent branch. Default `[]`. (OR_14) |
 | `iterationsFingerprint` | object | yes | Iterations fingerprint — embeds `requirementsFingerprint`, plus `lastNonTrivialUpdate` timestamp and iteration IDs grouped by milestone (SY_2, SY_3) |
 
 ---

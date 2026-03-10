@@ -234,7 +234,7 @@ Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`
 Autonomous. The loop implements iterations, then verifies each in a fresh context, cycling until all iterations are `complete` or `blocked`.
 
 **Orchestrator actions:**
-1. Increment `loopSessionCount` in `plet/state.json`. Branch from the previous phase's workstream (the last entry in `phaseHistory`) — or from `main` if this is the first phase. Create `plet/{projectId}/loop{N}/workstream` (where `{N}` is the new `loopSessionCount`). Append to `phaseHistory`: `{phase: "loop", session: N, branch: "plet/{projectId}/loop{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. If continuing a loop that was interrupted (workstream branch already exists), skip creation and reuse the existing branch.
+1. Increment `loopSessionCount` in `plet/state.json`. Branch from the previous session's workstream (the last entry in `sessionHistory`) — or from `main` if this is the first session. Create `plet/{projectId}/loop{N}/workstream` (where `{N}` is the new `loopSessionCount`). Append to `sessionHistory`: `{type: "loop", session: N, branch: "plet/{projectId}/loop{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. If continuing a loop that was interrupted (workstream branch already exists), skip creation and reuse the existing branch.
 2. Read `plet/state.json` and per-iteration state files to identify eligible iterations (dependencies `complete`, lifecycle `queued`)
 3. For each eligible iteration, spawn an **implementation subagent** with:
    - The full contents of `references/execute.md` **(primary — inject first, this defines the agent's behavior)**
@@ -260,7 +260,7 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
 9. Re-evaluate the dependency graph and spawn next eligible iterations
 10. Check breakpoints (`state.json` → `breakpoints.before` / `breakpoints.after`) before and after each iteration — pause if hit
 11. Continue until all iterations are `complete` or `blocked`
-12. When the loop ends, set the current `phaseHistory` entry's `endedAt`. If all iterations are `complete`, inform the user and offer options: merge workstream to their target branch, enter refine, or leave as-is. **Never merge to main or any other branch without explicit human approval** — merging may trigger deployments or other side effects.
+12. When the loop ends, set the current `sessionHistory` entry's `endedAt`. If all iterations are `complete`, inform the user and offer options: merge workstream to their target branch, enter refine, or leave as-is. **Never merge to main or any other branch without explicit human approval** — merging may trigger deployments or other side effects.
 
 ### Refine Phase
 
@@ -269,7 +269,7 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
 Interactive, human-driven. Triages emergent items, updates spec, re-plans.
 
 **Orchestrator actions:**
-1. Increment `refineSessionCount` in `plet/state.json`. Branch from the previous phase's workstream (the last entry in `phaseHistory`). Create `plet/{projectId}/refine{N}/workstream` (where `{N}` is the new `refineSessionCount`). Append to `phaseHistory`: `{phase: "refine", session: N, branch: "plet/{projectId}/refine{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. All spec changes during this refine session are committed here.
+1. Increment `refineSessionCount` in `plet/state.json`. Branch from the previous session's workstream (the last entry in `sessionHistory`). Create `plet/{projectId}/refine{N}/workstream` (where `{N}` is the new `refineSessionCount`). Append to `sessionHistory`: `{type: "refine", session: N, branch: "plet/{projectId}/refine{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. All spec changes during this refine session are committed here.
 2. Read `references/refine.md` for the full refine phase workflow
 3. Follow its instructions for emergent triage, blocked iteration review, spec updates, and re-planning
 4. After changes, update fingerprints across all three plan artifacts
@@ -291,9 +291,9 @@ The orchestrator is the longest-lived agent and most vulnerable to context compa
 
 **Recovery procedure:**
 1. Re-read this file (`SKILL.md`) — recover behavioral instructions
-2. Re-read `plet/state.json` — recover `projectId`, `loopSessionCount`, `refineSessionCount`, `phaseHistory`, dependency map, breakpoints
+2. Re-read `plet/state.json` — recover `projectId`, `loopSessionCount`, `refineSessionCount`, `sessionHistory`, dependency map, breakpoints
 3. Re-read all per-iteration state files with `lifecycle` not in `complete` or `withdrawn` — recover what's in flight
-4. Read the last entry in `phaseHistory` to determine the current phase and branch
+4. Read the last entry in `sessionHistory` to determine the current phase and branch
 5. Run `git branch --show-current` to confirm branch matches expected state
 6. Write a new canary entry to `plet/progress.md` noting recovery
 7. Resume from step 2 of the loop phase (identify eligible iterations)
