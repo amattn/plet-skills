@@ -236,17 +236,17 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
 **Orchestrator actions:**
 1. Read `plet/state.json` and per-iteration state files to identify eligible iterations (dependencies `complete`, lifecycle `queued`)
 2. For each eligible iteration, spawn an **implementation subagent** with:
+   - The full contents of `references/execute.md` **(primary — inject first, this defines the agent's behavior)**
    - The iteration definition from `plet/iterations.md`
-   - The full contents of `references/execute.md`
    - The full contents of `references/formats.md`
    - Relevant sections of `references/state-schema.md`
    - `plet/requirements.md` (universal context)
    - `plet/learnings.md` (prior knowledge)
 3. Spawn subagents for independent iterations in parallel
 4. Monitor subagent completion. After each subagent finishes, copy its transcript to `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl` (raw I/O capture). The subagent writes its own semantic events to `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` during work.
-5. After implementation completes (lifecycle → `verifying`), spawn a **verification subagent** in a fresh context with:
+5. After implementation completes (lifecycle → `verifying`), spawn a **verification subagent** in a fresh context on the same branch (`plet/loop/{iteration_id}`) — the verify agent works on top of the implementation agent's commits. **One verification subagent per iteration** — never batch multiple iterations into a single verify invocation. Each iteration gets independent verification and its own commit. Inject:
+   - The full contents of `references/verify.md` **(primary — inject first, this defines the agent's behavior)**
    - The iteration definition from `plet/iterations.md`
-   - The full contents of `references/verify.md`
    - The full contents of `references/formats.md`
    - Relevant sections of `references/state-schema.md`
    - `plet/requirements.md` (universal context)

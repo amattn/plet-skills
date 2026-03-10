@@ -29,9 +29,9 @@ Update the per-iteration state file immediately — this announces your presence
 ### Read Context (EX_18, RT_6, RT_7)
 
 Always read (small, essential):
-1. Read the per-iteration state file (`plet/state/{iteration_id}.json`) — your starting state
-2. Read the iteration definition from `plet/iterations.md` — your acceptance criteria
-3. Read the target project's `CLAUDE.md` and `README.md` (if they exist)
+1. **Read the target project's `CLAUDE.md` and `README.md` immediately** (if they exist). `CLAUDE.md` contains project-specific conventions, preferences, and constraints that override defaults. You are in a fresh context with no inherited knowledge of this project — `CLAUDE.md` is your primary source of project intent. Skipping it risks violating project conventions.
+2. Read the per-iteration state file (`plet/state/{iteration_id}.json`) — your starting state
+3. Read the iteration definition from `plet/iterations.md` — your acceptance criteria
 
 Orchestrator-managed (may be summarized or excerpted for large projects):
 4. `plet/requirements.md` — the orchestrator injects relevant sections based on the iteration's requirement IDs

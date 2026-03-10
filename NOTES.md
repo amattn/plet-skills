@@ -444,6 +444,14 @@ Run 1 of logalyzer has 11 tags under `archive/loga/run1/` (10 loop branches + wo
 
 Long-term naming: `archive/` was chosen over `casestudy/` as the prefix. May evolve — the convention is young.
 
+#### Subagent injection ordering (2026-03-09)
+
+Moved `references/execute.md` and `references/verify.md` to the top of their respective injection lists in SKILL.md. Previously, the iteration definition was injected first, pushing the behavioral reference file (which defines the agent's entire job) to second position.
+
+**Claude Code subagent behavior (confirmed):** Subagents start with a completely fresh context window. The injected prompt is the system prompt — the subagent's entire world. There is no inherited parent context, no CLAUDE.md from the parent session, no conversation history. Only the prompt, environment details (working directory, git status), and the filesystem.
+
+**Hypothesis:** This ordering may have contributed to the artifact quality degradation observed in Run 1 (case study § 3.5 #8). Since the injection list *is* the subagent's entire context, primacy matters even more than in a long conversation — whatever appears first has maximum weight in a clean context window. If the behavioral instructions (commit incrementally, write state in real time, write learnings/emergent) appear after the iteration definition and project context, they may receive less attention. The Run 2 comparison will test whether this change improves compliance.
+
 #### Commit prefix update: `notes` → `docs`, add `retro` (2026-03-09)
 
 Deprecated `notes:` prefix — too narrow, only covered NOTES.md changes. Replaced with `docs:` which covers all documentation: NOTES.md, CLAUDE.md, PLET.md, README, etc.
