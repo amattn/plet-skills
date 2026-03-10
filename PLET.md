@@ -212,23 +212,19 @@ Trace each decision through the project's artifact chain:
 
 Not every decision touches all 5. Most touch 1-2. But always ask: "does this decision affect any other artifact?" If unsure, scan the list. The cost of checking is seconds. The cost of missing one is a consistency failure discovered later — or worse, an agent operating on stale instructions.
 
-## Consistency Pass Flavors
+## Consistency Passes
 
-After making changes, run a consistency pass appropriate to the scope. Default to flavors 1-3 (cheap, no special permissions needed). Only use flavor 4 for conceptual reframes.
+After making changes, run a consistency pass appropriate to the scope. Run Quick and Standard proactively after changes — no need to wait to be asked. Always announce which level you ran (e.g., "Ran a Standard pass for R_12 references").
 
-**1. Pattern grep** — search for a specific string or regex across the repo. Use for renames, old format references, stale values. Fast and targeted.
+**Quick** — grep for one specific pattern (a rename, stale value, old format reference). Fast and targeted.
 
-**2. Section read** — read the 2-3 files known to be affected, check for drift. Use for changes scoped to a known set of files.
+**Standard** — grep for stale patterns + cross-reference IDs. The default pass for most changes. Covers renames, term changes, and verifies all mentions of a requirement ID or concept name are current.
 
-**3. Cross-reference check** — search for all mentions of a requirement ID or concept name, verify each mention is current. Use for new or modified requirements.
+**Sweep** — inventory all instances of a pattern across the repo, categorize each (keep/change/ambiguous), get approval on the plan, then execute systematically. Use for broad renames or convention changes that touch many files with context-dependent decisions. Write the inventory as a miniplan file, delete it when done.
 
-**4. Full structural scan** — read all relevant files and check semantic consistency (not just string matches). Use for conceptual reframes where you're checking meaning, not patterns. This is the slowest and most expensive flavor.
+**Structural** — full scan across all relevant files, checking semantic consistency. Spawn an agent if needed. Use for conceptual reframes where you're checking meaning across the whole repo. This is expensive — confirm before running unless the change clearly warrants it.
 
-**When to run:**
-- Flavors 1-3 are cheap — just run them, no need to confirm.
-- Flavor 4 is expensive — confirm before running unless the change clearly warrants it.
-
-**Feedback:** Always state which flavor you ran (e.g., "Ran a pattern grep (flavor 1) for..."). If the results suggest a deeper flavor would be worthwhile, recommend it.
+If the results suggest a deeper level would be worthwhile, recommend it.
 
 ## FEEDBACK.md
 

@@ -99,31 +99,23 @@ The human approves all changes — you propose, they decide. But the responsibil
 
 Not every observation needs to become policy immediately. Capture it first, promote when the pattern is confirmed.
 
-## Consistency Pass Flavors
+## Consistency Passes
 
-After making changes, run a consistency pass appropriate to the scope. Default to flavors 1-3 (no special permissions needed). Only use flavor 4 for conceptual reframes.
+After making changes, run a consistency pass appropriate to the scope (see PLET.md § Consistency Passes for full definitions). Run Quick and Standard proactively — no need to wait to be asked. Always announce which level you ran.
 
-> **Note:** Consistency passes are primarily a PRD/spec concern — keeping documentation, schemas, and format definitions aligned — but the same flavors apply to implementation and code. We are trying out these formalized flavors in this repo. If they work well, they may be added to the PL_DX requirements so plet's plan session teaches them to target projects.
+**Quick** — grep for one specific pattern. Fast and targeted.
 
-> **Discovery request:** As you use consistency passes, note what keeps drifting (which files, which patterns, which flavors catch it). Record observations in NOTES.md under "Open Questions > Consistency checking as a skill?" — this data will inform whether to build a dedicated skill or subcommand.
+**Standard** — grep for stale patterns + cross-reference IDs. The default.
 
-**1. Pattern grep** — `Grep` for a specific string or regex across the repo. Use for renames, old format references, stale values. Fast and targeted.
+**Sweep** — inventory all instances, categorize (keep/change/ambiguous), get approval, execute. For broad convention changes.
 
-**2. Section read** — `Read` the 2-3 files known to be affected, check for drift. Use for changes scoped to a known set of files.
+**Structural** — full scan, spawn an agent, check meaning across the repo. Confirm before running unless the change clearly warrants it.
 
-**3. Cross-reference check** — grep for all mentions of a requirement ID (e.g., `RT_11`, `SF_25`) or concept name, verify each mention is current. Use for new or modified requirements.
-
-**4. Full structural scan** — spawn an Explore agent to read all relevant files and check semantic consistency (not just string matches). Use for conceptual reframes where you're checking meaning, not patterns. This is the slowest and most expensive flavor.
-
-**When to run:**
-- Flavors 1-3 are cheap — just run them when asked, no need to confirm.
-- Flavor 4 is expensive — ask before spawning a full structural scan. But use your best judgment on the balance; if the change clearly warrants it, don't make the user ask twice.
-
-**Feedback:** Always state which flavor you ran (e.g., "Ran a pattern grep (flavor 1) for..."). If the results suggest a different or deeper flavor would be worthwhile, recommend it.
+> **Discovery request:** As you use consistency passes, note what keeps drifting (which files, which patterns, which levels catch it). Record observations in NOTES.md under "Open Questions > Consistency checking as a skill?"
 
 **Tooling rules:**
-- Read-only CLI tools (`wc`, `grep`, `sort`, `head`, `tail`, `diff`, etc.) and the built-in `Grep`/`Glob`/`Read` tools are always fine for flavors 1-3.
-- Custom scripts (Python, etc.) are only acceptable for flavor 4. Do not write custom scripts for simple pattern matching or cross-reference checks.
+- Read-only CLI tools and built-in `Grep`/`Glob`/`Read` tools are fine for Quick, Standard, and Sweep.
+- Custom scripts (Python, etc.) are only acceptable for Structural.
 
 ## Commit Conventions (draft)
 
@@ -141,7 +133,7 @@ After making changes, run a consistency pass appropriate to the scope. Default t
 |--------|---------|
 | `spec` | PRD changes, new requirements, requirement modifications |
 | `skill` | Skill implementation files (SKILL.md, reference files) |
-| `plan` | PLAN.md changes (build plan, phase tracking) |
+| `plan` | PLAN.md changes (build plan, progress tracking) |
 | `docs` | NOTES.md, CLAUDE.md, PLET.md, README, general documentation |
 | `retro` | Case studies, self-improvement analysis, post-run retrospectives |
 

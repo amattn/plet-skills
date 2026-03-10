@@ -104,7 +104,7 @@ All "plan-template" sections (PT_DX, PT_CT, PT_TV, PT_SM) renamed to PL_ prefixe
 #### PLET.md creation and CLAUDE.md updates (2026-03-09)
 
 Created PLET.md as the portable plet-specific instruction file (vs CLAUDE.md which is project-specific). Key decisions:
-- **PLET.md content:** What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (full 7-category taxonomy with target project directory tree), Commit Conventions (target projects), plus generalized copies of Decision Discipline, Consistency Pass Flavors, and Common Misspellings from CLAUDE.md
+- **PLET.md content:** What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (full 7-category taxonomy with target project directory tree), Commit Conventions (target projects), plus generalized copies of Decision Discipline, Consistency Passes, and Common Misspellings from CLAUDE.md
 - **Copy, don't move:** Sections shared between CLAUDE.md and PLET.md are copied and generalized, not moved. Overlap is expected and acceptable — each file serves a different audience.
 - **Critical Requirements & Invariants:** Placeholder section added to PLET.md for load-bearing rules. To be populated.
 - **CLAUDE.md updates:** Added "plex" to misspellings table. Added Mandatory Acknowledgment rule — agent must explicitly inform the user every time it reads/re-reads CLAUDE.md or PLET.md (silent reads not acceptable).
@@ -469,9 +469,9 @@ Refine-phase entries that aren't tied to a specific iteration (stage summaries, 
 
 ### Cross-cutting
 
-#### Consistency pass flavors
+#### Consistency passes
 
-Four flavors codified: (1) pattern grep, (2) section read, (3) cross-reference check, (4) full structural scan. Flavors 1-3 use standard read-only tools and need no confirmation. Flavor 4 spawns an Explore agent — confirm first unless clearly warranted. Always state which flavor was used and recommend escalation if results suggest it.
+Four levels: Quick (grep for one pattern), Standard (grep + cross-reference IDs — the default), Sweep (inventory all instances, categorize, get approval, execute systematically — for broad convention changes), Structural (full scan, spawn agent). Quick and Standard run proactively after changes. Structural needs confirmation. Renamed from numbered "flavors" to intuitive sizing; replaced Deep (never used in practice) with Sweep (validated during vocabulary cleanup miniplan) (2026-03-10).
 
 #### Decision Discipline (CLAUDE.md)
 
@@ -883,7 +883,7 @@ Comfortable for now across all phases. If context pressure becomes an issue, edg
 
 ### Consistency drift patterns
 
-As consistency passes are used, note what keeps drifting (which files, which patterns, which flavors catch it). This data will inform whether to build a dedicated skill or subcommand.
+As consistency passes are used, note what keeps drifting (which files, which patterns, which levels catch it). This data will inform whether to build a dedicated skill or subcommand.
 
 ### Post-compaction recovery effectiveness
 
@@ -895,11 +895,11 @@ The three-layer compaction defense (CLAUDE.md POST-COMPACTION RULE → PLET.md M
 
 ### Consistency checking as a skill?
 
-Could the consistency pass flavors become a standalone skill (`/consistency`) or plet subcommand (`/plet check`)? Premature for v1 — the CLAUDE.md instructions work well as agent conventions.
+Could consistency passes become a standalone skill (`/consistency`) or plet subcommand (`/plet check`)? Premature for v1 — the CLAUDE.md instructions work well as agent conventions.
 
 Key questions:
 - Is it plet-specific (knows PRD ↔ NOTES ↔ PLAN ↔ reference files) or general-purpose?
-- Flavors 1-3 are essentially "use Grep/Read intelligently" — does a skill add value?
+- Quick/Standard/Sweep are essentially "use Grep/Read intelligently" — does a skill add value?
 - What recurring drift patterns emerge from real usage?
 - Should it compose with plet phases (auto-run after plan changes or refine)?
 
@@ -983,7 +983,7 @@ Not a v1 blocker — the current verify phase catches obvious code quality issue
 ### PLET.md shape and content
 What goes in PLET.md vs CLAUDE.md? PLET.md is plet-specific instructions that apply in *any* repo using plet; CLAUDE.md is project-specific. See Artifact Taxonomy § Memory.
 
-**Draft (2026-03-09):** PLET.md created and populated with initial content. Sections copied (generalized, not moved) from CLAUDE.md: Common Misspellings (plet-specific subset), Decision Discipline, Consistency Pass Flavors. New sections added that belong only in PLET.md (not CLAUDE.md): What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (incorporating the full 7-category taxonomy from NOTES.md with a directory tree showing the full target project root), Commit Conventions (target projects), and a placeholder Critical Requirements & Invariants section. Overlap between CLAUDE.md and PLET.md is expected and acceptable per the existing rule.
+**Draft (2026-03-09):** PLET.md created and populated with initial content. Sections copied (generalized, not moved) from CLAUDE.md: Common Misspellings (plet-specific subset), Decision Discipline, Consistency Passes. New sections added that belong only in PLET.md (not CLAUDE.md): What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (incorporating the full 7-category taxonomy from NOTES.md with a directory tree showing the full target project root), Commit Conventions (target projects), and a placeholder Critical Requirements & Invariants section. Overlap between CLAUDE.md and PLET.md is expected and acceptable per the existing rule.
 
 ### FEEDBACK.md shape and workflow — RESOLVED
 Resolved 2026-03-10. See Key Design Decisions § FEEDBACK.md formalization.
@@ -1165,6 +1165,22 @@ The logalyzer case study (LOG_ANALYZER_CASE_STUDY.md) demonstrated a concrete se
 5. **Re-run** — same project, same plan, improved system — direct before/after comparison
 
 This pattern could eventually be automated as part of the self-improvement skill planned for v3.x.y. The case study format itself could become a template for post-loop retrospectives.
+
+### Consistency passes: a complete self-improvement cycle (2026-03-10)
+
+The consistency pass documentation went through a full draft → use → observe → redesign cycle:
+
+1. **Draft** — four numbered "flavors" codified during skill build (Phase 2), documented in CLAUDE.md and PLET.md
+2. **Use** — applied heavily during case study feedback work (R_1–R_13), vocabulary cleanup, convention changes
+3. **Observe** — the user noticed the agent had stopped announcing flavors and asked: "have your passes changed or evolved?" This was the monitoring event — not a formal mechanism, but a human noticing behavioral drift from documentation
+4. **Analyze** — reviewed actual usage and found: flavor 1+3 were always combined (→ Standard), flavor 2 (Deep) was never used standalone, the vocabulary cleanup used a miniplan pattern not in the taxonomy, and the numbered naming was awkward to say in conversation
+5. **Redesign** — replaced numbered flavors with Quick/Standard/Sweep/Structural based on actual practice. Dropped Deep, added Sweep (validated by the vocabulary cleanup miniplan)
+
+The Sweep pattern originated from the vocabulary cleanup miniplan (`VOCABULARY_CLEANUP.md`): `ccebefa` (taxonomy standardize), `661bb11` (cleanup execution — ~69 changes across 12 files), `ea8b012` (miniplan file deleted after completion). Notably, the miniplan survived a context compaction — the agent picked up the categorized inventory and continued executing without losing track. This durability is what makes it a distinct level: the plan lives on disk, so it's compaction-safe.
+
+Key insight: the "monitoring" was organic — a human observing that practice had diverged from documentation. This is the self-improvement loop working at the simplest level: human notices drift, surfaces it, agent analyzes usage data, both redesign together. No telemetry or automation needed — just attention and willingness to question whether the docs still match reality.
+
+This validates the CLAUDE.md Self-Improvement policy: "If you've seen it twice, it's a pattern. If it's not written down, it will be forgotten by the next session." The consistency pass conventions *were* written down, but they calcified — the redesign came from noticing they no longer matched practice.
 
 ### Why capturing this now matters
 

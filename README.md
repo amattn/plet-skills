@@ -75,7 +75,7 @@ Users invoke `/plet` and the skill reads the project state to determine what to 
 - All iterations complete? → Refine phase
 - Blocked with nothing in progress? → Refine phase
 
-Users can force a phase: `/plet plan`, `/plet loop`, `/plet refine`, `/plet status`.
+Users can force a session type: `/plet plan`, `/plet loop`, `/plet refine`, `/plet status`.
 
 ### Verification Independence
 

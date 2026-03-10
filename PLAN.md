@@ -74,13 +74,7 @@ First real-world usage of plet (logalyzer) revealed 13 improvement recommendatio
 
 ### Remaining Part 4 work
 
-- **R_12:** Finish FEEDBACK.md design (format, audience, when to write, promotion path)
-- **R_8:** Decide on trace files — real feature or remove from spec
-- **R_10:** Artifact quality monitoring — verify agent checks artifact completeness
-- **R_11:** Branch isolation — hard-scope each impl agent to its iteration branch
-- **R_13:** Co-Author tag convention — standardize across all agent-authored commits
-- **R_4:** Tag lifecycle redesign (deferred — lower priority)
-- Consistency pass flavor documentation review
+All R_1–R_13 resolved. Consistency pass documentation updated (flavors → Quick/Standard/Sweep/Structural). Ready for Part 4 next steps.
 
 ### Part 4 next steps (from case study)
 
