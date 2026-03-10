@@ -367,11 +367,15 @@ When all acceptance criteria pass verification (Path A or after all Path B fixes
 
 ### Tag and Squash
 
-If `tagBeforeSquash` is `true` in the per-iteration state file, create a tag preserving commit history before squashing:
+Always create an audit tag preserving commit history before squashing:
 
 ```
 git tag plet/{projectId}/loop{N}/audit/{iteration_id}/verify-{attempt}
 ```
+
+Log the tag name and commit hash in `plet/progress.md`.
+
+If `cleanupTagsAutomatically` is `true` in the per-iteration state file, delete the tag after squash and log the deletion with the commit hash in `plet/progress.md`.
 
 Squash any verification-phase commits (fix-in-place work) into a single commit:
 

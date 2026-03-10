@@ -290,9 +290,9 @@ On large projects, full test suites can take 4-5 minutes. With 5 acceptance crit
 - Full suite at checkpoints (every N criteria) — interesting but adds complexity
 - Pure agent discretion with no guidance — too unstructured for v1
 
-#### `tagBeforeSquash` — audit tags before squash (EX_17)
+#### `cleanupTagsAutomatically` — audit tag lifecycle (R_4, EX_17) — DECIDED (2026-03-10)
 
-Incremental commits are squashed at end of each phase for clean history. `tagBeforeSquash` preserves the pre-squash state as a git tag so the chain of work can be audited. Tag naming: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` — hierarchical `/` separators allow GUI tools to filter at multiple levels. Config: global default in `state.json` (inherited at initialization), per-iteration override. Auto-enables if verification fails. Default off.
+Always create audit tags before squash — no opt-in flag, it just happens. Log tag name and commit hash in progress.md at creation. `cleanupTagsAutomatically` (default false) controls whether to delete the tag after squash; if cleaning up, log the deletion with the commit hash in progress.md too. Tag naming: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` — hierarchical `/` separators allow GUI tools to filter at multiple levels. Config: global default in `state.json` (inherited at initialization), per-iteration override. Rejected: `tagBeforeSquash` (wrong default — tagging should be unconditional, the question is cleanup).
 
 #### Context window management for subagent reads
 
@@ -528,6 +528,31 @@ Updated prefix table in CLAUDE.md: `spec`, `skill`, `plan`, `docs`, `retro`.
 #### case_studies/ folder location (2026-03-09)
 
 Case studies live in `case_studies/` at project root. Considered: `examples/` (mixes source with analysis), `docs/` (too generic), `examples/logalyzer/` (colocated but wrong scope), `examples/logalyzer/case_study/` (too nested). Chose top-level `case_studies/` because: (1) case studies are about plet's performance, not the example project, (2) scales to multiple case studies across different projects, (3) self-documenting folder name.
+
+#### Trace files — on by default, configurable (R_8) — DECIDED (2026-03-10)
+
+Traces are a real feature, on by default, can be disabled via config. The logalyzer run only generated traces for ID_001 — that's a bug in execution, not a spec problem. The format definition in state-schema.md stays. When config artifacts are designed, add a toggle to disable trace generation. Rejected: removing traces entirely (loses traceability), mandating with no opt-out (too rigid).
+
+#### Branch isolation via git worktrees (R_11) — DECIDED (2026-03-10)
+
+Parallel agents each get their own git worktree for their iteration branch. True filesystem isolation — agents can't contaminate each other's branches. Claude Code supports `isolation: "worktree"` on subagents natively. The logalyzer run proved that branch discipline alone fails (ID_006 work on ID_011 branch). Worktree directory naming is left to Claude Code — plet controls the branch name (already defined), not the filesystem path. Rejected: sequential-only (loses parallelism), shared working directory with branch discipline (fragile, proven to fail), separate full clones (overkill when worktrees exist), plet-controlled worktree paths (unnecessary, Claude Code handles creation/cleanup).
+
+#### Artifact quality monitoring (R_10) — DECIDED (2026-03-10)
+
+Two-layer enforcement, orchestrator stays simple:
+- **Execute agent** self-checks before marking done — confirms it wrote learnings, emergent, and progress entries, and state file has required fields.
+- **Verify agent** independently confirms — artifact entries exist for the iteration, state file schema compliance. This is additive to its existing checklist.
+- **On failure:** cycle back — missing artifacts treated like a failed acceptance criterion.
+- **Orchestrator does nothing** — it routes and tracks, never inspects artifact content. See orchestrator simplicity principle.
+- Rejected: orchestrator-side validation (too much work for the long-lived agent), quality gating (subjective, hard to automate), warnings without teeth (didn't prevent degradation in logalyzer run).
+
+#### Orchestrator simplicity principle (2026-03-10)
+
+The orchestrator is the longest-lived agent and most vulnerable to context pressure. Its work should be as simple as possible — delegate complexity to short-lived subagents (impl, verify) that have fresh context windows. The orchestrator routes, spawns, and tracks; it does not judge quality or validate content. Heavy lifting belongs in subagents.
+
+#### Co-Author tags on all agent commits (R_13) — DECIDED (2026-03-10)
+
+All agent-authored commits (impl, verify, merge, orchestrator) get a `Co-Authored-By` tag. Git author is the user's identity (Claude Code commits as the user), so the tag is the only signal distinguishing human commits from agent commits. Consistency matters for audit trails. Rejected: no tags (loses the only authorship signal), impl-only (inconsistent, no principled reason to exclude verify/merge).
 
 #### Logalyzer re-run plan (2026-03-09)
 

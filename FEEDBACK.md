@@ -28,7 +28,7 @@ Autonomous subagents asked "should I proceed?" once or twice during execution. T
 
 `tagBeforeSquash` as an opt-in flag is the wrong default. Tags should always be created before squash. Replace with `cleanupTagAutomatically` — the question isn't whether to tag, it's whether to clean up the tag afterward. When cleaning up, note the commit hash in progress.md and log that the tag was removed.
 
-`[deferred]` → R_4 (tag lifecycle redesign, lower priority)
+`[resolved]` → R_4: `tagBeforeSquash` replaced with `cleanupTagsAutomatically` (default false). Tags always created, commit hash logged in progress.md at creation and deletion.
 
 ### FB_5: Project needs a short project ID [config] [naming]
 

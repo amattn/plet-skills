@@ -219,11 +219,15 @@ When all acceptance criteria pass:
 
 ### Tag and Squash (EX_17)
 
-If `tagBeforeSquash` is `true` in the per-iteration state file, create a tag preserving the incremental commit history before squashing:
+Always create an audit tag preserving the incremental commit history before squashing:
 
 ```
 git tag plet/{projectId}/loop{N}/audit/{iteration_id}/impl-{attempt}
 ```
+
+Log the tag name and commit hash in `plet/progress.md`.
+
+If `cleanupTagsAutomatically` is `true` in the per-iteration state file, delete the tag after squash and log the deletion with the commit hash in `plet/progress.md`.
 
 Then squash all incremental commits into a single commit:
 
@@ -323,8 +327,9 @@ A failed attempt is different from a blocker. You're not saying "I need human he
    - What approaches are dead ends
    - Any codebase knowledge gained
 5. Write semantic event entries to the events trace file
-6. Tag before squash if `tagBeforeSquash` is enabled
+6. Tag before squash (always), log tag and commit hash in progress.md
 7. Squash and commit — preserve work for the retry
+8. If `cleanupTagsAutomatically`, delete the tag and log deletion with commit hash in progress.md
 
 ### State Update
 

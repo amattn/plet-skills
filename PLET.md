@@ -161,7 +161,8 @@ Examples:
 
 ### Rules
 - One squashed commit per phase attempt (incremental commits are squashed at phase end)
-- If `tagBeforeSquash` is enabled, a tag preserves the incremental history before squashing
+- Always create an audit tag before squashing — log tag name and commit hash in progress.md
+- If `cleanupTagsAutomatically` is true (default false), delete the tag after squash and log the deletion in progress.md
 - Audit tag format: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`
 - After verification passes (`complete`), the iteration branch is rebased onto the loop workstream and fast-forward merged (linear history)
 

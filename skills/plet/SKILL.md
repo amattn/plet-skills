@@ -372,9 +372,9 @@ All branches namespaced under `plet/{projectId}/`. Agents never commit to main.
 - Refine branch: `plet/{projectId}/refine{N}/workstream` — created at start of each refine session
 - Agents commit incrementally during each phase for crash recovery
 - At end of each phase, squash into a single commit
-- If `tagBeforeSquash` is enabled, create a tag before squashing to preserve incremental history
+- Always create an audit tag before squashing — log tag name and commit hash in progress.md
 - Audit tag: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`
-- `tagBeforeSquash` auto-enables for an iteration if verification fails — keeps audit trail for troublesome loops
+- If `cleanupTagsAutomatically` is true (default false), delete the tag after squash
 - Commit convention: `plet: [ID_xxx] {phase}-{attempt} - {title}`
 - After `complete`, rebase onto workstream and fast-forward merge (linear history)
 - Archive tags: `archive/plet/{projectId}/loop{N}/{path}` — human-created, post-run cleanup

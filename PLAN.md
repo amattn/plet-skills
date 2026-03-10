@@ -50,16 +50,16 @@ First real-world usage of plet (logalyzer) revealed 13 improvement recommendatio
 | R_1 | Intermediate commits during impl | ✓ Done (`8ac341a`) |
 | R_2 | Intermediate state writes | ✓ Done (`8ac341a`) |
 | R_3 | One verify = one commit | ✓ Done (`83bd146`) |
-| R_4 | Tag lifecycle redesign (`cleanupTagAutomatically`) | Deferred |
+| R_4 | Tag lifecycle — always tag, `cleanupTagsAutomatically` | ✓ Done |
 | R_5 | Workstream branch conventions | ✓ Done (`cf150ca`) |
 | R_6 | Short project ID | ✓ Done (`cf150ca`) |
 | R_7 | Mandatory learnings/emergent entries | ✓ Done (`8ac341a`) |
-| R_8 | Trace file generation — decide: real feature or remove | Open |
+| R_8 | Trace file generation — on by default, configurable | ✓ Decided |
 | R_9 | Subagent non-blocking | ✓ Done (`8ac341a`) |
-| R_10 | Artifact quality monitoring | Open |
-| R_11 | Branch isolation during parallel execution | Open |
+| R_10 | Artifact quality monitoring — execute self-checks, verify confirms | ✓ Decided |
+| R_11 | Branch isolation — git worktrees for parallel agents | ✓ Decided |
 | R_12 | FEEDBACK.md formalization | In progress |
-| R_13 | Co-Author tag convention | Open |
+| R_13 | Co-Author tag convention — all agent commits | ✓ Decided |
 
 ### Additional work done during Part 4
 

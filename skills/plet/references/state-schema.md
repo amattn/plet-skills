@@ -83,7 +83,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
     "after": ["ID_003"]
   },
 
-  "tagBeforeSquash": false,
+  "cleanupTagsAutomatically": false,
   "loopSessionCount": 0,
   "refineSessionCount": 0,
 
@@ -125,7 +125,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `parallelGroups` | array of arrays | no | Groups of iterations that can execute concurrently (SF_19) |
 | `breakpoints.before` | array of strings | no | Iteration IDs — orchestrator pauses before these (SF_21) |
 | `breakpoints.after` | array of strings | no | Iteration IDs — orchestrator pauses after these (SF_21) |
-| `tagBeforeSquash` | boolean | no | Global default for audit tagging before squash. When `true`, agents create a git tag preserving incremental commits before squashing. Default `false`. Per-iteration state inherits this value at initialization. (EX_17) |
+| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after squash (commit hash logged in progress.md for recovery). Default `false` — tags are kept. Agents always create audit tags before squash. Per-iteration state inherits this value at initialization. (EX_17) |
 | `loopSessionCount` | integer | no | Number of loop sessions invoked. Incremented at the start of each `/plet loop` invocation. Used in branch names (`loop1`, `loop2`). Default `0`. |
 | `refineSessionCount` | integer | no | Number of refine sessions completed. Incremented at the start of each refine session entry. Used as the attempt number in refine-session plet ID context segments (e.g., `r1`, `r2`). Default `0`. |
 | `sessionHistory` | array | no | Append-only ledger of session transitions. Each entry: `{type, session, branch, startedAt, endedAt}`. `type` is `"loop"` or `"refine"`. `session` matches `loopSessionCount` or `refineSessionCount`. `branch` is the workstream branch for this session. `endedAt` is `null` while the session is active. Last entry is the current session; previous entry is the parent branch. Default `[]`. (OR_14) |
@@ -181,7 +181,7 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
     "src/main.py"
   ],
 
-  "tagBeforeSquash": false,
+  "cleanupTagsAutomatically": false,
 
   "criteria": [
     {
@@ -275,7 +275,7 @@ Shows state after two full cycles: first verification rejected, second passed. R
     "tests/test_auth.py"
   ],
 
-  "tagBeforeSquash": true,
+  "cleanupTagsAutomatically": false,
   "lastVerdict": "passed",
 
   "criteria": [
@@ -348,7 +348,7 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `elapsedSeconds` | object | no | Time elapsed in seconds per phase attempt (`impl_1`, `verify_1`, etc.) and `total` across all attempts. Updated opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. |
 | `summary` | string | no | Current work summary (SF_22) |
 | `filesChanged` | array of strings | no | Files modified in current/last phase (SF_22) |
-| `tagBeforeSquash` | boolean | no | When `true`, agent creates a git tag (`plet/{projectId}/loop{N}/audit/{id}/{phase}-{attempt}`) preserving incremental commits before squashing. Inherited from global `state.json` at initialization. Auto-set to `true` if verification fails. Default `false`. (EX_17) |
+| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after squash (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. Agents always create audit tags before squash. (EX_17) |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
 | `lastVerdict` | string | no | Most recent verification verdict (`passed`, `rejected`, `blocked`). Absent until the first verification attempt completes. Updated by the verify agent at the same time as appending to `verificationReports`. Convenience field — canonical source is `verificationReports`. |
 | `verificationReports` | array | no | One verification report per verify attempt, ordered by attempt number. See Verification Report below. |
