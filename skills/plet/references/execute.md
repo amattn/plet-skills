@@ -44,10 +44,10 @@ Read selectively:
 ### Set Up Git Branch (EX_15)
 
 ```
-git checkout -b plet/loop/{iteration_id}
+git checkout -b plet/{projectId}/loop{N}/{iteration_id}
 ```
 
-If the branch already exists (retry attempt), check it out instead. The branch persists across implementation and verification phases.
+Where `{projectId}` is from `state.json` and `{N}` is the current `loopSessionCount`. If the branch already exists (retry attempt), check it out instead. The branch persists across implementation and verification phases.
 
 ### Pre-Flight Check (EX_19)
 
@@ -222,21 +222,21 @@ When all acceptance criteria pass:
 If `tagBeforeSquash` is `true` in the per-iteration state file, create a tag preserving the incremental commit history before squashing:
 
 ```
-git tag plet/audit/{iteration_id}/impl-{attempt}
+git tag plet/{projectId}/loop{N}/audit/{iteration_id}/impl-{attempt}
 ```
 
 Then squash all incremental commits into a single commit:
 
 ```
-git reset --soft $(git merge-base HEAD main)
+git reset --soft $(git merge-base HEAD plet/{projectId}/loop{N}/workstream)
 git commit -m "plet: [ID_xxx] impl-{attempt} - {title}"
 ```
 
-`git merge-base HEAD main` finds where the iteration branch diverged from main — the correct squash target regardless of attempt number.
+`git merge-base HEAD` finds where the iteration branch diverged from the loop workstream — the correct squash target regardless of attempt number.
 
 Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
 
-Tag naming convention: `plet/audit/{iteration_id}/{phase}-{attempt}` — the `/` separators allow GUI tools to filter hierarchically (`plet/audit/*`, `plet/audit/ID_001/*`, etc.).
+Tag naming convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` — the `/` separators allow GUI tools to filter hierarchically.
 
 ### Update State
 

@@ -370,13 +370,13 @@ When all acceptance criteria pass verification (Path A or after all Path B fixes
 If `tagBeforeSquash` is `true` in the per-iteration state file, create a tag preserving commit history before squashing:
 
 ```
-git tag plet/audit/{iteration_id}/verify-{attempt}
+git tag plet/{projectId}/loop{N}/audit/{iteration_id}/verify-{attempt}
 ```
 
 Squash any verification-phase commits (fix-in-place work) into a single commit:
 
 ```
-git reset --soft $(git merge-base HEAD main)
+git reset --soft $(git merge-base HEAD plet/{projectId}/loop{N}/workstream)
 git commit -m "plet: [ID_xxx] verify-{attempt} - {title}"
 ```
 
@@ -384,15 +384,15 @@ If no commits were made during verification (no fix-in-place work), skip the squ
 
 Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
 
-Tag naming convention: `plet/audit/{iteration_id}/{phase}-{attempt}`
+Tag naming convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`
 
-### Merge to Main
+### Merge to Workstream
 
-After squashing, merge the iteration branch to main:
+After squashing, merge the iteration branch to the loop workstream:
 
 ```
-git checkout main
-git merge plet/loop/{iteration_id}
+git checkout plet/{projectId}/loop{N}/workstream
+git merge plet/{projectId}/loop{N}/{iteration_id}
 ```
 
 The iteration branch may be kept or deleted per project convention.

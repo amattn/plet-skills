@@ -122,7 +122,17 @@ Agents prefer making a decision and documenting it in `emergent.md` over blockin
 
 ### Git Branch Strategy
 
-Each iteration works on its own branch (`plet/loop/{iteration_id}`). Agents commit incrementally for crash recovery, then squash into a single commit per phase. Completed iterations rebase onto the main branch with fast-forward merge for linear history.
+All branches are namespaced under `plet/{projectId}/`. Agents never commit to main.
+
+| Purpose | Pattern | Example |
+|---------|---------|---------|
+| Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
+| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/impl-1` |
+| Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
+| Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
+
+Agents commit incrementally for crash recovery, then squash into a single commit per phase. Completed iterations rebase onto the loop workstream with fast-forward merge for linear history.
 
 ## Lineage
 

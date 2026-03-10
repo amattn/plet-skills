@@ -91,7 +91,7 @@ Implementation subagent prompt. Injected into each implementation subagent.
 - Runtime artifact appends (progress, learnings, emergent)
 - Atomic write semantics
 - Commit conventions (`plet: [ID_xxx] impl-N - title`)
-- Git branch management (`plet/loop/{iteration_id}`)
+- Git branch management (`plet/{projectId}/loop{N}/{iteration_id}`)
 - Pre-flight checks
 - Blocker documentation (all 4 artifact types)
 - Failed attempt protocol (return to queue for retry)
@@ -182,7 +182,7 @@ A standalone `/notes` skill that formalizes the living development notes pattern
 - Capture decisions immediately — what was decided, why, and rejected alternatives
 - Quote user preferences and principles in their own words
 - Track PRD section approval status
-- Log post-PRD changes with rationale
+- Log decision rationale when the PRD is updated
 - Document invariants and critical requirements as checkable rules
 - Keep NOTES.md scannable (headers, bold, bullets) for fast agent orientation
 
@@ -194,7 +194,7 @@ A standalone `/notes` skill that formalizes the living development notes pattern
 5. Key Design Decisions (with rejected alternatives)
 6. Motivation / Problem Statements
 7. PRD Section Approval Status
-8. Post-PRD Decisions
+8. PRD Change Log
 9. Review Pass Changes
 
 **Operating rules:**

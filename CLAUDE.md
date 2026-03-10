@@ -176,14 +176,13 @@ NOTES.md is the institutional memory for this project. **Always update it automa
 - **Immediately** when a decision is made — before moving on to the next topic
 - When a design alternative is rejected — capture what and why
 - When the user expresses a principle, preference, or value — capture in their words
-- When a post-PRD change is made — log what changed and why
+- When a PRD change is made — log the decision rationale in NOTES.md and update the PRD directly (the PRD is a living document)
 - When an invariant or critical requirement is identified or modified
 
 ### What goes where in NOTES.md
 - **Invariants & Critical Requirements** — load-bearing rules that must not be violated. Prescriptive. An agent breaking these breaks the system.
 - **Important Concepts & Insights** — principles and understanding that inform decisions. Informative, not prescriptive. Sub-categories: "From the user" (direct quotes) and "Emergent" (crystallized during design).
 - **Key Design Decisions** — what was decided, why, and what was rejected.
-- **Post-PRD Decisions** — changes made after the PRD was finalized.
 - **PRD Status** — section-by-section approval tracking.
 
 ### What does NOT go in NOTES.md

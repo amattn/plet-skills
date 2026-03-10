@@ -51,6 +51,18 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 | GC_2 | Agents prefer making a decision and documenting it in emergent.md over blocking. Blocking is a last resort reserved for situations where no reasonable decision can be made without human input. | P0 |
 | GC_3 | When IDs appear in filenames (e.g., `ID_001.json`, `ID_001-impl-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order in file browsers. Zero-padding is not required in artifact content or prose. | P0 |
 
+**Branch and tag conventions:**
+
+| Purpose | Pattern | Example |
+|---------|---------|---------|
+| Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
+| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/impl-1` |
+| Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
+| Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
+
+All branches namespaced under `plet/{projectId}/`. Agents never commit to main. `{projectId}` is a 3-6 char uppercase alphanumeric identifier (`[A-Z][A-Z0-9]{2,5}`) chosen during the plan phase and stored in `state.json`. `loop{N}` and `refine{N}` are driven by `loopSessionCount` and `refineSessionCount` in `state.json`.
+
 ### 3.1 Orchestration & Routing (OR)
 
 The core entry point logic that reads state and routes to the correct phase.
@@ -69,6 +81,8 @@ The core entry point logic that reads state and routes to the correct phase.
 | OR_10 | The skill creates the `plet/` directory and all runtime artifact files on first invocation if they do not exist | P0 |
 | OR_12 | `/plet status` prints a summary of current state: iterations, lifecycle phases, progress, active agents, pending emergent items | P1 |
 | OR_13 | Individual acceptance criteria can be marked `skipped` by the user or by an agent when the criterion is impossible to satisfy. A `skipRationale` is always required. Agent-initiated skips also require an emergent.md entry explaining why the criterion is impossible and a progress.md entry. | P0 |
+| OR_14 | The orchestrator writes a canary entry to `plet/progress.md` after each significant action (loop start, subagent spawn, subagent completion) containing the current `projectId`, `loopSessionCount`, branch name, and iteration lifecycle counts. After context compaction, the orchestrator recovers by reading the last canary entry for immediate orientation, then re-reading `state.json` (including `phaseHistory`) and active per-iteration state files, confirming the current git branch, and resuming the loop. | P0 |
+| OR_15 | `state.json` includes an append-only `phaseHistory` array tracking the sequence of loop and refine phases. Each entry records `phase`, `session`, `branch`, `startedAt`, `endedAt`. Each new phase branches from the previous phase's workstream (or `main` if first). `endedAt` is `null` while the phase is active. The orchestrator uses the last entry to determine the current branch and the previous entry to determine the parent branch. | P0 |
 
 ### 3.1.1 Artifact Sync (SY)
 
@@ -186,8 +200,8 @@ Implementation of iteration definitions using subagents with red/green test disc
 | EX_12 | After implementation completes, automatically spawn a verification subagent in a fresh context | P0 |
 | EX_13 | If a subagent encounters a blocker, it documents the issue across ALL four artifact types before returning: (1) trace log with full detail of attempts, failures, error messages, paths explored; (2) progress.md with BLOCKED status, work completed, and what remains; (3) emergent.md with blocker category entry describing what the human needs to resolve; (4) learnings.md with diagnostic context for next agent attempt. Then sets lifecycle to `blocked`. Every blocker represents loss of progress and requires human investigation. The quality of blocker documentation determines whether the human can help. | P0 |
 | EX_14 | Default maximum 3 retry attempts per iteration. If the failure count is strictly decreasing across attempts (trend improving), extend to a maximum of 6 attempts. Abort immediately if failures are not decreasing. | P0 |
-| EX_15 | Each iteration works on its own git branch (`plet/loop/{iteration_id}`). Branch persists across implementation and verification phases. | P0 |
-| EX_16 | After an iteration reaches `complete` lifecycle, rebase onto the main working branch and fast-forward merge. Linear history is strongly preferred. | P0 |
+| EX_15 | Each iteration works on its own git branch. Branch persists across implementation and verification phases. All branches namespaced under `plet/{projectId}/`. Agents never commit to main. See branch/tag convention table below. | P0 |
+| EX_16 | After an iteration reaches `complete` lifecycle, rebase onto the loop workstream and fast-forward merge. Linear history is strongly preferred. | P0 |
 | EX_17 | Agents commit incrementally during each phase for crash recovery. At end of each phase, squash into a single commit. If an iteration cycles (impl-1, verify-1, impl-2, verify-2), each phase is a separate squashed commit. Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}` | P0 |
 | EX_18 | Per RT_6/RT_7, agents read runtime artifacts at start. If the agent has been working for an extended period or has accumulated substantial context, write current insights to learnings.md and emergent.md before wrapping up. | P0 |
 | EX_19 | Pre-flight check before implementation: verify the project builds, tests pass, and the working tree is clean. If pre-flight fails, the agent should attempt to resolve the issue first. Only block if the issue is unresolvable. Log to all three runtime artifacts regardless of outcome. **Exception:** after a verification cycle-back (VF_16), the branch may contain intentionally failing tests left by the verify agent — these are expected and should be treated as inherited red-step targets, not pre-flight failures. | P1 |
@@ -531,7 +545,7 @@ Iterations with no dependency relationship to each other are eligible for parall
 4. Each subagent implements with red/green discipline, updates state and artifacts in real time
 5. On implementation completion, a verification subagent spawns in a fresh context
 6. Verification agent independently confirms acceptance criteria
-7. If verification passes, iteration marked `complete`, merged to main branch
+7. If verification passes, iteration marked `complete`, merged to loop workstream
 8. If verification fails, iteration cycles back to implementation with new criteria
 9. Orchestrator re-evaluates and spawns next eligible iterations
 

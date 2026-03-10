@@ -10,12 +10,12 @@ Multi-session development with AI agents has an institutional memory problem:
 
 - **Decisions get revisited.** Without a record of *why* something was decided, new sessions re-litigate settled questions.
 - **Context is lost.** PRDs capture *what* to build, but not the conversation, rejected alternatives, or evolving understanding that shaped them.
-- **PRDs drift silently.** Post-PRD changes happen in conversation but aren't tracked anywhere persistent.
+- **PRD changes lose rationale.** The PRD is a living document, but the *why* behind each change happens in conversation and isn't tracked anywhere persistent.
 - **Orientation is slow.** New sessions spend significant time re-reading artifacts to figure out where things stand.
 
 ## The Pattern
 
-Maintain a `NOTES.md` alongside the PRD that captures everything the PRD doesn't: the conversation history, design decisions with rationale, rejected alternatives, approval status, post-PRD changes, and key insights from the user.
+Maintain a `NOTES.md` alongside the PRD that captures everything the PRD doesn't: the conversation history, design decisions with rationale, rejected alternatives, approval status, and key insights from the user. The PRD is a living document — decisions update it directly, while NOTES.md captures the *why*.
 
 NOTES.md is referenced in CLAUDE.md so every session starts with it loaded. It's the first thing the agent reads and the thing it updates most frequently.
 
@@ -91,8 +91,8 @@ Why certain design directions were chosen. "What was wrong with X" sections that
 ### 7. PRD Section Approval Status
 Section-by-section tracking of what's been reviewed, approved, and what key details were noted during review. Prevents re-reviewing settled sections.
 
-### 8. Post-PRD Decisions
-Changes made after the PRD was considered complete. Each entry includes what changed, why, and which files were updated. This is the changelog for decisions that didn't exist when the PRD was written.
+### 8. PRD Change Log
+Tracks decision rationale when the PRD is updated. Each entry includes what changed, why, and which files were affected. The PRD is a living document — changes go directly into it; this section captures the reasoning.
 
 ### 9. Review Pass Changes
 Specific items changed during review passes — a compact diff log of what shifted and why.
@@ -136,7 +136,7 @@ NOTES.md sits between the project config (CLAUDE.md) and the spec (PRD). It's th
 - **Fresh agents orient fast.** They read NOTES.md and immediately know what's decided, what's open, and what the user cares about.
 - **Decisions stick.** Rejected alternatives are documented, so agents don't re-propose them.
 - **The PRD stays clean.** Design rationale and conversation history live in NOTES.md, not cluttering the PRD.
-- **Post-PRD evolution is tracked.** Changes after the PRD is "done" have a home.
+- **PRD change rationale is tracked.** Every update to the living PRD has its reasoning captured in NOTES.md.
 - **User preferences persist.** Principles and values captured in the user's own words carry across sessions.
 
 ## Potential Skill Integration

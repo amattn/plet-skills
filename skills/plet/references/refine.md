@@ -26,6 +26,8 @@ The refine phase updates:
 
 Increment `refineSessionCount` in `plet/state.json` and write it immediately. This number is used as the attempt in refine-phase plet IDs (e.g., `r1`, `r2`). All plet IDs generated during this session use this number.
 
+Check out the refine workstream branch (`plet/{projectId}/refine{N}/workstream`). The orchestrator creates this branch before entering refine. All spec changes during this session are committed here — never to main.
+
 ### Read Context
 
 1. Read `plet/emergent.md` — identify all entries with `Outcome: pending` (RT_9)

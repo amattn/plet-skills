@@ -227,15 +227,48 @@ Practical sweet spots: prefix 4 (sprint/week), prefix 5 (session), prefix 3 (ann
 
 ### Execution
 
-#### Git branch strategy
-- Each iteration works on its own branch (`plet/loop/{iteration_id}`) — changed from `plet/{iteration_id}` to match the hierarchical `/` convention used by audit tags (`plet/audit/...`). GUI tools get clean second-level filtering.
-- Branch persists across impl and verify phases
-- After iteration reaches `complete`, rebase onto main working branch and fast-forward merge
+#### Git branch strategy (R_5, R_6)
+
+All branches and tags are namespaced under `plet/{projectId}/`. Agents never commit to main.
+
+**Branch and tag conventions:**
+
+| Purpose | Pattern | Example |
+|---------|---------|---------|
+| Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
+| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/impl-1` |
+| Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
+| Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
+| Subplet loop | `plet/{projectId}/subplet/{subId}/loop{N}/workstream` | `plet/LOGA/subplet/PRSR/loop1/workstream` |
+| Subplet iteration | `plet/{projectId}/subplet/{subId}/loop{N}/{iteration_id}` | `plet/LOGA/subplet/PRSR/loop1/ID_001` |
+
+- `loop{N}` driven by `loopSessionCount` in state.json; `refine{N}` driven by `refineSessionCount`
+- Iteration branches persist across impl and verify phases
+- After iteration reaches `complete`, rebase onto the loop workstream and fast-forward merge
 - Linear history is strongly preferred
 - Agents commit incrementally during each phase for crash recovery
 - At end of each phase, squash into a single commit
 - Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
 - If an iteration cycles (impl-1, verify-1, impl-2, verify-2), each phase is a separate squashed commit
+
+#### Project ID (R_6)
+
+Short project identifier defined during plan phase, stored in `state.json` as `projectId`. Used in branch names, tag names, and potentially state file paths (e.g., `plet/LOGA/workstream`).
+
+**Format:** `[A-Z][A-Z0-9]{2,5}` — 3-6 characters, starts with a letter, uppercase alphanumeric only. User-chosen during plan phase.
+
+**Rationale for 3-char minimum:** Minimizes collisions with requirement ID prefixes. Most prefixes are 2-char (`FR`, `NF`, `DX`, `EM`, `ID`, etc.), so 3+ chars avoids the common case. Some requirement prefixes can be 3-char (e.g., a hypothetical `SEC_2` for a security feature area), so collisions are still possible but rare. **Hard rule:** requirement prefixes must NEVER collide with the project ID. Since the project ID is usually defined first (during plan phase), requirement prefixes are chosen to avoid it.
+
+**Examples:** `LOGA` (log analyzer), `AUTH` (auth service), `UUGEN` (UUID generator).
+
+**Subplet branch convention (hypothetical/future):** Subplets use a literal `subplet/` path segment: `plet/LOGA/subplet/PRSR/loop/ID_001`. Self-documenting — the `subplet/` segment makes the hierarchy obvious. The common case (no subplets) stays clean: `plet/LOGA/loop/ID_001`. Length is manageable since subplets are already the complex case, and sub-sub-plets are off the table so it never gets deeper.
+
+**Rejected subplet ID alternatives:**
+- Underscore-joined flat ID (`LOGA_PRSR`) — consistent format but loses visual hierarchy, overloads underscore delimiter already used in requirement IDs
+- Slash without marker (`LOGA/PRSR`) — inconsistent shape between parent (1 segment) and subplet (2 segments), project ID becomes a path instead of a string
+- Parent sentinel (`LOGA/ROOT`) — consistent shape but verbose for the common no-subplet case
+- Separate prefix (`subplet/LOGA/PRSR/...`) — splits namespace, `plet/*` no longer captures everything
 
 #### Parallelization
 - Default: skill spawns subagents for independent iterations
@@ -258,7 +291,7 @@ On large projects, full test suites can take 4-5 minutes. With 5 acceptance crit
 
 #### `tagBeforeSquash` — audit tags before squash (EX_17)
 
-Incremental commits are squashed at end of each phase for clean history. `tagBeforeSquash` preserves the pre-squash state as a git tag so the chain of work can be audited. Tag naming: `plet/audit/{iteration_id}/{phase}-{attempt}` — hierarchical `/` separators allow GUI tools to filter at three levels. Config: global default in `state.json` (inherited at initialization), per-iteration override. Auto-enables if verification fails. Default off.
+Incremental commits are squashed at end of each phase for clean history. `tagBeforeSquash` preserves the pre-squash state as a git tag so the chain of work can be audited. Tag naming: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` — hierarchical `/` separators allow GUI tools to filter at multiple levels. Config: global default in `state.json` (inherited at initialization), per-iteration override. Auto-enables if verification fails. Default off.
 
 #### Context window management for subagent reads
 
@@ -396,6 +429,37 @@ Added to global state.json to track refine session number. Incremented at the st
 
 **Rationale:** Impl/verify track attempts in per-iteration state. Refine is project-level, so the counter lives in global state. Considered using timestamp-only (no counter) since the Crockford segment already gives uniqueness, but the session number enables grouping — grep `_r3` to see everything from one refine session. The grouping value was the tiebreaker.
 
+#### `loopSessionCount` (R_5)
+
+Added to global `state.json` to track loop invocations. Incremented at the start of each `/plet loop` invocation. Used in branch names (`loop1`, `loop2`). Mirrors `refineSessionCount` — same suffix, same semantics. Name chosen over `loopCount` (too terse) and `loopInvocationCount` (breaks naming parallel with `refineSessionCount`).
+
+#### Workstream branch creation (R_5)
+
+The orchestrator creates workstream branches at phase entry:
+- **Loop:** increment `loopSessionCount`, create `plet/{projectId}/loop{N}/workstream`. If resuming an interrupted loop (branch exists), reuse it.
+- **Refine:** increment `refineSessionCount`, create `plet/{projectId}/refine{N}/workstream`. All spec changes committed here.
+
+#### Compaction recovery protocol (OR_14)
+
+The orchestrator is the longest-lived agent and most vulnerable to context compaction. Subagents are safe (fresh context, short-lived). Protection has three parts:
+
+1. **Canary writes** — after each significant action (loop start, subagent spawn, subagent completion), the orchestrator writes/updates a progress.md entry with `Phase: orchestrator`, `Status: ACTIVE`, and critical state: `projectId`, `loopSessionCount`, branch name, iteration lifecycle counts.
+2. **Detection** — after compaction, the orchestrator won't remember writing the canary. If it can't recall its operational state, it reads the last orchestrator ACTIVE entry for immediate orientation.
+3. **Recovery** — re-read SKILL.md → state.json (including `phaseHistory`) → active per-iteration state files → confirm git branch → write recovery canary → resume.
+
+**Rationale:** All state lives on disk by design, but the orchestrator needs to *know* to re-read it. The canary serves dual purpose: compaction detection and fast re-orientation without reading every file.
+
+#### Phase history ledger
+
+Append-only array in `state.json` tracking the sequence of loop and refine phases. Each entry has `phase`, `session`, `branch`, `startedAt`, `endedAt`. The last entry is the current/active phase (`endedAt: null`); the previous entry is the parent branch that the current phase branched from. Solves two problems: (1) the orchestrator always knows where to branch from for the next phase, (2) the full phase sequence is visible without git archaeology.
+
+**Chaining model:** Each workstream branches off the previous one — `loop1/workstream` → `refine1/workstream` → `loop2/workstream`. The first phase branches from `main`. Merge to main is always a human decision — never automatic. Merging to main may trigger deployments, CI/CD pipelines, or other side effects. The target may also not be main — the human may merge to `staging`, `test`, `qa`, or other branches depending on their workflow. plet has no opinion on the target; it only manages the workstream chain.
+
+**Rejected alternatives:**
+- Single `activeBranch` field — loses history, can't answer "what was the sequence?"
+- Two fields (`activeBranch` + `parentBranch`) — better but still loses full history
+- Derived from counters — ambiguous when phases repeat (two loops in a row without a refine)
+
 #### `proj` sentinel for project-level plet IDs
 
 Refine-phase entries that aren't tied to a specific iteration (stage summaries, triage summaries) use `proj` as the iteration context segment: `epr_01JD8X3K7M_proj_r1`. Per-iteration refine entries (re-queuing ID_005) still use the iteration ID: `epr_01JD8X3K7M_id005_r1`. Keeps the plet ID segment structure consistent and parseable.
@@ -436,13 +500,13 @@ Discovered during the refine.md build: we designed RF_16 (cascading consistency 
 
 #### Archive tag convention (2026-03-09)
 
-Format: `archive/{project}/{run}/{path}`. Example: `archive/loga/run1/loop/ID_001`, `archive/loga/run1/workstream`.
+Format: `archive/plet/{projectId}/{run}/{path}`. Example: `archive/plet/LOGA/run1/loop/ID_001`, `archive/plet/LOGA/run1/workstream`.
 
-Used to preserve branch tips before deletion. Created when a run is complete and we need to clear the branch namespace for a re-run. Tags are lightweight, don't pollute branch listings, and survive `git fetch --prune`. The project ID (`loga`) and run number (`run1`) provide namespacing.
+Used to preserve branch tips before deletion. Created when a run is complete and we need to clear the branch namespace for a re-run. Tags are lightweight, don't pollute branch listings, and survive `git fetch --prune`. The `archive/` prefix is a general-purpose namespace (not plet-owned); `plet/` inside it mirrors the active branch structure for consistency.
 
-Run 1 of logalyzer has 11 tags under `archive/loga/run1/` (10 loop branches + workstream). These are local only — not yet pushed to remote.
+Run 1 of logalyzer has 11 tags under `archive/loga/run1/` (pre-convention, lowercase, no `plet/` segment). These are local only — not yet pushed to remote.
 
-Long-term naming: `archive/` was chosen over `casestudy/` as the prefix. May evolve — the convention is young.
+**Rationale:** `archive/` stays separate from `plet/` so active refs (`plet/*`) are clean. The `plet/` segment inside `archive/` provides consistency with the active branch namespace without plet owning the archive prefix.
 
 #### Subagent injection ordering (2026-03-09)
 
@@ -649,8 +713,11 @@ All artifacts produced by using plet, organized by category.
 - `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written)
 
 ### 5. Version Control Artifacts
-- Branches: `plet/loop/{iteration_id}`
-- Tags: `plet/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
+- Integration branch: `plet/{projectId}/loop{N}/workstream`
+- Iteration branch: `plet/{projectId}/loop{N}/{iteration_id}`
+- Audit tags: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
+- Refine branch: `plet/{projectId}/refine{N}/workstream`
+- Archive tags: `archive/plet/{projectId}/loop{N}/{path}`
 - Commits: `plet: [ID_xxx] phase-N - title` (squashed per phase)
 
 ### 6. Memory (institutional knowledge, checked-in)
@@ -925,6 +992,8 @@ subplets/
 ```
 
 Benefits: namespace isolation, each instance fully self-contained, cross-PRD visibility by scanning siblings, simpler than claim/shared orchestration.
+
+**Sub-sub-plets are highly unlikely to ever be a thing.** One level of nesting (plet → subplet) should be sufficient. If a subplet is complex enough to need its own subplets, it should probably be its own repo.
 
 **Multi-developer complexity spectrum:**
 

@@ -271,6 +271,7 @@ After all iterations are approved:
 
 2. Initialize `plet/state.json` with:
    - `schemaVersion`: `"0.1.0"`
+   - `projectId`: short project identifier (3-6 chars, `[A-Z][A-Z0-9]{2,5}`). Ask the user to choose one during planning.
    - `project`: name and description
    - `dependencyMap`: `{iteration_id: [dependency_ids]}`
    - `milestones`: `{milestone_id: {name, iterations[]}}`

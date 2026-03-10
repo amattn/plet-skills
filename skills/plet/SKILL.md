@@ -234,17 +234,18 @@ Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`
 Autonomous. The loop implements iterations, then verifies each in a fresh context, cycling until all iterations are `complete` or `blocked`.
 
 **Orchestrator actions:**
-1. Read `plet/state.json` and per-iteration state files to identify eligible iterations (dependencies `complete`, lifecycle `queued`)
-2. For each eligible iteration, spawn an **implementation subagent** with:
+1. Increment `loopSessionCount` in `plet/state.json`. Branch from the previous phase's workstream (the last entry in `phaseHistory`) — or from `main` if this is the first phase. Create `plet/{projectId}/loop{N}/workstream` (where `{N}` is the new `loopSessionCount`). Append to `phaseHistory`: `{phase: "loop", session: N, branch: "plet/{projectId}/loop{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. If continuing a loop that was interrupted (workstream branch already exists), skip creation and reuse the existing branch.
+2. Read `plet/state.json` and per-iteration state files to identify eligible iterations (dependencies `complete`, lifecycle `queued`)
+3. For each eligible iteration, spawn an **implementation subagent** with:
    - The full contents of `references/execute.md` **(primary — inject first, this defines the agent's behavior)**
    - The iteration definition from `plet/iterations.md`
    - The full contents of `references/formats.md`
    - Relevant sections of `references/state-schema.md`
    - `plet/requirements.md` (universal context)
    - `plet/learnings.md` (prior knowledge)
-3. Spawn subagents for independent iterations in parallel
-4. Monitor subagent completion. After each subagent finishes, copy its transcript to `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl` (raw I/O capture). The subagent writes its own semantic events to `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` during work.
-5. After implementation completes (lifecycle → `verifying`), spawn a **verification subagent** in a fresh context on the same branch (`plet/loop/{iteration_id}`) — the verify agent works on top of the implementation agent's commits. **One verification subagent per iteration** — never batch multiple iterations into a single verify invocation. Each iteration gets independent verification and its own commit. Inject:
+4. Spawn subagents for independent iterations in parallel
+5. Monitor subagent completion. After each subagent finishes, copy its transcript to `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl` (raw I/O capture). The subagent writes its own semantic events to `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` during work.
+6. After implementation completes (lifecycle → `verifying`), spawn a **verification subagent** in a fresh context on the same branch (`plet/{projectId}/loop{N}/{iteration_id}`) — the verify agent works on top of the implementation agent's commits. **One verification subagent per iteration** — never batch multiple iterations into a single verify invocation. Each iteration gets independent verification and its own commit. Inject:
    - The full contents of `references/verify.md` **(primary — inject first, this defines the agent's behavior)**
    - The iteration definition from `plet/iterations.md`
    - The full contents of `references/formats.md`
@@ -252,13 +253,14 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
    - `plet/requirements.md` (universal context)
    - `plet/learnings.md` (prior knowledge)
    - The per-iteration state file (to see implementation criterion statuses)
-6. The verification agent verifies the **result**, not the **process** — it does not initially read implementation diffs
-7. After verification:
-   - All criteria pass → lifecycle `complete`, iteration frozen, rebase and merge to main branch
+7. The verification agent verifies the **result**, not the **process** — it does not initially read implementation diffs
+8. After verification:
+   - All criteria pass → lifecycle `complete`, iteration frozen, rebase and merge to loop workstream
    - Issues found → depends on severity (see `references/verify.md` for fix-in-place vs cycle-back rules)
-8. Re-evaluate the dependency graph and spawn next eligible iterations
-9. Check breakpoints (`state.json` → `breakpoints.before` / `breakpoints.after`) before and after each iteration — pause if hit
-10. Continue until all iterations are `complete` or `blocked`
+9. Re-evaluate the dependency graph and spawn next eligible iterations
+10. Check breakpoints (`state.json` → `breakpoints.before` / `breakpoints.after`) before and after each iteration — pause if hit
+11. Continue until all iterations are `complete` or `blocked`
+12. When the loop ends, set the current `phaseHistory` entry's `endedAt`. If all iterations are `complete`, inform the user and offer options: merge workstream to their target branch, enter refine, or leave as-is. **Never merge to main or any other branch without explicit human approval** — merging may trigger deployments or other side effects.
 
 ### Refine Phase
 
@@ -267,10 +269,34 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
 Interactive, human-driven. Triages emergent items, updates spec, re-plans.
 
 **Orchestrator actions:**
-1. Read `references/refine.md` for the full refine phase workflow
-2. Follow its instructions for emergent triage, blocked iteration review, spec updates, and re-planning
-3. After changes, update fingerprints across all three plan artifacts
-4. Offer to resume the loop with `/plet loop`
+1. Increment `refineSessionCount` in `plet/state.json`. Branch from the previous phase's workstream (the last entry in `phaseHistory`). Create `plet/{projectId}/refine{N}/workstream` (where `{N}` is the new `refineSessionCount`). Append to `phaseHistory`: `{phase: "refine", session: N, branch: "plet/{projectId}/refine{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. All spec changes during this refine session are committed here.
+2. Read `references/refine.md` for the full refine phase workflow
+3. Follow its instructions for emergent triage, blocked iteration review, spec updates, and re-planning
+4. After changes, update fingerprints across all three plan artifacts
+5. Offer to resume the loop with `/plet loop`
+
+### Compaction Recovery Protocol
+
+The orchestrator is the longest-lived agent and most vulnerable to context compaction. Subagents are safe (fresh context, short-lived). The orchestrator must protect against state loss.
+
+**Canary:** After each significant action (loop start, subagent spawn, subagent completion), write or update a canary entry in `plet/progress.md`:
+
+```
+**Phase:** orchestrator
+**Status:** ACTIVE
+**Summary:** Loop {N} active. Project: {projectId}. Branch: plet/{projectId}/loop{N}/workstream. {counts by lifecycle}.
+```
+
+**Detection:** After compaction, you will not remember writing the canary. If you cannot recall your current `projectId`, `loopSessionCount`, which iterations are in flight, or which branch you're on — you were compacted. Read the last orchestrator `ACTIVE` entry from `plet/progress.md` for immediate orientation.
+
+**Recovery procedure:**
+1. Re-read this file (`SKILL.md`) — recover behavioral instructions
+2. Re-read `plet/state.json` — recover `projectId`, `loopSessionCount`, `refineSessionCount`, `phaseHistory`, dependency map, breakpoints
+3. Re-read all per-iteration state files with `lifecycle` not in `complete` or `withdrawn` — recover what's in flight
+4. Read the last entry in `phaseHistory` to determine the current phase and branch
+5. Run `git branch --show-current` to confirm branch matches expected state
+6. Write a new canary entry to `plet/progress.md` noting recovery
+7. Resume from step 2 of the loop phase (identify eligible iterations)
 
 ---
 
@@ -326,16 +352,19 @@ Default maximum **3** retry attempts per iteration. If the failure count is stri
 
 ## Git Strategy
 
-Each iteration works on its own branch: `plet/loop/{iteration_id}`
+All branches namespaced under `plet/{projectId}/`. Agents never commit to main.
 
-- Branch persists across implementation and verification phases
+- Integration branch: `plet/{projectId}/loop{N}/workstream` — created at start of each `/plet loop` invocation
+- Iteration branch: `plet/{projectId}/loop{N}/{iteration_id}` — persists across impl and verify phases
+- Refine branch: `plet/{projectId}/refine{N}/workstream` — created at start of each refine session
 - Agents commit incrementally during each phase for crash recovery
 - At end of each phase, squash into a single commit
 - If `tagBeforeSquash` is enabled, create a tag before squashing to preserve incremental history
-- Tag convention: `plet/audit/{iteration_id}/{phase}-{attempt}` (hierarchical `/` separators for GUI filtering)
+- Audit tag: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`
 - `tagBeforeSquash` auto-enables for an iteration if verification fails — keeps audit trail for troublesome loops
 - Commit convention: `plet: [ID_xxx] {phase}-{attempt} - {title}`
-- After `complete`, rebase onto main branch and fast-forward merge (linear history)
+- After `complete`, rebase onto workstream and fast-forward merge (linear history)
+- Archive tags: `archive/plet/{projectId}/loop{N}/{path}` — human-created, post-run cleanup
 
 ---
 

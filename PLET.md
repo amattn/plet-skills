@@ -92,8 +92,11 @@ my-project/                             # target project root
 - `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written)
 
 **5. Version control artifacts**
-- Branches: `plet/loop/{iteration_id}`
-- Tags: `plet/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
+- Integration branch: `plet/{projectId}/loop{N}/workstream`
+- Iteration branch: `plet/{projectId}/loop{N}/{iteration_id}`
+- Refine branch: `plet/{projectId}/refine{N}/workstream`
+- Audit tags: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
+- Archive tags: `archive/plet/{projectId}/loop{N}/{path}` (post-run cleanup)
 - Commits: `plet: [ID_xxx] {phase}-{attempt} - {title}` (squashed per phase)
 
 **6. Memory** (institutional knowledge, checked into repo root)
@@ -130,8 +133,8 @@ Examples:
 ### Rules
 - One squashed commit per phase attempt (incremental commits are squashed at phase end)
 - If `tagBeforeSquash` is enabled, a tag preserves the incremental history before squashing
-- Tag format: `plet/audit/{iteration_id}/{phase}-{attempt}`
-- After verification passes (`complete`), the iteration branch is rebased onto main and fast-forward merged (linear history)
+- Audit tag format: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`
+- After verification passes (`complete`), the iteration branch is rebased onto the loop workstream and fast-forward merged (linear history)
 
 ## Common Misspellings (voice input)
 
