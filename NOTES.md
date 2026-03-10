@@ -98,7 +98,7 @@ Execute and verify are internal phases of one autonomous loop — the user shoul
 
 #### PT_ → PL_ rename
 
-All "plan-template" sections (PT_DX, PT_CT, PT_TV, PT_SM) renamed to PL_ prefixes because they describe plan phase *behavior*, not prompt/reference file *contents*. PT (3.8) stays as the 6 requirements about the physical reference files.
+All "plan-template" sections (PT_DX, PT_CT, PT_TV, PT_SM) renamed to PL_ prefixes because they describe plan session *behavior*, not prompt/reference file *contents*. PT (3.8) stays as the 6 requirements about the physical reference files.
 
 #### PLET.md creation and CLAUDE.md updates (2026-03-09)
 
@@ -254,11 +254,11 @@ All branches and tags are namespaced under `plet/{projectId}/`. Agents never com
 
 #### Project ID (R_6)
 
-Short project identifier defined during plan phase, stored in `state.json` as `projectId`. Used in branch names, tag names, and potentially state file paths (e.g., `plet/LOGA/workstream`).
+Short project identifier defined during plan session, stored in `state.json` as `projectId`. Used in branch names, tag names, and potentially state file paths (e.g., `plet/LOGA/workstream`).
 
-**Format:** `[A-Z][A-Z0-9]{2,5}` — 3-6 characters, starts with a letter, uppercase alphanumeric only. User-chosen during plan phase.
+**Format:** `[A-Z][A-Z0-9]{2,5}` — 3-6 characters, starts with a letter, uppercase alphanumeric only. User-chosen during plan session.
 
-**Rationale for 3-char minimum:** Minimizes collisions with requirement ID prefixes. Most prefixes are 2-char (`FR`, `NF`, `DX`, `EM`, `ID`, etc.), so 3+ chars avoids the common case. Some requirement prefixes can be 3-char (e.g., a hypothetical `SEC_2` for a security feature area), so collisions are still possible but rare. **Hard rule:** requirement prefixes must NEVER collide with the project ID. Since the project ID is usually defined first (during plan phase), requirement prefixes are chosen to avoid it.
+**Rationale for 3-char minimum:** Minimizes collisions with requirement ID prefixes. Most prefixes are 2-char (`FR`, `NF`, `DX`, `EM`, `ID`, etc.), so 3+ chars avoids the common case. Some requirement prefixes can be 3-char (e.g., a hypothetical `SEC_2` for a security feature area), so collisions are still possible but rare. **Hard rule:** requirement prefixes must NEVER collide with the project ID. Since the project ID is usually defined first (during plan session), requirement prefixes are chosen to avoid it.
 
 **Examples:** `LOGA` (log analyzer), `AUTH` (auth service), `UUGEN` (UUID generator).
 
@@ -278,7 +278,7 @@ Short project identifier defined during plan phase, stored in `state.json` as `p
 
 #### Missing dependency self-correction
 
-If an agent discovers a missing dependency during execution (prerequisite work doesn't exist), it fixes the DAG in place — adds the dependency to state.json and per-iteration state, sets lifecycle to `ineligible`, documents across all four runtime artifacts, and returns. Not a blocker — the loop continues and the iteration auto-queues when the missing dep completes. Does not count against retry limit. Dependency graph validation step added to plan phase iteration review.
+If an agent discovers a missing dependency during execution (prerequisite work doesn't exist), it fixes the DAG in place — adds the dependency to state.json and per-iteration state, sets lifecycle to `ineligible`, documents across all four runtime artifacts, and returns. Not a blocker — the loop continues and the iteration auto-queues when the missing dep completes. Does not count against retry limit. Dependency graph validation step added to plan session iteration review.
 
 #### Test suite execution strategy (EX_4)
 
@@ -341,7 +341,7 @@ When all iterations are complete and new iterations are being added, explicitly 
 
 #### Blockers first in refine (RF_8)
 
-Blocked iterations are surfaced as Step 1 in the refine phase, before emergent item triage. Blockers represent lost progress and are the highest priority for human attention.
+Blocked iterations are surfaced as Step 1 in the refine session, before emergent item triage. Blockers represent lost progress and are the highest priority for human attention.
 
 **Rationale:** Blockers are stalled work — agents already spent cycles and hit a wall. Unblocking them gets value from that spent effort. Emergent items are informational — they can wait.
 
@@ -351,7 +351,7 @@ Blocked iterations are surfaced as Step 1 in the refine phase, before emergent i
 
 Refine is interactive in the main conversation, not a subagent. Decisions are captured in better places: NOTES.md for rationale, emergent.md outcomes for triage, requirements.md and iterations.md for actual changes.
 
-**Rationale:** Trace files serve subagents — they capture decisions in contexts that are discarded. The refine phase runs in the main conversation where the human is present. Writing trace would duplicate what's already in NOTES.md, emergent.md outcomes, and the artifacts themselves.
+**Rationale:** Trace files serve subagents — they capture decisions in contexts that are discarded. The refine session runs in the main conversation where the human is present. Writing trace would duplicate what's already in NOTES.md, emergent.md outcomes, and the artifacts themselves.
 
 **Rejected alternative:** Writing semantic events to a refine-specific trace file. Adds overhead without value — no consumer needs it.
 
@@ -417,7 +417,7 @@ Also considered creating an emergent entry for each learnings-driven change then
 
 #### Cascading consistency pass for refine (RF_16, Step 10)
 
-The refine phase touches more files than any other phase (reads 4 artifacts, updates 6, modifies fingerprints across 3). Step 10 replaces the generic consistency pass with a structured cascading check following the data flow: decisions → requirements.md → iterations.md → state files. Each stage verifies the downstream artifact reflects everything upstream. This catches drift at the boundaries between artifacts rather than checking each file in isolation. Added as RF_16 in the PRD.
+The refine session touches more files than any other session (reads 4 artifacts, updates 6, modifies fingerprints across 3). Step 10 replaces the generic consistency pass with a structured cascading check following the data flow: decisions → requirements.md → iterations.md → state files. Each stage verifies the downstream artifact reflects everything upstream. This catches drift at the boundaries between artifacts rather than checking each file in isolation. Added as RF_16 in the PRD.
 
 #### `refine` phase value added to format spec
 
@@ -425,7 +425,7 @@ formats.md Phase field expanded from `impl | verify` to `impl | verify | refine`
 
 #### `refineSessionCount` in state.json
 
-Added to global state.json to track refine session number. Incremented at the start of each refine phase entry. Used as the attempt number in plet ID context segments (`r1`, `r2`, etc.).
+Added to global state.json to track refine session number. Incremented at the start of each refine session entry. Used as the attempt number in plet ID context segments (`r1`, `r2`, etc.).
 
 **Rationale:** Impl/verify track attempts in per-iteration state. Refine is project-level, so the counter lives in global state. Considered using timestamp-only (no counter) since the Crockford segment already gives uniqueness, but the session number enables grouping — grep `_r3` to see everything from one refine session. The grouping value was the tiebreaker.
 
@@ -530,7 +530,7 @@ Case studies live in `case_studies/` at project root. Considered: `examples/` (m
 
 #### Logalyzer re-run plan (2026-03-09)
 
-Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from commit `7cecbf5` ("example: after plan") — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan phase output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
+Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from commit `7cecbf5` ("example: after plan") — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan session output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
 
 ---
 
@@ -572,7 +572,7 @@ plet draws from three sources:
 - PRD decomposition into agent-sized, iterable chunks
 - Runtime artifacts (progress.md, etc.) — structured output that outlives the agent session
 - State tracking via prd.json — machine-readable iteration status persisted to disk
-- Snarktank's numbered-letter Q&A system for interactive clarification — adopted by plet's plan phase
+- Snarktank's numbered-letter Q&A system for interactive clarification — adopted by plet's plan session
 
 ### Where Ralph loops fell short
 - No verification phase — no independent check that work was done correctly
@@ -603,11 +603,11 @@ plet draws from three sources:
 ### What plet adds
 - Self-sufficient orchestration — runs natively inside Claude Code, no external harness or runner
 - Single entry point (`/plet`) with state-driven routing — user never needs to remember which phase they're in
-- Interactive plan phase with human steering built in — PRD creation and iteration decomposition in one flow
+- Interactive plan session with human steering built in — PRD creation and iteration decomposition in one flow
 - Dependency graph with parallel execution — not strictly sequential
 - Split state architecture with lifecycle phases, agent activity, heartbeats, and two-state-per-criterion model
 - Real-time agent activity state — GUI can show what the agent is doing, not just pass/fail
-- Built-in refine phase — triages emergent items, updates the spec, re-plans
+- Built-in refine session — triages emergent items, updates the spec, re-plans
 - Living spec — improves as agents discover gaps, not a static document
 - Four runtime artifacts (PLET) with distinct audiences — not just a log file
 
@@ -673,7 +673,7 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 ### Key design annotations by section (not duplicated in PRD)
 - **GC**: GC_2 — agents prefer making decisions + logging over blocking
 - **OR**: OR_4 includes `verifying` lifecycle. OR_11 removed (merged into `/plet loop`). OR_13 — skip scoped to individual acceptance criteria, not iterations
-- **PL**: Plan phase intro is prose above the table (interactive, human-driven). PL_12 — write to disk on approval. PL_13–PL_14 are P1
+- **PL**: Plan session intro is prose above the table (interactive, human-driven). PL_12 — write to disk on approval. PL_13–PL_14 are P1
 - **SF**: P0s first. Split state architecture. SF_24 — schema version migration. SF_25 — entry fencing for git merge safety
 - **EX**: EX_23 — heartbeat writes. EX_24 — missing dependency self-correction (does not count against retries). EX_25 — false dependencies are harmless
 - **VF**: VF_7–VF_13 are the VSDD-inspired deep verification items. VF_19–VF_20 are P1
@@ -695,7 +695,7 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 
 All artifacts produced by using plet, organized by category.
 
-### 1. Spec Artifacts (human-created during plan phase)
+### 1. Spec Artifacts (human-created during plan session)
 - `plet/requirements.md` — PRD with requirement IDs, fingerprint
 - `plet/iterations.md` — iteration definitions, dependencies, acceptance criteria, fingerprint
 
@@ -816,10 +816,9 @@ project (LOGA)
 **Nesting (what contains what):**
 ```
 project (LOGA)
-  └─ session (loop1, refine1, loop2, ...)
+  └─ session (plan, loop1, refine1, loop2, ...)
        └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
             └─ phase (impl, verify)
-                 └─ attempt (1, 2, 3, ...)
 ```
 
 **Term assignments:**
@@ -830,8 +829,8 @@ project (LOGA)
 | 1 | **session** | yes | loop session, refine session, plan session |
 | 2 | **iteration** | yes | ID_001 (loop sessions only) |
 | 3 | **phase** | yes | impl phase, verify phase |
-| 4 | **attempt** | yes | impl-1, verify-2 |
-| — | **cycle** | informal | one impl attempt + one verify attempt |
+
+Retry numbering (`impl-1`, `impl-2`) is a detail within phases, not a formal hierarchy level. "Cycle" is informal shorthand for one impl run + one verify run.
 
 **Rejected alternatives:**
 - "mode" for Level 1 — doesn't pluralize naturally ("two loop modes" is awkward)
@@ -860,7 +859,7 @@ Autonomous agents accumulate tech debt iteration by iteration — each implement
 Options to explore:
 - **Refactor step within each iteration:** After verify passes, a brief refactor pass before marking complete. Lightweight but frequent.
 - **Periodic refactor phase:** A dedicated refactor iteration injected every N iterations (e.g., every 3-5). Heavier but catches cross-iteration debt.
-- **Refine-triggered refactor:** The refine phase surfaces tech debt from learnings/emergent items and creates refactor iterations. Already partially supported — emergent items can capture "this code needs cleanup" — but not formalized.
+- **Refine-triggered refactor:** The refine session surfaces tech debt from learnings/emergent items and creates refactor iterations. Already partially supported — emergent items can capture "this code needs cleanup" — but not formalized.
 - **Milestone boundary refactor:** A refactor pass at the end of each milestone before moving to the next. Natural checkpoint.
 
 Key questions:
@@ -926,7 +925,7 @@ Test signals:
 - Test files that became catch-alls (each iteration appended to the nearest test file rather than organizing by concern)
 - Test files growing faster than implementation files
 
-**Escape hatch:** The refine phase can create refactor iterations mid-milestone if the human or learnings surface something urgent ("this module is becoming unmaintainable"). Same hard invariant applies — tests must be green.
+**Escape hatch:** The refine session can create refactor iterations mid-milestone if the human or learnings surface something urgent ("this module is becoming unmaintainable"). Same hard invariant applies — tests must be green.
 
 Not a v1 blocker — the current verify phase catches obvious code quality issues — but worth designing in before tech debt compounds across real usage.
 
@@ -943,18 +942,18 @@ Per-project behavior modification for planner, refiner, execute agent, and verif
 
 ### PRD input and disambiguation
 
-plet's plan phase should accept any existing PRD as input, regardless of which skill or tool created it, and use it to produce a `requirements.md`. The PRD generation step is upstream of plet — plet operationalizes whatever spec it's given.
+plet's plan session should accept any existing PRD as input, regardless of which skill or tool created it, and use it to produce a `requirements.md`. The PRD generation step is upstream of plet — plet operationalizes whatever spec it's given.
 
 Known PRD-generation approaches:
 - **snarktank** — adversarial multi-persona PRD generation
 - **ridl (ridl-skills:prd)** — structured PRD with requirement tables
-- **plet (plan phase)** — interactive spec refinement (can also generate from scratch)
+- **plet (plan session)** — interactive spec refinement (can also generate from scratch)
 - Presumably many other PRD/spec skills exist in the ecosystem
 
 Key questions:
 - When multiple PRD skills are loaded, how does the user signal which style they want? Need some disambiguation UX — "snarktank-style PRD? ridl-style? plet requirements doc? SKILLNAME-style?"
 - No auto-detection of existing PRDs — the user says "read this first" or "start with this doc." But plet should let the user know that if they have an existing PRD, spec, or list of requirements, that's usually a great place to start.
-- Existing docs are always just a starting point — plet's plan phase asks clarifying questions if the doc is insufficient, same as starting from scratch
+- Existing docs are always just a starting point — plet's plan session asks clarifying questions if the doc is insufficient, same as starting from scratch
 
 ---
 
@@ -1096,7 +1095,7 @@ plet already produces structured, categorized data about its own performance: le
 
 ### Design tension: meta-loop symmetry
 
-plet improving its own PRD is refine-on-refine. The refine phase already analyzes runtime artifacts to improve the *target project's* spec. Self-improvement is the same pattern aimed inward. Elegant symmetry, but "improve the project" and "improve the tool" need a clear boundary. A separate skill or mode is the right approach.
+plet improving its own PRD is refine-on-refine. The refine session already analyzes runtime artifacts to improve the *target project's* spec. Self-improvement is the same pattern aimed inward. Elegant symmetry, but "improve the project" and "improve the tool" need a clear boundary. A separate skill or mode is the right approach.
 
 ### Things to watch for
 

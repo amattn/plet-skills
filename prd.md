@@ -61,7 +61,7 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
 
-All branches namespaced under `plet/{projectId}/`. Agents never commit to main. `{projectId}` is a 3-6 char uppercase alphanumeric identifier (`[A-Z][A-Z0-9]{2,5}`) chosen during the plan phase and stored in `state.json`. `loop{N}` and `refine{N}` are driven by `loopSessionCount` and `refineSessionCount` in `state.json`.
+All branches namespaced under `plet/{projectId}/`. Agents never commit to main. `{projectId}` is a 3-6 char uppercase alphanumeric identifier (`[A-Z][A-Z0-9]{2,5}`) chosen during a plan session and stored in `state.json`. `loop{N}` and `refine{N}` are driven by `loopSessionCount` and `refineSessionCount` in `state.json`.
 
 ### 3.1 Orchestration & Routing (OR)
 
@@ -127,7 +127,7 @@ Example fingerprint structure:
 
 ### 3.2 Plan Phase (PL)
 
-The plan phase is interactive and human-driven. It is a structured conversation, not a form. The human steers; the agent structures. The ergonomics should be clean and clear — the user should feel guided, not interrogated.
+The plan session is interactive and human-driven. It is a structured conversation, not a form. The human steers; the agent structures. The ergonomics should be clean and clear — the user should feel guided, not interrogated.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -228,7 +228,7 @@ Independent verification in a fresh context window. The verification agent verif
 | VF_8 | Test quality: identify tautological tests, tests that mock too aggressively, tests that assert on implementation details rather than behavior, and tests that would pass even if the implementation were subtly wrong | P0 |
 | VF_9 | Code quality: check for placeholder comments, generic error handling, inefficient patterns, hidden coupling, missing resource cleanup, race conditions | P0 |
 | VF_10 | Security surface: check input validation gaps, injection vectors, authentication/authorization assumptions | P0 |
-| VF_11 | Spec gaps: identify implemented behavior that isn't covered by the spec. Flag as emergent items for the refine phase. | P0 |
+| VF_11 | Spec gaps: identify implemented behavior that isn't covered by the spec. Flag as emergent items for a refine session. | P0 |
 | VF_12 | Anti-slop bias: assume the first correct version contains hidden debt. Don't rubber-stamp because tests pass — look deeper. | P0 |
 | VF_13 | Convergence signal: an iteration is genuinely complete when verification critiques reduce to cosmetic/stylistic issues only | P0 |
 | VF_14 | If all criteria pass verification, the iteration lifecycle is set to `complete` and the iteration is frozen | P0 |
@@ -311,11 +311,11 @@ Reserved for future use: `ttr` (trace transcript), `tev` (trace events).
 
 ### 3.7 Refine Phase (RF)
 
-The refine phase is human-driven. The ergonomics should be clean and clear — the user should feel oriented, not overwhelmed. Present information in digestible chunks with clear options at each step.
+The refine session is human-driven. The ergonomics should be clean and clear — the user should feel oriented, not overwhelmed. Present information in digestible chunks with clear options at each step.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RF_1 | The refine phase is primarily a human-driven operation. The agent's role is to present information clearly, offer structured options, and execute the user's decisions. The UX should be clean, with minimal friction between the user seeing an item and acting on it. | P0 |
+| RF_1 | The refine session is primarily a human-driven operation. The agent's role is to present information clearly, offer structured options, and execute the user's decisions. The UX should be clean, with minimal friction between the user seeing an item and acting on it. | P0 |
 | RF_2 | Read `plet/emergent.md` and `plet/learnings.md`. Present all pending emergent items to the user for triage one at a time. Surface any patterns from learnings that suggest spec changes. | P0 |
 | RF_3 | For each emergent item, the user can: Approve (incorporate into spec), Modify (incorporate with changes), Reject (agent assumption was wrong), or Defer (leave for later) | P0 |
 | RF_4 | Approved and modified items become new or updated requirements in `plet/requirements.md` with EM_N reference | P0 |
@@ -397,7 +397,7 @@ Developer experience of working with the plet skill itself.
 
 ### 6.2 Plan-Phase DX Template (PL_DX)
 
-DX items that the plan phase should always consider incorporating into target project PRDs. Framed by three guiding principles:
+DX items that the plan session should always consider incorporating into target project PRDs. Framed by three guiding principles:
 
 - **Readability** — Code and related artifacts should be readable by humans and agents both. Scanning is everything. If your code cannot be understood rapidly, something is missing.
 - **Debug-ability** — Good code (and architecture and infra) makes it easy to identify where, when, and how defects occur. No silent or ignored error states.
@@ -421,13 +421,13 @@ DX items that the plan phase should always consider incorporating into target pr
 | PL_DX_14 | Version displayed via appropriate mechanism; printed to log on startup. For skills, version logged in trace entries and state.json schemaVersion. | P0 |
 | PL_DX_15 | Target project has a CLAUDE.md capturing project conventions, key files, and agent-relevant context | P0 |
 | PL_DX_16 | Target project has a README with project overview, setup instructions, and how to run tests | P0 |
-| PL_DX_17 | Plan phase maintains a living notes document (`NOTES.md`) that captures design decisions, rationale, rejected alternatives, key insights, and open questions as they arise during planning. Serves as institutional memory that prevents revisiting settled decisions and informs other artifacts like the README. The plet notes skill (separate, not yet written) can assist with structured notes management. | P0 |
+| PL_DX_17 | Plan session maintains a living notes document (`NOTES.md`) that captures design decisions, rationale, rejected alternatives, key insights, and open questions as they arise during planning. Serves as institutional memory that prevents revisiting settled decisions and informs other artifacts like the README. The plet notes skill (separate, not yet written) can assist with structured notes management. | P0 |
 | PL_DX_18 | All log output uses structured key-value format with severity levels | P1 |
 | PL_DX_19 | Code uses comment blocks and dividers to aid rapid scanning | P1 |
 | PL_DX_20 | Avoid call-order dependencies and minimize side effects | P1 |
 | PL_DX_21 | Extract helper functions when cyclomatic complexity exceeds ~9; break complex modules into focused sub-modules with single responsibilities and clear public APIs | P1 |
 | PL_DX_22 | Documentation is clear, concise, and includes diagrams where they aid understanding | P1 |
-| PL_DX_23 | Plan phase identifies and recommends relevant skills for the target stack | P1 |
+| PL_DX_23 | Plan session identifies and recommends relevant skills for the target stack | P1 |
 | PL_DX_24 | GUI applications include a debug info view behind a settings toggle showing internal state and diagnostics | P1 |
 | PL_DX_25 | UI projects include accessibility considerations (semantic markup, keyboard navigation, screen reader support) | P1 |
 
@@ -528,14 +528,14 @@ Iterations with no dependency relationship to each other are eligible for parall
 ### Flow 1: New Project
 
 1. User invokes `/plet` in a fresh project
-2. No `plet/` directory exists — skill enters Plan phase
+2. No `plet/` directory exists — skill enters a Plan session
 3. Skill asks clarifying questions about the feature/product
 4. User answers; skill generates `plet/requirements.md` draft
 5. Skill presents each feature area for review; user approves or adjusts
 6. Skill breaks requirements into iterations with dependencies, saves to `plet/iterations.md`
 7. Skill presents each iteration for review; user approves
 8. Skill initializes `plet/state.json` and creates runtime artifact files
-9. Skill asks: "Ready to start building?" User confirms; skill enters Loop phase
+9. Skill asks: "Ready to start building?" User confirms; skill enters a Loop session
 
 ### Flow 2: Loop (Execute → Verify)
 
@@ -576,14 +576,14 @@ Iterations with no dependency relationship to each other are eligible for parall
 
 - Skill scaffolding (SKILL.md, reference files, plugin metadata)
 - Orchestration & routing (`/plet` entry point with state-driven phase detection)
-- Interactive plan phase (requirements.md + iterations.md generation)
+- Interactive plan session (requirements.md + iterations.md generation)
 - State.json initialization
 - Fingerprint-based artifact sync
 
 ### v0.2 — Loop
 > Core autonomous loop: implement, test, verify
 
-- Loop phase — execute + verify (subagent dispatch, git branching, commit conventions, independent verification)
+- Loop session — execute + verify (subagent dispatch, git branching, commit conventions, independent verification)
 - Runtime artifacts (progress.md, learnings.md, emergent.md, trace/)
 - State file lifecycle tracking
 - Pre-flight checks, retry logic
@@ -591,7 +591,7 @@ Iterations with no dependency relationship to each other are eligible for parall
 ### v0.3 — Refine & Polish
 > Close the loop: human-driven refinement and parallel execution
 
-- Refine phase (emergent triage, spec updates, re-planning)
+- Refine session (emergent triage, spec updates, re-planning)
 - Parallel iteration support (dependency graph, concurrent agents)
 - Breakpoints
 - Resume after interruption
@@ -642,9 +642,9 @@ No open questions at this time.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PL_CT_1 | Plan phase identifies critical test areas by analyzing requirements for: core functionality, data integrity, security boundaries, state machines, external integrations, concurrency, performance-sensitive paths, edge cases/boundary conditions, and error recovery paths | P0 |
+| PL_CT_1 | Plan session identifies critical test areas by analyzing requirements for: core functionality, data integrity, security boundaries, state machines, external integrations, concurrency, performance-sensitive paths, edge cases/boundary conditions, and error recovery paths | P0 |
 | PL_CT_2 | Each critical area includes what it is, risk if broken, and suggested test approach | P0 |
-| PL_CT_3 | Critical test areas are reviewed with the user during plan phase | P0 |
+| PL_CT_3 | Critical test areas are reviewed with the user during a plan session | P0 |
 
 ---
 
@@ -667,7 +667,7 @@ Since plet is a Claude Code skill (not a compiled application), traditional auto
 
 ### 12.2 Plan-Phase Testing & Verification Template (PL_TV)
 
-Testing and verification requirements that the plan phase should include in target project PRDs. PL_TV_1 is the operational version of the PL_DX_10 principle.
+Testing and verification requirements that the plan session should include in target project PRDs. PL_TV_1 is the operational version of the PL_DX_10 principle.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -681,12 +681,12 @@ Testing and verification requirements that the plan phase should include in targ
 | PL_TV_8 | Full traceability chain from requirement → test → implementation; every test traces to a requirement, every requirement has a test | P0 |
 | PL_TV_9 | First test is a sanity check — a trivial passing assertion that verifies the test framework runs. If changed to assert false, it must fail. Confirms test infrastructure works before any real tests are written. | P0 |
 | PL_TV_10 | Prefer real dependencies over mocks where practical. Mocks are acceptable for external services and slow I/O, but over-mocking gives false confidence — tests pass against mocks but fail in production. Integration tests with real dependencies catch what unit tests with mocks miss. | P0 |
-| PL_TV_11 | Plan phase specifies verification commands: test, format check, format fix, lint, typecheck, build, package | P0 |
+| PL_TV_11 | Plan session specifies verification commands: test, format check, format fix, lint, typecheck, build, package | P0 |
 | PL_TV_12 | Build command treats warnings as errors where tooling supports it | P1 |
 | PL_TV_13 | Test names include the requirement ID they verify | P1 |
 | PL_TV_14 | Integration tests cover component boundaries and API surfaces | P1 |
 | PL_TV_15 | End-to-end tests cover primary user flows once fully implemented | P1 |
-| PL_TV_16 | Plan phase defines appropriate coverage targets for the project | P1 |
+| PL_TV_16 | Plan session defines appropriate coverage targets for the project | P1 |
 | PL_TV_17 | Mutation testing used to verify test quality where tooling supports it | P2 |
 | PL_TV_18 | Fuzz testing applied to input parsing, data processing, and security-sensitive paths | P2 |
 
@@ -704,7 +704,7 @@ Testing and verification requirements that the plan phase should include in targ
 | 6 | Metrics and analytics dashboard | Track iteration completion times, verification pass rates, blocker rates, and refinement cycles to identify bottlenecks |
 | 7 | Skip entire iterations | Allow users to skip entire iterations (not just individual criteria), adding a `skipped` lifecycle state with rationale tracking |
 | 8 | Learnings graduation to CLAUDE.md | During refine, learnings that prove consistently useful get promoted into the project's `CLAUDE.md`. Once graduated, the original entry is marked as absorbed. Keeps learnings.md manageable as high-value entries migrate to the always-loaded project config. |
-| 9 | Learnings curation during refine | The refine phase explicitly curates learnings: consolidate duplicates, remove entries that are no longer true (codebase changed), merge related entries. Bounded growth rather than unbounded append-only. |
+| 9 | Learnings curation during refine | The refine session explicitly curates learnings: consolidate duplicates, remove entries that are no longer true (codebase changed), merge related entries. Bounded growth rather than unbounded append-only. |
 | 10 | Smart test suite execution strategy | Revisit the green-step test execution strategy as projects grow. Current approach: tier by suite speed (fast = full suite every green step, slow = targeted tests per criterion + full suite at phase end). Future options to explore: batched full runs every N criteria, checkpoint-based runs when switching modules/subsystems, test impact analysis to run only affected tests, parallel test execution, and letting the agent learn optimal thresholds per project. |
 | 11 | Self-improvement via runtime artifact analysis | A separate skill or mode that analyzes plet's own runtime artifacts (progress, learnings, emergent, trace) to identify patterns, bottlenecks, and skill deficiencies — then proposes improvements to the plet PRD itself. Approved changes get implemented and plet receives a version bump. As models improve, the skill's instructions and heuristics go stale; this closes the feedback loop so plet evolves alongside the models it runs on. |
 
@@ -725,7 +725,7 @@ Testing and verification requirements that the plan phase should include in targ
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PL_SM_1 | Plan phase defines measurable success metrics for the target project | P0 |
+| PL_SM_1 | Plan session defines measurable success metrics for the target project | P0 |
 | PL_SM_2 | Metrics cover functional correctness (test pass rate, defect rate, defect escape rate — defects found after iteration marked complete) | P0 |
 | PL_SM_3 | Metrics include specific numeric targets, not vague qualifiers | P0 |
 | PL_SM_4 | Metrics cover code quality (linter warnings, format compliance, coverage targets). Watch for agent-specific code smells: dead code, placeholder comments, hallucinated APIs, duplicate code, over-commenting, magic numbers, deep nesting, swallowed errors, boilerplate inflation. | P1 |

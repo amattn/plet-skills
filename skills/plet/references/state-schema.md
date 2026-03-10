@@ -117,7 +117,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 |-------|------|----------|-------------|
 | `schemaVersion` | string | yes | Semver for schema evolution (SF_12). Independent of plet skill version. |
 | `lastUpdated` | string (ISO 8601) | yes | Timestamp of last write (SF_11) |
-| `projectId` | string | yes | Short project identifier. Format: `[A-Z][A-Z0-9]{2,5}` (3-6 chars, starts with letter, uppercase alphanumeric). User-chosen during plan phase. Used in branch names (`plet/{projectId}/loop{N}/...`) and tag names (`plet/{projectId}/loop{N}/audit/...`). |
+| `projectId` | string | yes | Short project identifier. Format: `[A-Z][A-Z0-9]{2,5}` (3-6 chars, starts with letter, uppercase alphanumeric). User-chosen during plan session. Used in branch names (`plet/{projectId}/loop{N}/...`) and tag names (`plet/{projectId}/loop{N}/audit/...`). |
 | `project.name` | string | yes | Project name |
 | `project.description` | string | no | Short project description |
 | `dependencyMap` | object | yes | `{iteration_id: [dependency_ids]}` — lightweight graph (SF_23) |
@@ -127,7 +127,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `breakpoints.after` | array of strings | no | Iteration IDs — orchestrator pauses after these (SF_21) |
 | `tagBeforeSquash` | boolean | no | Global default for audit tagging before squash. When `true`, agents create a git tag preserving incremental commits before squashing. Default `false`. Per-iteration state inherits this value at initialization. (EX_17) |
 | `loopSessionCount` | integer | no | Number of loop sessions invoked. Incremented at the start of each `/plet loop` invocation. Used in branch names (`loop1`, `loop2`). Default `0`. |
-| `refineSessionCount` | integer | no | Number of refine sessions completed. Incremented at the start of each refine phase entry. Used as the attempt number in refine-phase plet ID context segments (e.g., `r1`, `r2`). Default `0`. |
+| `refineSessionCount` | integer | no | Number of refine sessions completed. Incremented at the start of each refine session entry. Used as the attempt number in refine-session plet ID context segments (e.g., `r1`, `r2`). Default `0`. |
 | `sessionHistory` | array | no | Append-only ledger of session transitions. Each entry: `{type, session, branch, startedAt, endedAt}`. `type` is `"loop"` or `"refine"`. `session` matches `loopSessionCount` or `refineSessionCount`. `branch` is the workstream branch for this session. `endedAt` is `null` while the session is active. Last entry is the current session; previous entry is the parent branch. Default `[]`. (OR_14) |
 | `iterationsFingerprint` | object | yes | Iterations fingerprint — embeds `requirementsFingerprint`, plus `lastNonTrivialUpdate` timestamp and iteration IDs grouped by milestone (SY_2, SY_3) |
 

@@ -338,8 +338,8 @@ The plan phase incorporates these developer experience items into the target pro
 |----|-------------|----------|-------|
 | PL_DX_15 | Target project has a CLAUDE.md capturing conventions, key files, agent-relevant context | P0 | |
 | PL_DX_16 | Target project has a README with overview, setup instructions, and how to run tests | P0 | |
-| PL_DX_17 | Plan phase maintains a living notes document (`NOTES.md`) capturing decisions, rationale, rejected alternatives, key insights, open questions. The plet notes skill (separate, not yet written) can assist with structured notes management. | P0 | |
-| PL_DX_23 | Plan phase identifies and recommends relevant skills for the target stack | P1 | |
+| PL_DX_17 | Plan session maintains a living notes document (`NOTES.md`) capturing decisions, rationale, rejected alternatives, key insights, open questions. The plet notes skill (separate, not yet written) can assist with structured notes management. | P0 | |
+| PL_DX_23 | Plan session identifies and recommends relevant skills for the target stack | P1 | |
 
 ---
 
@@ -384,7 +384,7 @@ The plan phase must specify verification commands for the target project:
 | PL_TV_13 | Test names include the requirement ID they verify | P1 |
 | PL_TV_14 | Integration tests cover component boundaries and API surfaces | P1 |
 | PL_TV_15 | End-to-end tests cover primary user flows once fully implemented | P1 |
-| PL_TV_16 | Plan phase defines appropriate coverage targets for the project | P1 |
+| PL_TV_16 | Plan session defines appropriate coverage targets for the project | P1 |
 | PL_TV_17 | Mutation testing to verify test quality where tooling supports it | P2 |
 | PL_TV_18 | Fuzz testing for input parsing, data processing, and security-sensitive paths | P2 |
 

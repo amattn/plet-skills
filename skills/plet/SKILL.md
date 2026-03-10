@@ -39,6 +39,19 @@ When IDs appear in filenames (e.g., `ID_001.json`, `ID_001-impl-1.ndjson`), the 
 
 Agents prefer making a decision and documenting it in `emergent.md` over blocking. Blocking is reserved for situations where no reasonable decision can be made without human input. When a blocker occurs, it must be documented across all four artifact types (progress, learnings, emergent, trace) before the agent returns.
 
+### Vocabulary
+
+```
+project (LOGA)
+  └─ session (plan, loop1, refine1, loop2, ...)
+       └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
+            └─ phase (impl, verify)
+```
+
+- **Session** = a `/plet` invocation: plan session, loop session, refine session
+- **Iteration** = a unit of work with acceptance criteria (loop sessions only)
+- **Phase** = impl or verify within an iteration (not plan/loop/refine)
+
 ---
 
 ## The Job
@@ -108,7 +121,7 @@ Any iterations lifecycle: blocked AND none queued/implementing?
 
 ### First Invocation Bootstrap
 
-If the `plet/` directory does not exist, create the full directory structure and empty runtime artifact files before entering the Plan phase:
+If the `plet/` directory does not exist, create the full directory structure and empty runtime artifact files before entering a Plan session:
 
 ```
 plet/
@@ -122,7 +135,7 @@ plet/
 └── trace/                   # trace NDJSON files
 ```
 
-Runtime artifact files (`progress.md`, `learnings.md`, `emergent.md`) are initialized with a header, plet version, and blank line. Plan artifacts (`requirements.md`, `iterations.md`, `state.json`) are created during the Plan phase workflow.
+Runtime artifact files (`progress.md`, `learnings.md`, `emergent.md`) are initialized with a header, plet version, and blank line. Plan artifacts (`requirements.md`, `iterations.md`, `state.json`) are created during the Plan session workflow.
 
 ---
 
@@ -222,7 +235,7 @@ Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`
 **Before entering:** Read `plet/requirements.md` if it exists (offer to update rather than replace). Read `plet/emergent.md` for pending items and `plet/learnings.md` for patterns — triage and incorporate before planning.
 
 **Orchestrator actions:**
-1. Read `references/plan.md` for the full plan phase workflow
+1. Read `references/plan.md` for the full plan session workflow
 2. Follow its instructions for clarifying questions, requirements generation, iteration decomposition, and review
 3. Each approved section is written to disk immediately — the file on disk is the source of truth
 4. After all iterations are approved, initialize `plet/state.json` with the dependency map, fingerprints, and per-iteration state files
@@ -270,7 +283,7 @@ Interactive, human-driven. Triages emergent items, updates spec, re-plans.
 
 **Orchestrator actions:**
 1. Increment `refineSessionCount` in `plet/state.json`. Branch from the previous session's workstream (the last entry in `sessionHistory`). Create `plet/{projectId}/refine{N}/workstream` (where `{N}` is the new `refineSessionCount`). Append to `sessionHistory`: `{type: "refine", session: N, branch: "plet/{projectId}/refine{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. All spec changes during this refine session are committed here.
-2. Read `references/refine.md` for the full refine phase workflow
+2. Read `references/refine.md` for the full refine session workflow
 3. Follow its instructions for emergent triage, blocked iteration review, spec updates, and re-planning
 4. After changes, update fingerprints across all three plan artifacts
 5. Offer to resume the loop with `/plet loop`
@@ -296,7 +309,7 @@ The orchestrator is the longest-lived agent and most vulnerable to context compa
 4. Read the last entry in `sessionHistory` to determine the current phase and branch
 5. Run `git branch --show-current` to confirm branch matches expected state
 6. Write a new canary entry to `plet/progress.md` noting recovery
-7. Resume from step 2 of the loop phase (identify eligible iterations)
+7. Resume from step 2 of the loop session (identify eligible iterations)
 
 ---
 

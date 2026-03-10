@@ -40,6 +40,19 @@ The loop continues until all iterations are `complete` or `blocked`. Refine can 
 | **breakpoint** | A pause point — the orchestrator stops before or after a specific iteration and waits for human input. |
 | **emergent item** | Something discovered during execution that wasn't in the spec — a design decision, requirement gap, assumption, or edge case. Triaged during refine. |
 
+## Vocabulary
+
+```
+project (LOGA)
+  └─ session (plan, loop1, refine1, loop2, ...)
+       └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
+            └─ phase (impl, verify)
+```
+
+- **Session** = a `/plet` invocation: plan session, loop session, refine session
+- **Iteration** = a unit of work with acceptance criteria (loop sessions only)
+- **Phase** = impl or verify within an iteration (not plan/loop/refine)
+
 ## Artifact Taxonomy
 
 All artifacts produced and consumed by plet, organized by category.
@@ -74,7 +87,7 @@ my-project/                             # target project root
 
 ### Categories
 
-**1. Spec artifacts** (human-created during plan phase)
+**1. Spec artifacts** (human-created during plan session)
 - `plet/requirements.md` — PRD with requirement IDs, fingerprint
 - `plet/iterations.md` — iteration definitions, dependencies, acceptance criteria, fingerprint
 

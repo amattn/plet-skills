@@ -103,7 +103,7 @@ Not every observation needs to become policy immediately. Capture it first, prom
 
 After making changes, run a consistency pass appropriate to the scope. Default to flavors 1-3 (no special permissions needed). Only use flavor 4 for conceptual reframes.
 
-> **Note:** Consistency passes are primarily a PRD/spec concern — keeping documentation, schemas, and format definitions aligned — but the same flavors apply to implementation and code. We are trying out these formalized flavors in this repo. If they work well, they may be added to the PL_DX requirements so plet's plan phase teaches them to target projects.
+> **Note:** Consistency passes are primarily a PRD/spec concern — keeping documentation, schemas, and format definitions aligned — but the same flavors apply to implementation and code. We are trying out these formalized flavors in this repo. If they work well, they may be added to the PL_DX requirements so plet's plan session teaches them to target projects.
 
 > **Discovery request:** As you use consistency passes, note what keeps drifting (which files, which patterns, which flavors catch it). Record observations in NOTES.md under "Open Questions > Consistency checking as a skill?" — this data will inform whether to build a dedicated skill or subcommand.
 

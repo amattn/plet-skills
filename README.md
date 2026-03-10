@@ -37,11 +37,11 @@ plet is a Claude Code skill that provides a spec-driven autonomous development l
 
 ### Using plet
 
-**Starting a new project:** Invoke `/plet` in a fresh project. The skill enters the Plan phase — asks clarifying questions, generates a requirements draft, and presents each feature area for review. Once approved, it breaks requirements into iterations with dependencies, presents those for review, initializes state, and offers to start building.
+**Starting a new project:** Invoke `/plet` in a fresh project. The skill enters a Plan session — asks clarifying questions, generates a requirements draft, and presents each feature area for review. Once approved, it breaks requirements into iterations with dependencies, presents those for review, initializes state, and offers to start building.
 
 **The autonomous loop:** Strongly inspired by Ralph loops, the autonomous loop is designed to run for hours unattended. Once execution starts, plet identifies eligible iterations and spawns implementation subagents (in parallel if independent). Each subagent implements with red/green discipline, updating state and artifacts in real time. On completion, a verification subagent spawns in a fresh context and independently confirms acceptance criteria. If verification passes, the iteration is marked complete (frozen — never modified again) and merged. If it fails, it cycles back to implementation with new criteria. The orchestrator re-evaluates and spawns the next eligible iterations.
 
-**Refinement:** When the loop completes, blocks, or the user wants to check in, `/plet` routes to the Refine phase. The skill presents pending emergent items one by one for triage — the user can approve, modify, reject, or defer each. Blocked iterations are surfaced with full context from all four artifact types. After triage, the skill updates the spec, modifies unfrozen iterations or creates new ones to reflect the changes, and offers to resume execution.
+**Refinement:** When the loop completes, blocks, or the user wants to check in, `/plet` routes to a Refine session. The skill presents pending emergent items one by one for triage — the user can approve, modify, reject, or defer each. Blocked iterations are surfaced with full context from all four artifact types. After triage, the skill updates the spec, modifies unfrozen iterations or creates new ones to reflect the changes, and offers to resume execution.
 
 ### Project Structure
 
@@ -149,7 +149,7 @@ plet draws from three sources:
 - PRD decomposition into agent-sized, iterable chunks
 - Runtime artifacts (progress.md, etc.) — structured output that outlives the agent session
 - State tracking via prd.json — machine-readable iteration status persisted to disk
-- Snarktank's numbered-letter Q&A system for interactive clarification — adopted by plet's plan phase
+- Snarktank's numbered-letter Q&A system for interactive clarification — adopted by plet's plan session
 
 ### Where Ralph loops fell short
 - No verification phase — no independent check that work was done correctly
@@ -180,11 +180,11 @@ plet draws from three sources:
 ### What plet adds
 - Self-sufficient orchestration — runs natively inside Claude Code, no external harness or runner
 - Single entry point (`/plet`) with state-driven routing — user never needs to remember which phase they're in
-- Interactive plan phase with human steering built in — PRD creation and iteration decomposition in one flow
+- Interactive plan session with human steering built in — PRD creation and iteration decomposition in one flow
 - Dependency graph with parallel execution — not strictly sequential
 - Split state architecture with lifecycle phases, agent activity, heartbeats, and two-state-per-criterion model
 - Real-time agent activity state — GUI can show what the agent is doing, not just pass/fail
-- Built-in refine phase — triages emergent items, updates the spec, re-plans
+- Built-in refine session — triages emergent items, updates the spec, re-plans
 - Living spec — improves as agents discover gaps, not a static document
 - Four runtime artifacts (PLET) with distinct audiences — not just a log file
 

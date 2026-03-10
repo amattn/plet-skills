@@ -127,7 +127,7 @@ Identify implemented behavior that isn't covered by the spec:
 - Assumptions baked into the implementation that aren't documented
 - Edge cases handled in code but not specified
 
-Flag each as an emergent item for the refine phase.
+Flag each as an emergent item for a refine session.
 
 ---
 

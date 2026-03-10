@@ -21,7 +21,7 @@ The core skill file. Single entry point `/plet` with routing logic based on stat
 **File:**
 - `skills/plet/SKILL.md`
 
-**Validation checkpoint:** Invoke `/plet` on a fresh project and confirm it routes to the plan phase. Invoke `/plet status` and confirm it reports no state found.
+**Validation checkpoint:** Invoke `/plet` on a fresh project and confirm it routes to a plan session. Invoke `/plet status` and confirm it reports no state found.
 
 ---
 
@@ -220,7 +220,7 @@ First real-world usage of plet (logalyzer example) revealed 13 improvement recom
 - **Phase A:** Apply quick fixes to reference files (R_9 non-blocking, R_1/R_2 intermediate commits/state, R_3 one-verify-one-commit, R_7 mandatory learnings/emergent) and design decisions (R_4–R_6 tag lifecycle, project IDs, branch conventions)
 - **Phase B:** Re-run logalyzer from plan checkpoint (`7cecbf5`) with improved plet
 - **Phase C:** Compare Run 1 vs Run 2, identify impact of changes
-- **Phase D:** Broader testing (refine phase, harder project, case study template)
+- **Phase D:** Broader testing (refine session, harder project, case study template)
 
 **Current status:** Phase A in progress — applying quick fixes to execute.md and verify.md.
 

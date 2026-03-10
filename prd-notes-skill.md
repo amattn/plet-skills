@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A description of the **living development notes** pattern we've been using during plet-skills development. This document captures the pattern so it can be formalized into a skill or incorporated into plet's plan phase.
+A description of the **living development notes** pattern we've been using during plet-skills development. This document captures the pattern so it can be formalized into a skill or incorporated into plet's plan session.
 
 ## The Problem
 
@@ -143,5 +143,5 @@ NOTES.md sits between the project config (CLAUDE.md) and the spec (PRD). It's th
 
 This pattern could be formalized as:
 - A standalone skill (`/notes`) that maintains development notes
-- Part of plet's plan phase (PL_DX_17 already references this: "plan phase maintains a living notes document")
+- Part of plet's plan session (PL_DX_17 already references this: "plan session maintains a living notes document")
 - A CLAUDE.md convention that any planning skill should follow

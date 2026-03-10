@@ -238,7 +238,7 @@ The OAuth provider's sandbox environment returns HTTP 500 on all token refresh r
 ## emergent.md (RT_3)
 
 **Audience:** Humans
-**Purpose:** Items that need human attention — design decisions made without human input, requirement gaps, assumptions, scope questions, edge cases. Surfaced during the Refine phase (RT_9).
+**Purpose:** Items that need human attention — design decisions made without human input, requirement gaps, assumptions, scope questions, edge cases. Surfaced during a Refine session (RT_9).
 
 ### Entry Format
 
@@ -270,12 +270,12 @@ Emergent items use `EM_N` IDs with append-only numbering (GC_1). The next availa
 | Outcome | Set by | Meaning |
 |---------|--------|---------|
 | `pending` | Agent | Awaiting human triage |
-| `approved` | Human (refine phase) | Incorporated into spec as-is |
-| `approved with changes` | Human (refine phase) | Incorporated with modifications |
-| `rejected` | Human (refine phase) | Agent's assumption was wrong |
-| `deferred` | Human (refine phase) | Left for later; added to Open Questions |
+| `approved` | Human (refine session) | Incorporated into spec as-is |
+| `approved with changes` | Human (refine session) | Incorporated with modifications |
+| `rejected` | Human (refine session) | Agent's assumption was wrong |
+| `deferred` | Human (refine session) | Left for later; added to Open Questions |
 
-Agents always set `Outcome: pending`. Only the Refine phase (human-driven) changes the outcome.
+Agents always set `Outcome: pending`. Only the Refine session (human-driven) changes the outcome.
 
 ### Example
 
