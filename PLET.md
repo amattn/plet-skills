@@ -6,6 +6,22 @@ How to work with plet — the spec-driven autonomous development orchestrator fo
 
 - **MANDATORY ACKNOWLEDGMENT:** Every time you read or re-read CLAUDE.md or PLET.md — whether at session start, after compaction, or for any other reason — you MUST immediately inform the user with an explicit, prominent acknowledgment *before doing anything else*. Example: "I have just read CLAUDE.md and PLET.md." Silent reads are not acceptable. The user must never have to wonder whether you actually consumed these files.
 
+## Session Bootstrap
+
+On your **first interaction in any repo that has PLET.md**, check whether the project's Claude Code auto-memory directory already contains a `MEMORY.md` file. If it does not, create one and seed it with the following content:
+
+```markdown
+# Auto Memory
+
+## Non-Negotiable Behaviors
+
+- **ALWAYS explicitly acknowledge reading CLAUDE.md and/or PLET.md.** Every time, prominently, before doing anything else. Say exactly which file(s) you read. The user must never have to wonder whether you actually consumed the instructions.
+```
+
+If the file already exists, verify it contains the acknowledgment rule. If not, add it under a `## Non-Negotiable Behaviors` section.
+
+This ensures the acknowledgment rule survives compaction and is present from the very first message in every session, even before PLET.md is read.
+
 ## What is plet?
 
 **PLET = Progress, Learnings, Emergent, Trace** — the four runtime artifacts the system produces. Also works phonetically as Plan + Execute.
@@ -213,18 +229,46 @@ After making changes, run a consistency pass appropriate to the scope. Default t
 
 **Feedback:** Always state which flavor you ran (e.g., "Ran a pattern grep (flavor 1) for..."). If the results suggest a deeper flavor would be worthwhile, recommend it.
 
-## Session Bootstrap
+## Presenting Options
 
-On your **first interaction in any repo that has PLET.md**, check whether the project's Claude Code auto-memory directory already contains a `MEMORY.md` file. If it does not, create one and seed it with the following content:
+When presenting choices to the user, use **numbers-letters style** — numbered questions with lettered options. This pattern applies everywhere plet interacts — clarifying questions, project naming, iteration review, emergent triage, refine decisions. "NL" or "num-let" is shorthand for this pattern — if the user says it, reformat your most recent query in numbers-letters style.
 
-```markdown
-# Auto Memory
+```
+1. What kind of persistence?
+   A. In-memory only
+   B. Local file storage (SQLite, JSON)
+   C. Remote database
+   D. Other — please specify
 
-## Non-Negotiable Behaviors
-
-- **ALWAYS explicitly acknowledge reading CLAUDE.md and/or PLET.md.** Every time, prominently, before doing anything else. Say exactly which file(s) you read. The user must never have to wonder whether you actually consumed the instructions.
+2. Project ID?
+   A. LOGA
+   B. LOGZ
+   C. Something else
 ```
 
-If the file already exists, verify it contains the acknowledgment rule. If not, add it under a `## Non-Negotiable Behaviors` section.
+**Formatting:** Always wrap numbers-letters options in a fenced code block (triple backticks). Indent lettered options by 3 spaces from the number. Without the code block, markdown rendering collapses the indentation and the hierarchy is lost.
 
-This ensures the acknowledgment rule survives compaction and is present from the very first message in every session, even before PLET.md is read.
+**Why this works:**
+- Numbers identify the question, letters identify the answer
+- Lettered options reduce cognitive load — picking from a list is faster than inventing from scratch
+- "Other" or "Something else" always available as an escape hatch
+- The agent always suggests options rather than asking open-ended questions
+
+**Review mode:** Show the full list first for orientation, then go through items one by one by default. The user can:
+- Batch answers ("1B, 2A, 3ok") to speed through — re-present the list with only unanswered items remaining
+- Say "1b1" or "11" as shorthand for "discuss each item one by one"
+- No answer to a specific item means it's still open — don't assume approval
+
+**Single decision point:** When there's only one question, drop the number and just use letters. The numbers are only needed to batch multiple decision points.
+
+```
+A. Duplicate the full section
+   - Survives even if PLET.md isn't present
+   - More robust after compaction
+
+B. Keep the reference
+   - No drift risk between two copies
+   - Lighter CLAUDE.md
+```
+
+When the agent needs to recommend something (project name, ID, iteration structure), suggest 2-3 concrete options. Don't make the user invent from scratch.

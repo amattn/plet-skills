@@ -50,7 +50,7 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 
 ## Preferences
 
-- When presenting a list of items for review, **show the full list first** for orientation, then **go through them one by one** by default. The user can reply with batch answers (e.g., "1A, 2B, 3ok") to speed through, but no answer or "ok" to the list means proceed one by one. **"1b1"** or **"11"** is shorthand for "one by one."
+- Use **numbers-letters style** when presenting choices (see PLET.md § Presenting Options). **"NL"** or **"num-let"** means reformat the most recent query in this style. **"1b1"** or **"11"** means "discuss each item one by one." Partial batch answers (e.g., "1A, 3ok") — re-present with only unanswered items remaining. No answer to a specific item means it's still open — don't assume approval.
 - Use underscore format for all IDs: `XX_N` (e.g., `FR_1`, `PL_3`). Sub-groups: `XX_YY_N`.
 - Never use JavaScript or TypeScript in examples. Prefer Python or Go.
 - When reviewing PRD sections, always ask "anything to add, change, or remove?" and offer "ok" to approve.

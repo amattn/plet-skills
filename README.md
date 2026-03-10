@@ -149,7 +149,7 @@ plet draws from three sources:
 - PRD decomposition into agent-sized, iterable chunks
 - Runtime artifacts (progress.md, etc.) — structured output that outlives the agent session
 - State tracking via prd.json — machine-readable iteration status persisted to disk
-- Snarktank's numbered-letter Q&A system for interactive clarification — adopted by plet's plan session
+- Snarktank's numbers-letters Q&A system for interactive clarification — adopted by plet's plan session
 
 ### Where Ralph loops fell short
 - No verification phase — no independent check that work was done correctly

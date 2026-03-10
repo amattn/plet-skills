@@ -255,7 +255,7 @@ All branches and tags are namespaced under `plet/{projectId}/`. Agents never com
 
 #### Project ID (R_6)
 
-Short project identifier defined during plan session (Step 2, alongside project name), stored in `state.json` as `projectId`. Used in branch names, tag names, and potentially state file paths (e.g., `plet/LOGA/workstream`). Agent suggests 2-3 options using the numbered-letter style; user picks or overrides.
+Short project identifier defined during plan session (Step 2, alongside project name), stored in `state.json` as `projectId`. Used in branch names, tag names, and potentially state file paths (e.g., `plet/LOGA/workstream`). Agent suggests 2-3 options using the numbers-letters style; user picks or overrides.
 
 **Format:** `[A-Z][A-Z0-9]{2,5}` — 3-6 characters, starts with a letter, uppercase alphanumeric only. User-chosen during plan session.
 
@@ -691,7 +691,7 @@ plet draws from three sources:
 - PRD decomposition into agent-sized, iterable chunks
 - Runtime artifacts (progress.md, etc.) — structured output that outlives the agent session
 - State tracking via prd.json — machine-readable iteration status persisted to disk
-- Snarktank's numbered-letter Q&A system for interactive clarification — adopted by plet's plan session
+- Snarktank's numbers-letters Q&A system for interactive clarification — adopted by plet's plan session
 
 ### Where Ralph loops fell short
 - No verification phase — no independent check that work was done correctly
@@ -846,6 +846,10 @@ Comfortable for now across all phases. If context pressure becomes an issue, edg
 ### Consistency drift patterns
 
 As consistency passes are used, note what keeps drifting (which files, which patterns, which flavors catch it). This data will inform whether to build a dedicated skill or subcommand.
+
+### Post-compaction recovery effectiveness
+
+The three-layer compaction defense (CLAUDE.md POST-COMPACTION RULE → PLET.md MANDATORY ACKNOWLEDGMENT → auto-memory MEMORY.md) appears to be working. Observed 2 compactions in a single session (2026-03-09) — both times, the agent immediately produced "I have just read CLAUDE.md and PLET.md." without prompting. This is the canary behaving as designed, not a false positive: the agent re-read the files and acknowledged before continuing work. Continue monitoring across sessions and across different repos to confirm reliability.
 
 ---
 
