@@ -533,6 +533,19 @@ Case studies live in `case_studies/` at project root. Considered: `examples/` (m
 
 Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from commit `7cecbf5` ("example: after plan") — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan session output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
 
+#### FEEDBACK.md formalization (R_12) — DECIDED (2026-03-10)
+
+FEEDBACK.md captures meta-observations about plet itself (process issues, instruction gaps, tooling friction). Distinct from learnings.md (target project) and emergent.md (execution discoveries).
+
+Key decisions:
+- **Who writes:** Humans only. Agents write to emergent.md; humans recognize which items are plet-process issues and promote them to FEEDBACK.md.
+- **When:** During refine sessions or anytime the human notices a plet-process issue.
+- **Format:** Tagged — `FB_N: Title [tag1] [tag2]` + description paragraph. Seeded tags: autonomy, state, git, artifacts, timing, prompting, config. New tags welcome.
+- **Mutability:** Editable. Resolved entries marked `[resolved]` with promotion target. Kept for history.
+- **Promotion path:** Depends on the item — CLAUDE.md/PLET.md (rule), config artifact (setting), PRD (requirement), reference files (agent behavior).
+- **Location:** Project root alongside CLAUDE.md, PLET.md, NOTES.md.
+- **Rejected:** Agents writing directly to FEEDBACK.md — they can't reliably distinguish plet-process issues from project issues. The human is the filter.
+
 ### Vocabulary and taxonomy — DECIDED
 
 Standardized hierarchy to eliminate overloaded terms. See **Taxonomy > Vocabulary Hierarchy** for the canonical definitions.
@@ -668,7 +681,7 @@ project (LOGA)
 - `CLAUDE.md` — project-specific instructions
 - `PLET.md` — plet-specific instructions
 - `NOTES.md` — decisions, rationale, open questions
-- `FEEDBACK.md` — field observations about working with plet (planned)
+- `FEEDBACK.md` — meta-observations about plet itself (process issues, instruction gaps, tooling friction)
 
 **7. Configuration** (per-project behavior modification)
 - Modify planner, refiner, execute agent, verify agent behavior
@@ -947,8 +960,8 @@ What goes in PLET.md vs CLAUDE.md? PLET.md is plet-specific instructions that ap
 
 **Draft (2026-03-09):** PLET.md created and populated with initial content. Sections copied (generalized, not moved) from CLAUDE.md: Common Misspellings (plet-specific subset), Decision Discipline, Consistency Pass Flavors. New sections added that belong only in PLET.md (not CLAUDE.md): What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (incorporating the full 7-category taxonomy from NOTES.md with a directory tree showing the full target project root), Commit Conventions (target projects), and a placeholder Critical Requirements & Invariants section. Overlap between CLAUDE.md and PLET.md is expected and acceptable per the existing rule.
 
-### FEEDBACK.md shape and workflow
-How does FEEDBACK.md get triaged? Who writes to it — agents, humans, both? What's the promotion path from feedback → memory or config artifact? See Artifact Taxonomy § Memory.
+### FEEDBACK.md shape and workflow — RESOLVED
+Resolved 2026-03-10. See Key Design Decisions § FEEDBACK.md formalization.
 
 ### Configuration artifact shape
 Per-project behavior modification for planner, refiner, execute agent, and verify agent. No files or format defined yet. Key questions: one file or per-phase files? Declarative (key-value) or prose instructions? How does it compose with reference files? See Artifact Taxonomy § Configuration.

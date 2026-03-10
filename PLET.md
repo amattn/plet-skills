@@ -80,7 +80,7 @@ my-project/                             # target project root
 ├── CLAUDE.md                           # memory: project-specific instructions
 ├── PLET.md                             # memory: plet-specific instructions
 ├── NOTES.md                            # memory: decisions, rationale, open questions
-├── FEEDBACK.md                         # memory: field observations (planned)
+├── FEEDBACK.md                         # memory: meta-observations about plet itself
 ├── src/                                # target project source (whatever structure the project uses)
 ├── tests/                              # target project tests
 ├── ...                                 # other target project files
@@ -132,7 +132,7 @@ my-project/                             # target project root
 - `CLAUDE.md` — project-specific instructions
 - `PLET.md` — plet-specific instructions
 - `NOTES.md` — decisions, rationale, open questions
-- `FEEDBACK.md` — field observations about working with plet (planned)
+- `FEEDBACK.md` — meta-observations about plet itself (process issues, instruction gaps, tooling friction)
 
 **7. Configuration** (per-project behavior modification)
 - Modify planner, refiner, execute agent, and verify agent behavior
@@ -229,9 +229,39 @@ After making changes, run a consistency pass appropriate to the scope. Default t
 
 **Feedback:** Always state which flavor you ran (e.g., "Ran a pattern grep (flavor 1) for..."). If the results suggest a deeper flavor would be worthwhile, recommend it.
 
+## FEEDBACK.md
+
+`FEEDBACK.md` captures meta-observations about plet itself — process issues, instruction gaps, tooling friction. It is distinct from `learnings.md` (which captures knowledge about the *target project*) and `emergent.md` (which captures items discovered during execution for human triage).
+
+**Who writes:** Humans only. Agents write to `emergent.md` when they encounter issues; the human recognizes which emergent items are plet-process issues (vs. project issues) and promotes them to `FEEDBACK.md` during refine sessions or anytime they notice a pattern.
+
+**Entry format:** Tagged — ID, title, category tags, description.
+
+```
+### FB_3: Autonomous agents asked for confirmation [autonomy] [blocking]
+
+Autonomous subagents asked "should I proceed?" once or twice during
+execution. This is effectively blocking — autonomous agents should
+never prompt for human input. The whole point of the loop is
+unattended execution.
+```
+
+**Suggested tags** (new tags welcome):
+`[autonomy]`, `[state]`, `[git]`, `[artifacts]`, `[timing]`, `[prompting]`, `[config]`
+
+**Mutability:** Editable. Resolved entries are marked `[resolved]` with a note on where the insight was promoted (e.g., "→ R_9 in execute.md"). Resolved entries stay for history but can be removed during cleanup.
+
+**Promotion path:** Depends on the item:
+- → `CLAUDE.md` or `PLET.md` (becomes a rule or convention)
+- → config artifact (becomes a per-project setting)
+- → PRD (becomes a requirement change)
+- → reference files (becomes agent behavior)
+
+**ID convention:** `FB_N` — append-only numbering, never reuse.
+
 ## Presenting Options
 
-When presenting choices to the user, use **numbers-letters style** — numbered questions with lettered options. This pattern applies everywhere plet interacts — clarifying questions, project naming, iteration review, emergent triage, refine decisions. "NL" or "num-let" is shorthand for this pattern — if the user says it, reformat your most recent query in numbers-letters style.
+When presenting choices to the user, use **numbers-letters style** — numbered questions with lettered options. This pattern applies everywhere plet interacts — clarifying questions, project naming, iteration review, emergent triage, refine decisions. "NL" or "num-let" is shorthand for this pattern — if the user says it, reformat your most recent query in numbers-letters style. "NLR" means numbers-letters with your recommendations — present the options and state which you'd pick and why.
 
 ```
 1. What kind of persistence?

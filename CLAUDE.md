@@ -50,7 +50,7 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 
 ## Preferences
 
-- Use **numbers-letters style** when presenting choices (see PLET.md § Presenting Options). **"NL"** or **"num-let"** means reformat the most recent query in this style. **"1b1"** or **"11"** means "discuss each item one by one." Partial batch answers (e.g., "1A, 3ok") — re-present with only unanswered items remaining. No answer to a specific item means it's still open — don't assume approval.
+- Use **numbers-letters style** when presenting choices (see PLET.md § Presenting Options). **"NL"** or **"num-let"** means reformat the most recent query in this style. **"NLR"** means numbers-letters with your recommendations. **"1b1"** or **"11"** means "discuss each item one by one." Partial batch answers (e.g., "1A, 3ok") — re-present with only unanswered items remaining. No answer to a specific item means it's still open — don't assume approval.
 - Use underscore format for all IDs: `XX_N` (e.g., `FR_1`, `PL_3`). Sub-groups: `XX_YY_N`.
 - Never use JavaScript or TypeScript in examples. Prefer Python or Go.
 - When reviewing PRD sections, always ask "anything to add, change, or remove?" and offer "ok" to approve.
