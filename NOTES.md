@@ -970,6 +970,16 @@ Key questions:
 
 **Decision (2026-03-11):** The case study methodology/template file is agent directives (primary audience: agents producing case studies), not a human-facing directory index. Renamed to CLAUDE.md so Claude Code auto-loads it when agents work in the `case_studies/` directory. No separate README.md needed — the existing case studies table is in CLAUDE.md and agents get the instructions automatically without needing to be told "go read this file."
 
+#### Ban git stash in agents (FB_9) — DECIDED (2026-03-11)
+
+**Problem:** LIBT run agents used `git stash` during execution. Stashes are local-only, invisible to the orchestrator/other agents/external tools, and vulnerable to garbage collection. The case study archival process didn't capture them.
+
+**Decision:** Ban `git stash` entirely. Agents use incremental commits for crash recovery (EX_17 already requires this), making stashes redundant and strictly worse. Eliminates the archival problem at the source.
+
+**Alternative rejected:** Allow stashes but require cleanup or archival — adds complexity for zero benefit over incremental commits.
+
+**Changes:** execute.md (critical rule), verify.md (critical rule), prd.md (EX_17 clarification), case_studies/CLAUDE.md (checklist item retained for older runs), FEEDBACK.md (FB_9 resolved).
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).

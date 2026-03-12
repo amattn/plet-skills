@@ -162,6 +162,7 @@ Sources for timing data:
 - [ ] Parallel iteration handling — conflict mitigation strategies used?
 - [ ] Agent autonomy — any instances of agents asking for confirmation?
 - [ ] Commit hygiene — squashing, audit tags, proper messages?
+- [ ] Git stashes — did agents use `git stash`? Inventory with `git stash list` and analyze contents before they're lost to GC.
 - [ ] Human intervention required? When and why?
 
 ### Code Quality

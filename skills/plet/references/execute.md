@@ -12,6 +12,8 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Critical:** Never create merge commits. plet requires linear history for clean `git bisect` and audit trails. The verify agent handles rebase and fast-forward merge to the workstream after verification passes (EX_16).
 
+**Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (EX_17).
+
 ---
 
 ## Before You Start
