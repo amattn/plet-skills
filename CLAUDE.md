@@ -24,7 +24,7 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - `README.md` — project readme (core workflow, key concepts, comparison to Ralph loops)
 - `skills/plet/SKILL.md` — the plet skill (main orchestrator)
 - `PLAN.md` — build plan for implementing the skill
-- `case_studies/` — case studies from real plet runs (logalyzer, etc.)
+- `case_studies/` — case studies from real plet runs (logalyzer, etc.). **When asked to produce a case study, read `case_studies/CLAUDE.md` first** — it contains the standard template, required sections, and analysis checklists.
 
 ## Common Misspellings (voice input)
 

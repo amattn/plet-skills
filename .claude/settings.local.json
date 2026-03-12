@@ -5,10 +5,11 @@
       "Bash(git commit:*)",
       "Bash(git fetch:*)",
       "Bash(git status:*)",
+      "Bash(git tag:*)",
       "Bash(grep:*)",
+      "Bash(mkdir:*)",
       "Bash(wc:*)",
-      "WebFetch(domain:gist.github.com)",
-      "Bash(mkdir:*)"
+      "WebFetch(domain:gist.github.com)"
     ]
   }
 }
