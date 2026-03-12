@@ -390,13 +390,29 @@ Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
 
 Tag naming convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`
 
-### Merge to Workstream
+### Rebase and Merge to Workstream (EX_16)
 
-After squashing, merge the iteration branch to the loop workstream:
+**Green/rebase/green invariant:** Linear history is required — never create merge commits. Tests must be green before the rebase (already confirmed by Final Checks above) and again after the rebase, before the fast-forward merge.
+
+1. Rebase the iteration branch onto the current workstream tip:
+
+```
+git rebase plet/{projectId}/loop{N}/workstream
+```
+
+2. If the rebase has conflicts, resolve them. After resolution, re-run the full test suite, linter, and formatter. If tests fail post-rebase, fix the issue using red/green discipline, commit the fix, then re-squash (tag + squash as above, so the final result is still one commit per phase).
+
+3. Fast-forward merge to the workstream (must be `--ff-only` — if this fails, something went wrong with the rebase):
 
 ```
 git checkout plet/{projectId}/loop{N}/workstream
-git merge plet/{projectId}/loop{N}/{iteration_id}
+git merge --ff-only plet/{projectId}/loop{N}/{iteration_id}
+```
+
+4. Return to the iteration branch for state updates:
+
+```
+git checkout plet/{projectId}/loop{N}/{iteration_id}
 ```
 
 The iteration branch may be kept or deleted per project convention.

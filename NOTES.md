@@ -560,6 +560,52 @@ All agent-authored commits (impl, verify, merge, orchestrator) get a `Co-Authore
 
 Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from commit `7cecbf5` ("example: after plan") — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan session output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
 
+#### Logalyzer run 2 setup and run 1 archival (2026-03-10)
+
+**Context:** All FEEDBACK.md items (FB_1–FB_8) resolved. Ready for comparison run 2 with improved plet.
+
+**Key decisions:**
+
+- **Case study runs are not plet loops.** Branch naming should not conflate case study runs with actual plet lifecycle events. The `loop{N}` in branch names implies a plet session, but these are "same plan, different version of plet" comparison runs. Let plet pick its own branch names during execution — we only control the archival naming.
+- **Plan checkpoint branch:** Renamed `exmaple` (typo, but important) to `casestudy/logalyzer/plan-checkpoint`. Points at commit `7cecbf5` ("example: after plan") — the shared starting point for all comparison runs. Not run-specific; lives outside `run{N}/` namespace.
+- **Archive tag convention:** `casestudy/logalyzer/run{N}/branch/{original_branch_name}` — preserves the original branch name for traceability.
+
+**Discoveries during archival:**
+
+- **Run 1 archiving was incomplete.** 11 of 16 branches had been tagged previously; 4 were missing (ID_006, ID_007, ID_010, ID_012). Caught by systematically comparing local branches against existing tags.
+- **ID_007 had no branch at all** — it was already deleted without being tagged. The verify commit (`b279b73`) was reachable from other branches so it wasn't orphaned, but it had no dedicated tag. Created tag from the known commit.
+- **None of the run 1 iteration branches were merged into main.** The logalyzer implementation code lives entirely on iteration branches (now archived as tags). Main only has the case study analysis and plet skill improvements. This makes sense — the logalyzer code isn't the product, the plet observations are.
+- **5 of 8 existing tags matched their branch tips exactly.** Verified with `git rev-parse` comparison before deleting any branches. The 4 missing tags were created first, then all 8 branches deleted. Zero orphan commits, zero data loss.
+
+**Data loss verification process:**
+1. Listed all local branches and all tags
+2. For each branch to delete: checked if a matching tag existed and if SHAs matched
+3. For branches without tags: created tags at branch tips before deletion
+4. For ID_007 (no branch): confirmed commit `b279b73` was reachable and created tag
+5. Post-cleanup: verified local and origin tags matched (pushed 4 new tags)
+
+**Final state:** 4 local branches (`main`, `casestudy/logalyzer/plan-checkpoint`, 2 worktree-agent branches) + 16 archive tags on both local and origin.
+
+#### Linear history and green/rebase/green invariant (2026-03-10)
+
+**Problem:** Run 1 agents created merge commits (e.g., `3b825f4 Merge branch 'plet/loop/ID_006'`) despite PLET.md and SKILL.md specifying rebase + fast-forward. Root cause: verify.md had a plain `git merge` command (lines 395-402), contradicting the stated convention. execute.md had no mention of rebase at all.
+
+**Decision:** Linear history is a hard requirement, not a preference. Never create merge commits. Added the **green/rebase/green invariant**: all tests must pass before the rebase AND again after the rebase, before the fast-forward merge. This prevents silent breakage when two independently-green branches are combined.
+
+**Rationale:**
+- Linear history enables clean `git bisect` — critical for autonomous agents producing many iterations
+- Audit clarity — each commit tells a clear story, no merge bubbles
+- Green/rebase/green is the safety net that makes rebase trustworthy
+- Agent simplicity — rebase is simpler to reason about than merge conflict resolution in merge commits
+
+**Ownership:** The verify agent owns the rebase step (it already owned the merge-to-workstream step). Whoever performs the rebase is responsible for the green/rebase/green invariant. This keeps the orchestrator thin.
+
+**Changes made:**
+- **prd.md** (EX_16): strengthened from "strongly preferred" to "required", added green/rebase/green invariant, specified verify agent ownership
+- **verify.md**: replaced `git merge` with rebase + `git merge --ff-only`, added full green/rebase/green procedure including conflict resolution and re-squash
+- **execute.md**: added "never create merge commits" critical rule
+- **SKILL.md** and **PLET.md**: already correct, no changes needed
+
 #### FEEDBACK.md formalization (R_12) — DECIDED (2026-03-10)
 
 FEEDBACK.md captures meta-observations about plet itself (process issues, instruction gaps, tooling friction). Distinct from learnings.md (target project) and emergent.md (execution discoveries).
@@ -1012,6 +1058,16 @@ What goes in PLET.md vs CLAUDE.md? PLET.md is plet-specific instructions that ap
 
 ### FEEDBACK.md shape and workflow — RESOLVED
 Resolved 2026-03-10. See Key Design Decisions § FEEDBACK.md formalization.
+
+### Analyze OpenAI Symphony
+
+OpenAI's [Symphony](https://github.com/openai/symphony) framework looks like it has significant overlap with plet's approach. Need to analyze it and understand:
+- What concepts/patterns overlap with plet?
+- What does Symphony do differently?
+- Are there ideas worth incorporating?
+- How does plet differentiate?
+
+Priority: informational — not blocking any current work, but worth understanding the competitive landscape and potentially learning from their design choices.
 
 ### Configuration artifact shape
 Per-project behavior modification for planner, refiner, execute agent, and verify agent. No files or format defined yet. Key questions: one file or per-phase files? Declarative (key-value) or prose instructions? How does it compose with reference files? See Artifact Taxonomy § Configuration.
