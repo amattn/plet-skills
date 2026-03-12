@@ -105,7 +105,7 @@ Track **trends** — improved, regressed, no change.
 - **What worked well** — with evidence
 - **What didn't work well** — with evidence
 - **Surprises** — unexpected behaviors or outcomes
-- **Recommendations** — numbered (S_1, S_2, ...) with concrete options where applicable
+- **Recommendations** — numbered (S_1, S_2, ...) with concrete options where applicable. **Every recommendation must have a corresponding FB entry in FEEDBACK.md.** This is the pipeline: case study recommendation → FB entry → artifact changes → mark resolved → verify in next run. No recommendation should live only in the case study.
 - **Open questions** — things we still don't know
 
 ### Meta

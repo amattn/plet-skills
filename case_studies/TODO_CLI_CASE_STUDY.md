@@ -292,7 +292,7 @@ Each layer depends only on the one below it. No circular dependencies. This is e
 - Ruff-clean throughout (format + lint)
 
 **Minor observations:**
-- `_debug_number()` in storage.py uses `random.randint` — not cryptographically secure, but fine for debug numbers
+- **`_debug_number()` generates debug numbers at runtime — this is fundamentally wrong.** Debug numbers must be hardcoded literals so that grepping the codebase for a number seen in a log returns exactly one line of code. A function that generates random numbers at runtime defeats the entire purpose: when you see `error 847293651042` in a log, you should be able to `grep 847293651042 src/` and land on the exact line that produced it. With `random.randint`, the number is meaningless — it points nowhere. Generate debug numbers offline (e.g., `head -c 16 /dev/urandom | shasum | tr -cd '0-9' | cut -c1-12`) and paste them as literals.
 - Linear search for todo by ID (`for todo in todos`) — fine at this scale, would need indexing for thousands of items
 - No input sanitization on todo titles — acceptable for a personal CLI tool
 - `commands.py` at 176 lines with 4 commands is well-sized; the emergent items correctly note it could need splitting if more commands are added
@@ -328,7 +328,7 @@ Each layer depends only on the one below it. No circular dependencies. This is e
 
 1. **Consistency is almost too perfect.** Every module follows exactly the same docstring pattern, every error message follows the same format. A human would likely have minor inconsistencies — the uniformity reads as templated.
 
-2. **The `_debug_number` pattern is unusual.** Random 12-digit numbers in error messages is a spec requirement (DX_1), but it's not a common human pattern for a personal CLI tool. A human would more likely use a stack trace or a simple error message.
+2. **The `_debug_number` implementation is wrong.** The agent centralized debug number generation into a function that calls `random.randint` at runtime. This misunderstands the purpose of debug numbers entirely. Debug numbers must be hardcoded unique literals — each error site gets its own number, so grepping the codebase for a number seen in output returns exactly one result. A runtime generator produces untraceable numbers. The agent saw "debug numbers" in the spec and optimized for DRY (one function, no duplication) when the correct design is the opposite: every call site gets a unique, greppable constant.
 
 3. **Test naming is very systematic.** `test_todo_has_required_fields`, `test_add_todo_returns_next_id`, etc. — methodical and descriptive. A human might use shorter names or group tests differently.
 
@@ -462,7 +462,25 @@ Overall: the code would pass a code review without raising "was this AI-generate
 
 **S_6: Make state.json session timestamps real.** The `startedAt`/`endedAt` in state.json should be captured from actual wall-clock time, not synthesized as round numbers. These are important for timing analysis.
 
-**S_7: Investigate what made learnings/emergent work better.** This is the most important positive finding. Contributing factors likely include: (a) the R_7 fix mandating entries, (b) smaller project keeping agents in focused context, (c) Python's simpler toolchain reducing cognitive load. If (a) is the primary cause, the improvement should persist at scale. If (b) or (c), it may not.
+**S_7: Debug numbers must be hardcoded literals, not generated.** The agent created a `_debug_number()` function that generates random numbers at runtime. This makes debug numbers untraceable — you can't grep the codebase for a number seen in output. Debug numbers must be unique hardcoded constants at each error site, generated offline (e.g., `head -c 16 /dev/urandom | shasum | tr -cd '0-9' | cut -c1-12`). The invariant: grepping the codebase for any debug number seen in output must return exactly 1 result — not 0, not more than 1.
+
+**Root cause:** The agent saw "unique debug number" in the spec and applied DRY instincts — centralize into a function, avoid duplication. But debug numbers are an intentional exception to DRY: each call site *must* have its own unique literal. The agent's optimization was exactly backwards.
+
+**Why this matters for plet broadly:** Multiple artifacts actively tell agents to flag "magic numbers" and "hardcoded values" as code smells. This creates a direct conflict — an agent that correctly hardcodes debug numbers may then flag its own work (or have the verify agent flag it) as a code smell. The fix requires changes at multiple levels:
+
+Affected artifacts when implementing this fix:
+- **prd.md PL_DX_2** — currently says "unique random 12-digit debug number" but doesn't say "hardcoded literal." Needs to explicitly require hardcoded literals and explain the grep invariant.
+- **prd.md PL_SM_4** — flags "magic numbers/strings — hardcoded values without named constants" as a code smell. Needs an explicit exception for debug numbers.
+- **prd.md VF_9** — code quality checks. Needs to not flag debug number literals.
+- **verify.md Anti-Slop Bias (VF_12)** — lists "magic numbers, hardcoded values" as shortcut indicators. Needs a debug number exception.
+- **verify.md Code Quality (VF_9)** — code review checklist. Same exception needed.
+- **plan.md Code Quality (PL_SM_4)** — code smells list includes "Magic numbers/strings — hardcoded values without named constants." Same exception.
+- **formats.md** — the learnings pattern template at line 213-218 actually gets this right already ("hard-code it. Never reuse numbers"). This is the model for how other artifacts should describe it.
+- **NOTES.md** — line 1015 lists "Magic numbers or hardcoded values" as a code smell to watch. Same exception.
+
+The core tension: agents are trained to avoid hardcoded values, but debug numbers *require* hardcoded values. Every artifact that mentions "magic numbers" or "hardcoded values" as a smell needs a carve-out, or agents will keep centralizing debug numbers into generator functions.
+
+**S_8: Investigate what made learnings/emergent work better.** This is the most important positive finding. Contributing factors likely include: (a) the R_7 fix mandating entries, (b) smaller project keeping agents in focused context, (c) Python's simpler toolchain reducing cognitive load. If (a) is the primary cause, the improvement should persist at scale. If (b) or (c), it may not.
 
 ### Open Questions
 

@@ -415,9 +415,9 @@ All reference files live under `skills/plet/references/`:
 
 This skill uses semantic versioning (`major.minor.patch`) in the frontmatter `version` field. When updating this skill file, bump the version:
 
-- **Patch** (e.g., 0.1.0 → 0.1.1): Typo fixes, wording tweaks, minor clarifications
-- **Minor** (e.g., 0.1.1 → 0.2.0): Adding/removing sections, changing workflows, updating templates
-- **Major** (e.g., 0.2.0 → 1.0.0): Fundamental restructuring, breaking changes to state format or artifact formats
+- **Patch** (e.g., 1.4.2 → 1.4.3): Typo fixes, wording tweaks, minor clarifications
+- **Minor** (e.g., 1.4.3 → 1.5.0): Adding/removing sections, changing workflows, updating templates
+- **Major** (e.g., 2.3.4 → 3.0.0): Fundamental restructuring, breaking changes to state format or artifact formats
 
 ---
 

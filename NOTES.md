@@ -970,6 +970,18 @@ Key questions:
 
 **Decision (2026-03-11):** The case study methodology/template file is agent directives (primary audience: agents producing case studies), not a human-facing directory index. Renamed to CLAUDE.md so Claude Code auto-loads it when agents work in the `case_studies/` directory. No separate README.md needed — the existing case studies table is in CLAUDE.md and agents get the instructions automatically without needing to be told "go read this file."
 
+#### Case study → FEEDBACK.md pipeline formalized (2026-03-12)
+
+**Decision:** Every case study recommendation (S_1, R_1, etc.) must have a corresponding FB entry in FEEDBACK.md. FEEDBACK.md is the single intake queue — no recommendation lives only in a case study.
+
+**Resolution states:** `[resolved]` (committed), `[resolved, unverified]` (committed but not validated in a run), `[resolved, verified]` (confirmed working in a subsequent case study).
+
+**Pipeline:** case study recommendation → FB entry → artifact changes → mark resolved → verify in next run.
+
+**Where documented:** Brief rule in FEEDBACK.md intro, detailed process in case_studies/CLAUDE.md.
+
+**Observation:** LOGA R_7, R_8, R_10, R_11, R_12, R_13 bypassed FEEDBACK.md — went directly from case study to NOTES.md decisions to PLAN.md status. This left them with less tracking visibility. The new convention prevents this.
+
 #### Ban git stash in agents (FB_9) — DECIDED (2026-03-11)
 
 **Problem:** LIBT run agents used `git stash` during execution. Stashes are local-only, invisible to the orchestrator/other agents/external tools, and vulnerable to garbage collection. The case study archival process didn't capture them.
@@ -1267,7 +1279,7 @@ The consistency pass documentation went through a full draft → use → observe
 4. **Analyze** — reviewed actual usage and found: flavor 1+3 were always combined (→ Standard), flavor 2 (Deep) was never used standalone, the vocabulary cleanup used a miniplan pattern not in the taxonomy, and the numbered naming was awkward to say in conversation
 5. **Redesign** — replaced numbered flavors with Quick/Standard/Sweep/Structural based on actual practice. Dropped Deep, added Sweep (validated by the vocabulary cleanup miniplan)
 
-The Sweep pattern originated from the vocabulary cleanup miniplan (`VOCABULARY_CLEANUP.md`): `ccebefa` (taxonomy standardize), `661bb11` (cleanup execution — ~69 changes across 12 files), `ea8b012` (miniplan file deleted after completion). Notably, the miniplan survived a context compaction — the agent picked up the categorized inventory and continued executing without losing track. This durability is what makes it a distinct level: the plan lives on disk, so it's compaction-safe.
+The Sweep pattern originated from the vocabulary cleanup miniplan (`VOCABULARY_CLEANUP.md`): `2ee9b83` (taxonomy standardize), `c7a5b6b` (cleanup execution — ~69 changes across 12 files), `95176e8` (miniplan file deleted after completion). Notably, the miniplan survived a context compaction — the agent picked up the categorized inventory and continued executing without losing track. This durability is what makes it a distinct level: the plan lives on disk, so it's compaction-safe.
 
 Key insight: the "monitoring" was organic — a human observing that practice had diverged from documentation. This is the self-improvement loop working at the simplest level: human notices drift, surfaces it, agent analyzes usage data, both redesign together. No telemetry or automation needed — just attention and willingness to question whether the docs still match reality.
 

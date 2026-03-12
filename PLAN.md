@@ -2,7 +2,7 @@
 
 ## Current State
 
-Parts 1–3 complete (skill, reference files, packaging). Part 4 (case study feedback) in progress — applying R_1–R_13 improvements from the first real plet run.
+Parts 1–3 complete (skill, reference files, packaging). Part 4 (case study feedback) in progress — applying improvements from LOGA and LIBT case studies. Open items tracked in FEEDBACK.md (FB_1–FB_21).
 
 ---
 
@@ -39,27 +39,35 @@ Plugin metadata and distribution scaffolding.
 
 ## Part 4: Case Study Feedback Loop ← ACTIVE
 
-First real-world usage of plet (logalyzer) revealed 13 improvement recommendations (R_1–R_13). This part applies those improvements.
+Two case studies completed. All feedback tracked in `FEEDBACK.md` (FB_1–FB_21).
 
-**Detailed analysis:** `case_studies/LOG_ANALYZER_CASE_STUDY.md`
+### LOGA Run 1 (logalyzer, Go, 13 iterations)
 
-### R_1–R_13 Status
+**Analysis:** `case_studies/LOG_ANALYZER_CASE_STUDY.md`
+
+Produced R_1–R_13. Status:
 
 | Rec | Description | Status |
 |-----|-------------|--------|
-| R_1 | Intermediate commits during impl | ✓ Done (`8ac341a`) |
-| R_2 | Intermediate state writes | ✓ Done (`8ac341a`) |
-| R_3 | One verify = one commit | ✓ Done (`83bd146`) |
+| R_1 | Intermediate commits during impl | ✓ Done (`e25e952`) |
+| R_2 | Intermediate state writes | ✓ Done (`e25e952`) |
+| R_3 | One verify = one commit | ✓ Done (`037a2ab`) |
 | R_4 | Tag lifecycle — always tag, `cleanupTagsAutomatically` | ✓ Done |
-| R_5 | Workstream branch conventions | ✓ Done (`cf150ca`) |
-| R_6 | Short project ID | ✓ Done (`cf150ca`) |
-| R_7 | Mandatory learnings/emergent entries | ✓ Done (`8ac341a`) |
-| R_8 | Trace file generation — on by default, configurable | ✓ Decided |
-| R_9 | Subagent non-blocking | ✓ Done (`8ac341a`) |
-| R_10 | Artifact quality monitoring — execute self-checks, verify confirms | ✓ Decided |
-| R_11 | Branch isolation — git worktrees for parallel agents | ✓ Decided |
-| R_12 | FEEDBACK.md formalization | In progress |
-| R_13 | Co-Author tag convention — all agent commits | ✓ Decided |
+| R_5 | Workstream branch conventions | ✓ Done (`bad4261`) |
+| R_6 | Short project ID | ✓ Done (`bad4261`) |
+| R_7 | Mandatory learnings/emergent entries | ✓ Done (`e25e952`) |
+| R_8 | Trace file generation — decided, not fully implemented | → FB_11 |
+| R_9 | Subagent non-blocking | ✓ Done |
+| R_10 | Artifact quality monitoring — decided, not fully implemented | → FB_12 |
+| R_11 | Branch isolation — decided, not validated | → FB_13 |
+| R_12 | FEEDBACK.md formalization | ✓ Done → FB_14 |
+| R_13 | Co-Author tag convention — decided, not validated | → FB_15 |
+
+### LIBT Run 1 (todo-cli, Python, 5 iterations)
+
+**Analysis:** `case_studies/TODO_CLI_CASE_STUDY.md`
+
+Produced S_1–S_8. All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvements over LOGA: learnings/emergent dramatically better, zero orchestrator stalls, 100% first-pass verify rate. Recurring issues: state schema drift, progress format drift, trace inconsistency.
 
 ### Additional work done during Part 4
 
@@ -71,37 +79,19 @@ First real-world usage of plet (logalyzer) revealed 13 improvement recommendatio
 - Session Bootstrap moved near top of PLET.md
 - Compaction recovery defense validated (3-layer: CLAUDE.md → PLET.md → auto-memory)
 - SKILL.md frontmatter description rewritten with session summaries
+- Case study methodology formalized (`case_studies/CLAUDE.md`)
+- Case study → FEEDBACK.md pipeline formalized
+- Git stash banned in agents (FB_9)
+- Linear history and green/rebase/green invariant enforced (EX_16)
+- Version corrected to 0.1.0 across all files (history rewritten)
 
-### Remaining Part 4 work
+### Part 4 next steps
 
-All R_1–R_13 resolved. Consistency pass documentation updated (flavors → Quick/Standard/Sweep/Structural). Ready for Part 4 next steps.
-
-### Part 4 next steps (from case study)
-
-- **Part B:** Re-run logalyzer from plan checkpoint (`7cecbf5`) with improved plet
-- **Part C:** Compare Run 1 vs Run 2, identify impact of changes
-- **Part D:** Broader testing (refine session, harder project, case study template)
-
----
-
-## Part 5: Examples (deferred, trigger met)
-
-Real artifacts exist on the `logalyzer_workstream` branch (archived as `archive/loga/run1/*` tags). Examples can now be captured from real output rather than written speculatively.
-
-**Files (planned):**
-- `examples/README.md` — overview of examples
-- `examples/requirements-snippet.md` — sample requirements.md excerpt
-- `examples/iterations-snippet.md` — sample iterations.md excerpt
-- `examples/state.json` — sample global state file
-- `examples/state/ID_001.json` — sample per-iteration state file
-- `examples/progress-snippet.md` — sample progress.md entries
-- `examples/learnings-snippet.md` — sample learnings.md entries
-- `examples/emergent-snippet.md` — sample emergent.md entries
-- `examples/trace-snippet.ndjson` — sample trace NDJSON
+- Resolve open FB items (FB_12, FB_16–FB_20) — fix artifact gaps before rerunning
 
 ---
 
-## Part 6: Notes Skill
+## Part 5: Notes Skill ← NEXT
 
 A standalone `/notes` skill that formalizes the living development notes pattern used during plet-skills development.
 
@@ -120,9 +110,9 @@ A standalone `/notes` skill that formalizes the living development notes pattern
 
 ---
 
-## Part 7: Feedback Skill
+## Part 6: Feedback Skill
 
-Formalize the FEEDBACK.md pattern that emerged organically during the logalyzer run. Depends on FEEDBACK.md design from Part 4 (R_12).
+Formalize the FEEDBACK.md pattern that emerged organically during the logalyzer run.
 
 **Key responsibilities:**
 - Maintain a `FEEDBACK.md` as institutional memory about plet itself (meta-observations)
@@ -132,7 +122,34 @@ Formalize the FEEDBACK.md pattern that emerged organically during the logalyzer 
 
 **File:** `skills/feedback/SKILL.md` *(or integrated into plet skill — TBD)*
 
-**Depends on:** Part 4 R_12 design decisions
+**Depends on:** ~~Part 4 R_12 design decisions~~ Cleared — R_12/FB_14 resolved. FEEDBACK.md exists with format conventions and intake pipeline.
+
+---
+
+## Part 7: Comparison Runs
+
+Re-run case studies with improved plet to validate fixes.
+
+- **7a:** Re-run logalyzer from plan checkpoint (`7cecbf5`) with improved plet
+- **7b:** Compare Run 1 vs Run 2, identify impact of changes
+- **7c:** Broader testing (refine session, harder project)
+
+---
+
+## Part 8: Examples (deferred, trigger met)
+
+Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/todo-cli/run1/*` tags. Examples can now be captured from real output rather than written speculatively.
+
+**Files (planned):**
+- `examples/README.md` — overview of examples
+- `examples/requirements-snippet.md` — sample requirements.md excerpt
+- `examples/iterations-snippet.md` — sample iterations.md excerpt
+- `examples/state.json` — sample global state file
+- `examples/state/ID_001.json` — sample per-iteration state file
+- `examples/progress-snippet.md` — sample progress.md entries
+- `examples/learnings-snippet.md` — sample learnings.md entries
+- `examples/emergent-snippet.md` — sample emergent.md entries
+- `examples/trace-snippet.ndjson` — sample trace NDJSON
 
 ---
 
@@ -146,13 +163,15 @@ Part 2     reference files (schemas +        ── schemas & prompts    ✓ COM
               ↓
 Part 3     plugin metadata                   ── packaging            ✓ COMPLETE
               ↓
-Part 4     case study feedback loop          ── apply R_1–R_13      ← ACTIVE
+Part 4     case study feedback loop          ── apply feedback       ← ACTIVE
               ↓
-Part 5     examples/ (deferred)              ── capture from real run
+Part 5     notes skill                       ── standalone /notes    ← NEXT
               ↓
-Part 6     notes skill                       ── standalone /notes
+Part 6     feedback skill                    ── standalone /feedback or plet integration
               ↓
-Part 7     feedback skill                    ── standalone /feedback or plet integration
+Part 7     comparison runs                   ── rerun + validate
+              ↓
+Part 8     examples/ (deferred)              ── capture from real run
 ```
 
 ## Notes

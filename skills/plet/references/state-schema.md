@@ -557,6 +557,6 @@ When plet reads a state file with a `schemaVersion` newer than plet supports:
 
 ### Version Numbering
 
-- **Patch** (0.1.0 → 0.1.1): New optional fields with defaults — fully backward compatible
-- **Minor** (0.1.1 → 0.2.0): New required fields or structural additions — auto-migratable
-- **Major** (0.2.0 → 1.0.0): Removed or renamed fields — breaking change, requires manual migration
+- **Patch** (1.4.2 → 1.4.3): New optional fields with defaults — fully backward compatible
+- **Minor** (1.4.3 → 1.5.0): New required fields or structural additions — auto-migratable
+- **Major** (2.3.4 → 3.0.0): Removed or renamed fields — breaking change, requires manual migration
