@@ -1,5 +1,7 @@
 # plet-skills Development Notes
 
+> **See also:** `guide/NOTES.md` for presentation/guide decisions. Routing rule in CLAUDE.md § NOTES.md Routing.
+
 - What is plet?
 - Core Workflow
 - Platform & Distribution
@@ -590,6 +592,21 @@ Key decisions:
 - `"phase"` as the key in `sessionHistory` entries — "what phase of session?" doesn't make sense; `"type"` is more natural ("what type of session?")
 
 **Note:** In code/filenames, `{phase}` in `{phase}-{attempt}` patterns continues to refer to impl/verify (Level 3). This is consistent with the new vocabulary — no rename needed.
+
+### Branch Workflow
+
+#### Rebase before squash (not after)
+- Rebase onto main *before* squashing so merge conflicts can be resolved commit-by-commit
+- Previous draft had squash-then-rebase, which hides conflicts inside a single large commit
+- Updated order: tag → rebase → squash → push
+
+#### Squash commit follows commit conventions
+- The squash commit is the one that lives on main, so it must use `prefix: description` format with a thematic body per § Commit Conventions
+
+#### Tag naming convention: `session/YYYY-MM-DD-topic`
+- Tags preserve pre-squash granular history
+- `session/` prefix groups them and makes them discoverable
+- Alternatives considered: `pre-squash/topic` (less informative, no date)
 
 ---
 

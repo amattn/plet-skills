@@ -47,6 +47,9 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 | harness, ridler | Ridler.app (optional GUI) |
 | sublet, sub plet | subplet |
 | Maine | main (git branch) |
+| re-base of emerge | rebase over merge |
+
+**When voice input is garbled beyond the known misspellings table:** If a message doesn't parse cleanly — especially when multiple words seem wrong in a way that doesn't match any single intent — ask for clarification rather than guessing. Present your best interpretations using numbers-letters style so the user can pick quickly. The cost of asking is one round-trip. The cost of guessing wrong is a wasted action and a correction cycle.
 
 ## Preferences
 
@@ -56,6 +59,18 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - When reviewing PRD sections, always ask "anything to add, change, or remove?" and offer "ok" to approve.
 - At every review step: (1) show the full content first for context, (2) proactively surface recommendations before asking for approval, (3) after approval, update NOTES.md with the decision and rationale, (4) finish with a consistency pass across affected artifacts.
 - **Never push to remote without asking first.** Never force push without explicit permission.
+- **Prefer rebase over merge** for integrating upstream changes and keeping branch history clean.
+
+## NOTES.md Routing
+
+This repo has multiple NOTES.md files. When writing notes, route to the correct one:
+
+| File | Scope |
+|------|-------|
+| `NOTES.md` (root) | plet project — requirements, design decisions, conventions, PRD status |
+| `guide/NOTES.md` | Guide/presentation — talk structure, content decisions, audience questions |
+
+**Default rule:** If working in `guide/`, write to `guide/NOTES.md`. Otherwise write to root `NOTES.md`. If ambiguous, ask.
 
 ## NOTES.md Discipline
 
@@ -159,6 +174,20 @@ Multiplayer design (NOTES.md):
 - 7 scenarios, 3 modes (fork/claim/shared orchestration)
 - subplets/ directory for hierarchical decomposition
 ```
+
+## Branch Workflow (draft)
+
+> **Draft convention.** Observed once so far — noting as the likely normal pattern. Revisit after a few more cycles.
+
+The normal development cycle for this repo:
+
+1. **Work on a feature branch** — all commits go to the feature branch during the session
+2. **Tag before squash** — `git tag session/YYYY-MM-DD-topic` to preserve the full commit history as a historical reference
+3. **Rebase onto main** — `git rebase main` (prefer rebase over merge, per § Preferences). Rebase *before* squashing so conflicts are easier to resolve commit-by-commit.
+4. **Squash to a single commit** — `git reset --soft` back to the branch point, then commit once with a summary message. The squash commit message must follow § Commit Conventions (`prefix: description` with thematic body).
+5. **Push to main** — after squash, push the clean commit to main
+
+This keeps main's history clean (one commit per work session/feature) while preserving the granular history via tags for anyone who wants to inspect the evolution.
 
 ## NOTES.md Rules
 

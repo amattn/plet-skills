@@ -1,6 +1,6 @@
-# Claude Code Power Tips
+# Claude Code: Emergent Practices & Patterns
 
-> Practical lessons from building plet — patterns for getting Claude Code to work well as an autonomous agent.
+> Practical lessons from building plet — emergent practices and patterns for getting Claude Code to work well as an autonomous agent.
 
 ## Highest Leverage
 
