@@ -1,6 +1,6 @@
 ---
 name: notes
-version: 0.1.0
+version: 0.1.1
 description: "Maintain living development notes (NOTES.md) as institutional memory across sessions. Use when the user asks to 'notes', 'start notes', 'update notes', 'capture this decision', 'note this', 'add to notes', 'reorganize notes', 'bootstrap notes', 'log this', 'decision log', 'design journal', 'why did we decide', 'what was the rationale', or 'remember this'. Also trigger when the user makes a decision that should be recorded ('let's go with A', 'we decided', 'let's not do X'), when starting a new project that needs institutional memory, or when the user asks about past decisions. Do NOT trigger for plet runtime artifacts (learnings.md, emergent.md, progress.md) — those are managed by the plet skill."
 user-invocable: true
 ---
@@ -31,13 +31,16 @@ Auto-detect handles most invocations. These overrides skip straight to a specifi
 
 ## Bootstrap
 
+Bootstrap is the most critical operation — without it, the entire pattern fails. A NOTES.md that doesn't exist can't capture decisions. A NOTES.md that isn't referenced from CLAUDE.md won't be loaded. Bootstrap must be reliable and complete.
+
 When invoked on a project with no NOTES.md:
 
 1. **Create NOTES.md** with a Project Context section filled in from available context (CLAUDE.md, README, repo structure, git history)
 2. **Add suggested section headers** as scaffolding (see § Suggested Starting Sections) — empty sections are fine
-3. **Reference from CLAUDE.md** — add NOTES.md as a key file so every session loads it
-4. **Add Notes Discipline to CLAUDE.md** — add the discipline block so it's enforced every session (see § Notes Discipline for CLAUDE.md)
-5. **Inform the user** — explain what was created and how the Notes Discipline works
+3. **Add NOTES.md reference and discipline block to CLAUDE.md** — this is non-negotiable. Both the key file reference *and* the full discipline block (see § Notes Discipline for CLAUDE.md) must be added. Without them, NOTES.md won't be loaded and the Notes Discipline won't be enforced — the file decays into an abandoned artifact.
+4. **Inform the user** — explain what was created and how the Notes Discipline works
+
+If bootstrap is incomplete (NOTES.md exists but no CLAUDE.md reference, or reference exists but no discipline block), treat it as a partial bootstrap and complete the missing steps.
 
 ---
 

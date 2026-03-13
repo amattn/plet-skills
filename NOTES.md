@@ -698,6 +698,40 @@ Updated `prd-notes-skill.md` to reflect lessons from 50+ sessions of use. Key de
 - **Description optimization attempted.** Ran skill-creator trigger eval (20 queries). Result: 100% precision (no false triggers), 0% recall (Claude doesn't invoke skills for implicit capture requests). Acceptable for v0.1 — CLAUDE.md Notes Discipline block handles the implicit capture behavior.
 - **Plugin metadata: dual distribution attempted, reverted.** Tried two entries in marketplace.json with different `skills` paths — only plet showed up. Restructuring into separate source directories (official Anthropic pattern) would work but creates duplication/symlink issues. **Decision:** notes-md will be its own repo (`amattn/notesmd`) as a standalone plugin. The notes skill stays bundled with plet in plet-skills — installing plet-skills gets you both.
 
+#### Notes skill review pass (2026-03-13)
+
+Reviewed SKILL.md against skill-creator best practices. Three changes made:
+
+- **Description rewritten for better triggering.** Led with action, added trigger phrases (`decision log`, `design journal`, `why did we decide`, `what was the rationale`, `log this`), added negative boundary (do NOT trigger for plet runtime artifacts learnings.md/emergent.md/progress.md). ~111 words, slightly over the ~100 word guideline but acceptable per skill-creator's "be pushy" advice.
+- **Explicit interaction model added.** Bare `/notes` now has defined behavior: bootstrap check → status → catch-up scan → reorg check → prompt. Subcommand overrides: `/notes bootstrap`, `/notes reorg`, `/notes catch-up`. Auto-detect by default, subcommands as overrides.
+- **Bootstrap language strengthened.** Added "most critical operation" framing, merged CLAUDE.md reference + discipline block into one non-negotiable step with rationale, added partial bootstrap detection (fix incomplete setups).
+- **PRD trimmed to design rationale.** Operational sections compressed to summaries — enough to regenerate the skill, not a second copy. CLAUDE.md discipline blockquote preserved verbatim. Header note marks SKILL.md as authoritative implementation.
+- **Dropped recommendation: SKILL.md duplication.** Initially flagged duplicate CLAUDE.md template block in SKILL.md — on re-read, no duplication exists. Only one copy at lines 72-89.
+
+#### Extractable skills identified (2026-03-13)
+
+Scanned CLAUDE.md, PLET.md, NOTES.md, and reference files for generalizable patterns. Seven standalone skills identified, tracked in `EXTRACTABLE.md`:
+
+- **EX_1: /chatux** — Chat UX ergonomics. Bundles 10 patterns: NL/NLR options, batch answers, 1b1 mode, single-decision letters, "ok" approval, standard review prompt (A-E with recommend option), always suggest options, show-then-recommend, ask when ambiguous, fenced code blocks. Renamed from /nl — NL is one pattern within the broader chat UX skill.
+- **EX_2: /feedback** — Meta-observation tracking. Replaces Part 6 (feedback skill) in PLAN.md — now part of the broader extractable skills effort.
+- **EX_3: /dictation** — Voice input correction with project-specific misspelling tables.
+- **EX_4: /improve** — Self-improvement / pattern detection. Agent proactively surfaces recurring patterns.
+- **EX_5: /bootstrap** — Session bootstrap and compaction recovery. Three-layer defense against context loss.
+- **EX_6: /discipline** — Meta-pattern for creating named behavioral disciplines. The framework that makes Notes Discipline, Decision Discipline, and Review Discipline work.
+
+**Key decision:** /feedback removed from PLAN.md as a standalone Part 6 — folded into the broader extractable skills inventory. Part 6 now covers all six extractable skills.
+
+- **EX_7: /label** — Greppable ID convention (`XX_N`). Core is the labeling system; consistency passes included as lightweight guidelines, not rigid procedure. Reframed from "consistency pass skill" — the passes only work *because* of labels, so labels are the real skill.
+
+**Rejected from extraction:** Decision cascade (#4), Review Discipline (#7) — too coupled to /notes. Commit conventions (#8), branch workflow (#9) — too project-specific.
+
+#### Extractable skills repo planning (2026-03-13)
+
+- **Repo name:** `session-kit` — curated collection of session-level tools. Approachable and descriptive.
+- **GitHub description:** "Battle-tested Claude Code skills for structured collaboration — decisions stick, context survives, patterns compound."
+- **Includes /notes** — the notes skill moves into this repo alongside the other extractable skills.
+- **EX_1 renamed /nl → /chatux** — NL is one of 10 bundled patterns. Added standard review prompt with lettered options (A. Add, B. Change, C. Remove, D. Recommendations, E. Ok). The "Recommendations" option lets the user ask the agent for suggestions with a single letter.
+
 ### Vocabulary and taxonomy — DECIDED
 
 Standardized hierarchy to eliminate overloaded terms. See **Taxonomy > Vocabulary Hierarchy** for the canonical definitions.

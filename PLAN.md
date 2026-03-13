@@ -2,7 +2,7 @@
 
 ## Current State
 
-Parts 1–4 complete (skill, reference files, packaging, case study feedback). All FB items resolved (unverified) except FB_11 (trace schema — open), FB_13 (branch isolation — open), FB_21 (research — deferred to Part 7). Next: Part 5 (notes skill).
+Parts 1–5 complete (skill, reference files, packaging, case study feedback, notes skill). All FB items resolved (unverified) except FB_11 (trace schema — open), FB_13 (branch isolation — open), FB_21 (research — deferred to Part 7). Next: Part 6 (extractable skills — see EXTRACTABLE.md).
 
 ---
 
@@ -102,38 +102,31 @@ Produced S_1–S_8. All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvement
 
 ---
 
-## Part 5: Notes Skill ← ACTIVE
+## Part 5: Notes Skill ✓ COMPLETE
 
 A standalone `/notes` skill that formalizes the living development notes pattern used during plet-skills development.
 
 **Source spec:** `prd-notes-skill.md`
 
-**Key responsibilities:**
-- Maintain a `NOTES.md` alongside the PRD as institutional memory
-- Capture decisions immediately — what was decided, why, and rejected alternatives
-- Quote user preferences and principles in their own words
-- Track PRD section approval status
-- Log decision rationale when the PRD is updated
-- Document invariants and critical requirements as checkable rules
-- Keep NOTES.md scannable (headers, bold, bullets) for fast agent orientation
+**File:** `skills/notes/SKILL.md` (v0.1.1)
 
-**File:** `skills/notes/SKILL.md`
+**Done:**
+- SKILL.md built (v0.1.0) — bootstrap, Notes Discipline, reorg, routing, size management
+- Description optimized for triggering — added trigger phrases, negative boundary for plet runtime artifacts
+- Explicit interaction model — auto-detect with subcommand overrides (`bootstrap`, `reorg`, `catch-up`)
+- Bootstrap language strengthened — non-negotiable CLAUDE.md setup, partial bootstrap detection
+- PRD trimmed to generative design rationale — operational sections compressed, CLAUDE.md discipline block preserved
+- Plugin metadata updated, description eval run (100% precision, 0% recall — acceptable for v0.1)
 
 ---
 
-## Part 6: Feedback Skill
+## Part 6: Extractable Skills
 
-Formalize the FEEDBACK.md pattern that emerged organically during the logalyzer run.
+Identify and document generalizable patterns from plet-skills development as standalone skills. Tracked in `EXTRACTABLE.md`.
 
-**Key responsibilities:**
-- Maintain a `FEEDBACK.md` as institutional memory about plet itself (meta-observations)
-- Distinct audience from learnings.md (learnings = target project, feedback = plet process)
-- Define entry format, categories, and promotion path to memory/config artifacts
-- Agent and human write access — agents append during loop, humans curate during refine
+**Status:** Inventory complete (7 skills identified: /chatux, /feedback, /dictation, /improve, /bootstrap, /discipline, /label). Prioritization and implementation TBD.
 
-**File:** `skills/feedback/SKILL.md` *(or integrated into plet skill — TBD)*
-
-**Depends on:** ~~Part 4 R_12 design decisions~~ Cleared — R_12/FB_14 resolved. FEEDBACK.md exists with format conventions and intake pipeline.
+**File:** `EXTRACTABLE.md`
 
 ---
 
@@ -176,9 +169,9 @@ Part 3     plugin metadata                   ── packaging            ✓ COM
               ↓
 Part 4     case study feedback loop          ── apply feedback       ✓ COMPLETE
               ↓
-Part 5     notes skill                       ── standalone /notes    ← ACTIVE
+Part 5     notes skill                       ── standalone /notes    ✓ COMPLETE
               ↓
-Part 6     feedback skill                    ── standalone /feedback or plet integration
+Part 6     extractable skills                 ── /chatux, /feedback, /dictation, /improve, /bootstrap, /discipline, /label
               ↓
 Part 7     comparison runs                   ── rerun + validate
               ↓
