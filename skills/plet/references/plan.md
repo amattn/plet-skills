@@ -318,9 +318,10 @@ After all iterations are approved:
    ```
    The tool sets lifecycle (`queued` or `ineligible`), initializes the two-state criterion model, and validates the output.
 
-4. **Recommendations** — surface any final concerns about the overall plan (coverage gaps, risk areas, dependency graph shape) before offering to start
-5. **Consistency pass** — verify fingerprints match across all three plan artifacts, all requirements are covered by iterations, all iteration IDs appear in state files
-6. Ask: "Ready to start building? Run `/plet loop` to begin."
+4. **Spec artifact checkpoint** — verify that `plet/requirements.md` and `plet/iterations.md` exist on disk and are committed. These must survive into the loop and refine sessions. If either is missing, the project cannot be resumed or refined. Do not proceed until both are confirmed on disk.
+5. **Recommendations** — surface any final concerns about the overall plan (coverage gaps, risk areas, dependency graph shape) before offering to start
+6. **Consistency pass** — verify fingerprints match across all three plan artifacts, all requirements are covered by iterations, all iteration IDs appear in state files
+7. Ask: "Ready to start building? Run `/plet loop` to begin."
 
 ---
 

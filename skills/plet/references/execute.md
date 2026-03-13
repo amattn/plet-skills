@@ -67,9 +67,10 @@ Where `{projectId}` is from `state.json` and `{N}` is the current `loopSessionCo
 Before writing any code, verify the project is in a clean state:
 
 1. Update activity: `"running_checks"` / `"pre-flight: verifying project builds and tests pass"`
-2. Run the build command — confirm it succeeds
-3. Run the full test suite — confirm all tests pass. **Exception:** on a retry after a verification cycle-back, the branch may contain intentionally failing tests left by the verify agent — see Inherited Failing Tests under Retry Awareness below.
-4. Check the working tree is clean — no uncommitted changes, staged or unstaged (`git status`). Prior commits on the branch from previous attempts are expected.
+2. Verify spec artifacts exist — `plet/requirements.md` and `plet/iterations.md` must be on disk. If either is missing, block immediately (see Blocker Protocol). The project cannot proceed without its spec.
+3. Run the build command — confirm it succeeds
+4. Run the full test suite — confirm all tests pass. **Exception:** on a retry after a verification cycle-back, the branch may contain intentionally failing tests left by the verify agent — see Inherited Failing Tests under Retry Awareness below.
+5. Check the working tree is clean — no uncommitted changes, staged or unstaged (`git status`). Prior commits on the branch from previous attempts are expected.
 
 If pre-flight fails:
 - Attempt to resolve the issue (e.g., install missing dependencies, fix a flaky test)

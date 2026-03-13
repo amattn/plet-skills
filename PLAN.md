@@ -2,7 +2,7 @@
 
 ## Current State
 
-Parts 1–3 complete (skill, reference files, packaging). Part 4 (case study feedback) in progress — applying improvements from LOGA and LIBT case studies. Open items tracked in FEEDBACK.md (FB_1–FB_21).
+Parts 1–4 complete (skill, reference files, packaging, case study feedback). All FB items resolved (unverified) except FB_11 (trace schema — open), FB_13 (branch isolation — open), FB_21 (research — deferred to Part 7). Next: Part 5 (notes skill).
 
 ---
 
@@ -37,9 +37,9 @@ Plugin metadata and distribution scaffolding.
 
 ---
 
-## Part 4: Case Study Feedback Loop ← ACTIVE
+## Part 4: Case Study Feedback Loop ✓ COMPLETE
 
-Two case studies completed. All feedback tracked in `FEEDBACK.md` (FB_1–FB_21).
+Two case studies completed. All feedback tracked in `FEEDBACK.md` (FB_1–FB_22).
 
 ### LOGA Run 1 (logalyzer, Go, 13 iterations)
 
@@ -58,8 +58,8 @@ Produced R_1–R_13. Status:
 | R_7 | Mandatory learnings/emergent entries | ✓ Done (`e25e952`) |
 | R_8 | Trace file generation — decided, not fully implemented | → FB_11 |
 | R_9 | Subagent non-blocking | ✓ Done |
-| R_10 | Artifact quality monitoring — decided, not fully implemented | → FB_12 |
-| R_11 | Branch isolation — decided, not validated | → FB_13 |
+| R_10 | Artifact quality monitoring | ✓ Done → FB_12 (plet_state.py tool) |
+| R_11 | Branch isolation — decided, not validated | → FB_13 (open) |
 | R_12 | FEEDBACK.md formalization | ✓ Done → FB_14 |
 | R_13 | Co-Author tag convention — decided, not validated | → FB_15 |
 
@@ -84,14 +84,25 @@ Produced S_1–S_8. All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvement
 - Git stash banned in agents (FB_9)
 - Linear history and green/rebase/green invariant enforced (EX_16)
 - Version corrected to 0.1.0 across all files (history rewritten)
+- Debug number hardcoded literal exception added across all artifacts (FB_20)
+- Progress.md format enforcement via "match exactly" prose + inline templates (FB_17)
+- State file schema enforcement via plet_state.py tool (FB_12) — A/B test vs FB_17 prose
+- PRD traceability tags made permanent, "will be stripped" build notes removed
+- Spec artifact preservation: plan checkpoint + execute pre-flight (FB_16)
+- Post-merge file verification added to verify.md (FB_18)
+- Real timestamps via `date -u` in SKILL.md session history (FB_19)
+- `allowed-tools` added to SKILL.md frontmatter for plet_state.py
+- FB_22 filed: bypassPermissions pre-flight check needed
 
-### Part 4 next steps
+### Remaining open FB items (deferred)
 
-- Resolve open FB items (FB_12, FB_16–FB_20) — fix artifact gaps before rerunning
+- FB_11: Trace schema standardization (open — needs design work)
+- FB_13: Branch isolation via worktrees (decided, not validated)
+- FB_21: Research — why learnings/emergent improved (deferred to Part 7)
 
 ---
 
-## Part 5: Notes Skill ← NEXT
+## Part 5: Notes Skill ← ACTIVE
 
 A standalone `/notes` skill that formalizes the living development notes pattern used during plet-skills development.
 
@@ -163,9 +174,9 @@ Part 2     reference files (schemas +        ── schemas & prompts    ✓ COM
               ↓
 Part 3     plugin metadata                   ── packaging            ✓ COMPLETE
               ↓
-Part 4     case study feedback loop          ── apply feedback       ← ACTIVE
+Part 4     case study feedback loop          ── apply feedback       ✓ COMPLETE
               ↓
-Part 5     notes skill                       ── standalone /notes    ← NEXT
+Part 5     notes skill                       ── standalone /notes    ← ACTIVE
               ↓
 Part 6     feedback skill                    ── standalone /feedback or plet integration
               ↓

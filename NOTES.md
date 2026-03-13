@@ -83,6 +83,27 @@ Rules that must not be violated. An agent breaking these breaks the system.
 - Fix: inline template + "match exactly" language in execute.md and verify.md. formats.md remains source of truth.
 - **Next step if agents still drift:** validator tool (grep for div markers, check required fields) or generator tool (shell helper that outputs correctly-formatted entries from args). jq-style enforcement is also an option for state files (FB_12). Decided to try the lighter-weight approach first. (2026-03-12)
 
+#### Spec artifacts must survive plan → loop → refine (FB_16)
+- LIBT lost requirements.md and iterations.md — project unresumable
+- Two-layer fix: (1) plan.md Step 7.4 checkpoint verifies files exist on disk and are committed, (2) execute.md pre-flight blocks if spec artifacts are missing
+- Root cause ambiguous (never written vs lost during loop) — both layers needed (2026-03-12)
+
+#### Post-merge file verification (FB_18)
+- LIBT lost a test file during parallel branch rebase+merge — required manual restoration
+- Added post-merge verification step in verify.md: run full test suite + compare file list from iteration branch against workstream after ff-merge
+- Catches silent file drops from both merge and rebase conflict resolution (2026-03-12)
+
+#### Real timestamps via `date -u`, never fabricate (FB_19)
+- LIBT state.json had synthetic round-number timestamps (00:01:00Z, 21:00:00Z) — useless for timing analysis
+- SKILL.md loop start, loop end, and refine start now require `date -u +%Y-%m-%dT%H:%M:%SZ`
+- Explicit "never fabricate or round timestamps" language added (2026-03-12)
+
+#### Skills can ship executable tools via `${CLAUDE_SKILL_DIR}`
+- `${CLAUDE_SKILL_DIR}` resolves to the skill's directory at runtime — agents can call bundled scripts by absolute path
+- plet_state.py is the first tool shipped this way
+- SKILL.md frontmatter `allowed-tools: "Bash(python3 *)"` grants permission in target projects
+- Target projects should also set `bypassPermissions` in `.claude/settings.local.json` for full autonomous operation (FB_22) (2026-03-12)
+
 #### PRD traceability tags are permanent, not build scaffolding
 - Parenthetical PRD references like `(EX_17)`, `(VF_9)` in skill files are kept permanently — not stripped before release
 - Originally treated as build scaffolding with "will be stripped" notes in every file

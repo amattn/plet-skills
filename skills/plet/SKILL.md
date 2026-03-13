@@ -246,7 +246,7 @@ Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`
 Autonomous. The loop implements iterations, then verifies each in a fresh context, cycling until all iterations are `complete` or `blocked`.
 
 **Orchestrator actions:**
-1. Increment `loopSessionCount` in `plet/state.json`. Branch from the previous session's workstream (the last entry in `sessionHistory`) — or from `main` if this is the first session. Create `plet/{projectId}/loop{N}/workstream` (where `{N}` is the new `loopSessionCount`). Append to `sessionHistory`: `{type: "loop", session: N, branch: "plet/{projectId}/loop{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. If continuing a loop that was interrupted (workstream branch already exists), skip creation and reuse the existing branch.
+1. Increment `loopSessionCount` in `plet/state.json`. Branch from the previous session's workstream (the last entry in `sessionHistory`) — or from `main` if this is the first session. Create `plet/{projectId}/loop{N}/workstream` (where `{N}` is the new `loopSessionCount`). Capture the real wall-clock timestamp via `date -u +%Y-%m-%dT%H:%M:%SZ` and append to `sessionHistory`: `{type: "loop", session: N, branch: "plet/{projectId}/loop{N}/workstream", startedAt: "<captured timestamp>", endedAt: null}`. **Never fabricate or round timestamps** — always use `date -u` to capture the actual time. Set the previous entry's `endedAt` (also via `date -u`) if it was still `null`. If continuing a loop that was interrupted (workstream branch already exists), skip creation and reuse the existing branch.
 2. Read `plet/state.json` and per-iteration state files to identify eligible iterations (dependencies `complete`, lifecycle `queued`)
 3. For each eligible iteration, spawn an **implementation subagent** with:
    - The full contents of `references/execute.md` **(primary — inject first, this defines the agent's behavior)**
@@ -272,7 +272,7 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
 9. Re-evaluate the dependency graph and spawn next eligible iterations
 10. Check breakpoints (`state.json` → `breakpoints.before` / `breakpoints.after`) before and after each iteration — pause if hit
 11. Continue until all iterations are `complete` or `blocked`
-12. When the loop ends, set the current `sessionHistory` entry's `endedAt`. If all iterations are `complete`, inform the user and offer options: merge workstream to their target branch, enter refine, or leave as-is. **Never merge to main or any other branch without explicit human approval** — merging may trigger deployments or other side effects.
+12. When the loop ends, capture the real wall-clock timestamp via `date -u +%Y-%m-%dT%H:%M:%SZ` and set the current `sessionHistory` entry's `endedAt` to it. If all iterations are `complete`, inform the user and offer options: merge workstream to their target branch, enter refine, or leave as-is. **Never merge to main or any other branch without explicit human approval** — merging may trigger deployments or other side effects.
 
 ### Refine Phase
 
@@ -281,7 +281,7 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
 Interactive, human-driven. Triages emergent items, updates spec, re-plans.
 
 **Orchestrator actions:**
-1. Increment `refineSessionCount` in `plet/state.json`. Branch from the previous session's workstream (the last entry in `sessionHistory`). Create `plet/{projectId}/refine{N}/workstream` (where `{N}` is the new `refineSessionCount`). Append to `sessionHistory`: `{type: "refine", session: N, branch: "plet/{projectId}/refine{N}/workstream", startedAt: now, endedAt: null}`. Set the previous entry's `endedAt` if it was still `null`. All spec changes during this refine session are committed here.
+1. Increment `refineSessionCount` in `plet/state.json`. Branch from the previous session's workstream (the last entry in `sessionHistory`). Create `plet/{projectId}/refine{N}/workstream` (where `{N}` is the new `refineSessionCount`). Capture the real wall-clock timestamp via `date -u +%Y-%m-%dT%H:%M:%SZ` and append to `sessionHistory`: `{type: "refine", session: N, branch: "plet/{projectId}/refine{N}/workstream", startedAt: "<captured timestamp>", endedAt: null}`. Set the previous entry's `endedAt` (also via `date -u`) if it was still `null`. All spec changes during this refine session are committed here.
 2. Read `references/refine.md` for the full refine session workflow
 3. Follow its instructions for emergent triage, blocked iteration review, spec updates, and re-planning
 4. After changes, update fingerprints across all three plan artifacts

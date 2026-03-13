@@ -131,6 +131,8 @@ requirements.md and iterations.md don't exist in LIBT's plet/ directory. The sta
 
 Source: LIBT S_2
 
+`[resolved, unverified]` → Two-layer fix: (1) plan.md Step 7.4 — spec artifact checkpoint verifies requirements.md and iterations.md exist on disk and are committed before offering to start the loop. (2) execute.md pre-flight — agents verify spec artifacts exist before starting work, block immediately if missing.
+
 ### FB_17: Progress.md formatting inconsistent within a single run [artifacts]
 
 ID_001 uses div markers, ID_002 uses fenced code blocks, later iterations use markdown headers. Three different formatting conventions in one run. Same issue in LOGA. Pick one format and enforce it — div markers have the advantage of machine-parseability.
@@ -145,11 +147,15 @@ ID_004's test file (`test_commands_complete_delete.py`) was lost during the para
 
 Source: LIBT S_5
 
+`[resolved, unverified]` → Added post-merge verification step in verify.md after the ff-merge: run full test suite + compare file list from iteration branch against workstream. Lost files must be restored before proceeding.
+
 ### FB_19: state.json session timestamps are synthetic [state] [timing]
 
 state.json records `startedAt: "2026-03-10T00:01:00Z"` and `endedAt: "2026-03-10T21:00:00Z"` — clearly round-number placeholders. Git commits show the real window was 13:00-13:38 PDT. Session timestamps should be captured from actual wall-clock time for timing analysis.
 
 Source: LIBT S_6
+
+`[resolved, unverified]` → SKILL.md loop start (step 1), loop end (step 12), and refine start (step 1) now explicitly require `date -u +%Y-%m-%dT%H:%M:%SZ` for all sessionHistory timestamps. Added "never fabricate or round timestamps" language.
 
 ### FB_20: Debug numbers must be hardcoded literals, not runtime-generated [prompting] [code-quality]
 

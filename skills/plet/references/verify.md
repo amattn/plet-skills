@@ -427,7 +427,12 @@ git checkout plet/{projectId}/loop{N}/workstream
 git merge --ff-only plet/{projectId}/loop{N}/{iteration_id}
 ```
 
-4. Return to the iteration branch for state updates:
+4. **Post-merge verification** — confirm nothing was lost during rebase:
+   - Run the full test suite — all tests must pass. A test count drop or import error signals a lost file.
+   - Compare the file list from the iteration branch against the merged workstream. Any file present on the iteration branch that is missing from the workstream after merge must be investigated and restored.
+   - If files were lost, restore them, commit, and re-run the full test suite before proceeding.
+
+5. Return to the iteration branch for state updates:
 
 ```
 git checkout plet/{projectId}/loop{N}/{iteration_id}
