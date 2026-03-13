@@ -537,15 +537,30 @@ Discovered during the refine.md build: we designed RF_16 (cascading consistency 
 
 **Cleanup:** Removed `TEST_REQ_READING.md`, `ACTIVE_TEST.md`, and the test entry from Required Reading. Added a permanent "SESSION GREETING" rule to CLAUDE.md (tell a joke on session start) — inspired by the test.
 
-#### Archive tag convention (2026-03-09)
+#### Archive tag convention (2026-03-09, superseded 2026-03-10)
 
-Format: `archive/plet/{projectId}/{run}/{path}`. Example: `archive/plet/LOGA/run1/loop/ID_001`, `archive/plet/LOGA/run1/workstream`.
+~~Original format: `archive/plet/{projectId}/{run}/{path}`.~~ Superseded by case study archive convention below.
 
-Used to preserve branch tips before deletion. Created when a run is complete and we need to clear the branch namespace for a re-run. Tags are lightweight, don't pollute branch listings, and survive `git fetch --prune`. The `archive/` prefix is a general-purpose namespace (not plet-owned); `plet/` inside it mirrors the active branch structure for consistency.
+#### Case study archive convention (2026-03-10)
 
-Run 1 of logalyzer has 11 tags under `archive/loga/run1/` (pre-convention, lowercase, no `plet/` segment). These are local only — not yet pushed to remote.
+**Format:** `casestudy/{project}/{runN}/{type}/{exact original ref name}`
 
-**Rationale:** `archive/` stays separate from `plet/` so active refs (`plet/*`) are clean. The `plet/` segment inside `archive/` provides consistency with the active branch namespace without plet owning the archive prefix.
+Where `{type}` is `branch` or `tag`, and the original ref name is preserved verbatim to track naming convention changes across runs.
+
+**Example:**
+- `casestudy/logalyzer/run1/branch/plet/loop/ID_001` (was branch `plet/loop/ID_001`)
+- `casestudy/logalyzer/run1/branch/logalyzer_workstream` (was branch `logalyzer_workstream`)
+
+**Purpose:** Preserve all git artifacts from a case study run for later analysis. Branches and tags are artifacts — their original names are part of the record. If plet's naming convention changes between runs, the verbatim names make that visible.
+
+**Decision: archive only branches, skip redundant tags.** The `archive/loga/run1/...` tags from run 1 were a temporary hack to preserve branch tips before deletion — but the branches were never deleted, so the tags are 100% redundant (verified: all 11 tag/branch pairs point at identical commits). The archive tags are scaffolding, not meaningful run artifacts. Archiving them would be archiving a workaround, not the run.
+
+**Cleanup plan (executed 2026-03-10):**
+- Create 11 new tags: `casestudy/logalyzer/run1/branch/{original branch name}` for each of the 10 `plet/loop/ID_*` branches + `logalyzer_workstream`
+- Delete 11 old `archive/loga/run1/...` tags (local + remote)
+- Delete 11 `origin/plet/loop/...` remote branches + `origin/logalyzer_workstream`
+- Delete local branch `logalyzer_workstream`
+- Not touched: `subplets` tag, `origin/claude/power-tips-slide-deck-COQOh`
 
 #### Subagent injection ordering (2026-03-09)
 

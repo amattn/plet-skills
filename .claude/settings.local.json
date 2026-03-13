@@ -2,8 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
+      "Bash(git branch:*)",
       "Bash(git commit:*)",
       "Bash(git fetch:*)",
+      "Bash(git ls-tree:*)",
       "Bash(git status:*)",
       "Bash(git tag:*)",
       "Bash(grep:*)",
@@ -11,7 +13,8 @@
       "Bash(python3 skills/plet/scripts/plet_state.py:*)",
       "Bash(shasum)",
       "Bash(wc:*)",
-      "WebFetch(domain:gist.github.com)"
+      "WebFetch(domain:gist.github.com)",
+      "WebSearch"
     ]
   }
 }
