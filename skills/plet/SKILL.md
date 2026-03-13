@@ -3,6 +3,7 @@ name: plet
 version: 0.1.0
 description: "Spec-driven autonomous development orchestrator. Use when the user asks to 'plet', 'start plet', 'plan and execute', 'autonomous loop', 'iterate on this feature', or 'run the dev loop'. Single entry point that reads project state and routes to the correct session: plan (interactive requirements and iteration design), loop (autonomous implementation and verification phases for each iteration), or refine (human-driven triage of emergent items, spec updates, and re-planning)."
 user-invocable: true
+allowed-tools: "Bash(python3 *)"
 ---
 
 # plet — Spec-Driven Autonomous Development Orchestrator
@@ -10,8 +11,6 @@ user-invocable: true
 Plan interactively, execute autonomously, verify independently, refine iteratively. All state lives on disk so any fresh agent can pick up where the last one left off.
 
 **PLET** = **P**rogress, **L**earnings, **E**mergent, **T**race — the four runtime artifacts. Also works phonetically as Plan + Execute.
-
-> **Build note:** Parenthetical references like `(GC_1)`, `(OR_13)`, `(EX_14)` etc. are PRD traceability tags from `prd.md`. They will be stripped in a final polish pass before release. Disregard them — they do not affect skill behavior.
 
 ---
 

@@ -1,7 +1,5 @@
 # State File & Trace Schemas
 
-> **Build note:** Parenthetical references like `(SF_1)`, `(RT_4)` are PRD traceability tags. They will be stripped before release.
-
 This document defines the JSON schemas for state files and trace NDJSON lines. All subagent prompts reference this file.
 
 **Schema stability contract (SF_13):** State file format changes are additive only — never remove or rename fields. Breaking changes require a major version bump of `schemaVersion`.

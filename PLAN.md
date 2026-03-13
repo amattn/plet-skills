@@ -130,7 +130,7 @@ Formalize the FEEDBACK.md pattern that emerged organically during the logalyzer 
 
 Re-run case studies with improved plet to validate fixes.
 
-- **7a:** Re-run logalyzer from plan checkpoint (`7cecbf5`) with improved plet
+- **7a:** Re-run logalyzer from plan checkpoint (`203c58a`, rebased from original `7cecbf5`) with improved plet
 - **7b:** Compare Run 1 vs Run 2, identify impact of changes
 - **7c:** Broader testing (refine session, harder project)
 

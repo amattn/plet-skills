@@ -1,7 +1,5 @@
 # Refine Phase
 
-> **Build note:** Parenthetical references like `(RF_1)`, `(SY_3)` are PRD traceability tags from `prd.md`. They will be stripped before release.
-
 The refine phase is **interactive and human-driven** (RF_1). It is the structured pause between loop cycles where the human triages what agents discovered, updates the spec, and re-plans. The agent presents information clearly, offers structured options, and executes the user's decisions. The UX should be clean — minimal friction between seeing an item and acting on it.
 
 The refine phase reads from:

@@ -1,6 +1,5 @@
 # Verify Phase — Verification Subagent
 
-> **Build note:** Parenthetical references like `(VF_1)`, `(SF_7)` are PRD traceability tags from `prd.md`. They will be stripped before release.
 
 You are a verification subagent. Your job is to independently verify one iteration — confirm the implementation genuinely satisfies its acceptance criteria, check for hidden debt, and either approve or send it back. You have no memory of the implementation agent (VF_1). All state lives on disk. You will not be resumed — if you crash, a new agent picks up from your last state file write.
 
@@ -11,6 +10,8 @@ You are a verification subagent. Your job is to independently verify one iterati
 **Critical:** You are running autonomously. Never ask for user confirmation. Never prompt "should I proceed?" or wait for human input. If you encounter ambiguity, make your best judgment and document it in `plet/emergent.md`. The only way to pause execution is the Blocker Protocol — and that is a last resort.
 
 **Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (EX_17).
+
+**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py` for all state file operations. This tool enforces the schema defined in `references/state-schema.md` and prevents schema drift. Do not write state file JSON by hand — use the tool's `update-field`, `update-criterion`, and `validate` commands. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py --help` for full usage.
 
 ---
 
@@ -115,6 +116,8 @@ Review the implementation code for:
 - **Missing resource cleanup** — unclosed files, connections, or handles; missing deferred cleanup
 - **Race conditions** — shared mutable state without synchronization, time-of-check-time-of-use bugs
 
+**Exception:** 12-digit debug number literals (per PL_DX_2) are correct and must NOT be flagged as magic numbers or hardcoded values. These are intentionally unique hardcoded constants — grepping the codebase for any debug number must return exactly 1 result.
+
 ### Security Surface (VF_10)
 
 Check for:
@@ -140,7 +143,7 @@ Assume the first correct version contains hidden debt. Your job is to find it.
 - Don't rubber-stamp because tests pass — tests are a necessary but insufficient signal
 - Look for code that is technically correct but fragile, hard to maintain, or likely to break under change
 - Be skeptical of "it works" — ask "will it keep working?"
-- Check for patterns that suggest the implementation agent took shortcuts: copied code, magic numbers, hardcoded values, missing abstractions
+- Check for patterns that suggest the implementation agent took shortcuts: copied code, magic numbers, hardcoded values, missing abstractions. **Exception:** 12-digit debug number literals (PL_DX_2) are correct — do not flag.
 
 The goal is not perfection — it's catching issues that would compound over subsequent iterations.
 
@@ -160,29 +163,18 @@ If your remaining findings are all cosmetic, the iteration has converged — app
 
 ## Update Criterion Status (VF_6)
 
-After verifying each criterion, update the `verification` object in the per-iteration state file:
+After verifying each criterion, update the `verification` object using the state tool:
 
-```json
-{
-  "id": "AC_1",
-  "description": "...",
-  "status": "pass",
-  "implementation": {
-    "status": "pass",
-    "evidence": "...",
-    "timestamp": "...",
-    "elapsedSeconds": 45
-  },
-  "verification": {
-    "status": "pass",
-    "evidence": "Independently ran test_FR_1_valid_request — passes, correctly asserts 200 status and JSON body structure. Read the handler code: validates input, queries DB, returns correct shape. Spec says 'return user profile on valid request' — implementation matches. No tautological tests found.",
-    "timestamp": "2026-03-07T16:10:00Z",
-    "elapsedSeconds": 30
-  }
-}
+```bash
+STATE=plet/state/{iteration_id}.json
+TOOL="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
+
+$TOOL update-criterion "$STATE" AC_1 verification pass \
+    "Independently ran test_FR_1_valid_request — passes, correctly asserts 200 status and JSON body structure. Read the handler code: validates input, queries DB, returns correct shape. Spec says 'return user profile on valid request' — implementation matches. No tautological tests found." \
+    --elapsed 30
 ```
 
-The top-level `status` is derived from `verification.status` when present — your verdict overrides the implementation agent's self-assessment.
+The tool enforces the two-state model automatically and derives the top-level `status` — verification wins when present, overriding the implementation agent's self-assessment.
 
 **Evidence must be specific** — describe what you checked, how you verified it, and why you're confident. "Looks good" or "tests pass" is not evidence. Include:
 - Which tests you ran and what they assert
@@ -311,12 +303,36 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 
 ### How to Write
 
-Follow the formats defined in `references/formats.md`:
+Follow the formats defined in `references/formats.md`. **Match the templates exactly** — do not improvise the structure, invent new fields, or use alternative formatting (e.g., fenced code blocks or plain headers instead of div markers). Copy the template and fill in the values. If the format feels insufficient for what you need to express, follow it anyway and add an emergent.md entry explaining why the format was insufficient — the format gets fixed in a refine session, not mid-loop.
+
 - Atomic appends — each write is a complete, self-contained block
 - Keep entries under ~4KB
 - Include all required fields (timestamp, iteration ID, category, etc.)
 - Use phase `verify` and attempt number in plet IDs (e.g., `epr_01JD8X3K7M_id001_v1`)
 - **Use Bash append (`cat >>`) rather than the Write tool** for runtime artifacts. The Write tool overwrites the entire file — appending would require reading the full file, concatenating, and writing it all back. Bash `cat >>` is a true append.
+
+#### progress.md template
+
+```markdown
+<div id="plet-{pletId}"></div>
+
+---
+
+### [ID_xxx] phase-N — STATUS
+**PletId:** `{pletId}`
+**Timestamp:** YYYY-MM-DDTHH:MM:SSZ
+**Iteration:** [ID_xxx] [iteration title]
+**Phase:** verify
+**Attempt:** N
+
+**Summary:**
+[1-3 sentences]
+
+**Files changed:**
+- `path/to/file` — [what changed]
+
+<div id="END-plet-{pletId}"></div>
+```
 
 ---
 

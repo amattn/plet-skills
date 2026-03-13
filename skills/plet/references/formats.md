@@ -1,7 +1,5 @@
 # Runtime Artifact Formats
 
-> **Build note:** Parenthetical references like `(RT_1)`, `(SF_17)` are PRD traceability tags. They will be stripped before release.
-
 This document defines the entry formats for the four PLET runtime artifacts. All subagent prompts reference this file.
 
 **Format stability contract (RT_10):** Runtime artifact format changes are additive only — never remove or rename fields. Breaking changes require a major version bump.

@@ -8,6 +8,7 @@
       "Bash(git tag:*)",
       "Bash(grep:*)",
       "Bash(mkdir:*)",
+      "Bash(python3 skills/plet/scripts/plet_state.py:*)",
       "Bash(shasum)",
       "Bash(wc:*)",
       "WebFetch(domain:gist.github.com)"

@@ -226,7 +226,7 @@ Independent verification in a fresh context window. The verification agent verif
 | VF_6 | The verification agent updates criterion statuses using the `verification` object in the two-state model, with evidence describing how each criterion was independently verified | P0 |
 | VF_7 | Spec fidelity: verify the implementation actually satisfies the spec, not just that tests pass. Tests may inadvertently encode a misunderstanding of the requirement. | P0 |
 | VF_8 | Test quality: identify tautological tests, tests that mock too aggressively, tests that assert on implementation details rather than behavior, and tests that would pass even if the implementation were subtly wrong | P0 |
-| VF_9 | Code quality: check for placeholder comments, generic error handling, inefficient patterns, hidden coupling, missing resource cleanup, race conditions | P0 |
+| VF_9 | Code quality: check for placeholder comments, generic error handling, inefficient patterns, hidden coupling, missing resource cleanup, race conditions. Exception: 12-digit debug number literals (PL_DX_2) are correct — do not flag as magic numbers. | P0 |
 | VF_10 | Security surface: check input validation gaps, injection vectors, authentication/authorization assumptions | P0 |
 | VF_11 | Spec gaps: identify implemented behavior that isn't covered by the spec. Flag as emergent items for a refine session. | P0 |
 | VF_12 | Anti-slop bias: assume the first correct version contains hidden debt. Don't rubber-stamp because tests pass — look deeper. | P0 |
@@ -406,7 +406,7 @@ DX items that the plan session should always consider incorporating into target 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PL_DX_1 | Error messages include a short summary, unique error code, and contextual details (what failed, why, what to try) | P0 |
-| PL_DX_2 | Every error string and structured log call includes a unique, random 12-digit debug number at the throw/call site, never reused across the codebase | P0 |
+| PL_DX_2 | Every error string and structured log call includes a unique, random 12-digit debug number as a **hardcoded literal** at the throw/call site, never reused across the codebase. Grep invariant: searching the codebase for any debug number must return exactly 1 result. Never generate debug numbers at runtime — they must be traceable by grepping the source. | P0 |
 | PL_DX_3 | No silent or ignored error states — all errors are handled or surfaced | P0 |
 | PL_DX_4 | All code must pass the project linter and formatter with zero warnings | P0 |
 | PL_DX_5 | All functions, modules, and files include language-appropriate docstrings | P0 |
@@ -728,5 +728,5 @@ Testing and verification requirements that the plan session should include in ta
 | PL_SM_1 | Plan session defines measurable success metrics for the target project | P0 |
 | PL_SM_2 | Metrics cover functional correctness (test pass rate, defect rate, defect escape rate — defects found after iteration marked complete) | P0 |
 | PL_SM_3 | Metrics include specific numeric targets, not vague qualifiers | P0 |
-| PL_SM_4 | Metrics cover code quality (linter warnings, format compliance, coverage targets). Watch for agent-specific code smells: dead code, placeholder comments, hallucinated APIs, duplicate code, over-commenting, magic numbers, deep nesting, swallowed errors, boilerplate inflation. | P1 |
+| PL_SM_4 | Metrics cover code quality (linter warnings, format compliance, coverage targets). Watch for agent-specific code smells: dead code, placeholder comments, hallucinated APIs, duplicate code, over-commenting, magic numbers (exception: 12-digit debug number literals per PL_DX_2 are correct and must NOT be flagged), deep nesting, swallowed errors, boilerplate inflation. | P1 |
 | PL_SM_5 | Metrics cover development velocity (blocker rate) | P1 |

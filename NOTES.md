@@ -74,6 +74,21 @@ Rules that must not be violated. An agent breaking these breaks the system.
 
 ### Architecture & Routing
 
+#### Artifact format enforcement — A/B test (FB_12 vs FB_17)
+- **FB_17 (progress.md):** stronger prose — "match exactly" language + inline templates in execute.md/verify.md
+- **FB_12 (state files):** tooling — Python helper script shipped via `${CLAUDE_SKILL_DIR}/scripts/` that validates/writes state files. Agents call the tool instead of writing JSON freehand.
+- Comparing the two approaches in the next case study run will tell us whether tooling or prose is more effective at preventing drift. (2026-03-12)
+- `${CLAUDE_SKILL_DIR}` resolves to the skill directory at runtime, giving agents a known path to bundled tools. python3 is always available; jq requires external install.
+- Agents drifted from the defined format in both LOGA and LIBT — div markers, fenced code blocks, plain headers all appeared in one run
+- Fix: inline template + "match exactly" language in execute.md and verify.md. formats.md remains source of truth.
+- **Next step if agents still drift:** validator tool (grep for div markers, check required fields) or generator tool (shell helper that outputs correctly-formatted entries from args). jq-style enforcement is also an option for state files (FB_12). Decided to try the lighter-weight approach first. (2026-03-12)
+
+#### PRD traceability tags are permanent, not build scaffolding
+- Parenthetical PRD references like `(EX_17)`, `(VF_9)` in skill files are kept permanently — not stripped before release
+- Originally treated as build scaffolding with "will be stripped" notes in every file
+- FB_20 made them semantic (e.g., "per PL_DX_2" in exception text) — stripping would break cross-references
+- Removed all 7 "Build note" blocks from SKILL.md and reference files (2026-03-12)
+
 #### Single skill with reference files
 - One entry point (`/plet`) with state-driven routing
 - Phase-specific instructions in `references/` (plan.md, execute.md, verify.md, refine.md)
@@ -558,7 +573,7 @@ All agent-authored commits (impl, verify, merge, orchestrator) get a `Co-Authore
 
 #### Logalyzer re-run plan (2026-03-09)
 
-Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from commit `7cecbf5` ("example: after plan") — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan session output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
+Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from the plan checkpoint (`203c58a`, rebased from original `7cecbf5`) — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan session output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
 
 #### Logalyzer run 2 setup and run 1 archival (2026-03-10)
 
@@ -567,7 +582,7 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 **Key decisions:**
 
 - **Case study runs are not plet loops.** Branch naming should not conflate case study runs with actual plet lifecycle events. The `loop{N}` in branch names implies a plet session, but these are "same plan, different version of plet" comparison runs. Let plet pick its own branch names during execution — we only control the archival naming.
-- **Plan checkpoint branch:** Renamed `exmaple` (typo, but important) to `casestudy/logalyzer/plan-checkpoint`. Points at commit `7cecbf5` ("example: after plan") — the shared starting point for all comparison runs. Not run-specific; lives outside `run{N}/` namespace.
+- **Plan checkpoint branch:** Renamed `exmaple` (typo, but important) to `casestudy/logalyzer/plan-checkpoint`. Now at `203c58a` (rebased from original `7cecbf5`; `examples/logalyzer/` content identical) — the shared starting point for all comparison runs. Not run-specific; lives outside `run{N}/` namespace.
 - **Archive tag convention:** `casestudy/logalyzer/run{N}/branch/{original_branch_name}` — preserves the original branch name for traceability.
 
 **Discoveries during archival:**
@@ -1014,6 +1029,8 @@ Key questions:
 
 **Hard invariant: No refactoring unless all tests pass green.** Refactoring without green tests is rearranging code you can't verify. Regression risk is too high.
 
+**Debug number exception to magic numbers rule:** 12-digit debug number literals (PL_DX_2) must NOT be flagged as magic numbers or hardcoded values. They are intentionally unique hardcoded constants — grepping the codebase for any debug number must return exactly 1 result. Never generate debug numbers at runtime (e.g., `random.randint`). One-liner to generate: `head -c 16 /dev/urandom | shasum | tr -cd '0-9' | cut -c1-12`
+
 **Two-tier refactoring model:**
 
 **Tier 1: Per-loop minor refactor** — cheap, obvious, local scope. Things any competent developer would clean up before committing. Handled by the implementation/verify agents as part of normal loop work, not a separate phase.
@@ -1024,7 +1041,7 @@ Key questions:
 - Tests breaking across iterations that didn't directly touch that area (fragile coupling)
 - Growing parameter lists (introduce options/config object, or question whether the function does too much)
 - Unused imports/variables/dead code within touched files
-- Magic numbers or hardcoded values that should be named constants
+- Magic numbers or hardcoded values that should be named constants (exception: 12-digit debug number literals per PL_DX_2)
 - Inconsistent error handling within touched files (new pattern doesn't match existing)
 - Placeholder comments (`// TODO`, `# FIXME`) left by the agent — should never survive past verify
 - Generic error handling (catching all exceptions, swallowing errors, `except Exception: pass`)

@@ -1,6 +1,5 @@
 # Plan Phase
 
-> **Build note:** Parenthetical references like `(PL_1)`, `(PL_DX_5)` are PRD traceability tags from `prd.md`. They will be stripped before release.
 
 The plan phase is **interactive and human-driven**. It is a structured conversation, not a form. The human steers; the agent structures. The ergonomics should be clean and clear — the user should feel guided, not interrogated.
 
@@ -308,12 +307,16 @@ After all iterations are approved:
    - `breakpoints`: `{before: [], after: []}`
    - `iterationsFingerprint`: copy from iterations.md
 
-3. Create per-iteration state files (`plet/state/{iteration_id}.json`) with:
-   - `lifecycle`: `"queued"` if no dependencies, `"ineligible"` if dependencies exist
-   - `agentId`: `null`
-   - `agentActivity`: `"idle"`
-   - `attempts`: `{impl: 0, verify: 0}`
-   - `criteria`: array from iteration definitions, all `status: "not_started"`
+3. Create per-iteration state files using the state tool:
+   ```bash
+   TOOL="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
+   $TOOL init plet/state/ID_001.json \
+       --iteration-id ID_001 \
+       --title "Project scaffolding" \
+       --dependencies '[]' \
+       --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
+   ```
+   The tool sets lifecycle (`queued` or `ineligible`), initializes the two-state criterion model, and validates the output.
 
 4. **Recommendations** — surface any final concerns about the overall plan (coverage gaps, risk areas, dependency graph shape) before offering to start
 5. **Consistency pass** — verify fingerprints match across all three plan artifacts, all requirements are covered by iterations, all iteration IDs appear in state files
@@ -462,7 +465,7 @@ Define measurable success metrics for the target project (PL_SM_1):
   - Hallucinated APIs — calls to methods/functions that don't exist in the actual dependency
   - Duplicate code — copy-pasted blocks instead of extracted helpers
   - Over-commenting — excessive or obvious comments that restate the code
-  - Magic numbers/strings — hardcoded values without named constants
+  - Magic numbers/strings — hardcoded values without named constants (exception: 12-digit debug number literals per PL_DX_2 are correct and must not be flagged)
   - Deep nesting — excessive if/else/loop depth instead of early returns
   - Swallowed errors — bare except, empty catch blocks, errors logged but not handled
   - Boilerplate inflation — verbose code when concise alternatives exist

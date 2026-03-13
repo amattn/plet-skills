@@ -359,7 +359,7 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 ### Phase B: Re-run logalyzer from plan checkpoint
 
-Re-run the logalyzer build starting from commit `7cecbf5` ("example: after plan") — same spec, fresh execution with improved plet. This gives a direct before/after comparison.
+Re-run the logalyzer build starting from the plan checkpoint on branch `casestudy/logalyzer/plan-checkpoint` (`203c58a`, rebased from original `7cecbf5`) — same spec, fresh execution with improved plet. This gives a direct before/after comparison. The `examples/logalyzer/` subdirectory content is identical across both commits.
 
 **Control variable:** Plan phase output (requirements.md, iterations.md) — identical between runs.
 
