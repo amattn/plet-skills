@@ -1,0 +1,82 @@
+[
+  {
+    "query": "ok we just spent 20 minutes discussing whether to use SQLite or Postgres for the local cache. Let's go with SQLite — it's simpler and we don't need multi-process writes. Can you make sure we don't lose that rationale?",
+    "should_trigger": true
+  },
+  {
+    "query": "I'm starting a new Go project for a CLI tool that processes log files. Let's set up the project structure and get institutional memory going from day one.",
+    "should_trigger": true
+  },
+  {
+    "query": "wait, why did we decide to use append-only IDs instead of renumbering? I feel like we discussed this last week but I can't remember the reasoning",
+    "should_trigger": true
+  },
+  {
+    "query": "the NOTES.md file is getting really unwieldy — there are like 15 sections and half of them have stuff that doesn't belong. Can we clean it up?",
+    "should_trigger": true
+  },
+  {
+    "query": "I told you three sessions ago that we should never use merge commits in this project. Can you note that as an invariant?",
+    "should_trigger": true
+  },
+  {
+    "query": "we just decided to drop the WebSocket approach and go with SSE instead. The main reasons were browser compatibility and simpler server implementation. Let's not forget this.",
+    "should_trigger": true
+  },
+  {
+    "query": "can you add a section to our notes about the naming conventions we've been using? I keep having to correct the agent on camelCase vs snake_case",
+    "should_trigger": true
+  },
+  {
+    "query": "I want to capture the user's exact words from earlier — they said 'the API should feel like a local function call, not a remote procedure'. That's a key design principle.",
+    "should_trigger": true
+  },
+  {
+    "query": "this project has notes files in three different subdirectories and I'm not sure which one to write to. The guide/ folder has its own notes but the API decisions keep ending up in the root file.",
+    "should_trigger": true
+  },
+  {
+    "query": "what decisions have we already made about authentication? I don't want to re-litigate something we already settled.",
+    "should_trigger": true
+  },
+  {
+    "query": "can you write a Python function that reads a CSV file and outputs the top 10 rows sorted by the 'revenue' column? The file is at data/q4_sales.csv",
+    "should_trigger": false
+  },
+  {
+    "query": "I need to fix this failing test in tests/test_auth.py — it's throwing a 401 on the refresh token endpoint. Here's the traceback...",
+    "should_trigger": false
+  },
+  {
+    "query": "can you review this pull request? It's PR #247 on our repo, adds rate limiting to the /api/v2/search endpoint",
+    "should_trigger": false
+  },
+  {
+    "query": "set up a new React component for the user settings page. It should have tabs for Profile, Notifications, and Security. Use our existing SettingsLayout component.",
+    "should_trigger": false
+  },
+  {
+    "query": "I need to write a README for this project explaining how to install it, configure the database, and run the test suite",
+    "should_trigger": false
+  },
+  {
+    "query": "can you add a CHANGELOG.md entry for version 2.3.0? We added SSE support, fixed the auth bug, and deprecated the old WebSocket endpoint",
+    "should_trigger": false
+  },
+  {
+    "query": "let's refactor the database module to use connection pooling. The current approach opens a new connection per request and it's killing performance under load",
+    "should_trigger": false
+  },
+  {
+    "query": "I want to set up git hooks that run linting and tests before every commit. We're using husky and lint-staged.",
+    "should_trigger": false
+  },
+  {
+    "query": "can you create a TODO list of everything we need to do before the v1.0 release? I want to track progress on the remaining features",
+    "should_trigger": false
+  },
+  {
+    "query": "help me debug this memory leak — the Node process keeps growing to 2GB after about an hour of running. I think it's in the event listener cleanup",
+    "should_trigger": false
+  }
+]

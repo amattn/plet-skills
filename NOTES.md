@@ -670,6 +670,34 @@ Key decisions:
 - **Location:** Project root alongside CLAUDE.md, PLET.md, NOTES.md.
 - **Rejected:** Agents writing directly to FEEDBACK.md — they can't reliably distinguish plet-process issues from project issues. The human is the filter.
 
+#### Notes skill spec update (2026-03-12)
+
+Updated `prd-notes-skill.md` to reflect lessons from 50+ sessions of use. Key decisions:
+
+- **Standalone `/notes` skill** that plet's plan session can invoke. Useful independently, composable with plet.
+- **Generalized from PRD to "spec"** — the skill works with any design document, not just PRDs.
+- **Sections are suggested starting points, not rigid template.** Structure should evolve with emergent content. Sections may merge, split, or be retired (content migrated elsewhere).
+- **Top-tier sections** (most important): Key Design Decisions, Invariants & Critical Requirements, Important Concepts & Insights, Taxonomy/Conventions. Rest are useful but lower-traffic.
+- **Core Workflow / Architecture dropped** as standalone section — folded into Project Context as a one-liner.
+- **PRD Change Log and Review Pass Changes merged** into Key Design Decisions as dated entries.
+- **Motivation / Problem Statements dropped** — folded into decision entries as "why" context.
+- **Reorganization** — new section describing when and how to restructure NOTES.md (drift signals, graduation of outgrown content, reorg pass procedure).
+- **Size management** — new section acknowledging that NOTES.md consumes context and needs active management.
+- **Bootstrap flow** — new section for first-time `/notes` invocation on a project.
+- **Notes Discipline** — explicit framing for the operating rules as a named discipline.
+- **Cascade awareness** — operating rule noting that CLAUDE.md or other directive files may define project-specific cascading instructions.
+- **Consistency passes** — operating rule to run consistency passes after significant updates (level deferred to project conventions).
+- **Signs content has outgrown NOTES.md** — three signals: develops internal structure, dominates parent section, stops getting updated AND matches other signals. Static content alone is fine (settled decisions are still valuable institutional memory).
+- **Generalized further from "spec" to "project"** — the skill works for any repo type (code, content, specs, etc.), not just spec-driven projects. Language uses "project artifacts" throughout.
+- **Multiple NOTES.md files** — new section covering when subfolders need their own NOTES.md (distinct decision history, different contributors, size), routing tables in CLAUDE.md, cross-references over duplication, on-demand loading.
+- **Notes Discipline example** — operating rules section now includes the exact CLAUDE.md wording as a recommended template for projects to adopt.
+- **IDs on notes entries: not recommended.** Considered formal IDs (e.g., `NOTE_KD_N`) for notes entries. Rejected — notes entries are too fluid (reorgs cause ID churn), section headers serve as natural references, and notes are read not cited by ID. IDs earn their keep in PRDs where requirements need traceability; notes entries are prose.
+- **Reorg operating rule added (rule 9).** "Watch for reorg signals" — periodically assess whether structure still fits, suggest reorg when drift signals appear.
+- **Multiple NOTES.md files go in subfolders.** Made explicit: second notes file is always `subfolder/NOTES.md`, never `NOTES-2.md` at root.
+- **SKILL.md built** — 201 lines, covers bootstrap, Notes Discipline, reorg, routing, size management, outgrown content signals.
+- **Description optimization attempted.** Ran skill-creator trigger eval (20 queries). Result: 100% precision (no false triggers), 0% recall (Claude doesn't invoke skills for implicit capture requests). Acceptable for v0.1 — CLAUDE.md Notes Discipline block handles the implicit capture behavior.
+- **Plugin metadata: dual distribution attempted, reverted.** Tried two entries in marketplace.json with different `skills` paths — only plet showed up. Restructuring into separate source directories (official Anthropic pattern) would work but creates duplication/symlink issues. **Decision:** notes-md will be its own repo (`amattn/notesmd`) as a standalone plugin. The notes skill stays bundled with plet in plet-skills — installing plet-skills gets you both.
+
 ### Vocabulary and taxonomy — DECIDED
 
 Standardized hierarchy to eliminate overloaded terms. See **Taxonomy > Vocabulary Hierarchy** for the canonical definitions.
