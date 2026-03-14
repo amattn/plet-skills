@@ -116,6 +116,14 @@ Each runtime artifact serves a distinct audience:
 
 The three plan artifacts (`requirements.md`, `iterations.md`, `state.json`) stay in sync via lightweight fingerprints — nested ID arrays, not file hashes. If requirements change but iterations haven't been regenerated, plet detects the drift and warns the user.
 
+### Skills for Judgment, Code for Compliance
+
+Skills are prompt-interpreted every invocation — each time, the model re-reads instructions and makes fresh decisions about how to comply. Over many iterations, these independent interpretations drift. Code executes the same way every time.
+
+This means tasks requiring regularity and consistency (schema enforcement, state management, format compliance) must be delegated to deterministic code, not prose instructions. plet ships enforcement tools (like `plet_state.py` for state file validation) inside the skill package via `${CLAUDE_SKILL_DIR}/scripts/`. The agent calls a tool that guarantees correctness rather than interpreting prose about what "correct" looks like.
+
+The escalation pattern: (1) define the rule in prose, (2) if agents drift, build a tool that makes compliance automatic, (3) ship the tool inside the skill.
+
 ### Blockers are Last Resort
 
 Agents prefer making a decision and documenting it in `emergent.md` over blocking. Blocking is reserved for situations where no reasonable decision can be made without human input. When a blocker does occur, it must be documented across all four artifact types before the agent returns — the quality of blocker documentation determines whether the human can help.

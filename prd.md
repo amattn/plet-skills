@@ -27,6 +27,7 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 - **Iterative refinement:** The spec is a living document that improves as agents discover gaps, make decisions, and surface questions
 - **Single entry point:** Users invoke `/plet` and the skill figures out what to do based on state — no need to remember pipeline steps
 - **Blockers are last resort:** Agents prefer making a decision and documenting it in emergent.md over blocking. The quality of blocker documentation determines whether the human can help.
+- **Skills for judgment, code for compliance:** Skills are prompt-interpreted every invocation — non-deterministic by nature. Tasks requiring regularity and consistency across repeated invocations (schema enforcement, state management, format compliance) must be delegated to deterministic code shipped alongside the skill. Prose rules for judgment calls; tooling for format enforcement.
 
 ---
 

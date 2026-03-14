@@ -234,6 +234,14 @@ What happens when you take Part 1's patterns seriously enough to automate them.
 - Separate artifacts by audience: progress.md (humans), learnings.md (agents), emergent.md (decisions)
 - *Talking point:* These are boring infrastructure decisions. They prevent the exciting failure mode where parallel agents silently clobber each other's work.
 
+**Slide 9.6 — "Skills for Judgment, Code for Compliance"**
+- Skills are prompt-interpreted every invocation — non-deterministic by nature
+- Over many loop iterations, independent interpretations of the same prose drift
+- Code executes the same way every time — use it for schema enforcement, state management, format compliance
+- The escalation pattern: (1) define rule in prose, (2) if agents drift, build a tool, (3) ship inside the skill
+- Real data: `plet_state.py` → zero state schema drift across 23 iterations. Prose-only learnings/emergent rules → still ignored in the same run.
+- *Talking point:* This is the fundamental limitation of skills in loops. Non-determinism is a feature for judgment calls. It's a bug for compliance. The answer isn't "better prose" — it's recognizing which tasks need deterministic enforcement and shipping the tooling inside the skill package.
+
 ### 10. The Subagent Model
 
 **Slide 10.1 — "Fresh Context for Genuine Independence"**
@@ -260,7 +268,9 @@ What happens when you take Part 1's patterns seriously enough to automate them.
 - plet runs generate learnings (learnings.md)
 - Learnings feed back into the system (FEEDBACK.md → requirements → implementation)
 - The ratchet from Part 1, now turning automatically
-- *Talking point:* This is the payoff. Not just "Claude builds software." Claude builds software, learns from building it, and gets better at building the next thing. The system that builds software also builds itself.
+- But prose-only feedback loops have limits — agents drift on prose rules over many iterations
+- The virtuous cycle *needs* tooling: prose captures the intent, code enforces it, the skill ships both
+- *Talking point:* This is the payoff. Not just "Claude builds software." Claude builds software, learns from building it, and gets better at building the next thing. The system that builds software also builds itself. But it only works if the compliance parts are code, not prose — that's the "skills for judgment, code for compliance" principle in action.
 
 **Slide 11.2 — "From Tool to Evolving Collaborator"**
 - Part 1: manual ratchet — notice, capture, formalize. Human-driven.

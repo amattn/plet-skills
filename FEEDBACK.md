@@ -174,3 +174,99 @@ Autonomous agents need `bypassPermissions` in the target project's `.claude/sett
 LIBT: 11 learnings, 6 emergent items with cross-iteration knowledge transfer. LOGA: 3 learnings, 1 emergent. Contributing factors: (a) R_7 fix mandating entries, (b) smaller project size, (c) Python's simpler toolchain. If (a) is primary, improvement persists at scale. If (b) or (c), it may not. Need a 10+ iteration project to test.
 
 Source: LIBT S_8
+
+### FB_23: plet should bootstrap CLAUDE.md if it doesn't exist [onboarding] [artifacts]
+
+Plet's plan session reads CLAUDE.md "if it exists" (DX_2) but never creates one. On a fresh repo, the entire institutional memory layer is missing — Notes Discipline, Required Reading, compaction recovery, key file references. The /notes skill's bootstrap adds *to* CLAUDE.md but assumes it exists. Either plet's plan session or EX_5 (/bootstrap) should create a minimal CLAUDE.md when one isn't present.
+
+Same gap for NOTES.md and FEEDBACK.md — plet bootstraps the runtime artifacts (progress.md, learnings.md, emergent.md) but not the memory artifacts. Oddly asymmetric: the ephemeral runtime files get created automatically, but the persistent institutional memory files that carry across sessions don't.
+
+More broadly, plet may need a **bootstrap phase** before plan — a pre-flight that ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK.md exists, bypassPermissions is configured (FB_22), etc. Currently the plan session jumps straight into requirements gathering without verifying the foundation is in place.
+
+### FB_24: Requirements not written to disk incrementally despite PL_12 [artifacts] [prompting]
+
+PL_12 explicitly says "Each approved section is written to disk immediately" and is reinforced at the requirement approval step (plan.md line 201) and iteration approval step (line 279). Despite this, agents defer writing requirements.md to the end of the plan session. The rule exists — the agents ignore it. May need stronger language, a different position in the plan flow, or a checkpoint that verifies the file was actually written after each approval.
+
+### FB_25: Show priority histogram at end of plan session [ux] [planning]
+
+At the end of the plan session, show a histogram/summary of iteration priorities (P0, P1, P2, P3). Gives the user a quick sanity check on the distribution before starting the loop — too many P0s might mean priorities aren't differentiated enough, no P0s might mean nothing is critical.
+
+### FB_26: Milestones generated too early in plan session [planning] [sequencing]
+
+Milestones should wait until the section-by-section requirement review is complete. Requirements change during review — sections get added, removed, reprioritized — so milestones generated before review is done are based on stale input and need to be redone.
+
+### FB_27: Plan session needs a data modeling section [planning] [spec]
+
+Requirements often involve data models — database schemas, JSON structures, API designs. Currently the plan session has no explicit step for defining these. Sometimes the user wants to specify models in the spec (human-driven design); sometimes they want agents to derive them during execution (agent-driven design). The plan session should have an optional data modeling section that lets the user choose: define models now (and include them in requirements.md), or leave them for agents to design during implementation. When defined in the spec, models become acceptance criteria — agents must implement against them. When deferred, agents should capture their data modeling decisions in learnings.md.
+
+### FB_28: No intermediate commits during plan session [git] [planning]
+
+The plan session produces zero commits — everything is uncommitted until the session ends (or doesn't get committed at all). Related to FB_24 (files not written to disk incrementally) but distinct: even when files are written, they're not committed. Each approved section should be committed immediately. This protects against context loss, makes the planning history inspectable via git log, and matches the intermediate commit discipline already required during execute (R_1).
+
+## SparkBoard Run 1 (2026-03)
+
+### FB_29: Learnings/emergent mandatory entry rule not enforced [prompting] [artifacts]
+
+SPARK produced 2 learnings and 1 emergent from 23 iterations (0.09 and 0.04 per iteration). LIBT had 2.2 and 1.2 per iteration respectively. The R_7 mandatory entry rule exists but agents ignore it. State schema enforcement succeeded via tooling (plet_state.py); the same approach should work for learnings/emergent — a helper tool with a pre-verify checkpoint that blocks if no entries exist.
+
+Source: SPARK SP_1
+
+### FB_30: Agents used 42 git stashes despite ban [git] [autonomy]
+
+FB_9 explicitly banned `git stash` in agents. SPARK run produced 42 stashes — agents use stashing heavily during parallel branch work. The ban is ineffective because stashing is fundamental to how agents handle branch switching in parallel execution. Worktree isolation (FB_13) may make stashes unnecessary rather than just banning them.
+
+Source: SPARK SP_2
+
+### FB_31: Final loop commit required human prompting [git] [autonomy]
+
+The loop completed (all 23 iterations verified) but the final commit consolidating trace/state/runtime artifacts didn't happen automatically. The orchestrator should auto-commit all outstanding artifacts when the loop completes. Same class of issue as FB_8.
+
+Source: SPARK SP_3
+
+### FB_32: Orphaned worktree after retry [git] [state]
+
+ID_015's retry left behind an orphaned worktree at `.claude/worktrees/ID_015-impl2` that was never cleaned up. The orchestrator should clean up worktrees when an iteration completes or when a retry supersedes the previous attempt.
+
+Source: SPARK SP_4
+
+### FB_33: Progress.md entries incomplete — 6 entries from 23 iterations [artifacts] [prompting]
+
+Only 6 explicit work entries in progress.md from 23 iterations. Most iterations have no individual progress entry. Either subagents aren't writing entries, or the orchestrator is consolidating and losing detail. Each impl and verify phase should produce its own entry.
+
+Source: SPARK SP_5
+
+### FB_34: Recommend user stays for first 1-2 iterations [onboarding] [ux]
+
+SPARK's ID_001 hit a Postgres.app permissions blocker that required human intervention — a 12+ hour stall. Scaffolding and environment issues (DB access, missing dependencies, port conflicts, permission errors) almost always surface in the first 1-2 iterations. The orchestrator should suggest the user stick around for the first couple of iterations to catch these quickly, then leave it running unattended once the foundation is solid.
+
+Source: SPARK run observation
+
+### FB_35: Agent lost commits during implementation (ID_007) [git] [crash-recovery]
+
+SPARK ID_007 notes "impl-1 lost commits; re-impl as impl-2" — the agent lost its work and had to re-implement from scratch. No explanation in the case study of why commits were lost. This is distinct from FB_2 (no intermediate commits) — commits may have existed and then been lost during branch operations, merge conflicts, or a crash. Needs investigation: was this a git operation gone wrong, a context window loss, or something else? If commits can be silently lost during implementation, the crash recovery story has a gap.
+
+Source: SPARK case study, ID_007 iteration table
+
+### FB_36: Retry overhead consumed 24% of active execution time [timing] [efficiency]
+
+4 of 23 iterations required retries (ID_005, ID_007, ID_013, ID_015), consuming ~43 minutes of the ~3 hour active run — 24% overhead. At scale, this is significant. Worth tracking across runs to see if the rate improves. Potential mitigations: better first-pass prompting, pre-impl checks that catch common failure modes (missing dependencies, schema mismatches), or a lightweight "dry run" step before full implementation.
+
+Source: SPARK case study, timing analysis
+
+### FB_37: Verify first-pass rate regressed at scale (83% vs LIBT 100%) [verification] [scale]
+
+SPARK verify first-pass rate was 83% (19/23) — down from LIBT's 100% (5/5) and similar to LOGA's 85% (11/13). Could be a scale effect (more iterations = more chances for failure), Elixir/Phoenix unfamiliarity, or a real regression. The 4 failures had different causes: ID_005 (unknown), ID_007 (lost commits), ID_013 (missing PubSubHelper module), ID_015 (AC_5 failed). Worth tracking whether verify first-pass rate correlates with project size or language.
+
+Source: SPARK case study, comparison table
+
+### FB_38: Cross-iteration knowledge transfer not functioning [artifacts] [prompting]
+
+SPARK's 2 learnings entries existed but weren't referenced by later iterations — rated "Minimal" for cross-iteration knowledge transfer. This is distinct from FB_29 (low entry count): even when learnings exist, the pipeline from learnings.md → subagent prompt → applied knowledge isn't working. Either subagents aren't reading learnings.md, or the content isn't actionable enough to influence behavior. The injectable HTTP client learning (ID_007 → applied in later iterations) is the one success case — worth studying what made that one work.
+
+Source: SPARK case study, comparison table
+
+### FB_39: SP_6 root cause investigation needs its own entry [research] [scale]
+
+SP_6 (investigate learnings regression root cause) references FB_21 but FB_21 is LIBT-specific ("what made LIBT better?"). SP_6 is the inverse question at larger scale: why did a 23-iteration Elixir project produce fewer learnings than a 5-iteration Python project? The hypotheses are distinct: (a) R_7 rule text weakened between runs, (b) subagent prompt doesn't include R_7 in SPARK, (c) Elixir/Phoenix is familiar territory for the agent, (d) project size dilutes per-iteration learning rate. Answering this requires comparing the actual prompts sent to subagents in LIBT vs SPARK — not just the skill text.
+
+Source: SPARK SP_6

@@ -15,6 +15,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 |------|---------|----------|------------|-------------|
 | `LOG_ANALYZER_CASE_STUDY.md` | LOGA (logalyzer) | Go | 13 | First run baseline; learnings/emergent underutilized |
 | `TODO_CLI_CASE_STUDY.md` | LIBT (todo-cli) | Python | 5 | Learnings/emergent dramatically improved; state schema still drifts |
+| `SPARKBOARD_CASE_STUDY.md` | SPARK (sparkboard) | Elixir | 23 | State schema solved; learnings/emergent regressed; 42 stashes despite ban |
 
 ## Standard Sections
 

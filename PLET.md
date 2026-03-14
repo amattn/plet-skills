@@ -226,6 +226,22 @@ After making changes, run a consistency pass appropriate to the scope. Run Quick
 
 If the results suggest a deeper level would be worthwhile, recommend it.
 
+## Skills for Judgment, Code for Compliance
+
+Skills are prompt-interpreted every invocation — non-deterministic by nature. Over many iterations in a loop, independent interpretations of the same prose instructions drift. Code executes the same way every time.
+
+**Use skills for:** judgment calls, adaptation, novel situations, decision-making — where non-determinism is a feature.
+
+**Use code for:** schema enforcement, state management, format compliance, artifact generation — where non-determinism is a bug.
+
+plet ships enforcement tools inside the skill package via `${CLAUDE_SKILL_DIR}/scripts/`. When agents consistently violate a prose rule, escalate to tooling:
+
+1. Define the rule in prose
+2. If agents drift, build a tool that makes compliance automatic
+3. Ship the tool inside the skill — same package, same version, same deployment
+
+This was validated across three case studies: state schema drift (the most persistent issue) was fully solved by `plet_state.py`, while prose-only rules for learnings/emergent capture continued to be ignored by agents in the same run.
+
 ## FEEDBACK.md
 
 `FEEDBACK.md` captures meta-observations about plet itself — process issues, instruction gaps, tooling friction. It is distinct from `learnings.md` (which captures knowledge about the *target project*) and `emergent.md` (which captures items discovered during execution for human triage).

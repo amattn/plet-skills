@@ -102,6 +102,7 @@ These are slightly more situational — still high value, but they tend to matte
 
 ## Architecture Insights
 
+- **Skills for judgment, code for compliance:** Skills are prompt-interpreted every invocation — non-deterministic by nature. Over many iterations in a loop, independent interpretations of the same prose instructions drift. Code executes the same way every time. Use skills for judgment calls, adaptation, and novel situations. Use deterministic code for schema enforcement, state management, format compliance, and artifact generation. When agents consistently violate a prose rule, escalate to tooling: (1) define the rule in prose, (2) if agents drift, build a tool that makes compliance automatic, (3) ship the tool inside the skill package. Validated empirically: `plet_state.py` achieved zero state schema drift across 23 iterations; prose-only rules for learnings/emergent capture continued to be ignored in the same run.
 - **Parallel execution is messier than sequential:** Merge conflicts, cross-branch contamination, batched operations. Sequential is cleaner in every dimension. Parallelism is valuable but has real costs.
 - **Dependency graph over strict sequence:** Iterations form a DAG. Independent ones run concurrently. When in doubt, add the dependency — missing dependencies waste cycles, false dependencies only reduce parallelism.
 - **Atomic writes for state:** Write to temp file, then POSIX rename. Direct writes OK when each file has a single writer.

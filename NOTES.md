@@ -978,6 +978,22 @@ Missing dependencies are dangerous (agent wastes a cycle, must self-correct). Fa
 ### No metrics that reward lousy verification
 First-pass verification rate sounds useful but incentivizes rubber-stamping. Never use metrics that reward the verification agent for passing easily.
 
+### Tooling beats prose for enforcement — the plet_state.py insight
+
+"Ship enforcement tooling alongside the instructions, in the same package." — emergent principle confirmed by SPARK case study.
+
+State schema drift was the most persistent issue across LOGA and LIBT (5 different schemas in 5 iterations, both runs). Prose rules ("match this schema exactly") failed repeatedly. plet_state.py — a Python tool shipped inside the skill via `${CLAUDE_SKILL_DIR}/scripts/` — solved it completely. SPARK: zero schema drift across 23 iterations.
+
+Meanwhile, learnings/emergent capture (enforced only via prose rule R_7) regressed from LIBT's 2.2/iter to SPARK's 0.09/iter. Same agents, same run, different enforcement mechanism, dramatically different compliance.
+
+**The deeper insight:** This validates a lesson from the RIDL/Ridler.app experience. In RIDL, the harness (code) and the loop (agent skills) were separate projects with separate implementation methodologies — developing both in parallel was hard, and keeping them consistent was harder. In plet, enforcement tools (plet_state.py) are bundled *inside* the skill itself. Same package, same version, same deployment. The agent calls a tool that guarantees correctness rather than interpreting prose instructions about what "correct" looks like.
+
+**The fundamental limitation:** Skills are prompt-interpreted every invocation. Each time, the model re-reads instructions and makes fresh decisions about how to comply. Over 23 iterations, that's 23 independent interpretations of the same prose — and they drift. Code executes the same way every time. This means skills are fundamentally unsuited to tasks requiring regularity and consistency when invoked repeatedly in a loop. RIDL/Ridler.app had this right structurally — a code harness for the deterministic parts, agent skills for the judgment parts — even though the two-project split made development painful. plet collapsed them into one package for convenience but moved enforcement from code to prose. plet_state.py was the first step back toward code enforcement *within* the skill package.
+
+**The design principle:** Skills for judgment and adaptation (where non-determinism is a feature). Code for format compliance, schema enforcement, artifact generation, and state management (where non-determinism is a bug). Ship the code inside the skill so they version together.
+
+**Implication:** Any plet rule that agents consistently violate should be a candidate for tooling enforcement, not stronger prose. The pattern: (1) define the rule in prose, (2) if agents drift, build a tool that makes compliance automatic, (3) ship the tool inside the skill.
+
 ### Use subagents to explore during design
 During the execute.md build, we used subagents to research ridler2's trace mechanism, check Claude Code flags, test tool capabilities, and verify file paths. Subagents are cheap and fast for exploratory validation — use proactively during brainstorming, not just for delegated work.
 

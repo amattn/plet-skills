@@ -74,6 +74,7 @@ This is the real distinction from pure "agentic coding" — plet doesn't try to 
 - **Every ratchet pattern maps 1:1 to a plet design decision.** This is what makes the Part 1 → Part 2 transition feel inevitable rather than bolted on.
 - **"Fight passive execution" is the root cause tip.** At least half the other tips are patches for this one underlying bias. It deserves the most presentation time in Part 1.
 - **The virtuous cycle is the payoff.** plet runs generate learnings → learnings improve the system → improved system generates better learnings. The system that builds software also builds itself. This is the "so what?" of the entire talk.
+- **Skills for judgment, code for compliance.** Skills are non-deterministic — each invocation re-interprets prose instructions independently. Over many loop iterations, this drift compounds. Tasks requiring consistency (schema enforcement, state management, format compliance) must be delegated to deterministic code shipped inside the skill package. Validated by `plet_state.py`: zero state schema drift across 23 iterations vs. persistent drift from prose-only rules in the same run. This is both an architecture insight (slide 9.6) and a constraint on the virtuous cycle (slide 11.1 — the feedback loop needs tooling, not just prose).
 
 ---
 
@@ -205,6 +206,12 @@ plet takes Part 1 patterns and industrializes them into an autonomous developmen
 ## Progress
 
 Changelog tracking major milestones and decisions for this guide effort.
+
+### 2026-03-14
+- Added "skills for judgment, code for compliance" principle across all three guide artifacts
+  - CLAUDE_CODE_EMERGENT_PRACTICES_PATTERNS.md: new entry in Architecture Insights (with empirical validation data)
+  - OUTLINE.md: new Slide 9.6 in Architectural Decisions + updated Slide 11.1 (virtuous cycle needs tooling)
+  - guide/NOTES.md: new Emergent insight linking the principle to both architecture and the virtuous cycle
 
 ### 2026-03-11
 - Expanded OUTLINE.md from structural skeleton to slide-by-slide outline with headlines and talking points

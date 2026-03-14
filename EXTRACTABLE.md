@@ -4,6 +4,20 @@ Patterns discovered during plet-skills development that are generalizable as sta
 
 **Source:** These patterns emerged from 50+ sessions of AI-assisted development and two case study runs. They're battle-tested in this repo but not yet packaged for general use.
 
+**Reference implementation:** `sparkboard/CLAUDE.md` demonstrates what a session-kit bootstrap output looks like in practice. Its generic half maps almost 1:1 to the extractable skills:
+
+| Sparkboard CLAUDE.md section | Extractable skill |
+|---|---|
+| Post-Compaction Rule | EX_5 /bootstrap |
+| NOTES.md Discipline | /notes bootstrap |
+| Decision Discipline | EX_6 /discipline |
+| Interaction Preferences | EX_1 /chatux |
+| Common Misspellings | EX_3 /dictation |
+| Self-Improvement | EX_4 /improve |
+| Commit Conventions | project-specific (not extracted) |
+
+This suggests session-kit's bootstrap should produce a CLAUDE.md structurally similar to sparkboard's — generic conventions in the first half, project-specific context in the second half.
+
 ---
 
 ## EX_1: Chat UX (`/chatux`)
@@ -140,7 +154,8 @@ Any important workflow can be made reliable by expressing it as a discipline wit
 - Bootstrap: help the user identify workflows that need reliability guarantees, express them as named disciplines
 - Template: numbered imperatives + rationale + CLAUDE.md block
 - Catalog: maintain a list of active disciplines in the project
-- Enforcement: the CLAUDE.md block is the enforcement mechanism — no runtime tooling needed
+- Enforcement: the CLAUDE.md block is the enforcement mechanism for judgment-based rules
+- Escalation: disciplines enforcing format compliance or consistency should be paired with tooling when prose alone fails. The pattern: prose first → if agents drift → build a tool → ship inside the skill. (See PLET.md § "Skills for Judgment, Code for Compliance")
 - Composition: disciplines can reference each other (Notes Discipline + Decision Discipline are complementary)
 
 **Size estimate:** Medium — the meta-skill of creating disciplines, not just one specific discipline. Includes templates, examples, and guidance on when a workflow warrants formalization.
