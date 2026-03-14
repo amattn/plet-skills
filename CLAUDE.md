@@ -48,6 +48,7 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 | sublet, sub plet | subplet |
 | Maine | main (git branch) |
 | re-base of emerge | rebase over merge |
+| pie, .pie | .py (Python file extension) |
 
 **When voice input is garbled beyond the known misspellings table:** If a message doesn't parse cleanly — especially when multiple words seem wrong in a way that doesn't match any single intent — ask for clarification rather than guessing. Present your best interpretations using numbers-letters style so the user can pick quickly. The cost of asking is one round-trip. The cost of guessing wrong is a wasted action and a correction cycle.
 

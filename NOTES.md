@@ -1038,6 +1038,164 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 
 ---
 
+## Tooling Brainstorm
+
+Tools shipped inside the skill package via `${CLAUDE_SKILL_DIR}/scripts/`. The pattern: prose rules that agents consistently violate → deterministic tooling that makes compliance automatic. See "Skills for Judgment, Code for Compliance" in § Important Concepts.
+
+### plet_state.py (shipped, validated)
+
+State file management — `init`, `update-criterion`, `update-field`, `validate`. Zero schema drift across 23 SPARK iterations. The success story that proved tooling > prose.
+
+### plet_entries.py (candidate)
+
+Learnings/emergent/progress entry writer. The most obvious next tool — FB_29 and FB_33 show that agents skip or produce incomplete entries when left to prose rules alone.
+
+**What it would do:**
+- `add-learning --iteration ID_xxx --content "..."` — append a correctly-formatted entry to learnings.md
+- `add-emergent --iteration ID_xxx --content "..." --tags "design,blocker"` — append to emergent.md
+- `add-progress --iteration ID_xxx --phase impl --attempt 1 --content "..."` — append to progress.md
+- All entries get consistent formatting (div markers, metadata fields, timestamps)
+- A `check --iteration ID_xxx` command that returns whether entries exist for the current iteration — usable as a pre-verify gate
+
+**Why it would work:** Same reason plet_state.py works — removes the interpretation step. Agents call a tool with structured arguments instead of composing markdown from prose descriptions of what the format should look like.
+
+**Open question:** Should it *block* verify if no entries exist (hard gate), or just *warn* (soft nudge)? plet_state.py uses validation that blocks; the same approach would enforce the R_7 mandatory entry rule mechanically.
+
+### plet_fingerprint.py (candidate) ★ strong
+
+Fingerprint computation and drift detection. Fingerprints span 3 files (requirements.md → iterations.md → state.json) with nested ID arrays + `lastNonTrivialUpdate` timestamps. Computing, embedding, and comparing these is purely mechanical — agents doing this by hand across refine sessions will drift on structure, miss updates, or compute incorrectly.
+
+PRD refs: SY_1–SY_8
+
+**What it would do:**
+- `compute --file requirements.md` — extract and compute fingerprint from file
+- `check` — compare fingerprints across all 3 files, report drift (stale iterations, stale state)
+- `update --file iterations.md` — recompute and embed fingerprint
+- Enforces the exact nested structure from SY_1/SY_2/SY_3
+
+**Why it matters:** Fingerprint drift is silent — no one notices until an agent operates on stale spec. Currently enforced by prose only. The three-file chain makes hand-computation error-prone.
+
+### plet_id.py (candidate) ★ strong
+
+Plet ID generation. The composable ID scheme (type prefix + Crockford Base32 timestamp + context segments) is complex enough that agents will get it wrong across 23+ iterations.
+
+PRD refs: RT_11, Plet ID Scheme
+
+**What it would do:**
+- `generate --type epr --iteration ID_001 --phase impl --attempt 1` — generate a correct plet ID
+- Handles Crockford Base32 encoding (not standard base32 — excludes I/L/O/U, specific casing)
+- Handles iteration ID normalization (ID_001 → id001)
+- Handles phase/attempt encoding (impl-1 → i1, verify-2 → v2, refine-1 → r1)
+
+**Why it matters:** Crockford Base32 is uncommon — agents will approximate with standard base32 or invent their own encoding. Incorrect IDs break cross-referencing and merge fencing (SF_25).
+
+### plet_preflight.py (candidate) ★ strong
+
+Pre-flight validation before implementation starts. Currently prose — agents can skip steps. FB_16 (LIBT lost spec artifacts) proved the cost of missing a check.
+
+PRD refs: EX_19, FB_16
+
+**What it would do:**
+- `check` — run all pre-flight checks: project builds, tests pass, working tree clean, spec artifacts exist on disk (requirements.md, iterations.md), state files parseable
+- `check --skip-tests` — fast mode (spec + state only, for quick validation)
+- Returns structured pass/fail with specific failure reasons
+- Could also check bypassPermissions (FB_22) and CLAUDE.md existence (FB_23)
+
+**Why it matters:** Pre-flight is a checklist — exactly the kind of thing agents skip under time pressure. Making it a single tool call means compliance is easier than non-compliance.
+
+### plet_report.py (candidate) ★ strong
+
+Verification report scaffolding. The report structure is detailed (VF_21–VF_24): vrp plet ID, verdict, criteriaResults array (one per criterion with status, summary, redTest, relatedEntries), report-level relatedEntries, findings array. This drifts across 23 verify phases when agents compose it from prose descriptions.
+
+PRD refs: VF_21–VF_24
+
+**What it would do:**
+- `scaffold --iteration ID_001 --attempt 1` — read state file criteria, generate report skeleton with correct plet ID, empty criteriaResults for each AC, empty findings array
+- `finalize --iteration ID_001 --verdict passed` — validate completed report (all criteria have results, verdict is consistent with criteria statuses), write to state file's verificationReports array
+- Generates the vrp plet ID automatically (uses plet_id.py internally or shared logic)
+
+**Why it matters:** The report is the most structured output the verify agent produces. It has nested arrays, cross-references, and a specific append-only contract. Scaffolding it means the agent fills in judgments (evidence, findings) while the tool handles structure.
+
+### plet_trace.py (candidate) ○ medium
+
+Trace event writer. Trace coverage improved dramatically in SPARK (51 files) but event schemas still vary. A tool that writes events in the canonical NDJSON schema would prevent the field-naming drift seen in earlier runs (`timestamp` vs `ts`, `iterationId` vs `iteration`).
+
+PRD refs: EX_10, RT_4, RT_5
+
+**What it would do:**
+- `emit --event phase_start --iteration ID_xxx --phase impl --attempt 1` — append canonical event to trace file
+- `emit --event criterion_start --iteration ID_xxx --criterion AC_1` — track criterion-level timing
+- Enforces the event schema from formats.md automatically
+
+### plet_graph.py (candidate) ○ medium
+
+Dependency graph evaluation. "Which iterations are eligible?" is a pure graph algorithm on the dependency map + lifecycle states. No judgment needed — currently the orchestrator reasons about this by reading state files, which is error-prone at scale.
+
+PRD refs: EX_1, EX_5, EX_21, SF_23
+
+**What it would do:**
+- `eligible` — list iteration IDs ready for pickup (all deps complete, lifecycle queued)
+- `status` — print graph with lifecycle annotations
+- `validate` — check for cycles, missing deps, orphans, dependencies on withdrawn iterations
+
+**Why it matters:** At 23+ iterations with complex dependency chains, manual graph reasoning compounds errors. The SPARK run had no dependency-related failures, but as projects grow this becomes riskier.
+
+### plet_consistency.py (candidate) ○ medium
+
+Refine consistency pass automation. The cascading check at end of refine (RF_16) has three mechanical steps: (1) every decision reflected in requirements, (2) iterations reflect spec (all requirements covered, no dangling references, frozen iterations untouched), (3) state reflects iterations (dependency map, milestones, fingerprints).
+
+PRD ref: RF_16
+
+**What it would do:**
+- `check` — run all three levels, report mismatches
+- `check --level 2` — iterations vs requirements only
+- Reports: uncovered requirements, dangling iteration references, orphaned state files, fingerprint drift (delegates to plet_fingerprint.py)
+
+**Why it matters:** Steps 2 and 3 are pure cross-referencing — exactly what tooling does better than prose. Step 1 (decisions → requirements) still needs judgment. Partial automation is still valuable.
+
+### plet_git.py (candidate) △ light
+
+Git operations wrapper. FB_30 (42 stashes despite ban), FB_32 (orphaned worktrees), FB_35 (lost commits) all point to agents improvising git operations. A constrained git helper could:
+- Branch creation/switching without stash (use worktrees instead)
+- Post-iteration cleanup (drop stashes, remove worktrees)
+- Audit tag creation before squash
+- Final loop commit automation (FB_31)
+
+**Caution:** Git is complex and agents need flexibility. This tool should wrap common operations with guardrails, not replace git entirely. Start with the narrowest pain point (worktree lifecycle) and expand only if needed.
+
+### Canary write helper (candidate) △ light
+
+Structured canary entry generation (OR_14). Format: projectId, loopSessionCount, branch name, iteration lifecycle counts. Simple enough to bundle into plet_entries.py as a `add-canary` subcommand rather than its own tool.
+
+PRD ref: OR_14
+
+### Schema migration helper (candidate) △ light
+
+Auto-migrate state files with older schemaVersion by adding new fields with defaults (SF_24). Deterministic and safe to automate. Could be a plet_state.py subcommand (`migrate`) rather than its own tool.
+
+PRD ref: SF_24
+
+### Prioritization
+
+**★ Strong** — complex format + repetitive + case-study-validated drift:
+1. **plet_entries.py** — highest impact. Learnings/emergent regression (FB_29) is the most concerning trend. Directly analogous to plet_state.py success.
+2. **plet_fingerprint.py** — silent drift across 3 files. Fingerprint errors cascade.
+3. **plet_id.py** — Crockford Base32 is uncommon enough that agents will get it wrong.
+4. **plet_preflight.py** — checklist compliance. FB_16 proved the cost of skipping.
+5. **plet_report.py** — most structured output in the verify phase. Scaffolding separates judgment from format.
+
+**○ Medium** — would help, less urgent or less proven drift:
+6. **plet_trace.py** — trace coverage improving; schema consistency is the remaining gap.
+7. **plet_graph.py** — pure algorithm, no drift yet but risk grows with project size.
+8. **plet_consistency.py** — partially automatable; refine phase not yet tested in case studies.
+
+**△ Light** — useful but better as subcommands of other tools:
+9. **plet_git.py** — real issues but may be solved by worktree isolation (FB_13) instead.
+10. **Canary write helper** — bundle into plet_entries.py.
+11. **Schema migration** — bundle into plet_state.py.
+
+---
+
 ## Things to Monitor
 
 ### Injection payload sizes

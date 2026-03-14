@@ -184,6 +184,7 @@ These terms come up frequently when discussing plet. Voice input often garbles t
 | reqs, rex | requirements |
 | red green | red/green (testing discipline) |
 | harness, ridler | Ridler.app (optional GUI) |
+| pie, .pie | .py (Python file extension) |
 
 ## Notes Discipline
 
