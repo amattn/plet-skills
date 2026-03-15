@@ -2,7 +2,7 @@
 
 ## Current State
 
-Parts 1–5 complete (skill, reference files, packaging, case study feedback, notes skill). All FB items resolved (unverified) except FB_11 (trace schema — open), FB_13 (branch isolation — open), FB_21 (research — deferred to Part 7). Next: Part 6 (extractable skills — see EXTRACTABLE.md).
+Parts 1–6 complete (skill, reference files, packaging, case study feedback, notes skill, extractable skills → session-kit repo). 23 open FB items (FB_22–FB_44, mostly from SPARK run) plus 3 deferred (FB_11, FB_13, FB_21). Next: Part 7 (feedback triage & tooling).
 
 ---
 
@@ -98,7 +98,7 @@ Produced S_1–S_8. All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvement
 
 - FB_11: Trace schema standardization (open — needs design work)
 - FB_13: Branch isolation via worktrees (decided, not validated)
-- FB_21: Research — why learnings/emergent improved (deferred to Part 7)
+- FB_21: Research — why learnings/emergent improved (triage in Part 7, validate in Part 8)
 
 ---
 
@@ -120,27 +120,84 @@ A standalone `/notes` skill that formalizes the living development notes pattern
 
 ---
 
-## Part 6: Extractable Skills
+## Part 6: Extractable Skills ✓ COMPLETE
 
-Identify and document generalizable patterns from plet-skills development as standalone skills. Tracked in `EXTRACTABLE.md`.
+Generalizable patterns extracted as standalone skills, implemented and published in the `session-kit` repo (github.com/amattn/session-kit).
 
-**Status:** Inventory complete (7 skills identified: /chatux, /feedback, /dictation, /improve, /bootstrap, /discipline, /label). Prioritization and implementation TBD.
+**6 skills shipped:** /dictation, /fast-chat, /notes, /stable-label, /warmup, /sharpen. All eval'd with findings applied. Published to GitHub marketplace as `session-kit` plugin (v0.5.0).
 
-**File:** `EXTRACTABLE.md`
+**Original inventory:** `EXTRACTABLE.md`. /chatux became /fast-chat; /feedback + /improve + /discipline merged into /sharpen; /bootstrap became /warmup; /label became /stable-label.
 
 ---
 
-## Part 7: Comparison Runs
+## Part 7: Feedback Triage & Tooling
+
+Triage all open FEEDBACK.md items (FB_22–FB_44) and build additional Python enforcement scripts following the "Skills for Judgment, Code for Compliance" principle validated in Part 4.
+
+### 7a: Feedback Triage
+
+Review and resolve open FB items. Each item gets one of: resolve (artifact changes), defer (with rationale), or withdraw (not worth fixing).
+
+**Open items (23):**
+
+| ID | Summary | Tags |
+|----|---------|------|
+| FB_22 | Warn if bypassPermissions not configured | `[autonomy]` `[onboarding]` |
+| FB_23 | Bootstrap CLAUDE.md if missing | `[onboarding]` `[artifacts]` |
+| FB_24 | Requirements not written to disk incrementally | `[artifacts]` `[prompting]` |
+| FB_25 | Priority histogram at end of plan session | `[ux]` `[planning]` |
+| FB_26 | Milestones generated too early | `[planning]` `[sequencing]` |
+| FB_27 | Plan session needs data modeling section | `[planning]` `[spec]` |
+| FB_28 | No intermediate commits during plan session | `[git]` `[planning]` |
+| FB_29 | Learnings/emergent mandatory rule not enforced | `[prompting]` `[artifacts]` |
+| FB_30 | 42 git stashes despite ban | `[git]` `[autonomy]` |
+| FB_31 | Final loop commit required human prompting | `[git]` `[autonomy]` |
+| FB_32 | Orphaned worktree after retry | `[git]` `[state]` |
+| FB_33 | Progress.md entries incomplete (6/23) | `[artifacts]` `[prompting]` |
+| FB_34 | Recommend user stays for first 1-2 iterations | `[onboarding]` `[ux]` |
+| FB_35 | Agent lost commits during impl (ID_007) | `[git]` `[crash-recovery]` |
+| FB_36 | Retry overhead 24% of execution time | `[timing]` `[efficiency]` |
+| FB_37 | Verify first-pass rate regressed at scale (83%) | `[verification]` `[scale]` |
+| FB_38 | Cross-iteration knowledge transfer not functioning | `[artifacts]` `[prompting]` |
+| FB_39 | SP_6 root cause investigation | `[research]` `[scale]` |
+| FB_40 | State lifecycle not transitioned to complete | `[state]` `[orchestrator]` |
+| FB_41 | Refine jumped to re-decomposition before finishing review | `[refine]` `[sequencing]` |
+| FB_42 | Refine created state files during re-decomposition | `[refine]` `[sequencing]` |
+| FB_43 | All status steps should generate progress entries | `[refine]` `[artifacts]` |
+| FB_44 | Progress entries need multiline content support | `[artifacts]` `[tooling]` |
+
+Also update status of previously deferred items:
+- FB_11: Trace schema standardization
+- FB_13: Branch isolation via worktrees
+- FB_21: Research — learnings/emergent improvement factors
+
+### 7b: Python Tooling
+
+Build additional enforcement scripts in `skills/plet/scripts/`. Existing tools:
+- `plet_state.py` — state file schema enforcement (FB_12, validated in SPARK)
+- `plet_entries.py` — runtime artifact entry formatting (FB_17/FB_29)
+
+Candidate new scripts (based on feedback patterns):
+- **Progress format validator/generator** — FB_33, FB_43, FB_44 all point to progress.md drift. May extend `plet_entries.py` or build standalone.
+- **Pre-flight checker** — FB_22 (bypassPermissions), FB_16 (spec artifacts exist), FB_23 (CLAUDE.md exists). A single tool agents run before starting work.
+- **Lifecycle finalizer** — FB_40 (state files stuck in wrong lifecycle). A tool that scans all state files and reports/fixes lifecycle inconsistencies.
+- **Learnings/emergent checkpoint** — FB_29, FB_38. A pre-verify gate that blocks if no entries exist for the current iteration.
+
+Prioritization and scope TBD during triage (7a informs which tools are highest value).
+
+---
+
+## Part 8: Comparison Runs
 
 Re-run case studies with improved plet to validate fixes.
 
-- **7a:** Re-run logalyzer from plan checkpoint (`203c58a`, rebased from original `7cecbf5`) with improved plet
-- **7b:** Compare Run 1 vs Run 2, identify impact of changes
-- **7c:** Broader testing (refine session, harder project)
+- **8a:** Re-run logalyzer from plan checkpoint (`203c58a`, rebased from original `7cecbf5`) with improved plet
+- **8b:** Compare Run 1 vs Run 2, identify impact of changes
+- **8c:** Broader testing (refine session, harder project)
 
 ---
 
-## Part 8: Examples (deferred, trigger met)
+## Part 9: Examples (deferred, trigger met)
 
 Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/todo-cli/run1/*` tags. Examples can now be captured from real output rather than written speculatively.
 
@@ -171,11 +228,13 @@ Part 4     case study feedback loop          ── apply feedback       ✓ COM
               ↓
 Part 5     notes skill                       ── standalone /notes    ✓ COMPLETE
               ↓
-Part 6     extractable skills                 ── /chatux, /feedback, /dictation, /improve, /bootstrap, /discipline, /label
+Part 6     extractable skills                 ── session-kit repo     ✓ COMPLETE
               ↓
-Part 7     comparison runs                   ── rerun + validate
+Part 7     feedback triage & tooling         ── FB_22–FB_44 + scripts
               ↓
-Part 8     examples/ (deferred)              ── capture from real run
+Part 8     comparison runs                   ── rerun + validate
+              ↓
+Part 9     examples/ (deferred)              ── capture from real run
 ```
 
 ## Notes
