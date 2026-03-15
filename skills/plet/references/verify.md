@@ -13,6 +13,8 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py` for all state file operations. This tool enforces the schema defined in `references/state-schema.md` and prevents schema drift. Do not write state file JSON by hand — use the tool's `update-field`, `update-criterion`, and `validate` commands. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py --help` for full usage.
 
+**Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
+
 ---
 
 ## Before You Start
@@ -303,36 +305,35 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 
 ### How to Write
 
-Follow the formats defined in `references/formats.md`. **Match the templates exactly** — do not improvise the structure, invent new fields, or use alternative formatting (e.g., fenced code blocks or plain headers instead of div markers). Copy the template and fill in the values. If the format feels insufficient for what you need to express, follow it anyway and add an emergent.md entry explaining why the format was insufficient — the format gets fixed in a refine session, not mid-loop.
+**Use the entry tool for all runtime artifact entries.** Do not compose entries by hand.
 
-- Atomic appends — each write is a complete, self-contained block
-- Keep entries under ~4KB
-- Include all required fields (timestamp, iteration ID, category, etc.)
-- Use phase `verify` and attempt number in plet IDs (e.g., `epr_01JD8X3K7M_id001_v1`)
-- **Use Bash append (`cat >>`) rather than the Write tool** for runtime artifacts. The Write tool overwrites the entire file — appending would require reading the full file, concatenating, and writing it all back. Bash `cat >>` is a true append.
+```bash
+ENTRIES="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py"
 
-#### progress.md template
+# Progress entry
+$ENTRIES add-progress plet/ --iteration ID_001 --title "Project scaffolding" \
+    --phase verify --attempt 1 --status COMPLETE \
+    --summary "All acceptance criteria independently verified. Tests pass, code is idiomatic." \
+    --files '["tests/test_sanity.py — verified sanity check"]'
 
-```markdown
-<div id="plet-{pletId}"></div>
+# Learning entry
+$ENTRIES add-learning plet/ --iteration ID_002 --category gotcha \
+    --title "Test mocks DB layer too aggressively" \
+    --content "Tests mock the entire DB, missing real query issues. Needs integration tests." \
+    --phase verify --attempt 1
 
----
-
-### [ID_xxx] phase-N — STATUS
-**PletId:** `{pletId}`
-**Timestamp:** YYYY-MM-DDTHH:MM:SSZ
-**Iteration:** [ID_xxx] [iteration title]
-**Phase:** verify
-**Attempt:** N
-
-**Summary:**
-[1-3 sentences]
-
-**Files changed:**
-- `path/to/file` — [what changed]
-
-<div id="END-plet-{pletId}"></div>
+# Emergent entry (EM_N auto-assigned)
+$ENTRIES add-emergent plet/ --iteration ID_003 \
+    --title "API rate limiting not specified" \
+    --source "[ID_003] API endpoints" --phase verify \
+    --category "requirement gap" \
+    --content "No rate limiting implemented. Requirements don't mention it." \
+    --attempt 1
 ```
+
+Each command prints the generated plet ID to stdout. Emergent entries also print the EM_N number. The tool handles formatting, fencing, plet ID generation, and atomic appends automatically.
+
+If the tool's structure feels insufficient for what you need to express, use the tool anyway and add an emergent entry explaining why the format was insufficient — the format gets fixed in a refine session, not mid-loop.
 
 ---
 

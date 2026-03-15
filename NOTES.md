@@ -1046,20 +1046,23 @@ Tools shipped inside the skill package via `${CLAUDE_SKILL_DIR}/scripts/`. The p
 
 State file management — `init`, `update-criterion`, `update-field`, `validate`. Zero schema drift across 23 SPARK iterations. The success story that proved tooling > prose.
 
-### plet_entries.py (candidate)
+### plet_entries.py (shipped)
 
-Learnings/emergent/progress entry writer. The most obvious next tool — FB_29 and FB_33 show that agents skip or produce incomplete entries when left to prose rules alone.
+Runtime artifact entry writer. Addresses FB_29 (learnings/emergent regression) and FB_33 (progress.md incomplete). Same pattern as plet_state.py — agents call a tool instead of composing markdown freehand.
 
-**What it would do:**
-- `add-learning --iteration ID_xxx --content "..."` — append a correctly-formatted entry to learnings.md
-- `add-emergent --iteration ID_xxx --content "..." --tags "design,blocker"` — append to emergent.md
-- `add-progress --iteration ID_xxx --phase impl --attempt 1 --content "..."` — append to progress.md
-- All entries get consistent formatting (div markers, metadata fields, timestamps)
-- A `check --iteration ID_xxx` command that returns whether entries exist for the current iteration — usable as a pre-verify gate
+**Commands:**
+- `add-progress <dir> --iteration ID_xxx --title "..." --phase impl --attempt 1 --status COMPLETE --summary "..." [--files '["path — desc"]']`
+- `add-learning <dir> --iteration ID_xxx --category gotcha --title "..." --content "..." --phase impl --attempt 1`
+- `add-emergent <dir> --iteration ID_xxx --title "..." --source "..." --phase impl --category "design decision" --content "..." --attempt 1`
+- `check <dir> --iteration ID_xxx` — reports which artifacts have entries, exits 1 if any are missing (pre-verify gate for R_7)
 
-**Why it would work:** Same reason plet_state.py works — removes the interpretation step. Agents call a tool with structured arguments instead of composing markdown from prose descriptions of what the format should look like.
-
-**Open question:** Should it *block* verify if no entries exist (hard gate), or just *warn* (soft nudge)? plet_state.py uses validation that blocks; the same approach would enforce the R_7 mandatory entry rule mechanically.
+**Features:**
+- Generates correct Crockford Base32 plet IDs automatically (RT_11)
+- Enforces entry fencing (SF_25) — div start/end markers for git merge safety
+- Auto-assigns EM_N numbers for emergent entries (append-only, GC_1)
+- Validates phases, statuses, and categories against allowed values
+- Atomic appends (temp file + append, no read-then-overwrite)
+- Prints generated plet ID to stdout for cross-referencing
 
 ### plet_fingerprint.py (candidate) ★ strong
 
@@ -1178,7 +1181,7 @@ PRD ref: SF_24
 ### Prioritization
 
 **★ Strong** — complex format + repetitive + case-study-validated drift:
-1. **plet_entries.py** — highest impact. Learnings/emergent regression (FB_29) is the most concerning trend. Directly analogous to plet_state.py success.
+1. **plet_entries.py** — ✅ SHIPPED. Addresses FB_29 (learnings/emergent regression) and FB_33 (progress.md incomplete).
 2. **plet_fingerprint.py** — silent drift across 3 files. Fingerprint errors cascade.
 3. **plet_id.py** — Crockford Base32 is uncommon enough that agents will get it wrong.
 4. **plet_preflight.py** — checklist compliance. FB_16 proved the cost of skipping.

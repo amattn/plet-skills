@@ -10,6 +10,8 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py` for all state file operations. This tool enforces the schema defined in `references/state-schema.md` and prevents schema drift. Do not write state file JSON by hand — use the tool's `update-field`, `update-criterion`, and `validate` commands. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py --help` for full usage.
 
+**Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
+
 **Critical:** Never create merge commits. plet requires linear history for clean `git bisect` and audit trails. The verify agent handles rebase and fast-forward merge to the workstream after verification passes (EX_16).
 
 **Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (EX_17).
@@ -182,34 +184,35 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 
 ### How to Write
 
-Follow the formats defined in `references/formats.md`. **Match the templates exactly** — do not improvise the structure, invent new fields, or use alternative formatting (e.g., fenced code blocks or plain headers instead of div markers). Copy the template and fill in the values. If the format feels insufficient for what you need to express, follow it anyway and add an emergent.md entry explaining why the format was insufficient — the format gets fixed in a refine session, not mid-loop.
+**Use the entry tool for all runtime artifact entries.** Do not compose entries by hand.
 
-- Atomic appends — each write is a complete, self-contained block
-- Keep entries under ~4KB
-- Include all required fields (timestamp, iteration ID, category, etc.)
+```bash
+ENTRIES="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py"
 
-#### progress.md template
+# Progress entry
+$ENTRIES add-progress plet/ --iteration ID_001 --title "Project scaffolding" \
+    --phase impl --attempt 1 --status COMPLETE \
+    --summary "Initialized project with pytest, ruff. All checks pass." \
+    --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
 
-```markdown
-<div id="plet-{pletId}"></div>
+# Learning entry
+$ENTRIES add-learning plet/ --iteration ID_002 --category gotcha \
+    --title "SQLite WAL mode required" \
+    --content "Default journal mode blocks readers during writes." \
+    --phase impl --attempt 1
 
----
-
-### [ID_xxx] phase-N — STATUS
-**PletId:** `{pletId}`
-**Timestamp:** YYYY-MM-DDTHH:MM:SSZ
-**Iteration:** [ID_xxx] [iteration title]
-**Phase:** impl
-**Attempt:** N
-
-**Summary:**
-[1-3 sentences]
-
-**Files changed:**
-- `path/to/file` — [what changed]
-
-<div id="END-plet-{pletId}"></div>
+# Emergent entry (EM_N auto-assigned)
+$ENTRIES add-emergent plet/ --iteration ID_002 \
+    --title "Chose SQLite over PostgreSQL" \
+    --source "[ID_002] Core data model" --phase impl \
+    --category "design decision" \
+    --content "Requirements say persistent storage without specifying engine." \
+    --attempt 1
 ```
+
+Each command prints the generated plet ID to stdout. Emergent entries also print the EM_N number. The tool handles formatting, fencing, plet ID generation, and atomic appends automatically.
+
+If the tool's structure feels insufficient for what you need to express, use the tool anyway and add an emergent entry explaining why the format was insufficient — the format gets fixed in a refine session, not mid-loop.
 
 ### Extended Work (EX_18)
 
