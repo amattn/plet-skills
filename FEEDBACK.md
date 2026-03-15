@@ -270,3 +270,54 @@ Source: SPARK case study, comparison table
 SP_6 (investigate learnings regression root cause) references FB_21 but FB_21 is LIBT-specific ("what made LIBT better?"). SP_6 is the inverse question at larger scale: why did a 23-iteration Elixir project produce fewer learnings than a 5-iteration Python project? The hypotheses are distinct: (a) R_7 rule text weakened between runs, (b) subagent prompt doesn't include R_7 in SPARK, (c) Elixir/Phoenix is familiar territory for the agent, (d) project size dilutes per-iteration learning rate. Answering this requires comparing the actual prompts sent to subagents in LIBT vs SPARK — not just the skill text.
 
 Source: SPARK SP_6
+
+### FB_40: State file lifecycle not transitioned to complete after iteration finishes [state] [orchestrator]
+
+10 of 23 state files have incorrect lifecycle values despite all iterations completing successfully. 7 stuck at `verifying` (ID_003, 008, 014, 015, 017, 018, 020), 3 at `ineligible` (ID_006, 016, 019). Progress.md and the orchestrator summary both report 23/23 complete. The plet_state.py tool enforces correct schema and format, but the orchestrator never called it to transition lifecycle after verification passed.
+
+**Two distinct failure modes on closer inspection:**
+
+Definitively complete — have explicit independent verify commits with "all ACs pass":
+- ID_003, ID_006, ID_008, ID_014 — verified by independent verify agents, lifecycle just never transitioned. Pure orchestrator bookkeeping gap.
+
+Implemented but no independent verify commit trail:
+- ID_015 — has impl commits + "impl complete" state updates, but no verify commit
+- ID_016, ID_017, ID_018, ID_019, ID_020 — have impl commits, some have "state to verifying" commits, but no verify-pass commits
+
+Evidence they work: 276 tests pass, 0 failures, all code merged to the workstream, orchestrator declared "all 23 iterations verified." But the verify agents for ID_015–ID_020 may have run without persisting their state file updates, or the orchestrator may have declared them complete without full independent verification.
+
+This is two bugs, not one: (1) orchestrator doesn't finalize lifecycle to `complete` after verification passes (bookkeeping), and (2) some iterations may have skipped independent verification entirely (correctness). Bug 2 is more serious — it undermines the impl/verify separation that is plet's core quality mechanism.
+
+**Refine session offered 4 options:**
+- A. Fix all 10 to `complete` — 276 tests pass, code is merged, good enough
+- B. Fix the 4 confirmed ones; re-verify the other 6 in the next loop
+- C. Re-verify all 10 in the next loop to be safe
+- D. Something else
+
+Went with A for expediency. But B is the more rigorous choice — future runs should default to B unless the user explicitly opts for A. The refine agent surfacing these options unprompted is a good example of the refine phase working as intended.
+
+Source: SPARK case study, discovered during refine session
+
+### FB_41: Refine session jumped to re-decomposition before finishing review [refine] [sequencing]
+
+The refine agent moved to "Step 4 (continued): Re-Decomposition" while there were still outstanding items to review — emergent items, learnings, and state file issues hadn't all been triaged. Re-decomposition should only happen after all review items are resolved or explicitly deferred. The refine phase should exhaust triage before proposing new work.
+
+Source: SPARK refine session observation
+
+### FB_42: Refine agent created state files during re-decomposition instead of Step 8 [refine] [sequencing]
+
+The refine agent created state files for new iterations (ID_024, ID_025, ID_026) during the re-decomposition step rather than waiting for Step 8 (State File Updates). By the time Step 8 arrived, the work was already done. Not necessarily wrong — creating state files as iterations are defined is arguably more natural than deferring to a later step. But it means Step 8 is redundant when the agent front-loads state file creation. Either: (A) formalize the pattern — state files are created during decomposition and Step 8 becomes a verification pass, or (B) keep Step 8 as the creation point and prevent decomposition from writing state files. A seems better — create-as-you-go reduces the chance of forgetting.
+
+Source: SPARK refine session observation
+
+### FB_43: All plet status steps should generate a progress entry [refine] [artifacts]
+
+Every step in the refine flow that changes status — state file fixes, spec updates, new iterations created, emergent items triaged — should produce a progress.md entry. Currently the refine agent makes changes without logging them. This is the same gap as FB_33 (loop progress entries incomplete) but for the refine phase. Progress.md should be a complete audit trail across all phases, not just loop.
+
+Source: SPARK refine session observation
+
+### FB_44: Progress entries need multiline content support [artifacts] [tooling]
+
+The current progress entry format has a single `--summary` field — a short 1-3 sentence string. This doesn't accommodate large structured output like a refine session's full status summary (iteration tables, milestone tables, triage results). Either: (A) add a `--content` or `--body` flag that accepts multiline text (similar to how learning/emergent entries work), (B) allow `--summary` to accept a file path for longer content, or (C) add a `--content-file` flag that reads from a file. The refine status step is the motivating case — dumping the entire status summary into a progress entry would make progress.md a self-contained audit trail.
+
+Source: SPARK refine session observation

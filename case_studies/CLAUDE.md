@@ -96,6 +96,7 @@ Side-by-side metrics table against all prior case studies. Key dimensions:
 - Trace coverage
 - Cross-iteration knowledge transfer
 - Spec artifact preservation
+- State file lifecycle accuracy
 - Branch contamination incidents
 - Human intervention needed
 
@@ -156,6 +157,7 @@ Sources for timing data:
 - [ ] Emergent→learning pipeline (do emergent items get promoted to learnings?)
 - [ ] Spec artifact preservation (are requirements.md and iterations.md present?)
 - [ ] Fingerprint integrity (do fingerprints in state.json match spec artifacts?)
+- [ ] State file lifecycle accuracy (do all completed iterations have lifecycle `complete`? Cross-reference against progress.md and orchestrator summary)
 
 ### Process Quality
 - [ ] Red/green discipline followed? (failing test before implementation)

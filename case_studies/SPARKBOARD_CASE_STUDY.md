@@ -97,7 +97,8 @@ Artifact analysis, code analysis, timing reconstruction, comparison with prior c
 - **Schema consistency:** Perfect. All 23 files use identical 18 top-level keys, identical AC structure, consistent lifecycle values. **Zero schema drift** — a dramatic improvement over LOGA (5 schemas in 5 iterations) and LIBT (similar drift).
 - **Timestamps:** Realistic, non-fabricated. No round numbers, varied seconds values. Improvement over LIBT (FB_19).
 - **Fingerprint integrity:** Global state.json fingerprint accurately reflects all 23 iterations across 7 milestones. Dependency map is internally consistent.
-- **Assessment:** State schema is the single biggest improvement in this run. The plet_state.py tool (FB_12) appears to be working as intended.
+- **Lifecycle accuracy:** 10 of 23 state files have incorrect lifecycle values. 7 are stuck at `verifying` (ID_003, 008, 014, 015, 017, 018, 020) and 3 at `ineligible` (ID_006, 016, 019) despite all iterations completing successfully. Progress.md and the orchestrator both report 23/23 complete. The orchestrator never transitioned these state files after work finished — the schema is correct but the data is stale.
+- **Assessment:** State schema is the single biggest improvement in this run. The plet_state.py tool (FB_12) appears to be working as intended. However, lifecycle transitions are incomplete — the tool enforces correct *format* but doesn't enforce correct *transitions*. See FB_40.
 
 #### Trace files (plet/trace/)
 
@@ -257,9 +258,50 @@ This connects to FB_21 (investigate what made learnings/emergent better in LIBT)
 
 ---
 
+## Section 6: Refine Session
+
+First refine session for any plet case study.
+
+### Summary
+
+- **Emergent items:** 1 triaged (EM_1 → approved with changes → DX_18)
+- **Spec changes:** +2 requirements (DX_18, NT_10), +1 milestone (MS_8)
+- **New iterations:** 3 (ID_024, ID_025, ID_026) — all can run in parallel
+- **State fixes:** 10 stale state files corrected to `complete` (FB_40)
+- **Learnings:** 2 reviewed, no spec changes needed
+- **Test suite:** 276 tests, 0 failures
+
+### Post-Refine Status
+
+| Lifecycle | Count | IDs |
+|-----------|-------|-----|
+| Complete | 23 | ID_001–ID_023 |
+| Queued | 3 | ID_024, ID_025, ID_026 |
+| Total | 26 | |
+
+| Milestone | Status | Iterations |
+|-----------|--------|------------|
+| MS_1: Foundation | Complete (5/5) | ID_001–ID_005 |
+| MS_2: Board Switcher | Complete (1/1) | ID_006 |
+| MS_3: AI Theming | Complete (3/3) | ID_007–ID_009 |
+| MS_4: NL Commands & Undo | Complete (4/4) | ID_010–ID_013 |
+| MS_5: Multiplayer | Complete (4/4) | ID_014–ID_017 |
+| MS_6: Voting & Control Panel | Complete (5/5) | ID_018–ID_022 |
+| MS_7: Export | Complete (1/1) | ID_023 |
+| MS_8: Post-Loop Refinements | Queued (0/3) | ID_024–ID_026 |
+
+### Refine Phase Observations
+
+- Refine agent surfaced the state file lifecycle discrepancy unprompted — good diagnostic behavior (FB_40)
+- Re-decomposition happened before all review items were triaged (FB_41)
+- State files for new iterations were created during decomposition rather than at Step 8 (FB_42)
+- The options presented for state file fixes (A/B/C/D) were well-structured — the refine agent used numbers-letters style naturally
+
+---
+
 ## Meta
 
 - **Case study number:** 3
 - **Loop sessions:** 1
-- **Refine sessions:** 0
-- **Limitations:** No refine phase tested. Timing reconstruction relies primarily on git commit timestamps — trace timestamps provide finer grain but weren't fully cross-referenced. Stash contents not analyzed individually (42 stashes would require significant effort).
+- **Refine sessions:** 1
+- **Limitations:** Timing reconstruction relies primarily on git commit timestamps — trace timestamps provide finer grain but weren't fully cross-referenced. Stash contents not analyzed individually (42 stashes would require significant effort).
