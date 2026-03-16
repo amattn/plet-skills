@@ -296,6 +296,8 @@ When deciding whether to create a new milestone or append to an existing unfroze
 
 **Default:** append to the nearest thematically appropriate unfrozen milestone.
 
+**Append a stage summary to `plet/progress.md`** after milestone assignments are finalized: which milestones received new iterations, any new milestones created. Use phase `refine`. (FB_43)
+
 ---
 
 ## Step 6: Breakpoint Management (RF_13)
@@ -315,6 +317,8 @@ Add or remove breakpoints?
 ```
 
 Update `plet/state.json` → `breakpoints.before` and `breakpoints.after` arrays.
+
+**Append to `plet/progress.md`** if breakpoints were changed: what was added/removed and why. Use phase `refine`. (FB_43)
 
 ---
 
@@ -396,6 +400,8 @@ Update `plet/state.json` → `milestones` to reflect any new milestones or itera
 ### Parallel Groups
 
 Update `plet/state.json` → `parallelGroups` if new iterations can run in parallel.
+
+**Append a stage summary to `plet/progress.md`** after state file updates: new state files created, dependency map changes, milestone updates. Use phase `refine`. (FB_43)
 
 ---
 

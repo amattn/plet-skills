@@ -131,7 +131,7 @@ requirements.md and iterations.md don't exist in LIBT's plet/ directory. The sta
 
 Source: LIBT S_2
 
-`[resolved, unverified]` → Two-layer fix: (1) plan.md Step 7.4 — spec artifact checkpoint verifies requirements.md and iterations.md exist on disk and are committed before offering to start the loop. (2) execute.md pre-flight — agents verify spec artifacts exist before starting work, block immediately if missing.
+`[resolved, unverified]` → Two-layer fix: (1) plan.md Step 8.4 — spec artifact checkpoint verifies requirements.md and iterations.md exist on disk and are committed before offering to start the loop. (2) execute.md pre-flight — agents verify spec artifacts exist before starting work, block immediately if missing.
 
 ### FB_17: Progress.md formatting inconsistent within a single run [artifacts]
 
@@ -175,6 +175,8 @@ LIBT: 11 learnings, 6 emergent items with cross-iteration knowledge transfer. LO
 
 Source: LIBT S_8
 
+`[withdrawn]` — Script-as-orchestrator makes root cause moot: `plet_inject_prompt.py` ensures learnings are always injected, `plet_gate_impl.py` enforces mandatory entries. The fix is deterministic regardless of why prose rules failed.
+
 ### FB_23: plet should bootstrap CLAUDE.md if it doesn't exist [onboarding] [artifacts]
 
 Plet's plan session reads CLAUDE.md "if it exists" (DX_2) but never creates one. On a fresh repo, the entire institutional memory layer is missing — Notes Discipline, Required Reading, compaction recovery, key file references. The /notes skill's bootstrap adds *to* CLAUDE.md but assumes it exists. Either plet's plan session or EX_5 (/bootstrap) should create a minimal CLAUDE.md when one isn't present.
@@ -187,21 +189,31 @@ More broadly, plet may need a **bootstrap phase** before plan — a pre-flight t
 
 PL_12 explicitly says "Each approved section is written to disk immediately" and is reinforced at the requirement approval step (plan.md line 201) and iteration approval step (line 279). Despite this, agents defer writing requirements.md to the end of the plan session. The rule exists — the agents ignore it. May need stronger language, a different position in the plan flow, or a checkpoint that verifies the file was actually written after each approval.
 
+`[resolved, unverified]` → Added "verify on disk" step (read back after write) to plan.md Step 4 and Step 6. Agents must confirm file exists before proceeding.
+
 ### FB_25: Show priority histogram at end of plan session [ux] [planning]
 
 At the end of the plan session, show a histogram/summary of iteration priorities (P0, P1, P2, P3). Gives the user a quick sanity check on the distribution before starting the loop — too many P0s might mean priorities aren't differentiated enough, no P0s might mean nothing is critical.
+
+`[deferred]` — Nice to have but not blocking. Revisit after PLAN_9 comparison runs.
 
 ### FB_26: Milestones generated too early in plan session [planning] [sequencing]
 
 Milestones should wait until the section-by-section requirement review is complete. Requirements change during review — sections get added, removed, reprioritized — so milestones generated before review is done are based on stale input and need to be redone.
 
+`[resolved, unverified]` → §8 Release Milestones in requirements template marked as deferred. New Step 4b added after section review for milestone finalization.
+
 ### FB_27: Plan session needs a data modeling section [planning] [spec]
 
 Requirements often involve data models — database schemas, JSON structures, API designs. Currently the plan session has no explicit step for defining these. Sometimes the user wants to specify models in the spec (human-driven design); sometimes they want agents to derive them during execution (agent-driven design). The plan session should have an optional data modeling section that lets the user choose: define models now (and include them in requirements.md), or leave them for agents to design during implementation. When defined in the spec, models become acceptance criteria — agents must implement against them. When deferred, agents should capture their data modeling decisions in learnings.md.
 
+`[resolved, unverified]` → Added §7 Data Models to the requirements template. Always included — agent drafts based on requirements using best judgment. User refines during section review. If no data models exist, section states that explicitly. Models defined in the spec become acceptance criteria.
+
 ### FB_28: No intermediate commits during plan session [git] [planning]
 
 The plan session produces zero commits — everything is uncommitted until the session ends (or doesn't get committed at all). Related to FB_24 (files not written to disk incrementally) but distinct: even when files are written, they're not committed. Each approved section should be committed immediately. This protects against context loss, makes the planning history inspectable via git log, and matches the intermediate commit discipline already required during execute (R_1).
+
+`[resolved, unverified]` → Added commit step to plan.md Step 4 and Step 6. Each approved section gets `plet: [plan] approve {section_name}`. Pairs with FB_24 verify-on-disk fix.
 
 ## SparkBoard Run 1 (2026-03)
 
@@ -241,6 +253,8 @@ SPARK's ID_001 hit a Postgres.app permissions blocker that required human interv
 
 Source: SPARK run observation
 
+`[deferred → PLAN_8]` — `plet_orchestrator.py` prints the recommendation at loop start.
+
 ### FB_35: Agent lost commits during implementation (ID_007) [git] [crash-recovery]
 
 SPARK ID_007 notes "impl-1 lost commits; re-impl as impl-2" — the agent lost its work and had to re-implement from scratch. No explanation in the case study of why commits were lost. This is distinct from FB_2 (no intermediate commits) — commits may have existed and then been lost during branch operations, merge conflicts, or a crash. Needs investigation: was this a git operation gone wrong, a context window loss, or something else? If commits can be silently lost during implementation, the crash recovery story has a gap.
@@ -270,6 +284,8 @@ Source: SPARK case study, comparison table
 SP_6 (investigate learnings regression root cause) references FB_21 but FB_21 is LIBT-specific ("what made LIBT better?"). SP_6 is the inverse question at larger scale: why did a 23-iteration Elixir project produce fewer learnings than a 5-iteration Python project? The hypotheses are distinct: (a) R_7 rule text weakened between runs, (b) subagent prompt doesn't include R_7 in SPARK, (c) Elixir/Phoenix is familiar territory for the agent, (d) project size dilutes per-iteration learning rate. Answering this requires comparing the actual prompts sent to subagents in LIBT vs SPARK — not just the skill text.
 
 Source: SPARK SP_6
+
+`[withdrawn]` — Root cause is academic. The new tooling (`plet_inject_prompt.py` for guaranteed learnings injection, `plet_gate_impl.py` for mandatory entry enforcement) should improve this regardless of why prose rules failed. PLAN_9 comparison runs will validate.
 
 ### FB_40: State file lifecycle not transitioned to complete after iteration finishes [state] [orchestrator]
 
@@ -316,11 +332,15 @@ Every step in the refine flow that changes status — state file fixes, spec upd
 
 Source: SPARK refine session observation
 
+`[resolved, unverified]` → Added progress entry requirements to refine.md Steps 5, 6, and 8 (milestone assignment, breakpoint changes, state file updates). Steps 1–4 already had them.
+
 ### FB_44: Progress entries need multiline content support [artifacts] [tooling]
 
 The current progress entry format has a single `--summary` field — a short 1-3 sentence string. This doesn't accommodate large structured output like a refine session's full status summary (iteration tables, milestone tables, triage results). Either: (A) add a `--content` or `--body` flag that accepts multiline text (similar to how learning/emergent entries work), (B) allow `--summary` to accept a file path for longer content, or (C) add a `--content-file` flag that reads from a file. The refine status step is the motivating case — dumping the entire status summary into a progress entry would make progress.md a self-contained audit trail.
 
 Source: SPARK refine session observation
+
+`[deferred → PLAN_8]` — `plet_entries.py` enhancement: add `--content` or `--content-file` flag to `add-progress`.
 
 ### FB_45: Scripts directory needs a CLAUDE.md or AGENTS.md with coding standards [tooling] [conventions]
 

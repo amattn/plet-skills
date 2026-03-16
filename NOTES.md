@@ -85,7 +85,7 @@ Rules that must not be violated. An agent breaking these breaks the system.
 
 #### Spec artifacts must survive plan → loop → refine (FB_16)
 - LIBT lost requirements.md and iterations.md — project unresumable
-- Two-layer fix: (1) plan.md Step 7.4 checkpoint verifies files exist on disk and are committed, (2) execute.md pre-flight blocks if spec artifacts are missing
+- Two-layer fix: (1) plan.md Step 8.4 checkpoint verifies files exist on disk and are committed, (2) execute.md pre-flight blocks if spec artifacts are missing
 - Root cause ambiguous (never written vs lost during loop) — both layers needed (2026-03-12)
 
 #### Post-merge file verification (FB_18)
@@ -1495,6 +1495,43 @@ specs/
 **Rejected:** Single tooling section in prd.md (can't capture per-script edge cases), separate prd-tooling.md (unnecessary ceremony), specs inside skill package (conflates design artifacts with shipped code), no specs at all (loses traceability).
 
 **Decision:** PRD keeps its familiar name (`prd.md`) in the new location for now — easy to change later.
+
+#### FB_24 + FB_28: Write-verify-commit discipline for plan session (2026-03-15)
+
+**Problem:** Plan session agents don't write approved sections to disk despite PL_12 requiring it, and never commit during planning. Everything is uncommitted or unwritten until session end.
+
+**Fix:** Added three sub-steps after each approval in plan.md Step 4 and Step 6:
+1. Write to disk (already required, now reinforced)
+2. Verify on disk — read the file back, confirm it exists (FB_24)
+3. Commit — `plet: [plan] approve {section_name}` (FB_28)
+
+**Rationale:** The "write immediately" rule existed but agents ignored it. Adding a verification read-back makes it harder to skip. The commit step extends the intermediate commit discipline (already required during execute via R_1) to the plan phase. Each approval is now a discrete, recoverable checkpoint.
+
+#### FB_26: Milestones deferred until after section review (2026-03-15)
+
+**Problem:** Milestones in §8 Release Milestones were generated during Step 3 (requirements drafting), before section review. Requirements change during review, making milestones stale.
+
+**Fix:** §8 in the requirements template now says "deferred — finalize after section review." New Step 4b added between section review and iteration decomposition for milestone finalization with its own write/verify/commit cycle.
+
+#### FB_27: Data Models section in PRD template (2026-03-15)
+
+**Decision:** New §7 Data Models added to the requirements template, always present. Agent drafts data models (schemas, structures, API shapes, domain types) based on requirements using best judgment. User reviews during Step 4 and decides: keep defaults, specify more precisely, or defer to implementation agents. Models defined in the spec become acceptance criteria. If no data models exist (unlikely), section states that explicitly.
+
+**Rationale:** Not a separate plan session step — just another PRD section reviewed alongside everything else. The agent should always take a first pass; the user refines. This matches how all other sections work.
+
+**Rejected:** Optional section (user would have to ask for it — too easy to skip), separate plan step (over-engineering a section review).
+
+#### FB_43: Refine progress entries (2026-03-15)
+
+Added progress entry requirements to refine.md Steps 5 (milestone assignment), 6 (breakpoint changes), and 8 (state file updates). Steps 1–4 already had them. Progress.md is now a complete audit trail across all phases.
+
+#### FB_21, FB_39: Research items withdrawn (2026-03-15)
+
+Both investigated why learnings/emergent quality varied across runs. Withdrawn because the script-as-orchestrator tooling (`plet_inject_prompt.py` for guaranteed injection, `plet_gate_impl.py` for mandatory entries) makes the root cause academic — the fix is deterministic regardless of why prose rules failed.
+
+#### FB_25: Priority histogram — deferred (2026-03-15)
+
+Nice-to-have UX improvement. Deferred until after PLAN_9 comparison runs.
 
 #### PLAN_7 triage reshaped by script-as-orchestrator (2026-03-15)
 

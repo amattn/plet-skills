@@ -10,8 +10,8 @@
 | 4 | PLAN_4 | Case Study Feedback Loop | ✓ COMPLETE |
 | 5 | PLAN_5 | Notes Skill | ✓ COMPLETE |
 | 6 | PLAN_6 | Extractable Skills | ✓ COMPLETE |
-| 7 | PLAN_7 | Feedback Triage | **← NEXT** |
-| 8 | PLAN_8 | Python Tooling | |
+| 7 | PLAN_7 | Feedback Triage | ✓ COMPLETE |
+| 8 | PLAN_8 | Python Tooling | **← NEXT** |
 | 9 | PLAN_9 | Comparison Runs | |
 | 10 | PLAN_10 | Examples | deferred |
 
