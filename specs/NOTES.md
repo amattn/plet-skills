@@ -46,14 +46,15 @@ This was validated across three case studies: state schema drift (the most persi
 | ERR | Error Handling | §5 |
 | IOS | Input/Output Schemas | §6 |
 | AFL | Agent Flows | §7 |
-| DEP | Dependencies | §8 |
-| NFR | Non-Functional Requirements | §9 |
-| DXP | Developer Experience | §10 |
-| CRT | Critical Test Areas | §11 |
-| TST | Testing & Verification | §12 |
-| FUT | Future Considerations | §14 |
+| EXM | Examples | §8 |
+| DEP | Dependencies | §9 |
+| NFR | Non-Functional Requirements | §10 |
+| DXP | Developer Experience | §11 |
+| CRT | Critical Test Areas | §12 |
+| TST | Testing & Verification | §13 |
+| FUT | Future Considerations | §15 |
 
-Sections 13 (Resolved Questions) and 15 (FB Items) don't get IDs — they reference existing IDs.
+Sections 14 (Resolved Questions) and 16 (FB Items) don't get IDs — they reference existing IDs.
 
 **Command sub-sections** (used as: `STA_BHV_VAL_1`):
 

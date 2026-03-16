@@ -143,7 +143,8 @@ plet_SCRIPTNAME.py init plet/state/ID_001.json \
 
 # Step 2: Update
 plet_SCRIPTNAME.py update-criterion plet/state/ID_001.json \
-    AC_1 implementation pass "All tests green (12s)" --elapsed 45
+    --criterion AC_1 --phase implementation --status pass \
+    --evidence "All tests green (12s)" --elapsed 45
 
 # Step 3: Verify result
 plet_SCRIPTNAME.py validate plet/state/ID_001.json

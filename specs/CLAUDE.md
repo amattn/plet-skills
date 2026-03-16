@@ -5,7 +5,7 @@ Behavioral specs for plet's enforcement scripts. Each script gets its own spec f
 ## Key Files
 
 - `conventions.md` — shared requirements across all scripts (zero external deps, CLI patterns, etc.)
-- `script_template.md` — template for new spec files (15 sections)
+- `script_template.md` — template for new spec files (16 sections, 7 per-command sub-sections)
 - `NOTES.md` — tooling design decisions, stable label prefix tables
 
 ## How to Work Here

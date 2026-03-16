@@ -152,7 +152,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 
 | Module | Purpose | Key functions |
 |--------|---------|---------------|
-| `util_cli.py` | Argument parsing, validation, timestamps, dispatch | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch` |
+| `util_cli.py` | Argument parsing, validation, timestamps, dispatch, output filtering | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
 | `util_io.py` | Atomic file I/O for state and runtime artifacts | `load_json`, `atomic_write_json`, `atomic_append` |
 
 ## Planned (PLAN_8)

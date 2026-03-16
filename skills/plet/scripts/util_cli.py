@@ -48,5 +48,13 @@ Functions:
         The commands dict maps command names (str) to callables that accept
         a list of string args and return an int exit code.
 
+    filter_fields(data, fields)
+        Filter a dict to only requested fields. If fields is None, returns
+        data unchanged. When filtering, adds two metadata keys:
+        - "fieldsIncluded": list of fields that were requested and present
+        - "fieldsOmitted": list of fields that were available but filtered out
+        Used with --fields flag (UNV_CMD_19) to limit JSON output size for
+        agent context window protection.
+
 Dependencies: Python stdlib only (sys, datetime).
 """
