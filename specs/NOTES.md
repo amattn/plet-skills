@@ -167,6 +167,22 @@ All three remaining open questions resolved by the agent-first CLI design insigh
 - **#3 (update-field pairs):** Fix — migrate to named args. Alternating pairs were a human ergonomic shortcut.
 - **#4 (boolean flags):** Required — `--dry-run` and `--output json` are boolean flags on every mutating command. `parse_kwargs` must support them.
 
+#### update-field migrated to --data JSON object (2026-03-16)
+
+**Decision:** `update-field` accepts `--data '{"field":"value"}'` instead of alternating positional pairs (`field value field value`).
+
+**Rationale (agent-first):**
+- Agents think in JSON — it's their native output format. Generating `'{"lifecycle":"implementing"}'` is trivial.
+- One format, zero ambiguity — no `=` splitting edge cases, no repeated-flag collection, no shell quoting surprises.
+- Consistent with existing patterns — `--criteria` and `--dependencies` in `init` already accept JSON strings.
+- All value types for free — strings, numbers, booleans, arrays, objects, null. No special handling per type.
+- Simplest implementation — one `json.loads()` call + iterate keys.
+
+**Rejected:**
+- `--set key=value` (repeated flag) — common pattern (docker, kubectl) but introduces `=` splitting edge cases. Values containing `=` need first-split-only logic. Repeated flag collection is a new pattern for `parse_kwargs`.
+- `--field`/`--value` pairs — most consistent with parse_kwargs but extremely verbose. Double the tokens of other options.
+- Keep alternating positional pairs — violates UNV_CMD_10 (named args only). Was a human ergonomic shortcut; agents don't benefit from it.
+
 #### Open question #1 resolved: shared utility modules (2026-03-16)
 
 **Decision:** Extract shared patterns into internal utility modules. Two files: `util_cli.py` (argument parsing, validation, timestamps, dispatch) and `util_io.py` (atomic JSON writes, atomic appends, JSON loading).
