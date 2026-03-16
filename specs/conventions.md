@@ -67,9 +67,10 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| UNV_DXP_1 | Script names: `plet_<domain>.py` | P0 |
+| UNV_DXP_1 | CLI tool scripts: `plet_<domain>.py` — callable via `Bash()`, listed in `allowed-tools` | P0 |
 | UNV_DXP_2 | Command names: lowercase, hyphen-separated (e.g., `update-criterion`) | P0 |
 | UNV_DXP_3 | Function names: `cmd_<command_with_underscores>` (e.g., `cmd_update_criterion`) | P0 |
+| UNV_DXP_4 | Internal modules: `util_<concern>.py` — imported by `plet_*.py` scripts, never called directly, not listed in `allowed-tools`, not executable | P0 |
 
 ## Testing
 
@@ -91,7 +92,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 
 ## Open Questions
 
-1. **`parse_kwargs` as shared utility** — `plet_entries.py` has a shared `parse_kwargs()` function; `plet_state.py` duplicates the logic inline. Should `parse_kwargs` be extracted into a shared module that all scripts import? Or should each script copy the pattern? Shared module risks violating the "zero deps" spirit (internal dep is still a dep); copy-paste risks drift. Current convention (UNV_CMD_11) says "use the `parse_kwargs` pattern" but doesn't specify shared vs copied.
+1. ~~**`parse_kwargs` as shared utility**~~ **RESOLVED:** Extract into `util_cli.py`. All scripts import from shared internal modules (`util_*.py`). Internal modules are not external dependencies — they ship in the same directory. See UNV_DXP_4.
 
 2. **Positional args limit** — UNV_CMD_10 says "positional only for the first 1-2 arguments." `plet_state.py update-criterion` uses 5 positional args. Is this a violation to fix, or does `update-criterion`'s ergonomic case justify an exception? Migrating to `--criterion-id AC_1 --phase implementation --status pass --evidence "..."` is more consistent but more verbose for a high-frequency command.
 

@@ -8,11 +8,15 @@ Coding standards for Python scripts in `skills/plet/scripts/`. These scripts are
 
 ## Hard Constraints
 
-### Zero Dependencies
+### Zero External Dependencies
 
 Scripts use **Python stdlib only** — no third-party packages, no `pip install`, no `requirements.txt`. Scripts ship inside the skill package and must work on any machine with Python 3 installed. Autonomous agents cannot install packages, and target projects should never need to manage plet's dependencies.
 
-If a script needs functionality beyond stdlib, either find a stdlib solution or reconsider whether the feature belongs in a script.
+Internal modules (`util_*.py`) are not external dependencies — they ship in the same directory, same version, same deployment. Scripts may import from `util_cli` and `util_io`.
+
+Scripts may also call other `plet_*.py` scripts — via `subprocess` or potentially direct import. The orchestrator in particular calls most other scripts. These are sibling dependencies within the same package, not external.
+
+If a script needs functionality beyond stdlib + internal modules + sibling scripts, either find a stdlib solution or reconsider whether the feature belongs in a script.
 
 ### No Interactive Input
 
@@ -35,7 +39,7 @@ Target **Python 3.8+** as the minimum. Avoid features from 3.10+ (`match/case`, 
 Every script follows the same structure:
 
 1. Shebang + module docstring
-2. **Imports:** stdlib only (see Hard Constraints)
+2. **Imports:** stdlib + internal modules only (see Hard Constraints)
 3. **Constants:** module-level, ALL_CAPS. Valid enum values, required fields, schema versions
 4. **Utility functions:** shared helpers (`now_iso()`, file I/O, ID generation)
 5. **Command functions:** one `cmd_<name>(args)` function per command
@@ -77,7 +81,8 @@ Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently no
 
 ### Naming
 
-- **Script names:** `plet_<domain>.py` — e.g., `plet_state.py`, `plet_entries.py`, `plet_trace.py`, `plet_git.py`
+- **CLI tool scripts:** `plet_<domain>.py` — e.g., `plet_state.py`, `plet_entries.py`, `plet_trace.py`, `plet_git.py`. Callable via `Bash()`, listed in `allowed-tools`, executable (`chmod +x`)
+- **Internal modules:** `util_<concern>.py` — e.g., `util_cli.py`, `util_io.py`. Imported by `plet_*.py` scripts, never called directly, not listed in `allowed-tools`, not executable. The `plet_` prefix signals "CLI tool"; `util_` signals "internal dependency."
 - **Command names:** lowercase, hyphen-separated — e.g., `update-criterion`, `add-progress`, `check-stashes`
 - **Function names:** `cmd_<command_with_underscores>` — e.g., `cmd_update_criterion`, `cmd_add_progress`
 
@@ -136,10 +141,19 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 
 ## Current Inventory
 
+### CLI Tools (`plet_*.py`)
+
 | Script | Purpose | Commands |
 |--------|---------|----------|
 | `plet_state.py` | State file schema enforcement | `validate`, `update-criterion`, `update-field`, `init` |
 | `plet_entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
+
+### Internal Modules (`util_*.py`)
+
+| Module | Purpose | Key functions |
+|--------|---------|---------------|
+| `util_cli.py` | Argument parsing, validation, timestamps, dispatch | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch` |
+| `util_io.py` | Atomic file I/O for state and runtime artifacts | `load_json`, `atomic_write_json`, `atomic_append` |
 
 ## Planned (PLAN_8)
 

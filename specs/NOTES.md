@@ -147,6 +147,18 @@ Also added §8 Examples (EXM) as a top-level section — real copy-pasteable mul
 
 Template is now 16 sections (was 15). Per-command sub-sections: 7 (was 4, added JUS, PRE, and PST). Section numbering shifted: Examples at §8, Dependencies at §9, etc.
 
+#### Open question #1 resolved: shared utility modules (2026-03-16)
+
+**Decision:** Extract shared patterns into internal utility modules. Two files: `util_cli.py` (argument parsing, validation, timestamps, dispatch) and `util_io.py` (atomic JSON writes, atomic appends, JSON loading).
+
+**Naming convention:** `plet_*.py` = CLI tool (callable via Bash, listed in allowed-tools, executable). `util_*.py` = internal module (imported by plet scripts, never called directly, not in allowed-tools, not executable). The prefix signals the file's role at a glance.
+
+**Why two files, not one:** Sets precedent for separation by concern even though ~150 lines would fit in one file. CLI concerns (args, validation, dispatch) are conceptually distinct from I/O concerns (atomic writes, JSON loading). Easier to test in isolation.
+
+**Why not copy-paste:** 10 scripts × ~10 shared functions = 100 copies to maintain. An internal module is a different kind of dependency than a third-party package — it ships in the same directory, same version, same deployment. The "zero deps" constraint (UNV_CMD_1) is about external packages agents can't install.
+
+**Testing note:** Internal modules are tested via direct import, not subprocess — a new pattern. Every other test calls scripts via `subprocess.run()`. The util tests import functions directly since there's no CLI interface to test.
+
 #### Justification sub-section added per command (2026-03-15)
 
 Each command now has a Justification (JUS) section — first sub-section, before Definition. Three requirements:
