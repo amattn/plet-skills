@@ -213,6 +213,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_PRE_UPF_1 | File exists and is valid JSON | P0 |
 | STA_PRE_UPF_2 | `--data` is a valid JSON object | P0 |
 | STA_PRE_UPF_3 | Enum fields in `--data` have valid values (lifecycle, agentActivity) | P0 |
+| STA_PRE_UPF_4 | `--data` does not contain protected fields (`criteria`, `schemaVersion`) | P0 |
 
 #### Postconditions (STA_PST_UPF)
 
@@ -282,8 +283,9 @@ The two-state model is the core verification invariant — implementation and ve
 |----|-------------|----------|
 | STA_PRE_INI_1 | File does NOT exist at the specified path (error if it does — UNV_NFR_2) | P0 |
 | STA_PRE_INI_2 | `--dependencies` is a valid JSON array | P0 |
-| STA_PRE_INI_3 | `--criteria` is a valid JSON array of objects with `id` and `description` | P0 |
-| STA_PRE_INI_4 | Parent directory exists | P0 |
+| STA_PRE_INI_3 | `--criteria` is a valid JSON array | P0 |
+| STA_PRE_INI_4 | Each object in `--criteria` has `id` and `description` string fields | P0 |
+| STA_PRE_INI_5 | Parent directory exists | P0 |
 
 #### Postconditions (STA_PST_INI)
 
@@ -319,6 +321,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_EDG_5 | Multiple `update-field` calls on same field — last write wins, each call refreshes `lastUpdated` | P0 |
 | STA_EDG_6 | `--data` with empty object `'{}'` in `update-field` — no fields updated, but `lastUpdated` still refreshed | P1 |
 | STA_EDG_7 | `--dry-run` combined with `--output json` — show the JSON output that would be produced, including the would-be state changes | P1 |
+| STA_EDG_8 | `--data` containing protected fields (`criteria`, `schemaVersion`) in `update-field` — error, do not modify file. Protected fields must be modified through their dedicated commands (`update-criterion` for criteria, `init`/migration for schemaVersion). | P0 |
 
 ## 5. Error Handling (STA_ERR)
 
@@ -337,6 +340,8 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | STA_ERR_9 | Invalid JSON in file → `Error: invalid JSON in {path}: {parse_error}` | P0 |
 | STA_ERR_10 | Non-integer `--elapsed` → `Error: --elapsed must be an integer, got '{value}'` | P0 |
 | STA_ERR_11 | Parent directory missing on `init` → `Error: parent directory does not exist: {dir}` | P0 |
+| STA_ERR_12 | Malformed criteria object in `init` → `Error: --criteria[{index}] missing required field '{field}'` (checked at parse time, before validate) | P0 |
+| STA_ERR_13 | Protected field in `update-field` → `Error: '{field}' is a protected field — use update-criterion to modify criteria, or init for schemaVersion` | P0 |
 
 ## 6. Input/Output Schemas (STA_IOS)
 
@@ -506,7 +511,7 @@ See `specs/conventions.md` for universal requirements.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_DXP_1 | `validate` can be shell-globbed: `plet_state.py validate plet/state/*.json` | P1 |
+| STA_DXP_1 | All commands operate on a single file per invocation. Agents loop externally for batch operations. | P0 |
 | STA_DXP_2 | Help text follows IMPORTANT → PITFALLS → USAGE → PURPOSE structure (UNV_DXP_5) | P0 |
 | STA_DXP_3 | Help text for mutating commands strongly recommends `--dry-run` in IMPORTANT section | P0 |
 | STA_DXP_4 | All enum values listed in help text and error messages | P0 |

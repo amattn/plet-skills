@@ -40,6 +40,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_CMD_17 | All mutating commands must support `--dry-run`. Dry-run output matches real output except no files are modified. Exit 0 on success preview. | P0 |
 | UNV_CMD_18 | All commands must support `--output json` for structured output. Default is compact (single line). `--pretty` produces indented JSON. JSON includes at minimum: `status`, `command`, `scriptVersion`, `timestamp`. Error output includes `error` message and actionable recovery info (e.g., `available` values). | P0 |
 | UNV_CMD_19 | All commands must support `--fields field1,field2,...` to limit JSON output fields. When used, response includes `fieldsIncluded` (requested fields) and `fieldsOmitted` (available fields that were filtered out). Implemented via `filter_fields()` in `util_cli.py`. Only applies when `--output json` is active; ignored in text mode. | P0 |
+| UNV_CMD_20 | Scripts operate on a single resource (file/entity) per invocation. No multi-file glob support, no batch aggregation. Agents control the loop externally. This guarantees predictable output size per call. **Exception:** commands whose primary job is producing a list (e.g., a hypothetical `eligible` command that scans all state files to return eligible iteration IDs). When the list IS the output, multi-resource scanning is the point. | P0 |
 
 ## Idempotency
 
