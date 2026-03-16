@@ -968,6 +968,19 @@ plet draws from three sources:
 
 ## Important Concepts & Insights
 
+### Agent-First CLI Design (2026-03-16)
+
+plet's enforcement scripts are **agent tools** that humans occasionally debug — not developer tools that agents happen to use. This inversion changes the entire CLI design philosophy:
+
+- **Predictability over ergonomics** — named args everywhere, no positional shortcuts
+- **Defensive validation** — treat agents as potentially careless users, never produce tracebacks
+- **Self-documenting output** — `--output json` on every command with metadata and actionable recovery info
+- **Safe by default** — `--dry-run` required on all mutating commands, strongly recommended in help text
+- **Context-aware help** — what/when/why/common-mistakes, not just syntax; recommendations appear first
+- **Context window protection** — structured output agents can parse selectively
+
+This complements "Skills for Judgment, Code for Compliance" — that principle says *what* to codify; agent-first CLI design says *how* to build the tools. Full details in `specs/NOTES.md` and `specs/conventions.md`.
+
 ### Why state on disk matters
 "We highly value the ability to start with a new agent for various reasons. One is parallelization. Another is the fresh context is important for things like independent verification." — user
 

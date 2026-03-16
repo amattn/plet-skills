@@ -147,6 +147,26 @@ Also added §8 Examples (EXM) as a top-level section — real copy-pasteable mul
 
 Template is now 16 sections (was 15). Per-command sub-sections: 7 (was 4, added JUS, PRE, and PST). Section numbering shifted: Examples at §8, Dependencies at §9, etc.
 
+#### Key Insight: Agent-First CLI Design (2026-03-16)
+
+These scripts are **agent tools** that humans occasionally debug — not developer tools that agents happen to use. That inversion changes the entire CLI design philosophy:
+
+- **Predictability over ergonomics** — named args everywhere, no positional shortcuts. Agents generate commands programmatically; brevity doesn't matter, consistency does.
+- **Defensive validation** — treat agents as potentially careless users. Every input validated, every error path caught. Scripts must never produce Python tracebacks.
+- **Self-documenting output** — `--output json` on every command. Machine-parseable with metadata (status, command, version, timestamp). Error output includes actionable recovery info (e.g., valid values, available IDs).
+- **Safe by default** — `--dry-run` required on all mutating commands. Help text **strongly recommends** dry-run before mutation, with the recommendation appearing near the top of help output (before usage details).
+- **Context-aware help** — help text is agent guidance, not a man page. Includes what/when/why/common-mistakes, not just syntax. Recommendations (especially dry-run) appear first, even if that feels unnatural for human readers.
+- **Context window protection** — `--output json` gives structured data agents can parse selectively. (--fields flag under consideration for explicit field limiting.)
+
+This insight was driven by the open question about positional args but applies across all conventions. Six requirements added/modified: UNV_CMD_10 (named args only), UNV_CMD_15 (output format), UNV_CMD_17 (--dry-run), UNV_CMD_18 (--output json), UNV_DXP_5 (help as guidance), UNV_ERR_4 (no unhandled exceptions).
+
+#### Open questions #2-4 resolved: agent-first CLI design (2026-03-16)
+
+All three remaining open questions resolved by the agent-first CLI design insight:
+- **#2 (positional args):** Fix — only file path stays positional. Everything else named.
+- **#3 (update-field pairs):** Fix — migrate to named args. Alternating pairs were a human ergonomic shortcut.
+- **#4 (boolean flags):** Required — `--dry-run` and `--output json` are boolean flags on every mutating command. `parse_kwargs` must support them.
+
 #### Open question #1 resolved: shared utility modules (2026-03-16)
 
 **Decision:** Extract shared patterns into internal utility modules. Two files: `util_cli.py` (argument parsing, validation, timestamps, dispatch) and `util_io.py` (atomic JSON writes, atomic appends, JSON loading).

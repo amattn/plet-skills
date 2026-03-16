@@ -30,13 +30,15 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 |----|-------------|----------|
 | UNV_CMD_8 | Command-based interface: `script.py <command> [args]` — not flag-based | P0 |
 | UNV_CMD_9 | Every command supports `-h` and `--help`. Top-level `--help` prints the module docstring. Help text is agent-readable with copy-pasteable examples | P0 |
-| UNV_CMD_10 | Named arguments with `--` for options. Positional args only for the first 1-2 arguments (file paths, artifact directories) | P0 |
+| UNV_CMD_10 | Only file path / artifact directory as positional arg. All other arguments use named `--key value` format. Agents generate commands programmatically — predictability matters more than brevity. | P0 |
 | UNV_CMD_11 | No argparse — manual parsing via `parse_kwargs()` pattern | P0 |
 | UNV_CMD_12 | Complex values (arrays, objects) passed as JSON strings | P0 |
 | UNV_CMD_13 | Every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)` | P0 |
 | UNV_CMD_14 | Exit codes: 0 = success, 1 = error. No other exit codes | P0 |
-| UNV_CMD_15 | Output: results to stdout, errors to stderr. Success prints `OK — ...`. Errors print the error and the command's help text | P0 |
+| UNV_CMD_15 | Output: results to stdout, errors to stderr. Default is human-readable text. `--output json` produces structured machine-readable output with metadata (status, command, path, scriptVersion, timestamp). Both formats must include the same information. | P0 |
 | UNV_CMD_16 | Each `cmd_*` function defines a `HELP` variable at the top with usage, arguments, and examples | P0 |
+| UNV_CMD_17 | All mutating commands must support `--dry-run`. Dry-run output matches real output except no files are modified. Exit 0 on success preview. | P0 |
+| UNV_CMD_18 | All commands must support `--output json` for structured output. JSON includes at minimum: `status`, `command`, `scriptVersion`, `timestamp`. Error output includes `error` message and actionable recovery info (e.g., `available` values). | P0 |
 
 ## Idempotency
 
@@ -62,6 +64,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_ERR_1 | Validate all inputs before doing work — check required args, enum values, file existence before touching files | P0 |
 | UNV_ERR_2 | Specific error messages: show what was received and what was expected | P0 |
 | UNV_ERR_3 | Fail fast on first error. Exception: validation commands accumulate all schema errors before reporting | P0 |
+| UNV_ERR_4 | Scripts must never produce unhandled exceptions. Every error path produces a clean message to stderr. Agents must never see Python tracebacks. Wrap all type conversions, file operations, and JSON parsing in try/except with specific messages. | P0 |
 
 ## Naming
 
@@ -71,6 +74,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_DXP_2 | Command names: lowercase, hyphen-separated (e.g., `update-criterion`) | P0 |
 | UNV_DXP_3 | Function names: `cmd_<command_with_underscores>` (e.g., `cmd_update_criterion`) | P0 |
 | UNV_DXP_4 | Internal modules: `util_<concern>.py` — imported by `plet_*.py` scripts, never called directly, not listed in `allowed-tools`, not executable | P0 |
+| UNV_DXP_5 | Help text includes what/when/why/usage/common-mistakes, not just syntax. Recommendations (especially `--dry-run`) appear near the top of help output, before usage details. Help text is agent guidance, not just a man page. | P0 |
 
 ## Testing
 
@@ -94,8 +98,8 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 
 1. ~~**`parse_kwargs` as shared utility**~~ **RESOLVED:** Extract into `util_cli.py`. All scripts import from shared internal modules (`util_*.py`). Internal modules are not external dependencies — they ship in the same directory. See UNV_DXP_4.
 
-2. **Positional args limit** — UNV_CMD_10 says "positional only for the first 1-2 arguments." `plet_state.py update-criterion` uses 5 positional args. Is this a violation to fix, or does `update-criterion`'s ergonomic case justify an exception? Migrating to `--criterion-id AC_1 --phase implementation --status pass --evidence "..."` is more consistent but more verbose for a high-frequency command.
+2. ~~**Positional args limit**~~ **RESOLVED:** Only file path / artifact directory stays positional. Everything else becomes named args. Agents generate commands programmatically — brevity doesn't matter, predictability does. UNV_CMD_10 updated.
 
-3. **`update-field` alternating pairs** — `plet_state.py update-field` uses `field value field value` without `--` prefixes — a third parsing pattern. Is this an intentional ergonomic exception (it reads naturally: `update-field lifecycle implementing`) or an inconsistency to fix? If exception, document it. If fix, migrate to `--field lifecycle --value implementing` or similar.
+3. ~~**`update-field` alternating pairs**~~ **RESOLVED:** Same as #2 — migrate to named args. The alternating pair pattern was an ergonomic shortcut for humans; agents need predictability. Will need a new CLI design for multi-field updates (e.g., repeated `--field` / `--value` pairs, or JSON object input).
 
-4. **Boolean flag support** — `plet_entries.py`'s `parse_kwargs` handles `--flag` without a value as `True`. `plet_state.py`'s inline parser does not. Should boolean flags be a required capability of all kwarg parsing, or is it only needed where a script actually uses boolean flags?
+4. ~~**Boolean flag support**~~ **RESOLVED:** Yes, required. `--dry-run` and `--output json` are boolean flags on every mutating command. `parse_kwargs` in `util_cli.py` must support bare `--flag` as True. This is now load-bearing, not optional.
