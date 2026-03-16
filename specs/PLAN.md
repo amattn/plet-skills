@@ -32,7 +32,7 @@ Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved
 | Seq | Task | Status |
 |-----|------|--------|
 | 0 | `conventions.md` open questions | ✓ resolved |
-| 1 | `plet_state.py` spec | redo complete, pending review |
+| 1 | `plet_state.py` spec | ✓ complete |
 | 2 | `plet_entries.py` spec | draft (needs redo) |
 | 3 | `plet_fingerprint.py` spec | not started |
 | 4 | `plet_trace.py` spec | not started |
