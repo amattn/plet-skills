@@ -69,9 +69,10 @@ This repo has multiple NOTES.md files. When writing notes, route to the correct 
 | File | Scope |
 |------|-------|
 | `NOTES.md` (root) | plet project — requirements, design decisions, conventions, PRD status |
+| `specs/NOTES.md` | Script tooling — script design, inventory, architecture, spec decisions |
 | `guide/NOTES.md` | Guide/presentation — talk structure, content decisions, audience questions |
 
-**Default rule:** If working in `guide/`, write to `guide/NOTES.md`. Otherwise write to root `NOTES.md`. If ambiguous, ask.
+**Default rule:** If working in `specs/` or on script tooling, write to `specs/NOTES.md`. If working in `guide/`, write to `guide/NOTES.md`. Otherwise write to root `NOTES.md`. If ambiguous, ask.
 
 ## NOTES.md Discipline
 
