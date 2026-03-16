@@ -77,7 +77,7 @@ Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently no
 
 ### Naming
 
-- **Script names:** `plet_<domain>.py` — e.g., `plet_state.py`, `plet_entries.py`, `plet_trace.py`, `plet_git_cleanup.py`
+- **Script names:** `plet_<domain>.py` — e.g., `plet_state.py`, `plet_entries.py`, `plet_trace.py`, `plet_git.py`
 - **Command names:** lowercase, hyphen-separated — e.g., `update-criterion`, `add-progress`, `check-stashes`
 - **Function names:** `cmd_<command_with_underscores>` — e.g., `cmd_update_criterion`, `cmd_add_progress`
 

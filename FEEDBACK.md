@@ -89,7 +89,7 @@ LOGA: traces for 1 of 13 iterations. LIBT: 4 of 5 iterations (improved but still
 
 Source: LOGA R_8, LIBT S_4
 
-`[resolved, unverified]` → Decided: traces on by default, configurable. Schema standardization not yet implemented.
+`[resolved, unverified]` → Decided: traces on by default, configurable. Schema standardization deferred → PLAN_8 (`plet_trace.py`).
 
 ### FB_12: State file schema drift across iterations [state] [artifacts]
 
@@ -105,7 +105,7 @@ LOGA had cross-branch contamination (ID_006 work on ID_011 branch). Parallel age
 
 Source: LOGA R_11
 
-`[resolved, unverified]` → Decided: git worktrees for parallel agents. Not yet validated in a run.
+`[resolved, unverified]` → Decided: git worktrees for parallel agents. Implementation deferred → PLAN_8 (`plet_git.py` worktree commands).
 
 ### FB_14: FEEDBACK.md formalization [artifacts] [process]
 
@@ -169,6 +169,8 @@ Source: LIBT S_7
 
 Autonomous agents need `bypassPermissions` in the target project's `.claude/settings.local.json` to actually run autonomously. Without it, agents hit permission prompts for Bash, Write, etc. — defeating the purpose. plet should check for this during plan session setup (or at loop start) and warn the user with specific instructions if the setting is missing. The `allowed-tools` frontmatter in SKILL.md helps for skill-level tools (e.g., `plet_state.py`), but doesn't cover general agent operations (git, test runners, linters, etc.).
 
+`[deferred → PLAN_8]` — `plet_router.py preflight` checks for this.
+
 ### FB_21: Investigate what made learnings/emergent dramatically better [research]
 
 LIBT: 11 learnings, 6 emergent items with cross-iteration knowledge transfer. LOGA: 3 learnings, 1 emergent. Contributing factors: (a) R_7 fix mandating entries, (b) smaller project size, (c) Python's simpler toolchain. If (a) is primary, improvement persists at scale. If (b) or (c), it may not. Need a 10+ iteration project to test.
@@ -185,11 +187,13 @@ Same gap for NOTES.md and FEEDBACK.md — plet bootstraps the runtime artifacts 
 
 More broadly, plet may need a **bootstrap phase** before plan — a pre-flight that ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK.md exists, bypassPermissions is configured (FB_22), etc. Currently the plan session jumps straight into requirements gathering without verifying the foundation is in place.
 
+`[deferred → PLAN_8]` — `plet_router.py preflight` checks for this.
+
 ### FB_24: Requirements not written to disk incrementally despite PL_12 [artifacts] [prompting]
 
 PL_12 explicitly says "Each approved section is written to disk immediately" and is reinforced at the requirement approval step (plan.md line 201) and iteration approval step (line 279). Despite this, agents defer writing requirements.md to the end of the plan session. The rule exists — the agents ignore it. May need stronger language, a different position in the plan flow, or a checkpoint that verifies the file was actually written after each approval.
 
-`[resolved, unverified]` → Added "verify on disk" step (read back after write) to plan.md Step 4 and Step 6. Agents must confirm file exists before proceeding.
+`[resolved, unverified]` → Added "verify on disk" step (read back after write) to plan.md Step 4 and Step 7. Agents must confirm file exists before proceeding.
 
 ### FB_25: Show priority histogram at end of plan session [ux] [planning]
 
@@ -201,7 +205,7 @@ At the end of the plan session, show a histogram/summary of iteration priorities
 
 Milestones should wait until the section-by-section requirement review is complete. Requirements change during review — sections get added, removed, reprioritized — so milestones generated before review is done are based on stale input and need to be redone.
 
-`[resolved, unverified]` → §8 Release Milestones in requirements template marked as deferred. New Step 4b added after section review for milestone finalization.
+`[resolved, unverified]` → §9 Release Milestones in requirements template marked as deferred. New Step 5 added after section review for milestone finalization.
 
 ### FB_27: Plan session needs a data modeling section [planning] [spec]
 
@@ -213,7 +217,7 @@ Requirements often involve data models — database schemas, JSON structures, AP
 
 The plan session produces zero commits — everything is uncommitted until the session ends (or doesn't get committed at all). Related to FB_24 (files not written to disk incrementally) but distinct: even when files are written, they're not committed. Each approved section should be committed immediately. This protects against context loss, makes the planning history inspectable via git log, and matches the intermediate commit discipline already required during execute (R_1).
 
-`[resolved, unverified]` → Added commit step to plan.md Step 4 and Step 6. Each approved section gets `plet: [plan] approve {section_name}`. Pairs with FB_24 verify-on-disk fix.
+`[resolved, unverified]` → Added commit step to plan.md Step 4 and Step 7. Each approved section gets `plet: [plan] approve {section_name}`. Pairs with FB_24 verify-on-disk fix.
 
 ## SparkBoard Run 1 (2026-03)
 
@@ -223,11 +227,15 @@ SPARK produced 2 learnings and 1 emergent from 23 iterations (0.09 and 0.04 per 
 
 Source: SPARK SP_1
 
+`[deferred → PLAN_8]` — `plet_gate_impl.py post` blocks without entries.
+
 ### FB_30: Agents used 42 git stashes despite ban [git] [autonomy]
 
 FB_9 explicitly banned `git stash` in agents. SPARK run produced 42 stashes — agents use stashing heavily during parallel branch work. The ban is ineffective because stashing is fundamental to how agents handle branch switching in parallel execution. Worktree isolation (FB_13) may make stashes unnecessary rather than just banning them.
 
 Source: SPARK SP_2
+
+`[deferred → PLAN_8]` — `plet_git.py` worktrees eliminate the need to stash.
 
 ### FB_31: Final loop commit required human prompting [git] [autonomy]
 
@@ -235,17 +243,23 @@ The loop completed (all 23 iterations verified) but the final commit consolidati
 
 Source: SPARK SP_3
 
+`[deferred → PLAN_8]` — `plet_orchestrator.py end-session` auto-commits.
+
 ### FB_32: Orphaned worktree after retry [git] [state]
 
 ID_015's retry left behind an orphaned worktree at `.claude/worktrees/ID_015-impl2` that was never cleaned up. The orchestrator should clean up worktrees when an iteration completes or when a retry supersedes the previous attempt.
 
 Source: SPARK SP_4
 
+`[deferred → PLAN_8]` — `plet_git.py` worktree cleanup on completion/retry.
+
 ### FB_33: Progress.md entries incomplete — 6 entries from 23 iterations [artifacts] [prompting]
 
 Only 6 explicit work entries in progress.md from 23 iterations. Most iterations have no individual progress entry. Either subagents aren't writing entries, or the orchestrator is consolidating and losing detail. Each impl and verify phase should produce its own entry.
 
 Source: SPARK SP_5
+
+`[deferred → PLAN_8]` — `plet_gate_impl.py post` / `plet_gate_verify.py post` enforce entries.
 
 ### FB_34: Recommend user stays for first 1-2 iterations [onboarding] [ux]
 
@@ -261,11 +275,15 @@ SPARK ID_007 notes "impl-1 lost commits; re-impl as impl-2" — the agent lost i
 
 Source: SPARK case study, ID_007 iteration table
 
+`[deferred → PLAN_8]` — `plet_git.py` worktree isolation prevents cross-branch contamination.
+
 ### FB_36: Retry overhead consumed 24% of active execution time [timing] [efficiency]
 
 4 of 23 iterations required retries (ID_005, ID_007, ID_013, ID_015), consuming ~43 minutes of the ~3 hour active run — 24% overhead. At scale, this is significant. Worth tracking across runs to see if the rate improves. Potential mitigations: better first-pass prompting, pre-impl checks that catch common failure modes (missing dependencies, schema mismatches), or a lightweight "dry run" step before full implementation.
 
 Source: SPARK case study, timing analysis
+
+`[withdrawn]` — Goldilocks framing: some retry overhead is healthy (verify catching real issues). Only non-verify retries worth investigating.
 
 ### FB_37: Verify first-pass rate regressed at scale (83% vs LIBT 100%) [verification] [scale]
 
@@ -273,11 +291,15 @@ SPARK verify first-pass rate was 83% (19/23) — down from LIBT's 100% (5/5) and
 
 Source: SPARK case study, comparison table
 
+`[withdrawn]` — Goldilocks framing: a 0% retry rate means verify might not be catching anything. Some failures are the system working as designed.
+
 ### FB_38: Cross-iteration knowledge transfer not functioning [artifacts] [prompting]
 
 SPARK's 2 learnings entries existed but weren't referenced by later iterations — rated "Minimal" for cross-iteration knowledge transfer. This is distinct from FB_29 (low entry count): even when learnings exist, the pipeline from learnings.md → subagent prompt → applied knowledge isn't working. Either subagents aren't reading learnings.md, or the content isn't actionable enough to influence behavior. The injectable HTTP client learning (ID_007 → applied in later iterations) is the one success case — worth studying what made that one work.
 
 Source: SPARK case study, comparison table
+
+`[deferred → PLAN_8]` — `plet_inject_prompt.py` always injects learnings.md into subagent prompts.
 
 ### FB_39: SP_6 root cause investigation needs its own entry [research] [scale]
 
@@ -314,17 +336,23 @@ Went with A for expediency. But B is the more rigorous choice — future runs sh
 
 Source: SPARK case study, discovered during refine session
 
+`[deferred → PLAN_8]` — `plet_orchestrator.py` transitions lifecycle deterministically after verify passes.
+
 ### FB_41: Refine session jumped to re-decomposition before finishing review [refine] [sequencing]
 
 The refine agent moved to "Step 4 (continued): Re-Decomposition" while there were still outstanding items to review — emergent items, learnings, and state file issues hadn't all been triaged. Re-decomposition should only happen after all review items are resolved or explicitly deferred. The refine phase should exhaust triage before proposing new work.
 
 Source: SPARK refine session observation
 
+`[resolved]` — Triage-before-decomposition rule added (NOTES.md). Refine must exhaust triage before proposing new work.
+
 ### FB_42: Refine agent created state files during re-decomposition instead of Step 8 [refine] [sequencing]
 
 The refine agent created state files for new iterations (ID_024, ID_025, ID_026) during the re-decomposition step rather than waiting for Step 8 (State File Updates). By the time Step 8 arrived, the work was already done. Not necessarily wrong — creating state files as iterations are defined is arguably more natural than deferring to a later step. But it means Step 8 is redundant when the agent front-loads state file creation. Either: (A) formalize the pattern — state files are created during decomposition and Step 8 becomes a verification pass, or (B) keep Step 8 as the creation point and prevent decomposition from writing state files. A seems better — create-as-you-go reduces the chance of forgetting.
 
 Source: SPARK refine session observation
+
+`[resolved]` — Resolved same decision: state files created during decomposition, Step 8 becomes verification pass (NOTES.md).
 
 ### FB_43: All plet status steps should generate a progress entry [refine] [artifacts]
 
@@ -345,3 +373,5 @@ Source: SPARK refine session observation
 ### FB_45: Scripts directory needs a CLAUDE.md or AGENTS.md with coding standards [tooling] [conventions]
 
 `skills/plet/scripts/` is growing (plet_state.py, plet_entries.py, and more planned). There's no standards file governing how these scripts are written. Needs a CLAUDE.md or AGENTS.md in the scripts directory that defines conventions like: every script must support `--help`, consistent argument parsing style, error output format, exit code conventions, testing requirements, docstring standards, etc. Without this, each script will be written with slightly different patterns — the same prose-drift problem we see in agent-written artifacts, but in our own tooling.
+
+`[resolved]` — `scripts/CLAUDE.md` created with full coding standards.

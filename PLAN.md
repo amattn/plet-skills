@@ -184,15 +184,15 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 | FB_27 | Plan session needs data modeling section | `[planning]` `[spec]` |
 | FB_28 | No intermediate commits during plan session | `[git]` `[planning]` |
 
-### Research / minor (4) — triage individually
+### Research / minor (5) — triaged
 
-| ID | Summary | Notes |
-|----|---------|-------|
-| FB_21 | Research — learnings/emergent improvement factors | Research item, validate in PLAN_9 |
-| FB_34 | Recommend user stays for first iterations | UX guidance; `plet_orchestrator.py` could print a message |
-| FB_39 | SP_6 root cause investigation | Research item |
-| FB_43 | All refine status steps → progress entries | Refine is still a skill; `plet_entries.py` available but not enforced |
-| FB_44 | Progress entries need multiline content | `plet_entries.py` enhancement, PLAN_8 |
+| ID | Summary | Resolution |
+|----|---------|------------|
+| FB_21 | Research — learnings/emergent improvement factors | Withdrawn — tooling makes root cause moot |
+| FB_34 | Recommend user stays for first iterations | Deferred → PLAN_8 (`plet_orchestrator.py` prints message) |
+| FB_39 | SP_6 root cause investigation | Withdrawn — same as FB_21 |
+| FB_43 | All refine status steps → progress entries | Resolved — progress entries added to refine.md Steps 5, 6, 8 |
+| FB_44 | Progress entries need multiline content | Deferred → PLAN_8 (`plet_entries.py` enhancement) |
 
 ---
 

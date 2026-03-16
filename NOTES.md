@@ -1500,7 +1500,7 @@ specs/
 
 **Problem:** Plan session agents don't write approved sections to disk despite PL_12 requiring it, and never commit during planning. Everything is uncommitted or unwritten until session end.
 
-**Fix:** Added three sub-steps after each approval in plan.md Step 4 and Step 6:
+**Fix:** Added three sub-steps after each approval in plan.md Step 4 and Step 7:
 1. Write to disk (already required, now reinforced)
 2. Verify on disk — read the file back, confirm it exists (FB_24)
 3. Commit — `plet: [plan] approve {section_name}` (FB_28)
@@ -1509,9 +1509,9 @@ specs/
 
 #### FB_26: Milestones deferred until after section review (2026-03-15)
 
-**Problem:** Milestones in §8 Release Milestones were generated during Step 3 (requirements drafting), before section review. Requirements change during review, making milestones stale.
+**Problem:** Milestones in §9 Release Milestones were generated during Step 3 (requirements drafting), before section review. Requirements change during review, making milestones stale.
 
-**Fix:** §8 in the requirements template now says "deferred — finalize after section review." New Step 4b added between section review and iteration decomposition for milestone finalization with its own write/verify/commit cycle.
+**Fix:** §8 in the requirements template now says "deferred — finalize after section review." New Step 5 added between section review and iteration decomposition for milestone finalization with its own write/verify/commit cycle.
 
 #### FB_27: Data Models section in PRD template (2026-03-15)
 

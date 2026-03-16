@@ -213,7 +213,7 @@ The user may batch answers or go one-by-one — follow their lead.
 
 ## Step 5: Finalize Milestones (FB_26)
 
-After all requirement sections are reviewed and approved, finalize §8 Release Milestones in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
+After all requirement sections are reviewed and approved, finalize §9 Release Milestones in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
 
 1. Draft milestones based on approved requirements
 2. Present to user for review
