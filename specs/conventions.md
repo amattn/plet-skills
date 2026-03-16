@@ -88,3 +88,13 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | UNV_NFR_8 | Scripts callable by agents must be listed in `skills/plet/SKILL.md` frontmatter under `allowed-tools` with path-specific patterns | P0 |
+
+## Open Questions
+
+1. **`parse_kwargs` as shared utility** — `plet_entries.py` has a shared `parse_kwargs()` function; `plet_state.py` duplicates the logic inline. Should `parse_kwargs` be extracted into a shared module that all scripts import? Or should each script copy the pattern? Shared module risks violating the "zero deps" spirit (internal dep is still a dep); copy-paste risks drift. Current convention (UNV_CMD_11) says "use the `parse_kwargs` pattern" but doesn't specify shared vs copied.
+
+2. **Positional args limit** — UNV_CMD_10 says "positional only for the first 1-2 arguments." `plet_state.py update-criterion` uses 5 positional args. Is this a violation to fix, or does `update-criterion`'s ergonomic case justify an exception? Migrating to `--criterion-id AC_1 --phase implementation --status pass --evidence "..."` is more consistent but more verbose for a high-frequency command.
+
+3. **`update-field` alternating pairs** — `plet_state.py update-field` uses `field value field value` without `--` prefixes — a third parsing pattern. Is this an intentional ergonomic exception (it reads naturally: `update-field lifecycle implementing`) or an inconsistency to fix? If exception, document it. If fix, migrate to `--field lifecycle --value implementing` or similar.
+
+4. **Boolean flag support** — `plet_entries.py`'s `parse_kwargs` handles `--flag` without a value as `True`. `plet_state.py`'s inline parser does not. Should boolean flags be a required capability of all kwarg parsing, or is it only needed where a script actually uses boolean flags?
