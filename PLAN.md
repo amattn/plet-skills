@@ -1,20 +1,31 @@
 # Build Plan: plet-skills
 
-## Current State
+## Master Table
 
-Parts 1–6 complete (skill, reference files, packaging, case study feedback, notes skill, extractable skills → session-kit repo). 23 open FB items (FB_22–FB_44, mostly from SPARK run) plus 3 deferred (FB_11, FB_13, FB_21). Next: Part 7 (feedback triage & tooling).
+| Seq | ID | Title | Status |
+|-----|---------|------------------------|------------|
+| 1 | PLAN_1 | SKILL.md — Main Orchestrator | ✓ COMPLETE |
+| 2 | PLAN_2 | Reference Files | ✓ COMPLETE |
+| 3 | PLAN_3 | Packaging | ✓ COMPLETE |
+| 4 | PLAN_4 | Case Study Feedback Loop | ✓ COMPLETE |
+| 5 | PLAN_5 | Notes Skill | ✓ COMPLETE |
+| 6 | PLAN_6 | Extractable Skills | ✓ COMPLETE |
+| 7 | PLAN_7 | Feedback Triage | **← NEXT** |
+| 8 | PLAN_8 | Python Tooling | |
+| 9 | PLAN_9 | Comparison Runs | |
+| 10 | PLAN_10 | Examples | deferred |
 
 ---
 
-## Parts 1–3: Foundation ✓ COMPLETE
+## PLAN_1–PLAN_3: Foundation ✓ COMPLETE
 
-### Part 1: SKILL.md — Main Orchestrator ✓ COMPLETE
+### PLAN_1: SKILL.md — Main Orchestrator ✓ COMPLETE
 
 Single entry point `/plet` with routing logic based on state detection.
 
 **File:** `skills/plet/SKILL.md`
 
-### Part 2: Reference Files ✓ COMPLETE
+### PLAN_2: Reference Files ✓ COMPLETE
 
 6 reference files injected into subagent prompts. Schemas first, then session prompts.
 
@@ -29,7 +40,7 @@ All reference files live under `skills/plet/references/`.
 | 2b.3 | `references/verify.md` | Verification subagent prompt |
 | 2b.4 | `references/refine.md` | Refine session instructions |
 
-### Part 3: Packaging ✓ COMPLETE
+### PLAN_3: Packaging ✓ COMPLETE
 
 Plugin metadata and distribution scaffolding.
 
@@ -37,7 +48,7 @@ Plugin metadata and distribution scaffolding.
 
 ---
 
-## Part 4: Case Study Feedback Loop ✓ COMPLETE
+## PLAN_4: Case Study Feedback Loop ✓ COMPLETE
 
 Two case studies completed. All feedback tracked in `FEEDBACK.md` (FB_1–FB_22).
 
@@ -69,7 +80,7 @@ Produced R_1–R_13. Status:
 
 Produced S_1–S_8. All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvements over LOGA: learnings/emergent dramatically better, zero orchestrator stalls, 100% first-pass verify rate. Recurring issues: state schema drift, progress format drift, trace inconsistency.
 
-### Additional work done during Part 4
+### Additional work done during PLAN_4
 
 - Vocabulary cleanup: "X phase" → "X session" for Level 1 terms (~69 changes across 12 files)
 - Taxonomy consolidation in NOTES.md (vocabulary hierarchy, document terms, artifact categories)
@@ -98,11 +109,11 @@ Produced S_1–S_8. All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvement
 
 - FB_11: Trace schema standardization (open — needs design work)
 - FB_13: Branch isolation via worktrees (decided, not validated)
-- FB_21: Research — why learnings/emergent improved (triage in Part 7, validate in Part 8)
+- FB_21: Research — why learnings/emergent improved (triage in PLAN_7, validate in PLAN_9)
 
 ---
 
-## Part 5: Notes Skill ✓ COMPLETE
+## PLAN_5: Notes Skill ✓ COMPLETE
 
 A standalone `/notes` skill that formalizes the living development notes pattern used during plet-skills development.
 
@@ -120,7 +131,7 @@ A standalone `/notes` skill that formalizes the living development notes pattern
 
 ---
 
-## Part 6: Extractable Skills ✓ COMPLETE
+## PLAN_6: Extractable Skills ✓ COMPLETE
 
 Generalizable patterns extracted as standalone skills, implemented and published in the `session-kit` repo (github.com/amattn/session-kit).
 
@@ -130,11 +141,7 @@ Generalizable patterns extracted as standalone skills, implemented and published
 
 ---
 
-## Part 7: Feedback Triage & Tooling
-
-Triage all open FEEDBACK.md items (FB_22–FB_44) and build additional Python enforcement scripts following the "Skills for Judgment, Code for Compliance" principle validated in Part 4.
-
-### 7a: Feedback Triage
+## PLAN_7: Feedback Triage
 
 Review and resolve open FB items. Each item gets one of: resolve (artifact changes), defer (with rationale), or withdraw (not worth fixing).
 
@@ -165,39 +172,58 @@ Review and resolve open FB items. Each item gets one of: resolve (artifact chang
 | FB_42 | Refine created state files during re-decomposition | `[refine]` `[sequencing]` |
 | FB_43 | All status steps should generate progress entries | `[refine]` `[artifacts]` |
 | FB_44 | Progress entries need multiline content support | `[artifacts]` `[tooling]` |
+| FB_45 | Scripts directory needs coding standards file | `[tooling]` `[conventions]` |
 
 Also update status of previously deferred items:
 - FB_11: Trace schema standardization
 - FB_13: Branch isolation via worktrees
 - FB_21: Research — learnings/emergent improvement factors
 
-### 7b: Python Tooling
+---
 
-Build additional enforcement scripts in `skills/plet/scripts/`. Existing tools:
+## PLAN_8: Python Tooling
+
+Build additional enforcement scripts in `skills/plet/scripts/` following the "Skills for Judgment, Code for Compliance" principle validated in PLAN_4.
+
+**Existing tools:**
 - `plet_state.py` — state file schema enforcement (FB_12, validated in SPARK)
 - `plet_entries.py` — runtime artifact entry formatting (FB_17/FB_29)
 
-Candidate new scripts (based on feedback patterns):
-- **Progress format validator/generator** — FB_33, FB_43, FB_44 all point to progress.md drift. May extend `plet_entries.py` or build standalone.
-- **Pre-flight checker** — FB_22 (bypassPermissions), FB_16 (spec artifacts exist), FB_23 (CLAUDE.md exists). A single tool agents run before starting work.
-- **Lifecycle finalizer** — FB_40 (state files stuck in wrong lifecycle). A tool that scans all state files and reports/fixes lifecycle inconsistencies.
-- **Learnings/emergent checkpoint** — FB_29, FB_38. A pre-verify gate that blocks if no entries exist for the current iteration.
+**Full script inventory** (10 scripts — see NOTES.md § "Full script inventory for script-as-orchestrator"):
 
-Prioritization and scope TBD during triage (7a informs which tools are highest value).
+Exists (2):
+- `plet_state.py` — per-iteration state CRUD + validation
+- `plet_entries.py` — runtime artifact entries
+
+New cross-cutting (5):
+- `plet_fingerprint.py` — fingerprint generation, comparison, staleness detection
+- `plet_git.py` — git compliance layer (absorbs planned `plet_git_cleanup.py`; FB_30, FB_31, FB_32)
+- `plet_trace.py` — trace NDJSON schema enforcement (FB_11)
+- `plet_router.py` — phase detection, status, preflight checks (absorbs pre-flight checker; FB_22, FB_16, FB_23)
+- `plet_prompt.py` — prompt assembly for subagents (absorbs pre-phase context; FB_38)
+
+New loop-specific (1):
+- `plet_loop.py` — the orchestrator itself (session lifecycle, dependency graph, retry logic, main loop). Potentially replaces the skill-as-orchestrator with script-as-orchestrator via `claude -p` subprocess spawning.
+
+New phase checkpoints (2):
+- `plet_impl_check.py` — implementation pre/post gates (FB_29, FB_33)
+- `plet_verify_check.py` — verification pre/post gates (FB_29, FB_33, FB_40)
+
+Prioritization and scope TBD during triage (PLAN_7 informs which tools are highest value).
 
 ---
 
-## Part 8: Comparison Runs
+## PLAN_9: Comparison Runs
 
 Re-run case studies with improved plet to validate fixes.
 
-- **8a:** Re-run logalyzer from plan checkpoint (`203c58a`, rebased from original `7cecbf5`) with improved plet
-- **8b:** Compare Run 1 vs Run 2, identify impact of changes
-- **8c:** Broader testing (refine session, harder project)
+- **PLAN_9a:** Re-run logalyzer from plan checkpoint (`203c58a`, rebased from original `7cecbf5`) with improved plet
+- **PLAN_9b:** Compare Run 1 vs Run 2, identify impact of changes
+- **PLAN_9c:** Broader testing (refine session, harder project)
 
 ---
 
-## Part 9: Examples (deferred, trigger met)
+## PLAN_10: Examples (deferred, trigger met)
 
 Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/todo-cli/run1/*` tags. Examples can now be captured from real output rather than written speculatively.
 
@@ -213,29 +239,6 @@ Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/tod
 - `examples/trace-snippet.ndjson` — sample trace NDJSON
 
 ---
-
-## Sequencing
-
-```
-Part 1     SKILL.md                          ── foundation           ✓ COMPLETE
-              ↓
-Part 2     reference files (schemas +        ── schemas & prompts    ✓ COMPLETE
-            session prompts)
-              ↓
-Part 3     plugin metadata                   ── packaging            ✓ COMPLETE
-              ↓
-Part 4     case study feedback loop          ── apply feedback       ✓ COMPLETE
-              ↓
-Part 5     notes skill                       ── standalone /notes    ✓ COMPLETE
-              ↓
-Part 6     extractable skills                 ── session-kit repo     ✓ COMPLETE
-              ↓
-Part 7     feedback triage & tooling         ── FB_22–FB_44 + scripts
-              ↓
-Part 8     comparison runs                   ── rerun + validate
-              ↓
-Part 9     examples/ (deferred)              ── capture from real run
-```
 
 ## Notes
 

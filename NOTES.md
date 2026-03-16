@@ -40,7 +40,7 @@ plet is a Claude Code skill that orchestrates spec-driven autonomous development
 ## Platform & Distribution
 
 - Claude Code skill (SKILL.md + bundled reference files)
-- No scripts, no external dependencies for v1.0
+- Python enforcement scripts shipped in `skills/plet/scripts/` — stdlib only, zero external dependencies. Standards in `scripts/CLAUDE.md`.
 - Published to github and distributed via Claude Code plugin marketplace
 - Primary users: developers using Claude Code
 - GUI/monitoring repos planned as separate future projects that read the state file
@@ -713,13 +713,13 @@ Reviewed SKILL.md against skill-creator best practices. Three changes made:
 Scanned CLAUDE.md, PLET.md, NOTES.md, and reference files for generalizable patterns. Seven standalone skills identified, tracked in `EXTRACTABLE.md`:
 
 - **EX_1: /chatux** — Chat UX ergonomics. Bundles 10 patterns: NL/NLR options, batch answers, 1b1 mode, single-decision letters, "ok" approval, standard review prompt (A-E with recommend option), always suggest options, show-then-recommend, ask when ambiguous, fenced code blocks. Renamed from /nl — NL is one pattern within the broader chat UX skill.
-- **EX_2: /feedback** — Meta-observation tracking. Replaces Part 6 (feedback skill) in PLAN.md — now part of the broader extractable skills effort.
+- **EX_2: /feedback** — Meta-observation tracking. Replaces the old feedback skill plan item in PLAN.md — now part of the broader extractable skills effort (PLAN_6).
 - **EX_3: /dictation** — Voice input correction with project-specific misspelling tables.
 - **EX_4: /improve** — Self-improvement / pattern detection. Agent proactively surfaces recurring patterns.
 - **EX_5: /bootstrap** — Session bootstrap and compaction recovery. Three-layer defense against context loss.
 - **EX_6: /discipline** — Meta-pattern for creating named behavioral disciplines. The framework that makes Notes Discipline, Decision Discipline, and Review Discipline work.
 
-**Key decision:** /feedback removed from PLAN.md as a standalone Part 6 — folded into the broader extractable skills inventory. Part 6 now covers all six extractable skills.
+**Key decision:** /feedback removed from PLAN.md as a standalone plan item — folded into the broader extractable skills inventory (PLAN_6).
 
 - **EX_7: /label** — Greppable ID convention (`XX_N`). Core is the labeling system; consistency passes included as lightweight guidelines, not rigid procedure. Reframed from "consistency pass skill" — the passes only work *because* of labels, so labels are the real skill.
 
@@ -771,8 +771,27 @@ Key decisions:
 
 ## Global Conventions
 
-- All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`) — underscores over dashes so a double-click selects the entire ID for copy-paste. Slightly less aesthetic but worth the ergonomic trade.
+- All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`) — underscores over dashes so a double-click selects the entire ID for copy-paste. Slightly less aesthetic but worth the ergonomic trade. Longer prefixes (3-4 chars) are acceptable when they improve readability (e.g., `PLAN_1`).
 - Sub-groups use `XX_YY_N` (e.g., `UI_NAV_1`) when there is a logical grouping or large item count
+
+### Prefix Table
+
+| Prefix | Artifact type | Where used |
+|--------|--------------|------------|
+| `PLAN` | Build plan parts | PLAN.md |
+| `FB` | Feedback observations | FEEDBACK.md |
+| `FR` | Functional requirements | prd.md |
+| `NF` | Non-functional requirements | prd.md |
+| `ID` | Iterations | iterations.md |
+| `AC` | Acceptance criteria | iterations.md |
+| `MS` | Milestones | iterations.md |
+| `EX` | Execute agent rules | execute.md |
+| `VF` | Verify agent rules | verify.md |
+| `PL` | Plan session rules | plan.md |
+| `R` | LOGA case study recommendations | LOG_ANALYZER_CASE_STUDY.md |
+| `S` | LIBT case study recommendations | TODO_CLI_CASE_STUDY.md |
+| `SP` | SPARK case study recommendations | SPARKBOARD_CASE_STUDY.md |
+| `EX` (extractable) | Extractable skill inventory | EXTRACTABLE.md |
 
 ### ID Stability (decided)
 
@@ -1238,6 +1257,14 @@ Comfortable for now across all phases. If context pressure becomes an issue, edg
 
 As consistency passes are used, note what keeps drifting (which files, which patterns, which levels catch it). This data will inform whether to build a dedicated skill or subcommand.
 
+### Verify retry rate across runs
+
+Track verify first-pass rate and retry causes across case study runs. Goldilocks framing: 0% = rubber-stamping, 50%+ = impl consistently broken, 15-25% may be healthy. Only non-verify retries (git issues, crashes) warrant investigation. Current data: LOGA 85%, LIBT 100%, SPARK 83%.
+
+### Extracted skills losing integration context (SPI_1)
+
+Observed when comparing /fast-chat (session-kit) against NL/NLR conventions in plet-skills. Extracted skills capture mechanics but lose integration with surrounding workflows (Notes Discipline, Decision Discipline, consistency passes). Tracked as SPI_1 in session-kit's SHARPEN.md. Worth auditing /stable-label and /sharpen for similar loss.
+
 ### Post-compaction recovery effectiveness
 
 The three-layer compaction defense (CLAUDE.md POST-COMPACTION RULE → PLET.md MANDATORY ACKNOWLEDGMENT → auto-memory MEMORY.md) appears to be working. Observed 2 compactions in a single session (2026-03-09) — both times, the agent immediately produced "I have just read CLAUDE.md and PLET.md." without prompting. This is the canary behaving as designed, not a false positive: the agent re-read the files and acknowledged before continuing work. Continue monitoring across sessions and across different repos to confirm reliability.
@@ -1272,7 +1299,204 @@ Key questions:
 
 **Observation:** LOGA R_7, R_8, R_10, R_11, R_12, R_13 bypassed FEEDBACK.md — went directly from case study to NOTES.md decisions to PLAN.md status. This left them with less tracking visibility. The new convention prevents this.
 
-#### Ban git stash in agents (FB_9) — DECIDED (2026-03-11)
+#### PLAN.md uses stable labels (PLAN_N prefix) — DECIDED (2026-03-14)
+
+Positional "Part N" numbering caused cascading renumbers whenever a new part was inserted. Switched to stable label IDs (`PLAN_N`) following the project's existing append-only convention. New parts get the next available number regardless of position. A master table at the top of PLAN.md shows sequence (Seq column) and status — Seq numbers are freely reorderable display positions, PLAN_N IDs are permanent. Replaces the old sequencing diagram. Added `PLAN` to the prefix table in NOTES.md § Global Conventions.
+
+#### Bootstrap phase before plan — DECIDED (2026-03-14)
+
+plet's core workflow changes from **Plan → Loop → Refine** to **Bootstrap → Plan → Loop → Refine**. The bootstrap phase runs before plan and ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK.md exists, `bypassPermissions` is configured. Same pattern as /warmup and /notes bootstrap flows in session-kit. Resolves FB_22 and FB_23.
+
+#### Git stash policy revised — allow with cleanup (2026-03-14)
+
+Revises the ban from FB_9. SPARK run showed 42 stashes despite the ban — stashing is fundamental to how agents handle parallel branch work, not an occasional shortcut. New policy: stashes are OK to use, but the agent/subagent that creates a stash must be the same agent/subagent that cleans it up. No orphaning stashes for someone else to handle. Worktree-as-default (FB_13) should reduce stash usage naturally. Future consideration: the orchestrator creates worktrees and passes paths to subagents, rather than subagents managing their own.
+
+#### Verify retry rate Goldilocks framing (2026-03-14)
+
+Withdrawing FB_36 (24% retry overhead) and FB_37 (83% first-pass rate). A 0% retry rate means verify might not be catching anything (rubber-stamping). A very high retry rate (50%+) means impl is consistently producing bad work. Somewhere in the middle is healthy — verify catching real issues is the system working as designed. Only non-verify retries (git issues, crashes) are worth investigating. The user's framing: "there is a Goldilocks zone where we want verify to find problems because that's what it's there for, but if verify is constantly finding problems in every iteration then something is wrong."
+
+#### Refine decomposition must happen after triage — DECIDED (2026-03-14)
+
+Resolves FB_41 and FB_42. In SPARK, the refine agent created iterations on a per-feedback-item basis during triage, resulting in artificially small 1:1 FB-to-iteration mappings. The fix: (1) triage ALL feedback/emergent items first (resolve, defer, or withdraw each), (2) look at the resolved items as a group, (3) THEN decompose into iterations with natural groupings and Goldilocks-sized chunks, (4) create state files in Step 8 after the full iteration list is reviewed and approved. No creating iterations or state files during triage.
+
+#### Scripts coding standards — scripts/CLAUDE.md (2026-03-14)
+
+Created `skills/plet/scripts/CLAUDE.md` as the coding standards file for plet's enforcement scripts. Key conventions: zero third-party dependencies (stdlib only — agents can't pip install), no interactive input (agents can't type into prompts), Python 3.8+ minimum, `#!/usr/bin/env python3` shebang + `chmod +x` for direct invocation, `--help` on every command (agent-readable), `--version` with script version and plet skill version for compatibility tracking, idempotency where practical, command-based CLI interface with `parse_kwargs` pattern, atomic file I/O, tests at `skills/plet/tests/` using subprocess-based custom harness (also zero deps).
+
+#### Script --version includes skill compatibility (2026-03-14)
+
+Every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)`. If the skill makes a non-backward-compatible semver change (major bump), scripts built against the old version need to be reviewed and updated. Added to both plet_state.py and plet_entries.py.
+
+#### SKILL.md allowed-tools tightened (2026-03-14)
+
+Changed from `Bash(python3 *)` (approves any Python command) to path-specific entries: `Bash(${CLAUDE_SKILL_DIR}/scripts/plet_state.py *)` and `Bash(${CLAUDE_SKILL_DIR}/scripts/plet_entries.py *)`. More secure — only approves shipped scripts. New scripts get added as they're built.
+
+#### Loop orchestrator responsibilities — tooling analysis (2026-03-15)
+
+Enumerated 18 discrete responsibilities of the loop orchestrator (SKILL.md § Loop Phase) and classified each by scriptability:
+
+**Fully scriptable (8 items, 44%):**
+1. Increment `loopSessionCount` — state mutation (already handled by `plet_state.py`)
+3. Session history entry — append entry, close previous `endedAt`, capture timestamp
+4. Fingerprint check — compare ID arrays + timestamps across requirements/iterations/state, return stale/ok
+5. Identify eligible iterations — graph traversal: deps all `complete` + lifecycle `queued` → eligible list
+12. Re-evaluate dependency graph — same as #5, called after each completion
+13. Check breakpoints — lookup in `state.json`, return hit/miss
+14. Retry logic — count attempts, check trend (strictly decreasing → extend to 6, else abort at 3)
+17. Capture end timestamp — timestamp + state mutation
+
+**Partially scriptable (5 items, 28%):**
+2. Branch management — deterministic name/create, but judgment needed for unexpected git state
+6/9. Spawn subagents (impl + verify) — prompt payload assembly is deterministic (which files, which order), spawning + adaptation is skill
+10. One verify per iteration — enforcement constraint
+15. Compaction recovery — state reading + orientation summary is code, deciding what to do is skill
+16. Git hygiene — tag naming, commit message formatting, squash sequencing are code; merge conflict resolution is skill
+
+**Skill-only (4 items, 22%):**
+7. Parallel spawning — deciding when is code, orchestrating concurrent Agent tool calls is runtime
+8. Monitor completion — depends on Agent tool lifecycle
+11. Handle verification result — severity assessment, fix-in-place vs cycle-back
+18. Offer options to user — human interaction
+
+#### plet_loop.py scope (2026-03-15)
+
+**Decision:** Build `plet_loop.py` to cover the fully scriptable + deterministic-assembly portions. This is the orchestrator's compliance layer — the stuff that drifts when interpreted as prose across invocations.
+
+**Commands (proposed):**
+
+Session lifecycle:
+- `start-session` — increment `loopSessionCount`, append `sessionHistory` entry, create branch name, return session metadata. Handles both new and resumed sessions.
+- `end-session` — capture end timestamp, set `endedAt` on current `sessionHistory` entry.
+
+Dependency graph:
+- `eligible` — read `state.json` + all per-iteration state files, return list of eligible iteration IDs (deps `complete`, lifecycle `queued`). This is the core scheduling function.
+- `check-breakpoints` — given an iteration ID and position (before/after), check `state.json` breakpoints, return hit/miss.
+
+Retry logic:
+- `check-retry` — given iteration ID, read attempt history, apply trend analysis, return continue/abort/extend.
+
+Fingerprint:
+- `check-fingerprints` — compare fingerprints across `requirements.md`, `iterations.md`, `state.json`. Return ok/stale with specific mismatch details.
+
+Prompt assembly:
+- `assemble-prompt` — given iteration ID + phase (impl/verify), read the iteration definition from `iterations.md`, assemble the full injection payload (reference file contents, formats.md sections, state-schema.md sections, requirements.md, learnings.md, per-iteration state). Output the assembled prompt text to stdout. The orchestrator skill pipes this to the Agent tool.
+
+**Design notes:**
+- Follows `scripts/CLAUDE.md` conventions (zero deps, no interactive input, Python 3.8+, atomic I/O)
+- `assemble-prompt` is the highest-value command — it eliminates the most common source of orchestrator drift (forgetting a file, wrong injection order, stale content)
+- `eligible` + `check-retry` together replace ~60% of the orchestrator's between-spawn decision logic
+- `check-fingerprints` can also be called by the routing logic (before phase dispatch), not just the loop
+- All commands are read-only except `start-session` and `end-session` — minimizes blast radius of bugs
+
+**Relationship to PLAN_8:**
+This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" candidates. `plet_loop.py` covers the loop-specific orchestrator logic; the other PLAN_8 candidates (`plet_trace.py`, `plet_git_cleanup.py`, pre/post-phase checkpoints) remain separate scripts for their respective domains.
+
+#### Script-as-orchestrator architecture (2026-03-15)
+
+**Insight:** Claude Code's CLI mode (`claude -p "prompt" --dangerously-skip-permissions`) can be invoked from a Python subprocess. This means the loop orchestrator could be a Python script rather than a skill — a deterministic process that spawns Claude one-shot processes as subagents.
+
+**Current design:** Orchestrator is a skill (prompt-interpreted, long-lived Claude context). Vulnerable to compaction, drift, non-deterministic prose interpretation. The entire compaction recovery protocol (SKILL.md § Compaction Recovery Protocol) exists because the orchestrator is a Claude session.
+
+**Alternative:** Orchestrator is `plet_loop.py`. It reads state, identifies eligible iterations, assembles prompts, launches `claude -p` subprocesses, captures output, updates state, loops. The orchestrator *never compacts* because it has no context window. Steps 1–3 and 5–7 from the loop responsibilities analysis are exactly the fully-scriptable items.
+
+**What stays as Claude:** Only impl and verify subagents — the parts requiring judgment. Spawned as one-shot CLI processes with assembled prompts.
+
+**Key tradeoffs:**
+- **Compaction:** eliminated entirely (script has no context window)
+- **Drift:** eliminated for orchestrator logic (deterministic code)
+- **Parallelism:** standard subprocess management vs Agent tool limitations
+- **Transcript capture:** free (stdout/stderr) vs manual copy to trace/
+- **Judgment calls:** must be pre-coded or deferred to subagents (can't adapt in-flight)
+- **Error recovery:** must be explicitly coded vs Claude reasoning about failures
+- **Permissions:** `--dangerously-skip-permissions` bypasses all safety checks. Named that way for a reason. But plet subagents are already designed for full autonomy (FB_3) — they need unrestricted tool access anyway.
+
+**Impact on PLAN_8:** This changes `plet_loop.py` from "helper commands the skill calls" to potentially "the orchestrator itself." The `assemble-prompt` command becomes the bridge — it produces the exact prompt text that gets piped to `claude -p`.
+
+**Open questions:**
+- Does `claude -p` support all the tools subagents need (Read, Write, Edit, Bash, Grep, etc.)? Need to verify capabilities in one-shot mode.
+- How does the script detect subagent success vs failure? Exit codes? Parsing stdout for state file updates? Having the subagent write state files directly (already the design)?
+- Can `claude -p` run in worktree-isolated mode? Or does the script need to manage worktrees itself (which it could — `git worktree add/remove` is trivial to script)?
+- What's the interaction model? The script runs as a `Bash()` tool call from a parent Claude session? Or the user runs it directly from terminal? Both?
+- How does the user set breakpoints, pause, or intervene? Current design uses `state.json` breakpoints read by the orchestrator — that still works since the script reads state.json too.
+- Cost/billing visibility — does `claude -p` usage show up in the same billing/usage tracking?
+
+**Not a v1 blocker** — the current skill-as-orchestrator design works. But this could be a v2 architectural shift that eliminates the entire compaction recovery protocol and most orchestrator drift categories. Worth prototyping after PLAN_9 (comparison runs validate the current architecture first).
+
+#### Full script inventory for script-as-orchestrator (2026-03-15)
+
+If the loop orchestrator becomes a Python script, the full inventory of plet scripts is 10 scripts across 3 categories.
+
+**Cross-cutting (used by multiple phases):**
+
+| Script | Purpose | Key commands | Status |
+|--------|---------|-------------|--------|
+| `plet_state.py` | Per-iteration state CRUD + validation | `validate`, `update-criterion`, `update-field`, `init` | Exists |
+| `plet_entries.py` | Runtime artifact entries | `add-progress`, `add-learning`, `add-emergent`, `check` | Exists |
+| `plet_fingerprint.py` | Fingerprint generation, comparison, staleness detection | `generate`, `compare`, `check` | New |
+| `plet_git.py` | Git compliance layer | `branch-name`, `create-branch`, `audit-tag`, `squash`, `worktree-create`, `worktree-remove`, `check-stashes`, `cleanup-stashes` | New (absorbs `plet_git_cleanup.py`) |
+| `plet_trace.py` | Trace NDJSON schema enforcement | `validate`, `append-event`, `query` | New (already in PLAN_8) |
+| `plet_router.py` | Phase detection + status | `detect`, `status`, `preflight` | New (absorbs pre-flight checker) |
+| `plet_prompt.py` | Prompt assembly for subagents | `assemble` (given iteration ID + phase, reads reference files, iteration def, requirements, learnings, state; outputs complete prompt text) | New |
+
+**Loop-specific (the orchestrator):**
+
+| Script | Purpose | Key commands | Status |
+|--------|---------|-------------|--------|
+| `plet_loop.py` | The orchestrator itself | `start-session`, `end-session`, `eligible`, `check-retry`, `run` | New |
+
+`run` is the main loop — calls `plet_router.py preflight`, `plet_fingerprint.py check`, then cycles: `eligible` → `plet_prompt.py assemble` → spawn `claude -p` → capture output → read updated state → `check-retry` → repeat until done.
+
+**Note:** `check-breakpoints` may move to its own script or stay in `plet_loop.py` — TBD based on whether other phases need breakpoint checking.
+
+**Phase checkpoint scripts (called by subagents, not the orchestrator):**
+
+| Script | Purpose | Key commands | Status |
+|--------|---------|-------------|--------|
+| `plet_impl_check.py` | Implementation phase gates | `pre` (spec exists, iteration state correct, branch correct), `post` (entries exist via `plet_entries.py check`, state updated, tests pass) | New |
+| `plet_verify_check.py` | Verification phase gates | `pre` (impl committed, entries exist), `post` (verification report written, lifecycle updated, all criteria resolved) | New |
+
+**Rationale for separate impl/verify checkpoint scripts:** Impl and verify are different agents with different contexts, different failure modes, and different checklist items. A combined script would need phase-conditional logic throughout. Separate scripts keep each focused and make `allowed-tools` entries precise — the impl agent gets `plet_impl_check.py`, the verify agent gets `plet_verify_check.py`.
+
+**Rationale for `plet_prompt.py` as standalone:** Prompt assembly is the highest-value command in the system — it's the bridge between deterministic state reading and Claude invocation. Making it standalone means: (1) it can be tested independently, (2) it can be called outside `plet_loop.py` (e.g., manual debugging: "show me what prompt the impl agent would get"), (3) it keeps `plet_loop.py` focused on orchestration logic.
+
+**Summary:**
+- Exists: 2 (`plet_state.py`, `plet_entries.py`)
+- New: 8
+- Total: 10
+- Absorbed from PLAN_8: `plet_git_cleanup.py` → `plet_git.py`, pre-flight checker → `plet_router.py`, post-impl/post-verify → `plet_impl_check.py`/`plet_verify_check.py`, pre-phase context → `plet_prompt.py`
+
+**Monitor:** `plet_git.py` has the most commands (8) across 4 concerns (branches, worktrees, tags, squash/stash). If it gets unwieldy during implementation, split into `plet_branch.py`, `plet_worktree.py`, `plet_tag.py`, `plet_stash.py`. Keep as-is for now — assess during build.
+
+#### Script specs location — specs/ at project root (2026-03-15)
+
+Each script gets its own behavioral spec file in `specs/` at the project root. Not inside the skill package — specs are about what to build, not part of the shipped artifact.
+
+**Why not subsections of prd.md:** Each script has enough edge cases and behavioral nuances that one line or one section per script doesn't work — too thin or too heavy for the main PRD. Per-script files grow organically as edge cases are discovered.
+
+**Why not inside skills/plet/scripts/:** Specs are design artifacts, not shipped code. Clean separation between "what to build" (specs/) and "how to build" (scripts/CLAUDE.md) and "the built thing" (scripts/*.py).
+
+**Shape:** Lightweight behavioral specs — purpose, command signatures, input/output contracts, edge cases, error behaviors. No PRD ceremony (no personas, milestones, success metrics). Closer to how `state-schema.md` and `formats.md` define contracts than how `prd.md` defines requirements.
+
+**Structure:**
+```
+specs/
+├── prd.md                 # existing prd.md, moved here
+├── plet_fingerprint.md
+├── plet_git.md
+├── plet_trace.md
+├── plet_router.md
+├── plet_prompt.md
+├── plet_loop.md
+├── plet_impl_check.md
+├── plet_verify_check.md
+└── (plet_state.md, plet_entries.md — retroactive, written during PLAN_8)
+```
+
+**Rejected:** Single tooling section in prd.md (can't capture per-script edge cases), separate prd-tooling.md (unnecessary ceremony), specs inside skill package (conflates design artifacts with shipped code), no specs at all (loses traceability).
+
+**Decision:** PRD keeps its familiar name (`prd.md`) in the new location for now — easy to change later.
+
+#### Ban git stash in agents (FB_9) — DECIDED (2026-03-11), REVISED (2026-03-14)
 
 **Problem:** LIBT run agents used `git stash` during execution. Stashes are local-only, invisible to the orchestrator/other agents/external tools, and vulnerable to garbage collection. The case study archival process didn't capture them.
 
@@ -1372,6 +1596,10 @@ What goes in PLET.md vs CLAUDE.md? PLET.md is plet-specific instructions that ap
 
 ### FEEDBACK.md shape and workflow — RESOLVED
 Resolved 2026-03-10. See Key Design Decisions § FEEDBACK.md formalization.
+
+### Skills need a Quick Reference / help mechanism
+
+If a user asks "how do I use /plet?" the agent reads the entire SKILL.md (hundreds of lines) — expensive and slow for a simple question. Python scripts solved this with `--help`. Skills could use the same pattern: a short Quick Reference section near the top of SKILL.md, or a convention where invoking `/plet help` or `/plet version` prints a summary. Not plet-specific — this is a skill-creator or session-kit convention worth proposing upstream.
 
 ### Analyze OpenAI Symphony
 

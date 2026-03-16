@@ -1,0 +1,155 @@
+# CLAUDE.md — plet scripts
+
+Coding standards for Python scripts in `skills/plet/scripts/`. These scripts are enforcement tools that agents call instead of writing artifacts freehand — schema compliance, format compliance, and pre/post-phase checks.
+
+## Design Principle
+
+**Skills for Judgment, Code for Compliance.** These scripts exist because prose rules drift when agents interpret them independently across many iterations. The scripts make compliance automatic. See PLET.md § "Skills for Judgment, Code for Compliance."
+
+## Hard Constraints
+
+### Zero Dependencies
+
+Scripts use **Python stdlib only** — no third-party packages, no `pip install`, no `requirements.txt`. Scripts ship inside the skill package and must work on any machine with Python 3 installed. Autonomous agents cannot install packages, and target projects should never need to manage plet's dependencies.
+
+If a script needs functionality beyond stdlib, either find a stdlib solution or reconsider whether the feature belongs in a script.
+
+### No Interactive Input
+
+Scripts must **never prompt for input** — no `input()`, no `sys.stdin` reads, no interactive confirmations. All input comes via CLI arguments. Autonomous agents can't type into prompts. A script that blocks on input is a stalled agent.
+
+### Python Version
+
+Target **Python 3.8+** as the minimum. Avoid features from 3.10+ (`match/case`, `X | Y` union types, `tomllib`). Python 3.8 is the oldest version still widely deployed on production systems and CI environments.
+
+## Script Standards
+
+### File Setup
+
+- **Shebang:** `#!/usr/bin/env python3` — portable across macOS, Linux, and CI environments
+- **Executable bit:** all scripts must be `chmod +x`. Combined with the shebang, this allows direct invocation via path without prefixing `python3`. This is what makes the `allowed-tools` pattern work — `Bash(${CLAUDE_SKILL_DIR}/scripts/*)` approves only shipped scripts regardless of the Python binary name on the system
+- **Module docstring:** purpose, what it enforces, usage examples for every command
+
+### Structure
+
+Every script follows the same structure:
+
+1. Shebang + module docstring
+2. **Imports:** stdlib only (see Hard Constraints)
+3. **Constants:** module-level, ALL_CAPS. Valid enum values, required fields, schema versions
+4. **Utility functions:** shared helpers (`now_iso()`, file I/O, ID generation)
+5. **Command functions:** one `cmd_<name>(args)` function per command
+6. **Main dispatch:** `main()` with command dict and `sys.exit()`
+
+### CLI Conventions
+
+- **Command-based interface:** `script.py <command> [args]` — not flag-based (`script.py --validate`)
+- **Help everywhere:** every command supports `-h` and `--help`. Top-level `script.py --help` prints the module docstring with all commands. Help text is agent-readable — include copy-pasteable examples that agents can use directly
+- **Named arguments with `--`:** `--iteration ID_001 --phase impl`. Positional args only for the first 1-2 arguments (file paths, artifact directories)
+- **No argparse:** manual argument parsing via `parse_kwargs()` pattern. Keeps scripts simple, avoids argparse's verbosity, and gives full control over error messages. Use the shared `parse_kwargs` pattern from `plet_entries.py`
+- **JSON for complex values:** arrays and objects passed as JSON strings: `--criteria '[{"id":"AC_1"}]'`
+- **Version flag:** every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)`. Example: `plet_state 0.1.0 (built against plet skill 0.1.0)`. The skill version is the version from `skills/plet/SKILL.md` frontmatter that the script was built to work with. If the skill makes a non-backward-compatible semver change (major bump), scripts built against the old version need to be reviewed and updated
+- **Exit codes:** 0 = success, 1 = error (validation failure, missing args, bad input). Never use other exit codes
+- **Output convention:** results to stdout, errors to stderr. On success, print a short confirmation (`OK — ...`). On error, print the error and the command's HELP text
+- **Subcommand HELP strings:** each `cmd_*` function defines a `HELP` variable at the top with usage, arguments, and examples. Printed on `--help` or when required args are missing
+
+### Idempotency
+
+Where practical, commands should be **safe to run twice** with the same result:
+- `validate` on a valid file always returns 0
+- `check` on an iteration with entries always reports the same counts
+- `init` on an existing file should error (not overwrite) — creation is not idempotent, but the failure mode is safe
+
+Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently not idempotent, but should be predictable — running the same update twice produces the expected state, and appending the same entry twice produces two entries (not a corruption).
+
+### File I/O
+
+- **Atomic writes for state files:** write to `path.tmp`, then `os.rename(tmp, path)`. External readers never see partial JSON
+- **Atomic appends for runtime artifacts:** write to temp file, read it back, append to target, remove temp. See `plet_entries.py:atomic_append()`
+- **Always add trailing newline** after JSON (`f.write("\n")`) so files are POSIX-compliant and diff-friendly
+- **Never read-modify-write runtime artifacts.** Append only. State files are read-modify-write (single writer per iteration)
+
+### Error Handling
+
+- **Validate inputs before doing work.** Check required args, enum values, file existence before touching any files
+- **Specific error messages:** `Error: invalid lifecycle 'running' (valid: ineligible, queued, ...)` — always show what was received and what was expected
+- **Fail fast:** first error exits. Don't accumulate errors across unrelated operations (validation is the exception — accumulate all schema errors, then report)
+
+### Naming
+
+- **Script names:** `plet_<domain>.py` — e.g., `plet_state.py`, `plet_entries.py`, `plet_trace.py`, `plet_git_cleanup.py`
+- **Command names:** lowercase, hyphen-separated — e.g., `update-criterion`, `add-progress`, `check-stashes`
+- **Function names:** `cmd_<command_with_underscores>` — e.g., `cmd_update_criterion`, `cmd_add_progress`
+
+### Testing
+
+Tests live at `skills/plet/tests/` (sibling to `scripts/`, not inside it).
+
+**File naming:** `test_<script_name>.py` — e.g., `test_plet_state.py`, `test_plet_entries.py`
+
+**Zero dependencies applies to tests too.** No pytest, no unittest, no third-party test frameworks. Tests use a minimal custom harness built on stdlib only. This matches the constraint on the scripts themselves — if the scripts can't use third-party packages, neither can their tests.
+
+**Run with:** `python3 skills/plet/tests/test_<script_name>.py` — each test file is directly executable.
+
+**Test harness pattern** (consistent across all test files):
+
+```python
+TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_<name>.py")
+
+passed = 0
+failed = 0
+
+def run(args, expect_exit=0):
+    """Run the script with args via subprocess, assert exit code."""
+    result = subprocess.run(
+        [sys.executable, TOOL] + args,
+        capture_output=True, text=True,
+    )
+    if result.returncode != expect_exit:
+        raise AssertionError(...)
+    return result.stdout.strip(), result.stderr.strip(), result.returncode
+
+def check(name, condition, detail=""):
+    """Record a test result — pass or fail with detail."""
+    global passed, failed
+    ...
+```
+
+**Key principles:**
+- **Test the CLI interface**, not internal functions. Every test calls the script via `subprocess.run()` — this tests what agents actually experience
+- **Temp fixtures:** each test creates temp files/directories, runs commands against them, validates output + file contents, then cleans up. Use `tempfile.mkdtemp()` for directories, `tempfile.NamedTemporaryFile()` for files
+- **Tests must clean up after themselves** — no leftover temp files
+- **Test both success and failure paths** — valid input returns 0 with expected output, invalid input returns 1 with a helpful error message
+- **Test `--help` on every command** — verify it exits 0 and produces output (agents rely on help text)
+
+### Allowed Tools
+
+Scripts that need to be callable by agents without permission prompts must be listed in `skills/plet/SKILL.md` frontmatter under `allowed-tools`:
+
+```yaml
+allowed-tools:
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/plet_state.py *)
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/plet_entries.py *)
+```
+
+Add new scripts to this list as they're built. The path-based pattern (`scripts/*`) approves only shipped scripts — more secure than `Bash(python *)` which would approve arbitrary Python commands.
+
+## Current Inventory
+
+| Script | Purpose | Commands |
+|--------|---------|----------|
+| `plet_state.py` | State file schema enforcement | `validate`, `update-criterion`, `update-field`, `init` |
+| `plet_entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
+
+## Planned (PLAN_8)
+
+| Script | Purpose | Key FB items |
+|--------|---------|-------------|
+| `plet_fingerprint.py` | Fingerprint generation, comparison, staleness detection | — |
+| `plet_git.py` | Git compliance (branches, tags, worktrees, squash, cleanup) | FB_30, FB_31, FB_32 |
+| `plet_trace.py` | Trace NDJSON schema enforcement | FB_11 |
+| `plet_router.py` | Phase detection, status summary, preflight checks | FB_16, FB_22, FB_23 |
+| `plet_prompt.py` | Prompt assembly for impl/verify subagents | FB_38 |
+| `plet_loop.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop) | — |
+| `plet_impl_check.py` | Implementation phase pre/post gates | FB_29, FB_33 |
+| `plet_verify_check.py` | Verification phase pre/post gates | FB_29, FB_33, FB_40 |
