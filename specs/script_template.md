@@ -23,15 +23,29 @@ This was the first enforcement script built — motivated by [describe the case 
 
 ## 3. Commands
 
-Each command gets four sub-sections with stable-labeled requirements. Command abbreviations are script-specific (defined per spec file).
+Each command gets seven sub-sections with stable-labeled requirements. Command abbreviations are script-specific (defined per spec file).
 
 ### 3.X command-name (XXX)
+
+#### Justification (JUS)
+
+Why this command exists, when it's used, and under what conditions it might become unnecessary.
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_JUS_XXX_1 | Why: what problem this command solves that no other command covers | P0 |
+| PRE_JUS_XXX_2 | When: the specific workflow context where this command is invoked | P0 |
+| PRE_JUS_XXX_3 | Deprecation signal: conditions under which this command becomes redundant (e.g., "if other commands auto-create the file, init is unnecessary") | P1 |
 
 #### Definition (CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PRE_CMD_XXX_1 | Usage: `plet_SCRIPTNAME.py command-name <positional_arg> --flag value` | P0 |
+
+**Properties:** read-only | mutating, idempotent | not idempotent, atomic | non-atomic
+
+**Concurrency:** safe (read-only) | single-writer (callers must not run concurrently on same file) | see NFR
 
 #### Inputs (INP)
 
@@ -47,9 +61,28 @@ Each command gets four sub-sections with stable-labeled requirements. Command ab
 | PRE_OUT_XXX_1 | Stdout: what it prints on success | P0 |
 | PRE_OUT_XXX_2 | Exit codes: 0 success, 1 error | P0 |
 
+#### Preconditions (PRE)
+
+What must be true before this command runs. Each violated precondition should produce a specific error.
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_PRE_XXX_1 | File exists and is valid JSON | P0 |
+| PRE_PRE_XXX_2 | File contains the referenced criterion ID | P0 |
+
+#### Postconditions (PST)
+
+What is guaranteed after this command completes successfully. Each postcondition is a test assertion.
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_PST_XXX_1 | File is valid JSON (passes `validate`) | P0 |
+| PRE_PST_XXX_2 | `lastUpdated` timestamp refreshed | P0 |
+| PRE_PST_XXX_3 | No `.tmp` residue files | P0 |
+
 #### Behaviors (BHV)
 
-The two-state model is the core invariant — describe *why* this behavior exists, not just *what* it does. Prose here helps future readers understand the design intent behind each requirement.
+Describe *why* behaviors exist, not just *what* they do. Prose here helps future readers understand the design intent behind each requirement.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -57,7 +90,7 @@ The two-state model is the core invariant — describe *why* this behavior exist
 
 ### 3.Y command-name-2 (YYY)
 
-(repeat CMD/INP/OUT/BHV for each command)
+(repeat JUS/CMD/INP/OUT/PRE/PST/BHV for each command)
 
 ## 4. Edge Cases (EDG)
 
@@ -95,14 +128,36 @@ Or expanded format for complex flows:
 3. Script returns Y
 4. Agent proceeds with Z
 
-## 8. Dependencies on Other Scripts (DEP)
+## 8. Examples (EXM)
+
+Real, copy-pasteable command sequences with realistic data. More expansive than help text — show multi-step workflows, not just single invocations.
+
+### PRE_EXM_1: Example name
+
+```bash
+# Step 1: Set up
+plet_SCRIPTNAME.py init plet/state/ID_001.json \
+    --iteration-id ID_001 --title "Project scaffolding" \
+    --dependencies '[]' \
+    --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
+
+# Step 2: Update
+plet_SCRIPTNAME.py update-criterion plet/state/ID_001.json \
+    AC_1 implementation pass "All tests green (12s)" --elapsed 45
+
+# Step 3: Verify result
+plet_SCRIPTNAME.py validate plet/state/ID_001.json
+# Output: OK — plet/state/ID_001.json is valid
+```
+
+## 9. Dependencies on Other Scripts (DEP)
 
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | PRE_DEP_1 | calls | `plet_other.py` | description |
 | PRE_DEP_2 | called by | `plet_other.py` | description |
 
-## 9. Non-Functional Requirements (NFR)
+## 10. Non-Functional Requirements (NFR)
 
 See `specs/conventions.md` for requirements common to all scripts (zero deps, no interactive input, --help, --version, atomic I/O, etc.).
 
@@ -112,25 +167,25 @@ Script-specific non-functional requirements (if any):
 |----|-------------|----------|
 | PRE_NFR_1 | Script-specific requirement | P0 |
 
-## 10. Developer Experience (DXP)
+## 11. Developer Experience (DXP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PRE_DXP_1 | CLI ergonomics specific to this script | P0 |
 
-## 11. Critical Test Areas (CRT)
+## 12. Critical Test Areas (CRT)
 
 | ID | Area | Risk if broken | Suggested test approach |
 |----|------|---------------|----------------------|
 | PRE_CRT_1 | ... | ... | ... |
 
-## 12. Testing & Verification (TST)
+## 13. Testing & Verification (TST)
 
 - How to verify this script works correctly
 - Key test scenarios
 - Edge cases to cover
 
-## 13. Resolved Questions
+## 14. Resolved Questions
 
 | # | Question | Decision |
 |---|----------|----------|
@@ -140,12 +195,12 @@ Script-specific non-functional requirements (if any):
 
 - Items deferred for later resolution
 
-## 14. Future Considerations (FUT)
+## 15. Future Considerations (FUT)
 
 | ID | Area | Description |
 |----|------|-------------|
 | PRE_FUT_1 | ... | ... |
 
-## 15. FB Items Addressed
+## 16. FB Items Addressed
 
 - FB_XX — brief description of what this script resolves

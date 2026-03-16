@@ -59,10 +59,19 @@ Sections 13 (Resolved Questions) and 15 (FB Items) don't get IDs — they refere
 
 | Abbrev | Sub-section | Notes |
 |--------|-------------|-------|
-| CMD | Definition | What the command is, usage signature |
+| JUS | Justification | Why the command exists, when it's used, deprecation signals |
+| CMD | Definition | What the command is, usage signature. Includes Properties and Concurrency annotations. |
 | INP | Inputs | Arguments, flags, expected formats |
 | OUT | Outputs | Stdout, stderr, exit codes |
+| PRE | Preconditions | What must be true before the command runs. Violated precondition = specific error. |
+| PST | Postconditions | What is guaranteed after successful completion. Each postcondition = a test assertion. |
 | BHV | Behaviors | What the command does, rules, logic |
+
+**Top-level sections** added in template update:
+
+| Abbrev | Section | Notes |
+|--------|---------|-------|
+| EXM | Examples | §8 — copy-pasteable multi-step command sequences |
 
 Each command also has its own 3-letter abbreviation (script-specific). Combined format: `SCRIPT_SUBSECTION_COMMAND_N`.
 
@@ -124,6 +133,28 @@ Decision to keep DX: even though scripts follow scripts/CLAUDE.md for coding sta
 #### Build order rationale (2026-03-15)
 
 10 scripts ordered: existing first (validate template), leaves before dependents, gates before orchestrator, orchestrator last (capstone). See `specs/PLAN.md` for full order and rationale per script.
+
+#### Template expanded with pre/post, examples, properties, concurrency (2026-03-15)
+
+Four additions to the per-command template structure:
+
+1. **Preconditions (PRE)** — what must be true before the command runs. Every violated precondition should produce a specific error. Biggest gap in the original template — BHV says what happens, but not what must hold first.
+2. **Postconditions (PST)** — what is guaranteed after successful completion. Each postcondition maps directly to a test assertion, making the testing section nearly mechanical.
+3. **Properties annotation** on CMD — one-liner: read-only|mutating, idempotent|not, atomic|non-atomic. Tells agents at a glance which commands are safe to retry.
+4. **Concurrency annotation** on CMD — one-liner: safe|single-writer|see NFR. Per-command rather than script-level because different commands have different concurrency profiles (e.g., `validate` is safe, `update-field` is single-writer).
+
+Also added §8 Examples (EXM) as a top-level section — real copy-pasteable multi-step sequences with realistic data. More expansive than help text, more concrete than Agent Flows.
+
+Template is now 16 sections (was 15). Per-command sub-sections: 7 (was 4, added JUS, PRE, and PST). Section numbering shifted: Examples at §8, Dependencies at §9, etc.
+
+#### Justification sub-section added per command (2026-03-15)
+
+Each command now has a Justification (JUS) section — first sub-section, before Definition. Three requirements:
+1. **Why** — what problem this command solves that no other command covers
+2. **When** — the specific workflow context where it's invoked
+3. **Deprecation signal** — conditions under which the command becomes redundant
+
+Motivation: `init` might become unnecessary if other commands auto-create files. Without documenting the deprecation signal, we'd never know when to simplify. Commands should justify their existence, not just describe their behavior — especially in a 10-script system where overlap is likely.
 
 #### Commands section restructured with sub-sections (2026-03-15)
 
@@ -304,7 +335,8 @@ Each script gets its own behavioral spec file in `specs/` at the project root. N
 **Structure:**
 ```
 specs/
-├── prd.md                 # existing prd.md, moved here
+├── plet_state.md
+├── plet_entries.md
 ├── plet_fingerprint.md
 ├── plet_git.md
 ├── plet_trace.md
@@ -312,13 +344,12 @@ specs/
 ├── plet_inject_prompt.md
 ├── plet_orchestrator.md
 ├── plet_gate_impl.md
-├── plet_gate_verify.md
-└── (plet_state.md, plet_entries.md — retroactive, written during PLAN_8)
+└── plet_gate_verify.md
 ```
 
-**Rejected:** Single tooling section in prd.md (can't capture per-script edge cases), separate prd-tooling.md (unnecessary ceremony), specs inside skill package (conflates design artifacts with shipped code), no specs at all (loses traceability).
+`prd.md` stays at project root — it's the plet PRD, not a script spec. `specs/` is exclusively for script behavioral specs.
 
-**Decision:** PRD keeps its familiar name (`prd.md`) in the new location for now — easy to change later.
+**Rejected:** Single tooling section in prd.md (can't capture per-script edge cases), separate prd-tooling.md (unnecessary ceremony), specs inside skill package (conflates design artifacts with shipped code), no specs at all (loses traceability), moving prd.md into specs/ (PRD is a different artifact type — mixing it with script specs muddies the directory's purpose).
 
 #### PLAN_7 triage reshaped by script-as-orchestrator (2026-03-15)
 

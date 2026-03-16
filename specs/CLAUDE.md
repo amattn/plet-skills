@@ -32,5 +32,5 @@ The cost of writing notes is seconds. The cost of lost rationale is re-litigatin
 ## What Does NOT Go Here
 
 - Coding standards for how to build scripts — that's `skills/plet/scripts/CLAUDE.md`
-- The plet PRD — that's `prd.md` at project root (planned move to `specs/prd.md`, not yet done)
+- The plet PRD — that's `prd.md` at project root (stays there)
 - plet project decisions — that's root `NOTES.md`
