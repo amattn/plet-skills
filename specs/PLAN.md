@@ -28,8 +28,8 @@ Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved
 
 | Seq | Script | Spec Status | Impl Status |
 |-----|--------|-------------|-------------|
-| 1 | `plet_state.py` | not started | exists |
-| 2 | `plet_entries.py` | not started | exists |
+| 1 | `plet_state.py` | draft | exists |
+| 2 | `plet_entries.py` | draft | exists |
 | 3 | `plet_fingerprint.py` | not started | not started |
 | 4 | `plet_trace.py` | not started | not started |
 | 5 | `plet_git.py` | not started | not started |
