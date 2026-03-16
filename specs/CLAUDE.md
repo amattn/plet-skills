@@ -15,6 +15,20 @@ Behavioral specs for plet's enforcement scripts. Each script gets its own spec f
 - **Design decisions:** Record in `specs/NOTES.md`, not root `NOTES.md`. See CLAUDE.md § NOTES.md Routing for the full routing table.
 - **Governing principle:** Skills for Judgment, Code for Compliance (see `specs/NOTES.md` for full framing). If you're unsure whether something belongs in a script or a skill, ask.
 
+## Notes Discipline
+
+**Update `specs/NOTES.md` after every decision, before moving to the next topic.** This applies to all work in this directory — spec design, naming choices, template changes, convention updates, audit findings, open question resolutions.
+
+Decisions that belong here (not root NOTES.md):
+- Script naming, prefix assignments, section abbreviations
+- Template structure changes
+- Convention additions or modifications
+- Per-script design decisions made during spec writing
+- Audit findings and their resolution paths
+- Build order changes
+
+The cost of writing notes is seconds. The cost of lost rationale is re-litigating settled decisions in the next session.
+
 ## What Does NOT Go Here
 
 - Coding standards for how to build scripts — that's `skills/plet/scripts/CLAUDE.md`
