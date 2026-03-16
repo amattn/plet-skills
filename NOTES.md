@@ -977,7 +977,7 @@ plet's enforcement scripts are **agent tools** that humans occasionally debug �
 - **Self-documenting output** — `--output json` on every command with metadata and actionable recovery info
 - **Safe by default** — `--dry-run` required on all mutating commands, strongly recommended in help text
 - **Context-aware help** — 4-section structure: IMPORTANT → PITFALLS → USAGE → PURPOSE. Warnings before syntax. Purpose last.
-- **Context window protection** — structured output agents can parse selectively
+- **Context window protection** — `--fields` limits JSON output with `fieldsIncluded`/`fieldsOmitted` metadata
 
 This complements "Skills for Judgment, Code for Compliance" — that principle says *what* to codify; agent-first CLI design says *how* to build the tools. Full details in `specs/NOTES.md` and `specs/conventions.md`.
 

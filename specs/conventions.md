@@ -38,7 +38,8 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_CMD_15 | Output: results to stdout, errors to stderr. Default is human-readable text. `--output json` produces structured machine-readable output with metadata (status, command, path, scriptVersion, timestamp). Both formats must include the same information. | P0 |
 | UNV_CMD_16 | Each `cmd_*` function defines a `HELP` variable at the top with usage, arguments, and examples | P0 |
 | UNV_CMD_17 | All mutating commands must support `--dry-run`. Dry-run output matches real output except no files are modified. Exit 0 on success preview. | P0 |
-| UNV_CMD_18 | All commands must support `--output json` for structured output. JSON includes at minimum: `status`, `command`, `scriptVersion`, `timestamp`. Error output includes `error` message and actionable recovery info (e.g., `available` values). | P0 |
+| UNV_CMD_18 | All commands must support `--output json` for structured output. Default is compact (single line). `--pretty` produces indented JSON. JSON includes at minimum: `status`, `command`, `scriptVersion`, `timestamp`. Error output includes `error` message and actionable recovery info (e.g., `available` values). | P0 |
+| UNV_CMD_19 | All commands must support `--fields field1,field2,...` to limit JSON output fields. When used, response includes `fieldsIncluded` (requested fields) and `fieldsOmitted` (available fields that were filtered out). Implemented via `filter_fields()` in `util_cli.py`. Only applies when `--output json` is active; ignored in text mode. | P0 |
 
 ## Idempotency
 
@@ -64,7 +65,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_ERR_1 | Validate all inputs before doing work — check required args, enum values, file existence before touching files | P0 |
 | UNV_ERR_2 | Specific error messages: show what was received and what was expected | P0 |
 | UNV_ERR_3 | Fail fast on first error. Exception: validation commands accumulate all schema errors before reporting | P0 |
-| UNV_ERR_4 | Scripts must never produce unhandled exceptions. Every error path produces a clean message to stderr. Agents must never see Python tracebacks. Wrap all type conversions, file operations, and JSON parsing in try/except with specific messages. | P0 |
+| UNV_ERR_4 | Scripts must never produce unhandled exceptions. Wrap all type conversions, file operations, and JSON parsing in try/except with specific messages. Error behavior is output-mode-aware: text mode (default) sends clean message to stderr, exit 1. JSON mode (`--output json`) sends structured error JSON to stdout, exit 1. In both modes, stderr always gets a text message for human debugging. | P0 |
 
 ## Naming
 

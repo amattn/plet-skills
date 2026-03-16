@@ -156,7 +156,7 @@ These scripts are **agent tools** that humans occasionally debug — not develop
 - **Self-documenting output** — `--output json` on every command. Machine-parseable with metadata (status, command, version, timestamp). Error output includes actionable recovery info (e.g., valid values, available IDs).
 - **Safe by default** — `--dry-run` required on all mutating commands. Help text **strongly recommends** dry-run before mutation, with the recommendation appearing near the top of help output (before usage details).
 - **Context-aware help** — help text uses 4-section structure: IMPORTANT → PITFALLS → USAGE → PURPOSE. Warnings and gotchas before syntax. Purpose last (agent already decided to run it). Agent guidance first, additional content welcome.
-- **Context window protection** — `--output json` gives structured data agents can parse selectively. (--fields flag under consideration for explicit field limiting.)
+- **Context window protection** — `--fields field1,field2` limits JSON output. Response includes `fieldsIncluded` and `fieldsOmitted` so the agent knows what was filtered. Trivial to implement: one `filter_fields()` function in `util_cli.py`.
 
 This insight was driven by the open question about positional args but applies across all conventions. Six requirements added/modified: UNV_CMD_10 (named args only), UNV_CMD_15 (output format), UNV_CMD_17 (--dry-run), UNV_CMD_18 (--output json), UNV_DXP_5 (help as guidance), UNV_ERR_4 (no unhandled exceptions).
 
