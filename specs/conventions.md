@@ -74,7 +74,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_DXP_2 | Command names: lowercase, hyphen-separated (e.g., `update-criterion`) | P0 |
 | UNV_DXP_3 | Function names: `cmd_<command_with_underscores>` (e.g., `cmd_update_criterion`) | P0 |
 | UNV_DXP_4 | Internal modules: `util_<concern>.py` — imported by `plet_*.py` scripts, never called directly, not listed in `allowed-tools`, not executable | P0 |
-| UNV_DXP_5 | Help text includes what/when/why/usage/common-mistakes, not just syntax. Recommendations (especially `--dry-run`) appear near the top of help output, before usage details. Help text is agent guidance, not just a man page. | P0 |
+| UNV_DXP_5 | Help text uses 4-section structure: **IMPORTANT** (dry-run recommendation, key warnings) → **PITFALLS** (common mistakes, wrong values, gotchas) → **USAGE** (syntax, arguments, examples) → **PURPOSE** (what/when/why — last because agent already decided to run it). Help text is agent guidance first; additional content welcome. | P0 |
 
 ## Testing
 

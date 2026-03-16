@@ -155,7 +155,7 @@ These scripts are **agent tools** that humans occasionally debug — not develop
 - **Defensive validation** — treat agents as potentially careless users. Every input validated, every error path caught. Scripts must never produce Python tracebacks.
 - **Self-documenting output** — `--output json` on every command. Machine-parseable with metadata (status, command, version, timestamp). Error output includes actionable recovery info (e.g., valid values, available IDs).
 - **Safe by default** — `--dry-run` required on all mutating commands. Help text **strongly recommends** dry-run before mutation, with the recommendation appearing near the top of help output (before usage details).
-- **Context-aware help** — help text is agent guidance, not a man page. Includes what/when/why/common-mistakes, not just syntax. Recommendations (especially dry-run) appear first, even if that feels unnatural for human readers.
+- **Context-aware help** — help text uses 4-section structure: IMPORTANT → PITFALLS → USAGE → PURPOSE. Warnings and gotchas before syntax. Purpose last (agent already decided to run it). Agent guidance first, additional content welcome.
 - **Context window protection** — `--output json` gives structured data agents can parse selectively. (--fields flag under consideration for explicit field limiting.)
 
 This insight was driven by the open question about positional args but applies across all conventions. Six requirements added/modified: UNV_CMD_10 (named args only), UNV_CMD_15 (output format), UNV_CMD_17 (--dry-run), UNV_CMD_18 (--output json), UNV_DXP_5 (help as guidance), UNV_ERR_4 (no unhandled exceptions).
