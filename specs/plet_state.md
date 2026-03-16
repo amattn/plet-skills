@@ -1,10 +1,12 @@
 # plet_state.py (STA)
 
-> Status: draft — redo. Applying full template with agent-first CLI conventions.
+> Status: complete
 
 ## 1. Purpose (STA_PUR)
 
 State schema drift was the most persistent issue across three case studies (LOGA, LIBT, SPARK). Each iteration's agent invented its own JSON structure — five iterations, five schemas. `plet_state.py` fully solved it by making schema compliance automatic. This was the A/B test winner: tooling (FB_12) vs stronger prose (FB_17). Prose continued to fail in the same runs where this tool succeeded.
+
+This script's success led to two key insights: "Skills for Judgment, Code for Compliance" (the governing principle for all plet tooling — see `specs/NOTES.md`) and "Agent-First CLI Design" (these are agent tools, not developer tools — see NOTES.md § Important Concepts & Insights).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -33,281 +35,281 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 ### 3.1 validate (VAL)
 
-#### Justification (STA_JUS_VAL)
+#### Justification (STA_VAL_JUS)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_JUS_VAL_1 | Why: confirms a state file conforms to the schema without modifying it. The only way to check compliance after arbitrary edits or crash recovery. | P0 |
-| STA_JUS_VAL_2 | When: after `init` (verify generated file), as a gate check (pre/post phase), during debugging (scan all state files). | P0 |
-| STA_JUS_VAL_3 | Deprecation signal: never — validation is always needed as long as state files exist. | P1 |
+| STA_VAL_JUS_1 | Why: confirms a state file conforms to the schema without modifying it. The only way to check compliance after arbitrary edits or crash recovery. | P0 |
+| STA_VAL_JUS_2 | When: after `init` (verify generated file), as a gate check (pre/post phase), during debugging (scan all state files). | P0 |
+| STA_VAL_JUS_3 | Deprecation signal: never — validation is always needed as long as state files exist. | P1 |
 
-#### Definition (STA_CMD_VAL)
+#### Definition (STA_VAL_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_CMD_VAL_1 | Usage: `plet_state.py validate <state_file> [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_VAL_CMD_1 | Usage: `plet_state.py validate <state_file> [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
 **Concurrency:** safe — read-only, multiple callers can validate the same file concurrently
 
-#### Inputs (STA_INP_VAL)
+#### Inputs (STA_VAL_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INP_VAL_1 | `state_file` — path to a per-iteration state JSON file | P0 |
+| STA_VAL_INP_1 | `state_file` — path to a per-iteration state JSON file | P0 |
 
-#### Outputs (STA_OUT_VAL)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| STA_OUT_VAL_1 | Text mode success: `OK — {path} is valid` to stdout, exit 0 | P0 |
-| STA_OUT_VAL_2 | Text mode failure: `INVALID — N error(s) in {path}:` + itemized errors to stderr, exit 1 | P0 |
-| STA_OUT_VAL_3 | JSON mode: `{"status":"ok"|"error", "command":"validate", "path":"...", "errors":[...], "errorCount":N, "scriptVersion":"...", "timestamp":"..."}` | P0 |
-
-#### Preconditions (STA_PRE_VAL)
+#### Outputs (STA_VAL_OUT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_PRE_VAL_1 | File exists at the specified path | P0 |
-| STA_PRE_VAL_2 | File contains valid JSON (parseable) | P0 |
+| STA_VAL_OUT_1 | Text mode success: `OK — {path} is valid` to stdout, exit 0 | P0 |
+| STA_VAL_OUT_2 | Text mode failure: `INVALID — N error(s) in {path}:` + itemized errors to stderr, exit 1 | P0 |
+| STA_VAL_OUT_3 | JSON mode: `{"status":"ok"|"error", "command":"validate", "path":"...", "errors":[...], "errorCount":N, "scriptVersion":"...", "timestamp":"..."}` | P0 |
+
+#### Preconditions (STA_VAL_PRE)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| STA_VAL_PRE_1 | File exists at the specified path | P0 |
+| STA_VAL_PRE_2 | File contains valid JSON (parseable) | P0 |
 
 Violated preconditions produce specific errors (not Python tracebacks).
 
-#### Postconditions (STA_PST_VAL)
+#### Postconditions (STA_VAL_PST)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_PST_VAL_1 | File is not modified (read-only) | P0 |
-| STA_PST_VAL_2 | Exit code reflects validity: 0 = valid, 1 = invalid or error | P0 |
+| STA_VAL_PST_1 | File is not modified (read-only) | P0 |
+| STA_VAL_PST_2 | Exit code reflects validity: 0 = valid, 1 = invalid or error | P0 |
 
-#### Behaviors (STA_BHV_VAL)
+#### Behaviors (STA_VAL_BHV)
 
 The validator accumulates all errors before reporting — the exception to UNV_ERR_3's fail-fast rule. An agent needs to see ALL problems at once to fix them in one pass, not discover them one at a time.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_BHV_VAL_1 | Check all required top-level fields: `schemaVersion`, `iterationId`, `title`, `lastUpdated`, `lifecycle`, `dependencies`, `agentId`, `attempts`, `criteria` | P0 |
-| STA_BHV_VAL_2 | Validate enum fields: `lifecycle` (7 values), `agentActivity` (6 values), criterion `status` (5 values) | P0 |
-| STA_BHV_VAL_3 | Validate two-state model: each criterion must have `implementation` and `verification` fields (object or null) | P0 |
-| STA_BHV_VAL_4 | When phase objects are present, validate required sub-fields: `status`, `evidence`, `timestamp`, `elapsedSeconds` | P0 |
-| STA_BHV_VAL_5 | Validate `skipped` status: evidence must be non-empty (evidence serves as skip rationale). `skipRationale` field deprecated — validator ignores it if present. | P0 |
-| STA_BHV_VAL_6 | Accumulate all errors before reporting | P0 |
+| STA_VAL_BHV_1 | Check all required top-level fields: `schemaVersion`, `iterationId`, `title`, `lastUpdated`, `lifecycle`, `dependencies`, `agentId`, `attempts`, `criteria` | P0 |
+| STA_VAL_BHV_2 | Validate enum fields: `lifecycle` (7 values), `agentActivity` (6 values), criterion `status` (5 values) | P0 |
+| STA_VAL_BHV_3 | Validate two-state model: each criterion must have `implementation` and `verification` fields (object or null) | P0 |
+| STA_VAL_BHV_4 | When phase objects are present, validate required sub-fields: `status`, `evidence`, `timestamp`, `elapsedSeconds` | P0 |
+| STA_VAL_BHV_5 | Validate `skipped` status: evidence must be non-empty (evidence serves as skip rationale). `skipRationale` field deprecated — validator ignores it if present. | P0 |
+| STA_VAL_BHV_6 | Accumulate all errors before reporting | P0 |
 
 ---
 
 ### 3.2 update-criterion (UPC)
 
-#### Justification (STA_JUS_UPC)
+#### Justification (STA_UPC_JUS)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_JUS_UPC_1 | Why: records the result of implementing or verifying a single acceptance criterion. Enforces the two-state model (separate implementation/verification sub-objects) and derives the top-level status automatically. Without this, agents write inconsistent criterion structures. | P0 |
-| STA_JUS_UPC_2 | When: called by impl agents after each red/green cycle, and by verify agents after independently checking each criterion. Highest-frequency command in the system. | P0 |
-| STA_JUS_UPC_3 | Deprecation signal: only if the two-state criterion model is replaced by a fundamentally different approach. | P1 |
+| STA_UPC_JUS_1 | Why: records the result of implementing or verifying a single acceptance criterion. Enforces the two-state model (separate implementation/verification sub-objects) and derives the top-level status automatically. Without this, agents write inconsistent criterion structures. | P0 |
+| STA_UPC_JUS_2 | When: called by impl agents after each red/green cycle, and by verify agents after independently checking each criterion. Highest-frequency command in the system. | P0 |
+| STA_UPC_JUS_3 | Deprecation signal: only if the two-state criterion model is replaced by a fundamentally different approach. | P1 |
 
-#### Definition (STA_CMD_UPC)
+#### Definition (STA_UPC_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_CMD_UPC_1 | Usage: `plet_state.py update-criterion <state_file> --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion <state_file> --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
 **Concurrency:** single-writer — callers must not update the same file concurrently. Different iteration files are safe in parallel.
 
-#### Inputs (STA_INP_UPC)
+#### Inputs (STA_UPC_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INP_UPC_1 | `state_file` — path to per-iteration state file | P0 |
-| STA_INP_UPC_2 | `--criterion` — criterion ID (e.g., `AC_1`) | P0 |
-| STA_INP_UPC_3 | `--phase` — `implementation` or `verification` | P0 |
-| STA_INP_UPC_4 | `--status` — one of: `not_started`, `fail`, `pass`, `error`, `skipped` | P0 |
-| STA_INP_UPC_5 | `--evidence` — description of what was checked/done (required, be specific) | P0 |
-| STA_INP_UPC_6 | `--elapsed` — elapsed seconds (integer, default: 0) | P1 |
+| STA_UPC_INP_1 | `state_file` — path to per-iteration state file | P0 |
+| STA_UPC_INP_2 | `--criterion` — criterion ID (e.g., `AC_1`) | P0 |
+| STA_UPC_INP_3 | `--phase` — `implementation` or `verification` | P0 |
+| STA_UPC_INP_4 | `--status` — one of: `not_started`, `fail`, `pass`, `error`, `skipped` | P0 |
+| STA_UPC_INP_5 | `--evidence` — description of what was checked/done (required, be specific) | P0 |
+| STA_UPC_INP_6 | `--elapsed` — elapsed seconds (integer, default: 0) | P1 |
 
-#### Outputs (STA_OUT_UPC)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| STA_OUT_UPC_1 | Text mode success: `OK — {criterion_id}.{phase} set to '{status}' in {path}` to stdout, exit 0 | P0 |
-| STA_OUT_UPC_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_OUT_UPC_3 | JSON mode: `{"status":"ok"|"error", "command":"update-criterion", "criterion":"AC_1", "phase":"...", "newStatus":"...", "derivedTopLevel":"...", "path":"...", ...}` | P0 |
-| STA_OUT_UPC_4 | Dry-run: `DRY RUN — would set {criterion_id}.{phase} to '{status}' in {path}` — no file modification, exit 0 | P0 |
-
-#### Preconditions (STA_PRE_UPC)
+#### Outputs (STA_UPC_OUT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_PRE_UPC_1 | File exists and is valid JSON | P0 |
-| STA_PRE_UPC_2 | File contains a criterion matching the specified `--criterion` ID | P0 |
-| STA_PRE_UPC_3 | `--phase` is exactly `implementation` or `verification` | P0 |
-| STA_PRE_UPC_4 | `--status` is a valid criterion status | P0 |
-| STA_PRE_UPC_5 | `--elapsed` is a non-negative integer if provided | P0 |
+| STA_UPC_OUT_1 | Text mode success: `OK — {criterion_id}.{phase} set to '{status}' in {path}` to stdout, exit 0 | P0 |
+| STA_UPC_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
+| STA_UPC_OUT_3 | JSON mode: `{"status":"ok"|"error", "command":"update-criterion", "criterion":"AC_1", "phase":"...", "newStatus":"...", "derivedTopLevel":"...", "path":"...", ...}` | P0 |
+| STA_UPC_OUT_4 | Dry-run: `DRY RUN — would set {criterion_id}.{phase} to '{status}' in {path}` — no file modification, exit 0 | P0 |
 
-#### Postconditions (STA_PST_UPC)
+#### Preconditions (STA_UPC_PRE)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_PST_UPC_1 | File is valid JSON (passes `validate`) | P0 |
-| STA_PST_UPC_2 | Criterion's phase sub-object set with status, evidence, timestamp, elapsedSeconds | P0 |
-| STA_PST_UPC_3 | Top-level criterion status correctly derived (verification wins when present) | P0 |
-| STA_PST_UPC_4 | `lastUpdated` timestamp refreshed | P0 |
-| STA_PST_UPC_5 | No `.tmp` residue files | P0 |
-| STA_PST_UPC_6 | Other criteria in the file are not modified | P0 |
+| STA_UPC_PRE_1 | File exists and is valid JSON | P0 |
+| STA_UPC_PRE_2 | File contains a criterion matching the specified `--criterion` ID | P0 |
+| STA_UPC_PRE_3 | `--phase` is exactly `implementation` or `verification` | P0 |
+| STA_UPC_PRE_4 | `--status` is a valid criterion status | P0 |
+| STA_UPC_PRE_5 | `--elapsed` is a non-negative integer if provided | P0 |
 
-#### Behaviors (STA_BHV_UPC)
+#### Postconditions (STA_UPC_PST)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| STA_UPC_PST_1 | File is valid JSON (passes `validate`) | P0 |
+| STA_UPC_PST_2 | Criterion's phase sub-object set with status, evidence, timestamp, elapsedSeconds | P0 |
+| STA_UPC_PST_3 | Top-level criterion status correctly derived (verification wins when present) | P0 |
+| STA_UPC_PST_4 | `lastUpdated` timestamp refreshed | P0 |
+| STA_UPC_PST_5 | No `.tmp` residue files | P0 |
+| STA_UPC_PST_6 | Other criteria in the file are not modified | P0 |
+
+#### Behaviors (STA_UPC_BHV)
 
 The two-state model is the core verification invariant — implementation and verification are recorded separately so the verify agent's judgment is never overwritten by implementation status, and implementation evidence is preserved even when verification fails.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_BHV_UPC_1 | Set the phase sub-object: `{status, evidence, timestamp (auto), elapsedSeconds}` | P0 |
-| STA_BHV_UPC_2 | Derive top-level status: verification wins when present. If updating implementation and no verification exists yet, implementation status becomes top-level. | P0 |
-| STA_BHV_UPC_3 | Auto-set timestamp via `now_iso()` | P0 |
-| STA_BHV_UPC_4 | Atomic write via tmp+rename | P0 |
-| STA_BHV_UPC_5 | When `--status skipped`, `--evidence` serves as the skip rationale. No separate `skipRationale` field — evidence IS the rationale. | P0 |
+| STA_UPC_BHV_1 | Set the phase sub-object: `{status, evidence, timestamp (auto), elapsedSeconds}` | P0 |
+| STA_UPC_BHV_2 | Derive top-level status: verification wins when present. If updating implementation and no verification exists yet, implementation status becomes top-level. | P0 |
+| STA_UPC_BHV_3 | Auto-set timestamp via `now_iso()` | P0 |
+| STA_UPC_BHV_4 | Atomic write via tmp+rename | P0 |
+| STA_UPC_BHV_5 | When `--status skipped`, `--evidence` serves as the skip rationale. No separate `skipRationale` field — evidence IS the rationale. | P0 |
 
 ---
 
 ### 3.3 update-field (UPF)
 
-#### Justification (STA_JUS_UPF)
+#### Justification (STA_UPF_JUS)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_JUS_UPF_1 | Why: updates top-level fields (lifecycle, agentActivity, agentId, etc.) with enum validation. Without this, agents set invalid lifecycle values or misspell field names — the most common state drift after criteria. | P0 |
-| STA_JUS_UPF_2 | When: lifecycle transitions (queued→implementing→verifying→complete), agent activity updates, phase timestamps. Called throughout impl and verify phases. | P0 |
-| STA_JUS_UPF_3 | Deprecation signal: if the orchestrator script handles all lifecycle transitions internally, `update-field` may become orchestrator-only (not called by subagents). Still needed but with a narrower caller set. | P1 |
+| STA_UPF_JUS_1 | Why: updates top-level fields (lifecycle, agentActivity, agentId, etc.) with enum validation. Without this, agents set invalid lifecycle values or misspell field names — the most common state drift after criteria. | P0 |
+| STA_UPF_JUS_2 | When: lifecycle transitions (queued→implementing→verifying→complete), agent activity updates, phase timestamps. Called throughout impl and verify phases. | P0 |
+| STA_UPF_JUS_3 | Deprecation signal: if the orchestrator script handles all lifecycle transitions internally, `update-field` may become orchestrator-only (not called by subagents). Still needed but with a narrower caller set. | P1 |
 
-#### Definition (STA_CMD_UPF)
+#### Definition (STA_UPF_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_CMD_UPF_1 | Usage: `plet_state.py update-field <state_file> --data '{"field":"value", ...}' [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <state_file> --data '{"field":"value", ...}' [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
 **Concurrency:** single-writer — callers must not update the same file concurrently
 
-#### Inputs (STA_INP_UPF)
+#### Inputs (STA_UPF_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INP_UPF_1 | `state_file` — path to per-iteration state file | P0 |
-| STA_INP_UPF_2 | `--data` — JSON object of field/value pairs. Keys may use dotted paths (e.g., `attempts.impl`). Values are typed per JSON (strings, numbers, booleans, arrays, null). | P0 |
+| STA_UPF_INP_1 | `state_file` — path to per-iteration state file | P0 |
+| STA_UPF_INP_2 | `--data` — JSON object of field/value pairs. Keys may use dotted paths (e.g., `attempts.impl`). Values are typed per JSON (strings, numbers, booleans, arrays, null). | P0 |
 
-#### Outputs (STA_OUT_UPF)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| STA_OUT_UPF_1 | Text mode success: `OK — updated {field=value, ...} in {path}` to stdout, exit 0 | P0 |
-| STA_OUT_UPF_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_OUT_UPF_3 | JSON mode: `{"status":"ok"|"error", "command":"update-field", "fieldsUpdated":{...}, "path":"...", ...}` | P0 |
-| STA_OUT_UPF_4 | Dry-run: `DRY RUN — would update {fields} in {path}` — no file modification, exit 0 | P0 |
-
-#### Preconditions (STA_PRE_UPF)
+#### Outputs (STA_UPF_OUT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_PRE_UPF_1 | File exists and is valid JSON | P0 |
-| STA_PRE_UPF_2 | `--data` is a valid JSON object | P0 |
-| STA_PRE_UPF_3 | Enum fields in `--data` have valid values (lifecycle, agentActivity) | P0 |
-| STA_PRE_UPF_4 | `--data` does not contain protected fields (`criteria`, `schemaVersion`) | P0 |
+| STA_UPF_OUT_1 | Text mode success: `OK — updated {field=value, ...} in {path}` to stdout, exit 0 | P0 |
+| STA_UPF_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
+| STA_UPF_OUT_3 | JSON mode: `{"status":"ok"|"error", "command":"update-field", "fieldsUpdated":{...}, "path":"...", ...}` | P0 |
+| STA_UPF_OUT_4 | Dry-run: `DRY RUN — would update {fields} in {path}` — no file modification, exit 0 | P0 |
 
-#### Postconditions (STA_PST_UPF)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| STA_PST_UPF_1 | File is valid JSON (passes `validate`) | P0 |
-| STA_PST_UPF_2 | Specified fields updated to specified values | P0 |
-| STA_PST_UPF_3 | Intermediate objects created for dotted paths (e.g., `attempts.impl` creates `attempts` if missing) | P0 |
-| STA_PST_UPF_4 | `lastUpdated` timestamp refreshed | P0 |
-| STA_PST_UPF_5 | No `.tmp` residue files | P0 |
-| STA_PST_UPF_6 | Fields not in `--data` are not modified | P0 |
-
-#### Behaviors (STA_BHV_UPF)
+#### Preconditions (STA_UPF_PRE)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_BHV_UPF_1 | Parse `--data` as JSON object, iterate keys | P0 |
-| STA_BHV_UPF_2 | Validate enum fields: `lifecycle` and `agentActivity` checked against allowed values before writing | P0 |
-| STA_BHV_UPF_3 | Handle dotted paths: split on `.`, create intermediate objects if missing, set leaf value | P0 |
-| STA_BHV_UPF_4 | Auto-update `lastUpdated` timestamp | P0 |
-| STA_BHV_UPF_5 | Atomic write via tmp+rename | P0 |
+| STA_UPF_PRE_1 | File exists and is valid JSON | P0 |
+| STA_UPF_PRE_2 | `--data` is a valid JSON object | P0 |
+| STA_UPF_PRE_3 | Enum fields in `--data` have valid values (lifecycle, agentActivity) | P0 |
+| STA_UPF_PRE_4 | `--data` does not contain protected fields (`criteria`, `schemaVersion`) | P0 |
+
+#### Postconditions (STA_UPF_PST)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| STA_UPF_PST_1 | File is valid JSON (passes `validate`) | P0 |
+| STA_UPF_PST_2 | Specified fields updated to specified values | P0 |
+| STA_UPF_PST_3 | Intermediate objects created for dotted paths (e.g., `attempts.impl` creates `attempts` if missing) | P0 |
+| STA_UPF_PST_4 | `lastUpdated` timestamp refreshed | P0 |
+| STA_UPF_PST_5 | No `.tmp` residue files | P0 |
+| STA_UPF_PST_6 | Fields not in `--data` are not modified | P0 |
+
+#### Behaviors (STA_UPF_BHV)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| STA_UPF_BHV_1 | Parse `--data` as JSON object, iterate keys | P0 |
+| STA_UPF_BHV_2 | Validate enum fields: `lifecycle` and `agentActivity` checked against allowed values before writing | P0 |
+| STA_UPF_BHV_3 | Handle dotted paths: split on `.`, create intermediate objects if missing, set leaf value | P0 |
+| STA_UPF_BHV_4 | Auto-update `lastUpdated` timestamp | P0 |
+| STA_UPF_BHV_5 | Atomic write via tmp+rename | P0 |
 
 ---
 
 ### 3.4 init (INI)
 
-#### Justification (STA_JUS_INI)
+#### Justification (STA_INI_JUS)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_JUS_INI_1 | Why: creates a new state file with the correct schema, two-state criterion model, and lifecycle logic. Without this, agents create state files with missing fields, wrong types, or no two-state model. | P0 |
-| STA_JUS_INI_2 | When: plan session Step 8 (for each new iteration), refine session re-decomposition (new iterations). | P0 |
-| STA_JUS_INI_3 | Deprecation signal: if `update-criterion` and `update-field` auto-created files when the target doesn't exist, `init` would become a convenience wrapper. However, auto-creation conflicts with UNV_NFR_2 (creation commands error on existing files) and would make accidental file creation via typos possible. `init` is likely permanent. | P1 |
+| STA_INI_JUS_1 | Why: creates a new state file with the correct schema, two-state criterion model, and lifecycle logic. Without this, agents create state files with missing fields, wrong types, or no two-state model. | P0 |
+| STA_INI_JUS_2 | When: plan session Step 8 (for each new iteration), refine session re-decomposition (new iterations). | P0 |
+| STA_INI_JUS_3 | Deprecation signal: if `update-criterion` and `update-field` auto-created files when the target doesn't exist, `init` would become a convenience wrapper. However, auto-creation conflicts with UNV_NFR_2 (creation commands error on existing files) and would make accidental file creation via typos possible. `init` is likely permanent. | P1 |
 
-#### Definition (STA_CMD_INI)
+#### Definition (STA_INI_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_CMD_INI_1 | Usage: `plet_state.py init <state_file> --iteration-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_INI_CMD_1 | Usage: `plet_state.py init <state_file> --iteration-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating (creates file), not idempotent (errors on existing file), atomic
 
 **Concurrency:** safe — each iteration gets its own file path, no conflicts
 
-#### Inputs (STA_INP_INI)
+#### Inputs (STA_INI_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INP_INI_1 | `state_file` — path to create | P0 |
-| STA_INP_INI_2 | `--iteration-id` — iteration ID (e.g., ID_001) | P0 |
-| STA_INP_INI_3 | `--title` — human-readable title | P0 |
-| STA_INP_INI_4 | `--dependencies` — JSON array of dependency iteration IDs (use `'[]'` for none) | P0 |
-| STA_INP_INI_5 | `--criteria` — JSON array of objects with `id` and `description` fields | P0 |
+| STA_INI_INP_1 | `state_file` — path to create | P0 |
+| STA_INI_INP_2 | `--iteration-id` — iteration ID (e.g., ID_001) | P0 |
+| STA_INI_INP_3 | `--title` — human-readable title | P0 |
+| STA_INI_INP_4 | `--dependencies` — JSON array of dependency iteration IDs (use `'[]'` for none) | P0 |
+| STA_INI_INP_5 | `--criteria` — JSON array of objects with `id` and `description` fields | P0 |
 
-#### Outputs (STA_OUT_INI)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| STA_OUT_INI_1 | Text mode success: `OK — initialized {path} ({id}, {N} criteria, lifecycle={lifecycle})` to stdout, exit 0 | P0 |
-| STA_OUT_INI_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_OUT_INI_3 | JSON mode: `{"status":"ok"|"error", "command":"init", "path":"...", "iterationId":"...", "criteriaCount":N, "lifecycle":"...", ...}` | P0 |
-| STA_OUT_INI_4 | Dry-run: show full generated JSON to stdout without writing, exit 0 | P0 |
-
-#### Preconditions (STA_PRE_INI)
+#### Outputs (STA_INI_OUT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_PRE_INI_1 | File does NOT exist at the specified path (error if it does — UNV_NFR_2) | P0 |
-| STA_PRE_INI_2 | `--dependencies` is a valid JSON array | P0 |
-| STA_PRE_INI_3 | `--criteria` is a valid JSON array | P0 |
-| STA_PRE_INI_4 | Each object in `--criteria` has `id` and `description` string fields | P0 |
-| STA_PRE_INI_5 | Parent directory exists | P0 |
+| STA_INI_OUT_1 | Text mode success: `OK — initialized {path} ({id}, {N} criteria, lifecycle={lifecycle})` to stdout, exit 0 | P0 |
+| STA_INI_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
+| STA_INI_OUT_3 | JSON mode: `{"status":"ok"|"error", "command":"init", "path":"...", "iterationId":"...", "criteriaCount":N, "lifecycle":"...", ...}` | P0 |
+| STA_INI_OUT_4 | Dry-run: show full generated JSON to stdout without writing, exit 0 | P0 |
 
-#### Postconditions (STA_PST_INI)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| STA_PST_INI_1 | File exists and is valid JSON (passes `validate`) | P0 |
-| STA_PST_INI_2 | Lifecycle set to `queued` if no dependencies, `ineligible` otherwise | P0 |
-| STA_PST_INI_3 | Each criterion has two-state model: `implementation: null`, `verification: null`, `status: not_started` | P0 |
-| STA_PST_INI_4 | All required fields present with correct defaults: `schemaVersion`, `lastUpdated`, `lastHeartbeat`, `agentId: null`, `agentActivity: idle`, `attempts: {impl: 0, verify: 0}`, `phaseTimestamps: {}`, `elapsedSeconds: {total: 0}`, `summary: null`, `filesChanged: []`, `cleanupTagsAutomatically: false`, `verificationReports: []` | P0 |
-| STA_PST_INI_5 | No `.tmp` residue files | P0 |
-
-#### Behaviors (STA_BHV_INI)
+#### Preconditions (STA_INI_PRE)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_BHV_INI_1 | Build complete state object with all required fields and defaults | P0 |
-| STA_BHV_INI_2 | Set lifecycle based on dependencies: empty → `queued`, non-empty → `ineligible` | P0 |
-| STA_BHV_INI_3 | Initialize two-state model for each criterion | P0 |
-| STA_BHV_INI_4 | Validate the generated state before writing (call internal `validate()`) | P0 |
-| STA_BHV_INI_5 | Atomic write via tmp+rename | P0 |
-| STA_BHV_INI_6 | Error if file already exists | P0 |
+| STA_INI_PRE_1 | File does NOT exist at the specified path (error if it does — UNV_NFR_2) | P0 |
+| STA_INI_PRE_2 | `--dependencies` is a valid JSON array | P0 |
+| STA_INI_PRE_3 | `--criteria` is a valid JSON array | P0 |
+| STA_INI_PRE_4 | Each object in `--criteria` has `id` and `description` string fields | P0 |
+| STA_INI_PRE_5 | Parent directory exists | P0 |
+
+#### Postconditions (STA_INI_PST)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| STA_INI_PST_1 | File exists and is valid JSON (passes `validate`) | P0 |
+| STA_INI_PST_2 | Lifecycle set to `queued` if no dependencies, `ineligible` otherwise | P0 |
+| STA_INI_PST_3 | Each criterion has two-state model: `implementation: null`, `verification: null`, `status: not_started` | P0 |
+| STA_INI_PST_4 | All required fields present with correct defaults: `schemaVersion`, `lastUpdated`, `lastHeartbeat`, `agentId: null`, `agentActivity: idle`, `attempts: {impl: 0, verify: 0}`, `phaseTimestamps: {}`, `elapsedSeconds: {total: 0}`, `summary: null`, `filesChanged: []`, `cleanupTagsAutomatically: false`, `verificationReports: []` | P0 |
+| STA_INI_PST_5 | No `.tmp` residue files | P0 |
+
+#### Behaviors (STA_INI_BHV)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| STA_INI_BHV_1 | Build complete state object with all required fields and defaults | P0 |
+| STA_INI_BHV_2 | Set lifecycle based on dependencies: empty → `queued`, non-empty → `ineligible` | P0 |
+| STA_INI_BHV_3 | Initialize two-state model for each criterion | P0 |
+| STA_INI_BHV_4 | Validate the generated state before writing (call internal `validate()`) | P0 |
+| STA_INI_BHV_5 | Atomic write via tmp+rename | P0 |
+| STA_INI_BHV_6 | Error if file already exists | P0 |
 
 ---
 
@@ -585,10 +587,10 @@ Audited against `specs/conventions.md`. These findings apply to the current impl
 
 | Area | Finding | Spec requirement |
 |------|---------|-----------------|
-| UNV_NFR_2 | `init` silently overwrites existing files | STA_PRE_INI_1, STA_BHV_INI_6 |
+| UNV_NFR_2 | `init` silently overwrites existing files | STA_INI_PRE_1, STA_INI_BHV_6 |
 | UNV_TST_7 | `--help` not tested for `update-criterion`, `update-field` | STA_TST |
-| UNV_CMD_10 | `update-criterion` uses 5 positional args | STA_CMD_UPC_1 (named args) |
-| UNV_CMD_10 | `update-field` uses alternating positional pairs | STA_CMD_UPF_1 (`--data` JSON) |
+| UNV_CMD_10 | `update-criterion` uses 5 positional args | STA_UPC_CMD_1 (named args) |
+| UNV_CMD_10 | `update-field` uses alternating positional pairs | STA_UPF_CMD_1 (`--data` JSON) |
 | UNV_CMD_11 | `init` duplicates `parse_kwargs` inline | STA_DEP_1 (import from util_cli) |
 | UNV_CMD_17 | No `--dry-run` support | All mutating commands |
 | UNV_CMD_18 | No `--output json` support | All commands |

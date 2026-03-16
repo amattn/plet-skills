@@ -33,15 +33,15 @@ Why this command exists, when it's used, and under what conditions it might beco
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_JUS_XXX_1 | Why: what problem this command solves that no other command covers | P0 |
-| PRE_JUS_XXX_2 | When: the specific workflow context where this command is invoked | P0 |
-| PRE_JUS_XXX_3 | Deprecation signal: conditions under which this command becomes redundant (e.g., "if other commands auto-create the file, init is unnecessary") | P1 |
+| PRE_XXX_JUS_1 | Why: what problem this command solves that no other command covers | P0 |
+| PRE_XXX_JUS_2 | When: the specific workflow context where this command is invoked | P0 |
+| PRE_XXX_JUS_3 | Deprecation signal: conditions under which this command becomes redundant (e.g., "if other commands auto-create the file, init is unnecessary") | P1 |
 
 #### Definition (CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_CMD_XXX_1 | Usage: `plet_SCRIPTNAME.py command-name <positional_arg> --flag value` | P0 |
+| PRE_XXX_CMD_1 | Usage: `plet_SCRIPTNAME.py command-name <positional_arg> --flag value` | P0 |
 
 **Properties:** read-only | mutating, idempotent | not idempotent, atomic | non-atomic
 
@@ -51,15 +51,15 @@ Why this command exists, when it's used, and under what conditions it might beco
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_INP_XXX_1 | `positional_arg` — description | P0 |
-| PRE_INP_XXX_2 | `--flag` — description (default: X) | P0 |
+| PRE_XXX_INP_1 | `positional_arg` — description | P0 |
+| PRE_XXX_INP_2 | `--flag` — description (default: X) | P0 |
 
 #### Outputs (OUT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_OUT_XXX_1 | Stdout: what it prints on success | P0 |
-| PRE_OUT_XXX_2 | Exit codes: 0 success, 1 error | P0 |
+| PRE_XXX_OUT_1 | Stdout: what it prints on success | P0 |
+| PRE_XXX_OUT_2 | Exit codes: 0 success, 1 error | P0 |
 
 #### Preconditions (PRE)
 
@@ -67,8 +67,8 @@ What must be true before this command runs. Each violated precondition should pr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_PRE_XXX_1 | File exists and is valid JSON | P0 |
-| PRE_PRE_XXX_2 | File contains the referenced criterion ID | P0 |
+| PRE_XXX_PRE_1 | File exists and is valid JSON | P0 |
+| PRE_XXX_PRE_2 | File contains the referenced criterion ID | P0 |
 
 #### Postconditions (PST)
 
@@ -76,9 +76,9 @@ What is guaranteed after this command completes successfully. Each postcondition
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_PST_XXX_1 | File is valid JSON (passes `validate`) | P0 |
-| PRE_PST_XXX_2 | `lastUpdated` timestamp refreshed | P0 |
-| PRE_PST_XXX_3 | No `.tmp` residue files | P0 |
+| PRE_XXX_PST_1 | File is valid JSON (passes `validate`) | P0 |
+| PRE_XXX_PST_2 | `lastUpdated` timestamp refreshed | P0 |
+| PRE_XXX_PST_3 | No `.tmp` residue files | P0 |
 
 #### Behaviors (BHV)
 
@@ -86,7 +86,7 @@ Describe *why* behaviors exist, not just *what* they do. Prose here helps future
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_BHV_XXX_1 | Key behavior point | P0 |
+| PRE_XXX_BHV_1 | Key behavior point | P0 |
 
 ### 3.Y command-name-2 (YYY)
 

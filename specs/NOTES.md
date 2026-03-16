@@ -56,7 +56,7 @@ This was validated across three case studies: state schema drift (the most persi
 
 Sections 14 (Resolved Questions) and 16 (FB Items) don't get IDs — they reference existing IDs.
 
-**Command sub-sections** (used as: `STA_BHV_VAL_1`):
+**Command sub-sections** (used as: `STA_VAL_BHV_1`):
 
 | Abbrev | Sub-section | Notes |
 |--------|-------------|-------|
@@ -74,7 +74,7 @@ Sections 14 (Resolved Questions) and 16 (FB Items) don't get IDs — they refere
 |--------|---------|-------|
 | EXM | Examples | §8 — copy-pasteable multi-step command sequences |
 
-Each command also has its own 3-letter abbreviation (script-specific). Combined format: `SCRIPT_SUBSECTION_COMMAND_N`.
+Each command also has its own 3-letter abbreviation (script-specific). Combined format: `SCRIPT_COMMAND_SUBSECTION_N`.
 
 **Command abbreviations per script:**
 
@@ -92,8 +92,8 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 New scripts define their command abbreviations in their spec files. Add them to this table when defined.
 
 **ID format examples:**
-- `STA_BHV_VAL_1` — state script, behavior, validate command, requirement #1
-- `ENT_INP_APR_3` — entries script, input, add-progress command, requirement #3
+- `STA_VAL_BHV_1` — state script, validate command, behavior, requirement #1
+- `ENT_APR_INP_3` — entries script, add-progress command, input, requirement #3
 - `ORC_EDG_1` — orchestrator script, edge case #1 (top-level, no command segment)
 
 Append-only, never renumber.
@@ -228,7 +228,7 @@ Motivation: `init` might become unnecessary if other commands auto-create files.
 - `OUT` — outputs (stdout, stderr, exit codes)
 - `BHV` — behaviors (rules, logic, side effects)
 
-Each command also gets a 3-letter abbreviation (script-specific). Full ID format: `SCRIPT_SUBSECTION_COMMAND_N` (e.g., `STA_BHV_VAL_1`).
+Each command also gets a 3-letter abbreviation (script-specific). Full ID format: `SCRIPT_COMMAND_SUBSECTION_N` (e.g., `STA_VAL_BHV_1`).
 
 Template updated. Both retroactive specs (STA, ENT) updated with stable labels throughout.
 
