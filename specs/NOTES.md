@@ -34,13 +34,14 @@ This was validated across three case studies: state schema drift (the most persi
 | GIM | `plet_gate_impl.py` | Gate IMpl |
 | GVR | `plet_gate_verify.py` | Gate VeRify |
 
-### Section abbreviations (used as middle segment: `ORC_CMD_1`)
+### Section abbreviations
+
+**Top-level sections** (used as: `ORC_EDG_1`):
 
 | Abbrev | Section | Notes |
 |--------|---------|-------|
 | PUR | Purpose | §1 |
 | AGT | Agent Personas | §2 |
-| CMD | Commands | §3 — functional requirements |
 | EDG | Edge Cases | §4 |
 | ERR | Error Handling | §5 |
 | IOS | Input/Output Schemas | §6 |
@@ -54,7 +55,38 @@ This was validated across three case studies: state schema drift (the most persi
 
 Sections 13 (Resolved Questions) and 15 (FB Items) don't get IDs — they reference existing IDs.
 
-**ID format:** `SCRIPT_SECTION_N` — e.g., `ORC_CMD_1`, `GCL_EDG_3`, `UNV_NFR_2`. Append-only, never renumber.
+**Command sub-sections** (used as: `STA_BHV_VAL_1`):
+
+| Abbrev | Sub-section | Notes |
+|--------|-------------|-------|
+| CMD | Definition | What the command is, usage signature |
+| INP | Inputs | Arguments, flags, expected formats |
+| OUT | Outputs | Stdout, stderr, exit codes |
+| BHV | Behaviors | What the command does, rules, logic |
+
+Each command also has its own 3-letter abbreviation (script-specific). Combined format: `SCRIPT_SUBSECTION_COMMAND_N`.
+
+**Command abbreviations per script:**
+
+| Script | Command | Abbrev |
+|--------|---------|--------|
+| STA | validate | VAL |
+| STA | update-criterion | UPC |
+| STA | update-field | UPF |
+| STA | init | INI |
+| ENT | add-progress | APR |
+| ENT | add-learning | ALR |
+| ENT | add-emergent | AEM |
+| ENT | check | CHK |
+
+New scripts define their command abbreviations in their spec files. Add them to this table when defined.
+
+**ID format examples:**
+- `STA_BHV_VAL_1` — state script, behavior, validate command, requirement #1
+- `ENT_INP_APR_3` — entries script, input, add-progress command, requirement #3
+- `ORC_EDG_1` — orchestrator script, edge case #1 (top-level, no command segment)
+
+Append-only, never renumber.
 
 ---
 
@@ -92,6 +124,18 @@ Decision to keep DX: even though scripts follow scripts/CLAUDE.md for coding sta
 #### Build order rationale (2026-03-15)
 
 10 scripts ordered: existing first (validate template), leaves before dependents, gates before orchestrator, orchestrator last (capstone). See `specs/PLAN.md` for full order and rationale per script.
+
+#### Commands section restructured with sub-sections (2026-03-15)
+
+§3 Commands was too broad — a single section for definitions, inputs, outputs, and behaviors. Restructured into four sub-sections per command, each with its own abbreviation:
+- `CMD` — definition (what it is, usage signature)
+- `INP` — inputs (arguments, flags, formats)
+- `OUT` — outputs (stdout, stderr, exit codes)
+- `BHV` — behaviors (rules, logic, side effects)
+
+Each command also gets a 3-letter abbreviation (script-specific). Full ID format: `SCRIPT_SUBSECTION_COMMAND_N` (e.g., `STA_BHV_VAL_1`).
+
+Template updated. Both retroactive specs (STA, ENT) updated with stable labels throughout.
 
 #### Existing scripts audit (2026-03-15)
 

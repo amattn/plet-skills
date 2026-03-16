@@ -1,63 +1,94 @@
 # plet_SCRIPTNAME.py
 
-> Status: not started | in progress | complete
+> Status: not started | in progress | draft | complete
+
+> **Convention:** Every section can have supporting prose above or below its table — context, rationale, examples, caveats. Tables capture the *requirements*; prose captures the *why*. A table row should be self-contained enough to verify independently, but the surrounding prose provides the understanding needed to write and review it well.
 
 ## 1. Purpose (PUR)
 
-One paragraph — what this script does and why it exists (what compliance gap it fills).
+This was the first enforcement script built — motivated by [describe the case study evidence or feedback item that drove its creation].
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_PUR_1 | What this script does and why it exists (what compliance gap it fills) | P0 |
 
 ## 2. Agent Personas (AGT)
 
-Who calls this script and in what context.
+| ID | Caller | Context | Commands used |
+|----|--------|---------|---------------|
+| PRE_AGT_1 | orchestrator | during loop session | `command-name` |
+| PRE_AGT_2 | impl subagent | during implementation phase | `command-name` |
+| PRE_AGT_3 | verify subagent | during verification phase | `command-name` |
+| PRE_AGT_4 | human | manual debugging / inspection | `command-name` |
 
-| Caller | Context | Example |
-|--------|---------|---------|
-| orchestrator | during loop session | `plet_SCRIPTNAME.py command ...` |
-| impl subagent | during implementation phase | `plet_SCRIPTNAME.py command ...` |
-| verify subagent | during verification phase | `plet_SCRIPTNAME.py command ...` |
-| human | manual debugging / inspection | `plet_SCRIPTNAME.py command ...` |
+## 3. Commands
 
-## 3. Commands (CMD)
+Each command gets four sub-sections with stable-labeled requirements. Command abbreviations are script-specific (defined per spec file).
 
-### command-name
+### 3.X command-name (XXX)
 
-**Usage:**
-```
-plet_SCRIPTNAME.py command-name <positional_arg> --flag value
-```
+#### Definition (CMD)
 
-**Inputs:**
-- `positional_arg` — description
-- `--flag` — description (default: X)
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_CMD_XXX_1 | Usage: `plet_SCRIPTNAME.py command-name <positional_arg> --flag value` | P0 |
 
-**Output:** What it prints to stdout on success.
+#### Inputs (INP)
 
-**Exit codes:** 0 success, 1 error.
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_INP_XXX_1 | `positional_arg` — description | P0 |
+| PRE_INP_XXX_2 | `--flag` — description (default: X) | P0 |
 
-**Behavior:**
-- Key behavior points
+#### Outputs (OUT)
 
-### command-name-2
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_OUT_XXX_1 | Stdout: what it prints on success | P0 |
+| PRE_OUT_XXX_2 | Exit codes: 0 success, 1 error | P0 |
 
-(repeat for each command)
+#### Behaviors (BHV)
+
+The two-state model is the core invariant — describe *why* this behavior exists, not just *what* it does. Prose here helps future readers understand the design intent behind each requirement.
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_BHV_XXX_1 | Key behavior point | P0 |
+
+### 3.Y command-name-2 (YYY)
+
+(repeat CMD/INP/OUT/BHV for each command)
 
 ## 4. Edge Cases (EDG)
 
-- Specific edge cases and how this script handles them
+Edge cases often emerge during implementation or case study runs. Add them as they're discovered — this section grows over time. Prose above or below the table can explain *why* a particular edge case matters (e.g., "This came up during the SPARK run when parallel agents both tried to...").
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_EDG_1 | Edge case and how this script handles it | P0 |
 
 ## 5. Error Handling (ERR)
 
-- What errors are possible and what messages they produce
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_ERR_1 | Error condition and expected message | P0 |
 
 ## 6. Input/Output Schemas (IOS)
 
-JSON structures, file formats, or data shapes this script reads or writes.
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_IOS_1 | What this script reads — file paths, formats | P0 |
+| PRE_IOS_2 | What this script writes — file paths, formats | P0 |
 
 ## 7. Agent Flows (AFL)
 
-Step-by-step flows showing how agents invoke this script in context.
+| ID | Flow | Steps |
+|----|------|-------|
+| PRE_AFL_1 | Flow name | 1. Agent does X → 2. Calls `plet_SCRIPTNAME.py command ...` → 3. Script returns Y → 4. Agent proceeds with Z |
 
-### Flow 1: [name]
+Or expanded format for complex flows:
+
+### PRE_AFL_1: Flow name
 
 1. Agent does X
 2. Agent calls `plet_SCRIPTNAME.py command ...`
@@ -66,33 +97,32 @@ Step-by-step flows showing how agents invoke this script in context.
 
 ## 8. Dependencies on Other Scripts (DEP)
 
-Which other plet scripts this one calls or is called by.
-
-| Direction | Script | Relationship |
-|-----------|--------|-------------|
-| calls | `plet_other.py` | description |
-| called by | `plet_other.py` | description |
+| ID | Direction | Script | Relationship |
+|----|-----------|--------|-------------|
+| PRE_DEP_1 | calls | `plet_other.py` | description |
+| PRE_DEP_2 | called by | `plet_other.py` | description |
 
 ## 9. Non-Functional Requirements (NFR)
 
 See `specs/conventions.md` for requirements common to all scripts (zero deps, no interactive input, --help, --version, atomic I/O, etc.).
 
 Script-specific non-functional requirements (if any):
-- Performance constraints
-- Concurrency considerations
-- File locking
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_NFR_1 | Script-specific requirement | P0 |
 
 ## 10. Developer Experience (DXP)
 
-- CLI ergonomics specific to this script
-- Help text quality and agent-readability
-- Error message clarity
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PRE_DXP_1 | CLI ergonomics specific to this script | P0 |
 
 ## 11. Critical Test Areas (CRT)
 
-| Area | Risk if broken | Suggested test approach |
-|------|---------------|----------------------|
-| ... | ... | ... |
+| ID | Area | Risk if broken | Suggested test approach |
+|----|------|---------------|----------------------|
+| PRE_CRT_1 | ... | ... | ... |
 
 ## 12. Testing & Verification (TST)
 
@@ -112,9 +142,9 @@ Script-specific non-functional requirements (if any):
 
 ## 14. Future Considerations (FUT)
 
-| # | Area | Description |
-|---|------|-------------|
-| 1 | ... | ... |
+| ID | Area | Description |
+|----|------|-------------|
+| PRE_FUT_1 | ... | ... |
 
 ## 15. FB Items Addressed
 
