@@ -169,6 +169,20 @@ All three remaining open questions resolved by the agent-first CLI design insigh
 - **#3 (update-field pairs):** Fix — migrate to named args. Alternating pairs were a human ergonomic shortcut.
 - **#4 (boolean flags):** Required — `--dry-run` and `--output json` are boolean flags on every mutating command. `parse_kwargs` must support them.
 
+#### skipRationale field deprecated (2026-03-16)
+
+**Decision:** Remove `skipRationale` as a separate field. When `--status skipped`, the `--evidence` field serves as the skip rationale. Validator checks evidence is non-empty for skipped criteria instead of checking for `skipRationale`.
+
+**Rationale:** `skipRationale` was always a copy of what `evidence` already contained. Separate field is redundant data in the JSON. Simplifies the two-state model.
+
+**Cascading changes needed:**
+- `references/state-schema.md` — remove `skipRationale` from criterion schema
+- `skills/plet/scripts/plet_state.py` — validator checks evidence non-empty for skipped, not skipRationale
+- `references/execute.md`, `references/verify.md` — note that evidence acts as rationale for skipped criteria
+- Existing state files with `skipRationale` — harmless extra field, validator ignores it
+
+**Monitor:** If agents produce poor skip rationale using the evidence framing, consider renaming `--evidence` to `--reason` or adding `--skip-rationale` as an alias.
+
 #### update-field migrated to --data JSON object (2026-03-16)
 
 **Decision:** `update-field` accepts `--data '{"field":"value"}'` instead of alternating positional pairs (`field value field value`).

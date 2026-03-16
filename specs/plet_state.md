@@ -91,7 +91,7 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 | STA_BHV_VAL_2 | Validate enum fields: `lifecycle` (7 values), `agentActivity` (6 values), criterion `status` (5 values) | P0 |
 | STA_BHV_VAL_3 | Validate two-state model: each criterion must have `implementation` and `verification` fields (object or null) | P0 |
 | STA_BHV_VAL_4 | When phase objects are present, validate required sub-fields: `status`, `evidence`, `timestamp`, `elapsedSeconds` | P0 |
-| STA_BHV_VAL_5 | Validate `skipped` status requires `skipRationale` | P0 |
+| STA_BHV_VAL_5 | Validate `skipped` status: evidence must be non-empty (evidence serves as skip rationale). `skipRationale` field deprecated — validator ignores it if present. | P0 |
 | STA_BHV_VAL_6 | Accumulate all errors before reporting | P0 |
 
 ---
@@ -167,6 +167,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_BHV_UPC_2 | Derive top-level status: verification wins when present. If updating implementation and no verification exists yet, implementation status becomes top-level. | P0 |
 | STA_BHV_UPC_3 | Auto-set timestamp via `now_iso()` | P0 |
 | STA_BHV_UPC_4 | Atomic write via tmp+rename | P0 |
+| STA_BHV_UPC_5 | When `--status skipped`, `--evidence` serves as the skip rationale. No separate `skipRationale` field — evidence IS the rationale. | P0 |
 
 ---
 
@@ -557,11 +558,13 @@ Tests at `skills/plet/tests/test_plet_state.py`. Must cover:
 | 3 | Positional args for update-criterion? | Named args only — agent-first CLI design. |
 | 4 | Alternating pairs for update-field? | `--data` JSON object — one format, zero ambiguity. |
 | 5 | File overwrite on init? | Error — UNV_NFR_2. |
+| 6 | Separate `skipRationale` field? | Deprecated — `evidence` serves as skip rationale when `status` is `skipped`. Schema change needed in `state-schema.md`. Skill reference files (`execute.md`, `verify.md`) must note that evidence acts as rationale for skipped criteria. |
 
 ### Open Questions
 
 - Should `validate` support `--fix` to auto-repair common schema issues (add missing fields with defaults)?
 - Should `update-field` reject unknown field names, or allow arbitrary fields for forward compatibility?
+- **Monitor:** `--evidence` field naming when used as skip rationale. If agents produce poor skip rationale using the evidence framing, consider renaming to `--reason` or adding `--skip-rationale` as an alias.
 
 ## 15. Future Considerations (STA_FUT)
 
