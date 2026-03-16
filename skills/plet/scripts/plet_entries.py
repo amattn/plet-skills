@@ -26,6 +26,9 @@ import sys
 import time
 
 
+SCRIPT_VERSION = "0.1.0"
+SKILL_VERSION = "0.1.1"
+
 # Crockford Base32 alphabet (excludes I, L, O, U)
 CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -499,6 +502,10 @@ def main():
 
     if cmd in ("-h", "--help"):
         print(__doc__)
+        return 0
+
+    if cmd == "--version":
+        print(f"plet_entries {SCRIPT_VERSION} (built against plet skill {SKILL_VERSION})")
         return 0
 
     if cmd not in commands:

@@ -321,3 +321,7 @@ Source: SPARK refine session observation
 The current progress entry format has a single `--summary` field — a short 1-3 sentence string. This doesn't accommodate large structured output like a refine session's full status summary (iteration tables, milestone tables, triage results). Either: (A) add a `--content` or `--body` flag that accepts multiline text (similar to how learning/emergent entries work), (B) allow `--summary` to accept a file path for longer content, or (C) add a `--content-file` flag that reads from a file. The refine status step is the motivating case — dumping the entire status summary into a progress entry would make progress.md a self-contained audit trail.
 
 Source: SPARK refine session observation
+
+### FB_45: Scripts directory needs a CLAUDE.md or AGENTS.md with coding standards [tooling] [conventions]
+
+`skills/plet/scripts/` is growing (plet_state.py, plet_entries.py, and more planned). There's no standards file governing how these scripts are written. Needs a CLAUDE.md or AGENTS.md in the scripts directory that defines conventions like: every script must support `--help`, consistent argument parsing style, error output format, exit code conventions, testing requirements, docstring standards, etc. Without this, each script will be written with slightly different patterns — the same prose-drift problem we see in agent-written artifacts, but in our own tooling.

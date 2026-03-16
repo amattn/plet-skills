@@ -9,18 +9,20 @@
       "Bash(git status:*)",
       "Bash(git tag:*)",
       "Bash(grep:*)",
+      "Bash(jq:*)",
+      "Bash(ls:*)",
       "Bash(mkdir:*)",
-      "Bash(python3 skills/plet/scripts/plet_state.py:*)",
-      "Bash(shasum)",
+      "Bash(chmod:*)",
       "Bash(wc:*)",
-      "WebFetch(domain:gist.github.com)",
-      "WebSearch",
-      "Bash(SKILL_CREATOR_PATH=\"/Users/kai/.claude-mtnngw-max/plugins/cache/claude-plugins-official/skill-creator/205b6e0b3036/skills/skill-creator\" && python -m scripts.run_loop --eval-set /Users/kai/github.com/amattn/plet-skills/notes-workspace/trigger-eval.json --skill-path /Users/kai/github.com/amattn/plet-skills/skills/notes --model claude-opus-4-6 --max-iterations 5 --verbose 2>&1)",
-      "Bash(jq -r '.lifecycle' ID_*.json)",
-      "Bash(jq '.criteria[0] | {implementation, verification} | to_entries[] | \"\"\"\"\\\\\\(.key\\): \\\\\\(.value | type\\)\"\"\"\"' ID_001.json)",
+      "Bash(shasum)",
+      "Bash(find:*)",
+      "Bash(python3 skills/plet/scripts/*)",
+      "Bash(python3 skills/plet/tests/*)",
+      "Bash(/Users/kai/github.com/amattn/plet-skills/skills/plet/scripts/*)",
+      "Bash(/Users/kai/github.com/amattn/plet-skills/skills/plet/tests/*)",
       "Bash(mix test:*)",
-      "Bash(find /Users/kai/github.com/amattn/sparkboard/test -name '*_test.exs' -exec wc -l {} +)",
-      "Bash(jq -r '.dependencyMap as $dm | keys[] as $id | \"\"\"\"\\\\\\($id\\): \\\\\\($dm[$id] | @csv\\)\"\"\"\"' state.json)"
+      "WebFetch(domain:gist.github.com)",
+      "WebSearch"
     ]
   }
 }

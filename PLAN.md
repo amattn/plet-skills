@@ -145,39 +145,54 @@ Generalizable patterns extracted as standalone skills, implemented and published
 
 Review and resolve open FB items. Each item gets one of: resolve (artifact changes), defer (with rationale), or withdraw (not worth fixing).
 
-**Open items (23):**
+The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator architecture") changes the resolution path for many items: problems caused by orchestrator drift or agent non-compliance become "the script handles this deterministically" rather than "fix the prose."
+
+### Already resolved (5) — withdraw from triage
+
+| ID | Summary | Resolution |
+|----|---------|------------|
+| FB_36 | Retry overhead 24% | Withdrawn — Goldilocks framing (NOTES.md) |
+| FB_37 | Verify first-pass rate 83% | Withdrawn — Goldilocks framing (NOTES.md) |
+| FB_41 | Refine jumped to re-decomposition | Resolved — triage-before-decomposition rule (NOTES.md) |
+| FB_42 | Refine created state files during redecomp | Resolved — same decision (NOTES.md) |
+| FB_45 | Scripts CLAUDE.md | Done — `scripts/CLAUDE.md` exists |
+
+### Defer to PLAN_8 tooling (12) — script handles deterministically
+
+| ID | Summary | Script |
+|----|---------|--------|
+| FB_11 | Trace schema standardization | `plet_trace.py` |
+| FB_13 | Branch isolation via worktrees | `plet_git.py` worktree commands |
+| FB_22 | Warn if bypassPermissions not configured | `plet_router.py preflight` |
+| FB_23 | Bootstrap CLAUDE.md if missing | `plet_router.py preflight` |
+| FB_29 | Learnings/emergent mandatory rule not enforced | `plet_gate_impl.py post` |
+| FB_30 | 42 git stashes despite ban | `plet_git.py` worktrees eliminate stashing |
+| FB_31 | Final loop commit required human prompting | `plet_orchestrator.py end-session` |
+| FB_32 | Orphaned worktree after retry | `plet_git.py` worktree cleanup |
+| FB_33 | Progress.md entries incomplete | `plet_gate_impl.py post` / `plet_gate_verify.py post` |
+| FB_35 | Agent lost commits during impl | `plet_git.py` worktree isolation |
+| FB_38 | Cross-iteration knowledge transfer | `plet_inject_prompt.py` always injects learnings |
+| FB_40 | State lifecycle not transitioned | `plet_orchestrator.py` transitions deterministically |
+
+### Resolve in PLAN_7 — plan session prose fixes (5)
 
 | ID | Summary | Tags |
 |----|---------|------|
-| FB_22 | Warn if bypassPermissions not configured | `[autonomy]` `[onboarding]` |
-| FB_23 | Bootstrap CLAUDE.md if missing | `[onboarding]` `[artifacts]` |
 | FB_24 | Requirements not written to disk incrementally | `[artifacts]` `[prompting]` |
 | FB_25 | Priority histogram at end of plan session | `[ux]` `[planning]` |
 | FB_26 | Milestones generated too early | `[planning]` `[sequencing]` |
 | FB_27 | Plan session needs data modeling section | `[planning]` `[spec]` |
 | FB_28 | No intermediate commits during plan session | `[git]` `[planning]` |
-| FB_29 | Learnings/emergent mandatory rule not enforced | `[prompting]` `[artifacts]` |
-| FB_30 | 42 git stashes despite ban | `[git]` `[autonomy]` |
-| FB_31 | Final loop commit required human prompting | `[git]` `[autonomy]` |
-| FB_32 | Orphaned worktree after retry | `[git]` `[state]` |
-| FB_33 | Progress.md entries incomplete (6/23) | `[artifacts]` `[prompting]` |
-| FB_34 | Recommend user stays for first 1-2 iterations | `[onboarding]` `[ux]` |
-| FB_35 | Agent lost commits during impl (ID_007) | `[git]` `[crash-recovery]` |
-| FB_36 | Retry overhead 24% of execution time | `[timing]` `[efficiency]` |
-| FB_37 | Verify first-pass rate regressed at scale (83%) | `[verification]` `[scale]` |
-| FB_38 | Cross-iteration knowledge transfer not functioning | `[artifacts]` `[prompting]` |
-| FB_39 | SP_6 root cause investigation | `[research]` `[scale]` |
-| FB_40 | State lifecycle not transitioned to complete | `[state]` `[orchestrator]` |
-| FB_41 | Refine jumped to re-decomposition before finishing review | `[refine]` `[sequencing]` |
-| FB_42 | Refine created state files during re-decomposition | `[refine]` `[sequencing]` |
-| FB_43 | All status steps should generate progress entries | `[refine]` `[artifacts]` |
-| FB_44 | Progress entries need multiline content support | `[artifacts]` `[tooling]` |
-| FB_45 | Scripts directory needs coding standards file | `[tooling]` `[conventions]` |
 
-Also update status of previously deferred items:
-- FB_11: Trace schema standardization
-- FB_13: Branch isolation via worktrees
-- FB_21: Research — learnings/emergent improvement factors
+### Research / minor (4) — triage individually
+
+| ID | Summary | Notes |
+|----|---------|-------|
+| FB_21 | Research — learnings/emergent improvement factors | Research item, validate in PLAN_9 |
+| FB_34 | Recommend user stays for first iterations | UX guidance; `plet_orchestrator.py` could print a message |
+| FB_39 | SP_6 root cause investigation | Research item |
+| FB_43 | All refine status steps → progress entries | Refine is still a skill; `plet_entries.py` available but not enforced |
+| FB_44 | Progress entries need multiline content | `plet_entries.py` enhancement, PLAN_8 |
 
 ---
 
@@ -200,14 +215,14 @@ New cross-cutting (5):
 - `plet_git.py` — git compliance layer (absorbs planned `plet_git_cleanup.py`; FB_30, FB_31, FB_32)
 - `plet_trace.py` — trace NDJSON schema enforcement (FB_11)
 - `plet_router.py` — phase detection, status, preflight checks (absorbs pre-flight checker; FB_22, FB_16, FB_23)
-- `plet_prompt.py` — prompt assembly for subagents (absorbs pre-phase context; FB_38)
+- `plet_inject_prompt.py` — prompt assembly for subagents (absorbs pre-phase context; FB_38)
 
 New loop-specific (1):
-- `plet_loop.py` — the orchestrator itself (session lifecycle, dependency graph, retry logic, main loop). Potentially replaces the skill-as-orchestrator with script-as-orchestrator via `claude -p` subprocess spawning.
+- `plet_orchestrator.py` — the orchestrator itself (session lifecycle, dependency graph, retry logic, main loop). Potentially replaces the skill-as-orchestrator with script-as-orchestrator via `claude -p` subprocess spawning.
 
 New phase checkpoints (2):
-- `plet_impl_check.py` — implementation pre/post gates (FB_29, FB_33)
-- `plet_verify_check.py` — verification pre/post gates (FB_29, FB_33, FB_40)
+- `plet_gate_impl.py` — implementation pre/post gates (FB_29, FB_33)
+- `plet_gate_verify.py` — verification pre/post gates (FB_29, FB_33, FB_40)
 
 Prioritization and scope TBD during triage (PLAN_7 informs which tools are highest value).
 

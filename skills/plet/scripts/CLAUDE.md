@@ -149,7 +149,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `plet_git.py` | Git compliance (branches, tags, worktrees, squash, cleanup) | FB_30, FB_31, FB_32 |
 | `plet_trace.py` | Trace NDJSON schema enforcement | FB_11 |
 | `plet_router.py` | Phase detection, status summary, preflight checks | FB_16, FB_22, FB_23 |
-| `plet_prompt.py` | Prompt assembly for impl/verify subagents | FB_38 |
-| `plet_loop.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop) | — |
-| `plet_impl_check.py` | Implementation phase pre/post gates | FB_29, FB_33 |
-| `plet_verify_check.py` | Verification phase pre/post gates | FB_29, FB_33, FB_40 |
+| `plet_inject_prompt.py` | Prompt assembly for impl/verify subagents | FB_38 |
+| `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop) | — |
+| `plet_gate_impl.py` | Implementation phase pre/post gates | FB_29, FB_33 |
+| `plet_gate_verify.py` | Verification phase pre/post gates | FB_29, FB_33, FB_40 |

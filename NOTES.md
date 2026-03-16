@@ -1358,9 +1358,9 @@ Enumerated 18 discrete responsibilities of the loop orchestrator (SKILL.md § Lo
 11. Handle verification result — severity assessment, fix-in-place vs cycle-back
 18. Offer options to user — human interaction
 
-#### plet_loop.py scope (2026-03-15)
+#### plet_orchestrator.py scope (2026-03-15)
 
-**Decision:** Build `plet_loop.py` to cover the fully scriptable + deterministic-assembly portions. This is the orchestrator's compliance layer — the stuff that drifts when interpreted as prose across invocations.
+**Decision:** Build `plet_orchestrator.py` to cover the fully scriptable + deterministic-assembly portions. This is the orchestrator's compliance layer — the stuff that drifts when interpreted as prose across invocations.
 
 **Commands (proposed):**
 
@@ -1389,7 +1389,7 @@ Prompt assembly:
 - All commands are read-only except `start-session` and `end-session` — minimizes blast radius of bugs
 
 **Relationship to PLAN_8:**
-This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" candidates. `plet_loop.py` covers the loop-specific orchestrator logic; the other PLAN_8 candidates (`plet_trace.py`, `plet_git_cleanup.py`, pre/post-phase checkpoints) remain separate scripts for their respective domains.
+This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" candidates. `plet_orchestrator.py` covers the loop-specific orchestrator logic; the other PLAN_8 candidates (`plet_trace.py`, `plet_git_cleanup.py`, pre/post-phase checkpoints) remain separate scripts for their respective domains.
 
 #### Script-as-orchestrator architecture (2026-03-15)
 
@@ -1397,7 +1397,7 @@ This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" ca
 
 **Current design:** Orchestrator is a skill (prompt-interpreted, long-lived Claude context). Vulnerable to compaction, drift, non-deterministic prose interpretation. The entire compaction recovery protocol (SKILL.md § Compaction Recovery Protocol) exists because the orchestrator is a Claude session.
 
-**Alternative:** Orchestrator is `plet_loop.py`. It reads state, identifies eligible iterations, assembles prompts, launches `claude -p` subprocesses, captures output, updates state, loops. The orchestrator *never compacts* because it has no context window. Steps 1–3 and 5–7 from the loop responsibilities analysis are exactly the fully-scriptable items.
+**Alternative:** Orchestrator is `plet_orchestrator.py`. It reads state, identifies eligible iterations, assembles prompts, launches `claude -p` subprocesses, captures output, updates state, loops. The orchestrator *never compacts* because it has no context window. Steps 1–3 and 5–7 from the loop responsibilities analysis are exactly the fully-scriptable items.
 
 **What stays as Claude:** Only impl and verify subagents — the parts requiring judgment. Spawned as one-shot CLI processes with assembled prompts.
 
@@ -1410,7 +1410,7 @@ This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" ca
 - **Error recovery:** must be explicitly coded vs Claude reasoning about failures
 - **Permissions:** `--dangerously-skip-permissions` bypasses all safety checks. Named that way for a reason. But plet subagents are already designed for full autonomy (FB_3) — they need unrestricted tool access anyway.
 
-**Impact on PLAN_8:** This changes `plet_loop.py` from "helper commands the skill calls" to potentially "the orchestrator itself." The `assemble-prompt` command becomes the bridge — it produces the exact prompt text that gets piped to `claude -p`.
+**Impact on PLAN_8:** This changes `plet_orchestrator.py` from "helper commands the skill calls" to potentially "the orchestrator itself." The `assemble-prompt` command becomes the bridge — it produces the exact prompt text that gets piped to `claude -p`.
 
 **Open questions:**
 - Does `claude -p` support all the tools subagents need (Read, Write, Edit, Bash, Grep, etc.)? Need to verify capabilities in one-shot mode.
@@ -1436,34 +1436,34 @@ If the loop orchestrator becomes a Python script, the full inventory of plet scr
 | `plet_git.py` | Git compliance layer | `branch-name`, `create-branch`, `audit-tag`, `squash`, `worktree-create`, `worktree-remove`, `check-stashes`, `cleanup-stashes` | New (absorbs `plet_git_cleanup.py`) |
 | `plet_trace.py` | Trace NDJSON schema enforcement | `validate`, `append-event`, `query` | New (already in PLAN_8) |
 | `plet_router.py` | Phase detection + status | `detect`, `status`, `preflight` | New (absorbs pre-flight checker) |
-| `plet_prompt.py` | Prompt assembly for subagents | `assemble` (given iteration ID + phase, reads reference files, iteration def, requirements, learnings, state; outputs complete prompt text) | New |
+| `plet_inject_prompt.py` | Prompt assembly for subagents | `assemble` (given iteration ID + phase, reads reference files, iteration def, requirements, learnings, state; outputs complete prompt text) | New |
 
 **Loop-specific (the orchestrator):**
 
 | Script | Purpose | Key commands | Status |
 |--------|---------|-------------|--------|
-| `plet_loop.py` | The orchestrator itself | `start-session`, `end-session`, `eligible`, `check-retry`, `run` | New |
+| `plet_orchestrator.py` | The orchestrator itself | `start-session`, `end-session`, `eligible`, `check-retry`, `run` | New |
 
-`run` is the main loop — calls `plet_router.py preflight`, `plet_fingerprint.py check`, then cycles: `eligible` → `plet_prompt.py assemble` → spawn `claude -p` → capture output → read updated state → `check-retry` → repeat until done.
+`run` is the main loop — calls `plet_router.py preflight`, `plet_fingerprint.py check`, then cycles: `eligible` → `plet_inject_prompt.py assemble` → spawn `claude -p` → capture output → read updated state → `check-retry` → repeat until done.
 
-**Note:** `check-breakpoints` may move to its own script or stay in `plet_loop.py` — TBD based on whether other phases need breakpoint checking.
+**Note:** `check-breakpoints` may move to its own script or stay in `plet_orchestrator.py` — TBD based on whether other phases need breakpoint checking.
 
 **Phase checkpoint scripts (called by subagents, not the orchestrator):**
 
 | Script | Purpose | Key commands | Status |
 |--------|---------|-------------|--------|
-| `plet_impl_check.py` | Implementation phase gates | `pre` (spec exists, iteration state correct, branch correct), `post` (entries exist via `plet_entries.py check`, state updated, tests pass) | New |
-| `plet_verify_check.py` | Verification phase gates | `pre` (impl committed, entries exist), `post` (verification report written, lifecycle updated, all criteria resolved) | New |
+| `plet_gate_impl.py` | Implementation phase gates | `pre` (spec exists, iteration state correct, branch correct), `post` (entries exist via `plet_entries.py check`, state updated, tests pass) | New |
+| `plet_gate_verify.py` | Verification phase gates | `pre` (impl committed, entries exist), `post` (verification report written, lifecycle updated, all criteria resolved) | New |
 
-**Rationale for separate impl/verify checkpoint scripts:** Impl and verify are different agents with different contexts, different failure modes, and different checklist items. A combined script would need phase-conditional logic throughout. Separate scripts keep each focused and make `allowed-tools` entries precise — the impl agent gets `plet_impl_check.py`, the verify agent gets `plet_verify_check.py`.
+**Rationale for separate impl/verify checkpoint scripts:** Impl and verify are different agents with different contexts, different failure modes, and different checklist items. A combined script would need phase-conditional logic throughout. Separate scripts keep each focused and make `allowed-tools` entries precise — the impl agent gets `plet_gate_impl.py`, the verify agent gets `plet_gate_verify.py`.
 
-**Rationale for `plet_prompt.py` as standalone:** Prompt assembly is the highest-value command in the system — it's the bridge between deterministic state reading and Claude invocation. Making it standalone means: (1) it can be tested independently, (2) it can be called outside `plet_loop.py` (e.g., manual debugging: "show me what prompt the impl agent would get"), (3) it keeps `plet_loop.py` focused on orchestration logic.
+**Rationale for `plet_inject_prompt.py` as standalone:** Prompt assembly is the highest-value command in the system — it's the bridge between deterministic state reading and Claude invocation. Making it standalone means: (1) it can be tested independently, (2) it can be called outside `plet_orchestrator.py` (e.g., manual debugging: "show me what prompt the impl agent would get"), (3) it keeps `plet_orchestrator.py` focused on orchestration logic.
 
 **Summary:**
 - Exists: 2 (`plet_state.py`, `plet_entries.py`)
 - New: 8
 - Total: 10
-- Absorbed from PLAN_8: `plet_git_cleanup.py` → `plet_git.py`, pre-flight checker → `plet_router.py`, post-impl/post-verify → `plet_impl_check.py`/`plet_verify_check.py`, pre-phase context → `plet_prompt.py`
+- Absorbed from PLAN_8: `plet_git_cleanup.py` → `plet_git.py`, pre-flight checker → `plet_router.py`, post-impl/post-verify → `plet_gate_impl.py`/`plet_gate_verify.py`, pre-phase context → `plet_inject_prompt.py`
 
 **Monitor:** `plet_git.py` has the most commands (8) across 4 concerns (branches, worktrees, tags, squash/stash). If it gets unwieldy during implementation, split into `plet_branch.py`, `plet_worktree.py`, `plet_tag.py`, `plet_stash.py`. Keep as-is for now — assess during build.
 
@@ -1485,16 +1485,27 @@ specs/
 ├── plet_git.md
 ├── plet_trace.md
 ├── plet_router.md
-├── plet_prompt.md
-├── plet_loop.md
-├── plet_impl_check.md
-├── plet_verify_check.md
+├── plet_inject_prompt.md
+├── plet_orchestrator.md
+├── plet_gate_impl.md
+├── plet_gate_verify.md
 └── (plet_state.md, plet_entries.md — retroactive, written during PLAN_8)
 ```
 
 **Rejected:** Single tooling section in prd.md (can't capture per-script edge cases), separate prd-tooling.md (unnecessary ceremony), specs inside skill package (conflates design artifacts with shipped code), no specs at all (loses traceability).
 
 **Decision:** PRD keeps its familiar name (`prd.md`) in the new location for now — easy to change later.
+
+#### PLAN_7 triage reshaped by script-as-orchestrator (2026-03-15)
+
+The script-as-orchestrator architecture changes the resolution path for most PLAN_7 feedback items. Of 26 open items:
+
+- **5 already resolved** (FB_36, FB_37, FB_41, FB_42, FB_45) — withdrawn or done in earlier sessions
+- **12 defer to PLAN_8 tooling** — problems caused by orchestrator drift or agent non-compliance that the scripts handle deterministically. No prose fixes needed.
+- **5 need PLAN_7 prose fixes** — all plan session issues (FB_24–FB_28) unaffected by the orchestrator change
+- **4 research/minor** — triage individually (FB_21, FB_34, FB_39, FB_43) plus FB_44 as a `plet_entries.py` enhancement
+
+**Key insight:** The plan session is the only phase still fully skill-driven (interactive, judgment-heavy). Its feedback items are the only ones that need prose fixes. Loop and verify issues are almost entirely subsumed by the script orchestrator and gate scripts.
 
 #### Ban git stash in agents (FB_9) — DECIDED (2026-03-11), REVISED (2026-03-14)
 

@@ -3,7 +3,9 @@ name: plet
 version: 0.1.1
 description: "Spec-driven autonomous development orchestrator. Use when the user asks to 'plet', 'start plet', 'plan and execute', 'autonomous loop', 'iterate on this feature', or 'run the dev loop'. Single entry point that reads project state and routes to the correct session: plan (interactive requirements and iteration design), loop (autonomous implementation and verification phases for each iteration), or refine (human-driven triage of emergent items, spec updates, and re-planning)."
 user-invocable: true
-allowed-tools: "Bash(python3 *)"
+allowed-tools:
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_state.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_entries.py *)"
 ---
 
 # plet — Spec-Driven Autonomous Development Orchestrator

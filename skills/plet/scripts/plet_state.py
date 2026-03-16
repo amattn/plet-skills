@@ -22,6 +22,8 @@ import sys
 import datetime
 import os
 
+SCRIPT_VERSION = "0.1.0"
+SKILL_VERSION = "0.1.1"
 SCHEMA_VERSION = "0.1.0"
 
 REQUIRED_TOP_LEVEL = [
@@ -451,6 +453,10 @@ def main():
 
     if cmd in ("-h", "--help"):
         print(__doc__)
+        return 0
+
+    if cmd == "--version":
+        print(f"plet_state {SCRIPT_VERSION} (built against plet skill {SKILL_VERSION})")
         return 0
 
     if cmd not in commands:
