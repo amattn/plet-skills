@@ -58,6 +58,41 @@ Sections 13 (Resolved Questions) and 15 (FB Items) don't get IDs — they refere
 
 ---
 
+#### specs/ directory bootstrapped (2026-03-15)
+
+Created `specs/` at project root with full infrastructure:
+- `CLAUDE.md` — how to work in specs/
+- `NOTES.md` — tooling decisions (migrated from root NOTES.md, which had grown to 12% tooling content and would grow more during PLAN_8)
+- `conventions.md` — 30 universal requirements (UNV_*) derived from `scripts/CLAUDE.md`. The coding standards file defines *how* to build; conventions.md defines *what* to require. Requirement IDs make compliance auditable.
+- `script_template.md` — 15-section template adapted from plet's PRD template
+- `PLAN.md` — build order for 10 scripts
+- 10 per-script spec files (placeholders)
+
+#### Script spec template adapted from PRD (2026-03-15)
+
+Mapped plet's PRD template (plan.md §1–§14) to a lightweight script spec. Key adaptations:
+- User Personas → **Agent Personas** (callers are agents, not end users)
+- User Flows → **Agent Flows** (step-by-step invocation sequences)
+- Data Models → **Input/Output Schemas** (JSON shapes, file formats)
+- Release Milestones → omitted (scripts ship with plet skill)
+- Success Metrics → omitted (scripts either work or don't)
+- Developer Experience → **kept** (agents are developers too — CLI ergonomics matter)
+- Added: Edge Cases, Error Handling, FB Items Addressed (not in PRD template)
+
+Decision to keep DX: even though scripts follow scripts/CLAUDE.md for coding standards, per-script CLI ergonomics (output format, help quality, agent-readability) warrant their own section.
+
+#### Stable label naming decisions (2026-03-15)
+
+- `GIT` rejected as too generic for `plet_git.py` — chose `GCL` (Git CompLiance)
+- `CTA` rejected for Critical Test Areas (commonly means Call To Action) — chose `CRT`
+- Agent Flows abbreviated as `AFL` (not `FLO` from initial proposal)
+- `UNV` chosen for universal/shared conventions (over CMN, SCV)
+- 3-letter prefixes per stable-label convention (existing PRD uses 2-letter from ridl-skills legacy; new prefixes use 3)
+
+#### Build order rationale (2026-03-15)
+
+10 scripts ordered: existing first (validate template), leaves before dependents, gates before orchestrator, orchestrator last (capstone). See `specs/PLAN.md` for full order and rationale per script.
+
 #### Existing scripts audit (2026-03-15)
 
 Audited `plet_state.py` and `plet_entries.py` against `specs/conventions.md`. Combined: 55 PASS, 5 FAIL, 5 N/A. Results recorded in each script's spec file.
