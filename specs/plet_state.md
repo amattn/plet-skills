@@ -293,6 +293,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_INI_PRE_5 | Parent directory exists | P0 |
 | STA_INI_PRE_6 | `--iteration-id` matches pattern `ID_N+` (e.g., `ID_1`, `ID_001`, `ID_0042`). Prefix `ID_` required, followed by one or more digits. Zero-padding accepted but not required. | P0 |
 | STA_INI_PRE_7 | Each ID in `--dependencies` has a corresponding `{id}.json` file in the same directory as the target file. Error if not found. Use `--no-verify-deps` to skip this check (for out-of-order or parallel creation). | P0 |
+| STA_INI_PRE_8 | `--criteria` array is non-empty. Every iteration needs at least one acceptance criterion. | P0 |
 
 #### Postconditions (STA_INI_PST)
 
@@ -321,14 +322,22 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_EDG_1 | Empty criteria array in `init` — valid per schema, generates a state file with no acceptance criteria | P0 |
+| STA_EDG_1 | Empty criteria array in `init` — error. Every iteration needs at least one acceptance criterion (definition of done). If a legitimate case for zero criteria is discovered, add `--allow-empty-criteria` flag. | P0 |
 | STA_EDG_2 | Criterion ID not found in `update-criterion` — error with specific message listing available criteria, do not modify file | P0 |
 | STA_EDG_3 | Dotted path to non-existent parent in `update-field` — create intermediate objects automatically | P0 |
 | STA_EDG_4 | `init` on existing file — error, do not overwrite | P0 |
 | STA_EDG_5 | Multiple `update-field` calls on same field — last write wins, each call refreshes `lastUpdated` | P0 |
-| STA_EDG_6 | `--data` with empty object `'{}'` in `update-field` — no fields updated, but `lastUpdated` still refreshed | P1 |
+| STA_EDG_6 | `--data` with empty object `'{}'` in `update-field` — error: "nothing to update" | P0 |
 | STA_EDG_7 | `--dry-run` combined with `--output json` — show the JSON output that would be produced, including the would-be state changes | P1 |
 | STA_EDG_8 | `--data` containing protected fields (`criteria`, `schemaVersion`, `lastUpdated`) in `update-field` — error, do not modify file. Protected fields must be modified through their dedicated commands (`update-criterion` for criteria, `init`/migration for schemaVersion, auto-set for lastUpdated). | P0 |
+| STA_EDG_9 | File path without `.json` extension — error. All state files must end in `.json`. Catches typos early. | P0 |
+| STA_EDG_10 | Dotted path starting with a protected prefix in `--data` (e.g., `criteria.0.status`, `schemaVersion.major`) — error. Same protection as top-level protected fields. | P0 |
+| STA_EDG_11 | Concurrent `init` on same path — race condition. Both callers check "file doesn't exist", both proceed. Atomic rename means second writer wins silently — first writer's content is lost. Documented, not prevented. Plan session creates files sequentially; concurrent init on the same path indicates a bug in the caller. | P1 |
+| STA_EDG_12 | Duplicate flags (e.g., `--phase impl --phase verify`) — error. Agent-first: fail loudly on misuse. `parse_kwargs` in `util_cli.py` detects and rejects duplicate keys. | P0 |
+| STA_EDG_13 | Conflicting flags (e.g., `--dry-run` with `--no-verify-deps` on init) — both honored independently. `--dry-run` previews the output, `--no-verify-deps` skips the dependency check during preview. No conflict. | P1 |
+| STA_EDG_14 | `--output json` without `--fields` combined with `--dry-run` — show full JSON preview of what would be written/changed, wrapped in the standard JSON response envelope. | P1 |
+| STA_EDG_15 | `--pretty` without `--output json` — error. `--pretty` only applies to JSON output. | P0 |
+| STA_EDG_16 | `--fields` without `--output json` — error. `--fields` only applies to JSON output. | P0 |
 
 ## 5. Error Handling (STA_ERR)
 
@@ -352,6 +361,14 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | STA_ERR_14 | Unknown field in `update-field` → `Error: unknown field '{field}' (valid fields: lifecycle, dependencies, agentId, agentActivity, ...)` | P0 |
 | STA_ERR_15 | Invalid iteration ID format → `Error: --iteration-id '{value}' does not match expected pattern ID_N+ (e.g., ID_001)` | P0 |
 | STA_ERR_16 | Dependency file not found → `Error: dependency '{id}' not found — expected {dir}/{id}.json. Use --no-verify-deps to skip this check.` | P0 |
+| STA_ERR_17 | Empty criteria array → `Error: --criteria must contain at least one criterion. Every iteration needs a definition of done.` | P0 |
+| STA_ERR_18 | Empty --data object → `Error: --data is empty — nothing to update` | P0 |
+| STA_ERR_19 | File path without .json extension → `Error: state file path must end in .json, got '{path}'` | P0 |
+| STA_ERR_20 | Dotted path into protected field → `Error: '{path}' modifies protected field '{root}' — use update-criterion for criteria, init for schemaVersion` | P0 |
+| STA_ERR_21 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
+| STA_ERR_22 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
+| STA_ERR_23 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
+| STA_ERR_24 | Mutually exclusive flags → `Error: --{flag1} and --{flag2} are mutually exclusive` | P0 |
 
 ## 6. Input/Output Schemas (STA_IOS)
 
