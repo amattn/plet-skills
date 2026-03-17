@@ -625,6 +625,9 @@ See `specs/conventions.md` for universal requirements.
 | STA_DXP_2 | Help text follows IMPORTANT → PITFALLS → USAGE → PURPOSE structure (UNV_DXP_5) | P0 |
 | STA_DXP_3 | Help text for mutating commands strongly recommends `--dry-run` in IMPORTANT section | P0 |
 | STA_DXP_4 | All enum values listed in help text and error messages | P0 |
+| STA_DXP_5 | `update-field` PITFALLS lists protected fields (`criteria`, `schemaVersion`, `lastUpdated`) and why each is protected | P0 |
+| STA_DXP_6 | Each command's PITFALLS lists common wrong values agents try (e.g., `impl` instead of `implementation`, `done` instead of `complete`). Different from DXP_4 (valid values) — this is "here's what agents get wrong." | P0 |
+| STA_DXP_7 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json`. `--no-verify-deps` only applies to `init`. `--dry-run` only applies to mutating commands (`update-criterion`, `update-field`, `init`). | P0 |
 
 ## 12. Critical Test Areas (STA_CRT)
 
