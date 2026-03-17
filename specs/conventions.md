@@ -87,7 +87,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 |----|-------------|----------|
 | UNV_TST_1 | Tests live at `skills/plet/tests/`, named `test_<script_name>.py` | P0 |
 | UNV_TST_2 | Zero dependencies applies to tests — no pytest, no unittest, stdlib-only custom harness | P0 |
-| UNV_TST_3 | Each test file is directly executable: `python3 skills/plet/tests/test_<name>.py` | P0 |
+| UNV_TST_3 | Each test file is directly executable with shebang (`#!/usr/bin/env python3`) and `chmod +x`: `./test_<name>.py` or `python3 skills/plet/tests/test_<name>.py` | P0 |
 | UNV_TST_4 | Tests call the script via `subprocess.run()` — test the CLI interface, not internal functions | P0 |
 | UNV_TST_5 | Tests create temp fixtures, validate output + file contents, then clean up | P0 |
 | UNV_TST_6 | Test both success and failure paths | P0 |
