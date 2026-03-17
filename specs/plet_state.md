@@ -495,37 +495,52 @@ plet_state.py init plet/state/ID_001.json \
     --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"},{"id":"AC_2","description":"ruff check passes"}]'
 # OK — initialized plet/state/ID_001.json (ID_001, 2 criteria, lifecycle=queued)
 
-# 2. Start implementing
+# 2. Start implementing — set activity BEFORE doing work
 plet_state.py update-field plet/state/ID_001.json \
-    --data '{"lifecycle":"implementing","agentActivity":"implementing","agentId":"agent_abc123"}'
+    --data '{"lifecycle":"implementing","agentId":"agent_abc123","agentActivity":"implementing"}'
 
-# 3. Mark criteria as implemented
+# 3. Signal running checks, then record AC_1 result
+plet_state.py update-field plet/state/ID_001.json \
+    --data '{"agentActivity":"running_checks"}'
 plet_state.py update-criterion plet/state/ID_001.json \
     --criterion AC_1 --phase implementation --status pass \
     --evidence "test_sanity passes, pytest exit 0" --elapsed 30
 
+# 4. Signal implementing AC_2, then running checks, then record
+plet_state.py update-field plet/state/ID_001.json \
+    --data '{"agentActivity":"implementing"}'
+# ... agent writes test, makes it pass ...
+plet_state.py update-field plet/state/ID_001.json \
+    --data '{"agentActivity":"running_checks"}'
 plet_state.py update-criterion plet/state/ID_001.json \
     --criterion AC_2 --phase implementation --status pass \
     --evidence "ruff check returns 0 warnings" --elapsed 10
 
-# 4. Transition to verifying
+# 5. Transition to verifying — clear impl agent, hand off
 plet_state.py update-field plet/state/ID_001.json \
     --data '{"lifecycle":"verifying","agentActivity":"idle","agentId":null}'
 
-# 5. Verify (independent agent)
+# 6. Verify (independent agent) — set its own agentId first
+plet_state.py update-field plet/state/ID_001.json \
+    --data '{"agentId":"agent_def456","agentActivity":"running_checks"}'
+
 plet_state.py update-criterion plet/state/ID_001.json \
     --criterion AC_1 --phase verification --status pass \
     --evidence "Independent pytest run: 3 tests, 0 failures"
 
+# 7. AC_2 verification fails — verify agent catches a real issue
 plet_state.py update-criterion plet/state/ID_001.json \
-    --criterion AC_2 --phase verification --status pass \
-    --evidence "ruff check: 0 errors, 0 warnings"
+    --criterion AC_2 --phase verification --status fail \
+    --evidence "ruff check passes but ruff.toml missing — no rules configured, check is vacuous"
+# Top-level AC_2 status derived to 'fail' (verification wins)
+# Agent documents in emergent.md, cycles back for re-implementation
 
-# 6. Complete
+# 8. After re-impl and re-verify (not shown), all criteria pass
+# Orchestrator completes
 plet_state.py update-field plet/state/ID_001.json \
-    --data '{"lifecycle":"complete","agentActivity":"idle"}'
+    --data '{"lifecycle":"complete","agentActivity":"idle","agentId":null}'
 
-# 7. Validate final state
+# 9. Validate final state
 plet_state.py validate plet/state/ID_001.json
 # OK — plet/state/ID_001.json is valid
 ```
@@ -533,32 +548,51 @@ plet_state.py validate plet/state/ID_001.json
 ### STA_EXM_2: Dry-run before mutation
 
 ```bash
-# Preview what init would create
+# Preview what init would create (text mode)
 plet_state.py init plet/state/ID_002.json --dry-run \
     --iteration-id ID_002 --title "Core data model" \
     --dependencies '["ID_001"]' \
     --criteria '[{"id":"AC_1","description":"Models created"}]'
 # DRY RUN — would create plet/state/ID_002.json (ID_002, 1 criteria, lifecycle=ineligible)
 
-# Preview field update
-plet_state.py update-field plet/state/ID_001.json --dry-run \
+# Preview field update (JSON mode — agent can parse the preview)
+plet_state.py update-field plet/state/ID_001.json --dry-run --output json \
     --data '{"lifecycle":"blocked"}'
-# DRY RUN — would update lifecycle=blocked in plet/state/ID_001.json
+# {"status":"ok","command":"update-field","dryRun":true,"path":"plet/state/ID_001.json","fieldsUpdated":{"lifecycle":"blocked"},"scriptVersion":"0.2.0","timestamp":"..."}
+
+# Preview criterion update (text mode)
+plet_state.py update-criterion plet/state/ID_001.json --dry-run \
+    --criterion AC_1 --phase verification --status pass \
+    --evidence "Independent test confirms 200 status"
+# DRY RUN — would set AC_1.verification to 'pass' in plet/state/ID_001.json
 ```
 
 ### STA_EXM_3: JSON output with field filtering
 
 ```bash
-# Full JSON output
+# Full JSON output — validate (read-only)
 plet_state.py validate plet/state/ID_001.json --output json
 # {"status":"ok","command":"validate","path":"plet/state/ID_001.json","errors":[],"errorCount":0,"scriptVersion":"0.2.0","timestamp":"2026-03-16T..."}
 
-# Filtered — just status and error count
+# Filtered — just status and error count (context window protection)
 plet_state.py validate plet/state/ID_001.json --output json --fields status,errorCount
 # {"status":"ok","errorCount":0,"fieldsIncluded":["status","errorCount"],"fieldsOmitted":["command","path","errors","scriptVersion","timestamp"]}
 
-# Pretty-printed for debugging
+# Pretty-printed for human debugging
 plet_state.py validate plet/state/ID_001.json --output json --pretty
+
+# JSON output — mutation (shows derivedTopLevel in response)
+plet_state.py update-criterion plet/state/ID_001.json --output json \
+    --criterion AC_1 --phase verification --status fail \
+    --evidence "Test mocks DB — tautological"
+# {"status":"ok","command":"update-criterion","criterion":"AC_1","phase":"verification","newStatus":"fail","derivedTopLevel":"fail","path":"plet/state/ID_001.json","scriptVersion":"0.2.0","timestamp":"..."}
+
+# JSON error output — structured error with recovery info
+plet_state.py update-criterion plet/state/ID_001.json --output json \
+    --criterion AC_99 --phase implementation --status pass \
+    --evidence "test passes"
+# {"status":"error","command":"update-criterion","error":"criterion 'AC_99' not found","path":"plet/state/ID_001.json","available":["AC_1","AC_2"],"scriptVersion":"0.2.0","timestamp":"..."}
+# Agent can read "available" field and retry with a valid criterion ID
 ```
 
 ## 9. Dependencies on Other Scripts (STA_DEP)
