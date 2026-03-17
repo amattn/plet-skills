@@ -24,6 +24,14 @@ This script's success led to two key insights: "Skills for Judgment, Code for Co
 | STA_AGT_5 | refine session agent | re-decomposition | `init`, `update-field` |
 | STA_AGT_6 | gate scripts | pre/post phase gates | `validate` |
 | STA_AGT_7 | human | debugging / inspection | `validate` |
+| STA_AGT_8 | external GUI / monitoring tool | reads state files directly (not via CLI) for real-time visualization | none — reads JSON files on disk, does not call plet_state.py |
+
+The external GUI persona (STA_AGT_8) is a silent consumer that never calls the CLI but drives several design decisions:
+- **Atomic writes** — GUI must never see partial JSON (it reads files triggered by OS file change events)
+- **`agentActivity` before action** — GUI shows current state, not previous state
+- **`lastUpdated` as freshness signal** — GUI knows when file last changed
+- **Schema stability** — GUI depends on field names and structure across versions
+- **File monitoring** — GUI will likely use OS-level file watching (fsevents on macOS, inotify on Linux) to detect changes in real time. When these are unavailable, it falls back to polling `lastModified` timestamps on the files. Both patterns depend on atomic writes — a partial write that updates the mtime would trigger a read of corrupt JSON.
 
 ## 3. Commands
 
@@ -462,6 +470,18 @@ Activity updates come BEFORE the action they describe — `agentActivity` reflec
 3. Script outputs what would be created (no file written), exit 0
 4. Agent reviews output, confirms it looks correct
 5. Agent re-runs without `--dry-run` to create the file
+
+### STA_AFL_7: External GUI monitors state files
+
+This flow is unique — the GUI never calls the CLI. It's a read-only consumer of the files that other personas write. Documents what the GUI depends on and why atomic writes, activity-before-action, and schema stability matter.
+
+1. GUI watches `plet/state/` directory via fsevents/inotify (or polls mtime)
+2. File change detected on `ID_001.json`
+3. GUI reads `ID_001.json` — guaranteed valid JSON (atomic writes)
+4. GUI extracts `lifecycle`, `agentActivity`, `lastUpdated`, criteria statuses
+5. GUI updates dashboard — shows iteration progress, current agent activity
+6. If `agentActivity` is not `idle`, GUI shows active indicator with activity detail
+7. If `lifecycle` transitions to `complete` or `blocked`, GUI updates summary counts
 
 ## 8. Examples (STA_EXM)
 
