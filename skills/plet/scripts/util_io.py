@@ -43,3 +43,74 @@ Functions:
 
 Dependencies: Python stdlib only (json, os). Imports now_iso from util_cli.
 """
+
+import json
+import os
+import sys
+
+from util_cli import now_iso
+
+
+def load_json(path):
+    """Load and parse a JSON file.
+
+    Returns parsed data on success, None on failure.
+    Prints specific error messages to stderr (not Python tracebacks).
+    Callers should check for None and return exit code 1.
+    """
+    if not os.path.exists(path):
+        print("Error: file not found: {}".format(path), file=sys.stderr)
+        return None
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print(
+            "Error: invalid JSON in {}: {}".format(path, e),
+            file=sys.stderr,
+        )
+        return None
+
+
+def atomic_write_json(path, data, update_timestamp=True):
+    """Write a dict as JSON to path atomically.
+
+    Uses write-to-tmp + os.rename pattern. External readers never see
+    partial JSON.
+
+    Args:
+        path: target file path
+        data: dict to serialize as JSON
+        update_timestamp: if True, sets data["lastUpdated"] to now_iso()
+    """
+    if update_timestamp:
+        data["lastUpdated"] = now_iso()
+
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    os.rename(tmp, path)
+
+
+def atomic_append(path, content):
+    """Append a string to a file atomically.
+
+    Writes content to a temp file first, then appends from the temp
+    file to the target. This prevents interleaving when multiple
+    agents append concurrently — each entry is written as a complete
+    unit.
+
+    Creates the target file if it doesn't exist.
+
+    Args:
+        path: target file path
+        content: string to append
+    """
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(content)
+    with open(tmp, "r") as src:
+        with open(path, "a") as dst:
+            dst.write(src.read())
+    os.remove(tmp)

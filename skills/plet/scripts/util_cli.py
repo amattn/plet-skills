@@ -14,6 +14,7 @@ Functions:
         a value is treated as boolean True. Returns a dict. Keys have
         leading -- stripped and hyphens converted to underscores
         (e.g., --iteration-id becomes iteration_id).
+        Detects duplicate flags and raises ValueError.
 
     require_kwargs(kwargs, required, command_help="")
         Check that all required keys exist in a kwargs dict. On first
@@ -58,3 +59,179 @@ Functions:
 
 Dependencies: Python stdlib only (sys, datetime).
 """
+
+import datetime
+import sys
+
+
+def parse_kwargs(args):
+    """Parse --key value pairs from an args list.
+
+    Bare --flag (followed by another --flag or end of args) is treated
+    as boolean True. Keys have leading -- stripped and hyphens converted
+    to underscores (e.g., --iteration-id becomes iteration_id).
+
+    Detects duplicate flags and raises ValueError with a message
+    identifying the duplicate.
+
+    Returns a dict of parsed key-value pairs.
+    """
+    result = {}
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if not arg.startswith("--"):
+            raise ValueError(
+                "Error: unexpected positional argument '{}' "
+                "(expected --flag)".format(arg)
+            )
+        key = arg[2:].replace("-", "_")
+        if key in result:
+            raise ValueError(
+                "Error: duplicate flag --{} "
+                "(each flag can only be specified once)".format(
+                    arg[2:]
+                )
+            )
+        # Check if next arg is a value or another flag (or end of args)
+        if i + 1 < len(args) and not args[i + 1].startswith("--"):
+            result[key] = args[i + 1]
+            i += 2
+        else:
+            result[key] = True
+            i += 1
+    return result
+
+
+def require_kwargs(kwargs, required, command_help=""):
+    """Check that all required keys exist in kwargs.
+
+    On first missing key, prints error to stderr. If command_help is
+    provided, prints it to stderr after the error.
+
+    Returns True if all present, False if any missing.
+    """
+    for key in required:
+        if key not in kwargs:
+            flag = key.replace("_", "-")
+            print("Error: --{} is required".format(flag), file=sys.stderr)
+            if command_help:
+                print(command_help, file=sys.stderr)
+            return False
+    return True
+
+
+def validate_enum(value, valid_values, field_name):
+    """Check that value is in valid_values.
+
+    On failure, prints error to stderr showing received value and
+    valid options. Returns True if valid, False if not.
+    """
+    if value not in valid_values:
+        print(
+            "Error: invalid {} '{}' (valid: {})".format(
+                field_name, value, ", ".join(valid_values)
+            ),
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
+def validate_int(value, field_name):
+    """Parse a string as an integer.
+
+    On failure, prints error to stderr.
+    Returns (parsed_int, True) on success, (None, False) on failure.
+    """
+    try:
+        return int(value), True
+    except (ValueError, TypeError):
+        print(
+            "Error: {} must be an integer, got '{}'".format(field_name, value),
+            file=sys.stderr,
+        )
+        return None, False
+
+
+def now_iso():
+    """Return current UTC time as ISO 8601 string: YYYY-MM-DDTHH:MM:SSZ."""
+    return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def dispatch(commands, script_name, script_version, skill_version, doc, argv=None):
+    """Standard main() entry point for plet scripts.
+
+    Parses argv to extract command name, handles --help, --version,
+    unknown commands, and dispatches to the correct command function.
+
+    Args:
+        commands: dict mapping command names to callables (args -> int)
+        script_name: name for --version output (e.g., "plet_state")
+        script_version: script version string
+        skill_version: plet skill version this was built against
+        doc: module docstring, printed on --help
+        argv: argument list (defaults to sys.argv)
+
+    Returns: int exit code
+    """
+    if argv is None:
+        argv = sys.argv
+
+    if len(argv) < 2:
+        print(doc, file=sys.stderr)
+        return 1
+
+    cmd = argv[1]
+    args = argv[2:]
+
+    if cmd in ("-h", "--help"):
+        print(doc)
+        return 0
+
+    if cmd == "--version":
+        print(
+            "{} {} (built against plet skill {})".format(
+                script_name, script_version, skill_version
+            )
+        )
+        return 0
+
+    if cmd not in commands:
+        print("Error: unknown command '{}'".format(cmd), file=sys.stderr)
+        print(
+            "Valid commands: {}".format(", ".join(sorted(commands.keys()))),
+            file=sys.stderr,
+        )
+        return 1
+
+    return commands[cmd](args)
+
+
+def filter_fields(data, fields):
+    """Filter a dict to only requested fields.
+
+    If fields is None, returns data unchanged. When filtering, adds:
+    - "fieldsIncluded": fields requested and present
+    - "fieldsOmitted": fields available but filtered out
+
+    Args:
+        data: dict to filter
+        fields: list of field names, or None for no filtering
+
+    Returns: filtered dict (new dict, does not modify original)
+    """
+    if fields is None:
+        return data
+
+    all_keys = set(data.keys())
+    requested = set(fields)
+    included = sorted(requested & all_keys)
+    omitted = sorted(all_keys - requested)
+
+    result = {}
+    for key in included:
+        result[key] = data[key]
+    result["fieldsIncluded"] = included
+    result["fieldsOmitted"] = omitted
+    return result
