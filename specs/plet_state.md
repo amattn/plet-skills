@@ -643,6 +643,12 @@ See `specs/conventions.md` for universal requirements.
 | STA_CRT_8 | --fields | Filtered output includes wrong fields | Verify fieldsIncluded/fieldsOmitted accuracy |
 | STA_CRT_9 | init on existing file | Silently overwrites | Verify error on existing file |
 | STA_CRT_10 | Error handling | Python tracebacks visible to agents | Test every precondition violation produces clean error |
+| STA_CRT_11 | Protected field rejection | update-field silently modifies criteria/schemaVersion | Test --data with each protected field errors |
+| STA_CRT_12 | Unknown field rejection | Typos create unexpected fields silently | Test --data with misspelled field names errors |
+| STA_CRT_13 | Dependency file verification | init accepts deps referencing nonexistent files | Test missing dep errors, test --no-verify-deps skips check |
+| STA_CRT_14 | Duplicate flag detection | Last value silently wins | Test --phase impl --phase verify errors |
+| STA_CRT_15 | .json extension enforcement | Non-json paths accepted silently | Test path without .json errors |
+| STA_CRT_16 | skipRationale deprecation | Old files break, or skipped without evidence | Validator accepts files with/without old skipRationale; update-criterion checks evidence non-empty for skipped |
 
 ## 13. Testing & Verification (STA_TST)
 
