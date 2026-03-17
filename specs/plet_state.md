@@ -399,20 +399,28 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 
 ### STA_AFL_2: Impl agent updates criteria
 
-1. Impl agent writes a failing test (red), makes it pass (green)
-2. Agent records the result:
+Activity updates come BEFORE the action they describe — `agentActivity` reflects what the agent is currently doing, not what it just finished. This matters for GUI tools monitoring state files in real time.
+
+1. Agent sets activity to what it's about to do:
+   ```
+   plet_state.py update-field plet/state/ID_001.json \
+       --data '{"agentActivity":"implementing"}'
+   ```
+2. Impl agent writes a failing test (red), makes it pass (green)
+3. Agent sets activity to running checks:
+   ```
+   plet_state.py update-field plet/state/ID_001.json \
+       --data '{"agentActivity":"running_checks"}'
+   ```
+4. Agent runs full test suite, confirms green
+5. Agent records the result:
    ```
    plet_state.py update-criterion plet/state/ID_001.json \
        --criterion AC_1 --phase implementation --status pass \
        --evidence "test_FR_1 passes — asserts 200 status. Full suite green." \
        --elapsed 45
    ```
-3. Agent updates activity:
-   ```
-   plet_state.py update-field plet/state/ID_001.json \
-       --data '{"agentActivity":"running_checks"}'
-   ```
-4. Repeat for each criterion
+6. Repeat for each criterion
 
 ### STA_AFL_3: Verify agent overrides status
 
@@ -433,6 +441,27 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
    plet_state.py update-field plet/state/ID_001.json \
        --data '{"lifecycle":"complete","agentActivity":"idle"}'
    ```
+
+### STA_AFL_5: Error recovery
+
+1. Agent calls `plet_state.py update-criterion` with wrong criterion ID
+2. Script returns exit 1: `Error: criterion 'AC_99' not found in plet/state/ID_001.json (available: AC_1, AC_2)`
+3. Agent reads error message, identifies available criteria
+4. Agent retries with correct ID: `--criterion AC_1`
+
+### STA_AFL_6: Dry-run before mutation
+
+1. Agent is about to create a state file for a new iteration
+2. Agent runs with `--dry-run` to preview:
+   ```
+   plet_state.py init plet/state/ID_005.json --dry-run \
+       --iteration-id ID_005 --title "API endpoints" \
+       --dependencies '["ID_001","ID_003"]' \
+       --criteria '[{"id":"AC_1","description":"GET /api returns 200"}]'
+   ```
+3. Script outputs what would be created (no file written), exit 0
+4. Agent reviews output, confirms it looks correct
+5. Agent re-runs without `--dry-run` to create the file
 
 ## 8. Examples (STA_EXM)
 
