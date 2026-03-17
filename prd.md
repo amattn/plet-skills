@@ -252,7 +252,7 @@ Formats are defined at a high level here. Detailed templates and entry schemas a
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RT_1 | `plet/progress.md` is an append-only log of what was implemented and verified each iteration, with iteration ID, phase, attempt number, status, timestamp, summary, and files changed | P0 |
+| RT_1 | `plet/progress.md` is an append-only log of what was implemented and verified each iteration, with iteration ID, phase, attempt number, status, timestamp, files changed, and freeform content. All entries follow the unified format: KV metadata, `**Content:**` marker, freeform body. | P0 |
 | RT_2 | `plet/learnings.md` is an agent-facing append-only knowledge base: codebase patterns, tool quirks, techniques, debugging tips — each entry tagged with category (pattern, gotcha, technique, tool, debug, context), iteration ID, and timestamp. If no category fits, use the closest one and create an emergent.md entry explaining why the categories were insufficient. | P0 |
 | RT_3 | `plet/emergent.md` captures human-facing items: design decisions made without human input, requirement gaps, assumptions, scope questions, edge cases — each with a unique `EM_N` ID, iteration source, category, and an `Outcome: pending` field | P0 |
 | RT_4 | `plet/trace/` contains two trace files per phase per iteration: `{iteration_id}-{phase}-{attempt}-transcript.jsonl` (raw I/O in Claude Code's native format, orchestrator-managed) and `{iteration_id}-{phase}-{attempt}-events.ndjson` (semantic events, subagent-written). Semantic event schema defined in `references/state-schema.md`. | P0 |

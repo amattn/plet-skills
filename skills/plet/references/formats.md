@@ -8,6 +8,22 @@ This document defines the entry formats for the four PLET runtime artifacts. All
 
 ## Write Semantics
 
+### Unified Entry Structure
+
+All three runtime artifact entry types share the same structural pattern:
+
+1. **Start fence** — `<div id="plet-{pletId}"></div>`
+2. **Visual separator** — `---`
+3. **Header** — `### [header text]`
+4. **KV metadata** — `**Key:** value` lines (type-specific fields)
+5. **Content marker** — `**Content:**`
+6. **Freeform content** — everything from the content marker to the end fence
+7. **End fence** — `<div id="END-plet-{pletId}"></div>`
+
+The `**Content:**` marker is the boundary between structured metadata (parseable KV pairs) and freeform content. GUI tools split on this marker — everything above is structured, everything below is the body.
+
+**Fencing safety:** Content must not contain fence patterns (`<div id="plet-` or `<div id="END-plet-`). The `plet_entries.py` tool rejects content containing these patterns.
+
 ### Atomic Appends (SF_17)
 
 Runtime artifact writes (`progress.md`, `learnings.md`, `emergent.md`) should be complete, self-contained blocks — never a partial entry. True POSIX `O_APPEND` semantics are ideal but not required for v1. Runtime artifacts are append-only markdown, so a partial append only affects the last entry — prior entries are never corrupted.
@@ -65,13 +81,12 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 **Iteration:** [ID_xxx] [iteration title]
 **Phase:** plan | impl | verify | refine
 **Attempt:** N
-
-**Summary:**
-[1-3 sentences describing what was accomplished or what happened]
-
 **Files changed:**
 - `path/to/file.py` — [what changed]
 - `path/to/test_file.py` — [what changed]
+
+**Content:**
+[Freeform content — what was accomplished, what happened, blockers encountered]
 
 <div id="END-plet-{pletId}"></div>
 ```
@@ -102,15 +117,14 @@ Any phase may append parenthetical metadata for clarity, e.g., `COMPLETE (passed
 **Iteration:** [ID_001] Project scaffolding
 **Phase:** impl
 **Attempt:** 1
-
-**Summary:**
-Initialized project structure with pyproject.toml, ruff, and pytest. Created directory layout matching the architecture spec. All verification commands pass.
-
 **Files changed:**
 - `pyproject.toml` — project metadata and dependencies
 - `src/__init__.py` — package init
 - `src/main.py` — entry point stub
 - `tests/test_sanity.py` — sanity check test (assert True)
+
+**Content:**
+Initialized project structure with pyproject.toml, ruff, and pytest. Created directory layout matching the architecture spec. All verification commands pass.
 
 <div id="END-plet-epr_01JD8X3K7M_id001_i1"></div>
 ```
@@ -130,8 +144,12 @@ When an agent blocks, the progress entry must include what was completed and wha
 **Iteration:** [ID_003] OAuth integration
 **Phase:** impl
 **Attempt:** 2
+**Files changed:**
+- `src/auth/oauth.py` — redirect and token exchange
+- `src/auth/storage.py` — token persistence
+- `tests/auth/test_oauth.py` — tests for working flows
 
-**Summary:**
+**Content:**
 Implemented OAuth redirect flow and token exchange. Blocked on token refresh — the provider's sandbox environment returns 500 on all refresh requests. Attempted: direct API calls, SDK wrapper, different grant types. All fail with the same server error.
 
 **Work completed:**
@@ -143,11 +161,6 @@ Implemented OAuth redirect flow and token exchange. Blocked on token refresh —
 - Token refresh flow (blocked on provider issue)
 - Session expiry handling
 - Logout/revoke flow
-
-**Files changed:**
-- `src/auth/oauth.py` — redirect and token exchange
-- `src/auth/storage.py` — token persistence
-- `tests/auth/test_oauth.py` — tests for working flows
 
 <div id="END-plet-epr_01JD8X4200_id003_i2"></div>
 ```
@@ -171,6 +184,7 @@ Implemented OAuth redirect flow and token exchange. Blocked on token refresh —
 **Iteration:** [ID_xxx]
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 
+**Content:**
 [1-5 sentences describing the learning. Be specific and actionable — future agents should be able to apply this immediately.]
 
 <div id="END-plet-{pletId}"></div>
@@ -201,6 +215,7 @@ If none of these categories fit, use the closest one and also create an `emergen
 **Iteration:** [ID_002]
 **Timestamp:** 2026-03-07T15:20:00Z
 
+**Content:**
 The default SQLite journal mode blocks readers during writes. Tests with concurrent database access fail intermittently unless WAL mode is enabled. Add `PRAGMA journal_mode=WAL;` to the database initialization code. This is already set in `src/db/init.py` but must also be set in test fixtures.
 
 <div id="END-plet-eln_01JD8X3K7M_id002_i1"></div>
@@ -214,6 +229,7 @@ The default SQLite journal mode blocks readers during writes. Tests with concurr
 **Iteration:** [ID_001]
 **Timestamp:** 2026-03-07T14:35:00Z
 
+**Content:**
 Every error string in this project includes a unique 12-digit debug number at the throw site (e.g., `[814209375142]`). When adding new error handling, generate a random 12-digit number and hard-code it. Never reuse numbers across the codebase. Grep for the number to find the exact source location.
 
 <div id="END-plet-eln_01JD8X2R00_id001_i1"></div>
@@ -227,6 +243,7 @@ Every error string in this project includes a unique 12-digit debug number at th
 **Iteration:** [ID_003]
 **Timestamp:** 2026-03-07T16:45:00Z
 
+**Content:**
 The OAuth provider's sandbox environment returns HTTP 500 on all token refresh requests. Tried: direct API calls with curl, SDK wrapper, different grant types (authorization_code, client_credentials), different scopes. All fail with the same 500 response body: `{"error": "internal_server_error"}`. The initial token exchange works fine — only refresh is broken. Next agent should check if the sandbox is back up before attempting. If still down, consider mocking the refresh endpoint for testing.
 
 <div id="END-plet-eln_01JD8X4200_id003_i2"></div>
@@ -252,10 +269,10 @@ The OAuth provider's sandbox environment returns HTTP 500 on all token refresh r
 - **Phase:** plan | impl | verify | refine
 - **Category:** design decision | requirement gap | assumption | scope question | edge case | blocker
 - **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
-
-[Description of what came up and what was decided/assumed by the agent, or what needs human input]
-
 - **Outcome:** pending
+
+**Content:**
+[Description of what came up and what was decided/assumed by the agent, or what needs human input]
 
 <div id="END-plet-{pletId}"></div>
 ```
@@ -289,10 +306,10 @@ Agents always set `Outcome: pending`. Only the Refine session (human-driven) cha
 - **Phase:** impl
 - **Category:** design decision
 - **Timestamp:** 2026-03-07T15:10:00Z
-
-The requirements specify "persistent storage" without specifying a database engine. Chose SQLite because: (1) no external service dependency, (2) single-file database simplifies deployment, (3) sufficient for the expected data volume. If PostgreSQL is preferred, the data access layer is abstracted and can be swapped.
-
 - **Outcome:** pending
+
+**Content:**
+The requirements specify "persistent storage" without specifying a database engine. Chose SQLite because: (1) no external service dependency, (2) single-file database simplifies deployment, (3) sufficient for the expected data volume. If PostgreSQL is preferred, the data access layer is abstracted and can be swapped.
 
 <div id="END-plet-eem_01JD8X3800_id002_i1"></div>
 
@@ -306,10 +323,10 @@ The requirements specify "persistent storage" without specifying a database engi
 - **Phase:** verify
 - **Category:** requirement gap
 - **Timestamp:** 2026-03-07T16:00:00Z
-
-The API endpoints have no rate limiting. The requirements don't mention it, but production APIs typically need rate limiting to prevent abuse. Currently no rate limiting is implemented. Should this be added as a requirement?
-
 - **Outcome:** pending
+
+**Content:**
+The API endpoints have no rate limiting. The requirements don't mention it, but production APIs typically need rate limiting to prevent abuse. Currently no rate limiting is implemented. Should this be added as a requirement?
 
 <div id="END-plet-eem_01JD8X3Q00_id003_v1"></div>
 ```
@@ -331,10 +348,10 @@ When an agent blocks, the emergent entry describes what the human needs to resol
 - **Phase:** impl
 - **Category:** blocker
 - **Timestamp:** 2026-03-07T16:45:00Z
-
-Token refresh requests to the OAuth provider's sandbox environment consistently return HTTP 500. Attempted: direct API calls, SDK wrapper, different grant types, different scopes. All fail with the same server error. This may be a provider outage or a sandbox configuration issue. The human needs to: (1) check if the provider's sandbox is operational, (2) verify API credentials and sandbox configuration, (3) consider whether to use a mock provider for testing.
-
 - **Outcome:** pending
+
+**Content:**
+Token refresh requests to the OAuth provider's sandbox environment consistently return HTTP 500. Attempted: direct API calls, SDK wrapper, different grant types, different scopes. All fail with the same server error. This may be a provider outage or a sandbox configuration issue. The human needs to: (1) check if the provider's sandbox is operational, (2) verify API credentials and sandbox configuration, (3) consider whether to use a mock provider for testing.
 
 <div id="END-plet-eem_01JD8X4200_id003_i2"></div>
 ```
