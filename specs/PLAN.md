@@ -35,7 +35,7 @@ Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved
 | 0 | `conventions.md` open questions | ✓ resolved |
 | 1 | `plet_state.py` spec (STA) | ✓ complete |
 | 2 | `plet_state.py` implementation (update to match spec) | **← NEXT** |
-| 3 | `plet_entries.py` spec (ENT) | **under review** |
+| 3 | `plet_entries.py` spec (ENT) | **under review** — §1–§9 approved, §10–§16 remaining |
 | 4 | `plet_fingerprint.py` spec (FPR) | not started |
 | 5 | `plet_trace.py` spec (TRC) | not started |
 | 6 | `plet_git.py` spec (GCL) | not started |

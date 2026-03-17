@@ -94,12 +94,13 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_APR_PRE_1 | `{artifact_dir}/progress.md` exists (will not create it) | P0 |
 | ENT_APR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--phase`, `--attempt`, `--status`, and one of `--content` or `--content-file` | P0 |
-| ENT_APR_PRE_3 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
-| ENT_APR_PRE_4 | `--status` is a valid progress status | P0 |
-| ENT_APR_PRE_5 | `--attempt` is a positive integer | P0 |
-| ENT_APR_PRE_6 | `--files` is a valid JSON array if provided | P0 |
-| ENT_APR_PRE_7 | Exactly one of `--content` or `--content-file` must be provided | P0 |
-| ENT_APR_PRE_8 | If `--content-file` is provided, the file must exist and be readable | P0 |
+| ENT_APR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
+| ENT_APR_PRE_4 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_APR_PRE_5 | `--status` is a valid progress status | P0 |
+| ENT_APR_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
+| ENT_APR_PRE_7 | `--files` is a valid JSON array if provided | P0 |
+| ENT_APR_PRE_8 | Exactly one of `--content` or `--content-file` must be provided | P0 |
+| ENT_APR_PRE_9 | If `--content-file` is provided, the file must exist and be readable | P0 |
 
 #### Postconditions (ENT_APR_PST)
 
@@ -173,9 +174,10 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_ALR_PRE_1 | `{artifact_dir}/learnings.md` exists | P0 |
 | ENT_ALR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--category`, `--title`, `--content`, `--phase`, `--attempt` | P0 |
-| ENT_ALR_PRE_3 | `--category` is a valid learning category | P0 |
-| ENT_ALR_PRE_4 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
-| ENT_ALR_PRE_5 | `--attempt` is a positive integer | P0 |
+| ENT_ALR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
+| ENT_ALR_PRE_4 | `--category` is a valid learning category | P0 |
+| ENT_ALR_PRE_5 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_ALR_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
 
 #### Postconditions (ENT_ALR_PST)
 
@@ -247,9 +249,10 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_AEM_PRE_1 | `{artifact_dir}/emergent.md` exists | P0 |
 | ENT_AEM_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--title`, `--phase`, `--category`, `--content`, `--attempt` | P0 |
-| ENT_AEM_PRE_3 | `--category` is a valid emergent category | P0 |
-| ENT_AEM_PRE_4 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
-| ENT_AEM_PRE_5 | `--attempt` is a positive integer | P0 |
+| ENT_AEM_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
+| ENT_AEM_PRE_4 | `--category` is a valid emergent category | P0 |
+| ENT_AEM_PRE_5 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_AEM_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
 
 #### Postconditions (ENT_AEM_PST)
 
@@ -309,15 +312,17 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_CHK_OUT_1 | Text mode: per-artifact status lines `OK — {artifact}: N entry(ies)` or `MISSING — {artifact}: 0` | P0 |
 | ENT_CHK_OUT_2 | Text mode summary: `OK — all artifacts have entries for {iteration}` (exit 0) or `INCOMPLETE — missing entries in: {list}` to stderr (exit 1) | P0 |
-| ENT_CHK_OUT_3 | JSON mode: `{"status":"ok"|"error","command":"check","iteration":"...","progress":N,"learnings":N,"emergent":N,"allPresent":true|false,...}` | P0 |
+| ENT_CHK_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"check", "iteration":"...", "artifacts":{"progress":{"count":N,"initialized":bool}, "learnings":{...}, "emergent":{...}}, "allPresent":true or false, ...}` | P0 |
 
 #### Preconditions (ENT_CHK_PRE)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_CHK_PRE_1 | `artifact_dir` exists | P0 |
+| ENT_CHK_PRE_2 | All required args present: `--iter-id` | P0 |
+| ENT_CHK_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 
-Missing artifact files count as 0 entries, not an error — this allows `check` to run before all artifacts are initialized.
+Missing artifact files are distinguished from "initialized but no entries" — see BHV_4. Both count as 0 entries and contribute to exit 1, but the output tells the caller whether the problem is "not initialized" vs "no entries written."
 
 #### Postconditions (ENT_CHK_PST)
 
@@ -325,6 +330,7 @@ Missing artifact files count as 0 entries, not an error — this allows `check` 
 |----|-------------|----------|
 | ENT_CHK_PST_1 | No files modified (read-only) | P0 |
 | ENT_CHK_PST_2 | Exit code reflects completeness: 0 = all three have entries, 1 = any missing | P0 |
+| ENT_CHK_PST_3 | Per-artifact counts are accurate — each count matches the actual number of entries referencing the iteration | P0 |
 
 #### Behaviors (ENT_CHK_BHV)
 
@@ -333,7 +339,8 @@ Missing artifact files count as 0 entries, not an error — this allows `check` 
 | ENT_CHK_BHV_1 | Scan `progress.md`, `learnings.md`, `emergent.md` for entries referencing `[{iteration}]` | P0 |
 | ENT_CHK_BHV_2 | Count entries per artifact using regex pattern matching | P0 |
 | ENT_CHK_BHV_3 | Read-only — does not modify any files | P0 |
-| ENT_CHK_BHV_4 | Missing artifact file counts as 0 entries (not an error) | P0 |
+| ENT_CHK_BHV_4 | Artifact exists but no entries for the iteration: text reports `MISSING — {artifact}: 0 entry(ies)`, JSON reports `{"count":0, "initialized":true}`. Exit 1. | P0 |
+| ENT_CHK_BHV_5 | Artifact file does not exist: text reports `NOT_INITIALIZED — {artifact}: file does not exist`, JSON reports `{"count":0, "initialized":false}`. Exit 1. | P0 |
 
 ---
 
@@ -341,9 +348,9 @@ Missing artifact files count as 0 entries, not an error — this allows `check` 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_EDG_1 | `--iteration proj` — project-level entries, normalized to `proj` in plet ID | P0 |
+| ENT_EDG_1 | `--iter-id proj` — project-level entries, normalized to `proj` in plet ID | P0 |
 | ENT_EDG_2 | Artifact file doesn't exist for `add-*` — error with specific message, will not create it | P0 |
-| ENT_EDG_3 | Artifact file doesn't exist for `check` — count as 0 entries, not an error | P0 |
+| ENT_EDG_3 | Artifact file doesn't exist for `check` — distinguished from "0 entries" with `NOT_INITIALIZED` status. Both contribute to exit 1. JSON includes `initialized` boolean per artifact. | P0 |
 | ENT_EDG_4 | No existing emergent entries — `EM_1` assigned as first number | P0 |
 | ENT_EDG_5 | `--files` as empty JSON array `'[]'` — produce `- (none)` in entry | P1 |
 | ENT_EDG_6 | Multiple entries for same iteration — each gets a unique plet ID (timestamp-based uniqueness) | P0 |
@@ -355,6 +362,10 @@ Missing artifact files count as 0 entries, not an error — this allows `check` 
 | ENT_EDG_12 | Duplicate flags — error via `parse_kwargs` | P0 |
 | ENT_EDG_13 | Content contains fence patterns — rejected with error. Prevents parser breakage. | P0 |
 | ENT_EDG_14 | Both `--content` and `--content-file` provided — mutually exclusive error | P0 |
+| ENT_EDG_15 | `--content-file` exists but is empty — error: "content must not be empty" | P0 |
+| ENT_EDG_16 | `--content` is empty string — error: "content must not be empty" | P0 |
+| ENT_EDG_17 | `--files` with non-array JSON (string, object, number) — error: "--files must be a JSON array" | P0 |
+| ENT_EDG_18 | `--content-file` exists but not readable (permissions) — error with specific message | P0 |
 
 ## 5. Error Handling (ENT_ERR)
 
@@ -376,6 +387,11 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ENT_ERR_12 | Content contains fence pattern → `Error: content must not contain plet fence markers (<div id="plet-..." or <div id="END-plet-...")` | P0 |
 | ENT_ERR_13 | Both `--content` and `--content-file` provided → `Error: --content and --content-file are mutually exclusive` | P0 |
 | ENT_ERR_14 | `--content-file` path not found → `Error: content file not found: {path}` | P0 |
+| ENT_ERR_15 | Empty content → `Error: content must not be empty` (applies to both `--content ""` and empty `--content-file`) | P0 |
+| ENT_ERR_16 | `--files` is not a JSON array → `Error: --files must be a JSON array, got {type}` | P0 |
+| ENT_ERR_17 | `--content-file` not readable → `Error: cannot read content file: {path}: {reason}` | P0 |
+| ENT_ERR_18 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ID_N+ or 'proj'` | P0 |
+| ENT_ERR_19 | `--attempt` zero or negative → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
 
 ## 6. Formats (ENT_FMT)
 
@@ -423,6 +439,11 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 
 1. Refine agent resolves an emergent item
 2. Agent calls `plet_entries.py add-progress` with `--phase refine --status COMPLETE --content "EM_3 approved — added as FR_12"` and `--iter-id proj --iter-title "Refine triage"`
+
+### ENT_AFL_4: Plan session milestone
+
+1. Plan agent completes a key milestone (requirements approved, iterations defined, state initialized)
+2. Agent calls `plet_entries.py add-progress` with `--iter-id proj --iter-title "Plan session" --phase plan --attempt 1 --status COMPLETE --content "Requirements approved: 12 requirements across 3 categories."`
 
 ## 8. Examples (ENT_EXM)
 
@@ -481,12 +502,35 @@ plet_entries.py add-progress plet/ --dry-run \
 # DRY RUN — would append progress entry epr_01JD8X3KAQ_id003_i1 to plet/progress.md
 ```
 
+### ENT_EXM_4: Plan session milestone
+
+```bash
+# After requirements are approved
+plet_entries.py add-progress plet/ \
+    --iter-id proj --iter-title "Plan session" \
+    --phase plan --attempt 1 --status COMPLETE \
+    --content "Requirements approved: 12 requirements across 3 categories. Iterations defined: 8 iterations with dependency graph."
+# OK — epr_01JD8X3KBR_proj_p1
+```
+
+### ENT_EXM_5: Interim checkpoint (IN_PROGRESS)
+
+```bash
+# Mid-implementation checkpoint — record progress before phase ends
+plet_entries.py add-progress plet/ \
+    --iter-id ID_002 --iter-title "Core data model" \
+    --phase impl --attempt 1 --status IN_PROGRESS \
+    --content "SQLite schema created, CRUD operations implemented. Still working on migration logic." \
+    --files '["src/db/schema.py — table definitions", "src/db/crud.py — insert/select/update"]'
+# OK — epr_01JD8X3KCS_id002_i1
+```
+
 ## 9. Dependencies on Other Scripts (ENT_DEP)
 
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | ENT_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| ENT_DEP_2 | imports | `util_io` | `atomic_append` |
+| ENT_DEP_2 | imports | `util_io` | `atomic_append`, `load_text` (for `--content-file`) |
 | ENT_DEP_3 | called by | `plet_gate_impl.py` | `check` as post-impl gate |
 | ENT_DEP_4 | called by | `plet_gate_verify.py` | `check` as pre-verify gate |
 

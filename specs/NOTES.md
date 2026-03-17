@@ -499,6 +499,36 @@ Unified the KV metadata sections across all three entry types:
 
 **Rationale:** `--iter-id` and `--iter-title` are always about the iteration. `--title` is always about the item. No collisions, no dual meanings. The `--iter` prefix groups iteration fields visually.
 
+#### ENT spec review decisions continued (2026-03-17)
+
+Decisions made during §3.4–§9 review of `plet_entries.md`:
+
+11. **check validates --iter-id format:** Same `ID_N+` or `proj` validation as plet_state.py. Catches typos early — an agent passing "id_001" would get 0 entries and think entries are missing when really the search pattern is wrong.
+
+12. **NOT_INITIALIZED vs MISSING in check (BHV_4/BHV_5):** Missing artifact file is NOT the same as "0 entries." If the file doesn't exist, nothing can create entries (add-* commands require existing files). Split into two behaviors: BHV_4 (file exists, 0 entries → MISSING), BHV_5 (file doesn't exist → NOT_INITIALIZED). JSON includes `initialized` boolean per artifact. Both exit 1.
+
+13. **Empty content is an error (EDG_15/16, ERR_15):** Both `--content ""` and empty `--content-file` produce an error. An entry with no content is useless.
+
+14. **--files non-array JSON is an error (EDG_17, ERR_16):** Explicit validation — passing a string or object instead of array gets a clean error.
+
+15. **--content-file permissions error (EDG_18, ERR_17):** Distinct from "not found" — clean error message with reason.
+
+16. **--iter-id validated on all commands (ERR_18):** Not just check — add-progress, add-learning, add-emergent all validate `ID_N+` or `proj` format.
+
+17. **--attempt > 0 enforced (ERR_19):** "Positive integer" means > 0 explicitly. Zero and negative values get specific error.
+
+18. **AFL_4: Plan session milestone flow:** Plan agent writes progress entry after key milestones using `--iter-id proj --phase plan`.
+
+19. **EXM_4/5 added:** Plan session milestone example + IN_PROGRESS interim checkpoint example.
+
+20. **DEP_2 updated:** util_io dependency includes `load_text` for --content-file support.
+
+#### load_text added to util_io (2026-03-17)
+
+**Decision:** Add `load_text(path)` to `util_io.py` — parallel to `load_json`. Returns string on success, None on failure. Clean errors to stderr for: file not found, not readable, empty. Used by `--content-file` in plet_entries.py and any future scripts that read plain text files from CLI args.
+
+**Rationale:** `--content-file`, `--data` (plet_state), and similar file-reading flags all need the same error handling pattern. Centralizing in util_io eliminates drift across scripts for the common failure modes (not found, permissions, empty).
+
 #### PLAN_7 triage reshaped by script-as-orchestrator (2026-03-15)
 
 The script-as-orchestrator architecture changes the resolution path for most PLAN_7 feedback items. Of 26 open items:
