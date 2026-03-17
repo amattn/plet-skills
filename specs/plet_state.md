@@ -652,20 +652,15 @@ See `specs/conventions.md` for universal requirements.
 
 ## 13. Testing & Verification (STA_TST)
 
-Tests at `skills/plet/tests/test_plet_state.py`. Must cover:
+**What to test:** See §12 Critical Test Areas (STA_CRT_1–STA_CRT_16) for the full list of risk areas and suggested test approaches. Each CRT entry should have at least one corresponding test.
 
-- `--help` on every command (UNV_TST_7)
-- `--version` output
-- Every command's success path with `--output json` and text mode
-- Every command's `--dry-run` behavior (mutating commands only)
-- Every `--fields` combination
-- Every `--pretty` formatting
-- Every precondition violation → clean error (no tracebacks)
-- Every enum validation (every invalid value rejected)
-- Two-state model correctness (derive top-level from impl/verify)
-- Atomic write guarantees (no .tmp residue)
-- Full lifecycle workflow (init → update → verify → complete → validate)
-- Edge cases (empty criteria, missing criterion, dotted paths, existing file)
+**Test infrastructure:**
+- File: `skills/plet/tests/test_plet_state.py`
+- Run: `python3 skills/plet/tests/test_plet_state.py`
+- Harness: stdlib-only custom harness per UNV_TST_2. Uses `run()` (subprocess) and `check()` (assert).
+- All tests call the script via `subprocess.run()` — test the CLI interface, not internal functions (UNV_TST_4).
+- Temp fixtures via `tempfile.TemporaryDirectory()` — auto-cleanup (UNV_TST_5).
+- See `specs/conventions.md` UNV_TST_1–UNV_TST_7 for full testing conventions.
 
 ## 14. Resolved Questions
 

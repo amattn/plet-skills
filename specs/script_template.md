@@ -182,9 +182,15 @@ Script-specific non-functional requirements (if any):
 
 ## 13. Testing & Verification (TST)
 
-- How to verify this script works correctly
-- Key test scenarios
-- Edge cases to cover
+**What to test:** See §12 Critical Test Areas for the full list of risk areas. Each CRT entry should have at least one corresponding test.
+
+**Test infrastructure:**
+- File: `skills/plet/tests/test_plet_SCRIPTNAME.py`
+- Run: `python3 skills/plet/tests/test_plet_SCRIPTNAME.py`
+- Harness: stdlib-only custom harness per UNV_TST_2
+- All tests call the script via `subprocess.run()` (UNV_TST_4)
+- Temp fixtures via `tempfile.TemporaryDirectory()` (UNV_TST_5)
+- See `specs/conventions.md` UNV_TST_1–UNV_TST_7 for full testing conventions
 
 ## 14. Resolved Questions
 
