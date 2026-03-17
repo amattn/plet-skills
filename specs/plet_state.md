@@ -672,20 +672,22 @@ See `specs/conventions.md` for universal requirements.
 | 4 | Alternating pairs for update-field? | `--data` JSON object — one format, zero ambiguity. |
 | 5 | File overwrite on init? | Error — UNV_NFR_2. |
 | 6 | Separate `skipRationale` field? | Deprecated — `evidence` serves as skip rationale when `status` is `skipped`. Schema change needed in `state-schema.md`. Skill reference files (`execute.md`, `verify.md`) must note that evidence acts as rationale for skipped criteria. |
+| 7 | Should `validate` support `--fix`? | No — `validate` is read-only. Schema migration is a separate concern (SF_24, STA_FUT_1). Mixing read and write in one command violates the principle that read-only commands are safe to run freely. |
 
 ### Open Questions
 
-- Should `validate` support `--fix` to auto-repair common schema issues (add missing fields with defaults)?
 - **Monitor:** `--evidence` field naming when used as skip rationale. If agents produce poor skip rationale using the evidence framing, consider renaming to `--reason` or adding `--skip-rationale` as an alias.
 
 ## 15. Future Considerations (STA_FUT)
 
 | ID | Area | Description |
 |----|------|-------------|
-| STA_FUT_1 | Schema migration | `validate` could auto-migrate old schema versions by adding new fields with defaults (SF_24) |
-| STA_FUT_2 | Batch validate | A `validate-all` command that scans `plet/state/*.json` without shell globbing |
+| STA_FUT_1 | Schema migration | Dedicated `migrate` command that upgrades state files to current schema version (adds new fields with defaults, per SF_24). `validate` would flag that migration is available but not perform it. Separate commands: read-only detection vs mutating fix. |
+| STA_FUT_2 | File locking | Explicit file locking for concurrent write scenarios beyond atomic rename (e.g., if multiple orchestrators ever need to write the same iteration file) |
 | STA_FUT_3 | Diff output | Show what changed between pre/post state for audit logging |
 | STA_FUT_4 | Watch mode | Monitor a state file for changes and re-validate (for GUI/monitoring tools) |
+| STA_FUT_5 | Stdin support | `--data -` or `--data-stdin` to read JSON from stdin for large payloads (avoids shell arg length limits) |
+| STA_FUT_6 | Schema version check | `validate` outputs machine-readable schema version comparison (file version vs script version) to detect files written by a newer plet version |
 
 ## 16. FB Items Addressed
 
