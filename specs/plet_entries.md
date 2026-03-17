@@ -59,7 +59,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iteration ID_xxx --title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -70,8 +70,8 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_APR_INP_1 | `artifact_dir` — path to plet directory (e.g., `plet/`) | P0 |
-| ENT_APR_INP_2 | `--iteration` — iteration ID (e.g., `ID_001`) or `proj` for project-level | P0 |
-| ENT_APR_INP_3 | `--title` — iteration title (human-readable) | P0 |
+| ENT_APR_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) or `proj` for project-level | P0 |
+| ENT_APR_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_APR_INP_4 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_APR_INP_5 | `--attempt` — attempt number (positive integer) | P0 |
 | ENT_APR_INP_6 | `--status` — `IN_PROGRESS`, `COMPLETE`, `BLOCKED`, `FAILED`, `SKIPPED`, or `MIGRATED`. Required — agent must always specify. | P0 |
@@ -93,7 +93,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_APR_PRE_1 | `{artifact_dir}/progress.md` exists (will not create it) | P0 |
-| ENT_APR_PRE_2 | All required args present: `--iteration`, `--title`, `--phase`, `--attempt`, `--status`, and one of `--content` or `--content-file` | P0 |
+| ENT_APR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--phase`, `--attempt`, `--status`, and one of `--content` or `--content-file` | P0 |
 | ENT_APR_PRE_3 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_APR_PRE_4 | `--status` is a valid progress status | P0 |
 | ENT_APR_PRE_5 | `--attempt` is a positive integer | P0 |
@@ -139,7 +139,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iteration ID_xxx --category gotcha --title "..." --content "..." --phase impl --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." --phase impl --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -150,12 +150,13 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_ALR_INP_1 | `artifact_dir` — path to plet directory | P0 |
-| ENT_ALR_INP_2 | `--iteration` — iteration ID or `proj` | P0 |
-| ENT_ALR_INP_3 | `--category` — `pattern`, `gotcha`, `technique`, `tool`, `debug`, or `context` | P0 |
-| ENT_ALR_INP_4 | `--title` — short title | P0 |
-| ENT_ALR_INP_5 | `--content` — 1-5 sentences (specific and actionable) | P0 |
-| ENT_ALR_INP_6 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
-| ENT_ALR_INP_7 | `--attempt` — attempt number (positive integer) | P0 |
+| ENT_ALR_INP_2 | `--iter-id` — iteration ID or `proj` | P0 |
+| ENT_ALR_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
+| ENT_ALR_INP_4 | `--category` — `pattern`, `gotcha`, `technique`, `tool`, `debug`, or `context` | P0 |
+| ENT_ALR_INP_5 | `--title` — short title for the learning | P0 |
+| ENT_ALR_INP_6 | `--content` — 1-5 sentences (specific and actionable) | P0 |
+| ENT_ALR_INP_7 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_ALR_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
 
 #### Outputs (ENT_ALR_OUT)
 
@@ -171,7 +172,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_ALR_PRE_1 | `{artifact_dir}/learnings.md` exists | P0 |
-| ENT_ALR_PRE_2 | All required args present: `--iteration`, `--category`, `--title`, `--content`, `--phase`, `--attempt` | P0 |
+| ENT_ALR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--category`, `--title`, `--content`, `--phase`, `--attempt` | P0 |
 | ENT_ALR_PRE_3 | `--category` is a valid learning category | P0 |
 | ENT_ALR_PRE_4 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_ALR_PRE_5 | `--attempt` is a positive integer | P0 |
@@ -212,7 +213,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iteration ID_xxx --title "..." --source "[ID_xxx] title" --phase impl --category "design decision" --content "..." --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -223,9 +224,9 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_AEM_INP_1 | `artifact_dir` — path to plet directory | P0 |
-| ENT_AEM_INP_2 | `--iteration` — iteration ID or `proj` | P0 |
-| ENT_AEM_INP_3 | `--title` — short title | P0 |
-| ENT_AEM_INP_4 | `--source` — source reference (e.g., `[ID_002] Core data model`) | P0 |
+| ENT_AEM_INP_2 | `--iter-id` — iteration ID or `proj` | P0 |
+| ENT_AEM_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
+| ENT_AEM_INP_4 | `--title` — short title for the emergent item | P0 |
 | ENT_AEM_INP_5 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_AEM_INP_6 | `--category` — `design decision`, `requirement gap`, `assumption`, `scope question`, `edge case`, or `blocker` | P0 |
 | ENT_AEM_INP_7 | `--content` — description of what came up and what was decided/assumed | P0 |
@@ -245,7 +246,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_AEM_PRE_1 | `{artifact_dir}/emergent.md` exists | P0 |
-| ENT_AEM_PRE_2 | All required args present: `--iteration`, `--title`, `--source`, `--phase`, `--category`, `--content`, `--attempt` | P0 |
+| ENT_AEM_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--title`, `--phase`, `--category`, `--content`, `--attempt` | P0 |
 | ENT_AEM_PRE_3 | `--category` is a valid emergent category | P0 |
 | ENT_AEM_PRE_4 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_AEM_PRE_5 | `--attempt` is a positive integer | P0 |
@@ -289,7 +290,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <artifact_dir> --iteration ID_xxx [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -300,7 +301,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_CHK_INP_1 | `artifact_dir` — path to plet directory | P0 |
-| ENT_CHK_INP_2 | `--iteration` — iteration ID to check | P0 |
+| ENT_CHK_INP_2 | `--iter-id` — iteration ID to check | P0 |
 
 #### Outputs (ENT_CHK_OUT)
 
@@ -421,7 +422,7 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 ### ENT_AFL_3: Refine session triage
 
 1. Refine agent resolves an emergent item
-2. Agent calls `plet_entries.py add-progress` with `--phase refine --status COMPLETE --content "EM_3 approved — added as FR_12"` and `--iteration proj --title "Refine triage"`
+2. Agent calls `plet_entries.py add-progress` with `--phase refine --status COMPLETE --content "EM_3 approved — added as FR_12"` and `--iter-id proj --iter-title "Refine triage"`
 
 ## 8. Examples (ENT_EXM)
 
@@ -430,7 +431,7 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 ```bash
 # After implementing AC_1 successfully
 plet_entries.py add-progress plet/ \
-    --iteration ID_001 --title "Project scaffolding" \
+    --iter-id ID_001 --iter-title "Project scaffolding" \
     --phase impl --attempt 1 --status COMPLETE \
     --content "Initialized project with pytest, ruff. All checks pass." \
     --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
@@ -438,7 +439,8 @@ plet_entries.py add-progress plet/ \
 
 # Record what was learned
 plet_entries.py add-learning plet/ \
-    --iteration ID_001 --category technique \
+    --iter-id ID_001 --iter-title "Project scaffolding" \
+    --category technique \
     --title "ruff config needs explicit rule selection" \
     --content "Default ruff config has no rules enabled. Must add select = ['E', 'F', 'W'] to pyproject.toml." \
     --phase impl --attempt 1
@@ -446,8 +448,8 @@ plet_entries.py add-learning plet/ \
 
 # Record a design decision discovered during implementation
 plet_entries.py add-emergent plet/ \
-    --iteration ID_001 --title "Chose SQLite over PostgreSQL" \
-    --source "[ID_001] Project scaffolding" --phase impl \
+    --iter-id ID_001 --iter-title "Project scaffolding" \
+    --title "Chose SQLite over PostgreSQL" --phase impl \
     --category "design decision" \
     --content "Requirements say persistent storage without specifying engine. Chose SQLite for simplicity and zero-dep setup." \
     --attempt 1
@@ -458,14 +460,14 @@ plet_entries.py add-emergent plet/ \
 
 ```bash
 # Check that entries exist before allowing verification
-plet_entries.py check plet/ --iteration ID_001
+plet_entries.py check plet/ --iter-id ID_001
 #   OK — progress: 1 entry(ies) for ID_001
 #   OK — learnings: 1 entry(ies) for ID_001
 #   OK — emergent: 1 entry(ies) for ID_001
 # OK — all artifacts have entries for ID_001
 
 # Check with JSON output for programmatic use
-plet_entries.py check plet/ --iteration ID_002 --output json
+plet_entries.py check plet/ --iter-id ID_002 --output json
 # {"status":"error","command":"check","iteration":"ID_002","progress":0,"learnings":0,"emergent":0,"allPresent":false,...}
 ```
 
@@ -473,7 +475,7 @@ plet_entries.py check plet/ --iteration ID_002 --output json
 
 ```bash
 plet_entries.py add-progress plet/ --dry-run \
-    --iteration ID_003 --title "API endpoints" \
+    --iter-id ID_003 --iter-title "API endpoints" \
     --phase impl --attempt 1 --status COMPLETE \
     --content "GET and POST endpoints implemented."
 # DRY RUN — would append progress entry epr_01JD8X3KAQ_id003_i1 to plet/progress.md

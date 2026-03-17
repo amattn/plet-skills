@@ -15,7 +15,13 @@ All three runtime artifact entry types share the same structural pattern:
 1. **Start fence** — `<div id="plet-{pletId}"></div>`
 2. **Visual separator** — `---`
 3. **Header** — `### [header text]`
-4. **KV metadata** — `**Key:** value` lines (type-specific fields)
+4. **KV metadata** — `**Key:** value` lines. The first four are always in this order:
+   1. `**PletId:**` — unique entry identifier
+   2. `**Timestamp:**` — ISO 8601 UTC
+   3. `**Iteration:**` — `[ID_xxx] [iteration title]`
+   4. `**Phase:**` — `plan | impl | verify | refine`
+
+   Remaining KV fields are type-specific (Files changed, Category, Outcome, etc.).
 5. **Content marker** — `**Content:**`
 6. **Freeform content** — everything from the content marker to the end fence
 7. **End fence** — `<div id="END-plet-{pletId}"></div>`
@@ -181,8 +187,9 @@ Implemented OAuth redirect flow and token exchange. Blocked on token refresh —
 
 ### [category] [short title]
 **PletId:** `{pletId}`
-**Iteration:** [ID_xxx]
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
+**Iteration:** [ID_xxx] [iteration title]
+**Phase:** plan | impl | verify | refine
 
 **Content:**
 [1-5 sentences describing the learning. Be specific and actionable — future agents should be able to apply this immediately.]
@@ -212,8 +219,9 @@ If none of these categories fit, use the closest one and also create an `emergen
 
 ### [gotcha] SQLite WAL mode required for concurrent reads
 **PletId:** `eln_01JD8X3K7M_id002_i1`
-**Iteration:** [ID_002]
 **Timestamp:** 2026-03-07T15:20:00Z
+**Iteration:** [ID_002] Core data model
+**Phase:** impl
 
 **Content:**
 The default SQLite journal mode blocks readers during writes. Tests with concurrent database access fail intermittently unless WAL mode is enabled. Add `PRAGMA journal_mode=WAL;` to the database initialization code. This is already set in `src/db/init.py` but must also be set in test fixtures.
@@ -226,8 +234,9 @@ The default SQLite journal mode blocks readers during writes. Tests with concurr
 
 ### [pattern] Error codes use 12-digit debug numbers
 **PletId:** `eln_01JD8X2R00_id001_i1`
-**Iteration:** [ID_001]
 **Timestamp:** 2026-03-07T14:35:00Z
+**Iteration:** [ID_001] Project scaffolding
+**Phase:** impl
 
 **Content:**
 Every error string in this project includes a unique 12-digit debug number at the throw site (e.g., `[814209375142]`). When adding new error handling, generate a random 12-digit number and hard-code it. Never reuse numbers across the codebase. Grep for the number to find the exact source location.
@@ -240,8 +249,9 @@ Every error string in this project includes a unique 12-digit debug number at th
 
 ### [debug] OAuth token refresh returns 500 in sandbox
 **PletId:** `eln_01JD8X4200_id003_i2`
-**Iteration:** [ID_003]
 **Timestamp:** 2026-03-07T16:45:00Z
+**Iteration:** [ID_003] OAuth integration
+**Phase:** impl
 
 **Content:**
 The OAuth provider's sandbox environment returns HTTP 500 on all token refresh requests. Tried: direct API calls with curl, SDK wrapper, different grant types (authorization_code, client_credentials), different scopes. All fail with the same 500 response body: `{"error": "internal_server_error"}`. The initial token exchange works fine — only refresh is broken. Next agent should check if the sandbox is back up before attempting. If still down, consider mocking the refresh endpoint for testing.
@@ -265,11 +275,11 @@ The OAuth provider's sandbox environment returns HTTP 500 on all token refresh r
 
 ### EM_N: [short title]
 **PletId:** `{pletId}`
-- **Source:** [ID_xxx] [iteration title]
-- **Phase:** plan | impl | verify | refine
-- **Category:** design decision | requirement gap | assumption | scope question | edge case | blocker
-- **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
-- **Outcome:** pending
+**Timestamp:** YYYY-MM-DDTHH:MM:SSZ
+**Iteration:** [ID_xxx] [iteration title]
+**Phase:** plan | impl | verify | refine
+**Category:** design decision | requirement gap | assumption | scope question | edge case | blocker
+**Outcome:** pending
 
 **Content:**
 [Description of what came up and what was decided/assumed by the agent, or what needs human input]
@@ -302,11 +312,11 @@ Agents always set `Outcome: pending`. Only the Refine session (human-driven) cha
 
 ### EM_1: Chose SQLite over PostgreSQL for local storage
 **PletId:** `eem_01JD8X3800_id002_i1`
-- **Source:** [ID_002] Core data model
-- **Phase:** impl
-- **Category:** design decision
-- **Timestamp:** 2026-03-07T15:10:00Z
-- **Outcome:** pending
+**Timestamp:** 2026-03-07T15:10:00Z
+**Iteration:** [ID_002] Core data model
+**Phase:** impl
+**Category:** design decision
+**Outcome:** pending
 
 **Content:**
 The requirements specify "persistent storage" without specifying a database engine. Chose SQLite because: (1) no external service dependency, (2) single-file database simplifies deployment, (3) sufficient for the expected data volume. If PostgreSQL is preferred, the data access layer is abstracted and can be swapped.
@@ -319,11 +329,11 @@ The requirements specify "persistent storage" without specifying a database engi
 
 ### EM_2: API rate limiting not specified
 **PletId:** `eem_01JD8X3Q00_id003_v1`
-- **Source:** [ID_003] API endpoints
-- **Phase:** verify
-- **Category:** requirement gap
-- **Timestamp:** 2026-03-07T16:00:00Z
-- **Outcome:** pending
+**Timestamp:** 2026-03-07T16:00:00Z
+**Iteration:** [ID_003] API endpoints
+**Phase:** verify
+**Category:** requirement gap
+**Outcome:** pending
 
 **Content:**
 The API endpoints have no rate limiting. The requirements don't mention it, but production APIs typically need rate limiting to prevent abuse. Currently no rate limiting is implemented. Should this be added as a requirement?
@@ -344,11 +354,11 @@ When an agent blocks, the emergent entry describes what the human needs to resol
 
 ### EM_3: OAuth provider sandbox returning 500 on token refresh
 **PletId:** `eem_01JD8X4200_id003_i2`
-- **Source:** [ID_003] OAuth integration
-- **Phase:** impl
-- **Category:** blocker
-- **Timestamp:** 2026-03-07T16:45:00Z
-- **Outcome:** pending
+**Timestamp:** 2026-03-07T16:45:00Z
+**Iteration:** [ID_003] OAuth integration
+**Phase:** impl
+**Category:** blocker
+**Outcome:** pending
 
 **Content:**
 Token refresh requests to the OAuth provider's sandbox environment consistently return HTTP 500. Attempted: direct API calls, SDK wrapper, different grant types, different scopes. All fail with the same server error. This may be a provider outage or a sandbox configuration issue. The human needs to: (1) check if the provider's sandbox is operational, (2) verify API credentials and sandbox configuration, (3) consider whether to use a mock provider for testing.

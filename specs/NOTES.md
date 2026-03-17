@@ -481,6 +481,24 @@ Decisions made during §2–§3.1 review of `plet_entries.md`:
 
 **Impact:** This is a format change. Per RT_10 (additive only), adding the `**Content:**` marker is additive. Moving Files changed and Outcome above the content marker changes field ordering but not field names. Considered acceptable for pre-v1.
 
+#### KV section consistency across entry types (2026-03-16)
+
+Unified the KV metadata sections across all three entry types:
+
+1. **No bullets on emergent** — was `- **Key:**`, now `**Key:**` like progress/learning.
+2. **PletId always first, Timestamp always second** — consistent ordering.
+3. **Iteration field unified** — all three use `**Iteration:** [ID_xxx] [iteration title]`. Emergent's `**Source:**` renamed to `**Iteration:**` (same data, same format).
+4. **Phase added to learning** — progress and emergent had Phase, learning didn't. Now all three carry Phase. Attempt NOT added to learning (noise for knowledge entries; plet ID encodes it).
+
+**CLI flag rename:**
+- `--iteration` → `--iter-id` (iteration ID)
+- `--title` on progress → `--iter-title` (iteration title)
+- `--source` on emergent → `--iter-title` (was composing `[ID] title`, now uses same flag as progress)
+- `--title` stays on learning/emergent = the item's own title (goes in ### header)
+- New `--iter-title` added to learning (was missing iteration title entirely)
+
+**Rationale:** `--iter-id` and `--iter-title` are always about the iteration. `--title` is always about the item. No collisions, no dual meanings. The `--iter` prefix groups iteration fields visually.
+
 #### PLAN_7 triage reshaped by script-as-orchestrator (2026-03-15)
 
 The script-as-orchestrator architecture changes the resolution path for most PLAN_7 feedback items. Of 26 open items:
