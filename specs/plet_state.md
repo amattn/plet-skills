@@ -370,17 +370,17 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | STA_ERR_23 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
 | STA_ERR_24 | Mutually exclusive flags → `Error: --{flag1} and --{flag2} are mutually exclusive` | P0 |
 
-## 6. Input/Output Schemas (STA_IOS)
+## 6. Formats (STA_FMT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_IOS_1 | Reads per-iteration state JSON files (`plet/state/{iteration_id}.json`) | P0 |
-| STA_IOS_2 | Writes same files. Schema defined in `references/state-schema.md` § Per-Iteration State (SF_2) | P0 |
-| STA_IOS_3 | Required top-level fields: `schemaVersion`, `iterationId`, `title`, `lastUpdated`, `lifecycle`, `dependencies`, `agentId`, `agentActivity`, `attempts`, `criteria` | P0 |
-| STA_IOS_4 | Criterion two-state model: `{id, description, status, implementation: {status, evidence, timestamp, elapsedSeconds} | null, verification: ... | null}` | P0 |
-| STA_IOS_5 | Enum values: `lifecycle` — ineligible, queued, implementing, verifying, complete, blocked, withdrawn | P0 |
-| STA_IOS_6 | Enum values: `agentActivity` — idle, reading_context, implementing, running_checks, committing, wrapping_up | P0 |
-| STA_IOS_7 | Enum values: criterion `status` — not_started, fail, pass, error, skipped | P0 |
+| STA_FMT_1 | Reads per-iteration state JSON files (`plet/state/{iteration_id}.json`) | P0 |
+| STA_FMT_2 | Writes same files. Schema defined in `references/state-schema.md` § Per-Iteration State (SF_2) | P0 |
+| STA_FMT_3 | Required top-level fields: `schemaVersion`, `iterationId`, `title`, `lastUpdated`, `lifecycle`, `dependencies`, `agentId`, `agentActivity`, `attempts`, `criteria` | P0 |
+| STA_FMT_4 | Criterion two-state model: `{id, description, status, implementation: {status, evidence, timestamp, elapsedSeconds} | null, verification: ... | null}` | P0 |
+| STA_FMT_5 | Enum values: `lifecycle` — ineligible, queued, implementing, verifying, complete, blocked, withdrawn | P0 |
+| STA_FMT_6 | Enum values: `agentActivity` — idle, reading_context, implementing, running_checks, committing, wrapping_up | P0 |
+| STA_FMT_7 | Enum values: criterion `status` — not_started, fail, pass, error, skipped | P0 |
 
 ## 7. Agent Flows (STA_AFL)
 

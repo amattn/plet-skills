@@ -44,7 +44,7 @@ This was validated across three case studies: state schema drift (the most persi
 | AGT | Agent Personas | §2 |
 | EDG | Edge Cases | §4 |
 | ERR | Error Handling | §5 |
-| IOS | Input/Output Schemas | §6 |
+| FMT | Formats | §6 |
 | AFL | Agent Flows | §7 |
 | EXM | Examples | §8 |
 | DEP | Dependencies | §9 |

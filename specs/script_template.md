@@ -106,12 +106,12 @@ Edge cases often emerge during implementation or case study runs. Add them as th
 |----|-------------|----------|
 | PRE_ERR_1 | Error condition and expected message | P0 |
 
-## 6. Input/Output Schemas (IOS)
+## 6. Formats (FMT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_IOS_1 | What this script reads — file paths, formats | P0 |
-| PRE_IOS_2 | What this script writes — file paths, formats | P0 |
+| PRE_FMT_1 | What this script reads — file paths, formats | P0 |
+| PRE_FMT_2 | What this script writes — file paths, formats | P0 |
 
 ## 7. Agent Flows (AFL)
 

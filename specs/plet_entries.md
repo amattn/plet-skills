@@ -198,12 +198,12 @@ Command abbreviations: `APR` (add-progress), `ALR` (add-learning), `AEM` (add-em
 | ENT_ERR_6 | Non-integer `--attempt` → specific error message (not unhandled ValueError) | P0 |
 | ENT_ERR_7 | Artifact file not found → `Error: {path} does not exist` | P0 |
 
-## 6. Input/Output Schemas (ENT_IOS)
+## 6. Formats (ENT_FMT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_IOS_1 | Reads runtime artifact markdown files (for `check` command and `next_em_number`) | P0 |
-| ENT_IOS_2 | Writes (appends) formatted markdown entries to `progress.md`, `learnings.md`, `emergent.md` | P0 |
+| ENT_FMT_1 | Reads runtime artifact markdown files (for `check` command and `next_em_number`) | P0 |
+| ENT_FMT_2 | Writes (appends) formatted markdown entries to `progress.md`, `learnings.md`, `emergent.md` | P0 |
 
 ### Plet ID Format
 
