@@ -709,3 +709,14 @@ Audited against `specs/conventions.md`. These findings apply to the current impl
 | UNV_CMD_19 | No `--fields` support | All commands |
 | UNV_DXP_5 | Help text is syntax-only, no IMPORTANT/PITFALLS/PURPOSE | All commands |
 | UNV_ERR_4 | File-not-found produces Python traceback | STA_ERR_7, STA_ERR_9 |
+| STA_UPF_PRE_4 | Protected fields not enforced — agents can overwrite criteria/schemaVersion/lastUpdated | STA_ERR_13 |
+| STA_UPF_PRE_5 | Unknown fields not rejected — typos create unexpected fields silently | STA_ERR_14 |
+| STA_EDG_9 | No .json extension check — any file path accepted | STA_ERR_19 |
+| UNV_CMD_22 | No duplicate flag detection — last value silently wins | STA_ERR_23 |
+| STA_INI_PRE_7 | No dependency file verification — deps not checked against siblings | STA_ERR_16 |
+| STA_EDG_6 | Empty --data '{}' not rejected | STA_ERR_18 |
+| STA_INI_PRE_8 | Empty criteria array not rejected | STA_ERR_17 |
+| STA_INI_PRE_6 | No iteration ID format validation | STA_ERR_15 |
+| STA_BHV_VAL_5 | skipRationale still a separate field in schema — needs deprecation | Resolved Q #6 |
+| STA_EDG_10 | Dotted paths into protected fields not blocked | STA_ERR_20 |
+| UNV_CMD_21 | --pretty/--fields without --output json silently ignored | STA_ERR_21, STA_ERR_22 |
