@@ -25,6 +25,10 @@ This was the first enforcement script built — motivated by [describe the case 
 
 Each command gets seven sub-sections with stable-labeled requirements. Command abbreviations are script-specific (defined per spec file).
 
+### Universal Flags
+
+List universal flags (`--output json`, `--pretty`, `--fields`, `--dry-run`) in a table here, noting which commands each applies to and explicitly stating which commands do NOT support `--dry-run` (read-only commands). Per-command INP/OUT sections then list only command-specific inputs and outputs, avoiding repetition. Include JSON error behavior note (structured JSON to stdout with `status:"error"` + text to stderr, per UNV_ERR_4).
+
 ### 3.X command-name (XXX)
 
 #### Justification (JUS)
@@ -63,12 +67,13 @@ Why this command exists, when it's used, and under what conditions it might beco
 
 #### Preconditions (PRE)
 
-What must be true before this command runs. Each violated precondition should produce a specific error.
+What must be true before this command runs. Each violated precondition should produce a specific error. Always include a "all required args present" precondition listing the required flags — this connects INP → PRE → ERR explicitly.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_XXX_PRE_1 | File exists and is valid JSON | P0 |
-| PRE_XXX_PRE_2 | File contains the referenced criterion ID | P0 |
+| PRE_XXX_PRE_1 | All required args present: `--flag1`, `--flag2`, ... | P0 |
+| PRE_XXX_PRE_2 | File exists and is valid JSON | P0 |
+| PRE_XXX_PRE_3 | File contains the referenced criterion ID | P0 |
 
 #### Postconditions (PST)
 

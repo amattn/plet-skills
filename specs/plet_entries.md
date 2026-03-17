@@ -19,16 +19,29 @@ Runtime artifact entries (progress, learnings, emergent) drifted in format acros
 |----|--------|---------|---------------|
 | ENT_AGT_1 | impl subagent | after implementing a criterion | `add-progress`, `add-learning`, `add-emergent` |
 | ENT_AGT_2 | verify subagent | after verifying | `add-progress`, `add-learning`, `add-emergent` |
-| ENT_AGT_3 | refine session agent | during triage | `add-progress` (status changes), `add-emergent` |
+| ENT_AGT_3 | refine session agent | during triage | `add-progress` (status changes), `add-learning`, `add-emergent` |
 | ENT_AGT_4 | orchestrator | pre-verify gate | `check` (verify entries exist before spawning verify) |
 | ENT_AGT_5 | gate scripts | pre/post phase gates | `check` (mandatory entry enforcement) |
 | ENT_AGT_6 | human | inspection | `check` (see what exists for an iteration) |
+| ENT_AGT_7 | external GUI / monitoring tool | reads artifact files directly for real-time visualization | none — reads markdown on disk, does not call plet_entries.py |
+| ENT_AGT_8 | plan session agent | after key plan milestones (requirements approved, iterations defined, state initialized) | `add-progress` |
 
 ## 3. Commands
 
 Command abbreviations: `APR` (add-progress), `ALR` (add-learning), `AEM` (add-emergent), `CHK` (check).
 
-Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. Mutating commands (`add-progress`, `add-learning`, `add-emergent`) also support `--dry-run`. See `specs/conventions.md` UNV_CMD_17, UNV_CMD_18, UNV_CMD_19.
+### Universal Flags
+
+These flags apply to all commands. Per-command INP/OUT sections list only command-specific inputs and outputs. See `specs/conventions.md` UNV_CMD_17, UNV_CMD_18, UNV_CMD_19.
+
+| Flag | Applies to | Description |
+|------|-----------|-------------|
+| `--output json` | all commands | Structured JSON output instead of text. JSON always includes: `status`, `command`, `scriptVersion`, `timestamp`. |
+| `--pretty` | all commands | Indent JSON output (requires `--output json`) |
+| `--fields f1,f2` | all commands | Limit JSON output to named fields (requires `--output json`) |
+| `--dry-run` | mutating commands only (`add-progress`, `add-learning`, `add-emergent`) | Preview what would be appended without writing. NOT available on `check` (read-only). |
+
+**JSON error behavior:** When `--output json` is active, errors produce structured JSON to stdout with `"status":"error"` plus a text message to stderr. Exit code is still 1. Both modes always emit text to stderr for human debugging. Per UNV_ERR_4.
 
 ---
 
@@ -38,15 +51,15 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_JUS_1 | Why: records what happened in each phase attempt. Progress entries are the primary activity log — the human-readable narrative of the run. Without this tool, agents produce inconsistent headers, missing metadata fields, and malformed div markers. | P0 |
-| ENT_APR_JUS_2 | When: called by impl agents after completing a phase attempt, by verify agents after verification, and by refine agents after triage actions. Highest-frequency `add-*` command. | P0 |
+| ENT_APR_JUS_1 | Why: records what happened in each phase attempt. Progress entries are the primary activity log — the human-readable narrative of the run. Without this tool, agents produce inconsistent headers, missing metadata fields, and malformed div markers. Additionally, many entries went missing during runs — while unproven, agents may have been erroneously removing or overwriting entries when composing markdown freehand rather than appending atomically. | P0 |
+| ENT_APR_JUS_2 | When: called by impl agents after completing a phase attempt, by verify agents after verification, by refine agents after triage actions, and by plan agents after key milestones. Highest-frequency `add-*` command. | P0 |
 | ENT_APR_JUS_3 | Deprecation signal: only if progress.md is replaced by a fundamentally different activity log format. | P1 |
 
 #### Definition (ENT_APR_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iteration ID_xxx --title "..." --phase impl --attempt 1 --status COMPLETE --summary "..." [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iteration ID_xxx --title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -59,11 +72,12 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_APR_INP_1 | `artifact_dir` — path to plet directory (e.g., `plet/`) | P0 |
 | ENT_APR_INP_2 | `--iteration` — iteration ID (e.g., `ID_001`) or `proj` for project-level | P0 |
 | ENT_APR_INP_3 | `--title` — iteration title (human-readable) | P0 |
-| ENT_APR_INP_4 | `--phase` — `impl`, `verify`, or `refine` | P0 |
+| ENT_APR_INP_4 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_APR_INP_5 | `--attempt` — attempt number (positive integer) | P0 |
-| ENT_APR_INP_6 | `--status` — `COMPLETE`, `BLOCKED`, `FAILED`, `SKIPPED`, or `MIGRATED` | P0 |
-| ENT_APR_INP_7 | `--summary` — 1-3 sentence summary | P0 |
+| ENT_APR_INP_6 | `--status` — `IN_PROGRESS`, `COMPLETE`, `BLOCKED`, `FAILED`, `SKIPPED`, or `MIGRATED`. Required — agent must always specify. | P0 |
+| ENT_APR_INP_7 | `--content` — freeform content block. For BLOCKED entries, include "Work completed:" and "Work remaining:" sections. | P0 |
 | ENT_APR_INP_8 | `--files` — (optional) JSON array of `"path — description"` strings | P1 |
+| ENT_APR_INP_9 | `--content-file` — (optional) path to a file containing the content text. Mutually exclusive with `--content`. Use for long content that's awkward as a shell argument (e.g., plan session milestones, blocker details). | P1 |
 
 #### Outputs (ENT_APR_OUT)
 
@@ -79,10 +93,13 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_APR_PRE_1 | `{artifact_dir}/progress.md` exists (will not create it) | P0 |
-| ENT_APR_PRE_2 | `--phase` is `impl`, `verify`, or `refine` | P0 |
-| ENT_APR_PRE_3 | `--status` is a valid progress status | P0 |
-| ENT_APR_PRE_4 | `--attempt` is a positive integer | P0 |
-| ENT_APR_PRE_5 | `--files` is a valid JSON array if provided | P0 |
+| ENT_APR_PRE_2 | All required args present: `--iteration`, `--title`, `--phase`, `--attempt`, `--status`, and one of `--content` or `--content-file` | P0 |
+| ENT_APR_PRE_3 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_APR_PRE_4 | `--status` is a valid progress status | P0 |
+| ENT_APR_PRE_5 | `--attempt` is a positive integer | P0 |
+| ENT_APR_PRE_6 | `--files` is a valid JSON array if provided | P0 |
+| ENT_APR_PRE_7 | Exactly one of `--content` or `--content-file` must be provided | P0 |
+| ENT_APR_PRE_8 | If `--content-file` is provided, the file must exist and be readable | P0 |
 
 #### Postconditions (ENT_APR_PST)
 
@@ -92,6 +109,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_APR_PST_2 | Entry has unique plet ID (epr prefix) | P0 |
 | ENT_APR_PST_3 | No `.tmp` residue files | P0 |
 | ENT_APR_PST_4 | Existing content in `progress.md` is not modified | P0 |
+| ENT_APR_PST_5 | Entry contains all required metadata fields: PletId, Timestamp, Iteration, Phase, Attempt, Files changed, Content | P0 |
 
 #### Behaviors (ENT_APR_BHV)
 
@@ -102,6 +120,8 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_APR_BHV_3 | Atomically append to `{artifact_dir}/progress.md` | P0 |
 | ENT_APR_BHV_4 | File must already exist — will not create it | P0 |
 | ENT_APR_BHV_5 | If `--files` omitted or empty array, produce `- (none)` in files list | P1 |
+| ENT_APR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
+| ENT_APR_BHV_7 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error | P0 |
 
 ---
 
@@ -134,7 +154,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_ALR_INP_3 | `--category` — `pattern`, `gotcha`, `technique`, `tool`, `debug`, or `context` | P0 |
 | ENT_ALR_INP_4 | `--title` — short title | P0 |
 | ENT_ALR_INP_5 | `--content` — 1-5 sentences (specific and actionable) | P0 |
-| ENT_ALR_INP_6 | `--phase` — `impl`, `verify`, or `refine` | P0 |
+| ENT_ALR_INP_6 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_ALR_INP_7 | `--attempt` — attempt number (positive integer) | P0 |
 
 #### Outputs (ENT_ALR_OUT)
@@ -151,9 +171,10 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_ALR_PRE_1 | `{artifact_dir}/learnings.md` exists | P0 |
-| ENT_ALR_PRE_2 | `--category` is a valid learning category | P0 |
-| ENT_ALR_PRE_3 | `--phase` is `impl`, `verify`, or `refine` | P0 |
-| ENT_ALR_PRE_4 | `--attempt` is a positive integer | P0 |
+| ENT_ALR_PRE_2 | All required args present: `--iteration`, `--category`, `--title`, `--content`, `--phase`, `--attempt` | P0 |
+| ENT_ALR_PRE_3 | `--category` is a valid learning category | P0 |
+| ENT_ALR_PRE_4 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_ALR_PRE_5 | `--attempt` is a positive integer | P0 |
 
 #### Postconditions (ENT_ALR_PST)
 
@@ -163,6 +184,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_ALR_PST_2 | Entry has unique plet ID (eln prefix) | P0 |
 | ENT_ALR_PST_3 | No `.tmp` residue files | P0 |
 | ENT_ALR_PST_4 | Existing content in `learnings.md` is not modified | P0 |
+| ENT_ALR_PST_5 | Entry contains all required metadata fields: PletId, Iteration, Timestamp, category tag in header, content | P0 |
 
 #### Behaviors (ENT_ALR_BHV)
 
@@ -172,6 +194,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_ALR_BHV_2 | Build formatted entry matching `references/formats.md` RT_2: div markers, category tag, metadata, content | P0 |
 | ENT_ALR_BHV_3 | Atomically append to `{artifact_dir}/learnings.md` | P0 |
 | ENT_ALR_BHV_4 | File must already exist — will not create it | P0 |
+| ENT_ALR_BHV_5 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error | P0 |
 
 ---
 
@@ -193,7 +216,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
-**Concurrency:** safe for appends. EM_N auto-numbering has a race condition: parallel agents both scan for max EM_N, both get the same number, both write the same EM_N. Documented, not prevented — parallel emergent writes within the same iteration are rare.
+**Concurrency:** safe for appends. EM_N auto-numbering has a race condition: parallel agents both scan for max EM_N, both get the same number, both write the same EM_N. Plet IDs remain unique regardless. Duplicate EM_N entries are detected and renumbered during refine (cost pushed to the rare case where it actually happens).
 
 #### Inputs (ENT_AEM_INP)
 
@@ -203,7 +226,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_AEM_INP_2 | `--iteration` — iteration ID or `proj` | P0 |
 | ENT_AEM_INP_3 | `--title` — short title | P0 |
 | ENT_AEM_INP_4 | `--source` — source reference (e.g., `[ID_002] Core data model`) | P0 |
-| ENT_AEM_INP_5 | `--phase` — `impl`, `verify`, or `refine` | P0 |
+| ENT_AEM_INP_5 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_AEM_INP_6 | `--category` — `design decision`, `requirement gap`, `assumption`, `scope question`, `edge case`, or `blocker` | P0 |
 | ENT_AEM_INP_7 | `--content` — description of what came up and what was decided/assumed | P0 |
 | ENT_AEM_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
@@ -214,7 +237,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 |----|-------------|----------|
 | ENT_AEM_OUT_1 | Text mode success: `OK — {plet_id} EM_{N}` to stdout, exit 0 | P0 |
 | ENT_AEM_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| ENT_AEM_OUT_3 | JSON mode: `{"status":"ok","command":"add-emergent","pletId":"...","emNumber":N,"path":"...","category":"...",...}` | P0 |
+| ENT_AEM_OUT_3 | JSON mode: `{"status":"ok","command":"add-emergent","pletId":"...","referenceId":"EM_N","path":"...","category":"...",...}` | P0 |
 | ENT_AEM_OUT_4 | Dry-run: `DRY RUN — would append emergent entry {plet_id} EM_{N} to {path}` — no file modification, exit 0 | P0 |
 
 #### Preconditions (ENT_AEM_PRE)
@@ -222,9 +245,10 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_AEM_PRE_1 | `{artifact_dir}/emergent.md` exists | P0 |
-| ENT_AEM_PRE_2 | `--category` is a valid emergent category | P0 |
-| ENT_AEM_PRE_3 | `--phase` is `impl`, `verify`, or `refine` | P0 |
-| ENT_AEM_PRE_4 | `--attempt` is a positive integer | P0 |
+| ENT_AEM_PRE_2 | All required args present: `--iteration`, `--title`, `--source`, `--phase`, `--category`, `--content`, `--attempt` | P0 |
+| ENT_AEM_PRE_3 | `--category` is a valid emergent category | P0 |
+| ENT_AEM_PRE_4 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_AEM_PRE_5 | `--attempt` is a positive integer | P0 |
 
 #### Postconditions (ENT_AEM_PST)
 
@@ -236,6 +260,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_AEM_PST_4 | Outcome set to `pending` | P0 |
 | ENT_AEM_PST_5 | No `.tmp` residue files | P0 |
 | ENT_AEM_PST_6 | Existing content in `emergent.md` is not modified | P0 |
+| ENT_AEM_PST_7 | Entry contains all required metadata fields: PletId, Source, Phase, Category, Timestamp, content, Outcome | P0 |
 
 #### Behaviors (ENT_AEM_BHV)
 
@@ -246,6 +271,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 | ENT_AEM_BHV_3 | Outcome always set to `pending` (triaged during refine) | P0 |
 | ENT_AEM_BHV_4 | Atomically append to `{artifact_dir}/emergent.md` | P0 |
 | ENT_AEM_BHV_5 | File must already exist — will not create it | P0 |
+| ENT_AEM_BHV_6 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error | P0 |
 
 ---
 
@@ -320,12 +346,14 @@ Missing artifact files count as 0 entries, not an error — this allows `check` 
 | ENT_EDG_4 | No existing emergent entries — `EM_1` assigned as first number | P0 |
 | ENT_EDG_5 | `--files` as empty JSON array `'[]'` — produce `- (none)` in entry | P1 |
 | ENT_EDG_6 | Multiple entries for same iteration — each gets a unique plet ID (timestamp-based uniqueness) | P0 |
-| ENT_EDG_7 | Concurrent appends from parallel agents — `atomic_append` prevents interleaving but entries may appear out of order. EM_N numbering has a race condition (documented, not prevented). | P0 |
+| ENT_EDG_7 | Concurrent appends from parallel agents — `atomic_append` prevents interleaving but entries may appear out of order. EM_N numbering has a race condition — duplicate EM_N possible. Plet IDs remain unique. Duplicates detected and renumbered during refine. | P0 |
 | ENT_EDG_8 | Non-integer `--attempt` — clean error message (not Python traceback) | P0 |
 | ENT_EDG_9 | `--dry-run` on `add-emergent` — scans for next EM_N but does not append | P0 |
 | ENT_EDG_10 | `--pretty` without `--output json` — error | P0 |
 | ENT_EDG_11 | `--fields` without `--output json` — error | P0 |
 | ENT_EDG_12 | Duplicate flags — error via `parse_kwargs` | P0 |
+| ENT_EDG_13 | Content contains fence patterns — rejected with error. Prevents parser breakage. | P0 |
+| ENT_EDG_14 | Both `--content` and `--content-file` provided — mutually exclusive error | P0 |
 
 ## 5. Error Handling (ENT_ERR)
 
@@ -334,8 +362,8 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_ERR_1 | Missing required args → print specific missing arg name + help text, exit 1 | P0 |
-| ENT_ERR_2 | Invalid phase → `Error: invalid --phase '{phase}' (valid: impl, verify, refine)` | P0 |
-| ENT_ERR_3 | Invalid status (progress) → `Error: invalid --status '{status}' (valid: COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED)` | P0 |
+| ENT_ERR_2 | Invalid phase → `Error: invalid --phase '{phase}' (valid: plan, impl, verify, refine)` | P0 |
+| ENT_ERR_3 | Invalid status (progress) → `Error: invalid --status '{status}' (valid: IN_PROGRESS, COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED)` | P0 |
 | ENT_ERR_4 | Invalid category (learning) → `Error: invalid --category '{category}' (valid: pattern, gotcha, technique, tool, debug, context)` | P0 |
 | ENT_ERR_5 | Invalid category (emergent) → `Error: invalid --category '{category}' (valid: design decision, requirement gap, assumption, scope question, edge case, blocker)` | P0 |
 | ENT_ERR_6 | Invalid JSON in `--files` → `Error: --files must be valid JSON array: {parse_error}` | P0 |
@@ -344,6 +372,9 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ENT_ERR_9 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | ENT_ERR_10 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | ENT_ERR_11 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
+| ENT_ERR_12 | Content contains fence pattern → `Error: content must not contain plet fence markers (<div id="plet-..." or <div id="END-plet-...")` | P0 |
+| ENT_ERR_13 | Both `--content` and `--content-file` provided → `Error: --content and --content-file are mutually exclusive` | P0 |
+| ENT_ERR_14 | `--content-file` path not found → `Error: content file not found: {path}` | P0 |
 
 ## 6. Formats (ENT_FMT)
 
@@ -363,7 +394,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | Type prefix | `epr` (progress), `eln` (learning), `eem` (emergent) | `epr` |
 | Timestamp | 10-char Crockford Base32 (milliseconds since epoch) | `01JD8X3K7M` |
 | Iteration | lowercase, no underscore: `ID_001` → `id001`, or `proj` | `id001` |
-| Phase | `i` (impl), `v` (verify), `r` (refine) + attempt number | `i1` |
+| Phase | `i` (impl), `v` (verify), `r` (refine), `p` (plan) + attempt number | `i1` |
 
 Full example: `epr_01JD8X3K7M_id001_i1`
 
@@ -390,7 +421,7 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 ### ENT_AFL_3: Refine session triage
 
 1. Refine agent resolves an emergent item
-2. Agent calls `plet_entries.py add-progress` with `--phase refine --status COMPLETE --summary "EM_3 approved — added as FR_12"` and `--iteration proj --title "Refine triage"`
+2. Agent calls `plet_entries.py add-progress` with `--phase refine --status COMPLETE --content "EM_3 approved — added as FR_12"` and `--iteration proj --title "Refine triage"`
 
 ## 8. Examples (ENT_EXM)
 
@@ -401,7 +432,7 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 plet_entries.py add-progress plet/ \
     --iteration ID_001 --title "Project scaffolding" \
     --phase impl --attempt 1 --status COMPLETE \
-    --summary "Initialized project with pytest, ruff. All checks pass." \
+    --content "Initialized project with pytest, ruff. All checks pass." \
     --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
 # OK — epr_01JD8X3K7M_id001_i1
 
@@ -444,7 +475,7 @@ plet_entries.py check plet/ --iteration ID_002 --output json
 plet_entries.py add-progress plet/ --dry-run \
     --iteration ID_003 --title "API endpoints" \
     --phase impl --attempt 1 --status COMPLETE \
-    --summary "GET and POST endpoints implemented."
+    --content "GET and POST endpoints implemented."
 # DRY RUN — would append progress entry epr_01JD8X3KAQ_id003_i1 to plet/progress.md
 ```
 
@@ -517,16 +548,19 @@ See `specs/conventions.md` for universal requirements.
 | 4 | Should `add-*` success output prefix with `OK —`? | Yes — `OK — {plet_id}` for consistency with other scripts. Scripts capturing the ID parse after `OK — `. |
 | 5 | Should `--attempt` validate as integer? | Yes — wrap in try/except, produce specific error message. |
 | 6 | Should error paths print HELP text? | Yes — per UNV_CMD_16, print HELP to stderr after the error message. |
-| 7 | FB_44: multiline content support? | Deferred to ENT_FUT_1. Current `--summary` and `--content` flags accept single-line strings. |
+| 7 | FB_44: multiline content support? | Resolved — `--content-file` added (ENT_APR_INP_9). All three commands unified to `--content`/`--content-file`. |
+| 8 | Unified entry format? | Yes — all three entry types share KV metadata on top, `**Content:**` marker, freeform content block until end fence. See specs/NOTES.md for full rationale. |
+| 9 | Fencing safety? | Reject content containing fence patterns. Agent-first: fail loudly rather than silently escaping. |
 
 ## 15. Future Considerations (ENT_FUT)
 
 | ID | Area | Description |
 |----|------|-------------|
-| ENT_FUT_1 | Multiline progress content | `--content` or `--content-file` flag for `add-progress` (FB_44). Would allow richer summaries without shell quoting issues. |
-| ENT_FUT_2 | Entry querying | A `query` command to search entries by iteration, phase, category. Currently agents grep the files directly. |
-| ENT_FUT_3 | Format migration | If entry format changes, a migration tool for existing entries. |
-| ENT_FUT_4 | BLOCKED variant | Progress entries with `--status BLOCKED` could require `--work-completed` and `--work-remaining` fields per formats.md blocker variant. |
+| ENT_FUT_1 | ~~Multiline progress content~~ | Resolved — `--content-file` added as ENT_APR_INP_9. |
+| ENT_FUT_2 | --content-file for add-learning and add-emergent | Read content from a file path (same pattern as `--content-file` for add-progress). Low priority — learning/emergent content is typically short, comfortable as a CLI arg. Add if agents produce longer entries. |
+| ENT_FUT_3 | Entry querying | A `query` command to search entries by iteration, phase, category. Currently agents grep the files directly. |
+| ENT_FUT_4 | Format migration | If entry format changes, a migration tool for existing entries. |
+| ENT_FUT_5 | BLOCKED variant | Progress entries with `--status BLOCKED` could require `--work-completed` and `--work-remaining` fields per formats.md blocker variant. |
 
 ## 16. FB Items Addressed
 

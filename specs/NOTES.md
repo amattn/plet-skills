@@ -415,6 +415,72 @@ specs/
 
 **Rejected:** Single tooling section in prd.md (can't capture per-script edge cases), separate prd-tooling.md (unnecessary ceremony), specs inside skill package (conflates design artifacts with shipped code), no specs at all (loses traceability), moving prd.md into specs/ (PRD is a different artifact type — mixing it with script specs muddies the directory's purpose).
 
+#### ENT spec review decisions (2026-03-16)
+
+Decisions made during §2–§3.1 review of `plet_entries.md`:
+
+1. **GUI persona added (ENT_AGT_7):** External GUI reads artifact files directly for visualization. Same pattern as STA_AGT_8. Drives atomic append requirement — GUI must never see partial entries.
+
+2. **Plan session agent added (ENT_AGT_8):** Plan agent writes progress entries after key milestones (requirements approved, iterations defined, state initialized). Uses `add-progress` only.
+
+3. **Refine agent uses add-learning (ENT_AGT_3 updated):** Refine sessions produce learnings from triage patterns. Was `add-progress, add-emergent` → now `add-progress, add-learning, add-emergent`.
+
+4. **`plan` added as valid phase:** Phase list is now `plan, impl, verify, refine` (in workflow order). Plet ID segment: `p` (plan-1 → `p1`). Affects all command INP sections, error messages, format table.
+
+5. **Phase ordering convention:** Always list in workflow order: plan, impl, verify, refine. Not alphabetical, not by frequency.
+
+6. **Universal Inputs section (spec + template):** Universal flags (`--output json`, `--pretty`, `--fields`, `--dry-run`) listed once in a table under §3 before per-command sections. Each flag notes which commands it applies to, explicitly stating `--dry-run` is NOT available on read-only commands. Template updated with this convention.
+
+7. **`--summary-file` flag added (ENT_APR_INP_9, P1):** Reads summary from a file path. Resolves FB_44 (multiline progress content). Mutually exclusive with `--summary`. Use for long content awkward as shell args (plan milestones, blocker details). ENT_FUT_1 marked resolved.
+
+8. **Blocker content embedded in summary:** BLOCKED entries include "Work completed:" and "Work remaining:" sections as part of `--summary` or `--summary-file` content. Tool stays thin — enforces the envelope (fencing, metadata, IDs), content is freeform. Rejected separate `--work-completed`/`--work-remaining` flags. **Rationale:** adding flags for every format variant doesn't scale. The div fencing gives GUI entry boundaries; within entries, markdown structure is parseable enough.
+
+9. **IN_PROGRESS added to valid progress statuses:** Status list is now IN_PROGRESS, COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED. Needed for interim "as things come up" entries (EX_9) and plan session checkpoints. COMPLETE for a checkpoint is misleading — IN_PROGRESS is honest. **--status remains required** (not optional with default) — agent must always specify.
+
+10. **Missing entries motivation (ENT_APR_JUS_1):** Added second failure mode: entries went missing during runs, possibly from agents erroneously removing/overwriting when composing markdown freehand. Atomic append addresses both format drift and content loss.
+
+#### Unified entry format — KV metadata + freeform content block (2026-03-16)
+
+**Decision:** All three runtime artifact entry types (progress, learning, emergent) share the same structural pattern: KV metadata lines on top, then a `**Content:**` marker, then freeform content until the end fence.
+
+**Structure:**
+```
+<div id="plet-{id}"></div>
+
+---
+
+### [header]
+**Key:** value
+**Key:** value
+...
+**Content:**
+[freeform content — everything until end fence]
+
+<div id="END-plet-{id}"></div>
+```
+
+**What moves to KV section:**
+- Progress: Files changed stays as KV (`**Files changed:**` + bullet list above the content marker)
+- Emergent: Outcome stays as KV (`**Outcome:** pending` above the content marker)
+
+**CLI flag unification:** `--summary` (progress) and `--content` (learning/emergent) unified to `--content` and `--content-file` across all three commands. `--summary-file` becomes `--content-file`.
+
+**Fencing safety:** Content must not contain fence patterns (`<div id="plet-` or `<div id="END-plet-`). Script rejects with error if detected. Agent-first: fail loudly rather than silently escaping.
+
+**Rationale:**
+- Tool is simpler (one builder pattern, not three)
+- GUI is simpler (one parser — scan for `**Content:**` line, everything after it is the body)
+- Format is easier to explain and extend
+- `**Content:**` marker makes the KV→freeform boundary explicit and machine-parseable
+
+**Cascading changes needed:**
+- `references/formats.md` — update all three entry format templates
+- `specs/plet_entries.md` — rename --summary/--summary-file to --content/--content-file for add-progress, unify INP/BHV sections
+- `prd.md` — RT_1 description may need update (references "summary")
+- Existing case study artifacts — old format still parseable (fencing unchanged), but new entries use new format
+
+**Impact:** This is a format change. Per RT_10 (additive only), adding the `**Content:**` marker is additive. Moving Files changed and Outcome above the content marker changes field ordering but not field names. Considered acceptable for pre-v1.
+
 #### PLAN_7 triage reshaped by script-as-orchestrator (2026-03-15)
 
 The script-as-orchestrator architecture changes the resolution path for most PLAN_7 feedback items. Of 26 open items:

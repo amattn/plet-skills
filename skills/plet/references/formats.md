@@ -29,7 +29,7 @@ All agents read `progress.md`, `learnings.md`, and `emergent.md` at the start of
 Every runtime artifact entry gets a globally unique plet ID per the Plet ID Scheme defined in `prd.md` (section 3.6). Runtime artifact entries use the following context segments after the type prefix and Crockford timestamp:
 
 - **Iteration:** iteration ID lowercased, underscores removed (e.g., `ID_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`.
-- **Phase/attempt:** `i1` (impl attempt 1), `v2` (verify attempt 2), `r1` (refine session 1)
+- **Phase/attempt:** `p1` (plan session 1), `i1` (impl attempt 1), `v2` (verify attempt 2), `r1` (refine session 1)
 
 Examples:
 - `epr_01JD8X3K7M_id001_i1` — progress entry, impl attempt 1
@@ -63,7 +63,7 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 **Iteration:** [ID_xxx] [iteration title]
-**Phase:** impl | verify | refine
+**Phase:** plan | impl | verify | refine
 **Attempt:** N
 
 **Summary:**
@@ -80,6 +80,7 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 
 | Status | Meaning |
 |--------|---------|
+| `IN_PROGRESS` | Work underway — interim checkpoint, not a terminal status |
 | `COMPLETE` | Phase finished successfully |
 | `BLOCKED` | Agent encountered an unresolvable issue |
 | `FAILED` | Phase failed, will be retried |
@@ -248,7 +249,7 @@ The OAuth provider's sandbox environment returns HTTP 500 on all token refresh r
 ### EM_N: [short title]
 **PletId:** `{pletId}`
 - **Source:** [ID_xxx] [iteration title]
-- **Phase:** impl | verify | refine
+- **Phase:** plan | impl | verify | refine
 - **Category:** design decision | requirement gap | assumption | scope question | edge case | blocker
 - **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 

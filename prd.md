@@ -287,7 +287,7 @@ Plet IDs are a composable, globally unique identifier scheme used across plet ar
 | Context Segment | Description |
 |-----------------|-------------|
 | iteration | Iteration ID normalized: lowercase, underscores removed (`ID_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`. |
-| phase_attempt | Phase and attempt: `i1` (impl attempt 1), `v2` (verify attempt 2), `r1` (refine session 1) |
+| phase_attempt | Phase and attempt: `p1` (plan session 1), `i1` (impl attempt 1), `v2` (verify attempt 2), `r1` (refine session 1) |
 
 **Known type prefixes:**
 

@@ -83,6 +83,18 @@ Rules that must not be violated. An agent breaking these breaks the system.
 - Fix: inline template + "match exactly" language in execute.md and verify.md. formats.md remains source of truth.
 - **Next step if agents still drift:** validator tool (grep for div markers, check required fields) or generator tool (shell helper that outputs correctly-formatted entries from args). jq-style enforcement is also an option for state files (FB_12). Decided to try the lighter-weight approach first. (2026-03-12)
 
+#### Unified entry format — KV metadata + Content block (2026-03-16)
+
+All three runtime artifact entries (progress, learning, emergent) now share the same structural pattern: KV metadata lines on top, then a `**Content:**` marker, then freeform content until the end fence. This replaces the previous per-type variations (progress had Summary/Files sections, learning had bare content, emergent had content + Outcome).
+
+- **Files changed** (progress) and **Outcome** (emergent) stay in the KV section above the content marker
+- CLI flags unified: `--summary`/`--summary-file` → `--content`/`--content-file` across all three add-* commands
+- Fencing safety: content must not contain fence patterns (`<div id="plet-` or `<div id="END-plet-`). Script rejects with error if detected.
+- `**Content:**` marker makes the KV→freeform boundary explicit and machine-parseable for GUI tools
+- Per RT_10 (additive only), adding the Content marker is additive. Acceptable for pre-v1.
+
+See `specs/NOTES.md` for full cascading changes list.
+
 #### Spec artifacts must survive plan → loop → refine (FB_16)
 - LIBT lost requirements.md and iterations.md — project unresumable
 - Two-layer fix: (1) plan.md Step 8.4 checkpoint verifies files exist on disk and are committed, (2) execute.md pre-flight blocks if spec artifacts are missing
