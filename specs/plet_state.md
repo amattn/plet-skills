@@ -271,6 +271,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_INI_INP_3 | `--title` — human-readable title | P0 |
 | STA_INI_INP_4 | `--dependencies` — JSON array of dependency iteration IDs (use `'[]'` for none) | P0 |
 | STA_INI_INP_5 | `--criteria` — JSON array of objects with `id` and `description` fields | P0 |
+| STA_INI_INP_6 | `--no-verify-deps` — skip dependency file existence check (boolean flag, for out-of-order or parallel creation) | P1 |
 
 #### Outputs (STA_INI_OUT)
 
@@ -290,6 +291,8 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_INI_PRE_3 | `--criteria` is a valid JSON array | P0 |
 | STA_INI_PRE_4 | Each object in `--criteria` has `id` and `description` string fields | P0 |
 | STA_INI_PRE_5 | Parent directory exists | P0 |
+| STA_INI_PRE_6 | `--iteration-id` matches pattern `ID_N+` (e.g., `ID_1`, `ID_001`, `ID_0042`). Prefix `ID_` required, followed by one or more digits. Zero-padding accepted but not required. | P0 |
+| STA_INI_PRE_7 | Each ID in `--dependencies` has a corresponding `{id}.json` file in the same directory as the target file. Error if not found. Use `--no-verify-deps` to skip this check (for out-of-order or parallel creation). | P0 |
 
 #### Postconditions (STA_INI_PST)
 
@@ -347,6 +350,8 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | STA_ERR_12 | Malformed criteria object in `init` → `Error: --criteria[{index}] missing required field '{field}'` (checked at parse time, before validate) | P0 |
 | STA_ERR_13 | Protected field in `update-field` → `Error: '{field}' is a protected field — use update-criterion to modify criteria, init for schemaVersion. lastUpdated is auto-set.` | P0 |
 | STA_ERR_14 | Unknown field in `update-field` → `Error: unknown field '{field}' (valid fields: lifecycle, dependencies, agentId, agentActivity, ...)` | P0 |
+| STA_ERR_15 | Invalid iteration ID format → `Error: --iteration-id '{value}' does not match expected pattern ID_N+ (e.g., ID_001)` | P0 |
+| STA_ERR_16 | Dependency file not found → `Error: dependency '{id}' not found — expected {dir}/{id}.json. Use --no-verify-deps to skip this check.` | P0 |
 
 ## 6. Input/Output Schemas (STA_IOS)
 
