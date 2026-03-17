@@ -1,8 +1,10 @@
 # plet_entries.py (ENT)
 
-> Status: draft — retroactive spec. Script exists, spec documenting current behavior + known issues. Needs review and refinement.
+> Status: complete
 
 ## 1. Purpose (ENT_PUR)
+
+Runtime artifact entries (progress, learnings, emergent) drifted in format across iterations — agents composed markdown freehand and each invented its own structure. This script makes format compliance automatic, the same approach that succeeded for state files (plet_state.py).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -26,152 +28,287 @@
 
 Command abbreviations: `APR` (add-progress), `ALR` (add-learning), `AEM` (add-emergent), `CHK` (check).
 
+Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. Mutating commands (`add-progress`, `add-learning`, `add-emergent`) also support `--dry-run`. See `specs/conventions.md` UNV_CMD_17, UNV_CMD_18, UNV_CMD_19.
+
+---
+
 ### 3.1 add-progress (APR)
 
-#### Definition (CMD)
+#### Justification (ENT_APR_JUS)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CMD_APR_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iteration ID_xxx --title "..." --phase impl --attempt 1 --status COMPLETE --summary "..." [--files '["path — desc"]']` | P0 |
-| ENT_CMD_APR_2 | Append a formatted progress entry to `progress.md` | P0 |
+| ENT_APR_JUS_1 | Why: records what happened in each phase attempt. Progress entries are the primary activity log — the human-readable narrative of the run. Without this tool, agents produce inconsistent headers, missing metadata fields, and malformed div markers. | P0 |
+| ENT_APR_JUS_2 | When: called by impl agents after completing a phase attempt, by verify agents after verification, and by refine agents after triage actions. Highest-frequency `add-*` command. | P0 |
+| ENT_APR_JUS_3 | Deprecation signal: only if progress.md is replaced by a fundamentally different activity log format. | P1 |
 
-#### Inputs (INP)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| ENT_INP_APR_1 | `artifact_dir` — path to plet directory (e.g., `plet/`) | P0 |
-| ENT_INP_APR_2 | `--iteration` — iteration ID or `proj` for project-level | P0 |
-| ENT_INP_APR_3 | `--title` — iteration title (human-readable) | P0 |
-| ENT_INP_APR_4 | `--phase` — `impl`, `verify`, or `refine` | P0 |
-| ENT_INP_APR_5 | `--attempt` — attempt number (integer) | P0 |
-| ENT_INP_APR_6 | `--status` — `COMPLETE`, `BLOCKED`, `FAILED`, `SKIPPED`, or `MIGRATED` | P0 |
-| ENT_INP_APR_7 | `--summary` — 1-3 sentence summary | P0 |
-| ENT_INP_APR_8 | `--files` — (optional) JSON array of `"path — description"` strings | P1 |
-
-#### Outputs (OUT)
+#### Definition (ENT_APR_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_OUT_APR_1 | On success: print the generated plet ID to stdout, exit 0 | P0 |
-| ENT_OUT_APR_2 | On error: specific error message to stderr, exit 1 | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iteration ID_xxx --title "..." --phase impl --attempt 1 --status COMPLETE --summary "..." [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
-#### Behaviors (BHV)
+**Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
+
+**Concurrency:** safe — atomic append prevents interleaving. Entries may appear out of order when parallel agents write.
+
+#### Inputs (ENT_APR_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_BHV_APR_1 | Generate plet ID: `epr_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
-| ENT_BHV_APR_2 | Build formatted entry with div markers, metadata fields, summary, files list | P0 |
-| ENT_BHV_APR_3 | Atomically append to `{artifact_dir}/progress.md` | P0 |
-| ENT_BHV_APR_4 | File must already exist — will not create it | P0 |
-| ENT_BHV_APR_5 | If `--files` omitted or empty, produce `- (none)` in files list | P1 |
+| ENT_APR_INP_1 | `artifact_dir` — path to plet directory (e.g., `plet/`) | P0 |
+| ENT_APR_INP_2 | `--iteration` — iteration ID (e.g., `ID_001`) or `proj` for project-level | P0 |
+| ENT_APR_INP_3 | `--title` — iteration title (human-readable) | P0 |
+| ENT_APR_INP_4 | `--phase` — `impl`, `verify`, or `refine` | P0 |
+| ENT_APR_INP_5 | `--attempt` — attempt number (positive integer) | P0 |
+| ENT_APR_INP_6 | `--status` — `COMPLETE`, `BLOCKED`, `FAILED`, `SKIPPED`, or `MIGRATED` | P0 |
+| ENT_APR_INP_7 | `--summary` — 1-3 sentence summary | P0 |
+| ENT_APR_INP_8 | `--files` — (optional) JSON array of `"path — description"` strings | P1 |
+
+#### Outputs (ENT_APR_OUT)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_APR_OUT_1 | Text mode success: `OK — {plet_id}` to stdout, exit 0 | P0 |
+| ENT_APR_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
+| ENT_APR_OUT_3 | JSON mode: `{"status":"ok","command":"add-progress","pletId":"...","path":"...","iteration":"...","phase":"...","attempt":N,...}` | P0 |
+| ENT_APR_OUT_4 | Dry-run: `DRY RUN — would append progress entry {plet_id} to {path}` — no file modification, exit 0 | P0 |
+
+#### Preconditions (ENT_APR_PRE)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_APR_PRE_1 | `{artifact_dir}/progress.md` exists (will not create it) | P0 |
+| ENT_APR_PRE_2 | `--phase` is `impl`, `verify`, or `refine` | P0 |
+| ENT_APR_PRE_3 | `--status` is a valid progress status | P0 |
+| ENT_APR_PRE_4 | `--attempt` is a positive integer | P0 |
+| ENT_APR_PRE_5 | `--files` is a valid JSON array if provided | P0 |
+
+#### Postconditions (ENT_APR_PST)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_APR_PST_1 | Entry appended to `progress.md` with correct div markers | P0 |
+| ENT_APR_PST_2 | Entry has unique plet ID (epr prefix) | P0 |
+| ENT_APR_PST_3 | No `.tmp` residue files | P0 |
+| ENT_APR_PST_4 | Existing content in `progress.md` is not modified | P0 |
+
+#### Behaviors (ENT_APR_BHV)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_APR_BHV_1 | Generate plet ID: `epr_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
+| ENT_APR_BHV_2 | Build formatted entry matching `references/formats.md` RT_1: div markers, horizontal rule, header, metadata fields, summary, files list | P0 |
+| ENT_APR_BHV_3 | Atomically append to `{artifact_dir}/progress.md` | P0 |
+| ENT_APR_BHV_4 | File must already exist — will not create it | P0 |
+| ENT_APR_BHV_5 | If `--files` omitted or empty array, produce `- (none)` in files list | P1 |
+
+---
 
 ### 3.2 add-learning (ALR)
 
-#### Definition (CMD)
+#### Justification (ENT_ALR_JUS)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CMD_ALR_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iteration ID_xxx --category gotcha --title "..." --content "..." --phase impl --attempt 1` | P0 |
-| ENT_CMD_ALR_2 | Append a formatted learning entry to `learnings.md` | P0 |
+| ENT_ALR_JUS_1 | Why: records knowledge gained during implementation or verification. Learnings are the cross-iteration knowledge base — future agents read them to avoid repeating mistakes. Format consistency matters because learnings are consumed by agents, not just humans. | P0 |
+| ENT_ALR_JUS_2 | When: called by impl/verify agents whenever they discover something useful. The R_7 mandatory entry rule requires at least one learning per iteration. | P0 |
+| ENT_ALR_JUS_3 | Deprecation signal: only if learnings.md is replaced by a fundamentally different knowledge format. | P1 |
 
-#### Inputs (INP)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| ENT_INP_ALR_1 | `artifact_dir` — path to plet directory | P0 |
-| ENT_INP_ALR_2 | `--iteration` — iteration ID or `proj` | P0 |
-| ENT_INP_ALR_3 | `--category` — `pattern`, `gotcha`, `technique`, `tool`, `debug`, or `context` | P0 |
-| ENT_INP_ALR_4 | `--title` — short title | P0 |
-| ENT_INP_ALR_5 | `--content` — 1-5 sentences (specific and actionable) | P0 |
-| ENT_INP_ALR_6 | `--phase` — `impl`, `verify`, or `refine` | P0 |
-| ENT_INP_ALR_7 | `--attempt` — attempt number (integer) | P0 |
-
-#### Outputs (OUT)
+#### Definition (ENT_ALR_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_OUT_ALR_1 | On success: print the generated plet ID to stdout, exit 0 | P0 |
-| ENT_OUT_ALR_2 | On error: specific error message to stderr, exit 1 | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iteration ID_xxx --category gotcha --title "..." --content "..." --phase impl --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
-#### Behaviors (BHV)
+**Properties:** mutating (appends), not idempotent, atomic append
+
+**Concurrency:** safe — atomic append prevents interleaving
+
+#### Inputs (ENT_ALR_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_BHV_ALR_1 | Generate plet ID: `eln_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
-| ENT_BHV_ALR_2 | Build formatted entry with div markers, category tag, metadata | P0 |
-| ENT_BHV_ALR_3 | Atomically append to `{artifact_dir}/learnings.md` | P0 |
-| ENT_BHV_ALR_4 | File must already exist — will not create it | P0 |
+| ENT_ALR_INP_1 | `artifact_dir` — path to plet directory | P0 |
+| ENT_ALR_INP_2 | `--iteration` — iteration ID or `proj` | P0 |
+| ENT_ALR_INP_3 | `--category` — `pattern`, `gotcha`, `technique`, `tool`, `debug`, or `context` | P0 |
+| ENT_ALR_INP_4 | `--title` — short title | P0 |
+| ENT_ALR_INP_5 | `--content` — 1-5 sentences (specific and actionable) | P0 |
+| ENT_ALR_INP_6 | `--phase` — `impl`, `verify`, or `refine` | P0 |
+| ENT_ALR_INP_7 | `--attempt` — attempt number (positive integer) | P0 |
+
+#### Outputs (ENT_ALR_OUT)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_ALR_OUT_1 | Text mode success: `OK — {plet_id}` to stdout, exit 0 | P0 |
+| ENT_ALR_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
+| ENT_ALR_OUT_3 | JSON mode: `{"status":"ok","command":"add-learning","pletId":"...","path":"...","category":"...","iteration":"...",...}` | P0 |
+| ENT_ALR_OUT_4 | Dry-run: `DRY RUN — would append learning entry {plet_id} to {path}` — no file modification, exit 0 | P0 |
+
+#### Preconditions (ENT_ALR_PRE)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_ALR_PRE_1 | `{artifact_dir}/learnings.md` exists | P0 |
+| ENT_ALR_PRE_2 | `--category` is a valid learning category | P0 |
+| ENT_ALR_PRE_3 | `--phase` is `impl`, `verify`, or `refine` | P0 |
+| ENT_ALR_PRE_4 | `--attempt` is a positive integer | P0 |
+
+#### Postconditions (ENT_ALR_PST)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_ALR_PST_1 | Entry appended to `learnings.md` with correct div markers | P0 |
+| ENT_ALR_PST_2 | Entry has unique plet ID (eln prefix) | P0 |
+| ENT_ALR_PST_3 | No `.tmp` residue files | P0 |
+| ENT_ALR_PST_4 | Existing content in `learnings.md` is not modified | P0 |
+
+#### Behaviors (ENT_ALR_BHV)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_ALR_BHV_1 | Generate plet ID: `eln_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
+| ENT_ALR_BHV_2 | Build formatted entry matching `references/formats.md` RT_2: div markers, category tag, metadata, content | P0 |
+| ENT_ALR_BHV_3 | Atomically append to `{artifact_dir}/learnings.md` | P0 |
+| ENT_ALR_BHV_4 | File must already exist — will not create it | P0 |
+
+---
 
 ### 3.3 add-emergent (AEM)
 
-#### Definition (CMD)
+#### Justification (ENT_AEM_JUS)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CMD_AEM_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iteration ID_xxx --title "..." --source "[ID_xxx] title" --phase impl --category "design decision" --content "..." --attempt 1` | P0 |
-| ENT_CMD_AEM_2 | Append a formatted emergent entry to `emergent.md` with auto-assigned EM_N number | P0 |
+| ENT_AEM_JUS_1 | Why: records items discovered during execution that weren't in the spec — design decisions, requirement gaps, assumptions. Emergent items are the human triage queue. Auto-assigned EM_N numbers provide stable cross-references during refine sessions. | P0 |
+| ENT_AEM_JUS_2 | When: called by impl/verify agents when they encounter something unexpected. Less frequent than progress/learning entries but higher consequence — emergent items drive refine sessions. | P0 |
+| ENT_AEM_JUS_3 | Deprecation signal: only if emergent.md is replaced by a different triage mechanism. | P1 |
 
-#### Inputs (INP)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| ENT_INP_AEM_1 | `artifact_dir` — path to plet directory | P0 |
-| ENT_INP_AEM_2 | `--iteration` — iteration ID or `proj` | P0 |
-| ENT_INP_AEM_3 | `--title` — short title | P0 |
-| ENT_INP_AEM_4 | `--source` — source reference (e.g., `[ID_002] Core data model`) | P0 |
-| ENT_INP_AEM_5 | `--phase` — `impl`, `verify`, or `refine` | P0 |
-| ENT_INP_AEM_6 | `--category` — `design decision`, `requirement gap`, `assumption`, `scope question`, `edge case`, or `blocker` | P0 |
-| ENT_INP_AEM_7 | `--content` — description of what came up and what was decided/assumed | P0 |
-| ENT_INP_AEM_8 | `--attempt` — attempt number (integer) | P0 |
-
-#### Outputs (OUT)
+#### Definition (ENT_AEM_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_OUT_AEM_1 | On success: print `{plet_id} EM_{N}` to stdout, exit 0 | P0 |
-| ENT_OUT_AEM_2 | On error: specific error message to stderr, exit 1 | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iteration ID_xxx --title "..." --source "[ID_xxx] title" --phase impl --category "design decision" --content "..." --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
-#### Behaviors (BHV)
+**Properties:** mutating (appends), not idempotent, atomic append
+
+**Concurrency:** safe for appends. EM_N auto-numbering has a race condition: parallel agents both scan for max EM_N, both get the same number, both write the same EM_N. Documented, not prevented — parallel emergent writes within the same iteration are rare.
+
+#### Inputs (ENT_AEM_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_BHV_AEM_1 | Auto-assign next `EM_N` number by scanning existing `emergent.md` for `### EM_N:` headers | P0 |
-| ENT_BHV_AEM_2 | Generate plet ID: `eem_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
-| ENT_BHV_AEM_3 | Outcome always set to `pending` (triaged during refine) | P0 |
-| ENT_BHV_AEM_4 | Atomically append to `{artifact_dir}/emergent.md` | P0 |
-| ENT_BHV_AEM_5 | File must already exist — will not create it | P0 |
+| ENT_AEM_INP_1 | `artifact_dir` — path to plet directory | P0 |
+| ENT_AEM_INP_2 | `--iteration` — iteration ID or `proj` | P0 |
+| ENT_AEM_INP_3 | `--title` — short title | P0 |
+| ENT_AEM_INP_4 | `--source` — source reference (e.g., `[ID_002] Core data model`) | P0 |
+| ENT_AEM_INP_5 | `--phase` — `impl`, `verify`, or `refine` | P0 |
+| ENT_AEM_INP_6 | `--category` — `design decision`, `requirement gap`, `assumption`, `scope question`, `edge case`, or `blocker` | P0 |
+| ENT_AEM_INP_7 | `--content` — description of what came up and what was decided/assumed | P0 |
+| ENT_AEM_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
+
+#### Outputs (ENT_AEM_OUT)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_AEM_OUT_1 | Text mode success: `OK — {plet_id} EM_{N}` to stdout, exit 0 | P0 |
+| ENT_AEM_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
+| ENT_AEM_OUT_3 | JSON mode: `{"status":"ok","command":"add-emergent","pletId":"...","emNumber":N,"path":"...","category":"...",...}` | P0 |
+| ENT_AEM_OUT_4 | Dry-run: `DRY RUN — would append emergent entry {plet_id} EM_{N} to {path}` — no file modification, exit 0 | P0 |
+
+#### Preconditions (ENT_AEM_PRE)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_AEM_PRE_1 | `{artifact_dir}/emergent.md` exists | P0 |
+| ENT_AEM_PRE_2 | `--category` is a valid emergent category | P0 |
+| ENT_AEM_PRE_3 | `--phase` is `impl`, `verify`, or `refine` | P0 |
+| ENT_AEM_PRE_4 | `--attempt` is a positive integer | P0 |
+
+#### Postconditions (ENT_AEM_PST)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_AEM_PST_1 | Entry appended to `emergent.md` with correct div markers | P0 |
+| ENT_AEM_PST_2 | Entry has unique plet ID (eem prefix) | P0 |
+| ENT_AEM_PST_3 | EM_N number is one greater than previous maximum | P0 |
+| ENT_AEM_PST_4 | Outcome set to `pending` | P0 |
+| ENT_AEM_PST_5 | No `.tmp` residue files | P0 |
+| ENT_AEM_PST_6 | Existing content in `emergent.md` is not modified | P0 |
+
+#### Behaviors (ENT_AEM_BHV)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_AEM_BHV_1 | Auto-assign next `EM_N` number by scanning existing `emergent.md` for `### EM_N:` headers | P0 |
+| ENT_AEM_BHV_2 | Generate plet ID: `eem_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
+| ENT_AEM_BHV_3 | Outcome always set to `pending` (triaged during refine) | P0 |
+| ENT_AEM_BHV_4 | Atomically append to `{artifact_dir}/emergent.md` | P0 |
+| ENT_AEM_BHV_5 | File must already exist — will not create it | P0 |
+
+---
 
 ### 3.4 check (CHK)
 
-#### Definition (CMD)
+#### Justification (ENT_CHK_JUS)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CMD_CHK_1 | Usage: `plet_entries.py check <artifact_dir> --iteration ID_xxx` | P0 |
-| ENT_CMD_CHK_2 | Check whether runtime artifact entries exist for a given iteration across all three artifacts | P0 |
+| ENT_CHK_JUS_1 | Why: enforces the R_7 mandatory entry rule — every iteration must have entries in all three runtime artifacts before proceeding to verification. Without a machine check, this rule was consistently ignored by agents. | P0 |
+| ENT_CHK_JUS_2 | When: called by gate scripts as a pre-verify check, by the orchestrator before spawning verify, and by humans to inspect what exists for an iteration. | P0 |
+| ENT_CHK_JUS_3 | Deprecation signal: only if the mandatory entry rule is removed or if gate scripts implement their own scanning. | P1 |
 
-#### Inputs (INP)
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| ENT_INP_CHK_1 | `artifact_dir` — path to plet directory | P0 |
-| ENT_INP_CHK_2 | `--iteration` — iteration ID to check | P0 |
-
-#### Outputs (OUT)
+#### Definition (ENT_CHK_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_OUT_CHK_1 | Per-artifact status lines: `OK — {artifact}: N entry(ies)` or `MISSING — {artifact}: 0` | P0 |
-| ENT_OUT_CHK_2 | Summary: `OK — all artifacts have entries for {iteration}` (exit 0) or `INCOMPLETE — missing entries in: {list}` to stderr (exit 1) | P0 |
+| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <artifact_dir> --iteration ID_xxx [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
-#### Behaviors (BHV)
+**Properties:** read-only, idempotent, non-atomic (no writes)
+
+**Concurrency:** safe — read-only
+
+#### Inputs (ENT_CHK_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_BHV_CHK_1 | Scan `progress.md`, `learnings.md`, `emergent.md` for entries referencing `[{iteration}]` | P0 |
-| ENT_BHV_CHK_2 | Count entries per artifact using regex pattern matching | P0 |
-| ENT_BHV_CHK_3 | Read-only — does not modify any files | P0 |
-| ENT_BHV_CHK_4 | Missing artifact file counts as 0 entries (not an error) | P0 |
+| ENT_CHK_INP_1 | `artifact_dir` — path to plet directory | P0 |
+| ENT_CHK_INP_2 | `--iteration` — iteration ID to check | P0 |
+
+#### Outputs (ENT_CHK_OUT)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_CHK_OUT_1 | Text mode: per-artifact status lines `OK — {artifact}: N entry(ies)` or `MISSING — {artifact}: 0` | P0 |
+| ENT_CHK_OUT_2 | Text mode summary: `OK — all artifacts have entries for {iteration}` (exit 0) or `INCOMPLETE — missing entries in: {list}` to stderr (exit 1) | P0 |
+| ENT_CHK_OUT_3 | JSON mode: `{"status":"ok"|"error","command":"check","iteration":"...","progress":N,"learnings":N,"emergent":N,"allPresent":true|false,...}` | P0 |
+
+#### Preconditions (ENT_CHK_PRE)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_CHK_PRE_1 | `artifact_dir` exists | P0 |
+
+Missing artifact files count as 0 entries, not an error — this allows `check` to run before all artifacts are initialized.
+
+#### Postconditions (ENT_CHK_PST)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_CHK_PST_1 | No files modified (read-only) | P0 |
+| ENT_CHK_PST_2 | Exit code reflects completeness: 0 = all three have entries, 1 = any missing | P0 |
+
+#### Behaviors (ENT_CHK_BHV)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ENT_CHK_BHV_1 | Scan `progress.md`, `learnings.md`, `emergent.md` for entries referencing `[{iteration}]` | P0 |
+| ENT_CHK_BHV_2 | Count entries per artifact using regex pattern matching | P0 |
+| ENT_CHK_BHV_3 | Read-only — does not modify any files | P0 |
+| ENT_CHK_BHV_4 | Missing artifact file counts as 0 entries (not an error) | P0 |
+
+---
 
 ## 4. Edge Cases (ENT_EDG)
 
@@ -183,20 +320,30 @@ Command abbreviations: `APR` (add-progress), `ALR` (add-learning), `AEM` (add-em
 | ENT_EDG_4 | No existing emergent entries — `EM_1` assigned as first number | P0 |
 | ENT_EDG_5 | `--files` as empty JSON array `'[]'` — produce `- (none)` in entry | P1 |
 | ENT_EDG_6 | Multiple entries for same iteration — each gets a unique plet ID (timestamp-based uniqueness) | P0 |
-| ENT_EDG_7 | Concurrent appends from parallel agents — `atomic_append` prevents interleaving but entries may appear out of order | P0 |
+| ENT_EDG_7 | Concurrent appends from parallel agents — `atomic_append` prevents interleaving but entries may appear out of order. EM_N numbering has a race condition (documented, not prevented). | P0 |
 | ENT_EDG_8 | Non-integer `--attempt` — clean error message (not Python traceback) | P0 |
+| ENT_EDG_9 | `--dry-run` on `add-emergent` — scans for next EM_N but does not append | P0 |
+| ENT_EDG_10 | `--pretty` without `--output json` — error | P0 |
+| ENT_EDG_11 | `--fields` without `--output json` — error | P0 |
+| ENT_EDG_12 | Duplicate flags — error via `parse_kwargs` | P0 |
 
 ## 5. Error Handling (ENT_ERR)
 
+All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce structured JSON to stdout with `status: "error"` plus text to stderr. In text mode, errors go to stderr with HELP text.
+
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ERR_1 | Missing required args → print error naming the missing arg to stderr, exit 1 | P0 |
-| ENT_ERR_2 | Invalid phase → `Error: invalid phase '{phase}' (valid: impl, verify, refine)` | P0 |
-| ENT_ERR_3 | Invalid status (progress) → `Error: invalid status '{status}' (valid: COMPLETE, BLOCKED, ...)` | P0 |
-| ENT_ERR_4 | Invalid category (learning/emergent) → `Error: invalid category '{category}' (valid: ...)` | P0 |
-| ENT_ERR_5 | Invalid JSON in `--files` → `Error: --files must be valid JSON array: {parse_error}` | P0 |
-| ENT_ERR_6 | Non-integer `--attempt` → specific error message (not unhandled ValueError) | P0 |
-| ENT_ERR_7 | Artifact file not found → `Error: {path} does not exist` | P0 |
+| ENT_ERR_1 | Missing required args → print specific missing arg name + help text, exit 1 | P0 |
+| ENT_ERR_2 | Invalid phase → `Error: invalid --phase '{phase}' (valid: impl, verify, refine)` | P0 |
+| ENT_ERR_3 | Invalid status (progress) → `Error: invalid --status '{status}' (valid: COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED)` | P0 |
+| ENT_ERR_4 | Invalid category (learning) → `Error: invalid --category '{category}' (valid: pattern, gotcha, technique, tool, debug, context)` | P0 |
+| ENT_ERR_5 | Invalid category (emergent) → `Error: invalid --category '{category}' (valid: design decision, requirement gap, assumption, scope question, edge case, blocker)` | P0 |
+| ENT_ERR_6 | Invalid JSON in `--files` → `Error: --files must be valid JSON array: {parse_error}` | P0 |
+| ENT_ERR_7 | Non-integer `--attempt` → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
+| ENT_ERR_8 | Artifact file not found → `Error: {path} does not exist` | P0 |
+| ENT_ERR_9 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
+| ENT_ERR_10 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
+| ENT_ERR_11 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
 
 ## 6. Formats (ENT_FMT)
 
@@ -222,7 +369,7 @@ Full example: `epr_01JD8X3K7M_id001_i1`
 
 ### Entry Formats
 
-Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` markers for machine parseability. Format details in `references/formats.md`.
+Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` markers for machine parseability. Full format details in `references/formats.md` (RT_1, RT_2, RT_3).
 
 ## 7. Agent Flows (ENT_AFL)
 
@@ -243,18 +390,76 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 ### ENT_AFL_3: Refine session triage
 
 1. Refine agent resolves an emergent item
-2. Agent calls `plet_entries.py add-progress plet/ --iteration proj --phase refine --attempt 1 --status COMPLETE --summary "EM_3 approved — added as FR_12" --title "Refine triage"`
+2. Agent calls `plet_entries.py add-progress` with `--phase refine --status COMPLETE --summary "EM_3 approved — added as FR_12"` and `--iteration proj --title "Refine triage"`
 
-## 8. Dependencies on Other Scripts (ENT_DEP)
+## 8. Examples (ENT_EXM)
+
+### ENT_EXM_1: Full impl phase entry sequence
+
+```bash
+# After implementing AC_1 successfully
+plet_entries.py add-progress plet/ \
+    --iteration ID_001 --title "Project scaffolding" \
+    --phase impl --attempt 1 --status COMPLETE \
+    --summary "Initialized project with pytest, ruff. All checks pass." \
+    --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
+# OK — epr_01JD8X3K7M_id001_i1
+
+# Record what was learned
+plet_entries.py add-learning plet/ \
+    --iteration ID_001 --category technique \
+    --title "ruff config needs explicit rule selection" \
+    --content "Default ruff config has no rules enabled. Must add select = ['E', 'F', 'W'] to pyproject.toml." \
+    --phase impl --attempt 1
+# OK — eln_01JD8X3K8N_id001_i1
+
+# Record a design decision discovered during implementation
+plet_entries.py add-emergent plet/ \
+    --iteration ID_001 --title "Chose SQLite over PostgreSQL" \
+    --source "[ID_001] Project scaffolding" --phase impl \
+    --category "design decision" \
+    --content "Requirements say persistent storage without specifying engine. Chose SQLite for simplicity and zero-dep setup." \
+    --attempt 1
+# OK — eem_01JD8X3K9P_id001_i1 EM_1
+```
+
+### ENT_EXM_2: Pre-verify gate check
+
+```bash
+# Check that entries exist before allowing verification
+plet_entries.py check plet/ --iteration ID_001
+#   OK — progress: 1 entry(ies) for ID_001
+#   OK — learnings: 1 entry(ies) for ID_001
+#   OK — emergent: 1 entry(ies) for ID_001
+# OK — all artifacts have entries for ID_001
+
+# Check with JSON output for programmatic use
+plet_entries.py check plet/ --iteration ID_002 --output json
+# {"status":"error","command":"check","iteration":"ID_002","progress":0,"learnings":0,"emergent":0,"allPresent":false,...}
+```
+
+### ENT_EXM_3: Dry-run preview
+
+```bash
+plet_entries.py add-progress plet/ --dry-run \
+    --iteration ID_003 --title "API endpoints" \
+    --phase impl --attempt 1 --status COMPLETE \
+    --summary "GET and POST endpoints implemented."
+# DRY RUN — would append progress entry epr_01JD8X3KAQ_id003_i1 to plet/progress.md
+```
+
+## 9. Dependencies on Other Scripts (ENT_DEP)
 
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
-| ENT_DEP_1 | called by | `plet_gate_impl.py` | `check` as post-impl gate |
-| ENT_DEP_2 | called by | `plet_gate_verify.py` | `check` as pre-verify gate |
+| ENT_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
+| ENT_DEP_2 | imports | `util_io` | `atomic_append` |
+| ENT_DEP_3 | called by | `plet_gate_impl.py` | `check` as post-impl gate |
+| ENT_DEP_4 | called by | `plet_gate_verify.py` | `check` as pre-verify gate |
 
-No outgoing dependencies — `plet_entries.py` is a leaf script.
+No outgoing calls to other `plet_*.py` scripts — `plet_entries.py` is a leaf CLI tool.
 
-## 9. Non-Functional Requirements (ENT_NFR)
+## 10. Non-Functional Requirements (ENT_NFR)
 
 See `specs/conventions.md` for universal requirements.
 
@@ -265,74 +470,85 @@ See `specs/conventions.md` for universal requirements.
 | ENT_NFR_3 | Plet IDs must be globally unique — Crockford Base32 timestamp provides millisecond-resolution uniqueness | P0 |
 | ENT_NFR_4 | EM_N auto-numbering must be gap-free and monotonically increasing within a single run | P0 |
 
-## 10. Developer Experience (ENT_DXP)
+## 11. Developer Experience (ENT_DXP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_DXP_1 | Plet ID printed to stdout enables scripting: `ID=$(plet_entries.py add-progress ...)` | P0 |
+| ENT_DXP_1 | Plet ID printed to stdout enables scripting: `ID=$(plet_entries.py add-progress ...)` — output format is `OK — {plet_id}` | P0 |
 | ENT_DXP_2 | `check` exit code enables gating: `plet_entries.py check ... \|\| echo "BLOCKED"` | P0 |
-| ENT_DXP_3 | Help text includes complete examples for every command | P0 |
-| ENT_DXP_4 | Category/status enums listed in error messages and help text | P0 |
+| ENT_DXP_3 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
+| ENT_DXP_4 | Category/status/phase enums listed in error messages and help text | P0 |
+| ENT_DXP_5 | Help text for mutating commands strongly recommends `--dry-run` in IMPORTANT section | P0 |
 
-## 11. Critical Test Areas (ENT_CRT)
+## 12. Critical Test Areas (ENT_CRT)
 
 | ID | Area | Risk if broken | Suggested test approach |
 |----|------|---------------|----------------------|
 | ENT_CRT_1 | Plet ID uniqueness | Duplicate IDs across entries | Generate multiple IDs in rapid succession, verify uniqueness |
-| ENT_CRT_2 | Atomic append | Interleaved or corrupted entries | Write entries from parallel processes, verify file integrity |
+| ENT_CRT_2 | Atomic append | Interleaved or corrupted entries | Write entries, verify file integrity |
 | ENT_CRT_3 | EM_N numbering | Duplicate or skipped emergent numbers | Add multiple emergent entries, verify sequential numbering |
 | ENT_CRT_4 | Entry format | Agents can't parse entries | Validate div markers, metadata fields, structure |
-| ENT_CRT_5 | Category/status validation | Invalid values accepted silently | Test every invalid value for every enum |
+| ENT_CRT_5 | Category/status/phase validation | Invalid values accepted silently | Test every invalid value for every enum |
+| ENT_CRT_6 | --dry-run | Dry-run modifies file | Verify file unchanged after dry-run |
+| ENT_CRT_7 | --output json | JSON output missing required fields | Validate all JSON responses have status, command, scriptVersion, timestamp |
+| ENT_CRT_8 | --attempt validation | Non-integer crashes with traceback | Test non-integer input produces clean error |
+| ENT_CRT_9 | Error handling | Python tracebacks visible to agents | Test every precondition violation produces clean error |
 
-## 12. Testing & Verification (ENT_TST)
+## 13. Testing & Verification (ENT_TST)
 
-Tests at `skills/plet/tests/test_plet_entries.py`. Test cases covering:
-- Help output (top-level, add-progress — **missing add-learning, add-emergent, check**)
-- Add-progress: basic, with files, validates format
-- Add-learning: basic, validates category
-- Add-emergent: basic, validates category, EM_N auto-numbering
-- Check: all present, missing artifacts
-- Validation: invalid status, category, phase, missing required args, missing artifact file
-- Unknown command
-- Plet ID format verification
+**What to test:** See §12 Critical Test Areas (ENT_CRT_1–ENT_CRT_9) for the full list of risk areas. Each CRT entry should have at least one corresponding test.
 
-## 13. Resolved Questions
+**Test infrastructure:**
+- File: `skills/plet/tests/test_plet_entries.py`
+- Run: `python3 skills/plet/tests/test_plet_entries.py`
+- Harness: stdlib-only custom harness per UNV_TST_2. Uses `run()` (subprocess) and `check()` (assert).
+- All tests call the script via `subprocess.run()` — test the CLI interface, not internal functions (UNV_TST_4).
+- Temp fixtures via `tempfile.TemporaryDirectory()` — auto-cleanup (UNV_TST_5).
+- Test `--help` on every command (UNV_TST_7).
+- See `specs/conventions.md` UNV_TST_1–UNV_TST_7 for full testing conventions.
+
+## 14. Resolved Questions
 
 | # | Question | Decision |
 |---|----------|----------|
 | 1 | Plet ID format — ULID vs custom? | Custom Crockford Base32 with type/iteration/phase segments. More context-rich than ULID. |
 | 2 | `check` requires all 3 artifacts or just progress? | All 3 — R_7 mandates entries in progress, learnings, and emergent. |
 | 3 | EM_N numbering — agent-assigned or auto? | Auto-assigned by scanning emergent.md. Prevents collisions from parallel agents. |
+| 4 | Should `add-*` success output prefix with `OK —`? | Yes — `OK — {plet_id}` for consistency with other scripts. Scripts capturing the ID parse after `OK — `. |
+| 5 | Should `--attempt` validate as integer? | Yes — wrap in try/except, produce specific error message. |
+| 6 | Should error paths print HELP text? | Yes — per UNV_CMD_16, print HELP to stderr after the error message. |
+| 7 | FB_44: multiline content support? | Deferred to ENT_FUT_1. Current `--summary` and `--content` flags accept single-line strings. |
 
-### Open Questions
-
-- Should `add-*` output prefix with `OK — ` per UNV_CMD_15? Currently prints bare plet ID. Changing may break scripts that capture the ID via `$(...)`.
-- Should `--attempt` validate as integer with a clean error? (UNV_ERR_1 audit failure — captured as ENT_EDG_8, ENT_ERR_6)
-- Should error paths print HELP text alongside the error? (UNV_CMD_15 audit failure)
-- FB_44: Should `add-progress` support multiline content via `--content` or `--content-file`?
-
-## 14. Future Considerations (ENT_FUT)
+## 15. Future Considerations (ENT_FUT)
 
 | ID | Area | Description |
 |----|------|-------------|
-| ENT_FUT_1 | Multiline progress content | `--content` or `--content-file` flag for `add-progress` (FB_44) |
-| ENT_FUT_2 | Entry querying | A `query` command to search entries by iteration, phase, category |
-| ENT_FUT_3 | Format migration | If entry format changes, a migration tool for existing entries |
+| ENT_FUT_1 | Multiline progress content | `--content` or `--content-file` flag for `add-progress` (FB_44). Would allow richer summaries without shell quoting issues. |
+| ENT_FUT_2 | Entry querying | A `query` command to search entries by iteration, phase, category. Currently agents grep the files directly. |
+| ENT_FUT_3 | Format migration | If entry format changes, a migration tool for existing entries. |
+| ENT_FUT_4 | BLOCKED variant | Progress entries with `--status BLOCKED` could require `--work-completed` and `--work-remaining` fields per formats.md blocker variant. |
 
-## 15. FB Items Addressed
+## 16. FB Items Addressed
 
 - FB_17 — progress.md formatting inconsistent (complemented by this tool)
 - FB_29 — learnings/emergent mandatory entry rule not enforced (`check` command enables gate scripts)
 - FB_33 — progress.md entries incomplete (`check` + gate scripts enforce completeness)
+- FB_44 — multiline progress content (deferred to ENT_FUT_1)
 
 ## Audit Findings (2026-03-15)
 
-Audited against `specs/conventions.md`. 27 PASS, 3 FAIL, 3 N/A.
+Audited against `specs/conventions.md`. Original: 27 PASS, 3 FAIL, 3 N/A.
 
-### Failures
+### Failures (to be fixed in implementation)
 
-| ID | Issue | Fix |
-|----|-------|-----|
-| UNV_CMD_15 | `add-*` success output prints bare plet ID, not `OK — ...`; error paths don't print HELP text alongside error | Prefix success output with `OK — `; print HELP after error messages |
-| UNV_ERR_1 | `int(kwargs["attempt"])` crashes with unhandled `ValueError` on non-integer input | Wrap in try/except, print specific error message. Captured as ENT_ERR_6. |
-| UNV_TST_7 | `--help` only tested for top-level and `add-progress`; missing `add-learning`, `add-emergent`, `check` | Add missing test cases |
+| ID | Issue | Spec requirement |
+|----|-------|-----------------|
+| UNV_CMD_15 | `add-*` success output prints bare plet ID, not `OK — ...`; error paths don't print HELP text | ENT_APR_OUT_1, ENT_ALR_OUT_1, ENT_AEM_OUT_1, ENT_ERR_1 |
+| UNV_ERR_1 | `int(kwargs["attempt"])` crashes with unhandled ValueError on non-integer input | ENT_ERR_7 |
+| UNV_TST_7 | `--help` only tested for top-level and `add-progress`; missing `add-learning`, `add-emergent`, `check` | ENT_TST |
+| UNV_CMD_11 | Script duplicates `parse_kwargs` and `atomic_append` inline | ENT_DEP_1, ENT_DEP_2 |
+| UNV_CMD_17 | No `--dry-run` support on mutating commands | ENT_APR_OUT_4, ENT_ALR_OUT_4, ENT_AEM_OUT_4 |
+| UNV_CMD_18 | No `--output json` support | All OUT_3 requirements |
+| UNV_CMD_19 | No `--fields` support | UNV_CMD_19 |
+| UNV_DXP_5 | Help text is syntax-only, no IMPORTANT/PITFALLS/PURPOSE structure | ENT_DXP_3 |
+| UNV_CMD_22 | No duplicate flag detection | ENT_EDG_12 |
