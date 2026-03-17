@@ -5,24 +5,42 @@ Enforces the schema defined in references/state-schema.md. Agents call this
 instead of writing JSON freehand, eliminating schema drift across iterations.
 
 Usage:
-    python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py validate <state_file>
-    python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py update-criterion <state_file> <criterion_id> <phase> <status> <evidence> [--elapsed N]
-    python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py update-field <state_file> <field> <value> [<field> <value> ...]
-    python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py init <state_file> --iteration-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]'
+    plet_state.py <command> [args]
 
 Commands:
     validate          Check a state file against the schema. Exits 0 if valid, 1 if not.
     update-criterion  Update a criterion's implementation or verification status.
-    update-field      Update one or more top-level fields (lifecycle, agentActivity, etc.).
+    update-field      Update top-level fields (lifecycle, agentActivity, etc.) via --data JSON.
     init              Create a new state file with correct structure.
+
+Global flags:
+    --help, -h        Show this help or command-specific help
+    --version         Show version info
+
+All commands support: --output json [--pretty] [--fields f1,f2]
+Mutating commands also support: --dry-run
 """
 
 import json
-import sys
-import datetime
 import os
+import re
+import sys
 
-SCRIPT_VERSION = "0.1.0"
+# Add scripts dir to path for sibling imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from util_cli import (
+    dispatch,
+    filter_fields,
+    now_iso,
+    parse_kwargs,
+    require_kwargs,
+    validate_enum,
+    validate_int,
+)
+from util_io import atomic_write_json, load_json
+
+SCRIPT_VERSION = "0.2.0"
 SKILL_VERSION = "0.1.1"
 SCHEMA_VERSION = "0.1.0"
 
@@ -45,184 +63,400 @@ VALID_CRITERION_STATUSES = ["not_started", "fail", "pass", "error", "skipped"]
 
 REQUIRED_PHASE_FIELDS = ["status", "evidence", "timestamp", "elapsedSeconds"]
 
+# Protected fields — cannot be modified via update-field
+PROTECTED_FIELDS = ["criteria", "schemaVersion", "lastUpdated"]
 
-def now_iso():
-    return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+# All valid top-level fields in a state file
+VALID_TOP_LEVEL_FIELDS = [
+    "schemaVersion", "iterationId", "title", "lastUpdated", "lastHeartbeat",
+    "lifecycle", "dependencies", "agentId", "agentActivity", "activityDetail",
+    "attempts", "phaseTimestamps", "elapsedSeconds", "summary", "filesChanged",
+    "cleanupTagsAutomatically", "criteria", "verificationReports",
+]
+
+ITERATION_ID_PATTERN = re.compile(r"^ID_\d+$")
 
 
-def load_state(path):
-    with open(path, "r") as f:
-        return json.load(f)
+# ---------------------------------------------------------------------------
+# Universal flag parsing
+# ---------------------------------------------------------------------------
+
+def parse_universal_flags(args):
+    """Extract universal flags from an args list, return (clean_args, flags).
+
+    Universal flags: --output, --pretty, --fields, --dry-run
+    Returns remaining args list and a dict of extracted flags.
+    """
+    flags = {
+        "output": None,   # None or "json"
+        "pretty": False,
+        "fields": None,   # None or list of field names
+        "dry_run": False,
+    }
+    clean = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--output" and i + 1 < len(args):
+            flags["output"] = args[i + 1]
+            i += 2
+        elif args[i] == "--pretty":
+            flags["pretty"] = True
+            i += 1
+        elif args[i] == "--fields" and i + 1 < len(args):
+            flags["fields"] = [f.strip() for f in args[i + 1].split(",")]
+            i += 2
+        elif args[i] == "--dry-run":
+            flags["dry_run"] = True
+            i += 1
+        else:
+            clean.append(args[i])
+            i += 1
+    return clean, flags
 
 
-def save_state(path, data):
-    data["lastUpdated"] = now_iso()
-    tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
-    os.rename(tmp, path)
+def check_flag_dependencies(flags, command_is_mutating=True):
+    """Validate universal flag combinations. Returns error message or None."""
+    if flags["pretty"] and flags["output"] != "json":
+        return "Error: --pretty requires --output json"
+    if flags["fields"] is not None and flags["output"] != "json":
+        return "Error: --fields requires --output json"
+    if flags["output"] is not None and flags["output"] != "json":
+        return "Error: --output must be 'json', got '{}'".format(flags["output"])
+    if flags["dry_run"] and not command_is_mutating:
+        return "Error: --dry-run is not supported on read-only commands"
+    return None
 
+
+def json_response(data, flags):
+    """Format and print a JSON response, applying --pretty and --fields."""
+    data["scriptVersion"] = SCRIPT_VERSION
+    data["timestamp"] = now_iso()
+    if flags["fields"] is not None:
+        data = filter_fields(data, flags["fields"])
+    indent = 2 if flags["pretty"] else None
+    print(json.dumps(data, indent=indent))
+
+
+def check_json_extension(path):
+    """Validate file path ends in .json. Returns error message or None."""
+    if not path.endswith(".json"):
+        return "Error: state file path must end in .json, got '{}'".format(path)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
 
 def validate(data, path="<stdin>"):
+    """Validate a state dict against the schema. Returns list of errors."""
     errors = []
 
     # Top-level required fields
     for field in REQUIRED_TOP_LEVEL:
         if field not in data:
-            errors.append(f"Missing required field: {field}")
+            errors.append("Missing required field: {}".format(field))
 
     # Type checks for present fields
     if "schemaVersion" in data and not isinstance(data["schemaVersion"], str):
-        errors.append(f"schemaVersion must be string, got {type(data['schemaVersion']).__name__}")
+        errors.append(
+            "schemaVersion must be string, got {}".format(
+                type(data["schemaVersion"]).__name__
+            )
+        )
 
     if "lifecycle" in data and data["lifecycle"] not in VALID_LIFECYCLES:
-        errors.append(f"Invalid lifecycle: {data['lifecycle']} (valid: {', '.join(VALID_LIFECYCLES)})")
+        errors.append(
+            "Invalid lifecycle: {} (valid: {})".format(
+                data["lifecycle"], ", ".join(VALID_LIFECYCLES)
+            )
+        )
 
     if "agentActivity" in data and data["agentActivity"] not in VALID_ACTIVITIES:
-        errors.append(f"Invalid agentActivity: {data['agentActivity']} (valid: {', '.join(VALID_ACTIVITIES)})")
+        errors.append(
+            "Invalid agentActivity: {} (valid: {})".format(
+                data["agentActivity"], ", ".join(VALID_ACTIVITIES)
+            )
+        )
 
     if "dependencies" in data and not isinstance(data["dependencies"], list):
-        errors.append(f"dependencies must be array, got {type(data['dependencies']).__name__}")
+        errors.append(
+            "dependencies must be array, got {}".format(
+                type(data["dependencies"]).__name__
+            )
+        )
 
     if "attempts" in data:
         att = data["attempts"]
         if not isinstance(att, dict):
-            errors.append(f"attempts must be object, got {type(att).__name__}")
+            errors.append(
+                "attempts must be object, got {}".format(type(att).__name__)
+            )
         else:
             for k in ["impl", "verify"]:
                 if k not in att:
-                    errors.append(f"attempts.{k} missing")
+                    errors.append("attempts.{} missing".format(k))
                 elif not isinstance(att[k], (int, float)):
-                    errors.append(f"attempts.{k} must be number, got {type(att[k]).__name__}")
+                    errors.append(
+                        "attempts.{} must be number, got {}".format(
+                            k, type(att[k]).__name__
+                        )
+                    )
 
     # Criteria validation
     if "criteria" in data:
         if not isinstance(data["criteria"], list):
-            errors.append(f"criteria must be array, got {type(data['criteria']).__name__}")
+            errors.append(
+                "criteria must be array, got {}".format(
+                    type(data["criteria"]).__name__
+                )
+            )
         else:
             for i, c in enumerate(data["criteria"]):
-                prefix = f"criteria[{i}]"
+                prefix = "criteria[{}]".format(i)
                 if not isinstance(c, dict):
-                    errors.append(f"{prefix} must be object")
+                    errors.append("{} must be object".format(prefix))
                     continue
 
                 for req in ["id", "description", "status"]:
                     if req not in c:
-                        errors.append(f"{prefix} missing required field: {req}")
+                        errors.append(
+                            "{} missing required field: {}".format(prefix, req)
+                        )
 
                 if "status" in c and c["status"] not in VALID_CRITERION_STATUSES:
-                    errors.append(f"{prefix} invalid status: {c['status']}")
+                    errors.append(
+                        "{} invalid status: {}".format(prefix, c["status"])
+                    )
 
-                if "status" in c and c["status"] == "skipped" and "skipRationale" not in c:
-                    errors.append(f"{prefix} status is 'skipped' but missing skipRationale")
+                # Skipped status: evidence must be non-empty (serves as rationale)
+                # skipRationale is deprecated — validator ignores it if present
+                if "status" in c and c["status"] == "skipped":
+                    # Check if there's evidence via implementation or verification
+                    has_evidence = False
+                    for phase in ["implementation", "verification"]:
+                        if (phase in c and isinstance(c[phase], dict)
+                                and c[phase].get("status") == "skipped"
+                                and c[phase].get("evidence")):
+                            has_evidence = True
+                    # Also accept legacy skipRationale for backward compat
+                    if c.get("skipRationale"):
+                        has_evidence = True
+                    if not has_evidence:
+                        errors.append(
+                            "{} status is 'skipped' but no evidence found "
+                            "(phase sub-object with status='skipped' must have "
+                            "non-empty evidence)".format(prefix)
+                        )
 
-                # Two-state model: implementation and verification must be objects or null
+                # Two-state model: implementation and verification
                 for phase in ["implementation", "verification"]:
                     if phase not in c:
-                        errors.append(f"{prefix} missing two-state field: {phase} (must be object or null)")
+                        errors.append(
+                            "{} missing two-state field: {} "
+                            "(must be object or null)".format(prefix, phase)
+                        )
                     elif c[phase] is not None:
                         if not isinstance(c[phase], dict):
-                            errors.append(f"{prefix}.{phase} must be object or null, got {type(c[phase]).__name__}")
+                            errors.append(
+                                "{}.{} must be object or null, got {}".format(
+                                    prefix, phase, type(c[phase]).__name__
+                                )
+                            )
                         else:
                             for field in REQUIRED_PHASE_FIELDS:
                                 if field not in c[phase]:
-                                    errors.append(f"{prefix}.{phase} missing field: {field}")
-                            if "status" in c[phase] and c[phase]["status"] not in VALID_CRITERION_STATUSES:
-                                errors.append(f"{prefix}.{phase} invalid status: {c[phase]['status']}")
+                                    errors.append(
+                                        "{}.{} missing field: {}".format(
+                                            prefix, phase, field
+                                        )
+                                    )
+                            if ("status" in c[phase]
+                                    and c[phase]["status"] not in VALID_CRITERION_STATUSES):
+                                errors.append(
+                                    "{}.{} invalid status: {}".format(
+                                        prefix, phase, c[phase]["status"]
+                                    )
+                                )
 
     return errors
 
 
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
 def cmd_validate(args):
     HELP = """validate — check a state file against the schema.
 
-Usage:
-    plet_state.py validate <state_file>
+IMPORTANT: Read-only. Safe to run freely. Accumulates ALL errors before
+reporting so you can fix everything in one pass.
 
+PITFALLS:
+- This does NOT fix issues — it only reports them. Use update-criterion,
+  update-field, or init to fix state files.
+- Common invalid values: "running" (use "implementing"), "done" (use "complete"),
+  "impl" for lifecycle (use "implementing").
+
+USAGE:
+    plet_state.py validate <state_file> [--output json [--pretty]] [--fields f1,f2]
+
+PURPOSE: Confirms a state file conforms to the schema without modifying it.
 Checks all required fields, types, enum values, and the criterion two-state
-model (implementation/verification sub-objects). Exits 0 if valid, 1 if not.
+model (implementation/verification sub-objects).
 
 Examples:
     plet_state.py validate plet/state/ID_001.json
-    plet_state.py validate plet/state/*.json   # validate all (via shell glob)
+    plet_state.py validate plet/state/ID_001.json --output json
+    plet_state.py validate plet/state/ID_001.json --output json --pretty
+    plet_state.py validate plet/state/ID_001.json --output json --fields status,errorCount
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 1:
+
+    clean_args, flags = parse_universal_flags(args)
+    flags["dry_run"] = False  # validate doesn't support dry-run
+
+    err = check_flag_dependencies(flags, command_is_mutating=False)
+    if err:
+        print(err, file=sys.stderr)
+        return 1
+
+    if len(clean_args) < 1:
+        print("Error: state_file argument is required", file=sys.stderr)
         print(HELP, file=sys.stderr)
         return 1
-    path = args[0]
-    data = load_state(path)
-    errors = validate(data, path)
-    if errors:
-        print(f"INVALID — {len(errors)} error(s) in {path}:", file=sys.stderr)
-        for e in errors:
-            print(f"  - {e}", file=sys.stderr)
+
+    path = clean_args[0]
+
+    ext_err = check_json_extension(path)
+    if ext_err:
+        print(ext_err, file=sys.stderr)
         return 1
-    print(f"OK — {path} is valid")
+
+    data = load_json(path)
+    if data is None:
+        return 1
+
+    errors = validate(data, path)
+
+    if flags["output"] == "json":
+        response = {
+            "status": "error" if errors else "ok",
+            "command": "validate",
+            "path": path,
+            "errors": errors,
+            "errorCount": len(errors),
+        }
+        json_response(response, flags)
+        return 1 if errors else 0
+
+    if errors:
+        print(
+            "INVALID — {} error(s) in {}:".format(len(errors), path),
+            file=sys.stderr,
+        )
+        for e in errors:
+            print("  - {}".format(e), file=sys.stderr)
+        return 1
+
+    print("OK — {} is valid".format(path))
     return 0
 
 
 def cmd_update_criterion(args):
     HELP = """update-criterion — update a criterion's implementation or verification status.
 
-Usage:
-    plet_state.py update-criterion <state_file> <criterion_id> <phase> <status> <evidence> [--elapsed N]
+IMPORTANT: Use --dry-run to preview changes before writing. Evidence is
+required and should be specific — it's the permanent record of what happened.
 
-Arguments:
-    state_file     Path to the per-iteration state file (e.g., plet/state/ID_001.json)
-    criterion_id   The criterion ID (e.g., AC_1)
-    phase          "implementation" or "verification"
-    status         One of: not_started, fail, pass, error, skipped
-    evidence       Description of what was checked/done (required, be specific)
+PITFALLS:
+- Phase must be "implementation" or "verification" (not "impl" or "verify")
+- Status must be one of: not_started, fail, pass, error, skipped (not "done" or "success")
+- When --status is "skipped", --evidence serves as the skip rationale
+- Verification status ALWAYS overrides implementation for top-level status
+- --pretty and --fields require --output json
 
-Options:
-    --elapsed N    Elapsed seconds for this criterion (default: 0)
+USAGE:
+    plet_state.py update-criterion <state_file> --criterion AC_1 \\
+        --phase implementation --status pass --evidence "..." \\
+        [--elapsed N] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
-Enforces the two-state model: each criterion has separate implementation and
-verification sub-objects. Top-level status is derived — verification wins when
-present. Timestamp is set automatically.
+PURPOSE: Records the result of implementing or verifying a single acceptance
+criterion. Enforces the two-state model and derives top-level status.
 
 Examples:
-    plet_state.py update-criterion plet/state/ID_001.json AC_1 implementation pass \\
-        "Test test_FR_1_valid passes — asserts 200 status. Full suite green (12s)." --elapsed 45
+    plet_state.py update-criterion plet/state/ID_001.json \\
+        --criterion AC_1 --phase implementation --status pass \\
+        --evidence "Test test_FR_1 passes. Full suite green." --elapsed 45
 
-    plet_state.py update-criterion plet/state/ID_001.json AC_2 verification fail \\
-        "Test mocks DB layer — tautological. Needs real DB query." --elapsed 30
+    plet_state.py update-criterion plet/state/ID_001.json --dry-run \\
+        --criterion AC_2 --phase verification --status fail \\
+        --evidence "Test mocks DB — tautological."
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 5:
+
+    clean_args, flags = parse_universal_flags(args)
+
+    err = check_flag_dependencies(flags, command_is_mutating=True)
+    if err:
+        print(err, file=sys.stderr)
+        return 1
+
+    if len(clean_args) < 1:
+        print("Error: state_file argument is required", file=sys.stderr)
         print(HELP, file=sys.stderr)
         return 1
 
-    path, criterion_id, phase, status, evidence = args[0], args[1], args[2], args[3], args[4]
+    path = clean_args[0]
 
-    if phase not in ("implementation", "verification"):
-        print(f"Error: phase must be 'implementation' or 'verification', got '{phase}'", file=sys.stderr)
+    ext_err = check_json_extension(path)
+    if ext_err:
+        print(ext_err, file=sys.stderr)
         return 1
 
-    if status not in VALID_CRITERION_STATUSES:
-        print(f"Error: invalid status '{status}' (valid: {', '.join(VALID_CRITERION_STATUSES)})", file=sys.stderr)
+    # Parse named args from remaining clean_args
+    try:
+        kwargs = parse_kwargs(clean_args[1:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
+    if not require_kwargs(kwargs, ["criterion", "phase", "status", "evidence"], HELP):
+        return 1
+
+    criterion_id = kwargs["criterion"]
+    phase = kwargs["phase"]
+    status = kwargs["status"]
+    evidence = kwargs["evidence"]
+
+    if not validate_enum(phase, ["implementation", "verification"], "--phase"):
+        return 1
+
+    if not validate_enum(status, VALID_CRITERION_STATUSES, "--status"):
         return 1
 
     elapsed = 0
-    if "--elapsed" in args:
-        idx = args.index("--elapsed")
-        if idx + 1 < len(args):
-            elapsed = int(args[idx + 1])
+    if "elapsed" in kwargs:
+        elapsed, ok = validate_int(kwargs["elapsed"], "--elapsed")
+        if not ok:
+            return 1
 
-    data = load_state(path)
+    data = load_json(path)
+    if data is None:
+        return 1
 
     # Find the criterion
     found = False
+    available = []
+    derived_top_level = None
     for c in data.get("criteria", []):
+        available.append(c["id"])
         if c["id"] == criterion_id:
             found = True
-            # Update the phase object
             c[phase] = {
                 "status": status,
                 "evidence": evidence,
@@ -234,161 +468,410 @@ Examples:
                 c["status"] = status
             elif c.get("verification") is None:
                 c["status"] = status
+            derived_top_level = c["status"]
             break
 
     if not found:
-        print(f"Error: criterion '{criterion_id}' not found in {path}", file=sys.stderr)
+        msg = "Error: criterion '{}' not found in {} (available: {})".format(
+            criterion_id, path, ", ".join(available)
+        )
+        print(msg, file=sys.stderr)
+        if flags["output"] == "json":
+            json_response({
+                "status": "error",
+                "command": "update-criterion",
+                "error": "criterion '{}' not found".format(criterion_id),
+                "path": path,
+                "available": available,
+            }, flags)
         return 1
 
-    save_state(path, data)
-    print(f"OK — {criterion_id}.{phase} set to '{status}' in {path}")
+    if flags["dry_run"]:
+        if flags["output"] == "json":
+            json_response({
+                "status": "ok",
+                "command": "update-criterion",
+                "dryRun": True,
+                "criterion": criterion_id,
+                "phase": phase,
+                "newStatus": status,
+                "derivedTopLevel": derived_top_level,
+                "path": path,
+            }, flags)
+        else:
+            print(
+                "DRY RUN — would set {}.{} to '{}' in {}".format(
+                    criterion_id, phase, status, path
+                )
+            )
+        return 0
+
+    atomic_write_json(path, data)
+
+    if flags["output"] == "json":
+        json_response({
+            "status": "ok",
+            "command": "update-criterion",
+            "criterion": criterion_id,
+            "phase": phase,
+            "newStatus": status,
+            "derivedTopLevel": derived_top_level,
+            "path": path,
+        }, flags)
+    else:
+        print("OK — {}.{} set to '{}' in {}".format(
+            criterion_id, phase, status, path
+        ))
     return 0
 
 
 def cmd_update_field(args):
-    HELP = """update-field — update one or more top-level fields in a state file.
+    HELP = """update-field — update top-level fields in a state file via --data JSON.
 
-Usage:
-    plet_state.py update-field <state_file> <field> <value> [<field> <value> ...]
+IMPORTANT: Use --dry-run to preview changes before writing. Fields are
+validated — invalid enum values and unknown field names are rejected.
 
-Arguments:
-    state_file   Path to the per-iteration state file
-    field        Field name (supports dotted paths like "attempts.impl")
-    value        New value (auto-parsed as JSON if valid, otherwise kept as string)
-
-Validates enum fields (lifecycle, agentActivity) against allowed values.
-Automatically updates lastUpdated timestamp.
+PITFALLS:
+- Protected fields (CANNOT use update-field for these):
+  - "criteria" → use update-criterion
+  - "schemaVersion" → set at init / migration
+  - "lastUpdated" → auto-set by the script
+- Dotted paths into protected fields are also blocked (e.g., "criteria.0.status")
+- Common wrong values: "running" (use "implementing"), "done" (use "complete")
+- --pretty and --fields require --output json
 
 Valid lifecycle values:   ineligible, queued, implementing, verifying, complete, blocked, withdrawn
 Valid agentActivity values: idle, reading_context, implementing, running_checks, committing, wrapping_up
 
+USAGE:
+    plet_state.py update-field <state_file> --data '{"field":"value", ...}' \\
+        [--dry-run] [--output json [--pretty]] [--fields f1,f2]
+
+PURPOSE: Updates top-level fields with enum validation. Supports dotted paths
+for nested fields (e.g., "attempts.impl"). Auto-refreshes lastUpdated.
+
 Examples:
-    plet_state.py update-field plet/state/ID_001.json lifecycle implementing
+    plet_state.py update-field plet/state/ID_001.json \\
+        --data '{"lifecycle":"implementing"}'
 
     plet_state.py update-field plet/state/ID_001.json \\
-        agentId "agent_a1b2c3d4e5f6" \\
-        agentActivity reading_context \\
-        activityDetail "reading requirements.md and iteration definition"
-
-    plet_state.py update-field plet/state/ID_001.json attempts.impl 2
+        --data '{"agentId":"agent_abc","agentActivity":"reading_context"}'
 
     plet_state.py update-field plet/state/ID_001.json \\
-        phaseTimestamps.impl_1_start "2026-03-07T14:00:00Z"
+        --data '{"attempts.impl":2}'
+
+    plet_state.py update-field plet/state/ID_001.json --dry-run \\
+        --data '{"lifecycle":"complete","agentActivity":"idle"}'
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 3 or (len(args) - 1) % 2 != 0:
+
+    clean_args, flags = parse_universal_flags(args)
+
+    err = check_flag_dependencies(flags, command_is_mutating=True)
+    if err:
+        print(err, file=sys.stderr)
+        return 1
+
+    if len(clean_args) < 1:
+        print("Error: state_file argument is required", file=sys.stderr)
         print(HELP, file=sys.stderr)
         return 1
 
-    path = args[0]
-    pairs = list(zip(args[1::2], args[2::2]))
-    data = load_state(path)
+    path = clean_args[0]
 
-    for field, value in pairs:
-        # Auto-parse JSON values (arrays, objects, numbers, booleans, null)
-        try:
-            parsed = json.loads(value)
-        except (json.JSONDecodeError, ValueError):
-            parsed = value  # Keep as string
+    ext_err = check_json_extension(path)
+    if ext_err:
+        print(ext_err, file=sys.stderr)
+        return 1
+
+    # Parse named args
+    try:
+        kwargs = parse_kwargs(clean_args[1:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
+    if not require_kwargs(kwargs, ["data"], HELP):
+        return 1
+
+    # Parse --data as JSON
+    try:
+        updates = json.loads(kwargs["data"])
+    except json.JSONDecodeError as e:
+        print(
+            "Error: --data must be valid JSON: {}".format(e),
+            file=sys.stderr,
+        )
+        return 1
+
+    if not isinstance(updates, dict):
+        print("Error: --data must be a JSON object", file=sys.stderr)
+        return 1
+
+    if len(updates) == 0:
+        print("Error: --data is empty — nothing to update", file=sys.stderr)
+        return 1
+
+    # Validate each field
+    for field in updates:
+        root = field.split(".")[0]
+
+        # Check protected fields
+        if root in PROTECTED_FIELDS:
+            if root == field:
+                print(
+                    "Error: '{}' is a protected field — use update-criterion "
+                    "to modify criteria, init for schemaVersion. "
+                    "lastUpdated is auto-set.".format(field),
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    "Error: '{}' modifies protected field '{}' — use "
+                    "update-criterion for criteria, init for "
+                    "schemaVersion".format(field, root),
+                    file=sys.stderr,
+                )
+            return 1
+
+        # Check unknown fields
+        if root not in VALID_TOP_LEVEL_FIELDS:
+            valid_updatable = [
+                f for f in VALID_TOP_LEVEL_FIELDS if f not in PROTECTED_FIELDS
+            ]
+            print(
+                "Error: unknown field '{}' (valid fields: {})".format(
+                    root, ", ".join(valid_updatable)
+                ),
+                file=sys.stderr,
+            )
+            return 1
 
         # Validate known enum fields
-        if field == "lifecycle" and parsed not in VALID_LIFECYCLES:
-            print(f"Error: invalid lifecycle '{parsed}'", file=sys.stderr)
-            return 1
-        if field == "agentActivity" and parsed not in VALID_ACTIVITIES:
-            print(f"Error: invalid agentActivity '{parsed}'", file=sys.stderr)
-            return 1
+        if field == "lifecycle":
+            if not validate_enum(updates[field], VALID_LIFECYCLES, "lifecycle"):
+                return 1
+        if field == "agentActivity":
+            if not validate_enum(updates[field], VALID_ACTIVITIES, "agentActivity"):
+                return 1
 
-        # Handle dotted paths (e.g., attempts.impl)
+    data = load_json(path)
+    if data is None:
+        return 1
+
+    # Apply updates
+    for field, value in updates.items():
         parts = field.split(".")
         target = data
         for part in parts[:-1]:
             if part not in target:
                 target[part] = {}
             target = target[part]
-        target[parts[-1]] = parsed
+        target[parts[-1]] = value
 
-    save_state(path, data)
-    fields_str = ", ".join(f"{f}={v}" for f, v in pairs)
-    print(f"OK — updated {fields_str} in {path}")
+    if flags["dry_run"]:
+        if flags["output"] == "json":
+            json_response({
+                "status": "ok",
+                "command": "update-field",
+                "dryRun": True,
+                "path": path,
+                "fieldsUpdated": updates,
+            }, flags)
+        else:
+            fields_str = ", ".join(
+                "{}={}".format(f, v) for f, v in updates.items()
+            )
+            print("DRY RUN — would update {} in {}".format(fields_str, path))
+        return 0
+
+    atomic_write_json(path, data)
+
+    if flags["output"] == "json":
+        json_response({
+            "status": "ok",
+            "command": "update-field",
+            "path": path,
+            "fieldsUpdated": updates,
+        }, flags)
+    else:
+        fields_str = ", ".join(
+            "{}={}".format(f, v) for f, v in updates.items()
+        )
+        print("OK — updated {} in {}".format(fields_str, path))
     return 0
 
 
 def cmd_init(args):
     HELP = """init — create a new per-iteration state file with correct structure.
 
-Usage:
+IMPORTANT: Use --dry-run to preview the generated file before creating it.
+Errors if the file already exists — use update-field to modify existing files.
+
+PITFALLS:
+- --iteration-id must match pattern ID_N+ (e.g., ID_001, ID_42). Not "1" or "iter_1".
+- --criteria must be non-empty — every iteration needs a definition of done.
+- --dependencies are verified against sibling files. Use --no-verify-deps to skip.
+- File path must end in .json.
+- --pretty and --fields require --output json.
+
+USAGE:
     plet_state.py init <state_file> --iteration-id ID_xxx --title "..." \\
-        --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]'
+        --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' \\
+        [--no-verify-deps] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
-Required options:
-    --iteration-id   Iteration ID (e.g., ID_001)
-    --title          Human-readable iteration title
-    --dependencies   JSON array of dependency iteration IDs (use '[]' for none)
-    --criteria       JSON array of objects with "id" and "description" fields
-
-Creates a state file with all required fields, correct types, and the two-state
-criterion model (implementation: null, verification: null for each criterion).
-Lifecycle is set to "queued" if no dependencies, "ineligible" otherwise.
-Validates the generated file before writing.
+PURPOSE: Creates a state file with all required fields, correct types, and the
+two-state criterion model. Lifecycle is "queued" if no dependencies, "ineligible"
+otherwise. Validates the generated file before writing.
 
 Examples:
     plet_state.py init plet/state/ID_001.json \\
-        --iteration-id ID_001 \\
-        --title "Project scaffolding" \\
+        --iteration-id ID_001 --title "Project scaffolding" \\
         --dependencies '[]' \\
         --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
 
-    plet_state.py init plet/state/ID_003.json \\
-        --iteration-id ID_003 \\
-        --title "OAuth integration" \\
+    plet_state.py init plet/state/ID_003.json --dry-run \\
+        --iteration-id ID_003 --title "OAuth integration" \\
         --dependencies '["ID_001","ID_002"]' \\
-        --criteria '[{"id":"AC_1","description":"Login returns JWT"},{"id":"AC_2","description":"Refresh token works"}]'
+        --criteria '[{"id":"AC_1","description":"Login returns JWT"}]'
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 1:
+
+    clean_args, flags = parse_universal_flags(args)
+
+    err = check_flag_dependencies(flags, command_is_mutating=True)
+    if err:
+        print(err, file=sys.stderr)
+        return 1
+
+    if len(clean_args) < 1:
+        print("Error: state_file argument is required", file=sys.stderr)
         print(HELP, file=sys.stderr)
         return 1
 
-    path = args[0]
-    kwargs = {}
-    i = 1
-    while i < len(args):
-        if args[i].startswith("--"):
-            key = args[i][2:].replace("-", "_")
-            if i + 1 < len(args):
-                kwargs[key] = args[i + 1]
-                i += 2
-            else:
-                print(f"Error: {args[i]} requires a value", file=sys.stderr)
-                return 1
-        else:
-            i += 1
+    path = clean_args[0]
 
-    required = ["iteration_id", "title", "dependencies", "criteria"]
-    for r in required:
-        if r not in kwargs:
-            print(f"Error: --{r.replace('_', '-')} is required", file=sys.stderr)
-            return 1
+    ext_err = check_json_extension(path)
+    if ext_err:
+        print(ext_err, file=sys.stderr)
+        return 1
+
+    # Parse named args
+    try:
+        kwargs = parse_kwargs(clean_args[1:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
+    no_verify_deps = kwargs.pop("no_verify_deps", False)
+
+    if not require_kwargs(
+        kwargs, ["iteration_id", "title", "dependencies", "criteria"], HELP
+    ):
+        return 1
+
+    # Validate iteration ID format
+    iteration_id = kwargs["iteration_id"]
+    if not ITERATION_ID_PATTERN.match(iteration_id):
+        print(
+            "Error: --iteration-id '{}' does not match expected pattern "
+            "ID_N+ (e.g., ID_001)".format(iteration_id),
+            file=sys.stderr,
+        )
+        return 1
+
+    # Check file doesn't already exist
+    if os.path.exists(path):
+        print(
+            "Error: file already exists: {} "
+            "(use update-field to modify existing files)".format(path),
+            file=sys.stderr,
+        )
+        return 1
+
+    # Check parent directory exists
+    parent = os.path.dirname(path)
+    if parent and not os.path.isdir(parent):
+        print(
+            "Error: parent directory does not exist: {}".format(parent),
+            file=sys.stderr,
+        )
+        return 1
 
     # Parse JSON args
     try:
         dependencies = json.loads(kwargs["dependencies"])
     except json.JSONDecodeError as e:
-        print(f"Error: --dependencies must be valid JSON array: {e}", file=sys.stderr)
+        print(
+            "Error: --dependencies must be valid JSON array: {}".format(e),
+            file=sys.stderr,
+        )
+        return 1
+
+    if not isinstance(dependencies, list):
+        print("Error: --dependencies must be a JSON array", file=sys.stderr)
         return 1
 
     try:
         criteria_input = json.loads(kwargs["criteria"])
     except json.JSONDecodeError as e:
-        print(f"Error: --criteria must be valid JSON array: {e}", file=sys.stderr)
+        print(
+            "Error: --criteria must be valid JSON array: {}".format(e),
+            file=sys.stderr,
+        )
         return 1
 
-    # Build criteria with correct two-state structure
+    if not isinstance(criteria_input, list):
+        print("Error: --criteria must be a JSON array", file=sys.stderr)
+        return 1
+
+    # Empty criteria check
+    if len(criteria_input) == 0:
+        print(
+            "Error: --criteria must contain at least one criterion. "
+            "Every iteration needs a definition of done.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Validate criteria objects
+    for i, c in enumerate(criteria_input):
+        if not isinstance(c, dict):
+            print(
+                "Error: --criteria[{}] must be an object".format(i),
+                file=sys.stderr,
+            )
+            return 1
+        for req_field in ["id", "description"]:
+            if req_field not in c:
+                print(
+                    "Error: --criteria[{}] missing required field '{}'".format(
+                        i, req_field
+                    ),
+                    file=sys.stderr,
+                )
+                return 1
+
+    # Verify dependency files exist
+    if not no_verify_deps and dependencies:
+        state_dir = os.path.dirname(path) if os.path.dirname(path) else "."
+        for dep_id in dependencies:
+            dep_path = os.path.join(state_dir, "{}.json".format(dep_id))
+            if not os.path.exists(dep_path):
+                print(
+                    "Error: dependency '{}' not found — expected {}. "
+                    "Use --no-verify-deps to skip this check.".format(
+                        dep_id, dep_path
+                    ),
+                    file=sys.stderr,
+                )
+                return 1
+
+    # Build criteria with two-state structure
     criteria = []
     for c in criteria_input:
         criteria.append({
@@ -404,7 +887,7 @@ Examples:
 
     data = {
         "schemaVersion": SCHEMA_VERSION,
-        "iterationId": kwargs["iteration_id"],
+        "iterationId": iteration_id,
         "title": kwargs["title"],
         "lastUpdated": ts,
         "lastHeartbeat": ts,
@@ -426,45 +909,71 @@ Examples:
     # Validate before writing
     errors = validate(data)
     if errors:
-        print(f"Error: generated state file is invalid:", file=sys.stderr)
+        print("Error: generated state file is invalid:", file=sys.stderr)
         for e in errors:
-            print(f"  - {e}", file=sys.stderr)
+            print("  - {}".format(e), file=sys.stderr)
         return 1
 
-    save_state(path, data)
-    print(f"OK — initialized {path} ({kwargs['iteration_id']}, {len(criteria)} criteria, lifecycle={lifecycle})")
+    if flags["dry_run"]:
+        if flags["output"] == "json":
+            json_response({
+                "status": "ok",
+                "command": "init",
+                "dryRun": True,
+                "path": path,
+                "iterationId": iteration_id,
+                "criteriaCount": len(criteria),
+                "lifecycle": lifecycle,
+                "generatedState": data,
+            }, flags)
+        else:
+            print(
+                "DRY RUN — would create {} ({}, {} criteria, lifecycle={})".format(
+                    path, iteration_id, len(criteria), lifecycle
+                )
+            )
+        return 0
+
+    atomic_write_json(path, data)
+
+    if flags["output"] == "json":
+        json_response({
+            "status": "ok",
+            "command": "init",
+            "path": path,
+            "iterationId": iteration_id,
+            "criteriaCount": len(criteria),
+            "lifecycle": lifecycle,
+        }, flags)
+    else:
+        print(
+            "OK — initialized {} ({}, {} criteria, lifecycle={})".format(
+                path, iteration_id, len(criteria), lifecycle
+            )
+        )
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+COMMANDS = {
+    "validate": cmd_validate,
+    "update-criterion": cmd_update_criterion,
+    "update-field": cmd_update_field,
+    "init": cmd_init,
+}
+
+
 def main():
-    if len(sys.argv) < 2:
-        print(__doc__, file=sys.stderr)
-        return 1
-
-    cmd = sys.argv[1]
-    args = sys.argv[2:]
-
-    commands = {
-        "validate": cmd_validate,
-        "update-criterion": cmd_update_criterion,
-        "update-field": cmd_update_field,
-        "init": cmd_init,
-    }
-
-    if cmd in ("-h", "--help"):
-        print(__doc__)
-        return 0
-
-    if cmd == "--version":
-        print(f"plet_state {SCRIPT_VERSION} (built against plet skill {SKILL_VERSION})")
-        return 0
-
-    if cmd not in commands:
-        print(f"Unknown command: {cmd}", file=sys.stderr)
-        print(f"Valid commands: {', '.join(commands.keys())}", file=sys.stderr)
-        return 1
-
-    return commands[cmd](args)
+    return dispatch(
+        COMMANDS,
+        "plet_state",
+        SCRIPT_VERSION,
+        SKILL_VERSION,
+        __doc__,
+    )
 
 
 if __name__ == "__main__":
