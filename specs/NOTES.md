@@ -88,6 +88,9 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 | ENT | add-learning | ALR |
 | ENT | add-emergent | AEM |
 | ENT | check | CHK |
+| FPR | extract | EXT |
+| FPR | embed | EMB |
+| FPR | check | CHK |
 
 New scripts define their command abbreviations in their spec files. Add them to this table when defined.
 
@@ -351,7 +354,7 @@ If the loop orchestrator becomes a Python script, the full inventory of plet scr
 |--------|---------|-------------|--------|
 | `plet_state.py` | Per-iteration state CRUD + validation | `validate`, `update-criterion`, `update-field`, `init` | Exists |
 | `plet_entries.py` | Runtime artifact entries | `add-progress`, `add-learning`, `add-emergent`, `check` | Exists |
-| `plet_fingerprint.py` | Fingerprint generation, comparison, staleness detection | `generate`, `compare`, `check` | New |
+| `plet_fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` | New |
 | `plet_git.py` | Git compliance layer | `branch-name`, `create-branch`, `audit-tag`, `squash`, `worktree-create`, `worktree-remove`, `check-stashes`, `cleanup-stashes` | New (absorbs `plet_git_cleanup.py`) |
 | `plet_trace.py` | Trace NDJSON schema enforcement | `validate`, `append-event`, `query` | New (already in PLAN_8) |
 | `plet_router.py` | Phase detection + status | `detect`, `status`, `preflight` | New (absorbs pre-flight checker) |
@@ -596,3 +599,27 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **Decision:** Renamed plet_state.py's `--iteration-id` flag to `--iter-id` for consistency with plet_entries.py.
 - **Why:** Agents switch between the two scripts constantly. Having `--iteration-id` on one and `--iter-id` on the other is the kind of inconsistency that causes mistakes. One less thing to memorize.
 - **Scope:** plet_state.py (script + tests), STA spec, plan.md, script_template.md, scripts/CLAUDE.md, util_cli.py docstrings, test_util_cli.py.
+
+#### FPR spec — command naming (2026-03-17)
+
+- **Decision:** Commands are `extract`, `embed`, `check` — not `generate`/`compare`/`check` (from earlier NOTES inventory) or `compute` (rejected: implies math, no actual computation).
+- **Why:** `extract` is read-only and precise — it pulls IDs out of file content and assembles them into a fingerprint structure. `embed` is the write operation (puts the fingerprint into the file). `compare` is subsumed by `check` which compares across all levels.
+- **Fingerprint block delimiters:** `<!-- plet:fingerprint -->` HTML comment fences in markdown files. Invisible when rendered, machine-parseable, won't collide with content.
+- **embed auto-computes:** `embed` internally scans the file the same way `compute` does. No need to pipe `compute` output into `embed` — one command does both (scan + write).
+- **All commands take artifact_dir:** All three commands (`extract`, `embed`, `check`) take `artifact_dir` (e.g., `plet/`) and derive file paths from there. All plet artifacts live in the same directory — no need for per-file path overrides. Originally `extract` took a file path (conceptual purity — it reads one file), but unified to `artifact_dir` for interface consistency across all three commands and with STA/ENT conventions. The flexibility loss is theoretical — plet artifacts always follow the standard layout.
+- **embed does NOT validate:** `embed --type state` only updates the `iterationsFingerprint` field. Full state validation is `plet_state.py validate`'s job.
+- **extract not compute:** `compute` implies math. `extract` is precise — pulls IDs from content, assembles structure. Resolved during §1 review.
+- **GUI persona added:** FPR_AGT_6 — external GUI polls `check` for staleness alerts/banners.
+- **Review status:** §1–§3.1 approved. §3.2 embed next.
+
+#### FPR §3 universal flags review (2026-03-17)
+
+- **Extract abbreviation fixed:** CMP → EXT throughout. CMP was a holdover from earlier "compute" naming. Fixed heading `### 3.1 extract (EXT)` and one stale cross-reference `CMP_BHV_6` → `FPR_EXT_BHV_6`. Command abbreviations (EXT, EMB, CHK) added to NOTES.md prefix table.
+- **--bump stays command-specific:** `--bump` remains in §3.2 embed only, not added to the universal flags table. Rationale: `--dry-run` is in the universal table because it's a universal *pattern* that happens to apply to one command; `--bump` is semantically tied to embed's timestamp behavior and reads better with its context.
+- **§3.1 EXT_JUS approved.** No changes.
+- **§3.1 EXT_CMD approved.** Fixed stale file-path usage in FPR_EXM_1 (`plet/requirements.md` → `plet/`). Confirmed artifact_dir convention per earlier decision.
+- **§3.1 EXT_INP approved.** No changes.
+- **§3.1 EXT_OUT approved.** Fixed typo "extractd" → "extracted". Added `"path"` field to JSON envelope (FPR_EXT_OUT_2) — shows derived file path, matches embed's output. Text mode confirmed as bare fingerprint JSON (pipeable to jq, per FPR_DXP_4).
+- **§3.1 EXT_PRE approved.** Added FPR_EXT_PRE_3 (target file must exist). Confirmed extract --type iterations does NOT require requirements.md — it reads the already-embedded requirementsFingerprint from iterations.md itself. Only embed cross-reads source files.
+- **§3.1 EXT_PST approved.** No changes.
+- **§3.1 EXT_BHV approved.** Three changes: (1) Fixed mtime fallback conflict — BHV_1 and BHV_2 now defer to BHV_6 (current UTC) instead of file modification time. mtime is fragile (git checkout resets it). (2) BHV_2 now specifies milestone grouping mechanism: parse `**Milestone:** MS_N` metadata line per iteration definition (matches plan.md iteration structure, no heading-based grouping). (3) BHV_2 now explicitly excludes withdrawn iterations (parallel with BHV_1's SY_8 exclusion).
