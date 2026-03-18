@@ -200,31 +200,7 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 
 Build additional enforcement scripts in `skills/plet/scripts/` following the "Skills for Judgment, Code for Compliance" principle validated in PLAN_4.
 
-**Existing tools:**
-- `plet_state.py` — state file schema enforcement (FB_12, validated in SPARK)
-- `plet_entries.py` — runtime artifact entry formatting (FB_17/FB_29)
-
-**Full script inventory** (10 scripts — see NOTES.md § "Full script inventory for script-as-orchestrator"):
-
-Exists (2):
-- `plet_state.py` — per-iteration state CRUD + validation
-- `plet_entries.py` — runtime artifact entries
-
-New cross-cutting (5):
-- `plet_fingerprint.py` — fingerprint generation, comparison, staleness detection
-- `plet_git.py` — git compliance layer (absorbs planned `plet_git_cleanup.py`; FB_30, FB_31, FB_32)
-- `plet_trace.py` — trace NDJSON schema enforcement (FB_11)
-- `plet_router.py` — phase detection, status, preflight checks (absorbs pre-flight checker; FB_22, FB_16, FB_23)
-- `plet_inject_prompt.py` — prompt assembly for subagents (absorbs pre-phase context; FB_38)
-
-New loop-specific (1):
-- `plet_orchestrator.py` — the orchestrator itself (session lifecycle, dependency graph, retry logic, main loop). Potentially replaces the skill-as-orchestrator with script-as-orchestrator via `claude -p` subprocess spawning.
-
-New phase checkpoints (2):
-- `plet_gate_impl.py` — implementation pre/post gates (FB_29, FB_33)
-- `plet_gate_verify.py` — verification pre/post gates (FB_29, FB_33, FB_40)
-
-Prioritization and scope TBD during triage (PLAN_7 informs which tools are highest value).
+**Detailed build plan:** `specs/PLAN.md` — sequenced spec authoring and implementation for all 10 scripts. Conventions, template, and per-script specs live in `specs/`.
 
 ---
 

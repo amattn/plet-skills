@@ -539,3 +539,39 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **4 research/minor** — triage individually (FB_21, FB_34, FB_39, FB_43) plus FB_44 as a `plet_entries.py` enhancement
 
 **Key insight:** The plan session is the only phase still fully skill-driven (interactive, judgment-heavy). Its feedback items are the only ones that need prose fixes. Loop and verify issues are almost entirely subsumed by the script orchestrator and gate scripts.
+
+#### ENT spec §10–§11 review decisions (2026-03-17)
+
+- **ENT_NFR_4** qualified: "within a single-writer scenario" — parallel EM_N races acknowledged, resolved during refine
+- **ENT_NFR_5** added: cross-file concurrent appends allowed (no cross-file locking)
+- **ENT_NFR_6** added: external readers must never see partial entries (atomic append guarantee for GUI consumers)
+- **ENT_DXP_6** added: PITFALLS must list common wrong values agents try (e.g., `complete` vs `COMPLETE`, `implementation` vs `impl`)
+- **ENT_DXP_7** added: help text documents flag dependencies (--pretty/--fields require --output json, --content/--content-file mutually exclusive)
+- **Open question resolved (--status):** `--status` stays required for consistency. IN_PROGRESS is suppressed from the header line (ENT_APR_BHV_8) — visually clean without sacrificing CLI consistency. Formats.md updated.
+- **ENT_FUT_5 withdrawn:** BLOCKED --work-completed/--work-remaining won't be CLI flags. BLOCKED details are content guidance for agents. Info is recoverable from state files, tests, and git history if omitted.
+
+#### ENT spec §12–§16 + audit findings review (2026-03-17)
+
+- **ENT_CRT_10** added: --content-file handling test area (file not found, empty, permissions, mutual exclusivity)
+- **ENT_CRT_11** added: check command accuracy test area (counts, NOT_INITIALIZED vs 0, exit codes)
+- §13 (Testing) approved as-is — shebang covered by conventions reference
+- §14 (Resolved Questions) approved — RQ_10 and RQ_11 added for status suppression and BLOCKED decisions
+- §15 (Future): ENT_FUT_1 resolved (cross-ref to RQ_7), ENT_FUT_5 withdrawn
+- §16 (FB Items): FB_44 updated to resolved via --content-file
+- Audit findings approved — 9 implementation tasks guide Seq 3 implementation
+- **ENT spec complete** — all 16 sections reviewed and approved
+
+#### ENT spec holistic review recommendations (2026-03-17)
+
+- **ENT_FUT_2 promoted:** --content-file added to all three add-* commands (ALR_INP_9, ALR_PRE_7/8, ALR_BHV_6, AEM_INP_9, AEM_PRE_7/8, AEM_BHV_7). Near-zero marginal cost during rewrite.
+- **Fence rejection clarified:** applies regardless of content source (--content or --content-file). All three BHV fence rules updated.
+- **check restricted to ID_N+:** `proj` removed from ENT_CHK_PRE_3. R_7 mandatory rule is per-iteration; project-level entries are optional milestones. Open question added for what a proj-level check might look like.
+- **EXM_5 updated:** shows IN_PROGRESS suppression per ENT_APR_BHV_8.
+
+#### STA spec holistic review (2026-03-17)
+
+- **Audit findings cleared:** all 22 findings resolved in implementation (verified 2026-03-17). Items removed, section kept empty for future audits.
+- **STA_ERR_24 removed:** no mutual exclusions exist — specifying an error for a non-existent case was misleading. Add back when needed.
+- **Open Questions promoted:** moved from inline note under §14 to a proper Open Questions section matching ENT format.
+- STA_FUT_1 (schema migration) left as future — no schema changes yet.
+- **--data-file added:** STA_UPF_INP_3, STA_UPF_PRE_6, STA_UPF_BHV_6, STA_ERR_25–28, STA_EDG_17–19. Consistent with ENT's --content-file pattern. STA_FUT_5 (stdin) withdrawn.

@@ -122,7 +122,8 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_BHV_4 | File must already exist — will not create it | P0 |
 | ENT_APR_BHV_5 | If `--files` omitted or empty array, produce `- (none)` in files list | P1 |
 | ENT_APR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
-| ENT_APR_BHV_7 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error | P0 |
+| ENT_APR_BHV_7 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). | P0 |
+| ENT_APR_BHV_8 | When `--status IN_PROGRESS`, suppress status from the header line. Header becomes `### [ID_xxx] phase-N` instead of `### [ID_xxx] phase-N — IN_PROGRESS`. All other statuses are printed. | P0 |
 
 ---
 
@@ -140,7 +141,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." --phase impl --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase impl --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -158,6 +159,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_ALR_INP_6 | `--content` — 1-5 sentences (specific and actionable) | P0 |
 | ENT_ALR_INP_7 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_ALR_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
+| ENT_ALR_INP_9 | `--content-file` — (optional) path to a file containing the content text. Mutually exclusive with `--content`. | P1 |
 
 #### Outputs (ENT_ALR_OUT)
 
@@ -178,6 +180,8 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_ALR_PRE_4 | `--category` is a valid learning category | P0 |
 | ENT_ALR_PRE_5 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_ALR_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
+| ENT_ALR_PRE_7 | Exactly one of `--content` or `--content-file` must be provided | P0 |
+| ENT_ALR_PRE_8 | If `--content-file` is provided, the file must exist and be readable | P0 |
 
 #### Postconditions (ENT_ALR_PST)
 
@@ -197,7 +201,8 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_ALR_BHV_2 | Build formatted entry matching `references/formats.md` RT_2: div markers, category tag, metadata, content | P0 |
 | ENT_ALR_BHV_3 | Atomically append to `{artifact_dir}/learnings.md` | P0 |
 | ENT_ALR_BHV_4 | File must already exist — will not create it | P0 |
-| ENT_ALR_BHV_5 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error | P0 |
+| ENT_ALR_BHV_5 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). | P0 |
+| ENT_ALR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
 
 ---
 
@@ -215,7 +220,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -233,6 +238,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_AEM_INP_6 | `--category` — `design decision`, `requirement gap`, `assumption`, `scope question`, `edge case`, or `blocker` | P0 |
 | ENT_AEM_INP_7 | `--content` — description of what came up and what was decided/assumed | P0 |
 | ENT_AEM_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
+| ENT_AEM_INP_9 | `--content-file` — (optional) path to a file containing the content text. Mutually exclusive with `--content`. | P1 |
 
 #### Outputs (ENT_AEM_OUT)
 
@@ -253,6 +259,8 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_AEM_PRE_4 | `--category` is a valid emergent category | P0 |
 | ENT_AEM_PRE_5 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
 | ENT_AEM_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
+| ENT_AEM_PRE_7 | Exactly one of `--content` or `--content-file` must be provided | P0 |
+| ENT_AEM_PRE_8 | If `--content-file` is provided, the file must exist and be readable | P0 |
 
 #### Postconditions (ENT_AEM_PST)
 
@@ -275,7 +283,8 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_AEM_BHV_3 | Outcome always set to `pending` (triaged during refine) | P0 |
 | ENT_AEM_BHV_4 | Atomically append to `{artifact_dir}/emergent.md` | P0 |
 | ENT_AEM_BHV_5 | File must already exist — will not create it | P0 |
-| ENT_AEM_BHV_6 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error | P0 |
+| ENT_AEM_BHV_6 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). | P0 |
+| ENT_AEM_BHV_7 | If `--content-file` provided, read file contents as content text | P0 |
 
 ---
 
@@ -320,7 +329,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_CHK_PRE_1 | `artifact_dir` exists | P0 |
 | ENT_CHK_PRE_2 | All required args present: `--iter-id` | P0 |
-| ENT_CHK_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
+| ENT_CHK_PRE_3 | `--iter-id` matches pattern `ID_N+` only. `proj` is not accepted — the R_7 mandatory entry rule is per-iteration, and project-level entries are optional milestones. | P0 |
 
 Missing artifact files are distinguished from "initialized but no entries" — see BHV_4. Both count as 0 entries and contribute to exit 1, but the output tells the caller whether the problem is "not initialized" vs "no entries written."
 
@@ -513,7 +522,7 @@ plet_entries.py add-progress plet/ \
 # OK — epr_01JD8X3KBR_proj_p1
 ```
 
-### ENT_EXM_5: Interim checkpoint (IN_PROGRESS)
+### ENT_EXM_5: Interim checkpoint (IN_PROGRESS — status suppressed in header)
 
 ```bash
 # Mid-implementation checkpoint — record progress before phase ends
@@ -523,6 +532,8 @@ plet_entries.py add-progress plet/ \
     --content "SQLite schema created, CRUD operations implemented. Still working on migration logic." \
     --files '["src/db/schema.py — table definitions", "src/db/crud.py — insert/select/update"]'
 # OK — epr_01JD8X3KCS_id002_i1
+# Header in progress.md: ### [ID_002] impl-1
+# (no " — IN_PROGRESS" suffix per ENT_APR_BHV_8)
 ```
 
 ## 9. Dependencies on Other Scripts (ENT_DEP)
@@ -545,7 +556,9 @@ See `specs/conventions.md` for universal requirements.
 | ENT_NFR_1 | Append-only — entries are never modified or deleted after writing | P0 |
 | ENT_NFR_2 | Atomic appends critical — parallel agents may write to the same file | P0 |
 | ENT_NFR_3 | Plet IDs must be globally unique — Crockford Base32 timestamp provides millisecond-resolution uniqueness | P0 |
-| ENT_NFR_4 | EM_N auto-numbering must be gap-free and monotonically increasing within a single run | P0 |
+| ENT_NFR_4 | EM_N auto-numbering must be gap-free and monotonically increasing within a single-writer scenario. Parallel agents may produce duplicate EM_N values — resolved during refine (see §3.3 concurrency note). | P0 |
+| ENT_NFR_5 | Multiple artifact files can be appended concurrently by different agents — no cross-file locking | P0 |
+| ENT_NFR_6 | External readers must never see partial entries — atomic append ensures complete entry or nothing | P0 |
 
 ## 11. Developer Experience (ENT_DXP)
 
@@ -556,6 +569,8 @@ See `specs/conventions.md` for universal requirements.
 | ENT_DXP_3 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | ENT_DXP_4 | Category/status/phase enums listed in error messages and help text | P0 |
 | ENT_DXP_5 | Help text for mutating commands strongly recommends `--dry-run` in IMPORTANT section | P0 |
+| ENT_DXP_6 | Each command's PITFALLS lists common wrong values agents try (e.g., `complete` instead of `COMPLETE` for status, `implementation` instead of `impl` for phase) | P0 |
+| ENT_DXP_7 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json`; `--dry-run` only on mutating commands; `--content` and `--content-file` are mutually exclusive | P0 |
 
 ## 12. Critical Test Areas (ENT_CRT)
 
@@ -570,6 +585,8 @@ See `specs/conventions.md` for universal requirements.
 | ENT_CRT_7 | --output json | JSON output missing required fields | Validate all JSON responses have status, command, scriptVersion, timestamp |
 | ENT_CRT_8 | --attempt validation | Non-integer crashes with traceback | Test non-integer input produces clean error |
 | ENT_CRT_9 | Error handling | Python tracebacks visible to agents | Test every precondition violation produces clean error |
+| ENT_CRT_10 | --content-file handling | File not found, empty file, permissions, mutual exclusivity with --content | Test each failure mode produces clean error, valid file reads correctly |
+| ENT_CRT_11 | check command accuracy | Counts don't match actual entries, NOT_INITIALIZED vs 0 entries conflated | Verify counts match, distinguish missing file from empty file, exit codes correct |
 
 ## 13. Testing & Verification (ENT_TST)
 
@@ -597,23 +614,31 @@ See `specs/conventions.md` for universal requirements.
 | 7 | FB_44: multiline content support? | Resolved — `--content-file` added (ENT_APR_INP_9). All three commands unified to `--content`/`--content-file`. |
 | 8 | Unified entry format? | Yes — all three entry types share KV metadata on top, `**Content:**` marker, freeform content block until end fence. See specs/NOTES.md for full rationale. |
 | 9 | Fencing safety? | Reject content containing fence patterns. Agent-first: fail loudly rather than silently escaping. |
+| 10 | IN_PROGRESS visual noise? | `--status` stays required (consistency). IN_PROGRESS is suppressed from the header line — entry just shows `### [ID_xxx] phase-N`. All other statuses printed. See ENT_APR_BHV_8. |
+| 11 | BLOCKED --work-completed/--work-remaining? | No new flags. BLOCKED details are content guidance for agents. Recoverable from state files/tests/git if omitted. ENT_FUT_5 withdrawn. |
+
+## Open Questions
+
+| # | Question | Context |
+|---|----------|---------|
+| 1 | What would a project-level (`proj`) check look like? Could verify plan session milestones exist, or that refine entries were written. Different from R_7 per-iteration gating — more of a session-completeness check. | ENT_CHK_PRE_3 currently restricts to ID_N+. If proj check is useful, it would need its own criteria for what "complete" means at project level. |
 
 ## 15. Future Considerations (ENT_FUT)
 
 | ID | Area | Description |
 |----|------|-------------|
-| ENT_FUT_1 | ~~Multiline progress content~~ | Resolved — `--content-file` added as ENT_APR_INP_9. |
-| ENT_FUT_2 | --content-file for add-learning and add-emergent | Read content from a file path (same pattern as `--content-file` for add-progress). Low priority — learning/emergent content is typically short, comfortable as a CLI arg. Add if agents produce longer entries. |
+| ENT_FUT_1 | ~~Multiline progress content~~ | Resolved — `--content-file` added as ENT_APR_INP_9. Moved to §14 RQ_7. |
+| ENT_FUT_2 | ~~--content-file for add-learning and add-emergent~~ | Promoted to current scope — all three `add-*` commands get `--content-file` during the rewrite. Near-zero marginal cost. |
 | ENT_FUT_3 | Entry querying | A `query` command to search entries by iteration, phase, category. Currently agents grep the files directly. |
 | ENT_FUT_4 | Format migration | If entry format changes, a migration tool for existing entries. |
-| ENT_FUT_5 | BLOCKED variant | Progress entries with `--status BLOCKED` could require `--work-completed` and `--work-remaining` fields per formats.md blocker variant. |
+| ENT_FUT_5 | ~~BLOCKED variant~~ | Withdrawn — BLOCKED details are content guidance for agents, not CLI-enforced fields. Info is recoverable from state files, tests, and git history if agent omits it. |
 
 ## 16. FB Items Addressed
 
 - FB_17 — progress.md formatting inconsistent (complemented by this tool)
 - FB_29 — learnings/emergent mandatory entry rule not enforced (`check` command enables gate scripts)
 - FB_33 — progress.md entries incomplete (`check` + gate scripts enforce completeness)
-- FB_44 — multiline progress content (deferred to ENT_FUT_1)
+- FB_44 — multiline progress content (resolved via `--content-file`, ENT_APR_INP_9)
 
 ## Audit Findings (2026-03-15)
 

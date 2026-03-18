@@ -82,6 +82,7 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 ---
 
 ### [ID_xxx] phase-N — STATUS (optional clarifying info)
+<!-- STATUS is suppressed when IN_PROGRESS — header becomes just: ### [ID_xxx] phase-N -->
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 **Iteration:** [ID_xxx] [iteration title]
@@ -101,7 +102,7 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 
 | Status | Meaning |
 |--------|---------|
-| `IN_PROGRESS` | Work underway — interim checkpoint, not a terminal status |
+| `IN_PROGRESS` | Work underway — interim checkpoint, not a terminal status. **Suppressed from header line** — entry shows `### [ID_xxx] phase-N` without status suffix. |
 | `COMPLETE` | Phase finished successfully |
 | `BLOCKED` | Agent encountered an unresolvable issue |
 | `FAILED` | Phase failed, will be retried |

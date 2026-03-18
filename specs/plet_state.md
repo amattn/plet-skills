@@ -195,7 +195,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <state_file> --data '{"field":"value", ...}' [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <state_file> --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -206,7 +206,8 @@ The two-state model is the core verification invariant — implementation and ve
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | STA_UPF_INP_1 | `state_file` — path to per-iteration state file | P0 |
-| STA_UPF_INP_2 | `--data` — JSON object of field/value pairs. Keys may use dotted paths (e.g., `attempts.impl`). Values are typed per JSON (strings, numbers, booleans, arrays, null). | P0 |
+| STA_UPF_INP_2 | `--data` — JSON object of field/value pairs. Keys may use dotted paths (e.g., `attempts.impl`). Values are typed per JSON (strings, numbers, booleans, arrays, null). Mutually exclusive with `--data-file`. | P0 |
+| STA_UPF_INP_3 | `--data-file` — path to a file containing the JSON object. Mutually exclusive with `--data`. Use for payloads that are awkward as shell arguments. | P1 |
 
 #### Outputs (STA_UPF_OUT)
 
@@ -222,7 +223,8 @@ The two-state model is the core verification invariant — implementation and ve
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | STA_UPF_PRE_1 | File exists and is valid JSON | P0 |
-| STA_UPF_PRE_2 | `--data` is a valid JSON object | P0 |
+| STA_UPF_PRE_2 | `--data` or `--data-file` is a valid JSON object. Exactly one must be provided. | P0 |
+| STA_UPF_PRE_6 | If `--data-file` is provided, the file must exist and be readable | P0 |
 | STA_UPF_PRE_3 | Enum fields in `--data` have valid values (lifecycle, agentActivity) | P0 |
 | STA_UPF_PRE_4 | `--data` does not contain protected fields (`criteria`, `schemaVersion`, `lastUpdated`). `criteria` → use `update-criterion`. `schemaVersion` → use `init`/migration. `lastUpdated` → auto-set by the script. | P0 |
 | STA_UPF_PRE_5 | `--data` does not contain unknown field names. Valid fields are those defined in the state schema (`references/state-schema.md`). Catches agent typos early rather than silently creating unexpected fields. | P0 |
@@ -242,7 +244,8 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_BHV_1 | Parse `--data` as JSON object, iterate keys | P0 |
+| STA_UPF_BHV_1 | Parse `--data` (or read `--data-file`) as JSON object, iterate keys | P0 |
+| STA_UPF_BHV_6 | If `--data-file` provided, read file contents and parse as JSON object | P0 |
 | STA_UPF_BHV_2 | Validate enum fields: `lifecycle` and `agentActivity` checked against allowed values before writing | P0 |
 | STA_UPF_BHV_3 | Handle dotted paths: split on `.`, create intermediate objects if missing, set leaf value | P0 |
 | STA_UPF_BHV_4 | Auto-update `lastUpdated` timestamp | P0 |
@@ -346,6 +349,9 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_EDG_14 | `--output json` without `--fields` combined with `--dry-run` — show full JSON preview of what would be written/changed, wrapped in the standard JSON response envelope. | P1 |
 | STA_EDG_15 | `--pretty` without `--output json` — error. `--pretty` only applies to JSON output. | P0 |
 | STA_EDG_16 | `--fields` without `--output json` — error. `--fields` only applies to JSON output. | P0 |
+| STA_EDG_17 | Both `--data` and `--data-file` provided — mutually exclusive error | P0 |
+| STA_EDG_18 | `--data-file` exists but is empty — error: `--data-file is empty — nothing to update` | P0 |
+| STA_EDG_19 | `--data-file` contains non-object JSON (array, string, number) — error: `--data-file must contain a JSON object` | P0 |
 
 ## 5. Error Handling (STA_ERR)
 
@@ -376,7 +382,10 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | STA_ERR_21 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | STA_ERR_22 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | STA_ERR_23 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
-| STA_ERR_24 | Mutually exclusive flags → `Error: --{flag1} and --{flag2} are mutually exclusive` | P0 |
+| STA_ERR_25 | Both `--data` and `--data-file` provided → `Error: --data and --data-file are mutually exclusive` | P0 |
+| STA_ERR_26 | `--data-file` path not found → `Error: data file not found: {path}` | P0 |
+| STA_ERR_27 | `--data-file` not readable → `Error: cannot read data file: {path}: {reason}` | P0 |
+| STA_ERR_28 | `--data-file` contains invalid JSON → `Error: --data-file must contain valid JSON: {parse_error}` | P0 |
 
 ## 6. Formats (STA_FMT)
 
@@ -673,10 +682,13 @@ See `specs/conventions.md` for universal requirements.
 | 5 | File overwrite on init? | Error — UNV_NFR_2. |
 | 6 | Separate `skipRationale` field? | Deprecated — `evidence` serves as skip rationale when `status` is `skipped`. Schema change needed in `state-schema.md`. Skill reference files (`execute.md`, `verify.md`) must note that evidence acts as rationale for skipped criteria. |
 | 7 | Should `validate` support `--fix`? | No — `validate` is read-only. Schema migration is a separate concern (SF_24, STA_FUT_1). Mixing read and write in one command violates the principle that read-only commands are safe to run freely. |
+| 8 | `--data` alternatives for large payloads? | `--data-file path` added (STA_UPF_INP_3). Consistent with ENT's `--content-file` pattern. Stdin support (STA_FUT_5) withdrawn — file-based is simpler for agents. |
 
-### Open Questions
+## Open Questions
 
-- **Monitor:** `--evidence` field naming when used as skip rationale. If agents produce poor skip rationale using the evidence framing, consider renaming to `--reason` or adding `--skip-rationale` as an alias.
+| # | Question | Context |
+|---|----------|---------|
+| 1 | Monitor `--evidence` field naming when used as skip rationale. If agents produce poor skip rationale using the evidence framing, consider renaming to `--reason` or adding `--skip-rationale` as an alias. | RQ_6 deprecated separate skipRationale field. |
 
 ## 15. Future Considerations (STA_FUT)
 
@@ -686,37 +698,13 @@ See `specs/conventions.md` for universal requirements.
 | STA_FUT_2 | File locking | Explicit file locking for concurrent write scenarios beyond atomic rename (e.g., if multiple orchestrators ever need to write the same iteration file) |
 | STA_FUT_3 | Diff output | Show what changed between pre/post state for audit logging |
 | STA_FUT_4 | Watch mode | Monitor a state file for changes and re-validate (for GUI/monitoring tools) |
-| STA_FUT_5 | Stdin support | `--data -` or `--data-stdin` to read JSON from stdin for large payloads (avoids shell arg length limits) |
+| STA_FUT_5 | ~~Stdin support~~ | Withdrawn — `--data-file` added as current requirement (STA_UPF_INP_3). Consistency with ENT's `--content-file` pattern preferred over stdin. |
 | STA_FUT_6 | Schema version check | `validate` outputs machine-readable schema version comparison (file version vs script version) to detect files written by a newer plet version |
 
 ## 16. FB Items Addressed
 
 - FB_12 — state file schema drift across iterations (the motivating issue, A/B test winner)
 
-## Audit Findings (2026-03-15)
+## Audit Findings
 
-Audited against `specs/conventions.md`. These findings apply to the current implementation and will be resolved when the script is updated to match this spec.
-
-| Area | Finding | Spec requirement |
-|------|---------|-----------------|
-| UNV_NFR_2 | `init` silently overwrites existing files | STA_INI_PRE_1, STA_INI_BHV_6 |
-| UNV_TST_7 | `--help` not tested for `update-criterion`, `update-field` | STA_TST |
-| UNV_CMD_10 | `update-criterion` uses 5 positional args | STA_UPC_CMD_1 (named args) |
-| UNV_CMD_10 | `update-field` uses alternating positional pairs | STA_UPF_CMD_1 (`--data` JSON) |
-| UNV_CMD_11 | `init` duplicates `parse_kwargs` inline | STA_DEP_1 (import from util_cli) |
-| UNV_CMD_17 | No `--dry-run` support | All mutating commands |
-| UNV_CMD_18 | No `--output json` support | All commands |
-| UNV_CMD_19 | No `--fields` support | All commands |
-| UNV_DXP_5 | Help text is syntax-only, no IMPORTANT/PITFALLS/PURPOSE | All commands |
-| UNV_ERR_4 | File-not-found produces Python traceback | STA_ERR_7, STA_ERR_9 |
-| STA_UPF_PRE_4 | Protected fields not enforced — agents can overwrite criteria/schemaVersion/lastUpdated | STA_ERR_13 |
-| STA_UPF_PRE_5 | Unknown fields not rejected — typos create unexpected fields silently | STA_ERR_14 |
-| STA_EDG_9 | No .json extension check — any file path accepted | STA_ERR_19 |
-| UNV_CMD_22 | No duplicate flag detection — last value silently wins | STA_ERR_23 |
-| STA_INI_PRE_7 | No dependency file verification — deps not checked against siblings | STA_ERR_16 |
-| STA_EDG_6 | Empty --data '{}' not rejected | STA_ERR_18 |
-| STA_INI_PRE_8 | Empty criteria array not rejected | STA_ERR_17 |
-| STA_INI_PRE_6 | No iteration ID format validation | STA_ERR_15 |
-| STA_BHV_VAL_5 | skipRationale still a separate field in schema — needs deprecation | Resolved Q #6 |
-| STA_EDG_10 | Dotted paths into protected fields not blocked | STA_ERR_20 |
-| UNV_CMD_21 | --pretty/--fields without --output json silently ignored | STA_ERR_21, STA_ERR_22 |
+(none currently)
