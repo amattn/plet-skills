@@ -575,3 +575,24 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **Open Questions promoted:** moved from inline note under §14 to a proper Open Questions section matching ENT format.
 - STA_FUT_1 (schema migration) left as future — no schema changes yet.
 - **--data-file added:** STA_UPF_INP_3, STA_UPF_PRE_6, STA_UPF_BHV_6, STA_ERR_25–28, STA_EDG_17–19. Consistent with ENT's --content-file pattern. STA_FUT_5 (stdin) withdrawn.
+
+#### UNV_CMD_24/25: Help hint on errors (2026-03-17)
+
+- **Decision:** Validation errors print a one-line hint (`Run: <script> <command> --help`) instead of the full HELP text. Full HELP only printed for missing-required-args errors.
+- **Why:** Full HELP after every error floods the agent's context window. Validation errors already say what's valid (e.g., "valid: plan, impl, verify, refine"). The hint nudges without noise.
+- **Alternatives rejected:** (A) Full HELP on all errors — too noisy, wastes context. (B) No hint at all — agents may not know --help exists.
+- **UNV_CMD_25 (split):** Hint goes to stderr only — never in JSON error payloads on stdout. Agents see both streams via Bash tool; programmatic callers capture them separately.
+- **Added as:** UNV_CMD_24 + UNV_CMD_25 in conventions.md, updated scripts/CLAUDE.md output convention. Pattern implemented in plet_entries.py via `help_hint()` helper.
+- **Applied to:** plet_entries.py (via `help_hint()`) and plet_state.py (2026-03-17).
+
+#### UNV_IMP_1: Resolve missing util deps before impl (2026-03-17)
+
+- **Decision:** Before implementing a script, check its Dependencies section for imports from `util_*.py`. If any listed function doesn't exist yet, build it first.
+- **Why:** util_io was created for STA's needs. ENT spec declared `load_text` as a dependency, but nobody built it before starting ENT impl. Gap went unnoticed until implementation.
+- **Added as:** UNV_IMP_1 in conventions.md § Implementation Prerequisites. `load_text` added to util_io.py.
+
+#### --iteration-id → --iter-id rename (2026-03-17)
+
+- **Decision:** Renamed plet_state.py's `--iteration-id` flag to `--iter-id` for consistency with plet_entries.py.
+- **Why:** Agents switch between the two scripts constantly. Having `--iteration-id` on one and `--iter-id` on the other is the kind of inconsistency that causes mistakes. One less thing to memorize.
+- **Scope:** plet_state.py (script + tests), STA spec, plan.md, script_template.md, scripts/CLAUDE.md, util_cli.py docstrings, test_util_cli.py.

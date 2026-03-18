@@ -142,7 +142,7 @@ Real, copy-pasteable command sequences with realistic data. More expansive than 
 ```bash
 # Step 1: Set up
 plet_SCRIPTNAME.py init plet/state/ID_001.json \
-    --iteration-id ID_001 --title "Project scaffolding" \
+    --iter-id ID_001 --title "Project scaffolding" \
     --dependencies '[]' \
     --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
 

@@ -13,7 +13,7 @@ Functions:
         Parse --key value pairs from an args list. Bare --flag without
         a value is treated as boolean True. Returns a dict. Keys have
         leading -- stripped and hyphens converted to underscores
-        (e.g., --iteration-id becomes iteration_id).
+        (e.g., --iter-id becomes iter_id).
         Detects duplicate flags and raises ValueError.
 
     require_kwargs(kwargs, required, command_help="")
@@ -69,7 +69,7 @@ def parse_kwargs(args):
 
     Bare --flag (followed by another --flag or end of args) is treated
     as boolean True. Keys have leading -- stripped and hyphens converted
-    to underscores (e.g., --iteration-id becomes iteration_id).
+    to underscores (e.g., --iter-id becomes iter_id).
 
     Detects duplicate flags and raises ValueError with a message
     identifying the duplicate.

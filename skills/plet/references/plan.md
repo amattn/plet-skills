@@ -328,7 +328,7 @@ After all iterations are approved:
    ```bash
    TOOL="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
    $TOOL init plet/state/ID_001.json \
-       --iteration-id ID_001 \
+       --iter-id ID_001 \
        --title "Project scaffolding" \
        --dependencies '[]' \
        --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'

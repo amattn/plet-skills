@@ -267,7 +267,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INI_CMD_1 | Usage: `plet_state.py init <state_file> --iteration-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_INI_CMD_1 | Usage: `plet_state.py init <state_file> --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
 
 **Properties:** mutating (creates file), not idempotent (errors on existing file), atomic
 
@@ -278,7 +278,7 @@ The two-state model is the core verification invariant — implementation and ve
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | STA_INI_INP_1 | `state_file` — path to create | P0 |
-| STA_INI_INP_2 | `--iteration-id` — iteration ID (e.g., ID_001) | P0 |
+| STA_INI_INP_2 | `--iter-id` — iteration ID (e.g., ID_001) | P0 |
 | STA_INI_INP_3 | `--title` — human-readable title | P0 |
 | STA_INI_INP_4 | `--dependencies` — JSON array of dependency iteration IDs (use `'[]'` for none) | P0 |
 | STA_INI_INP_5 | `--criteria` — JSON array of objects with `id` and `description` fields | P0 |
@@ -302,7 +302,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_INI_PRE_3 | `--criteria` is a valid JSON array | P0 |
 | STA_INI_PRE_4 | Each object in `--criteria` has `id` and `description` string fields | P0 |
 | STA_INI_PRE_5 | Parent directory exists | P0 |
-| STA_INI_PRE_6 | `--iteration-id` matches pattern `ID_N+` (e.g., `ID_1`, `ID_001`, `ID_0042`). Prefix `ID_` required, followed by one or more digits. Zero-padding accepted but not required. | P0 |
+| STA_INI_PRE_6 | `--iter-id` matches pattern `ID_N+` (e.g., `ID_1`, `ID_001`, `ID_0042`). Prefix `ID_` required, followed by one or more digits. Zero-padding accepted but not required. | P0 |
 | STA_INI_PRE_7 | Each ID in `--dependencies` has a corresponding `{id}.json` file in the same directory as the target file. Error if not found. Use `--no-verify-deps` to skip this check (for out-of-order or parallel creation). | P0 |
 | STA_INI_PRE_8 | `--criteria` array is non-empty. Every iteration needs at least one acceptance criterion. | P0 |
 
@@ -373,7 +373,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | STA_ERR_12 | Malformed criteria object in `init` → `Error: --criteria[{index}] missing required field '{field}'` (checked at parse time, before validate) | P0 |
 | STA_ERR_13 | Protected field in `update-field` → `Error: '{field}' is a protected field — use update-criterion to modify criteria, init for schemaVersion. lastUpdated is auto-set.` | P0 |
 | STA_ERR_14 | Unknown field in `update-field` → `Error: unknown field '{field}' (valid fields: lifecycle, dependencies, agentId, agentActivity, ...)` | P0 |
-| STA_ERR_15 | Invalid iteration ID format → `Error: --iteration-id '{value}' does not match expected pattern ID_N+ (e.g., ID_001)` | P0 |
+| STA_ERR_15 | Invalid iteration ID format → `Error: --iter-id '{value}' does not match expected pattern ID_N+ (e.g., ID_001)` | P0 |
 | STA_ERR_16 | Dependency file not found → `Error: dependency '{id}' not found — expected {dir}/{id}.json. Use --no-verify-deps to skip this check.` | P0 |
 | STA_ERR_17 | Empty criteria array → `Error: --criteria must contain at least one criterion. Every iteration needs a definition of done.` | P0 |
 | STA_ERR_18 | Empty --data object → `Error: --data is empty — nothing to update` | P0 |
@@ -407,7 +407,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 2. For each iteration, agent calls:
    ```
    plet_state.py init plet/state/ID_001.json \
-       --iteration-id ID_001 --title "Project scaffolding" \
+       --iter-id ID_001 --title "Project scaffolding" \
        --dependencies '[]' \
        --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
    ```
@@ -472,7 +472,7 @@ Activity updates come BEFORE the action they describe — `agentActivity` reflec
 2. Agent runs with `--dry-run` to preview:
    ```
    plet_state.py init plet/state/ID_005.json --dry-run \
-       --iteration-id ID_005 --title "API endpoints" \
+       --iter-id ID_005 --title "API endpoints" \
        --dependencies '["ID_001","ID_003"]' \
        --criteria '[{"id":"AC_1","description":"GET /api returns 200"}]'
    ```
@@ -499,7 +499,7 @@ This flow is unique — the GUI never calls the CLI. It's a read-only consumer o
 ```bash
 # 1. Create state file
 plet_state.py init plet/state/ID_001.json \
-    --iteration-id ID_001 --title "Project scaffolding" \
+    --iter-id ID_001 --title "Project scaffolding" \
     --dependencies '[]' \
     --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"},{"id":"AC_2","description":"ruff check passes"}]'
 # OK — initialized plet/state/ID_001.json (ID_001, 2 criteria, lifecycle=queued)
@@ -559,7 +559,7 @@ plet_state.py validate plet/state/ID_001.json
 ```bash
 # Preview what init would create (text mode)
 plet_state.py init plet/state/ID_002.json --dry-run \
-    --iteration-id ID_002 --title "Core data model" \
+    --iter-id ID_002 --title "Core data model" \
     --dependencies '["ID_001"]' \
     --criteria '[{"id":"AC_1","description":"Models created"}]'
 # DRY RUN — would create plet/state/ID_002.json (ID_002, 1 criteria, lifecycle=ineligible)

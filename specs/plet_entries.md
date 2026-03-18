@@ -440,7 +440,7 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 
 ### ENT_AFL_2: Pre-verify gate check
 
-1. Gate script calls `plet_entries.py check plet/ --iteration ID_001`
+1. Gate script calls `plet_entries.py check plet/ --iter-id ID_001`
 2. If exit 0 → proceed to verification
 3. If exit 1 → block verification, report missing artifacts
 

@@ -77,6 +77,11 @@ VALID_TOP_LEVEL_FIELDS = [
 ITERATION_ID_PATTERN = re.compile(r"^ID_\d+$")
 
 
+def help_hint(command):
+    """One-line stderr hint pointing agents to --help."""
+    return "Run: plet_state.py {} --help".format(command)
+
+
 # ---------------------------------------------------------------------------
 # Universal flag parsing
 # ---------------------------------------------------------------------------
@@ -315,12 +320,15 @@ Examples:
         print(HELP)
         return 0
 
+    hint = help_hint("validate")
+
     clean_args, flags = parse_universal_flags(args)
     flags["dry_run"] = False  # validate doesn't support dry-run
 
     err = check_flag_dependencies(flags, command_is_mutating=False)
     if err:
         print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     if len(clean_args) < 1:
@@ -333,6 +341,7 @@ Examples:
     ext_err = check_json_extension(path)
     if ext_err:
         print(ext_err, file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     data = load_json(path)
@@ -359,6 +368,7 @@ Examples:
         )
         for e in errors:
             print("  - {}".format(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     print("OK — {} is valid".format(path))
@@ -399,11 +409,14 @@ Examples:
         print(HELP)
         return 0
 
+    hint = help_hint("update-criterion")
+
     clean_args, flags = parse_universal_flags(args)
 
     err = check_flag_dependencies(flags, command_is_mutating=True)
     if err:
         print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     if len(clean_args) < 1:
@@ -416,6 +429,7 @@ Examples:
     ext_err = check_json_extension(path)
     if ext_err:
         print(ext_err, file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     # Parse named args from remaining clean_args
@@ -423,6 +437,7 @@ Examples:
         kwargs = parse_kwargs(clean_args[1:])
     except ValueError as e:
         print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     if not require_kwargs(kwargs, ["criterion", "phase", "status", "evidence"], HELP):
@@ -434,15 +449,18 @@ Examples:
     evidence = kwargs["evidence"]
 
     if not validate_enum(phase, ["implementation", "verification"], "--phase"):
+        print(hint, file=sys.stderr)
         return 1
 
     if not validate_enum(status, VALID_CRITERION_STATUSES, "--status"):
+        print(hint, file=sys.stderr)
         return 1
 
     elapsed = 0
     if "elapsed" in kwargs:
         elapsed, ok = validate_int(kwargs["elapsed"], "--elapsed")
         if not ok:
+            print(hint, file=sys.stderr)
             return 1
 
     data = load_json(path)
@@ -476,6 +494,7 @@ Examples:
             criterion_id, path, ", ".join(available)
         )
         print(msg, file=sys.stderr)
+        print(hint, file=sys.stderr)
         if flags["output"] == "json":
             json_response({
                 "status": "error",
@@ -567,11 +586,14 @@ Examples:
         print(HELP)
         return 0
 
+    hint = help_hint("update-field")
+
     clean_args, flags = parse_universal_flags(args)
 
     err = check_flag_dependencies(flags, command_is_mutating=True)
     if err:
         print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     if len(clean_args) < 1:
@@ -584,6 +606,7 @@ Examples:
     ext_err = check_json_extension(path)
     if ext_err:
         print(ext_err, file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     # Parse named args
@@ -591,6 +614,7 @@ Examples:
         kwargs = parse_kwargs(clean_args[1:])
     except ValueError as e:
         print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     if not require_kwargs(kwargs, ["data"], HELP):
@@ -604,14 +628,17 @@ Examples:
             "Error: --data must be valid JSON: {}".format(e),
             file=sys.stderr,
         )
+        print(hint, file=sys.stderr)
         return 1
 
     if not isinstance(updates, dict):
         print("Error: --data must be a JSON object", file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     if len(updates) == 0:
         print("Error: --data is empty — nothing to update", file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     # Validate each field
@@ -634,6 +661,7 @@ Examples:
                     "schemaVersion".format(field, root),
                     file=sys.stderr,
                 )
+            print(hint, file=sys.stderr)
             return 1
 
         # Check unknown fields
@@ -647,14 +675,17 @@ Examples:
                 ),
                 file=sys.stderr,
             )
+            print(hint, file=sys.stderr)
             return 1
 
         # Validate known enum fields
         if field == "lifecycle":
             if not validate_enum(updates[field], VALID_LIFECYCLES, "lifecycle"):
+                print(hint, file=sys.stderr)
                 return 1
         if field == "agentActivity":
             if not validate_enum(updates[field], VALID_ACTIVITIES, "agentActivity"):
+                print(hint, file=sys.stderr)
                 return 1
 
     data = load_json(path)
@@ -711,14 +742,14 @@ IMPORTANT: Use --dry-run to preview the generated file before creating it.
 Errors if the file already exists — use update-field to modify existing files.
 
 PITFALLS:
-- --iteration-id must match pattern ID_N+ (e.g., ID_001, ID_42). Not "1" or "iter_1".
+- --iter-id must match pattern ID_N+ (e.g., ID_001, ID_42). Not "1" or "iter_1".
 - --criteria must be non-empty — every iteration needs a definition of done.
 - --dependencies are verified against sibling files. Use --no-verify-deps to skip.
 - File path must end in .json.
 - --pretty and --fields require --output json.
 
 USAGE:
-    plet_state.py init <state_file> --iteration-id ID_xxx --title "..." \\
+    plet_state.py init <state_file> --iter-id ID_xxx --title "..." \\
         --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' \\
         [--no-verify-deps] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
@@ -728,12 +759,12 @@ otherwise. Validates the generated file before writing.
 
 Examples:
     plet_state.py init plet/state/ID_001.json \\
-        --iteration-id ID_001 --title "Project scaffolding" \\
+        --iter-id ID_001 --title "Project scaffolding" \\
         --dependencies '[]' \\
         --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
 
     plet_state.py init plet/state/ID_003.json --dry-run \\
-        --iteration-id ID_003 --title "OAuth integration" \\
+        --iter-id ID_003 --title "OAuth integration" \\
         --dependencies '["ID_001","ID_002"]' \\
         --criteria '[{"id":"AC_1","description":"Login returns JWT"}]'
 """
@@ -741,11 +772,14 @@ Examples:
         print(HELP)
         return 0
 
+    hint = help_hint("init")
+
     clean_args, flags = parse_universal_flags(args)
 
     err = check_flag_dependencies(flags, command_is_mutating=True)
     if err:
         print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     if len(clean_args) < 1:
@@ -758,6 +792,7 @@ Examples:
     ext_err = check_json_extension(path)
     if ext_err:
         print(ext_err, file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     # Parse named args
@@ -765,23 +800,25 @@ Examples:
         kwargs = parse_kwargs(clean_args[1:])
     except ValueError as e:
         print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     no_verify_deps = kwargs.pop("no_verify_deps", False)
 
     if not require_kwargs(
-        kwargs, ["iteration_id", "title", "dependencies", "criteria"], HELP
+        kwargs, ["iter_id", "title", "dependencies", "criteria"], HELP
     ):
         return 1
 
     # Validate iteration ID format
-    iteration_id = kwargs["iteration_id"]
+    iteration_id = kwargs["iter_id"]
     if not ITERATION_ID_PATTERN.match(iteration_id):
         print(
-            "Error: --iteration-id '{}' does not match expected pattern "
+            "Error: --iter-id '{}' does not match expected pattern "
             "ID_N+ (e.g., ID_001)".format(iteration_id),
             file=sys.stderr,
         )
+        print(hint, file=sys.stderr)
         return 1
 
     # Check file doesn't already exist
@@ -791,6 +828,7 @@ Examples:
             "(use update-field to modify existing files)".format(path),
             file=sys.stderr,
         )
+        print(hint, file=sys.stderr)
         return 1
 
     # Check parent directory exists
@@ -800,6 +838,7 @@ Examples:
             "Error: parent directory does not exist: {}".format(parent),
             file=sys.stderr,
         )
+        print(hint, file=sys.stderr)
         return 1
 
     # Parse JSON args
@@ -810,10 +849,12 @@ Examples:
             "Error: --dependencies must be valid JSON array: {}".format(e),
             file=sys.stderr,
         )
+        print(hint, file=sys.stderr)
         return 1
 
     if not isinstance(dependencies, list):
         print("Error: --dependencies must be a JSON array", file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     try:
@@ -823,10 +864,12 @@ Examples:
             "Error: --criteria must be valid JSON array: {}".format(e),
             file=sys.stderr,
         )
+        print(hint, file=sys.stderr)
         return 1
 
     if not isinstance(criteria_input, list):
         print("Error: --criteria must be a JSON array", file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
     # Empty criteria check
@@ -836,6 +879,7 @@ Examples:
             "Every iteration needs a definition of done.",
             file=sys.stderr,
         )
+        print(hint, file=sys.stderr)
         return 1
 
     # Validate criteria objects
@@ -845,6 +889,7 @@ Examples:
                 "Error: --criteria[{}] must be an object".format(i),
                 file=sys.stderr,
             )
+            print(hint, file=sys.stderr)
             return 1
         for req_field in ["id", "description"]:
             if req_field not in c:
@@ -854,6 +899,7 @@ Examples:
                     ),
                     file=sys.stderr,
                 )
+                print(hint, file=sys.stderr)
                 return 1
 
     # Verify dependency files exist
@@ -869,6 +915,7 @@ Examples:
                     ),
                     file=sys.stderr,
                 )
+                print(hint, file=sys.stderr)
                 return 1
 
     # Build criteria with two-state structure

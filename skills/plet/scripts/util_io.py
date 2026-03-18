@@ -41,6 +41,14 @@ Functions:
         always written as complete units — no partial entries visible
         to readers.
 
+    load_text(path)
+        Load a text file and return its contents as a string.
+        On file not found, prints "Error: file not found: {path}" to
+        stderr and returns None. On read error (permissions, etc.),
+        prints "Error: cannot read file: {path}: {reason}" to stderr
+        and returns None. Callers should check for None and return
+        exit code 1.
+
 Dependencies: Python stdlib only (json, os). Imports now_iso from util_cli.
 """
 
@@ -91,6 +99,27 @@ def atomic_write_json(path, data, update_timestamp=True):
         json.dump(data, f, indent=2)
         f.write("\n")
     os.rename(tmp, path)
+
+
+def load_text(path):
+    """Load a text file and return its contents as a string.
+
+    Returns file contents on success, None on failure.
+    Prints specific error messages to stderr (not Python tracebacks).
+    Callers should check for None and return exit code 1.
+    """
+    if not os.path.exists(path):
+        print("Error: file not found: {}".format(path), file=sys.stderr)
+        return None
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except (IOError, OSError) as e:
+        print(
+            "Error: cannot read file: {}: {}".format(path, e),
+            file=sys.stderr,
+        )
+        return None
 
 
 def atomic_append(path, content):

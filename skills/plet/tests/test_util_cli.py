@@ -44,8 +44,8 @@ def test_parse_kwargs_basic():
 
 def test_parse_kwargs_hyphens_to_underscores():
     print("\n## parse_kwargs — hyphens converted to underscores")
-    result = util_cli.parse_kwargs(["--iteration-id", "ID_001"])
-    check("hyphen to underscore", result == {"iteration_id": "ID_001"})
+    result = util_cli.parse_kwargs(["--iter-id", "ID_001"])
+    check("hyphen to underscore", result == {"iter_id": "ID_001"})
 
 
 def test_parse_kwargs_bare_flag():

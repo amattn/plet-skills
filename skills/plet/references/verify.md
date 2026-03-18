@@ -311,21 +311,20 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 ENTRIES="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py"
 
 # Progress entry
-$ENTRIES add-progress plet/ --iteration ID_001 --title "Project scaffolding" \
+$ENTRIES add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \
     --phase verify --attempt 1 --status COMPLETE \
-    --summary "All acceptance criteria independently verified. Tests pass, code is idiomatic." \
+    --content "All acceptance criteria independently verified. Tests pass, code is idiomatic." \
     --files '["tests/test_sanity.py — verified sanity check"]'
 
 # Learning entry
-$ENTRIES add-learning plet/ --iteration ID_002 --category gotcha \
-    --title "Test mocks DB layer too aggressively" \
+$ENTRIES add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \
+    --category gotcha --title "Test mocks DB layer too aggressively" \
     --content "Tests mock the entire DB, missing real query issues. Needs integration tests." \
     --phase verify --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
-$ENTRIES add-emergent plet/ --iteration ID_003 \
-    --title "API rate limiting not specified" \
-    --source "[ID_003] API endpoints" --phase verify \
+$ENTRIES add-emergent plet/ --iter-id ID_003 --iter-title "API endpoints" \
+    --title "API rate limiting not specified" --phase verify \
     --category "requirement gap" \
     --content "No rate limiting implemented. Requirements don't mention it." \
     --attempt 1

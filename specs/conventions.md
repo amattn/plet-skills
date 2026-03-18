@@ -37,6 +37,8 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_CMD_14 | Exit codes: 0 = success, 1 = error. No other exit codes | P0 |
 | UNV_CMD_15 | Output: results to stdout, errors to stderr. Default is human-readable text. `--output json` produces structured machine-readable output with metadata (status, command, path, scriptVersion, timestamp). Both formats must include the same information. | P0 |
 | UNV_CMD_16 | Each `cmd_*` function defines a `HELP` variable at the top with usage, arguments, and examples | P0 |
+| UNV_CMD_24 | Error output includes a help hint on stderr: `Run: <script> <command> --help`. Print the full HELP only for missing-required-args errors (where the agent needs the full interface). For validation errors (wrong enum, bad format), the error message itself says what's valid — the hint nudges without flooding the agent's context window. | P0 |
+| UNV_CMD_25 | The help hint (UNV_CMD_24) always goes to stderr only — never included in `--output json` structured error payloads on stdout. Agents see both streams via the Bash tool; programmatic callers (orchestrator, gate scripts) capture them separately. | P0 |
 | UNV_CMD_17 | All mutating commands must support `--dry-run`. Dry-run output matches real output except no files are modified. Exit 0 on success preview. | P0 |
 | UNV_CMD_18 | All commands must support `--output json` for structured output. Default is compact (single line). `--pretty` produces indented JSON. JSON includes at minimum: `status`, `command`, `scriptVersion`, `timestamp`. Error output includes `error` message and actionable recovery info (e.g., `available` values). | P0 |
 | UNV_CMD_19 | All commands must support `--fields field1,field2,...` to limit JSON output fields. When used, response includes `fieldsIncluded` (requested fields) and `fieldsOmitted` (available fields that were filtered out). Implemented via `filter_fields()` in `util_cli.py`. Error if used without `--output json`. | P0 |
@@ -92,6 +94,13 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_TST_5 | Tests create temp fixtures, validate output + file contents, then clean up | P0 |
 | UNV_TST_6 | Test both success and failure paths | P0 |
 | UNV_TST_7 | Test `--help` on every command — verify exit 0 and non-empty output | P0 |
+| UNV_TST_8 | `util_*.py` modules get their own test files (`test_util_*.py`) with the same harness pattern. Since util modules are imported (not CLI tools), tests call functions directly rather than via subprocess. Each new util function added per UNV_IMP_1 must have tests written first (red/green). | P0 |
+
+## Implementation Prerequisites
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| UNV_IMP_1 | Before implementing a script, check its Dependencies section (§DEP) for imports from `util_*.py` modules. If any listed function does not yet exist in the target module, implement it first using red/green discipline: write failing tests, then implement. Shared util functions are built incrementally — each script spec may declare dependencies on functions that earlier scripts didn't need. | P0 |
 
 ## Allowed Tools
 

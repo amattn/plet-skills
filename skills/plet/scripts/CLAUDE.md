@@ -49,12 +49,12 @@ Every script follows the same structure:
 
 - **Command-based interface:** `script.py <command> [args]` — not flag-based (`script.py --validate`)
 - **Help everywhere:** every command supports `-h` and `--help`. Top-level `script.py --help` prints the module docstring with all commands. Help text is agent-readable — include copy-pasteable examples that agents can use directly
-- **Named arguments with `--`:** `--iteration ID_001 --phase impl`. Positional args only for the first 1-2 arguments (file paths, artifact directories)
+- **Named arguments with `--`:** `--iter-id ID_001 --phase impl`. Positional args only for the first 1-2 arguments (file paths, artifact directories)
 - **No argparse:** manual argument parsing via `parse_kwargs()` pattern. Keeps scripts simple, avoids argparse's verbosity, and gives full control over error messages. Use the shared `parse_kwargs` pattern from `plet_entries.py`
 - **JSON for complex values:** arrays and objects passed as JSON strings: `--criteria '[{"id":"AC_1"}]'`
 - **Version flag:** every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)`. Example: `plet_state 0.1.0 (built against plet skill 0.1.0)`. The skill version is the version from `skills/plet/SKILL.md` frontmatter that the script was built to work with. If the skill makes a non-backward-compatible semver change (major bump), scripts built against the old version need to be reviewed and updated
 - **Exit codes:** 0 = success, 1 = error (validation failure, missing args, bad input). Never use other exit codes
-- **Output convention:** results to stdout, errors to stderr. On success, print a short confirmation (`OK — ...`). On error, print the error and the command's HELP text
+- **Output convention:** results to stdout, errors to stderr. On success, print a short confirmation (`OK — ...`). On error, print the specific error message plus a help hint: `Run: <script> <command> --help`. Print the full HELP text only for missing-required-args errors (where the agent needs the full interface). For validation errors (wrong enum value, bad format), the error message itself says what's valid — the hint nudges without flooding context
 - **Subcommand HELP strings:** each `cmd_*` function defines a `HELP` variable at the top with usage, arguments, and examples. Printed on `--help` or when required args are missing
 
 ### Idempotency

@@ -183,6 +183,61 @@ def test_atomic_write_json_nested():
 
 
 # ---------------------------------------------------------------------------
+# load_text
+# ---------------------------------------------------------------------------
+
+def test_load_text_valid():
+    print("\n## load_text — valid file")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write("hello\nworld\n")
+        path = f.name
+    try:
+        result = util_io.load_text(path)
+        check("returns string", isinstance(result, str))
+        check("content correct", result == "hello\nworld\n")
+    finally:
+        os.unlink(path)
+
+
+def test_load_text_not_found():
+    print("\n## load_text — file not found")
+    import io
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    result = util_io.load_text("/nonexistent/path/file.txt")
+    err = sys.stderr.getvalue()
+    sys.stderr = old_stderr
+
+    check("returns None", result is None)
+    check("error message", "file not found" in err.lower())
+    check("shows path", "/nonexistent/path/file.txt" in err)
+
+
+def test_load_text_empty_file():
+    print("\n## load_text — empty file")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        path = f.name
+    try:
+        result = util_io.load_text(path)
+        check("returns empty string", result == "")
+    finally:
+        os.unlink(path)
+
+
+def test_load_text_multiline():
+    print("\n## load_text — multiline content")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        content = "# Header\n\nLine 1\nLine 2\n\n## Section\nMore text\n"
+        f.write(content)
+        path = f.name
+    try:
+        result = util_io.load_text(path)
+        check("preserves multiline", result == content)
+    finally:
+        os.unlink(path)
+
+
+# ---------------------------------------------------------------------------
 # atomic_append
 # ---------------------------------------------------------------------------
 
@@ -256,6 +311,10 @@ if __name__ == "__main__":
     test_atomic_write_json_no_tmp_residue()
     test_atomic_write_json_pretty()
     test_atomic_write_json_nested()
+    test_load_text_valid()
+    test_load_text_not_found()
+    test_load_text_empty_file()
+    test_load_text_multiline()
     test_atomic_append_new_file()
     test_atomic_append_existing_file()
     test_atomic_append_no_tmp_residue()

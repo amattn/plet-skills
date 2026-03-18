@@ -1097,10 +1097,10 @@ State file management — `init`, `update-criterion`, `update-field`, `validate`
 Runtime artifact entry writer. Addresses FB_29 (learnings/emergent regression) and FB_33 (progress.md incomplete). Same pattern as plet_state.py — agents call a tool instead of composing markdown freehand.
 
 **Commands:**
-- `add-progress <dir> --iteration ID_xxx --title "..." --phase impl --attempt 1 --status COMPLETE --summary "..." [--files '["path — desc"]']`
-- `add-learning <dir> --iteration ID_xxx --category gotcha --title "..." --content "..." --phase impl --attempt 1`
-- `add-emergent <dir> --iteration ID_xxx --title "..." --source "..." --phase impl --category "design decision" --content "..." --attempt 1`
-- `check <dir> --iteration ID_xxx` — reports which artifacts have entries, exits 1 if any are missing (pre-verify gate for R_7)
+- `add-progress <dir> --iter-id ID_xxx --iter-title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json]`
+- `add-learning <dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase impl --attempt 1 [--dry-run] [--output json]`
+- `add-emergent <dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json]`
+- `check <dir> --iter-id ID_xxx` — reports which artifacts have entries, exits 1 if any are missing (pre-verify gate for R_7)
 
 **Features:**
 - Generates correct Crockford Base32 plet IDs automatically (RT_11)
@@ -1131,7 +1131,7 @@ Plet ID generation. The composable ID scheme (type prefix + Crockford Base32 tim
 PRD refs: RT_11, Plet ID Scheme
 
 **What it would do:**
-- `generate --type epr --iteration ID_001 --phase impl --attempt 1` — generate a correct plet ID
+- `generate --type epr --iter-id ID_001 --phase impl --attempt 1` — generate a correct plet ID
 - Handles Crockford Base32 encoding (not standard base32 — excludes I/L/O/U, specific casing)
 - Handles iteration ID normalization (ID_001 → id001)
 - Handles phase/attempt encoding (impl-1 → i1, verify-2 → v2, refine-1 → r1)
@@ -1159,8 +1159,8 @@ Verification report scaffolding. The report structure is detailed (VF_21–VF_24
 PRD refs: VF_21–VF_24
 
 **What it would do:**
-- `scaffold --iteration ID_001 --attempt 1` — read state file criteria, generate report skeleton with correct plet ID, empty criteriaResults for each AC, empty findings array
-- `finalize --iteration ID_001 --verdict passed` — validate completed report (all criteria have results, verdict is consistent with criteria statuses), write to state file's verificationReports array
+- `scaffold --iter-id ID_001 --attempt 1` — read state file criteria, generate report skeleton with correct plet ID, empty criteriaResults for each AC, empty findings array
+- `finalize --iter-id ID_001 --verdict passed` — validate completed report (all criteria have results, verdict is consistent with criteria statuses), write to state file's verificationReports array
 - Generates the vrp plet ID automatically (uses plet_id.py internally or shared logic)
 
 **Why it matters:** The report is the most structured output the verify agent produces. It has nested arrays, cross-references, and a specific append-only contract. Scaffolding it means the agent fills in judgments (evidence, findings) while the tool handles structure.
@@ -1172,8 +1172,8 @@ Trace event writer. Trace coverage improved dramatically in SPARK (51 files) but
 PRD refs: EX_10, RT_4, RT_5
 
 **What it would do:**
-- `emit --event phase_start --iteration ID_xxx --phase impl --attempt 1` — append canonical event to trace file
-- `emit --event criterion_start --iteration ID_xxx --criterion AC_1` — track criterion-level timing
+- `emit --event phase_start --iter-id ID_xxx --phase impl --attempt 1` — append canonical event to trace file
+- `emit --event criterion_start --iter-id ID_xxx --criterion AC_1` — track criterion-level timing
 - Enforces the event schema from formats.md automatically
 
 ### plet_graph.py (candidate) ○ medium

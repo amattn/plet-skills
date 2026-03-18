@@ -89,7 +89,7 @@ def init_state(tmpdir, name="ID_001.json", iteration_id="ID_001",
     path = os.path.join(tmpdir, name)
     args = [
         "init", path,
-        "--iteration-id", iteration_id,
+        "--iter-id", iteration_id,
         "--title", title,
         "--dependencies", deps,
         "--criteria", criteria,
@@ -388,7 +388,7 @@ def test_init_with_no_verify_deps():
         path = os.path.join(tmpdir, "ID_003.json")
         run([
             "init", path,
-            "--iteration-id", "ID_003",
+            "--iter-id", "ID_003",
             "--title", "Depends on others",
             "--dependencies", '["ID_001","ID_002"]',
             "--criteria", '[{"id":"AC_1","description":"test"}]',
@@ -405,7 +405,7 @@ def test_init_missing_dep_file():
         path = os.path.join(tmpdir, "ID_003.json")
         _, err, _ = run([
             "init", path,
-            "--iteration-id", "ID_003",
+            "--iter-id", "ID_003",
             "--title", "Bad deps",
             "--dependencies", '["ID_001"]',
             "--criteria", '[{"id":"AC_1","description":"test"}]',
@@ -418,7 +418,7 @@ def test_init_missing_args():
     print("\n## Init — missing required args")
     with tempfile.TemporaryDirectory() as tmpdir:
         path = os.path.join(tmpdir, "bad.json")
-        _, err, _ = run(["init", path, "--iteration-id", "ID_001"], expect_exit=1)
+        _, err, _ = run(["init", path, "--iter-id", "ID_001"], expect_exit=1)
         check("errors on missing args", "required" in err.lower() or "title" in err.lower())
 
 
@@ -437,7 +437,7 @@ def test_init_existing_file():
         path = init_state(tmpdir)
         _, err, _ = run([
             "init", path,
-            "--iteration-id", "ID_001",
+            "--iter-id", "ID_001",
             "--title", "Duplicate",
             "--dependencies", "[]",
             "--criteria", '[{"id":"AC_1","description":"test"}]',
@@ -451,7 +451,7 @@ def test_init_bad_iteration_id():
         path = os.path.join(tmpdir, "bad.json")
         _, err, _ = run([
             "init", path,
-            "--iteration-id", "iter_1",
+            "--iter-id", "iter_1",
             "--title", "Bad ID",
             "--dependencies", "[]",
             "--criteria", '[{"id":"AC_1","description":"test"}]',
@@ -462,7 +462,7 @@ def test_init_bad_iteration_id():
         path2 = os.path.join(tmpdir, "bad2.json")
         _, err2, _ = run([
             "init", path2,
-            "--iteration-id", "1",
+            "--iter-id", "1",
             "--title", "Bad ID",
             "--dependencies", "[]",
             "--criteria", '[{"id":"AC_1","description":"test"}]',
@@ -476,7 +476,7 @@ def test_init_empty_criteria():
         path = os.path.join(tmpdir, "empty.json")
         _, err, _ = run([
             "init", path,
-            "--iteration-id", "ID_001",
+            "--iter-id", "ID_001",
             "--title", "No criteria",
             "--dependencies", "[]",
             "--criteria", "[]",
@@ -490,7 +490,7 @@ def test_init_json_extension():
         path = os.path.join(tmpdir, "state.txt")
         _, err, _ = run([
             "init", path,
-            "--iteration-id", "ID_001",
+            "--iter-id", "ID_001",
             "--title", "Test",
             "--dependencies", "[]",
             "--criteria", '[{"id":"AC_1","description":"test"}]',
@@ -504,7 +504,7 @@ def test_init_dry_run():
         path = os.path.join(tmpdir, "ID_001.json")
         out, _, _ = run([
             "init", path,
-            "--iteration-id", "ID_001",
+            "--iter-id", "ID_001",
             "--title", "Dry run test",
             "--dependencies", "[]",
             "--criteria", '[{"id":"AC_1","description":"test"}]',
@@ -918,7 +918,7 @@ def test_full_workflow():
         # Init
         run([
             "init", path,
-            "--iteration-id", "ID_001",
+            "--iter-id", "ID_001",
             "--title", "Full workflow test",
             "--dependencies", "[]",
             "--criteria", '[{"id":"AC_1","description":"API returns 200"},{"id":"AC_2","description":"Tests pass"}]',

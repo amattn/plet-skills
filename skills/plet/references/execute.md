@@ -190,21 +190,20 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 ENTRIES="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py"
 
 # Progress entry
-$ENTRIES add-progress plet/ --iteration ID_001 --title "Project scaffolding" \
+$ENTRIES add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \
     --phase impl --attempt 1 --status COMPLETE \
-    --summary "Initialized project with pytest, ruff. All checks pass." \
+    --content "Initialized project with pytest, ruff. All checks pass." \
     --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
 
 # Learning entry
-$ENTRIES add-learning plet/ --iteration ID_002 --category gotcha \
-    --title "SQLite WAL mode required" \
+$ENTRIES add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \
+    --category gotcha --title "SQLite WAL mode required" \
     --content "Default journal mode blocks readers during writes." \
     --phase impl --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
-$ENTRIES add-emergent plet/ --iteration ID_002 \
-    --title "Chose SQLite over PostgreSQL" \
-    --source "[ID_002] Core data model" --phase impl \
+$ENTRIES add-emergent plet/ --iter-id ID_002 --iter-title "Core data model" \
+    --title "Chose SQLite over PostgreSQL" --phase impl \
     --category "design decision" \
     --content "Requirements say persistent storage without specifying engine." \
     --attempt 1
