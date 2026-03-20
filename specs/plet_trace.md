@@ -560,7 +560,8 @@ None.
 | TRC_FUT_2 | Trace merge | Command that merges events.ndjson and transcript.jsonl by timestamp for unified view (GUI integration). Deferred — the GUI reads files directly. |
 | TRC_FUT_3 | Trace summary | Command that produces a human-readable summary of a trace file (event counts by type, timeline, key decisions). Useful for post-run analysis. |
 | TRC_FUT_4 | Streaming validation | Validate events as they're appended (real-time schema enforcement via a file watcher or hook). |
-| TRC_FUT_5 | Native Agent tool support | Native subagents (Claude Code's Agent tool) offer UI benefits but lack reliable transcript capture — no streaming JSONL output, log file locations are implementation details that may change or be non-portable. If native subagent tracing becomes possible (e.g., Claude Code exposes a transcript API), add support. Until then, subprocess invocations are the only architecture that provides the traceability guarantee. |
+| TRC_FUT_5 | Transcript validation/query | If post-run analysis needs to validate or query raw transcript JSONL (e.g., "find all tool_use events", "count tokens per iteration"), add `validate-transcript` and `query-transcript` commands to this script or create a separate tool. Deferred — transcript capture lives in `plet_invoke.py`, analysis needs are unknown until more runs. |
+| TRC_FUT_6 | Native Agent tool support | Native subagents (Claude Code's Agent tool) offer UI benefits but lack reliable transcript capture — no streaming JSONL output, log file locations are implementation details that may change or be non-portable. If native subagent tracing becomes possible (e.g., Claude Code exposes a transcript API), add support. Until then, subprocess invocations are the only architecture that provides the traceability guarantee. |
 
 ## 16. FB Items Addressed
 

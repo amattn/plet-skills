@@ -665,6 +665,13 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **Trace vs progress distinction:** Trace events are agent-readable JSON capturing significant events only. Progress is human-scannable markdown capturing both minor and significant events. Different audiences, different formats, complementary.
 - **New script identified: `plet_invoke.py`** — assembles prompt (via plet_inject_prompt), launches `claude -p --output-format stream-json`, tees JSONL to transcript file, returns exit code. This replaces the transcript capture responsibility that was ambiguously assigned to the orchestrator. Needs to be added to the script inventory and build plan.
 
+#### Transcript capture mechanics — decided (2026-03-20)
+
+- **plet_invoke.py captures transcripts as part of subprocess management.** No separate `plet_trace_transcript.py` needed — capture is inherently part of "launch process and record its output." You can't separate launch from capture without awkward coordination.
+- **Capture mechanism:** Python reads subprocess.stdout line by line and writes each line to the transcript file. Synchronous — read a line, write a line. 100% reliable, no data loss. Whether this is literally `tee` or `line-by-line append` is an implementation detail to decide during the INV spec. Both are the same mechanically.
+- **Flush behavior matters for GUI:** If plet_invoke.py flushes after each line write, filesystem watchers (fswatch, FSEvents, inotify) see changes within ~100ms. If buffered, GUI sees nothing until flush. Decision: flush after each line. This enables live-tail and real-time event display.
+- **Transcript validation/querying:** Not needed now. If we later need to validate or query transcript JSONL (e.g., "find all tool_use events"), that's either new commands on `plet_trace.py` or a new script. Deferred.
+
 #### Red/green development discipline — MANDATORY (2026-03-19)
 
 - **Command-by-command red/green is non-negotiable** for all script implementations going forward. Write tests for one command first → run and confirm they fail (red) → implement the command → run and confirm they pass (green) → move to next command. No writing the script and tests together. No writing the script first.
