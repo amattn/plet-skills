@@ -651,3 +651,10 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **§15 FUT approved.** Withdrew FUT_1 (mtime is fragile, full scan is fast enough).
 - **§16 PRD Items approved.** Updated SY_7 note to reflect ## Withdrawn section exclusion.
 - **FPR spec review complete.** All 16 sections approved.
+- **FPR implementation complete.** `plet_fingerprint.py` (3 commands, ~680 lines) + `test_plet_fingerprint.py` (27 tests, 90 assertions). All passing, no regressions.
+
+#### Red/green development discipline — MANDATORY (2026-03-19)
+
+- **Command-by-command red/green is non-negotiable** for all script implementations going forward. Write tests for one command first → run and confirm they fail (red) → implement the command → run and confirm they pass (green) → move to next command. No writing the script and tests together. No writing the script first.
+- **Why:** FPR was implemented script-and-tests-together, which worked but skipped the verification that tests actually catch failures. Red/green proves the tests are load-bearing — a test that was never red might always pass regardless of implementation.
+- **Granularity:** command-by-command, not all-at-once. Later commands often depend on earlier ones (embed depends on extract working). Writing all tests before any implementation would require mocking or placeholder behavior that adds complexity for no benefit.

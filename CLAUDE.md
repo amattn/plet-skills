@@ -62,6 +62,20 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - **Never push to remote without asking first.** Never force push without explicit permission.
 - **Prefer rebase over merge** for integrating upstream changes and keeping branch history clean.
 
+## Red/Green Development Discipline
+
+**Non-negotiable for all script implementations.** Every command is implemented through a red/green cycle:
+
+1. **Write tests for one command first** — tests that call the script via subprocess and assert expected behavior
+2. **Run tests — they must fail (red)** — this proves the tests are load-bearing. A test that was never red might always pass regardless of implementation.
+3. **Implement the command**
+4. **Run tests — they must pass (green)**
+5. **Move to the next command and repeat**
+
+**Granularity:** command-by-command, not all-at-once. Later commands often depend on earlier ones (e.g., `embed` depends on `extract`). Writing all tests before any implementation adds mocking complexity for no benefit.
+
+**No shortcuts:** Do not write the script and tests together. Do not write the script first and backfill tests. The red step is not optional — it's the proof that your test catches what it claims to catch.
+
 ## NOTES.md Routing
 
 This repo has multiple NOTES.md files. When writing notes, route to the correct one:

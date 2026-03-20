@@ -2,6 +2,8 @@
 
 Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved before moving to the next. Implementation follows spec approval.
 
+> **MANDATORY: Red/green development for all implementation steps.** Write tests for one command first (red), implement the command (green), repeat. No writing script and tests together. No backfilling tests. See CLAUDE.md § Red/Green Development Discipline.
+
 ## Ordering Principles
 
 1. **Resolve shared conventions first** — open questions in conventions.md affect all specs
