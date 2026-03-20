@@ -122,6 +122,16 @@ See `specs/NOTES.md` for full cascading changes list.
 - FB_20 made them semantic (e.g., "per PL_DX_2" in exception text) — stripping would break cross-references
 - Removed all 7 "Build note" blocks from SKILL.md and reference files (2026-03-12)
 
+#### Subprocess invocations for subagents, not native Agent tool (2026-03-20)
+
+Subagents run as subprocess invocations (`claude -p --output-format stream-json`), not Claude Code's native Agent tool. This is an architectural choice driven by traceability:
+
+- **Subprocess:** produces streaming JSONL output that `plet_invoke.py` captures to the transcript file in real time. Every message, tool use, and tool result is recorded. This is the raw I/O that a GUI merges with semantic events for full fidelity debugging.
+- **Native Agent tool:** runs inside Claude Code with no reliable way to capture raw I/O. Finding and copying log files from the config dir is an implementation detail that may change across versions and is non-portable across harnesses (Ridler.app, CLI, etc.).
+- **Evidence:** ridler.log from a real RIDL run (2327 lines of streaming JSONL) demonstrates the output richness that subprocess invocations provide. Case studies showed trace reliability only once subprocess patterns were established.
+- **Consequence:** new script `plet_invoke.py` handles prompt assembly (via `plet_inject_prompt.py`) + subprocess launch + transcript capture. This replaces the vague "orchestrator captures transcript" responsibility with deterministic code.
+- **Future:** native subagents are deferred (TRC_FUT_5). They offer UI benefits but lack the traceability guarantee. If Claude Code exposes a transcript API, revisit.
+
 #### Single skill with reference files
 - One entry point (`/plet`) with state-driven routing
 - Phase-specific instructions in `references/` (plan.md, execute.md, verify.md, refine.md)
@@ -899,8 +909,8 @@ project (LOGA)
 - `plet/emergent.md` — triage queue (audience: humans)
 
 **4. Trace artifacts** (execution telemetry)
-- `plet/trace/{id}-{phase}-{attempt}-transcript.jsonl` — raw I/O (orchestrator-captured)
-- `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written)
+- `plet/trace/{id}-{phase}-{attempt}-transcript.jsonl` — raw I/O (captured by `plet_invoke.py` in subprocess mode)
+- `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written via `plet_trace.py`)
 
 **5. Version control artifacts**
 - Integration branch: `plet/{projectId}/loop{N}/workstream`
@@ -1001,7 +1011,7 @@ This complements "Skills for Judgment, Code for Compliance" — that principle s
 - **progress.md** — what was done (historical record, append-only)
 - **learnings.md** — agent-facing knowledge (helps future agents)
 - **emergent.md** — human-facing items (needs human decision)
-- **trace/** — two files per phase: `-transcript.jsonl` (raw I/O, orchestrator-captured) and `-events.ndjson` (semantic events, subagent-written)
+- **trace/** — two files per phase: `-transcript.jsonl` (raw I/O, captured by `plet_invoke.py`) and `-events.ndjson` (semantic events, subagent-written via `plet_trace.py`)
 
 ### Runtime artifact write safety
 - All three .md artifacts are single files (humans scan one file better than multiple)

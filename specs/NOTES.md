@@ -33,6 +33,7 @@ This was validated across three case studies: state schema drift (the most persi
 | ORC | `plet_orchestrator.py` | ORChestrator |
 | GIM | `plet_gate_impl.py` | Gate IMpl |
 | GVR | `plet_gate_verify.py` | Gate VeRify |
+| INV | `plet_invoke.py` | INVoke |
 
 ### Section abbreviations
 
@@ -91,6 +92,9 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 | FPR | extract | EXT |
 | FPR | embed | EMB |
 | FPR | check | CHK |
+| TRC | append-event | APE |
+| TRC | validate | VAL |
+| TRC | query | QRY |
 
 New scripts define their command abbreviations in their spec files. Add them to this table when defined.
 
@@ -359,6 +363,7 @@ If the loop orchestrator becomes a Python script, the full inventory of plet scr
 | `plet_trace.py` | Trace NDJSON schema enforcement | `validate`, `append-event`, `query` | New (already in PLAN_8) |
 | `plet_router.py` | Phase detection + status | `detect`, `status`, `preflight` | New (absorbs pre-flight checker) |
 | `plet_inject_prompt.py` | Prompt assembly for subagents | `assemble` (given iteration ID + phase, reads reference files, iteration def, requirements, learnings, state; outputs complete prompt text) | New |
+| `plet_invoke.py` | Subprocess launch + transcript capture | `run` (assembles prompt via plet_inject_prompt, launches `claude -p --output-format stream-json`, tees JSONL to transcript file, returns exit code) | New |
 
 **Loop-specific (the orchestrator):**
 
@@ -366,7 +371,7 @@ If the loop orchestrator becomes a Python script, the full inventory of plet scr
 |--------|---------|-------------|--------|
 | `plet_orchestrator.py` | The orchestrator itself | `start-session`, `end-session`, `eligible`, `check-retry`, `run` | New |
 
-`run` is the main loop — calls `plet_router.py preflight`, `plet_fingerprint.py check`, then cycles: `eligible` → `plet_inject_prompt.py assemble` → spawn `claude -p` → capture output → read updated state → `check-retry` → repeat until done.
+`run` is the main loop — calls `plet_router.py preflight`, `plet_fingerprint.py check`, then cycles: `eligible` → `plet_invoke.py run` (assembles prompt + launches subprocess + captures transcript) → read updated state → `check-retry` → repeat until done.
 
 **Note:** `check-breakpoints` may move to its own script or stay in `plet_orchestrator.py` — TBD based on whether other phases need breakpoint checking.
 
@@ -652,6 +657,13 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **§16 PRD Items approved.** Updated SY_7 note to reflect ## Withdrawn section exclusion.
 - **FPR spec review complete.** All 16 sections approved.
 - **FPR implementation complete.** `plet_fingerprint.py` (3 commands, ~680 lines) + `test_plet_fingerprint.py` (27 tests, 90 assertions). All passing, no regressions.
+
+#### TRC spec — scope and architecture decisions (2026-03-20)
+
+- **plet_trace.py scope: semantic events only.** Transcript capture (raw JSONL from subprocess) is NOT in scope for plet_trace.py. That belongs in a new `plet_invoke.py` script which handles prompt assembly + subprocess launch + transcript tee.
+- **Subprocess over native Agent tool:** Subprocess invocations (`claude -p --output-format stream-json`) are the only architecture that provides reliable transcript capture. Native Agent tool subagents run inside Claude Code with no portable way to capture raw I/O — log file locations are implementation details. Native subagent support is a future consideration (TRC_FUT_5).
+- **Trace vs progress distinction:** Trace events are agent-readable JSON capturing significant events only. Progress is human-scannable markdown capturing both minor and significant events. Different audiences, different formats, complementary.
+- **New script identified: `plet_invoke.py`** — assembles prompt (via plet_inject_prompt), launches `claude -p --output-format stream-json`, tees JSONL to transcript file, returns exit code. This replaces the transcript capture responsibility that was ambiguously assigned to the orchestrator. Needs to be added to the script inventory and build plan.
 
 #### Red/green development discipline — MANDATORY (2026-03-19)
 

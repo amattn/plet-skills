@@ -488,8 +488,8 @@ The `criteriaResults` array is a compact index — the full evidence stays in ea
 
 Trace capture is split into two files per phase:
 
-- **`plet/trace/{id}-{phase}-{attempt}-transcript.jsonl`** — raw I/O transcript in Claude Code's native JSONL format. Captured automatically by the orchestrator. Subagents do not write this file.
-- **`plet/trace/{id}-{phase}-{attempt}-events.ndjson`** — semantic events written by the subagent. Schema defined below.
+- **`plet/trace/{id}-{phase}-{attempt}-transcript.jsonl`** — raw I/O transcript in Claude Code's native JSONL format. Subagents do not write this file. *Subprocess mode:* captured by `plet_invoke.py` from streaming output. *Subagent mode (future):* orchestrator locates and copies the log file after the subagent concludes.
+- **`plet/trace/{id}-{phase}-{attempt}-events.ndjson`** — semantic events written by the subagent via `plet_trace.py append-event`. Schema defined below.
 
 ### Semantic Event Line Schema
 
@@ -527,7 +527,7 @@ Each line in a `-events.ndjson` file is a JSON object capturing one semantic eve
 
 ### Raw I/O Transcript
 
-The raw transcript uses Claude Code's native JSONL format from `--output-format stream-json`. Each line contains the full message object including role, content, tool use, and tool results. The orchestrator copies the subagent's transcript file to `plet/trace/` after the subagent completes.
+The raw transcript uses Claude Code's native JSONL format from `--output-format stream-json`. Each line contains the full message object including role, content, tool use, and tool results. In subprocess mode, `plet_invoke.py` captures this output in real time. In subagent mode (future), the orchestrator locates and copies the log file after the subagent concludes.
 
 A GUI merges both files by timestamp for a unified view: raw I/O for full fidelity, semantic events for high-level structure and annotations.
 

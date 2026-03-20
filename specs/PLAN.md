@@ -38,10 +38,12 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 14 | Implement `plet_gate_impl.py` | Build from spec. |
 | 15 | `plet_gate_verify.py` spec (GVR) | Depends on ENT (`check`), STA (`validate`). Called by orchestrator. |
 | 16 | Implement `plet_gate_verify.py` | Build from spec. |
-| 17 | `plet_inject_prompt.py` spec (INJ) | Depends on knowing what reference files exist. Called by orchestrator. |
+| 17 | `plet_inject_prompt.py` spec (INJ) | Depends on knowing what reference files exist. Called by plet_invoke.py. |
 | 18 | Implement `plet_inject_prompt.py` | Build from spec. |
-| 19 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. |
-| 20 | Implement `plet_orchestrator.py` | Build from spec. |
+| 19 | `plet_invoke.py` spec (INV) | Depends on INJ (calls assemble) and TRC (writes transcript alongside events). Subprocess launch + transcript capture. |
+| 20 | Implement `plet_invoke.py` | Build from spec. |
+| 21 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Calls plet_invoke.py instead of spawning subprocesses directly. |
+| 22 | Implement `plet_orchestrator.py` | Build from spec. |
 
 ## Status
 
@@ -53,8 +55,8 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 3 | `plet_entries.py` spec (ENT) | ✓ complete |
 | 4 | `plet_entries.py` implementation | ✓ complete |
 | 5 | `plet_fingerprint.py` spec (FPR) | ✓ complete |
-| 6 | `plet_fingerprint.py` implementation | not started |
-| 7 | `plet_trace.py` spec (TRC) | not started |
+| 6 | `plet_fingerprint.py` implementation | ✓ complete |
+| 7 | `plet_trace.py` spec (TRC) | draft ready for review |
 | 8 | `plet_trace.py` implementation | not started |
 | 9 | `plet_git.py` spec (GCL) | not started |
 | 10 | `plet_git.py` implementation | not started |
@@ -66,5 +68,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 16 | `plet_gate_verify.py` implementation | not started |
 | 17 | `plet_inject_prompt.py` spec (INJ) | not started |
 | 18 | `plet_inject_prompt.py` implementation | not started |
-| 19 | `plet_orchestrator.py` spec (ORC) | not started |
+| 19 | `plet_invoke.py` spec (INV) | not started |
+| 20 | `plet_invoke.py` implementation | not started |
+| 21 | `plet_orchestrator.py` spec (ORC) | not started |
 | 20 | `plet_orchestrator.py` implementation | not started |

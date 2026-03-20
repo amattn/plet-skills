@@ -147,6 +147,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 |--------|---------|----------|
 | `plet_state.py` | State file schema enforcement | `validate`, `update-criterion`, `update-field`, `init` |
 | `plet_entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
+| `plet_fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` |
 
 ### Internal Modules (`util_*.py`)
 
@@ -159,11 +160,11 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 
 | Script | Purpose | Key FB items |
 |--------|---------|-------------|
-| `plet_fingerprint.py` | Fingerprint generation, comparison, staleness detection | — |
 | `plet_git.py` | Git compliance (branches, tags, worktrees, squash, cleanup) | FB_30, FB_31, FB_32 |
 | `plet_trace.py` | Trace NDJSON schema enforcement | FB_11 |
 | `plet_router.py` | Phase detection, status summary, preflight checks | FB_16, FB_22, FB_23 |
 | `plet_inject_prompt.py` | Prompt assembly for impl/verify subagents | FB_38 |
-| `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop) | — |
+| `plet_invoke.py` | Subprocess launch + transcript capture (assembles prompt, launches `claude -p`, tees JSONL to transcript file) | — |
+| `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop). Calls plet_invoke.py instead of spawning subprocesses directly. | — |
 | `plet_gate_impl.py` | Implementation phase pre/post gates | FB_29, FB_33 |
 | `plet_gate_verify.py` | Verification phase pre/post gates | FB_29, FB_33, FB_40 |
