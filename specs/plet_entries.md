@@ -59,7 +59,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -141,7 +141,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase impl --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase impl --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -220,7 +220,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -302,7 +302,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

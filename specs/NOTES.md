@@ -623,3 +623,31 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **§3.1 EXT_PRE approved.** Added FPR_EXT_PRE_3 (target file must exist). Confirmed extract --type iterations does NOT require requirements.md — it reads the already-embedded requirementsFingerprint from iterations.md itself. Only embed cross-reads source files.
 - **§3.1 EXT_PST approved.** No changes.
 - **§3.1 EXT_BHV approved.** Three changes: (1) Fixed mtime fallback conflict — BHV_1 and BHV_2 now defer to BHV_6 (current UTC) instead of file modification time. mtime is fragile (git checkout resets it). (2) BHV_2 now specifies milestone grouping mechanism: parse `**Milestone:** MS_N` metadata line per iteration definition (matches plan.md iteration structure, no heading-based grouping). (3) BHV_2 now explicitly excludes withdrawn iterations (parallel with BHV_1's SY_8 exclusion).
+- **§3.2 EMB_JUS approved.** No changes.
+- **§3.2 EMB_CMD approved.** No changes.
+- **§3.2 EMB_INP — auto-bump on content change.** `lastNonTrivialUpdate` auto-bumps when ID arrays change vs previously embedded fingerprint. `--bump` becomes a force-bump for prose-only changes that don't affect IDs. Rationale: if IDs changed, that's definitionally non-trivial — requiring manual `--bump` is exactly the compliance drift tooling exists to eliminate. Updated INP_3, PST_5, PST_6.
+- **§3.2 EMB_OUT approved.** Added `autoBumped`/`forceBumped` booleans to JSON envelope (both can be true simultaneously). Text mode appends bump reason(s).
+- **§3.2 EMB_PRE approved.** Added PRE_6 clarifying no precondition on previous fingerprint existing. First embed skips auto-bump comparison, defaults per BHV_6.
+- **§3.2 EMB_PST approved.** No changes (already updated during INP review).
+- **§3.2 EMB_BHV approved.** Added BHV_6 (auto-bump comparison logic). Clarified BHV_2 reads *embedded* fingerprint from requirements.md, not re-extracted.
+- **§3.3 CHK_JUS approved.** Confirmed "check" is the right command name — "validate" = single-file schema conformance (STA), "check" = cross-file/cross-concern assertion (ENT, FPR). "verify" avoided because it's a plet lifecycle phase.
+- **§3.3 CHK_CMD approved.** Nested `--pretty`/`--fields` under `--output json` in usage lines across all scripts (FPR, STA, ENT). Convention: `[--output json [--pretty] [--fields f1,f2]]` makes the dependency self-documenting.
+- **§3.3 CHK_INP approved.** Fixed INP_1 to defer per-level file requirements to PRE. Kept `--level all`.
+- **§3.3 CHK_OUT approved.** Renamed `fresh`→`consistent`/`allFresh`→`allConsistent` throughout spec. Added `artifactDir` to JSON envelope.
+- **§3.3 CHK_PRE approved.** No changes.
+- **§3.3 CHK_PST approved.** No changes.
+- **§3.3 CHK_BHV approved.** Both levels now asymmetric: re-extract from live content, compare against stored snapshot downstream. BHV_1 re-extracts from requirements.md content vs stored in iterations.md. BHV_2 re-extracts from iterations.md content vs stored in state.json. Comprehensive — catches both "embed wasn't run" and "downstream not updated."
+- **§4 EDG reviewed.** EDG_1 clarified (check re-extracts from content, doesn't need embedded block in requirements.md). EDG_2 clarified (both levels affected, with precise reasoning). EDG_13 added (first embed auto-bump behavior). EDG_5 clarified: withdrawn iterations detected by `## Withdrawn` section heading in iterations.md — same exclusion pattern as SY_8. Updated EXT_BHV_2 to match. **Cascaded:** refine.md updated — withdraw procedure now includes moving iteration to `## Withdrawn` section (new step 2). Fingerprint step updated to note automatic exclusion. PRD RF_16 updated — consistency pass now checks withdrawn iterations are in `## Withdrawn` section.
+- **§5 ERR approved.** Added ERR_11 (duplicate flags), ERR_12 (not a directory), ERR_13 (malformed fingerprint). Added EMB_BHV_7 (lenient read, strict write — self-healing). Added EDG_14 (structurally wrong but valid JSON) and EDG_15 (markers with unparseable content).
+- **§6 FMT approved.** Added scanning disambiguation rules (MS_ → milestones, ID_ → iterations, else → requirements). Added FMT_4 (section exclusions). **Reserved prefixes cascaded:** PRD GC_1 and plan.md Requirement ID Rules both now note MS_ and ID_ are reserved.
+- **§7 AFL approved.** Added AFL_3 (prose-only spec change — primary --bump use case). Renumbered plan session to AFL_4. Fixed "orchestrator" → "plan agent" in AFL_4.
+- **§8 EXM approved.** Check status: `"stale"` not `"error"` for drift detection — staleness is a successful check that found drift, not a tool failure. Updated CHK_OUT_3. Split EXM_2 into auto-bump (EXM_2) and force-bump (EXM_3). Added EXM_6 (first embed, block creation) and EXM_7 (dry-run). Now 7 examples total.
+- **§9 DEP approved.** No changes.
+- **§10 NFR approved.** No changes.
+- **§11 DXP approved.** Added DXP_5 (enum values in help/errors), DXP_6 (PITFALLS with common agent mistakes), DXP_7 (flag dependency docs). Aligned with STA/ENT patterns.
+- **§12 CRT approved.** Added CRT_10 (auto-bump), CRT_11 (lenient read/strict write), CRT_12 (reserved prefix disambiguation).
+- **§13 TST approved.** Fixed CRT range → section reference. Added three-way status test note. Added conventions.md cross-reference.
+- **§14 Resolved Questions approved.** Added #7–#13 from this review session. Closed Open Question #1 (resolved by reserved prefixes + scanning rules).
+- **§15 FUT approved.** Withdrew FUT_1 (mtime is fragile, full scan is fast enough).
+- **§16 PRD Items approved.** Updated SY_7 note to reflect ## Withdrawn section exclusion.
+- **FPR spec review complete.** All 16 sections approved.

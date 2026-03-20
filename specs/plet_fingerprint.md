@@ -1,6 +1,6 @@
 # plet_fingerprint.py (FPR)
 
-> Status: draft
+> Status: complete
 
 ## 1. Purpose (FPR_PUR)
 
@@ -54,7 +54,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EXT_CMD_1 | Usage: `plet_fingerprint.py extract <artifact_dir> --type requirements|iterations [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| FPR_EXT_CMD_1 | Usage: `plet_fingerprint.py extract <artifact_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -95,7 +95,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FPR_EXT_BHV_1 | For `--type requirements`: scan for requirement IDs matching `XX_N` pattern, group by prefix. Scan for milestone IDs matching `MS_N` pattern. Extract `lastNonTrivialUpdate` from existing fingerprint block if present, otherwise default per FPR_EXT_BHV_6. Exclude content under "Future Considerations" and "Open Questions" headings (SY_8). | P0 |
-| FPR_EXT_BHV_2 | For `--type iterations`: scan for iteration IDs matching `ID_N+` pattern, group by milestone using the `**Milestone:** MS_N` metadata line within each iteration definition. Scan for the embedded requirements fingerprint. Extract `lastNonTrivialUpdate` from existing fingerprint block if present, otherwise default per FPR_EXT_BHV_6. Exclude `withdrawn` iterations. | P0 |
+| FPR_EXT_BHV_2 | For `--type iterations`: scan for iteration IDs matching `ID_N+` pattern, group by milestone using the `**Milestone:** MS_N` metadata line within each iteration definition. Scan for the embedded requirements fingerprint. Extract `lastNonTrivialUpdate` from existing fingerprint block if present, otherwise default per FPR_EXT_BHV_6. Exclude content under "Withdrawn" heading (same section-exclusion pattern as SY_8). | P0 |
 | FPR_EXT_BHV_3 | Output structure for requirements: `{"lastNonTrivialUpdate":"...","milestones":[...],"requirements":{"PREFIX":[...],...}}` (SY_1) | P0 |
 | FPR_EXT_BHV_4 | Output structure for iterations: `{"requirementsFingerprint":{...},"lastNonTrivialUpdate":"...","iterations":{"MS_N":[...],...}}` (SY_2) | P0 |
 | FPR_EXT_BHV_5 | Requirement IDs are sorted within each prefix group. Milestone IDs are sorted. Iteration IDs are sorted within each milestone group. Deterministic output for the same input. | P0 |
@@ -117,7 +117,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EMB_CMD_1 | Usage: `plet_fingerprint.py embed <artifact_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| FPR_EMB_CMD_1 | Usage: `plet_fingerprint.py embed <artifact_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (modifies file), idempotent (same content produces same fingerprint), atomic write
 
@@ -129,15 +129,15 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 |----|-------------|----------|
 | FPR_EMB_INP_1 | `artifact_dir` — path to plet directory (e.g., `plet/`). File paths derived: `requirements.md`, `iterations.md`, `state.json` within this directory. Same convention as `check`. | P0 |
 | FPR_EMB_INP_2 | `--type` — `requirements`, `iterations`, or `state`. Determines which file to update and which fingerprint operation to perform. | P0 |
-| FPR_EMB_INP_3 | `--bump` — (optional) bump `lastNonTrivialUpdate` to current UTC time. Used when the artifact has changed in ways that affect behavior (not typo fixes). | P0 |
+| FPR_EMB_INP_3 | `--bump` — (optional) force-bump `lastNonTrivialUpdate` to current UTC time even when ID arrays haven't changed. Used when prose changed meaningfully but IDs didn't (e.g., requirement wording changes that don't add/remove IDs). When ID arrays *have* changed vs the previously embedded fingerprint, `lastNonTrivialUpdate` is auto-bumped regardless of `--bump`. | P0 |
 
 #### Outputs (FPR_EMB_OUT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EMB_OUT_1 | Text mode success: `OK — embedded {type} fingerprint in {path}` to stdout, exit 0 | P0 |
+| FPR_EMB_OUT_1 | Text mode success: `OK — embedded {type} fingerprint in {path}` to stdout, exit 0. If bumped, append reason(s): ` (timestamp auto-bumped)`, ` (timestamp force-bumped)`, or ` (timestamp auto-bumped, force-bumped)`. | P0 |
 | FPR_EMB_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| FPR_EMB_OUT_3 | JSON mode: `{"status":"ok","command":"embed","type":"...","path":"...","fingerprint":{...},...}` | P0 |
+| FPR_EMB_OUT_3 | JSON mode: `{"status":"ok","command":"embed","type":"...","path":"...","fingerprint":{...},"autoBumped":bool,"forceBumped":bool,...}`. `autoBumped`: true if ID arrays changed vs previous. `forceBumped`: true if `--bump` passed. Both can be true simultaneously. | P0 |
 | FPR_EMB_OUT_4 | Dry-run: `DRY RUN — would embed {type} fingerprint in {path}` — no file modification, exit 0 | P0 |
 
 #### Preconditions (FPR_EMB_PRE)
@@ -149,6 +149,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | FPR_EMB_PRE_3 | The target file for `--type` exists within `artifact_dir` (`requirements.md`, `iterations.md`, or `state.json`) | P0 |
 | FPR_EMB_PRE_4 | For `--type iterations`: `requirements.md` must also exist in `artifact_dir` (needed to embed its fingerprint) | P0 |
 | FPR_EMB_PRE_5 | For `--type state`: `iterations.md` must also exist in `artifact_dir` (needed to embed its fingerprint) | P0 |
+| FPR_EMB_PRE_6 | No precondition on a previously embedded fingerprint existing — if none exists (first embed), auto-bump comparison is skipped and `lastNonTrivialUpdate` defaults per FPR_EXT_BHV_6. The old-vs-new comparison for auto-bump reads the existing fingerprint block from the target file itself, not from a sibling file. | P0 |
 
 #### Postconditions (FPR_EMB_PST)
 
@@ -158,8 +159,8 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | FPR_EMB_PST_2 | For `--type requirements`: fingerprint block at end of file matches SY_1 structure | P0 |
 | FPR_EMB_PST_3 | For `--type iterations`: fingerprint block embeds the current requirements fingerprint (SY_2) | P0 |
 | FPR_EMB_PST_4 | For `--type state`: `iterationsFingerprint` field in state.json matches iterations.md fingerprint (SY_3) | P0 |
-| FPR_EMB_PST_5 | If `--bump`, `lastNonTrivialUpdate` is set to current UTC time | P0 |
-| FPR_EMB_PST_6 | If not `--bump`, `lastNonTrivialUpdate` is preserved from previous fingerprint (or defaults per FPR_EXT_BHV_6) | P0 |
+| FPR_EMB_PST_5 | `lastNonTrivialUpdate` is bumped to current UTC time if ID arrays changed vs previously embedded fingerprint OR if `--bump` is passed | P0 |
+| FPR_EMB_PST_6 | `lastNonTrivialUpdate` is preserved from previous fingerprint only when ID arrays are unchanged AND `--bump` is not passed (or defaults per FPR_EXT_BHV_6 if no previous fingerprint) | P0 |
 | FPR_EMB_PST_7 | No `.tmp` residue files | P0 |
 
 #### Behaviors (FPR_EMB_BHV)
@@ -167,10 +168,12 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FPR_EMB_BHV_1 | For `--type requirements`: extract fingerprint from `{artifact_dir}/requirements.md` content (same logic as `extract --type requirements`), write/replace the fingerprint JSON block at the end of the file. | P0 |
-| FPR_EMB_BHV_2 | For `--type iterations`: read the requirements fingerprint from `{artifact_dir}/requirements.md`, extract iterations fingerprint from `{artifact_dir}/iterations.md` content, embed both into the iterations.md fingerprint block. | P0 |
+| FPR_EMB_BHV_2 | For `--type iterations`: read the *embedded* requirements fingerprint from `{artifact_dir}/requirements.md` (the fingerprint block, not re-extracted from content), extract iterations fingerprint from `{artifact_dir}/iterations.md` content, embed both into the iterations.md fingerprint block. | P0 |
 | FPR_EMB_BHV_3 | For `--type state`: read the iterations fingerprint from `{artifact_dir}/iterations.md`, write it as the `iterationsFingerprint` field in `{artifact_dir}/state.json`. Uses atomic JSON write. | P0 |
 | FPR_EMB_BHV_4 | Fingerprint block in markdown files is delimited by a known marker pattern (e.g., `<!-- plet:fingerprint -->` fences) so it can be found and replaced reliably. If no marker exists, append one. | P0 |
 | FPR_EMB_BHV_5 | For state.json, use `util_io.atomic_write_json` to update the `iterationsFingerprint` field. | P0 |
+| FPR_EMB_BHV_6 | Auto-bump logic: before writing, compare the newly extracted fingerprint's ID arrays against the previously embedded fingerprint from the target file (if any). If arrays differ (added or removed IDs), auto-bump `lastNonTrivialUpdate` to current UTC. If no previous fingerprint exists (first embed), defaults per FPR_EXT_BHV_6. `--bump` force-bumps independently of this comparison. | P0 |
+| FPR_EMB_BHV_7 | Lenient read, strict write: when reading a previously embedded fingerprint (for auto-bump comparison or chain embedding), tolerate missing fields, unsorted arrays, and unknown fields — treat missing as absent. When writing, always produce correct structure: all required fields, sorted arrays, no unknown fields. This is self-healing — a malformed fingerprint from a previous buggy embed or hand edit is corrected on next embed. | P0 |
 
 ---
 
@@ -188,7 +191,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_CMD_1 | Usage: `plet_fingerprint.py check <artifact_dir> [--level requirements|iterations|all] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| FPR_CHK_CMD_1 | Usage: `plet_fingerprint.py check <artifact_dir> [--level requirements|iterations|all] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -198,16 +201,16 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_INP_1 | `artifact_dir` — path to plet directory (e.g., `plet/`). Must contain `requirements.md`, `iterations.md`, and `state.json`. | P0 |
+| FPR_CHK_INP_1 | `artifact_dir` — path to plet directory (e.g., `plet/`). Must contain the plan artifacts required by the selected `--level` (see FPR_CHK_PRE_2, FPR_CHK_PRE_3). | P0 |
 | FPR_CHK_INP_2 | `--level` — (optional, default `all`) which staleness checks to run: `requirements` (SY_4 only), `iterations` (SY_5 only), or `all` (both SY_4 and SY_5). | P1 |
 
 #### Outputs (FPR_CHK_OUT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_OUT_1 | Text mode, all fresh: `OK — all fingerprints consistent` to stdout, exit 0 | P0 |
+| FPR_CHK_OUT_1 | Text mode, all consistent: `OK — all fingerprints consistent` to stdout, exit 0 | P0 |
 | FPR_CHK_OUT_2 | Text mode, stale detected: per-level status lines (OK or STALE) + summary warning matching SY_6 format, exit 1 | P0 |
-| FPR_CHK_OUT_3 | JSON mode: `{"status":"ok|error","command":"check","levels":{"requirements":{"fresh":bool,"details":"..."},"iterations":{"fresh":bool,"details":"..."}},"allFresh":bool,...}` | P0 |
+| FPR_CHK_OUT_3 | JSON mode: `{"status":"ok|stale|error","command":"check","artifactDir":"...","levels":{"requirements":{"consistent":bool,"details":"..."},"iterations":{"consistent":bool,"details":"..."}},"allConsistent":bool,...}`. Three statuses: `"ok"` = all consistent (exit 0), `"stale"` = drift detected (exit 1), `"error"` = tool failure such as bad args, missing files, or parse errors (exit 1). | P0 |
 | FPR_CHK_OUT_4 | Missing artifact files: specific error listing which files are missing, exit 1. Distinguished from staleness — "can't check" vs "checked and stale". | P0 |
 
 #### Preconditions (FPR_CHK_PRE)
@@ -223,15 +226,15 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FPR_CHK_PST_1 | No files modified (read-only) | P0 |
-| FPR_CHK_PST_2 | Exit code reflects consistency: 0 = all checked levels are fresh, 1 = any stale or missing | P0 |
+| FPR_CHK_PST_2 | Exit code reflects consistency: 0 = all checked levels are consistent, 1 = any stale or missing | P0 |
 
 #### Behaviors (FPR_CHK_BHV)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_BHV_1 | Requirements level (SY_4): extract the current fingerprint from `requirements.md`, extract the stored `requirementsFingerprint` from `iterations.md`, compare. Report differences in ID arrays and/or timestamp. | P0 |
-| FPR_CHK_BHV_2 | Iterations level (SY_5): extract the stored fingerprint from `iterations.md`, extract the stored `iterationsFingerprint` from `state.json`, compare. Report differences in ID arrays and/or timestamp. | P0 |
-| FPR_CHK_BHV_3 | Comparison: two fingerprints are "fresh" if all ID arrays contain the same IDs (order-insensitive) AND the `lastNonTrivialUpdate` timestamps match exactly. | P0 |
+| FPR_CHK_BHV_1 | Requirements level (SY_4): re-extract the fingerprint from `requirements.md` content (same logic as `extract --type requirements` — scans for current IDs), then read the stored `requirementsFingerprint` embedded in `iterations.md`. Compare the two. This is asymmetric: one side is live content, the other is a stored snapshot. Report differences in ID arrays and/or timestamp. | P0 |
+| FPR_CHK_BHV_2 | Iterations level (SY_5): re-extract the fingerprint from `iterations.md` content (same logic as `extract --type iterations` — scans for current IDs), then read the stored `iterationsFingerprint` from `state.json`. Compare the two. This is asymmetric (like BHV_1): one side is live content, the other is a stored snapshot. Catches both "embed wasn't re-run on iterations.md" and "state.json wasn't updated." Report differences in ID arrays and/or timestamp. | P0 |
+| FPR_CHK_BHV_3 | Comparison: two fingerprints are "consistent" if all ID arrays contain the same IDs (order-insensitive) AND the `lastNonTrivialUpdate` timestamps match exactly. | P0 |
 | FPR_CHK_BHV_4 | When stale, report which specific arrays differ: added IDs, removed IDs, timestamp mismatch. Actionable output for agents and humans. | P0 |
 | FPR_CHK_BHV_5 | If a fingerprint block doesn't exist in an artifact, treat it as "no fingerprint" — report as stale with a specific message ("no fingerprint found in {file}"). | P0 |
 
@@ -241,11 +244,11 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EDG_1 | No fingerprint block in requirements.md — `extract` produces one from content, `check` reports stale (no embedded fingerprint in iterations.md to compare against) | P0 |
-| FPR_EDG_2 | No fingerprint block in iterations.md — `check` reports stale for both levels | P0 |
+| FPR_EDG_1 | No fingerprint block in requirements.md — `extract` produces one from content (scans IDs). `check --level requirements` still works: it re-extracts from requirements.md content and compares against the stored `requirementsFingerprint` in iterations.md. If iterations.md also has no stored copy, check reports stale with "no fingerprint found in iterations.md". | P0 |
+| FPR_EDG_2 | No fingerprint block in iterations.md — requirements level: no stored `requirementsFingerprint` to compare against, reports stale. Iterations level: re-extracts from iterations.md content but has no embedded fingerprint to read for the `requirementsFingerprint` chain — reports stale with "no fingerprint found in iterations.md". Both levels affected. | P0 |
 | FPR_EDG_3 | No `iterationsFingerprint` field in state.json — `check` reports stale for iterations level | P0 |
 | FPR_EDG_4 | Empty requirements file (no requirement IDs found) — `extract` produces fingerprint with empty arrays, not an error | P0 |
-| FPR_EDG_5 | Withdrawn iterations — excluded from fingerprint (SY_7 preservation, refine.md Step 7) | P0 |
+| FPR_EDG_5 | Withdrawn iterations — excluded from fingerprint. Detected by section heading: withdrawn iterations are moved to a `## Withdrawn` section in iterations.md during refine (same exclusion pattern as SY_8 for Future Considerations/Open Questions). Extract skips content under this heading. | P0 |
 | FPR_EDG_6 | Future Considerations / Open Questions sections — excluded from requirement scanning (SY_8) | P0 |
 | FPR_EDG_7 | requirements.md or iterations.md has IDs but no fingerprint block yet — first `embed` creates the block | P0 |
 | FPR_EDG_8 | state.json doesn't exist — `check` reports missing file, distinct from staleness | P0 |
@@ -253,6 +256,9 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | FPR_EDG_10 | `--fields` without `--output json` — error | P0 |
 | FPR_EDG_11 | `--dry-run` on `extract` or `check` — error (read-only commands) | P0 |
 | FPR_EDG_12 | `--bump` without `embed` — error (only valid on embed) | P0 |
+| FPR_EDG_13 | First embed (no previous fingerprint block) — auto-bump comparison skipped, `lastNonTrivialUpdate` defaults to current UTC per FPR_EXT_BHV_6. `autoBumped` reports false (no comparison performed), `forceBumped` reflects `--bump` flag. | P0 |
+| FPR_EDG_14 | Fingerprint block is valid JSON but structurally wrong (unsorted arrays, missing fields, unknown fields) — lenient read, strict write (FPR_EMB_BHV_7). Read tolerates it, next embed self-heals. Check compares what it can; missing fields count as mismatches (reports stale). | P0 |
+| FPR_EDG_15 | Fingerprint markers exist but content is not valid JSON — error (FPR_ERR_13), distinct from "no fingerprint" (FPR_CHK_BHV_5). Markers without parseable content indicates corruption, not first-time setup. | P0 |
 
 ## 5. Error Handling (FPR_ERR)
 
@@ -268,6 +274,9 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | FPR_ERR_8 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | FPR_ERR_9 | `--dry-run` on read-only command → `Error: --dry-run is not available on the {command} command (read-only)` | P0 |
 | FPR_ERR_10 | `--bump` on non-embed command → `Error: --bump is only valid on the embed command` | P0 |
+| FPR_ERR_11 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
+| FPR_ERR_12 | `artifact_dir` exists but is not a directory → `Error: {path} is not a directory` | P0 |
+| FPR_ERR_13 | Fingerprint block markers exist but content is not valid JSON → `Error: malformed fingerprint in {file}: {parse_error}` (distinct from "no fingerprint found") | P0 |
 
 ## 6. Formats (FPR_FMT)
 
@@ -276,6 +285,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | FPR_FMT_1 | Reads markdown files (`requirements.md`, `iterations.md`) to scan for IDs and extract fingerprint blocks | P0 |
 | FPR_FMT_2 | Reads/writes JSON (`state.json`) for the `iterationsFingerprint` field | P0 |
 | FPR_FMT_3 | Fingerprint blocks in markdown are delimited by `<!-- plet:fingerprint -->` markers | P0 |
+| FPR_FMT_4 | Section exclusions: content under "Future Considerations", "Open Questions" (requirements.md), and "Withdrawn" (iterations.md) headings is excluded from ID scanning. These are parsing conventions — IDs in excluded sections are invisible to fingerprinting. | P0 |
 
 ### Fingerprint Structures
 
@@ -314,6 +324,8 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | `MS_N+` | Milestone IDs: `MS_1`, `MS_2` | `extract --type requirements` |
 | `ID_N+` | Iteration IDs: `ID_001`, `ID_002` | `extract --type iterations` |
 
+**Scanning rules (disambiguation):** The `XX_N+` pattern overlaps with `MS_N` and `ID_N`. When scanning requirements.md: `MS_` prefix → milestones array, all other `XX_N+` → requirements grouped by prefix. `ID_` prefix is never scanned in requirements.md. When scanning iterations.md: only `ID_N+` is scanned for iteration IDs. `MS_` and `ID_` are reserved prefixes — requirement IDs must not use them (see PRD § ID Conventions).
+
 ## 7. Agent Flows (FPR_AFL)
 
 ### FPR_AFL_1: Refine session fingerprint update (refine.md Step 7)
@@ -330,12 +342,22 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 2. If exit 0 → proceed with loop
 3. If exit 1 → report staleness warning (SY_6), halt for human decision
 
-### FPR_AFL_3: Plan session finalization
+### FPR_AFL_3: Prose-only spec change (no ID changes)
+
+1. Agent rewrites requirement text, adjusts acceptance criteria wording, or changes architecture section — no IDs added/removed
+2. `plet_fingerprint.py embed plet/ --type requirements --bump` — auto-bump won't fire (IDs unchanged), `--bump` force-bumps to signal the change is non-trivial
+3. `plet_fingerprint.py embed plet/ --type iterations --bump` — cascades the bumped timestamp
+4. `plet_fingerprint.py embed plet/ --type state`
+5. `plet_fingerprint.py check plet/` — verify consistency
+
+This is the primary use case for `--bump` — without it, a prose-only change would leave `lastNonTrivialUpdate` unchanged and downstream artifacts wouldn't know the spec evolved.
+
+### FPR_AFL_4: Plan session finalization
 
 1. Plan agent writes `requirements.md` and `iterations.md`
 2. `plet_fingerprint.py embed plet/ --type requirements --bump`
 3. `plet_fingerprint.py embed plet/ --type iterations --bump`
-4. State files are initialized by `plet_state.py init` (which should embed fingerprint — or orchestrator calls embed after init)
+4. State files are initialized by `plet_state.py init` — plan agent calls `plet_fingerprint.py embed plet/ --type state` after init
 
 ## 8. Examples (FPR_EXM)
 
@@ -354,20 +376,35 @@ plet_fingerprint.py extract plet/ --type requirements
 # }
 ```
 
-### FPR_EXM_2: Embed fingerprint with timestamp bump
+### FPR_EXM_2: Embed with auto-bump (IDs changed)
 
 ```bash
-plet_fingerprint.py embed plet/ --type requirements --bump
-# OK — embedded requirements fingerprint in plet/requirements.md
+# Added FR_4 to requirements.md, then embed
+plet_fingerprint.py embed plet/ --type requirements
+# OK — embedded requirements fingerprint in plet/requirements.md (timestamp auto-bumped)
 
-plet_fingerprint.py embed plet/ --type iterations --bump
+plet_fingerprint.py embed plet/ --type iterations
 # OK — embedded iterations fingerprint in plet/iterations.md
 
 plet_fingerprint.py embed plet/ --type state
 # OK — embedded state fingerprint in plet/state.json
 ```
 
-### FPR_EXM_3: Check all levels
+### FPR_EXM_3: Embed with force-bump (prose-only change)
+
+```bash
+# Rewrote FR_2 requirement text, no IDs added/removed
+plet_fingerprint.py embed plet/ --type requirements --bump
+# OK — embedded requirements fingerprint in plet/requirements.md (timestamp force-bumped)
+
+plet_fingerprint.py embed plet/ --type iterations --bump
+# OK — embedded iterations fingerprint in plet/iterations.md (timestamp force-bumped)
+
+plet_fingerprint.py embed plet/ --type state
+# OK — embedded state fingerprint in plet/state.json
+```
+
+### FPR_EXM_4: Check all levels
 
 ```bash
 plet_fingerprint.py check plet/
@@ -383,26 +420,43 @@ plet_fingerprint.py check plet/
 # STALE — run refine or re-embed to fix
 ```
 
-### FPR_EXM_4: JSON output for programmatic use
+### FPR_EXM_5: JSON output for programmatic use
 
 ```bash
 plet_fingerprint.py check plet/ --output json --pretty
 # {
-#   "status": "error",
+#   "status": "stale",
 #   "command": "check",
+#   "artifactDir": "plet/",
 #   "levels": {
-#     "requirements": {"fresh": true, "details": "fingerprint matches"},
+#     "requirements": {"consistent": true, "details": "fingerprint matches"},
 #     "iterations": {
-#       "fresh": false,
+#       "consistent": false,
 #       "details": "state.json has older fingerprint",
 #       "added": ["ID_005"],
 #       "removed": [],
 #       "timestampMismatch": true
 #     }
 #   },
-#   "allFresh": false,
+#   "allConsistent": false,
 #   ...
 # }
+```
+
+### FPR_EXM_6: First embed (no existing fingerprint block)
+
+```bash
+# Fresh requirements.md with IDs but no fingerprint block yet
+plet_fingerprint.py embed plet/ --type requirements
+# OK — embedded requirements fingerprint in plet/requirements.md (timestamp auto-bumped)
+# (fingerprint block created — first embed)
+```
+
+### FPR_EXM_7: Dry-run embed
+
+```bash
+plet_fingerprint.py embed plet/ --type requirements --bump --dry-run
+# DRY RUN — would embed requirements fingerprint in plet/requirements.md (timestamp would be force-bumped)
 ```
 
 ## 9. Dependencies on Other Scripts (FPR_DEP)
@@ -434,6 +488,9 @@ See `specs/conventions.md` for universal requirements.
 | FPR_DXP_2 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | FPR_DXP_3 | Help text for `embed` strongly recommends `--dry-run` in IMPORTANT section | P0 |
 | FPR_DXP_4 | `extract` output is valid JSON that can be piped to `jq` for inspection | P0 |
+| FPR_DXP_5 | All enum values listed in help text and error messages: `--type` (requirements, iterations, state), `--level` (requirements, iterations, all) | P0 |
+| FPR_DXP_6 | Each command's PITFALLS lists common wrong values agents try. Examples: file path instead of artifact_dir (`plet/requirements.md` vs `plet/`), `req` instead of `requirements`, `iter` instead of `iterations`. | P0 |
+| FPR_DXP_7 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json`; `--dry-run` only on `embed`; `--bump` only on `embed`. | P0 |
 
 ## 12. Critical Test Areas (FPR_CRT)
 
@@ -448,10 +505,13 @@ See `specs/conventions.md` for universal requirements.
 | FPR_CRT_7 | --bump behavior | Timestamp not bumped or bumped when shouldn't be | Embed with and without --bump, compare timestamps |
 | FPR_CRT_8 | Missing fingerprint block | First embed on a file without existing block | Embed into a file with no marker, verify block created |
 | FPR_CRT_9 | Missing files | check on incomplete artifact dir | Remove one file, verify specific error |
+| FPR_CRT_10 | Auto-bump detection | Timestamp not bumped when IDs change, or bumped when they don't | Add an ID, embed without --bump, verify autoBumped=true. Embed again with no changes, verify autoBumped=false. |
+| FPR_CRT_11 | Lenient read / strict write | Malformed fingerprint not self-healed | Write fingerprint with unsorted arrays or missing fields, embed, verify output is correct structure |
+| FPR_CRT_12 | Reserved prefix disambiguation | MS_ or ID_ in requirements.md leaks into requirements group | Add MS_1 and ID_001 to requirements.md, verify they appear in milestones array / are excluded, not in requirements group |
 
 ## 13. Testing & Verification (FPR_TST)
 
-**What to test:** See §12 Critical Test Areas (FPR_CRT_1–FPR_CRT_9).
+**What to test:** See §12 Critical Test Areas (FPR_CRT).
 
 **Test infrastructure:**
 - File: `skills/plet/tests/test_plet_fingerprint.py`
@@ -460,6 +520,8 @@ See `specs/conventions.md` for universal requirements.
 - All tests call the script via `subprocess.run()` (UNV_TST_4).
 - Temp fixtures via `tempfile.TemporaryDirectory()` (UNV_TST_5).
 - Test `--help` on every command (UNV_TST_7).
+- Test the three-way status distinction for `check`: `"ok"` (exit 0), `"stale"` (exit 1, drift detected), `"error"` (exit 1, tool failure). These are distinct outcomes with distinct JSON envelopes.
+- See `specs/conventions.md` UNV_TST_1–UNV_TST_8 for full testing conventions.
 
 ## 14. Resolved Questions
 
@@ -471,18 +533,23 @@ See `specs/conventions.md` for universal requirements.
 | 4 | Should `check` also verify that all IDs in the fingerprint actually exist as definitions in the file? | Not in v1. `check` compares fingerprints between files (are they in sync?). Verifying that IDs exist in their definitions is a consistency pass concern — defer to `plet_router.py` or a future `plet_consistency.py`. |
 | 5 | How should `embed` locate sibling artifacts (e.g., requirements.md for iterations embed)? | `embed` takes `artifact_dir` (same as `check`), derives all paths from there. All plet artifacts live in the same directory — no need for per-file path overrides. |
 | 6 | Should `embed --type state` also validate state.json? | No — validation is `plet_state.py validate`'s job. `embed` stays focused on fingerprints only. |
+| 7 | Should `lastNonTrivialUpdate` auto-bump when fingerprint content changes? | Yes. If ID arrays changed vs previously embedded fingerprint, auto-bump to current UTC. `--bump` becomes force-bump for prose-only changes that don't affect IDs. Rationale: requiring manual `--bump` when IDs visibly changed is compliance drift — exactly what tooling exists to eliminate. |
+| 8 | JSON field name for consistency status: `fresh` or `consistent`? | `consistent`. More precise — fingerprints match across files. `fresh` is ambiguous (fresh relative to what?). Renamed throughout: `fresh`→`consistent`, `allFresh`→`allConsistent`. |
+| 9 | Check JSON status value for staleness: `error` or `stale`? | Three-way: `"ok"` (all consistent, exit 0), `"stale"` (drift detected, exit 1), `"error"` (tool failure, exit 1). Staleness is a successful check that found drift, not a tool failure — different semantics warrant a different status value. |
+| 10 | How should `extract` detect withdrawn iterations in iterations.md? | Section-based exclusion: withdrawn iterations are moved to a `## Withdrawn` section. Extract skips that section, same pattern as Future Considerations/Open Questions (SY_8). No metadata parsing needed, no cross-file state lookup. Cascaded to refine.md (withdraw procedure) and PRD (RF_16). |
+| 11 | Are `MS_` and `ID_` reserved prefixes for requirement IDs? | Yes. Fingerprint scanning uses these prefixes to disambiguate ID types. `MS_` → milestones array, `ID_` → iterations only. Requirement IDs must not use either prefix. Added to PRD GC_1 and plan.md Requirement ID Rules. |
+| 12 | How to handle structurally wrong but valid JSON in fingerprint blocks? | Lenient read, strict write (self-healing). Read tolerates missing fields, unsorted arrays, unknown fields. Write always produces correct structure. Next embed auto-corrects. For check: missing fields count as mismatches → reports stale → triggers re-embed. |
+| 13 | Should `check` re-extract from content or compare stored snapshots? | Asymmetric: both levels re-extract from live content and compare against the stored snapshot downstream. Requirements level: re-extract from requirements.md content vs stored in iterations.md. Iterations level: re-extract from iterations.md content vs stored in state.json. Comprehensive — catches both "embed wasn't run" and "downstream not updated." |
 
 ## Open Questions
 
-| # | Question | Context |
-|---|----------|---------|
-| 1 | What regex patterns best capture requirement IDs across diverse projects? `XX_N+` captures `FR_1` but also `ID_001`. Need to distinguish requirement prefixes from iteration prefixes. | Requirements are defined in `requirements.md` under milestone headings. The scanning context (which file, which section) disambiguates — not just the ID pattern. |
+None — all resolved.
 
 ## 15. Future Considerations (FPR_FUT)
 
 | ID | Area | Description |
 |----|------|-------------|
-| FPR_FUT_1 | Incremental computation | If requirements.md is very large, scanning the whole file on every embed is wasteful. Could cache the previous fingerprint and only re-scan if the file changed (mtime check). |
+| FPR_FUT_1 | ~~Incremental computation~~ | Withdrawn — mtime is fragile (git checkout resets it). Full scan is fast enough for expected file sizes (NFR_3). If perf becomes an issue, content hashing is the right approach, but not worth speccing now. |
 | FPR_FUT_2 | Orphan detection | Extend `check` to report IDs in fingerprints that don't exist in the actual definitions (orphaned references). Currently deferred to consistency pass tools. |
 | FPR_FUT_3 | Auto-embed on state init | `plet_state.py init` could call `plet_fingerprint.py embed --type state` automatically. Eliminates a manual step. |
 
@@ -494,5 +561,5 @@ See `specs/conventions.md` for universal requirements.
 - SY_4 — requirements staleness detection (`check --level requirements`)
 - SY_5 — iterations staleness detection (`check --level iterations`)
 - SY_6 — user-facing staleness warning (`check` text output)
-- SY_7 — frozen iteration preservation (handled by refine session, not this script directly)
+- SY_7 — frozen iteration preservation (refine session moves withdrawn iterations to `## Withdrawn` section; `extract` excludes that section from scanning)
 - SY_8 — Future Considerations / Open Questions excluded (`extract` scanning logic)

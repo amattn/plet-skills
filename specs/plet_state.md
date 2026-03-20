@@ -55,7 +55,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_VAL_CMD_1 | Usage: `plet_state.py validate <state_file> [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_VAL_CMD_1 | Usage: `plet_state.py validate <state_file> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -120,7 +120,7 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion <state_file> --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion <state_file> --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -195,7 +195,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <state_file> --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <state_file> --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -267,7 +267,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INI_CMD_1 | Usage: `plet_state.py init <state_file> --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty]] [--fields f1,f2]` | P0 |
+| STA_INI_CMD_1 | Usage: `plet_state.py init <state_file> --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates file), not idempotent (errors on existing file), atomic
 
