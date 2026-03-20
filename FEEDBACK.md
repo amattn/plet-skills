@@ -375,3 +375,13 @@ Source: SPARK refine session observation
 `skills/plet/scripts/` is growing (plet_state.py, plet_entries.py, and more planned). There's no standards file governing how these scripts are written. Needs a CLAUDE.md or AGENTS.md in the scripts directory that defines conventions like: every script must support `--help`, consistent argument parsing style, error output format, exit code conventions, testing requirements, docstring standards, etc. Without this, each script will be written with slightly different patterns — the same prose-drift problem we see in agent-written artifacts, but in our own tooling.
 
 `[resolved]` — `scripts/CLAUDE.md` created with full coding standards.
+
+### FB_46: Should plan and refine sessions generate trace events? [artifacts] [trace]
+
+Currently only impl and verify phases write semantic trace events (via `plet_trace.py append-event`). Plan and refine sessions are interactive (human-driven) and produce no trace events. But there may be a case for tracing significant events during these sessions — decisions made during planning (requirement prioritization, milestone scoping, iteration decomposition choices) and refine (triage decisions, withdrawal rationale, re-decomposition choices) are high-value signals that currently only live in NOTES.md prose.
+
+Arguments for: plan/refine decisions are some of the most consequential in a project — they shape what gets built. Structured trace events would make them queryable and cross-referenceable with impl/verify traces. A GUI could show the full decision timeline across all phases.
+
+Arguments against: plan/refine run in the main conversation where the human is present and making decisions — the human IS the trace. NOTES.md captures these decisions in rich prose. Adding structured events would duplicate NOTES.md content in a less expressive format. Also, plan/refine don't run as subprocesses, so there's no transcript to pair with.
+
+Evaluate after PLAN_9 comparison runs — if post-run analysis would benefit from structured plan/refine events, add support.
