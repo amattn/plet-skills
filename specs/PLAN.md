@@ -57,7 +57,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 5 | `plet_fingerprint.py` spec (FPR) | ✓ complete |
 | 6 | `plet_fingerprint.py` implementation | ✓ complete |
 | 7 | `plet_trace.py` spec (TRC) | ✓ complete |
-| 8 | `plet_trace.py` implementation | not started |
+| 8 | `plet_trace.py` implementation | ✓ complete |
 | 9 | `plet_git.py` spec (GCL) | not started |
 | 10 | `plet_git.py` implementation | not started |
 | 11 | `plet_router.py` spec (RTR) | not started |
