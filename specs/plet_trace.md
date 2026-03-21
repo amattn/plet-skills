@@ -528,6 +528,7 @@ plet_trace.py append-event plet/trace/ \
 |----|-----------|--------|-------------|
 | TRC_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
 | TRC_DEP_2 | imports | `util_io` | `atomic_append`, `load_text` |
+| TRC_DEP_5 | imports | `util_id` | `generate_plet_id` |
 | TRC_DEP_3 | called by | `plet_gate_impl.py` | `validate` as post-impl check |
 | TRC_DEP_4 | called by | `plet_gate_verify.py` | `validate` as post-verify check |
 

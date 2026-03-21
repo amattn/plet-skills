@@ -12,7 +12,7 @@ Coding standards for Python scripts in `skills/plet/scripts/`. These scripts are
 
 Scripts use **Python stdlib only** — no third-party packages, no `pip install`, no `requirements.txt`. Scripts ship inside the skill package and must work on any machine with Python 3 installed. Autonomous agents cannot install packages, and target projects should never need to manage plet's dependencies.
 
-Internal modules (`util_*.py`) are not external dependencies — they ship in the same directory, same version, same deployment. Scripts may import from `util_cli` and `util_io`.
+Internal modules (`util_*.py`) are not external dependencies — they ship in the same directory, same version, same deployment. Scripts may import from `util_cli`, `util_io`, and `util_id`.
 
 Scripts may also call other `plet_*.py` scripts — via `subprocess` or potentially direct import. The orchestrator in particular calls most other scripts. These are sibling dependencies within the same package, not external.
 
@@ -82,7 +82,7 @@ Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently no
 ### Naming
 
 - **CLI tool scripts:** `plet_<domain>.py` — e.g., `plet_state.py`, `plet_entries.py`, `plet_trace.py`, `plet_git.py`. Callable via `Bash()`, listed in `allowed-tools`, executable (`chmod +x`)
-- **Internal modules:** `util_<concern>.py` — e.g., `util_cli.py`, `util_io.py`. Imported by `plet_*.py` scripts, never called directly, not listed in `allowed-tools`, not executable. The `plet_` prefix signals "CLI tool"; `util_` signals "internal dependency."
+- **Internal modules:** `util_<concern>.py` — e.g., `util_cli.py`, `util_io.py`, `util_id.py`. Imported by `plet_*.py` scripts, never called directly, not listed in `allowed-tools`, not executable. The `plet_` prefix signals "CLI tool"; `util_` signals "internal dependency."
 - **Command names:** lowercase, hyphen-separated — e.g., `update-criterion`, `add-progress`, `check-stashes`
 - **Function names:** `cmd_<command_with_underscores>` — e.g., `cmd_update_criterion`, `cmd_add_progress`
 
@@ -154,7 +154,8 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | Module | Purpose | Key functions |
 |--------|---------|---------------|
 | `util_cli.py` | Argument parsing, validation, timestamps, dispatch, output filtering | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| `util_io.py` | Atomic file I/O for state and runtime artifacts | `load_json`, `atomic_write_json`, `atomic_append` |
+| `util_io.py` | Atomic file I/O for state and runtime artifacts | `load_json`, `atomic_write_json`, `atomic_append`, `load_text` |
+| `util_id.py` | Plet ID generation (Crockford Base32, timestamps, context segments) | `generate_plet_id`, `crockford_encode`, `crockford_timestamp`, `normalize_iteration`, `phase_attempt_segment` |
 
 ## Planned (PLAN_8)
 
