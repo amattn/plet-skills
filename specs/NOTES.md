@@ -689,6 +689,36 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **Flush behavior matters for GUI:** If plet_invoke.py flushes after each line write, filesystem watchers (fswatch, FSEvents, inotify) see changes within ~100ms. If buffered, GUI sees nothing until flush. Decision: flush after each line. This enables live-tail and real-time event display.
 - **Transcript validation/querying:** Not needed now. If we later need to validate or query transcript JSONL (e.g., "find all tool_use events"), that's either new commands on `plet_trace.py` or a new script. Deferred.
 
+#### TRC spec review decisions (2026-03-21)
+
+**File vs directory positional arg — principled split:**
+- **Writes enforce naming:** `append-event` takes `trace_dir` (directory) and constructs the filename from `--iter-id`, `--phase`, `--attempt`. Agents can't misname trace files (wrong padding, separators, extension). Format compliance is the script's job.
+- **Reads accept paths:** `validate` and `query` take `events_file` (file path). The file already exists with a correct name (created by `append-event`). Forcing the caller to decompose a known path into flags adds tokens for no benefit.
+- **Cross-script consistency:** STA = all file paths (per-iteration, caller manages paths). ENT/FPR = all directory (derive files from command/flags). TRC = mixed (writes derive, reads accept). The mixed model is justified — not every script needs the same pattern.
+
+**UNV_ERR_5/6 added:** Universal convention for file-vs-directory mismatch. Commands that expect a file error on directory and vice versa. Prevents confusing errors (e.g., JSON parse error when agent passes a directory to validate).
+
+#### TRC spec review — complete (2026-03-21)
+
+All 16 sections reviewed and approved. Key decisions from §3.2 onward:
+
+- **VAL_OUT per-type counts:** Both text and JSON output include countsByType (decision, criterion_update, etc.). Gate scripts can check "were any decisions logged?" without parsing the full file.
+- **VAL_BHV_8/9/10 added:** pletId prefix validation (must start with `tev_`), phase validation (`impl` or `verify` only — trace events are execution-only), countsByType as explicit testable behavior.
+- **VAL_PRE expanded:** required-args, file exists and readable, file-not-directory (UNV_ERR_5).
+- **Malformed tables fixed:** Unescaped pipes in CMD usage lines (impl|verify, decision|criterion_update|...). Replaced with prose enum lists. DXP_6 shell `||` replaced with behavior description.
+- **--raw added to query (QRY_INP_5, P0):** Bare NDJSON output — one compact JSON per line, no envelope, no indentation. Pipe-friendly for `wc -l`, `jq`, further processing. Mutually exclusive with `--output json`. Not a FUT — useful from day 1 for scripting.
+- **No --iter-id/--phase filters on query:** Confirmed unnecessary — trace files are already per-iteration per-phase. All events in one file share the same context.
+
+- **FMT_5 added:** Enum validation on data fields — criterion_update.phase, criterion_update.status, lifecycle_change.from/to, activity_change.activity. Same enums as plet_state.py. Enforced on both append and validate.
+- **AFL_3 added:** Verify subagent writes trace events (not just reads impl trace).
+- **AFL_5 added:** Case study / post-run analysis flow using validate + query.
+- **AGT_6 updated:** GUI may use query for filtered views and validate for integrity checks (not just direct file reads).
+- **DXP_8 added:** Help documents --raw as preferred for piping/scripting.
+- **DXP_9 added:** Help lists type-specific required data fields inline — agents don't need to cross-reference formats.md.
+- **CRT_15 added:** Enum validation in data fields test area.
+- **QRY BHV prose intro:** Added design rationale paragraph — query lenient, validate strict.
+- **TRC spec complete.** Next: seq 8 (implementation).
+
 #### Red/green development discipline — MANDATORY (2026-03-19)
 
 - **Command-by-command red/green is non-negotiable** for all script implementations going forward. Write tests for one command first → run and confirm they fail (red) → implement the command → run and confirm they pass (green) → move to next command. No writing the script and tests together. No writing the script first.
