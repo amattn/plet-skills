@@ -72,6 +72,8 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_ERR_2 | Specific error messages: show what was received and what was expected | P0 |
 | UNV_ERR_3 | Fail fast on first error. Exception: validation commands accumulate all schema errors before reporting | P0 |
 | UNV_ERR_4 | Scripts must never produce unhandled exceptions. Wrap all type conversions, file operations, and JSON parsing in try/except with specific messages. Error behavior is output-mode-aware: text mode (default) sends clean message to stderr, exit 1. JSON mode (`--output json`) sends structured error JSON to stdout, exit 1. In both modes, stderr always gets a text message for human debugging. | P0 |
+| UNV_ERR_5 | If a command expects a file path and receives a directory → `Error: expected a file, got directory: {path}` | P0 |
+| UNV_ERR_6 | If a command expects a directory and receives a file → `Error: expected a directory, got file: {path}` | P0 |
 
 ## Naming
 
