@@ -26,7 +26,6 @@ import json
 import os
 import re
 import sys
-import time
 
 # Add scripts dir to path for sibling imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -40,6 +39,7 @@ from util_cli import (
     validate_enum,
     validate_int,
 )
+from util_id import generate_plet_id
 from util_io import atomic_append, load_json, load_text
 
 SCRIPT_VERSION = "0.1.0"
@@ -76,51 +76,6 @@ REQUIRED_DATA_FIELDS = {
     "activity_change": ["activity"],
     "error": ["message"],
 }
-
-# Crockford Base32 alphabet (excludes I, L, O, U)
-CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
-
-
-# ---------------------------------------------------------------------------
-# Plet ID generation
-# ---------------------------------------------------------------------------
-
-def crockford_encode(n):
-    """Encode a non-negative integer as a Crockford Base32 string."""
-    if n == 0:
-        return "0"
-    result = []
-    while n > 0:
-        result.append(CROCKFORD_ALPHABET[n % 32])
-        n //= 32
-    return "".join(reversed(result))
-
-
-def crockford_timestamp():
-    """Generate a 10-char Crockford Base32 timestamp from current time in ms."""
-    ms = int(time.time() * 1000)
-    encoded = crockford_encode(ms)
-    return encoded.zfill(10)
-
-
-def normalize_iteration(iteration_id):
-    """Normalize iteration ID for plet ID: ID_001 -> id001."""
-    return iteration_id.lower().replace("_", "")
-
-
-def phase_attempt_segment(phase, attempt):
-    """Encode phase and attempt: impl-1 -> i1, verify-2 -> v2."""
-    prefix_map = {"impl": "i", "verify": "v"}
-    return "{}{}".format(prefix_map[phase], attempt)
-
-
-def generate_plet_id(iteration_id, phase, attempt):
-    """Generate a tev_ plet ID."""
-    ts = crockford_timestamp()
-    iter_seg = normalize_iteration(iteration_id)
-    phase_seg = phase_attempt_segment(phase, attempt)
-    return "tev_{}_{}_{}" .format(ts, iter_seg, phase_seg)
-
 
 # ---------------------------------------------------------------------------
 # Universal flag parsing
@@ -526,7 +481,7 @@ Examples:
         return 1
 
     # Build event
-    plet_id = generate_plet_id(iter_id, phase, attempt)
+    plet_id = generate_plet_id("tev", iter_id, phase, attempt)
     event = {
         "pletId": plet_id,
         "timestamp": now_iso(),
