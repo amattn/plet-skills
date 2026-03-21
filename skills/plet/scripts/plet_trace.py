@@ -50,7 +50,7 @@ VALID_EVENT_TYPES = [
     "activity_change", "error",
 ]
 
-VALID_PHASES = ["impl", "verify"]
+VALID_PHASES = ["implement", "verify"]
 
 VALID_LIFECYCLES = [
     "ineligible", "queued", "implementing", "verifying",
@@ -305,13 +305,13 @@ IMPORTANT: Use --dry-run to preview events before appending. Timestamp is
 set automatically — cannot be overridden.
 
 PITFALLS:
-- --phase must be "impl" or "verify" (not "implementation" or "plan")
+- --phase must be "implement" or "verify" (not "implementation" or "plan")
 - --event-type must be one of: decision, criterion_update, lifecycle_change,
   activity_change, error (not "decision_made" or "info")
 - --data must be a JSON object, not a string or array
 - --data and --data-file are mutually exclusive
 - For criterion_update, data.phase is "implementation" or "verification"
-  (NOT "impl" or "verify" — different from --phase)
+  (NOT "implement" or "verify" — different from --phase)
 - Required data fields per type:
     decision:         description, rationale
     criterion_update: criterionId, phase, status
@@ -329,11 +329,11 @@ Events capture decisions, criterion updates, lifecycle transitions, activity
 changes, and errors in structured NDJSON format.
 
 Examples:
-    plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase impl \\
+    plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase implement \\
         --attempt 1 --event-type decision \\
         --data '{"description":"Using pytest","rationale":"Requirements specify pytest"}'
 
-    plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase impl \\
+    plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase implement \\
         --attempt 1 --event-type criterion_update \\
         --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}'
 """
@@ -542,7 +542,7 @@ PITFALLS:
 - Common invalid types: "info" (use "decision" or "error"),
   "decision_made" (use "decision")
 - data.phase for criterion_update is "implementation"/"verification",
-  NOT "impl"/"verify"
+  NOT "implement"/"verify"
 
 USAGE:
     plet_trace.py validate <events_file> [--output json [--pretty] [--fields f1,f2]]
@@ -552,8 +552,8 @@ modifying it. Each line must be valid JSON with required base fields and
 type-specific data fields.
 
 Examples:
-    plet_trace.py validate plet/trace/ID_001-impl-1-events.ndjson
-    plet_trace.py validate plet/trace/ID_001-impl-1-events.ndjson --output json
+    plet_trace.py validate plet/trace/ID_001-implement-1-events.ndjson
+    plet_trace.py validate plet/trace/ID_001-implement-1-events.ndjson --output json
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -675,10 +675,10 @@ through this command instead of parsing NDJSON manually. Use --raw for piping
 to wc -l, jq, or other tools.
 
 Examples:
-    plet_trace.py query plet/trace/ID_001-impl-1-events.ndjson --event-type decision
-    plet_trace.py query plet/trace/ID_001-impl-1-events.ndjson --criterion AC_1
-    plet_trace.py query plet/trace/ID_001-impl-1-events.ndjson --event-type error --last 3
-    plet_trace.py query plet/trace/ID_001-impl-1-events.ndjson --event-type decision --raw
+    plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type decision
+    plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --criterion AC_1
+    plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type error --last 3
+    plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type decision --raw
 """
     if "-h" in args or "--help" in args:
         print(HELP)

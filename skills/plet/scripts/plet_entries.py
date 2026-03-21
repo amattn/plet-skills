@@ -6,9 +6,9 @@ Enforces the entry formats defined in references/formats.md. Agents call this
 instead of composing markdown freehand, eliminating format drift across iterations.
 
 Usage:
-    plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
-    plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase impl --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
-    plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
+    plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
+    plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
+    plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
     plet_entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]
 
 Commands:
@@ -55,7 +55,7 @@ VALID_EMERGENT_CATEGORIES = [
     "scope question", "edge case", "blocker",
 ]
 
-VALID_PHASES = ["plan", "impl", "verify", "refine"]
+VALID_PHASES = ["plan", "implement", "verify", "refine"]
 
 TYPE_PREFIXES = {
     "progress": "epr",
@@ -322,7 +322,7 @@ USAGE:
     plet_entries.py add-progress <artifact_dir>
         --iter-id ID_xxx          Iteration ID (e.g., ID_001) or "proj"
         --iter-title "..."        Iteration title (human-readable)
-        --phase PHASE             plan, impl, verify, or refine
+        --phase PHASE             plan, implement, verify, or refine
         --attempt N               Attempt number (positive integer)
         --status STATUS           IN_PROGRESS, COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED
         --content "..."           Freeform content (mutually exclusive with --content-file)
@@ -337,7 +337,7 @@ PURPOSE:
 
 Examples:
     plet_entries.py add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \\
-        --phase impl --attempt 1 --status COMPLETE \\
+        --phase implement --attempt 1 --status COMPLETE \\
         --content "Initialized project with pytest, ruff. All checks pass." \\
         --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
 """
@@ -490,7 +490,7 @@ USAGE:
         --title "..."             Short title for the learning
         --content "..."           1-5 sentences (mutually exclusive with --content-file)
         [--content-file path]     Read content from file (mutually exclusive with --content)
-        --phase PHASE             plan, impl, verify, or refine
+        --phase PHASE             plan, implement, verify, or refine
         --attempt N               Attempt number (positive integer)
         [--dry-run]               Preview without writing
         [--output json [--pretty]] [--fields f1,f2]
@@ -504,7 +504,7 @@ Examples:
     plet_entries.py add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \\
         --category gotcha --title "SQLite WAL mode required" \\
         --content "Default journal mode blocks readers during writes." \\
-        --phase impl --attempt 1
+        --phase implement --attempt 1
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -611,7 +611,7 @@ USAGE:
         --iter-id ID_xxx          Iteration ID (e.g., ID_001) or "proj"
         --iter-title "..."        Iteration title (human-readable)
         --title "..."             Short title for the emergent item
-        --phase PHASE             plan, impl, verify, or refine
+        --phase PHASE             plan, implement, verify, or refine
         --category CAT            design decision, requirement gap, assumption,
                                   scope question, edge case, blocker
         --content "..."           Description (mutually exclusive with --content-file)
@@ -626,7 +626,7 @@ PURPOSE:
 
 Examples:
     plet_entries.py add-emergent plet/ --iter-id ID_002 --iter-title "Core data model" \\
-        --title "Chose SQLite over PostgreSQL" --phase impl \\
+        --title "Chose SQLite over PostgreSQL" --phase implement \\
         --category "design decision" \\
         --content "Requirements say persistent storage. Chose SQLite for simplicity." \\
         --attempt 1

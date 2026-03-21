@@ -98,7 +98,7 @@ def test_append_decision():
         out, _, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"Using pytest","rationale":"Requirements specify pytest"}',
@@ -106,7 +106,7 @@ def test_append_decision():
         check("reports OK", "OK" in out)
         check("has plet ID", "tev_" in out)
 
-        events_file = os.path.join(tmpdir, "ID_001-impl-1-events.ndjson")
+        events_file = os.path.join(tmpdir, "ID_001-implement-1-events.ndjson")
         check("file created", os.path.exists(events_file))
 
         events = read_events(events_file)
@@ -116,7 +116,7 @@ def test_append_decision():
         check("has pletId", ev["pletId"].startswith("tev_"))
         check("has timestamp", "T" in ev["timestamp"] and ev["timestamp"].endswith("Z"))
         check("iterationId", ev["iterationId"] == "ID_001")
-        check("phase", ev["phase"] == "impl")
+        check("phase", ev["phase"] == "implement")
         check("attempt is int", ev["attempt"] == 1)
         check("data.description", ev["data"]["description"] == "Using pytest")
         check("data.rationale", ev["data"]["rationale"] == "Requirements specify pytest")
@@ -128,14 +128,14 @@ def test_append_criterion_update():
         out, _, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "criterion_update",
             "--data", '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}',
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-impl-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("type is criterion_update", ev["type"] == "criterion_update")
         check("data.criterionId", ev["data"]["criterionId"] == "AC_1")
@@ -149,14 +149,14 @@ def test_append_lifecycle_change():
         out, _, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "lifecycle_change",
             "--data", '{"from":"queued","to":"implementing"}',
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-impl-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("data.from", ev["data"]["from"] == "queued")
         check("data.to", ev["data"]["to"] == "implementing")
@@ -168,14 +168,14 @@ def test_append_activity_change():
         out, _, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "activity_change",
             "--data", '{"activity":"running_checks","detail":"pytest -x"}',
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-impl-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("data.activity", ev["data"]["activity"] == "running_checks")
         check("data.detail preserved", ev["data"]["detail"] == "pytest -x")
@@ -187,14 +187,14 @@ def test_append_error_event():
         out, _, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "error",
             "--data", '{"message":"pytest not found","recovery":"install pytest"}',
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-impl-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("data.message", ev["data"]["message"] == "pytest not found")
         check("data.recovery preserved", ev["data"]["recovery"] == "install pytest")
@@ -207,13 +207,13 @@ def test_append_multiple_events():
             run([
                 "append-event", tmpdir,
                 "--iter-id", "ID_001",
-                "--phase", "impl",
+                "--phase", "implement",
                 "--attempt", "1",
                 "--event-type", "decision",
                 "--data", '{{"description":"decision {}","rationale":"reason {}"}}'.format(i, i),
             ])
 
-        events = read_events(os.path.join(tmpdir, "ID_001-impl-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
         check("three events", len(events) == 3)
         check("each is valid JSON", all("pletId" in e for e in events))
         # Plet IDs should be unique
@@ -227,12 +227,12 @@ def test_append_ndjson_format():
         run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
         ])
-        path = os.path.join(tmpdir, "ID_001-impl-1-events.ndjson")
+        path = os.path.join(tmpdir, "ID_001-implement-1-events.ndjson")
         with open(path) as f:
             content = f.read()
         check("ends with newline", content.endswith("\n"))
@@ -267,7 +267,7 @@ def test_append_missing_required_data():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"test"}',
@@ -278,7 +278,7 @@ def test_append_missing_required_data():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "criterion_update",
             "--data", '{"criterionId":"AC_1","phase":"implementation"}',
@@ -289,7 +289,7 @@ def test_append_missing_required_data():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "lifecycle_change",
             "--data", '{"from":"queued"}',
@@ -300,7 +300,7 @@ def test_append_missing_required_data():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "activity_change",
             "--data", '{}',
@@ -311,7 +311,7 @@ def test_append_missing_required_data():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "error",
             "--data", '{"recovery":"try again"}',
@@ -326,10 +326,10 @@ def test_append_enum_validation():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "criterion_update",
-            "--data", '{"criterionId":"AC_1","phase":"impl","status":"pass"}',
+            "--data", '{"criterionId":"AC_1","phase":"implement","status":"pass"}',
         ], expect_exit=1)
         check("rejects impl as criterion phase", "implementation" in err or "verification" in err)
 
@@ -337,7 +337,7 @@ def test_append_enum_validation():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "criterion_update",
             "--data", '{"criterionId":"AC_1","phase":"implementation","status":"done"}',
@@ -348,7 +348,7 @@ def test_append_enum_validation():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "lifecycle_change",
             "--data", '{"from":"queued","to":"running"}',
@@ -359,7 +359,7 @@ def test_append_enum_validation():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "activity_change",
             "--data", '{"activity":"thinking"}',
@@ -378,7 +378,7 @@ def test_append_invalid_phase():
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
         ], expect_exit=1)
-        check("rejects plan phase", "impl" in err and "verify" in err)
+        check("rejects plan phase", "implement" in err and "verify" in err)
 
 
 def test_append_invalid_event_type():
@@ -387,7 +387,7 @@ def test_append_invalid_event_type():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "info",
             "--data", '{"description":"test"}',
@@ -401,7 +401,7 @@ def test_append_invalid_iter_id():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "iter_1",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
@@ -415,7 +415,7 @@ def test_append_invalid_attempt():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "0",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
@@ -425,7 +425,7 @@ def test_append_invalid_attempt():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "abc",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
@@ -439,7 +439,7 @@ def test_append_data_not_object():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '"just a string"',
@@ -457,14 +457,14 @@ def test_append_data_file():
         out, _, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data-file", data_path,
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-impl-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
         check("data from file", events[0]["data"]["description"] == "from file")
 
 
@@ -478,7 +478,7 @@ def test_append_data_and_data_file():
         _, err, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"inline","rationale":"test"}',
@@ -493,7 +493,7 @@ def test_append_dry_run():
         out, _, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
@@ -501,7 +501,7 @@ def test_append_dry_run():
         ])
         check("reports dry run", "DRY RUN" in out)
 
-        events_file = os.path.join(tmpdir, "ID_001-impl-1-events.ndjson")
+        events_file = os.path.join(tmpdir, "ID_001-implement-1-events.ndjson")
         check("file NOT created", not os.path.exists(events_file))
 
 
@@ -511,7 +511,7 @@ def test_append_json_output():
         out, _, _ = run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
@@ -531,13 +531,13 @@ def test_append_extra_data_fields():
         run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test","alternatives":["option A","option B"],"custom":"field"}',
         ])
 
-        events = read_events(os.path.join(tmpdir, "ID_001-impl-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
         check("alternatives preserved", events[0]["data"]["alternatives"] == ["option A", "option B"])
         check("custom field preserved", events[0]["data"]["custom"] == "field")
 
@@ -547,7 +547,7 @@ def test_append_trace_dir_not_found():
     _, err, _ = run([
         "append-event", "/nonexistent/trace/",
         "--iter-id", "ID_001",
-        "--phase", "impl",
+        "--phase", "implement",
         "--attempt", "1",
         "--event-type", "decision",
         "--data", '{"description":"test","rationale":"test"}',
@@ -565,7 +565,7 @@ def test_append_trace_dir_is_file():
         _, err, _ = run([
             "append-event", fake_dir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
@@ -579,7 +579,7 @@ def test_append_no_tmp_residue():
         run([
             "append-event", tmpdir,
             "--iter-id", "ID_001",
-            "--phase", "impl",
+            "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
@@ -596,7 +596,7 @@ def make_trace_file(tmpdir, events=None):
     """Create a trace file with given events, return path."""
     if events is None:
         events = []
-    path = os.path.join(tmpdir, "ID_001-impl-1-events.ndjson")
+    path = os.path.join(tmpdir, "ID_001-implement-1-events.ndjson")
     with open(path, "w") as f:
         for ev in events:
             f.write(json.dumps(ev) + "\n")
@@ -610,7 +610,7 @@ def make_event(event_type="decision", **overrides):
         "timestamp": "2026-03-07T15:10:00Z",
         "type": event_type,
         "iterationId": "ID_001",
-        "phase": "impl",
+        "phase": "implement",
         "attempt": 1,
         "data": {},
     }

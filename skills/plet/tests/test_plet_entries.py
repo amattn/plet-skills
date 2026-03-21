@@ -105,7 +105,7 @@ def test_plet_id_format():
         make_artifacts(d)
         stdout, _, _ = run([
             "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test", "--phase", "impl",
+            "--iter-id", "ID_001", "--iter-title", "Test", "--phase", "implement",
             "--attempt", "1", "--status", "COMPLETE", "--content", "test",
         ])
         # Output should be "OK — epr_xxx"
@@ -132,8 +132,8 @@ def test_plet_id_phases():
         make_artifacts(d)
 
         for phase, attempt, expected in [
-            ("impl", "1", "i1"),
-            ("impl", "3", "i3"),
+            ("implement", "1", "i1"),
+            ("implement", "3", "i3"),
             ("verify", "2", "v2"),
             ("refine", "1", "r1"),
             ("plan", "1", "p1"),
@@ -178,7 +178,7 @@ def test_progress_entry_format():
         stdout, _, _ = run([
             "add-progress", d,
             "--iter-id", "ID_003", "--iter-title", "OAuth integration",
-            "--phase", "impl", "--attempt", "2", "--status", "BLOCKED",
+            "--phase", "implement", "--attempt", "2", "--status", "BLOCKED",
             "--content", "Blocked on OAuth provider sandbox.",
             "--files", '["src/auth/oauth.py — redirect flow", "tests/test_oauth.py — tests"]',
         ])
@@ -190,11 +190,11 @@ def test_progress_entry_format():
         check("starts with header", content.startswith("# Progress"))
         check("has start fence", '<div id="plet-{}"></div>'.format(plet_id) in content)
         check("has end fence", '<div id="END-plet-{}"></div>'.format(plet_id) in content)
-        check("has heading with status", "### [ID_003] impl-2 — BLOCKED" in content)
+        check("has heading with status", "### [ID_003] implement-2 — BLOCKED" in content)
         check("has PletId field", "**PletId:** `{}`".format(plet_id) in content)
         check("has Timestamp field", "**Timestamp:** 20" in content)
         check("has Iteration field", "**Iteration:** [ID_003] OAuth integration" in content)
-        check("has Phase field", "**Phase:** impl" in content)
+        check("has Phase field", "**Phase:** implement" in content)
         check("has Attempt field", "**Attempt:** 2" in content)
         check("has Files changed section", "**Files changed:**" in content)
         check("has file entry", "src/auth/oauth.py" in content)
@@ -210,7 +210,7 @@ def test_progress_no_files():
         run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
         ])
         with open(os.path.join(d, "progress.md")) as f:
@@ -226,17 +226,17 @@ def test_progress_in_progress_header_suppression():
         run([
             "add-progress", d,
             "--iter-id", "ID_002", "--iter-title", "Core data model",
-            "--phase", "impl", "--attempt", "1", "--status", "IN_PROGRESS",
+            "--phase", "implement", "--attempt", "1", "--status", "IN_PROGRESS",
             "--content", "Working on schema.",
         ])
         with open(os.path.join(d, "progress.md")) as f:
             content = f.read()
         # Header should NOT have " — IN_PROGRESS"
         check("header has no IN_PROGRESS suffix",
-              "### [ID_002] impl-1\n" in content or "### [ID_002] impl-1 \n" in content.rstrip(),
+              "### [ID_002] implement-1\n" in content or "### [ID_002] impl-1 \n" in content.rstrip(),
               "content near header: " + content[content.index("### [ID_002]"):content.index("### [ID_002]")+60] if "### [ID_002]" in content else "header not found")
         check("IN_PROGRESS not in header line",
-              "impl-1 — IN_PROGRESS" not in content)
+              "implement-1 — IN_PROGRESS" not in content)
 
 
 def test_progress_status_validation():
@@ -248,7 +248,7 @@ def test_progress_status_validation():
             run([
                 "add-progress", d,
                 "--iter-id", "ID_001", "--iter-title", "Test",
-                "--phase", "impl", "--attempt", "1",
+                "--phase", "implement", "--attempt", "1",
                 "--status", status, "--content", "test",
             ])
             check("accepts {}".format(status), True)
@@ -256,7 +256,7 @@ def test_progress_status_validation():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "INVALID", "--content", "test",
         ], expect_exit=1)
         check("rejects INVALID status", "invalid" in stderr.lower())
@@ -276,7 +276,7 @@ def test_learning_entry_format():
             "--category", "gotcha",
             "--title", "WAL mode required",
             "--content", "Default journal mode blocks readers.",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
         ])
         plet_id = parse_ok_id(stdout)
 
@@ -291,7 +291,7 @@ def test_learning_entry_format():
         check("has Timestamp", "**Timestamp:** 20" in content)
         check("has Iteration field with title",
               "**Iteration:** [ID_002] Core data model" in content)
-        check("has Phase field", "**Phase:** impl" in content)
+        check("has Phase field", "**Phase:** implement" in content)
         # Unified format: **Content:** marker
         check("has Content marker", "**Content:**" in content)
         check("has content text", "Default journal mode blocks readers." in content)
@@ -308,7 +308,7 @@ def test_learning_category_validation():
                 "--iter-id", "ID_001", "--iter-title", "Test",
                 "--category", cat,
                 "--title", "test", "--content", "test",
-                "--phase", "impl", "--attempt", "1",
+                "--phase", "implement", "--attempt", "1",
             ])
             check("accepts {}".format(cat), True)
 
@@ -317,7 +317,7 @@ def test_learning_category_validation():
             "--iter-id", "ID_001", "--iter-title", "Test",
             "--category", "invalid",
             "--title", "test", "--content", "test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
         ], expect_exit=1)
         check("rejects invalid category", "invalid" in stderr.lower())
 
@@ -335,7 +335,7 @@ def test_emergent_entry_format():
             "add-emergent", d,
             "--iter-id", "ID_002", "--iter-title", "Core data model",
             "--title", "Chose SQLite",
-            "--phase", "impl",
+            "--phase", "implement",
             "--category", "design decision",
             "--content", "Chose SQLite for simplicity.",
             "--attempt", "1",
@@ -358,7 +358,7 @@ def test_emergent_entry_format():
         # Unified format: Iteration field (replaces Source)
         check("has Iteration field",
               "**Iteration:** [ID_002] Core data model" in content)
-        check("has Phase field", "**Phase:** impl" in content)
+        check("has Phase field", "**Phase:** implement" in content)
         check("has Category field", "**Category:** design decision" in content)
         check("has Outcome pending", "**Outcome:** pending" in content)
         # Unified format: **Content:** marker
@@ -373,7 +373,7 @@ def test_emergent_auto_numbering():
         base_args = [
             "add-emergent", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl",
+            "--phase", "implement",
             "--category", "assumption",
             "--content", "test",
             "--attempt", "1",
@@ -404,7 +404,7 @@ def test_emergent_category_validation():
             run([
                 "add-emergent", d,
                 "--iter-id", "ID_001", "--iter-title", "Test",
-                "--title", "test", "--phase", "impl",
+                "--title", "test", "--phase", "implement",
                 "--category", cat, "--content", "test", "--attempt", "1",
             ])
             check("accepts '{}'".format(cat), True)
@@ -412,7 +412,7 @@ def test_emergent_category_validation():
         _, stderr, _ = run([
             "add-emergent", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--title", "test", "--phase", "impl",
+            "--title", "test", "--phase", "implement",
             "--category", "invalid", "--content", "test", "--attempt", "1",
         ], expect_exit=1)
         check("rejects invalid category", "invalid" in stderr.lower())
@@ -429,7 +429,7 @@ def test_check_all_present():
         run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
         ])
         run([
@@ -437,12 +437,12 @@ def test_check_all_present():
             "--iter-id", "ID_001", "--iter-title", "Test",
             "--category", "pattern",
             "--title", "test", "--content", "test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
         ])
         run([
             "add-emergent", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--title", "test", "--phase", "impl",
+            "--title", "test", "--phase", "implement",
             "--category", "assumption", "--content", "test",
             "--attempt", "1",
         ])
@@ -457,7 +457,7 @@ def test_check_missing():
         run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
         ])
         stdout, stderr, _ = run(
@@ -541,7 +541,7 @@ def test_check_no_false_positives():
         run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE",
             "--content", "This relates to [ID_003] work done earlier.",
         ])
@@ -550,12 +550,12 @@ def test_check_no_false_positives():
             "--iter-id", "ID_001", "--iter-title", "Test",
             "--category", "context", "--title", "Cross-ref",
             "--content", "See [ID_003] for the prerequisite pattern.",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
         ])
         run([
             "add-emergent", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--title", "Ref to ID_003", "--phase", "impl",
+            "--title", "Ref to ID_003", "--phase", "implement",
             "--category", "assumption", "--attempt", "1",
             "--content", "Assumed [ID_003] approach is correct.",
         ])
@@ -579,7 +579,7 @@ def test_phase_validation():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
 
-        for phase in ["plan", "impl", "verify", "refine"]:
+        for phase in ["plan", "implement", "verify", "refine"]:
             run([
                 "add-progress", d,
                 "--iter-id", "ID_001", "--iter-title", "Test",
@@ -622,7 +622,7 @@ def test_missing_artifact_file():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
         ], expect_exit=1)
         check("errors on missing progress.md", "does not exist" in stderr)
@@ -636,7 +636,7 @@ def test_attempt_validation():
         base = [
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--status", "COMPLETE", "--content", "test",
+            "--phase", "implement", "--status", "COMPLETE", "--content", "test",
         ]
 
         _, stderr, _ = run(base + ["--attempt", "abc"], expect_exit=1)
@@ -656,7 +656,7 @@ def test_iter_id_validation():
         make_artifacts(d)
         base = [
             "add-progress", d,
-            "--iter-title", "Test", "--phase", "impl",
+            "--iter-title", "Test", "--phase", "implement",
             "--attempt", "1", "--status", "COMPLETE", "--content", "test",
         ]
 
@@ -698,7 +698,7 @@ def test_fence_rejection():
             _, stderr, _ = run([
                 "add-progress", d,
                 "--iter-id", "ID_001", "--iter-title", "Test",
-                "--phase", "impl", "--attempt", "1",
+                "--phase", "implement", "--attempt", "1",
                 "--status", "COMPLETE", "--content", bad,
             ], expect_exit=1)
             check("rejects fence in progress content", "fence" in stderr.lower() or "plet-" in stderr.lower())
@@ -708,7 +708,7 @@ def test_fence_rejection():
                 "--iter-id", "ID_001", "--iter-title", "Test",
                 "--category", "pattern", "--title", "test",
                 "--content", bad,
-                "--phase", "impl", "--attempt", "1",
+                "--phase", "implement", "--attempt", "1",
             ], expect_exit=1)
             check("rejects fence in learning content", "fence" in stderr.lower() or "plet-" in stderr.lower())
 
@@ -724,7 +724,7 @@ def test_fence_rejection_content_file():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content-file", bad_file,
         ], expect_exit=1)
         check("rejects fence in content-file", "fence" in stderr.lower() or "plet-" in stderr.lower())
@@ -741,7 +741,7 @@ def test_empty_content():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "",
         ], expect_exit=1)
         check("rejects empty --content", "empty" in stderr.lower() or "content" in stderr.lower())
@@ -757,7 +757,7 @@ def test_empty_content_file():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content-file", empty_file,
         ], expect_exit=1)
         check("rejects empty content-file", "empty" in stderr.lower() or "content" in stderr.lower())
@@ -778,7 +778,7 @@ def test_content_file():
         stdout, _, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content-file", content_file,
         ])
         check("content-file accepted", stdout.startswith("OK"))
@@ -802,7 +802,7 @@ def test_content_file_learning():
             "--iter-id", "ID_002", "--iter-title", "Core data model",
             "--category", "gotcha", "--title", "WAL mode",
             "--content-file", content_file,
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
         ])
         check("learning content-file accepted", stdout.startswith("OK"))
 
@@ -824,7 +824,7 @@ def test_content_file_emergent():
             "add-emergent", d,
             "--iter-id", "ID_002", "--iter-title", "Core data model",
             "--title", "Database choice",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--category", "design decision",
             "--content-file", content_file,
         ])
@@ -847,7 +847,7 @@ def test_content_and_content_file_exclusive():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE",
             "--content", "inline", "--content-file", content_file,
         ], expect_exit=1)
@@ -862,7 +862,7 @@ def test_content_file_not_found():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content-file", "/nonexistent/path.txt",
         ], expect_exit=1)
         check("errors on missing content-file", "not found" in stderr.lower() or "content file" in stderr.lower())
@@ -885,7 +885,7 @@ def test_dry_run():
         stdout, _, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
             "--dry-run",
         ])
@@ -923,7 +923,7 @@ def test_json_output_progress():
         stdout, _, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
             "--output", "json",
         ])
@@ -943,7 +943,7 @@ def test_json_output_pretty():
         stdout, _, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
             "--output", "json", "--pretty",
         ])
@@ -977,7 +977,7 @@ def test_pretty_without_json():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
             "--pretty",
         ], expect_exit=1)
@@ -995,7 +995,7 @@ def test_fields_filter():
         stdout, _, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
             "--output", "json", "--fields", "pletId,status",
         ])
@@ -1014,7 +1014,7 @@ def test_fields_without_json():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
             "--fields", "pletId",
         ], expect_exit=1)
@@ -1032,7 +1032,7 @@ def test_duplicate_flags():
         _, stderr, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
             "--phase", "verify",  # duplicate
         ], expect_exit=1)
@@ -1057,7 +1057,7 @@ def test_multiple_appends():
                 "--category", "pattern",
                 "--title", "Learning {}".format(i + 1),
                 "--content", "Content {}.".format(i + 1),
-                "--phase", "impl", "--attempt", "1",
+                "--phase", "implement", "--attempt", "1",
             ])
             ids.append(parse_ok_id(stdout))
 
@@ -1085,7 +1085,7 @@ def test_fencing_structure():
         stdout, _, _ = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "impl", "--attempt", "1",
+            "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
         ])
         plet_id = parse_ok_id(stdout)

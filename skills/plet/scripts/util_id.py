@@ -14,7 +14,7 @@ Plet ID format:
     prefix:    type-specific (epr, eln, eem, tev, vrp)
     timestamp: 10-char Crockford Base32 (milliseconds since epoch)
     iteration: ID_001 -> id001, proj -> proj
-    phase:     impl -> i, verify -> v, refine -> r, plan -> p + attempt
+    phase:     implement -> i, verify -> v, refine -> r, plan -> p + attempt
 
 Example: epr_01JD8X3K7M_id001_i1
 
@@ -32,7 +32,7 @@ Functions:
         ID_001 -> id001, proj -> proj. Lowercased, underscores removed.
 
     phase_attempt_segment(phase, attempt)
-        Encode phase and attempt number: impl-1 -> i1, verify-2 -> v2,
+        Encode phase and attempt number: implement-1 -> i1, verify-2 -> v2,
         refine-1 -> r1, plan-1 -> p1.
 
     generate_plet_id(prefix, iteration_id, phase, attempt)
@@ -49,7 +49,7 @@ CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 # Phase prefix mapping
 PHASE_PREFIXES = {
-    "impl": "i",
+    "implement": "i",
     "verify": "v",
     "refine": "r",
     "plan": "p",
@@ -82,7 +82,7 @@ def normalize_iteration(iteration_id):
 
 
 def phase_attempt_segment(phase, attempt):
-    """Encode phase and attempt: impl-1 -> i1, verify-2 -> v2, plan-1 -> p1."""
+    """Encode phase and attempt: implement-1 -> i1, verify-2 -> v2, plan-1 -> p1."""
     prefix = PHASE_PREFIXES.get(phase, phase[0])
     return "{}{}".format(prefix, attempt)
 
