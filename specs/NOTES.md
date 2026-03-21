@@ -665,6 +665,23 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **Trace vs progress distinction:** Trace events are agent-readable JSON capturing significant events only. Progress is human-scannable markdown capturing both minor and significant events. Different audiences, different formats, complementary.
 - **New script identified: `plet_invoke.py`** — assembles prompt (via plet_inject_prompt), launches `claude -p --output-format stream-json`, tees JSONL to transcript file, returns exit code. This replaces the transcript capture responsibility that was ambiguously assigned to the orchestrator. Needs to be added to the script inventory and build plan.
 
+#### TRC spec §1–§3.1 review decisions (2026-03-20)
+
+- **§1 PUR approved.** Added TRC_PUR_4 (query purpose).
+- **§2 AGT approved.** AGT_2 updated (verify subagent uses query). AGT_3 generalized to "orchestrator / invoke scripts."
+- **§3 universal flags approved.** No changes.
+- **§3.1 APE_JUS — strengthened.** Two core justifications: (1) trace data essential for self-improvement, (2) agent-based tracing saw format drift and completely missing entries/files.
+- **§3.1 APE_INP — --data-file promoted to P0.** Both --data and --data-file are P0 (exactly one required). Added "required unless" wording.
+- **§3.1 APE_OUT — plet IDs in output.** Text output: `OK — {plet_id} appended ...`. JSON envelope includes `pletId` field.
+- **TRC_FUT_1 promoted to requirement.** Every trace event gets a `tev_` plet ID. Reuses ENT's Crockford Base32 ID generation. Greppable and cross-referenceable from day 1. Updated BHV_1, PST_3, VAL_BHV_2, §6 schema. PRD updated: `tev` moved from reserved to active prefix.
+- **Plet ID context segments for trace:** `tev_{crockford32}_{iteration}_{phase_attempt}` — matches epr/eln/eem exactly. No event_type in the ID (consistency with established scheme; event type is in the JSON).
+- **NFR_1 relaxed:** 500ms (not 100ms). Trace writing is not latency-critical.
+- **§3.1 APE_PST_2:** added `\n` termination assertion (NDJSON convention, prevents next-append corruption).
+- **§3.1 APE_BHV approved.** atomic_append for crash-safety even with single-writer.
+- **§3.2 VAL_JUS approved.** No changes.
+- **§3.2 VAL_CMD in review.** Paused mid-review.
+- **Review status:** §1–§3.1 complete, §3.2 VAL_CMD next.
+
 #### Transcript capture mechanics — decided (2026-03-20)
 
 - **plet_invoke.py captures transcripts as part of subprocess management.** No separate `plet_trace_transcript.py` needed — capture is inherently part of "launch process and record its output." You can't separate launch from capture without awkward coordination.

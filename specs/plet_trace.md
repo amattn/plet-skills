@@ -22,8 +22,8 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 | ID | Caller | Context | Commands used |
 |----|--------|---------|---------------|
 | TRC_AGT_1 | impl subagent | during implementation work | `append-event` (decisions, criterion updates, activity changes, errors) |
-| TRC_AGT_2 | verify subagent | during verification work | `append-event` (decisions, criterion updates, activity changes, errors) |
-| TRC_AGT_3 | orchestrator | after spawning subagent | `append-event` (lifecycle_change: queued → implementing/verifying) |
+| TRC_AGT_2 | verify subagent | during verification work | `append-event` (decisions, criterion updates, activity changes, errors), `query` (review impl trace for decisions and errors) |
+| TRC_AGT_3 | orchestrator / invoke scripts | before/after subagent launch | `append-event` (lifecycle_change: queued → implementing/verifying) |
 | TRC_AGT_4 | gate scripts | post-phase validation | `validate` (check trace file schema compliance) |
 | TRC_AGT_5 | human | debugging / post-run analysis | `validate`, `query` |
 | TRC_AGT_6 | external GUI / monitoring tool | real-time event display | reads NDJSON files directly (not via CLI) — no commands used |
@@ -51,7 +51,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_JUS_1 | Why: writes a single semantic event to the trace NDJSON file with the correct schema. Agents composing event JSON freehand drift on field names, types, and structure across iterations (FB_11). This command produces a canonical event line every time. | P0 |
+| TRC_APE_JUS_1 | Why: trace data is essential for self-improvement — understanding what agents did, why, and where they struggled drives the refinement cycle that makes plet better over time. But early experiments with agent-based tracing (prose instructions to write NDJSON) saw two failure modes: (1) format drift across iterations (field names, types, structure — FB_11), and (2) completely missing entries and files in most cases (agents deprioritized tracing when under context pressure). Script enforcement makes every event canonical and every call guaranteed to produce output. | P0 |
 | TRC_APE_JUS_2 | When: called throughout impl and verify phases — on decisions, criterion updates, lifecycle transitions, activity changes, and errors. Also called by the orchestrator for lifecycle changes it initiates. Highest-frequency trace command. | P0 |
 | TRC_APE_JUS_3 | Deprecation signal: only if semantic events are replaced by a fundamentally different telemetry mechanism. | P1 |
 
@@ -74,16 +74,16 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | TRC_APE_INP_3 | `--phase` — `impl` or `verify`. Used in the filename and the event's `phase` field. | P0 |
 | TRC_APE_INP_4 | `--attempt` — positive integer. Used in the filename and the event's `attempt` field. | P0 |
 | TRC_APE_INP_5 | `--event-type` — one of: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`. | P0 |
-| TRC_APE_INP_6 | `--data` — JSON object with type-specific fields. Mutually exclusive with `--data-file`. | P0 |
-| TRC_APE_INP_7 | `--data-file` — path to file containing the JSON data object. Mutually exclusive with `--data`. For large data payloads (e.g., verbose error context). | P1 |
+| TRC_APE_INP_6 | `--data` — JSON object with type-specific fields. Required unless `--data-file` is provided. Mutually exclusive with `--data-file`. | P0 |
+| TRC_APE_INP_7 | `--data-file` — path to file containing the JSON data object. Required unless `--data` is provided. Mutually exclusive with `--data`. For large data payloads (e.g., verbose error context). | P0 |
 
 #### Outputs (TRC_APE_OUT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_OUT_1 | Text mode success: `OK — appended {event_type} event to {path}` to stdout, exit 0 | P0 |
+| TRC_APE_OUT_1 | Text mode success: `OK — {plet_id} appended {event_type} event to {path}` to stdout, exit 0. Plet ID is greppable and cross-referenceable with other artifacts. | P0 |
 | TRC_APE_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| TRC_APE_OUT_3 | JSON mode: `{"status":"ok","command":"append-event","eventType":"...","path":"...","event":{...},...}` | P0 |
+| TRC_APE_OUT_3 | JSON mode: `{"status":"ok","command":"append-event","eventType":"...","path":"...","pletId":"tev_...","event":{...},...}` | P0 |
 | TRC_APE_OUT_4 | Dry-run: `DRY RUN — would append {event_type} event to {path}` — no file modification, exit 0 | P0 |
 
 #### Preconditions (TRC_APE_PRE)
@@ -104,8 +104,8 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | TRC_APE_PST_1 | Events file exists at `{trace_dir}/{iter_id}-{phase}-{attempt}-events.ndjson` | P0 |
-| TRC_APE_PST_2 | Last line of the file is the new event as a single JSON object | P0 |
-| TRC_APE_PST_3 | Event has all base fields: `timestamp`, `type`, `iterationId`, `phase`, `attempt`, `data` | P0 |
+| TRC_APE_PST_2 | Last line of the file is the new event as a single JSON object, terminated by `\n` | P0 |
+| TRC_APE_PST_3 | Event has all base fields: `pletId`, `timestamp`, `type`, `iterationId`, `phase`, `attempt`, `data` | P0 |
 | TRC_APE_PST_4 | `timestamp` is current UTC (ISO 8601, second resolution) | P0 |
 | TRC_APE_PST_5 | Type-specific required fields in `data` are present (see BHV_2) | P0 |
 | TRC_APE_PST_6 | No `.tmp` residue files | P0 |
@@ -114,7 +114,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_BHV_1 | Constructs the full event object: `{"timestamp": now_iso(), "type": event_type, "iterationId": iter_id, "phase": phase, "attempt": attempt_int, "data": data_obj}`. The `timestamp` is always set by the script (not from user input) to prevent fabricated timestamps (FB_11). | P0 |
+| TRC_APE_BHV_1 | Constructs the full event object: `{"pletId": "tev_01JD8X3K7M_id001_i1", "timestamp": now_iso(), "type": event_type, "iterationId": iter_id, "phase": phase, "attempt": attempt_int, "data": data_obj}`. The `pletId` uses `tev_` prefix with the standard plet ID context segments: `{iteration}_{phase_attempt}` (e.g., `tev_01JD8X3K7M_id001_i1`). Same scheme as ENT's `epr_`/`eln_`/`eem_` IDs — iteration normalized to lowercase without underscores, phase as single letter + attempt number. The `timestamp` is always set by the script (not from user input) to prevent fabricated timestamps (FB_11). | P0 |
 | TRC_APE_BHV_2 | Validates type-specific required fields in `data`: **decision** requires `description`, `rationale`; **criterion_update** requires `criterionId`, `phase`, `status`; **lifecycle_change** requires `from`, `to`; **activity_change** requires `activity`; **error** requires `message`. Optional fields are allowed and passed through. | P0 |
 | TRC_APE_BHV_3 | Serializes the event as a single JSON line (no indentation, no trailing comma) followed by a newline. This is NDJSON format — one JSON object per line. | P0 |
 | TRC_APE_BHV_4 | Appends to the events file using atomic append (write to temp, then append). Creates the file if it doesn't exist. | P0 |
@@ -176,7 +176,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | TRC_VAL_BHV_1 | Reads the file line by line. Each non-empty line must parse as valid JSON. | P0 |
-| TRC_VAL_BHV_2 | Each parsed event must have the 6 base fields: `timestamp` (string), `type` (string, valid event type), `iterationId` (string), `phase` (string), `attempt` (integer), `data` (object). | P0 |
+| TRC_VAL_BHV_2 | Each parsed event must have the 7 base fields: `pletId` (string, `tev_` prefix), `timestamp` (string), `type` (string, valid event type), `iterationId` (string), `phase` (string), `attempt` (integer), `data` (object). | P0 |
 | TRC_VAL_BHV_3 | Type-specific required fields in `data` are checked per TRC_APE_BHV_2. Missing required fields are errors. Extra fields are allowed. | P0 |
 | TRC_VAL_BHV_4 | Accumulates all errors across all lines before reporting (exception to fail-fast — validation commands accumulate per UNV_ERR_3). Each error includes the line number and specific issue. | P0 |
 | TRC_VAL_BHV_5 | Empty lines are skipped (not errors). Trailing newline at end of file is expected. | P0 |
@@ -309,6 +309,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 ```json
 {
+  "pletId": "tev_01JD8X3K7M_id001_i1_decision",
   "timestamp": "2026-03-07T15:20:01Z",
   "type": "decision",
   "iterationId": "ID_001",
@@ -320,6 +321,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `pletId` | string | yes | Globally unique plet ID with `tev_` prefix. Crockford Base32 timestamp + context segments. Greppable, cross-referenceable with state files and runtime artifacts. |
 | `timestamp` | string | yes | ISO 8601 UTC, second resolution (`YYYY-MM-DDTHH:MM:SSZ`). Set by script, not caller. |
 | `type` | string | yes | One of: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error` |
 | `iterationId` | string | yes | Iteration ID (e.g., `ID_001`) |
@@ -489,7 +491,7 @@ See `specs/conventions.md` for universal requirements.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_NFR_1 | Append performance — each `append-event` call should complete in under 100ms. Trace writing is on the hot path of every impl/verify phase. | P1 |
+| TRC_NFR_1 | Append performance — each `append-event` call should complete in under 500ms. Trace writing happens throughout impl/verify phases but is not latency-critical. | P1 |
 | TRC_NFR_2 | Validate handles files with thousands of events without performance issues (NDJSON is line-by-line, no need to load entire file into memory) | P1 |
 | TRC_NFR_3 | No file locking — single-writer per trace file is enforced by architecture (one subagent per phase per iteration), not by the script | P0 |
 
@@ -556,7 +558,7 @@ None.
 
 | ID | Area | Description |
 |----|------|-------------|
-| TRC_FUT_1 | Plet IDs for trace events | Add plet IDs (`tev_` prefix) to each event for cross-referencing with state files and runtime artifacts. Deferred — the ID scheme exists in the PRD but trace events work fine without per-event IDs for now. |
+| TRC_FUT_1 | ~~Plet IDs for trace events~~ | Promoted to requirement — every event gets a `tev_` plet ID (TRC_APE_BHV_1, TRC_APE_PST_3). Greppable and cross-referenceable from day 1. |
 | TRC_FUT_2 | Trace merge | Command that merges events.ndjson and transcript.jsonl by timestamp for unified view (GUI integration). Deferred — the GUI reads files directly. |
 | TRC_FUT_3 | Trace summary | Command that produces a human-readable summary of a trace file (event counts by type, timeline, key decisions). Useful for post-run analysis. |
 | TRC_FUT_4 | Streaming validation | Validate events as they're appended (real-time schema enforcement via a file watcher or hook). |

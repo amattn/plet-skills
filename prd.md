@@ -298,7 +298,9 @@ Plet IDs are a composable, globally unique identifier scheme used across plet ar
 | `eem` | emergent.md | Entry emergent |
 | `vrp` | per-iteration state file | Verification report |
 
-Reserved for future use: `ttr` (trace transcript), `tev` (trace events).
+| `tev` | events.ndjson | Trace event |
+
+Reserved for future use: `ttr` (trace transcript).
 
 **Note:** Emergent items have two IDs: the `EM_N` semantic ID (human-facing, stable, referenced in refine) and the plet ID (structural, for fencing and cross-references). `EM_N` is assigned by append-only numbering (GC_1). The plet ID is generated per the scheme above. Both appear on every emergent entry.
 
