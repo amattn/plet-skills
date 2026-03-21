@@ -54,7 +54,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EXT_CMD_1 | Usage: `plet_fingerprint.py extract <artifact_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| FPR_EXT_CMD_1 | Usage: `plet_fingerprint.py extract <artifact_dir> --type TYPE [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements` or `iterations` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -72,7 +72,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FPR_EXT_OUT_1 | Text mode: prints the extracted fingerprint as formatted JSON to stdout, exit 0 | P0 |
-| FPR_EXT_OUT_2 | JSON mode: `{"status":"ok","command":"extract","type":"requirements|iterations","path":"plet/requirements.md","fingerprint":{...},...}` | P0 |
+| FPR_EXT_OUT_2 | JSON mode: `{"status":"ok","command":"extract","type":"...","path":"...","fingerprint":{...},...}` | P0 |
 | FPR_EXT_OUT_3 | Error: specific message to stderr, exit 1 | P0 |
 
 #### Preconditions (FPR_EXT_PRE)
@@ -117,7 +117,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EMB_CMD_1 | Usage: `plet_fingerprint.py embed <artifact_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| FPR_EMB_CMD_1 | Usage: `plet_fingerprint.py embed <artifact_dir> --type TYPE [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements`, `iterations`, or `state` | P0 |
 
 **Properties:** mutating (modifies file), idempotent (same content produces same fingerprint), atomic write
 
@@ -191,7 +191,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_CMD_1 | Usage: `plet_fingerprint.py check <artifact_dir> [--level requirements|iterations|all] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| FPR_CHK_CMD_1 | Usage: `plet_fingerprint.py check <artifact_dir> [--level LEVEL] [--output json [--pretty] [--fields f1,f2]]` where LEVEL is `requirements`, `iterations`, or `all` (default: `all`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -210,7 +210,7 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 |----|-------------|----------|
 | FPR_CHK_OUT_1 | Text mode, all consistent: `OK — all fingerprints consistent` to stdout, exit 0 | P0 |
 | FPR_CHK_OUT_2 | Text mode, stale detected: per-level status lines (OK or STALE) + summary warning matching SY_6 format, exit 1 | P0 |
-| FPR_CHK_OUT_3 | JSON mode: `{"status":"ok|stale|error","command":"check","artifactDir":"...","levels":{"requirements":{"consistent":bool,"details":"..."},"iterations":{"consistent":bool,"details":"..."}},"allConsistent":bool,...}`. Three statuses: `"ok"` = all consistent (exit 0), `"stale"` = drift detected (exit 1), `"error"` = tool failure such as bad args, missing files, or parse errors (exit 1). | P0 |
+| FPR_CHK_OUT_3 | JSON mode: `{"status":"ok" or "stale" or "error", "command":"check", "artifactDir":"...", "levels":{...}, "allConsistent":bool, ...}`. Three statuses: `"ok"` = all consistent (exit 0), `"stale"` = drift detected (exit 1), `"error"` = tool failure (exit 1). | P0 |
 | FPR_CHK_OUT_4 | Missing artifact files: specific error listing which files are missing, exit 1. Distinguished from staleness — "can't check" vs "checked and stale". | P0 |
 
 #### Preconditions (FPR_CHK_PRE)
@@ -484,7 +484,7 @@ See `specs/conventions.md` for universal requirements.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_DXP_1 | `check` exit code enables gating: `plet_fingerprint.py check plet/ \|\| echo "STALE"` | P0 |
+| FPR_DXP_1 | `check` exit code enables gating — exit 0 means all consistent, exit 1 means stale or error. Gate scripts check the exit code to proceed or block. | P0 |
 | FPR_DXP_2 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | FPR_DXP_3 | Help text for `embed` strongly recommends `--dry-run` in IMPORTANT section | P0 |
 | FPR_DXP_4 | `extract` output is valid JSON that can be piped to `jq` for inspection | P0 |

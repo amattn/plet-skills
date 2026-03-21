@@ -73,7 +73,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 |----|-------------|----------|
 | STA_VAL_OUT_1 | Text mode success: `OK — {path} is valid` to stdout, exit 0 | P0 |
 | STA_VAL_OUT_2 | Text mode failure: `INVALID — N error(s) in {path}:` + itemized errors to stderr, exit 1 | P0 |
-| STA_VAL_OUT_3 | JSON mode: `{"status":"ok"|"error", "command":"validate", "path":"...", "errors":[...], "errorCount":N, "scriptVersion":"...", "timestamp":"..."}` | P0 |
+| STA_VAL_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"validate", "path":"...", "errors":[...], "errorCount":N, "scriptVersion":"...", "timestamp":"..."}` | P0 |
 
 #### Preconditions (STA_VAL_PRE)
 
@@ -143,7 +143,7 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 |----|-------------|----------|
 | STA_UPC_OUT_1 | Text mode success: `OK — {criterion_id}.{phase} set to '{status}' in {path}` to stdout, exit 0 | P0 |
 | STA_UPC_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_UPC_OUT_3 | JSON mode: `{"status":"ok"|"error", "command":"update-criterion", "criterion":"AC_1", "phase":"...", "newStatus":"...", "derivedTopLevel":"...", "path":"...", ...}` | P0 |
+| STA_UPC_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"update-criterion", "criterion":"AC_1", "phase":"...", "newStatus":"...", "derivedTopLevel":"...", "path":"...", ...}` | P0 |
 | STA_UPC_OUT_4 | Dry-run: `DRY RUN — would set {criterion_id}.{phase} to '{status}' in {path}` — no file modification, exit 0 | P0 |
 
 #### Preconditions (STA_UPC_PRE)
@@ -215,7 +215,7 @@ The two-state model is the core verification invariant — implementation and ve
 |----|-------------|----------|
 | STA_UPF_OUT_1 | Text mode success: `OK — updated {field=value, ...} in {path}` to stdout, exit 0 | P0 |
 | STA_UPF_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_UPF_OUT_3 | JSON mode: `{"status":"ok"|"error", "command":"update-field", "fieldsUpdated":{...}, "path":"...", ...}` | P0 |
+| STA_UPF_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"update-field", "fieldsUpdated":{...}, "path":"...", ...}` | P0 |
 | STA_UPF_OUT_4 | Dry-run: `DRY RUN — would update {fields} in {path}` — no file modification, exit 0 | P0 |
 
 #### Preconditions (STA_UPF_PRE)
@@ -290,7 +290,7 @@ The two-state model is the core verification invariant — implementation and ve
 |----|-------------|----------|
 | STA_INI_OUT_1 | Text mode success: `OK — initialized {path} ({id}, {N} criteria, lifecycle={lifecycle})` to stdout, exit 0 | P0 |
 | STA_INI_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_INI_OUT_3 | JSON mode: `{"status":"ok"|"error", "command":"init", "path":"...", "iterationId":"...", "criteriaCount":N, "lifecycle":"...", ...}` | P0 |
+| STA_INI_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"init", "path":"...", "iterationId":"...", "criteriaCount":N, "lifecycle":"...", ...}` | P0 |
 | STA_INI_OUT_4 | Dry-run: show full generated JSON to stdout without writing, exit 0 | P0 |
 
 #### Preconditions (STA_INI_PRE)
@@ -394,7 +394,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | STA_FMT_1 | Reads per-iteration state JSON files (`plet/state/{iteration_id}.json`) | P0 |
 | STA_FMT_2 | Writes same files. Schema defined in `references/state-schema.md` § Per-Iteration State (SF_2) | P0 |
 | STA_FMT_3 | Required top-level fields: `schemaVersion`, `iterationId`, `title`, `lastUpdated`, `lifecycle`, `dependencies`, `agentId`, `agentActivity`, `attempts`, `criteria` | P0 |
-| STA_FMT_4 | Criterion two-state model: `{id, description, status, implementation: {status, evidence, timestamp, elapsedSeconds} | null, verification: ... | null}` | P0 |
+| STA_FMT_4 | Criterion two-state model: `{id, description, status, implementation: {status, evidence, timestamp, elapsedSeconds} or null, verification: ... or null}` | P0 |
 | STA_FMT_5 | Enum values: `lifecycle` — ineligible, queued, implementing, verifying, complete, blocked, withdrawn | P0 |
 | STA_FMT_6 | Enum values: `agentActivity` — idle, reading_context, implementing, running_checks, committing, wrapping_up | P0 |
 | STA_FMT_7 | Enum values: criterion `status` — not_started, fail, pass, error, skipped | P0 |

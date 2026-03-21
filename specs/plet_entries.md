@@ -565,7 +565,7 @@ See `specs/conventions.md` for universal requirements.
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_DXP_1 | Plet ID printed to stdout enables scripting: `ID=$(plet_entries.py add-progress ...)` — output format is `OK — {plet_id}` | P0 |
-| ENT_DXP_2 | `check` exit code enables gating: `plet_entries.py check ... \|\| echo "BLOCKED"` | P0 |
+| ENT_DXP_2 | `check` exit code enables gating — exit 0 means all entries present, exit 1 means incomplete. Gate scripts check the exit code to proceed or block. | P0 |
 | ENT_DXP_3 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | ENT_DXP_4 | Category/status/phase enums listed in error messages and help text | P0 |
 | ENT_DXP_5 | Help text for mutating commands strongly recommends `--dry-run` in IMPORTANT section | P0 |
