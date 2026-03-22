@@ -10,7 +10,7 @@ This script's success led to two key insights: "Skills for Judgment, Code for Co
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_PUR_1 | Per-iteration state file CRUD and schema enforcement. Agents call this instead of writing JSON freehand. | P0 |
+| STA_PUR_1 | Per-iteration state file CRUD and schema enforcement. Agents call this instead of writing JSON freehand. Scope: per-iteration files (`plet/state/{id}.json`) only — global `plet/state.json` field reading and validation lives in `util_state.py` (used by GTI, GTO, GTC, RTR, INJ, INV, ORC). | P0 |
 | STA_PUR_2 | Enforces the schema defined in `references/state-schema.md` § Per-Iteration State (SF_2). | P0 |
 
 ## 2. Agent Personas (STA_AGT)
@@ -683,6 +683,7 @@ See `specs/conventions.md` for universal requirements.
 | 6 | Separate `skipRationale` field? | Deprecated — `evidence` serves as skip rationale when `status` is `skipped`. Schema change needed in `state-schema.md`. Skill reference files (`implement.md`, `verify.md`) must note that evidence acts as rationale for skipped criteria. |
 | 7 | Should `validate` support `--fix`? | No — `validate` is read-only. Schema migration is a separate concern (SF_24, STA_FUT_1). Mixing read and write in one command violates the principle that read-only commands are safe to run freely. |
 | 8 | `--data` alternatives for large payloads? | `--data-file path` added (STA_UPF_INP_3). Consistent with ENT's `--content-file` pattern. Stdin support (STA_FUT_5) withdrawn — file-based is simpler for agents. |
+| 9 | Who validates global `plet/state.json`? | Not this script. `plet_state.py` handles per-iteration files only. Common global state.json fields (projectId, session counts) are validated by `util_state.load_and_validate_global_state()`, shared across 7+ scripts (GTI, GTO, GTC, RTR, INJ, INV, ORC). Full global state.json schema validation is deferred — no script owns it yet. |
 
 ## Open Questions
 
@@ -700,6 +701,7 @@ See `specs/conventions.md` for universal requirements.
 | STA_FUT_4 | Watch mode | Monitor a state file for changes and re-validate (for GUI/monitoring tools) |
 | STA_FUT_5 | ~~Stdin support~~ | Withdrawn — `--data-file` added as current requirement (STA_UPF_INP_3). Consistency with ENT's `--content-file` pattern preferred over stdin. |
 | STA_FUT_6 | Schema version check | `validate` outputs machine-readable schema version comparison (file version vs script version) to detect files written by a newer plet version |
+| STA_FUT_7 | Global state.json ownership | Currently `plet_state.py` handles per-iteration files only, and `util_state.py` reads common global fields. As the system matures, global state.json may need its own CRUD commands (update dependency map, update milestones, update session history). Options: (1) absorb into `plet_state.py` (rename to handle both), (2) new `plet_global_state.py`, (3) rename current to `plet_state_iter.py` and add `plet_state_global.py`. Evaluate after orchestrator spec — the orchestrator is the primary writer of global state. |
 
 ## 16. FB Items Addressed
 

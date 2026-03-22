@@ -58,6 +58,7 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 | Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
 | Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
 | Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
+| Plan | `plet/{projectId}/plan1/workstream` | `plet/LOGA/plan1/workstream` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
 

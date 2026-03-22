@@ -156,6 +156,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `util_cli.py` | Argument parsing, validation, timestamps, dispatch, output filtering | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
 | `util_io.py` | Atomic file I/O for state and runtime artifacts | `load_json`, `atomic_write_json`, `atomic_append`, `load_text` |
 | `util_id.py` | Plet ID generation (Crockford Base32, timestamps, context segments) | `generate_plet_id`, `crockford_encode`, `crockford_timestamp`, `normalize_iteration`, `phase_attempt_segment` |
+| `util_state.py` | Global state.json loading and full validation | `load_and_validate_global_state` (loads state.json, validates all fields per state-schema.md § Global State, returns validated context) |
 
 ## Planned (PLAN_8)
 

@@ -385,3 +385,14 @@ Arguments for: plan/refine decisions are some of the most consequential in a pro
 Arguments against: plan/refine run in the main conversation where the human is present and making decisions — the human IS the trace. NOTES.md captures these decisions in rich prose. Adding structured events would duplicate NOTES.md content in a less expressive format. Also, plan/refine don't run as subprocesses, so there's no transcript to pair with.
 
 Evaluate after PLAN_9 comparison runs — if post-run analysis would benefit from structured plan/refine events, add support.
+
+### FB_47: Formalize plan session branch and worktree behavior [git] [planning]
+
+Plan sessions currently run interactively in the main conversation. GTI added `--type plan` generating `plet/{projectId}/plan1/workstream` for consistency with refine, and the PRD branch table now includes this pattern. But several questions remain:
+
+1. **Does the plan session actually use a branch?** Current case studies show plan running on main. If plan writes requirements.md and iterations.md directly, does it need a branch?
+2. **Does plan need a worktree?** Plan is interactive (human-driven), not a subprocess. No isolation benefit from worktrees.
+3. **Should plan always be session 1?** Currently hardcoded (no `planSessionCount`). If requirements are re-planned from scratch (not refined), is that plan2?
+4. **What about re-planning during refine?** Refine can modify requirements and iterations — is that a plan operation on a refine branch?
+
+The branch pattern exists in the code and PRD, but the workflow around it is undecided. Evaluate during orchestrator spec (ORC) when the full session lifecycle is defined.
