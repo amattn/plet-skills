@@ -30,20 +30,24 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 6 | Implement `plet_fingerprint.py` | Build from spec. |
 | 7 | `plet_trace.py` spec (TRC) | Leaf — no deps on other new scripts. Standalone schema enforcement. |
 | 8 | Implement `plet_trace.py` | Build from spec. |
-| 9 | `plet_git.py` spec (GCL) | Leaf — no deps on other new scripts. Monitor for split (8 commands, 4 concerns). |
-| 10 | Implement `plet_git.py` | Build from spec. |
-| 11 | `plet_router.py` spec (RTR) | Depends on FPR (calls `check-fingerprints` or reimplements). Preflight checks. |
-| 12 | Implement `plet_router.py` | Build from spec. |
-| 13 | `plet_gate_impl.py` spec (GIM) | Depends on ENT (`check`), STA (`validate`). Called by orchestrator. |
-| 14 | Implement `plet_gate_impl.py` | Build from spec. |
-| 15 | `plet_gate_verify.py` spec (GVR) | Depends on ENT (`check`), STA (`validate`). Called by orchestrator. |
-| 16 | Implement `plet_gate_verify.py` | Build from spec. |
-| 17 | `plet_inject_prompt.py` spec (INJ) | Depends on knowing what reference files exist. Called by plet_invoke.py. |
-| 18 | Implement `plet_inject_prompt.py` | Build from spec. |
-| 19 | `plet_invoke.py` spec (INV) | Depends on INJ (calls assemble) and TRC (writes transcript alongside events). Subprocess launch + transcript capture. |
-| 20 | Implement `plet_invoke.py` | Build from spec. |
-| 21 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Calls plet_invoke.py instead of spawning subprocesses directly. |
-| 22 | Implement `plet_orchestrator.py` | Build from spec. |
+| 9 | `plet_git_iteration.py` spec (GTI) | Iteration git lifecycle — branch naming, creation, worktree create/remove. Leaf. |
+| 10 | Implement `plet_git_iteration.py` | Build from spec. |
+| 11 | `plet_git_ops.py` spec (GTO) | Git workflow operations — squash, audit-tag, cleanup-stashes. Called by orchestrator. |
+| 12 | Implement `plet_git_ops.py` | Build from spec. |
+| 13 | `plet_git_check.py` spec (GTC) | Git compliance checks — check-iteration, check-session. Called by gate scripts and orchestrator. |
+| 14 | Implement `plet_git_check.py` | Build from spec. |
+| 15 | `plet_router.py` spec (RTR) | Depends on FPR (calls `check-fingerprints` or reimplements). Preflight checks. |
+| 16 | Implement `plet_router.py` | Build from spec. |
+| 17 | `plet_gate_impl.py` spec (GIM) | Depends on ENT (`check`), STA (`validate`), GCK (`check-iteration`). Called by orchestrator. |
+| 18 | Implement `plet_gate_impl.py` | Build from spec. |
+| 19 | `plet_gate_verify.py` spec (GVR) | Depends on ENT (`check`), STA (`validate`), GCK (`check-iteration`). Called by orchestrator. |
+| 20 | Implement `plet_gate_verify.py` | Build from spec. |
+| 21 | `plet_inject_prompt.py` spec (INJ) | Depends on knowing what reference files exist. Called by plet_invoke.py. |
+| 22 | Implement `plet_inject_prompt.py` | Build from spec. |
+| 23 | `plet_invoke.py` spec (INV) | Depends on INJ (calls assemble) and TRC (writes transcript alongside events). Subprocess launch + transcript capture. |
+| 24 | Implement `plet_invoke.py` | Build from spec. |
+| 25 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Calls plet_invoke.py instead of spawning subprocesses directly. |
+| 26 | Implement `plet_orchestrator.py` | Build from spec. |
 
 ## Status
 
@@ -58,17 +62,21 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 6 | `plet_fingerprint.py` implementation | ✓ complete |
 | 7 | `plet_trace.py` spec (TRC) | ✓ complete |
 | 8 | `plet_trace.py` implementation | ✓ complete |
-| 9 | `plet_git.py` spec (GCL) | not started |
-| 10 | `plet_git.py` implementation | not started |
-| 11 | `plet_router.py` spec (RTR) | not started |
-| 12 | `plet_router.py` implementation | not started |
-| 13 | `plet_gate_impl.py` spec (GIM) | not started |
-| 14 | `plet_gate_impl.py` implementation | not started |
-| 15 | `plet_gate_verify.py` spec (GVR) | not started |
-| 16 | `plet_gate_verify.py` implementation | not started |
-| 17 | `plet_inject_prompt.py` spec (INJ) | not started |
-| 18 | `plet_inject_prompt.py` implementation | not started |
-| 19 | `plet_invoke.py` spec (INV) | not started |
-| 20 | `plet_invoke.py` implementation | not started |
-| 21 | `plet_orchestrator.py` spec (ORC) | not started |
-| 20 | `plet_orchestrator.py` implementation | not started |
+| 9 | `plet_git_iteration.py` spec (GTI) | not started |
+| 10 | `plet_git_iteration.py` implementation | not started |
+| 11 | `plet_git_ops.py` spec (GTO) | not started |
+| 12 | `plet_git_ops.py` implementation | not started |
+| 13 | `plet_git_check.py` spec (GTC) | not started |
+| 14 | `plet_git_check.py` implementation | not started |
+| 15 | `plet_router.py` spec (RTR) | not started |
+| 16 | `plet_router.py` implementation | not started |
+| 17 | `plet_gate_impl.py` spec (GIM) | not started |
+| 18 | `plet_gate_impl.py` implementation | not started |
+| 19 | `plet_gate_verify.py` spec (GVR) | not started |
+| 20 | `plet_gate_verify.py` implementation | not started |
+| 21 | `plet_inject_prompt.py` spec (INJ) | not started |
+| 22 | `plet_inject_prompt.py` implementation | not started |
+| 23 | `plet_invoke.py` spec (INV) | not started |
+| 24 | `plet_invoke.py` implementation | not started |
+| 25 | `plet_orchestrator.py` spec (ORC) | not started |
+| 26 | `plet_orchestrator.py` implementation | not started |

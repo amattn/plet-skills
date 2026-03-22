@@ -26,7 +26,9 @@ This was validated across three case studies: state schema drift (the most persi
 | STA | `plet_state.py` | STAte |
 | ENT | `plet_entries.py` | ENTries |
 | FPR | `plet_fingerprint.py` | FingerPRint |
-| GCL | `plet_git.py` | Git CompLiance |
+| GTI | `plet_git_iteration.py` | GT Iteration lifecycle |
+| GTO | `plet_git_ops.py` | GT Operations |
+| GTC | `plet_git_check.py` | GT Check |
 | TRC | `plet_trace.py` | TRaCe |
 | RTR | `plet_router.py` | RouTeR |
 | INJ | `plet_inject_prompt.py` | INJect |
@@ -722,6 +724,22 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **CRT_15 added:** Enum validation in data fields test area.
 - **QRY BHV prose intro:** Added design rationale paragraph — query lenient, validate strict.
 - **TRC spec complete.** Next: seq 8 (implementation).
+
+#### plet_git.py split into three scripts (2026-03-21)
+
+**Decision:** Split `plet_git.py` (8 commands, 4 concerns) into three focused scripts by audience:
+
+| Script | Prefix | Purpose | Commands | Caller |
+|--------|--------|---------|----------|--------|
+| `plet_git_iteration.py` | GIT | Iteration git lifecycle | `branch-name`, `create-branch`, `worktree-create`, `worktree-remove` | Orchestrator + agents |
+| `plet_git_ops.py` | GTO | Git workflow operations | `squash`, `audit-tag`, `cleanup-stashes` | Orchestrator only |
+| `plet_git_check.py` | GTC | Git compliance checks | `check-iteration`, `check-session` | Gate scripts + orchestrator |
+
+**Rationale:** The original 8-command script mixed three audiences (agents, orchestrator, gate scripts) and four concerns (naming, worktrees, workflow ops, compliance). The split follows the existing pattern: compliance tools agents call (like plet_state, plet_entries) vs workflow steps the orchestrator sequences vs checks gate scripts run.
+
+**Key insight:** Squash, audit-tag, and stash cleanup are workflow steps that need orchestrator context (branch points, tag naming, session state). They don't belong in a compliance tool. Gate scripts need `check-iteration` (per-phase boundaries) and `check-session` (session boundaries) — two different scopes with different inputs.
+
+**Retired:** `GCL` prefix (Git CompLiance) — replaced by GTI, GTO, GTC.
 
 #### Red/green development discipline — MANDATORY (2026-03-19)
 
