@@ -1,6 +1,6 @@
 # plet_git_iteration.py (GTI)
 
-> Status: in progress
+> Status: in progress — §1-§3.1 BRN_CMD under review
 
 ## 1. Purpose (GTI_PUR)
 
@@ -54,7 +54,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_BRN_CMD_1 | Usage: `plet_git_iteration.py branch-name <state_json> --iter-id ID_xxx [--type iteration] [--output json [--pretty] [--fields f1,f2]]` where `--type` is `iteration` (default), `workstream`, or `refine` | P0 |
+| GTI_BRN_CMD_1 | Usage: `plet_git_iteration.py branch-name <state_json> [--iter-id ID_xxx] [--type iteration] [--output json [--pretty] [--fields f1,f2]]` where `--type` is `iteration` (default), `workstream`, `plan`, or `refine` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes, no git operations)
 
@@ -66,7 +66,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 |----|-------------|----------|
 | GTI_BRN_INP_1 | `state_json` — path to `plet/state.json` (reads `projectId`, `loopSessionCount`, `refineSessionCount`) | P0 |
 | GTI_BRN_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required for `--type iteration`. | P0 |
-| GTI_BRN_INP_3 | `--type` — branch type: `iteration` (default), `workstream`, or `refine`. Determines the pattern used. | P1 |
+| GTI_BRN_INP_3 | `--type` — branch type: `iteration` (default), `workstream`, `plan`, or `refine`. Determines the pattern and which session counter to read. | P1 |
 
 #### Outputs (GTI_BRN_OUT)
 
@@ -83,9 +83,9 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 | GTI_BRN_PRE_1 | All required args present: `state_json`, `--iter-id` (when type is iteration) | P0 |
 | GTI_BRN_PRE_2 | `state_json` exists, is a file (UNV_ERR_5), and contains valid JSON | P0 |
 | GTI_BRN_PRE_3 | `state_json` contains `projectId` (string, matches `[A-Z][A-Z0-9]{2,5}`) | P0 |
-| GTI_BRN_PRE_4 | `state_json` contains `loopSessionCount` (positive integer) for loop types, or `refineSessionCount` for refine type | P0 |
+| GTI_BRN_PRE_4 | `state_json` contains the session counter for the requested type: `loopSessionCount` for iteration/workstream, `refineSessionCount` for refine. Plan always uses 1 (no counter in state.json). | P0 |
 | GTI_BRN_PRE_5 | `--iter-id` matches pattern `ID_N+` when provided | P0 |
-| GTI_BRN_PRE_6 | `--type` is `iteration`, `workstream`, or `refine` | P0 |
+| GTI_BRN_PRE_6 | `--type` is `iteration`, `workstream`, `plan`, or `refine` | P0 |
 
 #### Postconditions (GTI_BRN_PST)
 
@@ -99,7 +99,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTI_BRN_BHV_1 | Reads `projectId` and session count from `state.json`. Does not modify the file. | P0 |
-| GTI_BRN_BHV_2 | Generates branch name per convention: `iteration` → `plet/{projectId}/loop{N}/{iter_id}`, `workstream` → `plet/{projectId}/loop{N}/workstream`, `refine` → `plet/{projectId}/refine{N}/workstream` | P0 |
+| GTI_BRN_BHV_2 | Generates branch name per convention: `iteration` → `plet/{projectId}/loop{N}/{iter_id}`, `workstream` → `plet/{projectId}/loop{N}/workstream`, `plan` → `plet/{projectId}/plan{N}/workstream`, `refine` → `plet/{projectId}/refine{N}/workstream` | P0 |
 | GTI_BRN_BHV_3 | Text output is bare branch name (no newline prefix, no "OK —") for easy shell capture: `BRANCH=$(plet_git_iteration.py branch-name plet/state.json --iter-id ID_001)` | P0 |
 
 ---
@@ -258,7 +258,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 | GTI_EDG_10 | `--pretty` without `--output json` — error | P0 |
 | GTI_EDG_11 | `--fields` without `--output json` — error | P0 |
 | GTI_EDG_12 | Duplicate flags — error via `parse_kwargs` | P0 |
-| GTI_EDG_13 | `branch-name --type refine` uses `refineSessionCount` instead of `loopSessionCount` | P0 |
+| GTI_EDG_13 | `branch-name --type plan` always uses 1 (no counter in state.json), `--type refine` uses `refineSessionCount`, iteration/workstream use `loopSessionCount` | P0 |
 | GTI_EDG_14 | `branch-name --type workstream` omits `--iter-id` (not needed for workstream) | P0 |
 | GTI_EDG_15 | `projectId` doesn't match `[A-Z][A-Z0-9]{2,5}` pattern — error | P0 |
 
@@ -277,7 +277,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 | GTI_ERR_9 | Base branch doesn't exist → `Error: base branch not found: {branch}. Create the workstream branch first.` | P0 |
 | GTI_ERR_10 | Worktree not found on remove → `Error: no worktree at {path}` | P0 |
 | GTI_ERR_11 | Not a git repository → `Error: not inside a git repository` | P0 |
-| GTI_ERR_12 | Invalid `--type` → `Error: invalid --type '{value}' (valid: iteration, workstream, refine)` | P0 |
+| GTI_ERR_12 | Invalid `--type` → `Error: invalid --type '{value}' (valid: iteration, workstream, plan, refine)` | P0 |
 | GTI_ERR_13 | Git operation failed → `Error: git command failed: {stderr}` (pass through git's error with context) | P0 |
 | GTI_ERR_14 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | GTI_ERR_15 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
@@ -335,6 +335,10 @@ plet_git_iteration.py branch-name plet/state.json --iter-id ID_001
 # Workstream branch
 plet_git_iteration.py branch-name plet/state.json --type workstream
 # plet/LOGA/loop1/workstream
+
+# Plan branch
+plet_git_iteration.py branch-name plet/state.json --type plan
+# plet/LOGA/plan1/workstream
 
 # Refine branch
 plet_git_iteration.py branch-name plet/state.json --type refine
@@ -442,6 +446,7 @@ See `specs/conventions.md` for universal requirements.
 | 1 | Separate `create-branch` command? | Dropped — `worktree-create` subsumes it. If bare branches are needed later, add it back. YAGNI. |
 | 2 | Read state.json or take individual flags? | Read state.json — script is self-contained, orchestrator passes the path. |
 | 3 | Original 8-command scope? | Split into three scripts (GTI, GTO, GTC) by audience. See specs/NOTES.md. |
+| 4 | Plan session counter? | Plan always uses 1 — plan sessions don't repeat in the current workflow. Branch is `plet/{projectId}/plan1/workstream`. No `planSessionCount` needed in state.json. If plan ever repeats, add the counter then. |
 
 ## Open Questions
 

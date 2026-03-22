@@ -700,6 +700,14 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 
 **UNV_ERR_5/6 added:** Universal convention for file-vs-directory mismatch. Commands that expect a file error on directory and vice versa. Prevents confusing errors (e.g., JSON parse error when agent passes a directory to validate).
 
+#### GTI spec review decisions (2026-03-21)
+
+- **create-branch dropped (YAGNI):** worktree-create subsumes it — creates branch + worktree in one `git worktree add -b` operation. If bare branches needed later, add it back. 3 commands, not 4.
+- **state.json as input:** All commands take `state_json` path. Script reads projectId and session counters. Self-contained — orchestrator just passes the path.
+- **Plan branch type added:** `--type plan` generates `plet/{projectId}/plan1/workstream`. Added for consistency with refine (both are interactive sessions). Plan always uses 1 — no `planSessionCount` in state.json. If plan ever repeats, add the counter then.
+- **Cascading:** Plan branch pattern needs adding to `prd.md` § Branch and tag conventions (currently only loop/iteration/refine/archive defined).
+- **Review status:** §1, §2, §3 Universal Flags, §3.1 BRN JUS/CMD approved. BRN INP next.
+
 #### Terminology unification: impl → implement, EX_ → IMP_ (2026-03-21)
 
 Script-relevant changes: `VALID_PHASES` updated in plet_entries.py, plet_trace.py. `attempts.impl` → `attempts.implement` in plet_state.py and state-schema.md. `UNV_IMP_1` → `UNV_IPR_1` in conventions.md. All specs updated (phase enums, examples, filenames, error messages). Full rationale in root `NOTES.md` § Key Design Decisions.

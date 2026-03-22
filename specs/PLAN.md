@@ -62,7 +62,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 6 | `plet_fingerprint.py` implementation | ✓ complete |
 | 7 | `plet_trace.py` spec (TRC) | ✓ complete |
 | 8 | `plet_trace.py` implementation | ✓ complete |
-| 9 | `plet_git_iteration.py` spec (GTI) | not started |
+| 9 | `plet_git_iteration.py` spec (GTI) | **under review** — §1-§3.1 BRN_CMD approved, BRN_INP next |
 | 10 | `plet_git_iteration.py` implementation | not started |
 | 11 | `plet_git_ops.py` spec (GTO) | not started |
 | 12 | `plet_git_ops.py` implementation | not started |
