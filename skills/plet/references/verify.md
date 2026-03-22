@@ -9,7 +9,7 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Critical:** You are running autonomously. Never ask for user confirmation. Never prompt "should I proceed?" or wait for human input. If you encounter ambiguity, make your best judgment and document it in `plet/emergent.md`. The only way to pause execution is the Blocker Protocol — and that is a last resort.
 
-**Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (EX_17).
+**Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (IMP_17).
 
 **State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py` for all state file operations. This tool enforces the schema defined in `references/state-schema.md` and prevents schema drift. Do not write state file JSON by hand — use the tool's `update-field`, `update-criterion`, and `validate` commands. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py --help` for full usage.
 
@@ -52,7 +52,7 @@ Before starting verification, check that the implementation agent properly wrote
 - `plet/progress.md` has at least one entry for this iteration's implementation phase
 - `plet/learnings.md` has entries if any codebase knowledge was gained
 - `plet/emergent.md` has entries if any design decisions or assumptions were made
-- Semantic events file exists at `plet/trace/{iteration_id}-impl-{attempt}-events.ndjson`
+- Semantic events file exists at `plet/trace/{iteration_id}-implement-{attempt}-events.ndjson`
 
 If artifacts are missing or incomplete, log the gap to `learnings.md` and `emergent.md` but continue with verification — missing artifacts don't block verification.
 
@@ -268,10 +268,10 @@ If issues cannot be fixed in this context — wrong abstractions, missing functi
    - Update activity: `"implementing"` / `"cycle-back red: writing failing test for {new_criterion_id}"`
    - Write a test that demonstrates the problem — it must fail against the current code
    - Run the test — **confirm it fails.** A passing test means your finding is not test-expressible or your test is wrong.
-   - If the issue is **not test-expressible** (e.g., wrong abstraction, too much coupling, architectural concern): skip the red test and note in the criterion evidence and `learnings.md` why no red test was created and what the impl agent should address instead
+   - If the issue is **not test-expressible** (e.g., wrong abstraction, too much coupling, architectural concern): skip the red test and note in the criterion evidence and `learnings.md` why no red test was created and what the implement agent should address instead
 3. Document each issue:
    - **emergent.md** — entry explaining the issue for the human
-   - **learnings.md** — entry explaining what the next implementation agent should do differently. For issues without red tests, include enough detail for the impl agent to understand the structural concern.
+   - **learnings.md** — entry explaining what the next implementation agent should do differently. For issues without red tests, include enough detail for the implement agent to understand the structural concern.
    - **progress.md** — `COMPLETE (rejected, cycle back)` entry listing what passed and what failed
 4. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
 5. Update state:
@@ -361,7 +361,7 @@ The report captures:
 
 - **Your verdict and why** — did the iteration pass, cycle back, or block? A 1-3 sentence summary that gives readers the headline without digging into individual criteria.
 - **Findings** — observations, conclusions, and concerns that don't fit in the summary or per-criterion one-liners. Patterns you noticed across criteria, code quality observations, architectural concerns, risks for future iterations. Each finding is a discrete thought. Reference plet IDs inline as plain text when useful (e.g., "see eln_01JD8X3K7N_id001_v1 for details"). May overlap with learnings — that's fine; the report is self-contained while learnings persist across iterations.
-- **A scannable per-criterion index** — one-liner assessment of each criterion so readers can quickly see what passed, what failed, and why. For failures where you wrote a red test, name it so the impl agent can find it. For failures without a red test, explain why the issue wasn't test-expressible.
+- **A scannable per-criterion index** — one-liner assessment of each criterion so readers can quickly see what passed, what failed, and why. For failures where you wrote a red test, name it so the implement agent can find it. For failures without a red test, explain why the issue wasn't test-expressible.
 - **Links to detailed artifacts** — plet IDs that let readers drill from the report into the specific progress, learnings, or emergent entries that have the full context. These references exist at two levels: per-criterion for findings about a single AC, and report-level for iteration-spanning concerns (the progress entry, cross-cutting learnings, etc.).
 
 The report is a compact index, not a duplication of evidence. Full criterion evidence stays in the `verification` objects. Full artifact detail stays in progress/learnings/emergent. The report connects them.
@@ -408,7 +408,7 @@ Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
 
 Tag naming convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`
 
-### Rebase and Merge to Workstream (EX_16)
+### Rebase and Merge to Workstream (IMP_16)
 
 **Green/rebase/green invariant:** Linear history is required — never create merge commits. Tests must be green before the rebase (already confirmed by Final Checks above) and again after the rebase, before the fast-forward merge.
 

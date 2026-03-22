@@ -272,7 +272,7 @@ Present the dependency graph visually during iteration review. Ask the user to c
 
 **When in doubt, add the dependency.** Missing dependencies are the most dangerous planning error — an agent starts work before prerequisite code exists, wastes a cycle, and must self-correct. False dependencies (unnecessary deps that reduce parallelism) are harmless — they only slow things down slightly. Always err on the side of adding a dependency rather than omitting one.
 
-If an agent discovers a missing dependency during execution, it self-corrects without blocking — fixes the DAG in place, sets itself to `ineligible`, and documents across all four runtime artifacts. The loop continues and the iteration auto-queues when the missing dep completes. See `references/execute.md` for the full self-correction procedure (EX_24).
+If an agent discovers a missing dependency during execution, it self-corrects without blocking — fixes the DAG in place, sets itself to `ineligible`, and documents across all four runtime artifacts. The loop continues and the iteration auto-queues when the missing dep completes. See `references/implement.md` for the full self-correction procedure (IMP_24).
 
 ### Parallel Groups (PL_13)
 

@@ -1,7 +1,6 @@
 # plet-skills
 
-**PLET = Progress, Learnings, Emergent, Trace** — the four runtime artifacts the system produces. Also works phonetically as Plan + Execute.
-
+**PLET = Progress, Learnings, Emergent items, Traces** — the four runtime artifacts the system produces.
 plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness.
 
 ## Core Workflow
@@ -11,7 +10,7 @@ plet is a Claude Code skill that orchestrates spec-driven autonomous development
   ┌──────────────────────┐         ┌────────────────────────────────┐
   │                      │         │                                │
   │   ┌───────────┐      │         │      ┌─────────┐               │
-  │   │   Plan    │──────┼────────▶│      │ Execute │──────┐        │
+  │   │   Plan    │──────┼────────▶│      │Implement│──────┐        │
   │   └───────────┘      │         │      └───┬─────┘      │        │
   │         ▲            │         │          ▲            ▼        │
   │         │            │         │          │    ┌──────────┐     │
@@ -25,8 +24,8 @@ plet is a Claude Code skill that orchestrates spec-driven autonomous development
 ### Phases
 
 - **Plan** (human-driven) — Interactive requirements creation and iteration decomposition. The human steers; the agent structures. Produces a PRD (`requirements.md`), iteration definitions (`iterations.md`), and runtime state (`state.json`).
-- **Loop** (autonomous) — The impl→verify cycle. Each iteration goes through two internal phases:
-   - **Execute** — Agents implement iterations using red/green test discipline. Each iteration runs on its own git branch. Subagents handle independent iterations in parallel.
+- **Loop** (autonomous) — The implement→verify cycle. Each iteration goes through two internal phases:
+   - **Implement** — Agents implement iterations using red/green test discipline. Each iteration runs on its own git branch. Subagents handle independent iterations in parallel.
    - **Verify** — Independent verification in a fresh context window. The verification agent does not read implementation diffs — it verifies the *result*, not the *process*. This prevents rubber-stamping.
    - Iterations continue unassisted until complete, blocked, or paused.
 - **Refine** (human-driven) — Reviews the four runtime artifacts plet is named after, triages emergent items, updates the spec, and re-plans:
@@ -58,7 +57,7 @@ plet/
 ├── learnings.md             # Agent-facing knowledge (runtime artifact)
 ├── emergent.md              # Human-facing items (runtime artifact)
 └── trace/
-    ├── ID_001-impl-1.ndjson # Trace logs per iteration/phase/attempt
+    ├── ID_001-implement-1.ndjson # Trace logs per iteration/phase/attempt
     ├── ID_001-verify-1.ndjson
     └── ...
 ```
@@ -136,7 +135,7 @@ All branches are namespaced under `plet/{projectId}/`. Agents never commit to ma
 |---------|---------|---------|
 | Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
 | Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
-| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/impl-1` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
 

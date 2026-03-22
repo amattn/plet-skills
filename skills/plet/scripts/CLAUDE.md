@@ -49,7 +49,7 @@ Every script follows the same structure:
 
 - **Command-based interface:** `script.py <command> [args]` — not flag-based (`script.py --validate`)
 - **Help everywhere:** every command supports `-h` and `--help`. Top-level `script.py --help` prints the module docstring with all commands. Help text is agent-readable — include copy-pasteable examples that agents can use directly
-- **Named arguments with `--`:** `--iter-id ID_001 --phase impl`. Positional args only for the first 1-2 arguments (file paths, artifact directories)
+- **Named arguments with `--`:** `--iter-id ID_001 --phase implement`. Positional args only for the first 1-2 arguments (file paths, artifact directories)
 - **No argparse:** manual argument parsing via `parse_kwargs()` pattern. Keeps scripts simple, avoids argparse's verbosity, and gives full control over error messages. Use the shared `parse_kwargs` pattern from `plet_entries.py`
 - **JSON for complex values:** arrays and objects passed as JSON strings: `--criteria '[{"id":"AC_1"}]'`
 - **Version flag:** every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)`. Example: `plet_state 0.1.0 (built against plet skill 0.1.0)`. The skill version is the version from `skills/plet/SKILL.md` frontmatter that the script was built to work with. If the skill makes a non-backward-compatible semver change (major bump), scripts built against the old version need to be reviewed and updated
@@ -164,7 +164,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `plet_git.py` | Git compliance (branches, tags, worktrees, squash, cleanup) | FB_30, FB_31, FB_32 |
 | `plet_trace.py` | Trace NDJSON schema enforcement | FB_11 |
 | `plet_router.py` | Phase detection, status summary, preflight checks | FB_16, FB_22, FB_23 |
-| `plet_inject_prompt.py` | Prompt assembly for impl/verify subagents | FB_38 |
+| `plet_inject_prompt.py` | Prompt assembly for implement/verify subagents | FB_38 |
 | `plet_invoke.py` | Subprocess launch + transcript capture (assembles prompt, launches `claude -p`, tees JSONL to transcript file) | — |
 | `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop). Calls plet_invoke.py instead of spawning subprocesses directly. | — |
 | `plet_gate_impl.py` | Implementation phase pre/post gates | FB_29, FB_33 |

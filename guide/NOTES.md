@@ -176,7 +176,7 @@ plet takes Part 1 patterns and industrializes them into an autonomous developmen
 - Append-only artifacts, entry fencing for parallel agents
 
 **The subagent model:**
-- Orchestrator → impl agent → verify agent pipeline
+- Orchestrator → implement agent → verify agent pipeline
 - Fresh context windows, inherit CLAUDE.md and auto-memory but not skills or conversation
 - Heartbeat updates and canary writes for crash recovery
 

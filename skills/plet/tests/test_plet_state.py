@@ -60,7 +60,7 @@ def make_valid_state():
         "dependencies": [],
         "agentId": None,
         "agentActivity": "idle",
-        "attempts": {"impl": 0, "verify": 0},
+        "attempts": {"implement": 0, "verify": 0},
         "criteria": [
             {
                 "id": "AC_1",
@@ -239,14 +239,14 @@ def test_validate_bad_attempts():
     print("\n## Validate — malformed attempts")
     with tempfile.TemporaryDirectory() as tmpdir:
         data = make_valid_state()
-        data["attempts"] = {"impl": "one", "verify": 0}
+        data["attempts"] = {"implement": "one", "verify": 0}
         path = write_state(tmpdir, data)
         _, err, _ = run(["validate", path], expect_exit=1)
-        check("rejects non-numeric impl", "attempts.impl must be number" in err)
+        check("rejects non-numeric impl", "attempts.implement must be number" in err)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         data = make_valid_state()
-        data["attempts"] = {"impl": 0}
+        data["attempts"] = {"implement": 0}
         path = write_state(tmpdir, data)
         _, err, _ = run(["validate", path], expect_exit=1)
         check("identifies missing verify", "attempts.verify missing" in err)
@@ -362,7 +362,7 @@ def test_init():
         check("2 criteria", len(data["criteria"]) == 2)
         check("criterion has two-state null", data["criteria"][0]["implementation"] is None)
         check("criterion status not_started", data["criteria"][0]["status"] == "not_started")
-        check("attempts zeroed", data["attempts"] == {"impl": 0, "verify": 0})
+        check("attempts zeroed", data["attempts"] == {"implement": 0, "verify": 0})
 
 
 def test_init_with_dependencies():
@@ -534,11 +534,11 @@ def test_update_criterion_implementation():
         check("reports OK", "OK" in out)
 
         data = json.load(open(path))
-        impl = data["criteria"][0]["implementation"]
-        check("status set", impl["status"] == "pass")
-        check("evidence set", impl["evidence"] == "Tests all green")
-        check("elapsed set", impl["elapsedSeconds"] == 45)
-        check("timestamp set", "T" in impl["timestamp"])
+        imp = data["criteria"][0]["implementation"]
+        check("status set", imp["status"] == "pass")
+        check("evidence set", imp["evidence"] == "Tests all green")
+        check("elapsed set", imp["elapsedSeconds"] == 45)
+        check("timestamp set", "T" in imp["timestamp"])
         check("top-level status derived", data["criteria"][0]["status"] == "pass")
         check("verification still null", data["criteria"][0]["verification"] is None)
 
@@ -554,7 +554,7 @@ def test_update_criterion_verification():
             "--criterion", "AC_1",
             "--phase", "implementation",
             "--status", "pass",
-            "--evidence", "impl done",
+            "--evidence", "implementation done",
         ])
         # Then verification overrides top-level
         run([
@@ -713,10 +713,10 @@ def test_update_field_dotted_path():
 
         run([
             "update-field", path,
-            "--data", '{"attempts.impl":2}',
+            "--data", '{"attempts.implement":2}',
         ])
         data = json.load(open(path))
-        check("dotted path updated", data["attempts"]["impl"] == 2)
+        check("dotted path updated", data["attempts"]["implement"] == 2)
         check("sibling preserved", data["attempts"]["verify"] == 0)
 
 

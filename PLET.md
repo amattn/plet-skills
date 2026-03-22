@@ -24,20 +24,19 @@ This ensures the acknowledgment rule survives compaction and is present from the
 
 ## What is plet?
 
-**PLET = Progress, Learnings, Emergent, Trace** — the four runtime artifacts the system produces. Also works phonetically as Plan + Execute.
-
+**PLET = Progress, Learnings, Emergent items, Traces** — the four runtime artifacts the system produces.
 plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness.
 
 A single entry point (`/plet`) reads the project state, determines which phase the project is in, and routes to the appropriate workflow. All state lives on disk so any fresh agent can pick up where the last one left off.
 
 ## Core Workflow
 
-**Plan → Loop (Execute → Verify) → Refine**
+**Plan → Loop (Implement → Verify) → Refine**
 
 - **Plan** — interactive, human-driven. Produce requirements (`requirements.md`) and iteration definitions (`iterations.md`) with acceptance criteria. Decompose work into small, independently verifiable iterations.
-- **Loop** — autonomous impl→verify cycle:
-  - **Execute** — implement one iteration using red/green test discipline (write a failing test, then make it pass). Subagents work in fresh context windows.
-  - **Verify** — independent verification in a separate fresh context window. Verifies the *result*, not the *process*. Can accept, reject (cycle back to execute), or block.
+- **Loop** — autonomous implement→verify cycle:
+  - **Implement** — implement one iteration using red/green test discipline (write a failing test, then make it pass). Subagents work in fresh context windows.
+  - **Verify** — independent verification in a separate fresh context window. Verifies the *result*, not the *process*. Can accept, reject (cycle back to implement), or block.
 - **Refine** — interactive, human-driven. Triage emergent items, review learnings, update the spec, re-plan. Uses the PLET runtime artifacts to inform decisions.
 
 The loop continues until all iterations are `complete` or `blocked`. Refine can restart the loop after spec changes.
@@ -62,12 +61,12 @@ The loop continues until all iterations are `complete` or `blocked`. Refine can 
 project (LOGA)
   └─ session (plan, loop1, refine1, loop2, ...)
        └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
-            └─ phase (impl, verify)
+            └─ phase (implement, verify)
 ```
 
 - **Session** = a `/plet` invocation: plan session, loop session, refine session
 - **Iteration** = a unit of work with acceptance criteria (loop sessions only)
-- **Phase** = impl or verify within an iteration (not plan/loop/refine)
+- **Phase** = implement or verify within an iteration (not plan/loop/refine)
 
 ## Artifact Taxonomy
 
@@ -96,8 +95,8 @@ my-project/                             # target project root
     ├── learnings.md                    # runtime: knowledge base (audience: agents)
     ├── emergent.md                     # runtime: triage queue (audience: humans)
     └── trace/                          # trace: execution telemetry
-        ├── ID_001-impl-1-transcript.jsonl    # raw I/O (orchestrator-captured)
-        ├── ID_001-impl-1-events.ndjson       # semantic events (subagent-written)
+        ├── ID_001-implement-1-transcript.jsonl    # raw I/O (orchestrator-captured)
+        ├── ID_001-implement-1-events.ndjson       # semantic events (subagent-written)
         └── ...
 ```
 
@@ -135,7 +134,7 @@ my-project/                             # target project root
 - `FEEDBACK.md` — meta-observations about plet itself (process issues, instruction gaps, tooling friction)
 
 **7. Configuration** (per-project behavior modification)
-- Modify planner, refiner, execute agent, and verify agent behavior
+- Modify planner, refiner, implement agent, and verify agent behavior
 - *(Shape TBD — no files defined yet)*
 
 ### ID and Filename Conventions
@@ -155,8 +154,8 @@ plet: [ID_xxx] {phase}-{attempt} - {title}
 ```
 
 Examples:
-- `plet: [ID_001] impl-1 - Project scaffolding`
-- `plet: [ID_002] impl-2 - User authentication endpoint`
+- `plet: [ID_001] implement-1 - Project scaffolding`
+- `plet: [ID_002] implement-2 - User authentication endpoint`
 - `plet: [ID_002] verify-1 - User authentication endpoint`
 
 ### Rules
@@ -263,7 +262,7 @@ unattended execution.
 **Suggested tags** (new tags welcome):
 `[autonomy]`, `[state]`, `[git]`, `[artifacts]`, `[timing]`, `[prompting]`, `[config]`
 
-**Mutability:** Editable. Resolved entries are marked `[resolved]` with a note on where the insight was promoted (e.g., "→ R_9 in execute.md"). Resolved entries stay for history but can be removed during cleanup.
+**Mutability:** Editable. Resolved entries are marked `[resolved]` with a note on where the insight was promoted (e.g., "→ R_9 in implement.md"). Resolved entries stay for history but can be removed during cleanup.
 
 **Promotion path:** Depends on the item:
 - → `CLAUDE.md` or `PLET.md` (becomes a rule or convention)

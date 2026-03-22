@@ -17,7 +17,7 @@ This was the first enforcement script built — motivated by [describe the case 
 | ID | Caller | Context | Commands used |
 |----|--------|---------|---------------|
 | PRE_AGT_1 | orchestrator | during loop session | `command-name` |
-| PRE_AGT_2 | impl subagent | during implementation phase | `command-name` |
+| PRE_AGT_2 | implement subagent | during implementation phase | `command-name` |
 | PRE_AGT_3 | verify subagent | during verification phase | `command-name` |
 | PRE_AGT_4 | human | manual debugging / inspection | `command-name` |
 

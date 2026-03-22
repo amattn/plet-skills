@@ -10,10 +10,9 @@ allowed-tools:
 
 # plet — Spec-Driven Autonomous Development Orchestrator
 
-Plan interactively, execute autonomously, verify independently, refine iteratively. All state lives on disk so any fresh agent can pick up where the last one left off.
+Plan interactively, implement autonomously, verify independently, refine iteratively. All state lives on disk so any fresh agent can pick up where the last one left off.
 
-**PLET** = **P**rogress, **L**earnings, **E**mergent, **T**race — the four runtime artifacts. Also works phonetically as Plan + Execute.
-
+**PLET** = **P**rogress, **L**earnings, **E**mergent items, **T**races — the four runtime artifacts.
 ---
 
 ## Global Conventions
@@ -34,7 +33,7 @@ This applies globally to requirement IDs, iteration IDs, milestone IDs, and emer
 
 ### Zero-Padded Filenames (GC_3)
 
-When IDs appear in filenames (e.g., `ID_001.json`, `ID_001-impl-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order. Zero-padding is not required in artifact content or prose.
+When IDs appear in filenames (e.g., `ID_001.json`, `ID_001-implement-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order. Zero-padding is not required in artifact content or prose.
 
 ### Blockers Are Last Resort (GC_2)
 
@@ -46,12 +45,12 @@ Agents prefer making a decision and documenting it in `emergent.md` over blockin
 project (LOGA)
   └─ session (plan, loop1, refine1, loop2, ...)
        └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
-            └─ phase (impl, verify)
+            └─ phase (implement, verify)
 ```
 
 - **Session** = a `/plet` invocation: plan session, loop session, refine session
 - **Iteration** = a unit of work with acceptance criteria (loop sessions only)
-- **Phase** = impl or verify within an iteration (not plan/loop/refine)
+- **Phase** = implement or verify within an iteration (not plan/loop/refine)
 
 ---
 
@@ -68,7 +67,7 @@ project (LOGA)
 |---------|----------|
 | `/plet` | Auto-detect phase from state (see Routing Logic below) |
 | `/plet plan` | Force entry into Plan phase regardless of state |
-| `/plet loop` | Force entry into autonomous impl→verify loop |
+| `/plet loop` | Force entry into autonomous implement→verify loop |
 | `/plet refine` | Force entry into Refine phase |
 | `/plet status` | Print status summary (no phase entry) |
 
@@ -243,7 +242,7 @@ Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`
 
 ### Loop Phase
 
-**References:** `references/execute.md` + `references/verify.md`
+**References:** `references/implement.md` + `references/verify.md`
 
 Autonomous. The loop implements iterations, then verifies each in a fresh context, cycling until all iterations are `complete` or `blocked`.
 
@@ -251,7 +250,7 @@ Autonomous. The loop implements iterations, then verifies each in a fresh contex
 1. Increment `loopSessionCount` in `plet/state.json`. Branch from the previous session's workstream (the last entry in `sessionHistory`) — or from `main` if this is the first session. Create `plet/{projectId}/loop{N}/workstream` (where `{N}` is the new `loopSessionCount`). Capture the real wall-clock timestamp via `date -u +%Y-%m-%dT%H:%M:%SZ` and append to `sessionHistory`: `{type: "loop", session: N, branch: "plet/{projectId}/loop{N}/workstream", startedAt: "<captured timestamp>", endedAt: null}`. **Never fabricate or round timestamps** — always use `date -u` to capture the actual time. Set the previous entry's `endedAt` (also via `date -u`) if it was still `null`. If continuing a loop that was interrupted (workstream branch already exists), skip creation and reuse the existing branch.
 2. Read `plet/state.json` and per-iteration state files to identify eligible iterations (dependencies `complete`, lifecycle `queued`)
 3. For each eligible iteration, spawn an **implementation subagent** with:
-   - The full contents of `references/execute.md` **(primary — inject first, this defines the agent's behavior)**
+   - The full contents of `references/implement.md` **(primary — inject first, this defines the agent's behavior)**
    - The iteration definition from `plet/iterations.md`
    - The full contents of `references/formats.md`
    - Relevant sections of `references/state-schema.md`
@@ -358,7 +357,7 @@ Individual acceptance criteria can be marked `skipped` when impossible to satisf
 
 ---
 
-## Retry Logic (EX_14)
+## Retry Logic (IMP_14)
 
 Default maximum **3** retry attempts per iteration. If the failure count is strictly decreasing across attempts (trend improving), extend to a maximum of **6** attempts. Abort immediately if failures are not decreasing.
 
@@ -369,7 +368,7 @@ Default maximum **3** retry attempts per iteration. If the failure count is stri
 All branches namespaced under `plet/{projectId}/`. Agents never commit to main.
 
 - Integration branch: `plet/{projectId}/loop{N}/workstream` — created at start of each `/plet loop` invocation
-- Iteration branch: `plet/{projectId}/loop{N}/{iteration_id}` — persists across impl and verify phases
+- Iteration branch: `plet/{projectId}/loop{N}/{iteration_id}` — persists across implement and verify phases
 - Refine branch: `plet/{projectId}/refine{N}/workstream` — created at start of each refine session
 - Agents commit incrementally during each phase for crash recovery
 - At end of each phase, squash into a single commit
@@ -404,7 +403,7 @@ All reference files live under `skills/plet/references/`:
 | File | Purpose |
 |------|---------|
 | `references/plan.md` | Plan phase workflow and instructions |
-| `references/execute.md` | Implementation subagent prompt |
+| `references/implement.md` | Implementation subagent prompt |
 | `references/verify.md` | Verification subagent prompt |
 | `references/refine.md` | Refine phase workflow and instructions |
 | `references/formats.md` | Runtime artifact format specifications |

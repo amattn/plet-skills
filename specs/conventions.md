@@ -96,13 +96,13 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_TST_5 | Tests create temp fixtures, validate output + file contents, then clean up | P0 |
 | UNV_TST_6 | Test both success and failure paths | P0 |
 | UNV_TST_7 | Test `--help` on every command — verify exit 0 and non-empty output | P0 |
-| UNV_TST_8 | `util_*.py` modules get their own test files (`test_util_*.py`) with the same harness pattern. Since util modules are imported (not CLI tools), tests call functions directly rather than via subprocess. Each new util function added per UNV_IMP_1 must have tests written first (red/green). | P0 |
+| UNV_TST_8 | `util_*.py` modules get their own test files (`test_util_*.py`) with the same harness pattern. Since util modules are imported (not CLI tools), tests call functions directly rather than via subprocess. Each new util function added per UNV_IPR_1 must have tests written first (red/green). | P0 |
 
 ## Implementation Prerequisites
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| UNV_IMP_1 | Before implementing a script, check its Dependencies section (§DEP) for imports from `util_*.py` modules. If any listed function does not yet exist in the target module, implement it first using red/green discipline: write failing tests, then implement. Shared util functions are built incrementally — each script spec may declare dependencies on functions that earlier scripts didn't need. | P0 |
+| UNV_IPR_1 | Before implementing a script, check its Dependencies section (§DEP) for imports from `util_*.py` modules. If any listed function does not yet exist in the target module, implement it first using red/green discipline: write failing tests, then implement. Shared util functions are built incrementally — each script spec may declare dependencies on functions that earlier scripts didn't need. | P0 |
 
 ## Allowed Tools
 

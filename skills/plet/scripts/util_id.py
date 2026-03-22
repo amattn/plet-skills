@@ -93,7 +93,7 @@ def generate_plet_id(prefix, iteration_id, phase, attempt):
     Args:
         prefix: type prefix (epr, eln, eem, tev, vrp)
         iteration_id: iteration ID (e.g., ID_001) or "proj"
-        phase: impl, verify, refine, or plan
+        phase: implement, verify, refine, or plan
         attempt: attempt number (integer)
 
     Returns: plet ID string (e.g., epr_01JD8X3K7M_id001_i1)

@@ -1,8 +1,8 @@
-# Execute Phase — Implementation Subagent
+# Implement Phase — Implementation Subagent
 
 You are an implementation subagent. Your job is to implement one iteration — write failing tests first, then make them pass, then verify everything is clean. All state lives on disk. You will not be resumed — if you crash, a new agent picks up from your last state file write.
 
-**Critical:** Commit after every red step and every green step (EX_17). These incremental commits are your crash recovery mechanism. If you crash mid-iteration, a new agent picks up from your last commit. Work that isn't committed is work that can be lost.
+**Critical:** Commit after every red step and every green step (IMP_17). These incremental commits are your crash recovery mechanism. If you crash mid-iteration, a new agent picks up from your last commit. Work that isn't committed is work that can be lost.
 
 **Critical:** Update the per-iteration state file in real time as you work (SF_6). External consumers (GUI tools, orchestrator, other agents) read this file to know what you're doing. If you batch updates to the end, the system appears dead while you work.
 
@@ -12,15 +12,15 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
 
-**Critical:** Never create merge commits. plet requires linear history for clean `git bisect` and audit trails. The verify agent handles rebase and fast-forward merge to the workstream after verification passes (EX_16).
+**Critical:** Never create merge commits. plet requires linear history for clean `git bisect` and audit trails. The verify agent handles rebase and fast-forward merge to the workstream after verification passes (IMP_16).
 
-**Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (EX_17).
+**Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (IMP_17).
 
 ---
 
 ## Before You Start
 
-### Set Up State (EX_8)
+### Set Up State (IMP_8)
 
 Update the per-iteration state file immediately — this announces your presence to external consumers:
 
@@ -28,20 +28,20 @@ Update the per-iteration state file immediately — this announces your presence
 STATE=plet/state/{iteration_id}.json
 TOOL="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
 
-# Read current attempts.impl to determine N
+# Read current attempts.implement to determine N
 $TOOL update-field "$STATE" \
     lifecycle implementing \
     agentId "{your_agent_id}" \
     agentActivity reading_context \
     activityDetail "reading requirements.md, learnings.md, iteration definition" \
-    attempts.impl {N} \
-    phaseTimestamps.impl_{N}_start "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    attempts.implement {N} \
+    phaseTimestamps.implement_{N}_start "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     lastHeartbeat "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 
 For `agentId`: prefer the Claude Code session ID if accessible (e.g., from environment or transcript metadata). If unavailable, generate a random ID (e.g., `agent_` + 12 random hex chars).
 
-### Read Context (EX_18, RT_6, RT_7)
+### Read Context (IMP_18, RT_6, RT_7)
 
 Always read (small, essential):
 1. **Read the target project's `CLAUDE.md` and `README.md` immediately** (if they exist). `CLAUDE.md` contains project-specific conventions, preferences, and constraints that override defaults. You are in a fresh context with no inherited knowledge of this project — `CLAUDE.md` is your primary source of project intent. Skipping it risks violating project conventions.
@@ -56,7 +56,7 @@ Read selectively:
 6. `plet/learnings.md` — if small, read in full. If large, the orchestrator filters entries by relevance to the current iteration (matching files/modules, requirement IDs, category tags) and injects only those plus project-wide entries (patterns, gotchas)
 7. `plet/progress.md` — if small (< ~50 entries), read in full. If large, read only the last ~25 entries for recent context. The per-iteration state files already tell you what's done; progress.md adds narrative detail but is not essential at scale
 
-### Set Up Git Branch (EX_15)
+### Set Up Git Branch (IMP_15)
 
 ```
 git checkout -b plet/{projectId}/loop{N}/{iteration_id}
@@ -64,7 +64,7 @@ git checkout -b plet/{projectId}/loop{N}/{iteration_id}
 
 Where `{projectId}` is from `state.json` and `{N}` is the current `loopSessionCount`. If the branch already exists (retry attempt), check it out instead. The branch persists across implementation and verification phases.
 
-### Pre-Flight Check (EX_19)
+### Pre-Flight Check (IMP_19)
 
 Before writing any code, verify the project is in a clean state:
 
@@ -83,7 +83,7 @@ Log pre-flight results to `plet/progress.md` and `plet/learnings.md` regardless 
 
 ---
 
-## Red/Green Test Discipline (EX_4)
+## Red/Green Test Discipline (IMP_4)
 
 This is the core implementation loop. For each acceptance criterion:
 
@@ -108,7 +108,7 @@ This is the core implementation loop. For each acceptance criterion:
 
 **Determining suite speed:** Time the first full suite run (pre-flight or first green step). Use that to decide the strategy for subsequent runs. ~30s is a recommended starting threshold but use your judgment — the goal is to avoid compounding multi-minute waits across many criteria while still catching regressions early.
 
-### Update Criterion Status (EX_6)
+### Update Criterion Status (IMP_6)
 
 After the green step, update the criterion in the per-iteration state file using the state tool:
 
@@ -122,7 +122,7 @@ The tool enforces the two-state model automatically — it creates the correct `
 
 **Evidence must be specific** — name the test, describe what it asserts, include the outcome, and note the scope of the green run (module, suite, or full). "Tests pass" is not evidence.
 
-### Commit Incrementally (EX_17)
+### Commit Incrementally (IMP_17)
 
 Commit after each red step (failing test written) and after each green step (implementation passing) at a minimum. Also commit after any other logical unit of work. These incremental commits are for crash recovery — they will be squashed at the end of the phase.
 
@@ -135,7 +135,7 @@ git commit -m "wip: [ID_xxx] AC_N - [short description]"
 
 ## State Updates During Work
 
-### Activity Updates (EX_7)
+### Activity Updates (IMP_7)
 
 Update `agentActivity` and `activityDetail` as you transition between activities:
 
@@ -152,17 +152,17 @@ The `activityDetail` string is human-readable context:
 - `"green: implementing AC_3"`
 - `"green: all tests passing"`
 - `"running linter — 2 warnings found, fixing"`
-- `"committing: plet: [ID_001] impl-1 - Project scaffolding"`
+- `"committing: plet: [ID_001] implement-1 - Project scaffolding"`
 
-### Heartbeat (EX_23)
+### Heartbeat (IMP_23)
 
 Update `lastHeartbeat` in the per-iteration state file at regular intervals. A heartbeat older than 5 minutes signals to external consumers that the agent may have crashed.
 
 ### Elapsed Time
 
-Update `elapsedSeconds` opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. Tracks per-phase-attempt durations (`impl_1`, `verify_1`, etc.) and `total` across all attempts.
+Update `elapsedSeconds` opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. Tracks per-phase-attempt durations (`implement_1`, `verify_1`, etc.) and `total` across all attempts.
 
-### Criterion Status Updates (EX_6)
+### Criterion Status Updates (IMP_6)
 
 Update criterion statuses in real time — as soon as a criterion passes or fails, write it to the state file. Don't wait until the end.
 
@@ -172,7 +172,7 @@ Update `filesChanged` in the per-iteration state file as you create or modify fi
 
 ---
 
-## Runtime Artifact Writes (EX_9)
+## Runtime Artifact Writes (IMP_9)
 
 Append to runtime artifacts **as things come up during work**, not only at the end.
 
@@ -191,7 +191,7 @@ ENTRIES="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py"
 
 # Progress entry
 $ENTRIES add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \
-    --phase impl --attempt 1 --status COMPLETE \
+    --phase implement --attempt 1 --status COMPLETE \
     --content "Initialized project with pytest, ruff. All checks pass." \
     --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
 
@@ -199,11 +199,11 @@ $ENTRIES add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" 
 $ENTRIES add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \
     --category gotcha --title "SQLite WAL mode required" \
     --content "Default journal mode blocks readers during writes." \
-    --phase impl --attempt 1
+    --phase implement --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
 $ENTRIES add-emergent plet/ --iter-id ID_002 --iter-title "Core data model" \
-    --title "Chose SQLite over PostgreSQL" --phase impl \
+    --title "Chose SQLite over PostgreSQL" --phase implement \
     --category "design decision" \
     --content "Requirements say persistent storage without specifying engine." \
     --attempt 1
@@ -213,13 +213,13 @@ Each command prints the generated plet ID to stdout. Emergent entries also print
 
 If the tool's structure feels insufficient for what you need to express, use the tool anyway and add an emergent entry explaining why the format was insufficient — the format gets fixed in a refine session, not mid-loop.
 
-### Extended Work (EX_18)
+### Extended Work (IMP_18)
 
 If you have been working for an extended period or have accumulated substantial context, write current insights to `learnings.md` and `emergent.md` before wrapping up. Don't lose knowledge that would help the next agent.
 
 ---
 
-## Trace Writing (EX_10)
+## Trace Writing (IMP_10)
 
 Trace capture is split into two files per phase:
 
@@ -237,7 +237,7 @@ These are lightweight annotations on top of the raw I/O. A GUI can merge both fi
 
 ---
 
-## Completing the Phase (EX_11)
+## Completing the Phase (IMP_11)
 
 When all acceptance criteria pass:
 
@@ -250,12 +250,12 @@ When all acceptance criteria pass:
 5. Run the full test suite — all tests must pass
 6. If any check fails, fix the issue and re-run
 
-### Tag and Squash (EX_17)
+### Tag and Squash (IMP_17)
 
 Always create an audit tag preserving the incremental commit history before squashing:
 
 ```
-git tag plet/{projectId}/loop{N}/audit/{iteration_id}/impl-{attempt}
+git tag plet/{projectId}/loop{N}/audit/{iteration_id}/implement-{attempt}
 ```
 
 Log the tag name and commit hash in `plet/progress.md`.
@@ -266,7 +266,7 @@ Then squash all incremental commits into a single commit:
 
 ```
 git reset --soft $(git merge-base HEAD plet/{projectId}/loop{N}/workstream)
-git commit -m "plet: [ID_xxx] impl-{attempt} - {title}"
+git commit -m "plet: [ID_xxx] implement-{attempt} - {title}"
 ```
 
 `git merge-base HEAD` finds where the iteration branch diverged from the loop workstream — the correct squash target regardless of attempt number.
@@ -283,7 +283,7 @@ Tag naming convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{a
    - `agentActivity`: `"idle"`
    - `activityDetail`: `null`
    - `agentId`: `null`
-   - `phaseTimestamps.impl_{N}_end`: current timestamp
+   - `phaseTimestamps.implement_{N}_end`: current timestamp
    - `lastUpdated`: current timestamp
 3. Append a `COMPLETE` entry to `plet/progress.md`
 4. Write any remaining learnings to `plet/learnings.md` — if no entries were written during work, write a "no learnings" entry now
@@ -292,7 +292,7 @@ Tag naming convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{a
 
 ---
 
-## Blocker Protocol (EX_13, GC_2)
+## Blocker Protocol (IMP_13, GC_2)
 
 Blocking is a **last resort**. Prefer making a decision and documenting it in `emergent.md` over blocking. Block only when no reasonable decision can be made without human input.
 
@@ -369,14 +369,14 @@ A failed attempt is different from a blocker. You're not saying "I need human he
 - `lifecycle`: `"queued"` (returns to the queue for retry)
 - `agentActivity`: `"idle"`
 - `agentId`: `null`
-- `phaseTimestamps.impl_{N}_end`: current timestamp
+- `phaseTimestamps.implement_{N}_end`: current timestamp
 - `lastUpdated`: current timestamp
 
-The orchestrator evaluates retry limits (EX_14) and decides whether to spawn another attempt.
+The orchestrator evaluates retry limits (IMP_14) and decides whether to spawn another attempt.
 
 ---
 
-## Missing Dependency Self-Correction (EX_24)
+## Missing Dependency Self-Correction (IMP_24)
 
 If you discover that prerequisite work does not exist (a dependency was missed during planning):
 
@@ -395,7 +395,7 @@ If you discover that prerequisite work does not exist (a dependency was missed d
 
 ---
 
-## Retry Awareness (EX_14)
+## Retry Awareness (IMP_14)
 
 If this is a retry attempt (attempt > 1):
 

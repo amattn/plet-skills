@@ -14,8 +14,7 @@
 
 plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness.
 
-The name **PLET** stands for the four runtime artifacts the system produces: **P**rogress, **L**earnings, **E**mergent items, and **T**race. These artifacts serve distinct audiences (agents, humans, and debugging tools) and together form a complete record of what happened, what was learned, what needs human attention, and the full execution trace for accountability. PLET also works phonetically as Plan + Execute.
-
+The name **PLET** stands for the four runtime artifacts the system produces: **P**rogress, **L**earnings, **E**mergent items, and **T**races. These artifacts serve distinct audiences (agents, humans, and debugging tools) and together form a complete record of what happened, what was learned, what needs human attention, and the full execution trace for accountability.
 plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) system. It replaces the need for an external RIDL harness by acting as both the orchestrator and execution engine. A single entry point (`/plet`) reads the project state, determines which phase the project is in, and routes to the appropriate workflow. An optional GUI (separate repo) can read the state files for visualization and monitoring, but plet itself is self-sufficient.
 
 ### Design Principles
@@ -50,7 +49,7 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 |----|-------------|----------|
 | GC_1 | All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`). Sub-groups use `XX_YY_N` (e.g., `UI_NAV_1`) when there is a logical grouping or large item count. IDs use append-only numbering: new items get the next available number, deleted items leave gaps, numbers don't imply ordering (document position determines order), IDs are stable once assigned (never renumber, never reuse). This applies globally to requirement IDs, iteration IDs, milestone IDs, and emergent item IDs. **Reserved prefixes:** `MS_` (milestones) and `ID_` (iterations) must not be used for requirement IDs — fingerprint scanning uses these prefixes to disambiguate ID types. | P0 |
 | GC_2 | Agents prefer making a decision and documenting it in emergent.md over blocking. Blocking is a last resort reserved for situations where no reasonable decision can be made without human input. | P0 |
-| GC_3 | When IDs appear in filenames (e.g., `ID_001.json`, `ID_001-impl-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order in file browsers. Zero-padding is not required in artifact content or prose. | P0 |
+| GC_3 | When IDs appear in filenames (e.g., `ID_001.json`, `ID_001-implement-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order in file browsers. Zero-padding is not required in artifact content or prose. | P0 |
 
 **Branch and tag conventions:**
 
@@ -58,7 +57,7 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 |---------|---------|---------|
 | Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
 | Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
-| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/impl-1` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
 
@@ -139,7 +138,7 @@ The plan session is interactive and human-driven. It is a structured conversatio
 | PL_5 | All requirement IDs use the `XX_N` format with append-only numbering as defined in GC_1 | P0 |
 | PL_6 | If `plet/requirements.md` already exists, read it and offer to update rather than replace | P0 |
 | PL_7 | If `plet/emergent.md` has pending items, triage them with the user. If `plet/learnings.md` exists, scan it for patterns that suggest spec changes. Incorporate results into requirements before re-planning. | P0 |
-| PL_8 | Break the requirements into iteration definitions small enough to fit in a single context window without compaction, with dependency relationships. This is the single most important decomposition constraint — err aggressively on the side of smaller iterations. When in doubt about whether a dependency exists, add it — missing dependencies are dangerous (agent wastes a cycle, must self-correct per EX_24), while false dependencies are harmless (only reduce parallelism slightly). | P0 |
+| PL_8 | Break the requirements into iteration definitions small enough to fit in a single context window without compaction, with dependency relationships. This is the single most important decomposition constraint — err aggressively on the side of smaller iterations. When in doubt about whether a dependency exists, add it — missing dependencies are dangerous (agent wastes a cycle, must self-correct per IMP_24), while false dependencies are harmless (only reduce parallelism slightly). | P0 |
 | PL_9 | Each iteration definition includes: title, user story, requirement references, acceptance criteria, and dependency list (which iterations must complete first) | P0 |
 | PL_10 | Present each iteration definition to the user for review before finalizing | P0 |
 | PL_11 | Save iteration definitions to `plet/iterations.md` and initialize `plet/state.json` | P0 |
@@ -181,37 +180,37 @@ Split state architecture: global `plet/state.json` for project-wide data and per
 | SF_23 | The dependency map in global state is a lightweight `{iteration_id: [dependency_ids]}` so the orchestrator can evaluate eligibility without reading every per-iteration file | P1 |
 | SF_24 | When plet reads a state file with an older `schemaVersion`, it auto-migrates by adding new fields with default values. The migration is logged to progress.md. If the schema version is newer than plet supports, it warns the user, stops any running loop subagents or refine invocations, and refuses to modify state files. Loop and refine are blocked. Plan is allowed but cannot modify state files (can only write requirements.md and iterations.md). Status is always allowed (read-only). | P0 |
 
-### 3.4 Execute Phase (EX)
+### 3.4 Implement Phase (IMP)
 
 Implementation of iteration definitions using subagents with red/green test discipline.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| EX_1 | Identify the next eligible iteration(s): all dependencies `complete`, lifecycle `queued` | P0 |
-| EX_2 | For each eligible iteration, spawn a subagent with the iteration context, universal context, learnings.md, and implementation instructions from `references/execute.md` | P0 |
-| EX_3 | Spawn subagents for independent eligible iterations in parallel by default | P0 |
-| EX_4 | Each implementation subagent writes failing tests first (red), then implements until green. For the red step, run only the new/changed test to verify it fails. Run the full suite for the green step to confirm nothing is broken. | P0 |
-| EX_5 | The orchestrator monitors subagent completion and spawns the next eligible iterations as dependencies are satisfied | P0 |
-| EX_6 | The subagent updates per-iteration state file criterion statuses in real time as it works | P0 |
-| EX_7 | The subagent updates its `agentActivity` and `activityDetail` in the per-iteration state file as it transitions between activities | P0 |
-| EX_8 | The subagent sets the iteration lifecycle to `implementing` when it starts and updates it on completion | P0 |
-| EX_9 | The subagent appends to `plet/progress.md`, `plet/learnings.md`, and `plet/emergent.md` as things come up during work, not only at the end. Each append is a complete, self-contained block per SF_17/SF_18. | P0 |
-| EX_10 | Trace capture is split into two files per phase: (1) `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl` — raw I/O captured automatically by `plet_invoke.py` from the subprocess's streaming JSONL output, subagent does not write this; (2) `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` — semantic events (decisions, criterion updates, lifecycle changes, activity changes, errors) written by the subagent during work via `plet_trace.py`. Subagents run as subprocess invocations (`claude -p --output-format stream-json`), not native Agent tool subagents, to guarantee reliable transcript capture. | P0 |
-| EX_11 | On implementation completion, the subagent commits changes and the iteration lifecycle moves to `verifying` | P0 |
-| EX_12 | After implementation completes, automatically spawn a verification subagent in a fresh context | P0 |
-| EX_13 | If a subagent encounters a blocker, it documents the issue across ALL four artifact types before returning: (1) trace log with full detail of attempts, failures, error messages, paths explored; (2) progress.md with BLOCKED status, work completed, and what remains; (3) emergent.md with blocker category entry describing what the human needs to resolve; (4) learnings.md with diagnostic context for next agent attempt. Then sets lifecycle to `blocked`. Every blocker represents loss of progress and requires human investigation. The quality of blocker documentation determines whether the human can help. | P0 |
-| EX_14 | Default maximum 3 retry attempts per iteration. If the failure count is strictly decreasing across attempts (trend improving), extend to a maximum of 6 attempts. Abort immediately if failures are not decreasing. | P0 |
-| EX_15 | Each iteration works on its own git branch. Branch persists across implementation and verification phases. All branches namespaced under `plet/{projectId}/`. Agents never commit to main. See branch/tag convention table below. | P0 |
-| EX_16 | After an iteration reaches `complete` lifecycle, rebase onto the loop workstream and fast-forward merge. Linear history is required — never create merge commits. **Green/rebase/green invariant:** all tests must pass before the rebase and again after the rebase, before the fast-forward merge. If tests fail after rebase, the rebasing agent is responsible for fixing the issue (red/green discipline) or cycling back. The verify agent owns this step. | P0 |
-| EX_17 | Agents commit incrementally during each phase for crash recovery — never use `git stash` (stashes are invisible to the orchestrator, other agents, and external tools). At end of each phase, squash into a single commit. If an iteration cycles (impl-1, verify-1, impl-2, verify-2), each phase is a separate squashed commit. Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}` | P0 |
-| EX_18 | Per RT_6/RT_7, agents read runtime artifacts at start. If the agent has been working for an extended period or has accumulated substantial context, write current insights to learnings.md and emergent.md before wrapping up. | P0 |
-| EX_19 | Pre-flight check before implementation: verify the project builds, tests pass, and the working tree is clean. If pre-flight fails, the agent should attempt to resolve the issue first. Only block if the issue is unresolvable. Log to all three runtime artifacts regardless of outcome. **Exception:** after a verification cycle-back (VF_16), the branch may contain intentionally failing tests left by the verify agent — these are expected and should be treated as inherited red-step targets, not pre-flight failures. | P1 |
-| EX_20 | If a parallel sibling iteration fails, other in-progress siblings continue. The failed iteration is retried independently after its siblings complete. | P1 |
-| EX_21 | The orchestrator re-evaluates the dependency graph and eligible work after each iteration completes | P1 |
-| EX_24 | If an implementation agent discovers a missing dependency (prerequisite work does not exist), it self-corrects without blocking: adds the missing dependency to `state.json` `dependencyMap` and the per-iteration state file `dependencies` array, sets its own lifecycle to `ineligible`, documents the correction across all four runtime artifacts (trace, progress, emergent, learnings), and returns. The loop continues — the iteration automatically becomes `queued` when the missing dependency completes. This does not count against the retry limit. | P0 |
-| EX_25 | False dependencies (unnecessary deps that reduce parallelism) are harmless and do not require detection or correction. | P0 |
-| EX_22 | The orchestrator checks breakpoints (SF_21) before and after each iteration and pauses execution when a breakpoint is hit | P1 |
-| EX_23 | Implementation and verification agents update `lastHeartbeat` in the per-iteration state file at regular intervals during work | P1 |
+| IMP_1 | Identify the next eligible iteration(s): all dependencies `complete`, lifecycle `queued` | P0 |
+| IMP_2 | For each eligible iteration, spawn a subagent with the iteration context, universal context, learnings.md, and implementation instructions from `references/implement.md` | P0 |
+| IMP_3 | Spawn subagents for independent eligible iterations in parallel by default | P0 |
+| IMP_4 | Each implementation subagent writes failing tests first (red), then implements until green. For the red step, run only the new/changed test to verify it fails. Run the full suite for the green step to confirm nothing is broken. | P0 |
+| IMP_5 | The orchestrator monitors subagent completion and spawns the next eligible iterations as dependencies are satisfied | P0 |
+| IMP_6 | The subagent updates per-iteration state file criterion statuses in real time as it works | P0 |
+| IMP_7 | The subagent updates its `agentActivity` and `activityDetail` in the per-iteration state file as it transitions between activities | P0 |
+| IMP_8 | The subagent sets the iteration lifecycle to `implementing` when it starts and updates it on completion | P0 |
+| IMP_9 | The subagent appends to `plet/progress.md`, `plet/learnings.md`, and `plet/emergent.md` as things come up during work, not only at the end. Each append is a complete, self-contained block per SF_17/SF_18. | P0 |
+| IMP_10 | Trace capture is split into two files per phase: (1) `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl` — raw I/O captured automatically by `plet_invoke.py` from the subprocess's streaming JSONL output, subagent does not write this; (2) `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` — semantic events (decisions, criterion updates, lifecycle changes, activity changes, errors) written by the subagent during work via `plet_trace.py`. Subagents run as subprocess invocations (`claude -p --output-format stream-json`), not native Agent tool subagents, to guarantee reliable transcript capture. | P0 |
+| IMP_11 | On implementation completion, the subagent commits changes and the iteration lifecycle moves to `verifying` | P0 |
+| IMP_12 | After implementation completes, automatically spawn a verification subagent in a fresh context | P0 |
+| IMP_13 | If a subagent encounters a blocker, it documents the issue across ALL four artifact types before returning: (1) trace log with full detail of attempts, failures, error messages, paths explored; (2) progress.md with BLOCKED status, work completed, and what remains; (3) emergent.md with blocker category entry describing what the human needs to resolve; (4) learnings.md with diagnostic context for next agent attempt. Then sets lifecycle to `blocked`. Every blocker represents loss of progress and requires human investigation. The quality of blocker documentation determines whether the human can help. | P0 |
+| IMP_14 | Default maximum 3 retry attempts per iteration. If the failure count is strictly decreasing across attempts (trend improving), extend to a maximum of 6 attempts. Abort immediately if failures are not decreasing. | P0 |
+| IMP_15 | Each iteration works on its own git branch. Branch persists across implementation and verification phases. All branches namespaced under `plet/{projectId}/`. Agents never commit to main. See branch/tag convention table below. | P0 |
+| IMP_16 | After an iteration reaches `complete` lifecycle, rebase onto the loop workstream and fast-forward merge. Linear history is required — never create merge commits. **Green/rebase/green invariant:** all tests must pass before the rebase and again after the rebase, before the fast-forward merge. If tests fail after rebase, the rebasing agent is responsible for fixing the issue (red/green discipline) or cycling back. The verify agent owns this step. | P0 |
+| IMP_17 | Agents commit incrementally during each phase for crash recovery — never use `git stash` (stashes are invisible to the orchestrator, other agents, and external tools). At end of each phase, squash into a single commit. If an iteration cycles (implement-1, verify-1, implement-2, verify-2), each phase is a separate squashed commit. Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}` | P0 |
+| IMP_18 | Per RT_6/RT_7, agents read runtime artifacts at start. If the agent has been working for an extended period or has accumulated substantial context, write current insights to learnings.md and emergent.md before wrapping up. | P0 |
+| IMP_19 | Pre-flight check before implementation: verify the project builds, tests pass, and the working tree is clean. If pre-flight fails, the agent should attempt to resolve the issue first. Only block if the issue is unresolvable. Log to all three runtime artifacts regardless of outcome. **Exception:** after a verification cycle-back (VF_16), the branch may contain intentionally failing tests left by the verify agent — these are expected and should be treated as inherited red-step targets, not pre-flight failures. | P1 |
+| IMP_20 | If a parallel sibling iteration fails, other in-progress siblings continue. The failed iteration is retried independently after its siblings complete. | P1 |
+| IMP_21 | The orchestrator re-evaluates the dependency graph and eligible work after each iteration completes | P1 |
+| IMP_24 | If an implementation agent discovers a missing dependency (prerequisite work does not exist), it self-corrects without blocking: adds the missing dependency to `state.json` `dependencyMap` and the per-iteration state file `dependencies` array, sets its own lifecycle to `ineligible`, documents the correction across all four runtime artifacts (trace, progress, emergent, learnings), and returns. The loop continues — the iteration automatically becomes `queued` when the missing dependency completes. This does not count against the retry limit. | P0 |
+| IMP_25 | False dependencies (unnecessary deps that reduce parallelism) are harmless and do not require detection or correction. | P0 |
+| IMP_22 | The orchestrator checks breakpoints (SF_21) before and after each iteration and pauses execution when a breakpoint is hit | P1 |
+| IMP_23 | Implementation and verification agents update `lastHeartbeat` in the per-iteration state file at regular intervals during work | P1 |
 
 ### 3.5 Verify Phase (VF)
 
@@ -236,7 +235,7 @@ Independent verification in a fresh context window. The verification agent verif
 | VF_15 | If issues are found that are minor and obvious to fix (typos, missing edge case tests, small corrections): add new acceptance criteria, fix with red/green discipline, then complete. For anything substantial, cycle back to implementation per VF_16. | P0 |
 | VF_16 | If issues are found that cannot be fixed in this context: add new criteria set to `fail`, write failing tests (red step) for each test-expressible issue as a concrete handoff to the next implementation agent, set lifecycle back to `implementing`, document in emergent.md and learnings.md. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule. For issues that aren't test-expressible (e.g., architectural concerns), document why no red test was created. | P0 |
 | VF_17 | The verification agent appends to progress.md, learnings.md, and emergent.md following atomic write semantics | P0 |
-| VF_18 | The verification agent writes semantic event trace entries to `plet/trace/{iteration_id}-verify-{attempt}-events.ndjson` via `plet_trace.py`. The raw I/O transcript is captured to `plet/trace/{iteration_id}-verify-{attempt}-transcript.jsonl` by `plet_invoke.py` from the subprocess's streaming output. (Matches split trace format defined in EX_10.) | P0 |
+| VF_18 | The verification agent writes semantic event trace entries to `plet/trace/{iteration_id}-verify-{attempt}-events.ndjson` via `plet_trace.py`. The raw I/O transcript is captured to `plet/trace/{iteration_id}-verify-{attempt}-transcript.jsonl` by `plet_invoke.py` from the subprocess's streaming output. (Matches split trace format defined in IMP_10.) | P0 |
 | VF_19 | After verification completes (pass or fail), the orchestrator re-evaluates eligible iterations and continues the loop | P1 |
 | VF_20 | The verification agent checks that all runtime artifacts were properly written by the implementation agent (progress, learnings, emergent entries exist for this iteration) | P1 |
 | VF_21 | The verification agent writes a consolidated verification report to the per-iteration state file's `verificationReports` array at the end of each attempt. Each report has a `vrp` plet ID and a verdict (`passed`, `rejected`, `blocked`). Reports append (never overwrite) so the full verification history is preserved. | P0 |
@@ -287,7 +286,7 @@ Plet IDs are a composable, globally unique identifier scheme used across plet ar
 | Context Segment | Description |
 |-----------------|-------------|
 | iteration | Iteration ID normalized: lowercase, underscores removed (`ID_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`. |
-| phase_attempt | Phase and attempt: `p1` (plan session 1), `i1` (impl attempt 1), `v2` (verify attempt 2), `r1` (refine session 1) |
+| phase_attempt | Phase and attempt: `p1` (plan session 1), `i1` (implement attempt 1), `v2` (verify attempt 2), `r1` (refine session 1) |
 
 **Known type prefixes:**
 
@@ -341,7 +340,7 @@ Instructions and schemas that guide subagent behavior, stored as bundled referen
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PT_1 | Implementation instructions are defined in `references/execute.md` and injected into subagent prompts | P0 |
+| PT_1 | Implementation instructions are defined in `references/implement.md` and injected into subagent prompts | P0 |
 | PT_2 | Verification instructions are defined in `references/verify.md` and injected into subagent prompts | P0 |
 | PT_3 | Plan phase instructions are defined in `references/plan.md` | P0 |
 | PT_4 | Refine phase instructions are defined in `references/refine.md` | P0 |
@@ -446,7 +445,7 @@ DX items that the plan session should always consider incorporating into target 
 │                   (SKILL.md Orchestrator)                  │
 │                                                           │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐    │
-│  │  Plan   │  │ Execute │  │ Verify  │  │ Refine  │    │
+│  │  Plan   │  │Implement│  │ Verify  │  │ Refine  │    │
 │  │ (ref/)  │  │ (ref/)  │  │ (ref/)  │  │ (ref/)  │    │
 │  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘    │
 │       │            │            │            │           │
@@ -472,7 +471,7 @@ DX items that the plan session should always consider incorporating into target 
          ▼                              │
 ┌─────────────────┐           ┌─────────────────┐
 │  Subagent Pool  │           │  Optional GUI   │
-│  (impl/verify)  │──────────▶│  (reads state)  │
+│  (implement/verify)  │──────────▶│  (reads state)  │
 └─────────────────┘           └─────────────────┘
 ```
 
@@ -483,7 +482,7 @@ DX items that the plan session should always consider incorporating into target 
 | Orchestrator | Claude Code Agent tool | Spawns subagents for implementation and verification |
 | State management | Claude Code Read/Write/Edit tools | Reads and writes state files and runtime artifacts |
 | Plan phase | User interaction | Interactive clarifying questions and review |
-| Execute/Verify phases | Project's own toolchain | Test runners, linters, formatters, type checkers as defined in the requirements |
+| Implement/Verify phases | Project's own toolchain | Test runners, linters, formatters, type checkers as defined in the requirements |
 
 ### 7.3 Directory Structure
 
@@ -500,7 +499,7 @@ plet/
 ├── learnings.md             # Agent-facing knowledge (runtime artifact)
 ├── emergent.md              # Human-facing items (runtime artifact)
 └── trace/
-    ├── ID_001-impl-1.ndjson # Trace logs per iteration/phase/attempt
+    ├── ID_001-implement-1.ndjson # Trace logs per iteration/phase/attempt
     ├── ID_001-verify-1.ndjson
     └── ...
 ```
@@ -540,7 +539,7 @@ Iterations with no dependency relationship to each other are eligible for parall
 8. Skill initializes `plet/state.json` and creates runtime artifact files
 9. Skill asks: "Ready to start building?" User confirms; skill enters a Loop session
 
-### Flow 2: Loop (Execute → Verify)
+### Flow 2: Loop (Implement → Verify)
 
 1. User invokes `/plet` with existing state
 2. Skill reads state, identifies eligible iterations
@@ -586,7 +585,7 @@ Iterations with no dependency relationship to each other are eligible for parall
 ### v0.2 — Loop
 > Core autonomous loop: implement, test, verify
 
-- Loop session — execute + verify (subagent dispatch, git branching, commit conventions, independent verification)
+- Loop session — implement + verify (subagent dispatch, git branching, commit conventions, independent verification)
 - Runtime artifacts (progress.md, learnings.md, emergent.md, trace/)
 - State file lifecycle tracking
 - Pre-flight checks, retry logic
@@ -699,7 +698,7 @@ Testing and verification requirements that the plan session should include in ta
 
 | # | Area | Description |
 |---|------|-------------|
-| 1 | AI model selection per phase | Different models for implementation vs verification — e.g., a faster model for impl, a more careful model for verify |
+| 1 | AI model selection per phase | Different models for implementation vs verification — e.g., a faster model for implement, a more careful model for verify |
 | 2 | GUI/monitoring app | Separate repo that reads `plet/state.json` and per-iteration state files to provide a visual dashboard of progress, agent activity, and iteration status |
 | 3 | Multi-project orchestration | A meta-orchestrator that manages plet loops across multiple repositories |
 | 4 | Formal verification tooling | Integration with formal verification tools (Kani, Dafny, TLA+) for critical invariants |

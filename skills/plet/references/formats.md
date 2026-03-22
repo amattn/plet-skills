@@ -19,7 +19,7 @@ All three runtime artifact entry types share the same structural pattern:
    1. `**PletId:**` — unique entry identifier
    2. `**Timestamp:**` — ISO 8601 UTC
    3. `**Iteration:**` — `[ID_xxx] [iteration title]`
-   4. `**Phase:**` — `plan | impl | verify | refine`
+   4. `**Phase:**` — `plan | implement | verify | refine`
 
    Remaining KV fields are type-specific (Files changed, Category, Outcome, etc.).
 5. **Content marker** — `**Content:**`
@@ -38,9 +38,9 @@ Runtime artifact writes (`progress.md`, `learnings.md`, `emergent.md`) should be
 
 Keep individual entries under **~4KB**. This is a readability constraint — entries longer than that are usually doing too much. Split into multiple self-contained entries if needed.
 
-### When to Write (EX_9)
+### When to Write (IMP_9)
 
-Append to runtime artifacts **as things come up during work**, not only at the end. If the agent has been working for an extended period, write current insights before wrapping up (EX_18).
+Append to runtime artifacts **as things come up during work**, not only at the end. If the agent has been working for an extended period, write current insights before wrapping up (IMP_18).
 
 ### Read Before Write (RT_6, RT_7)
 
@@ -51,12 +51,12 @@ All agents read `progress.md`, `learnings.md`, and `emergent.md` at the start of
 Every runtime artifact entry gets a globally unique plet ID per the Plet ID Scheme defined in `prd.md` (section 3.6). Runtime artifact entries use the following context segments after the type prefix and Crockford timestamp:
 
 - **Iteration:** iteration ID lowercased, underscores removed (e.g., `ID_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`.
-- **Phase/attempt:** `p1` (plan session 1), `i1` (impl attempt 1), `v2` (verify attempt 2), `r1` (refine session 1)
+- **Phase/attempt:** `p1` (plan session 1), `i1` (implement attempt 1), `v2` (verify attempt 2), `r1` (refine session 1)
 
 Examples:
-- `epr_01JD8X3K7M_id001_i1` — progress entry, impl attempt 1
-- `eln_01JD8X3K7M_id002_i1` — learnings entry, impl attempt 1
-- `eem_01JD8X3800_id002_i1` — emergent entry, impl attempt 1
+- `epr_01JD8X3K7M_id001_i1` — progress entry, implement attempt 1
+- `eln_01JD8X3K7M_id002_i1` — learnings entry, implement attempt 1
+- `eem_01JD8X3800_id002_i1` — emergent entry, implement attempt 1
 - `epr_01JD8X3K7M_id005_r1` — progress entry, refine session 1, for iteration ID_005
 - `epr_01JD8X3K7M_proj_r1` — progress entry, refine session 1, project-level (e.g., stage summary)
 
@@ -86,7 +86,7 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 **Iteration:** [ID_xxx] [iteration title]
-**Phase:** plan | impl | verify | refine
+**Phase:** plan | implement | verify | refine
 **Attempt:** N
 **Files changed:**
 - `path/to/file.py` — [what changed]
@@ -118,11 +118,11 @@ Any phase may append parenthetical metadata for clarity, e.g., `COMPLETE (passed
 
 ---
 
-### [ID_001] impl-1 — COMPLETE
+### [ID_001] implement-1 — COMPLETE
 **PletId:** `epr_01JD8X3K7M_id001_i1`
 **Timestamp:** 2026-03-07T14:30:00Z
 **Iteration:** [ID_001] Project scaffolding
-**Phase:** impl
+**Phase:** implement
 **Attempt:** 1
 **Files changed:**
 - `pyproject.toml` — project metadata and dependencies
@@ -138,18 +138,18 @@ Initialized project structure with pyproject.toml, ruff, and pytest. Created dir
 
 ### Blocker Entry
 
-When an agent blocks, the progress entry must include what was completed and what remains (EX_13):
+When an agent blocks, the progress entry must include what was completed and what remains (IMP_13):
 
 ```markdown
 <div id="plet-epr_01JD8X4200_id003_i2"></div>
 
 ---
 
-### [ID_003] impl-2 — BLOCKED
+### [ID_003] implement-2 — BLOCKED
 **PletId:** `epr_01JD8X4200_id003_i2`
 **Timestamp:** 2026-03-07T16:45:00Z
 **Iteration:** [ID_003] OAuth integration
-**Phase:** impl
+**Phase:** implement
 **Attempt:** 2
 **Files changed:**
 - `src/auth/oauth.py` — redirect and token exchange
@@ -190,7 +190,7 @@ Implemented OAuth redirect flow and token exchange. Blocked on token refresh —
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 **Iteration:** [ID_xxx] [iteration title]
-**Phase:** plan | impl | verify | refine
+**Phase:** plan | implement | verify | refine
 
 **Content:**
 [1-5 sentences describing the learning. Be specific and actionable — future agents should be able to apply this immediately.]
@@ -222,7 +222,7 @@ If none of these categories fit, use the closest one and also create an `emergen
 **PletId:** `eln_01JD8X3K7M_id002_i1`
 **Timestamp:** 2026-03-07T15:20:00Z
 **Iteration:** [ID_002] Core data model
-**Phase:** impl
+**Phase:** implement
 
 **Content:**
 The default SQLite journal mode blocks readers during writes. Tests with concurrent database access fail intermittently unless WAL mode is enabled. Add `PRAGMA journal_mode=WAL;` to the database initialization code. This is already set in `src/db/init.py` but must also be set in test fixtures.
@@ -237,7 +237,7 @@ The default SQLite journal mode blocks readers during writes. Tests with concurr
 **PletId:** `eln_01JD8X2R00_id001_i1`
 **Timestamp:** 2026-03-07T14:35:00Z
 **Iteration:** [ID_001] Project scaffolding
-**Phase:** impl
+**Phase:** implement
 
 **Content:**
 Every error string in this project includes a unique 12-digit debug number at the throw site (e.g., `[814209375142]`). When adding new error handling, generate a random 12-digit number and hard-code it. Never reuse numbers across the codebase. Grep for the number to find the exact source location.
@@ -252,7 +252,7 @@ Every error string in this project includes a unique 12-digit debug number at th
 **PletId:** `eln_01JD8X4200_id003_i2`
 **Timestamp:** 2026-03-07T16:45:00Z
 **Iteration:** [ID_003] OAuth integration
-**Phase:** impl
+**Phase:** implement
 
 **Content:**
 The OAuth provider's sandbox environment returns HTTP 500 on all token refresh requests. Tried: direct API calls with curl, SDK wrapper, different grant types (authorization_code, client_credentials), different scopes. All fail with the same 500 response body: `{"error": "internal_server_error"}`. The initial token exchange works fine — only refresh is broken. Next agent should check if the sandbox is back up before attempting. If still down, consider mocking the refresh endpoint for testing.
@@ -278,7 +278,7 @@ The OAuth provider's sandbox environment returns HTTP 500 on all token refresh r
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 **Iteration:** [ID_xxx] [iteration title]
-**Phase:** plan | impl | verify | refine
+**Phase:** plan | implement | verify | refine
 **Category:** design decision | requirement gap | assumption | scope question | edge case | blocker
 **Outcome:** pending
 
@@ -315,7 +315,7 @@ Agents always set `Outcome: pending`. Only the Refine session (human-driven) cha
 **PletId:** `eem_01JD8X3800_id002_i1`
 **Timestamp:** 2026-03-07T15:10:00Z
 **Iteration:** [ID_002] Core data model
-**Phase:** impl
+**Phase:** implement
 **Category:** design decision
 **Outcome:** pending
 
@@ -346,7 +346,7 @@ The API endpoints have no rate limiting. The requirements don't mention it, but 
 
 ### Blocker Entry
 
-When an agent blocks, the emergent entry describes what the human needs to resolve (EX_13):
+When an agent blocks, the emergent entry describes what the human needs to resolve (IMP_13):
 
 ```markdown
 <div id="plet-eem_01JD8X4200_id003_i2"></div>
@@ -357,7 +357,7 @@ When an agent blocks, the emergent entry describes what the human needs to resol
 **PletId:** `eem_01JD8X4200_id003_i2`
 **Timestamp:** 2026-03-07T16:45:00Z
 **Iteration:** [ID_003] OAuth integration
-**Phase:** impl
+**Phase:** implement
 **Category:** blocker
 **Outcome:** pending
 
@@ -385,9 +385,9 @@ plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl
 Contains all assistant text, tool use, tool results, errors, and system messages in Claude Code's native JSONL format. **Subagents do not write this file.** How it's captured depends on the invocation style: *subprocess mode* — `plet_invoke.py` captures streaming JSONL output from `claude -p --output-format stream-json` in real time; *subagent mode* (future) — the orchestrator locates the log file produced by the native subagent and copies/renames it after the subagent concludes.
 
 Examples:
-- `ID_001-impl-1-transcript.jsonl` — ID_001, implementation phase, attempt 1
+- `ID_001-implement-1-transcript.jsonl` — ID_001, implementation phase, attempt 1
 - `ID_001-verify-1-transcript.jsonl` — ID_001, verification phase, attempt 1
-- `ID_002-impl-2-transcript.jsonl` — ID_002, implementation phase, attempt 2 (retry)
+- `ID_002-implement-2-transcript.jsonl` — ID_002, implementation phase, attempt 2 (retry)
 
 ### Semantic Events (subagent-written via `plet_trace.py`)
 
@@ -398,7 +398,7 @@ plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson
 Written by the subagent during work via `plet_trace.py append-event`. Contains high-level semantic events: decisions, criterion status changes, lifecycle transitions, activity changes, errors and recovery actions. Each line is a valid JSON object following the schema in `references/state-schema.md`.
 
 Examples:
-- `ID_001-impl-1-events.ndjson`
+- `ID_001-implement-1-events.ndjson`
 - `ID_001-verify-1-events.ndjson`
 
 Filenames use zero-padded IDs (GC_3): `ID_001`, not `ID_1`.

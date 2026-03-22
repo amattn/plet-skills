@@ -185,7 +185,7 @@ All three remaining open questions resolved by the agent-first CLI design insigh
 **Cascading changes needed:**
 - `references/state-schema.md` — remove `skipRationale` from criterion schema
 - `skills/plet/scripts/plet_state.py` — validator checks evidence non-empty for skipped, not skipRationale
-- `references/execute.md`, `references/verify.md` — note that evidence acts as rationale for skipped criteria
+- `references/implement.md`, `references/verify.md` — note that evidence acts as rationale for skipped criteria
 - Existing state files with `skipRationale` — harmless extra field, validator ignores it
 
 **Monitor:** If agents produce poor skip rationale using the evidence framing, consider renaming `--evidence` to `--reason` or adding `--skip-rationale` as an alias.
@@ -273,7 +273,7 @@ Enumerated 18 discrete responsibilities of the loop orchestrator (SKILL.md § Lo
 
 **Partially scriptable (5 items, 28%):**
 2. Branch management — deterministic name/create, but judgment needed for unexpected git state
-6/9. Spawn subagents (impl + verify) — prompt payload assembly is deterministic (which files, which order), spawning + adaptation is skill
+6/9. Spawn subagents (implement + verify) — prompt payload assembly is deterministic (which files, which order), spawning + adaptation is skill
 10. One verify per iteration — enforcement constraint
 15. Compaction recovery — state reading + orientation summary is code, deciding what to do is skill
 16. Git hygiene — tag naming, commit message formatting, squash sequencing are code; merge conflict resolution is skill
@@ -305,7 +305,7 @@ Fingerprint:
 - `check-fingerprints` — compare fingerprints across `requirements.md`, `iterations.md`, `state.json`. Return ok/stale with specific mismatch details.
 
 Prompt assembly:
-- `assemble-prompt` — given iteration ID + phase (impl/verify), read the iteration definition from `iterations.md`, assemble the full injection payload (reference file contents, formats.md sections, state-schema.md sections, requirements.md, learnings.md, per-iteration state). Output the assembled prompt text to stdout. The orchestrator skill pipes this to the Agent tool.
+- `assemble-prompt` — given iteration ID + phase (implement/verify), read the iteration definition from `iterations.md`, assemble the full injection payload (reference file contents, formats.md sections, state-schema.md sections, requirements.md, learnings.md, per-iteration state). Output the assembled prompt text to stdout. The orchestrator skill pipes this to the Agent tool.
 
 **Design notes:**
 - Follows `scripts/CLAUDE.md` conventions (zero deps, no interactive input, Python 3.8+, atomic I/O)
@@ -325,7 +325,7 @@ This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" ca
 
 **Alternative:** Orchestrator is `plet_orchestrator.py`. It reads state, identifies eligible iterations, assembles prompts, launches `claude -p` subprocesses, captures output, updates state, loops. The orchestrator *never compacts* because it has no context window. Steps 1–3 and 5–7 from the loop responsibilities analysis are exactly the fully-scriptable items.
 
-**What stays as Claude:** Only impl and verify subagents — the parts requiring judgment. Spawned as one-shot CLI processes with assembled prompts.
+**What stays as Claude:** Only implement and verify subagents — the parts requiring judgment. Spawned as one-shot CLI processes with assembled prompts.
 
 **Key tradeoffs:**
 - **Compaction:** eliminated entirely (script has no context window)
@@ -380,17 +380,17 @@ If the loop orchestrator becomes a Python script, the full inventory of plet scr
 | Script | Purpose | Key commands | Status |
 |--------|---------|-------------|--------|
 | `plet_gate_impl.py` | Implementation phase gates | `pre` (spec exists, iteration state correct, branch correct), `post` (entries exist via `plet_entries.py check`, state updated, tests pass) | New |
-| `plet_gate_verify.py` | Verification phase gates | `pre` (impl committed, entries exist), `post` (verification report written, lifecycle updated, all criteria resolved) | New |
+| `plet_gate_verify.py` | Verification phase gates | `pre` (implement committed, entries exist), `post` (verification report written, lifecycle updated, all criteria resolved) | New |
 
-**Rationale for separate impl/verify checkpoint scripts:** Impl and verify are different agents with different contexts, different failure modes, and different checklist items. A combined script would need phase-conditional logic throughout. Separate scripts keep each focused and make `allowed-tools` entries precise — the impl agent gets `plet_gate_impl.py`, the verify agent gets `plet_gate_verify.py`.
+**Rationale for separate implement/verify checkpoint scripts:** Impl and verify are different agents with different contexts, different failure modes, and different checklist items. A combined script would need phase-conditional logic throughout. Separate scripts keep each focused and make `allowed-tools` entries precise — the implement agent gets `plet_gate_impl.py`, the verify agent gets `plet_gate_verify.py`.
 
-**Rationale for `plet_inject_prompt.py` as standalone:** Prompt assembly is the highest-value command in the system — it's the bridge between deterministic state reading and Claude invocation. Making it standalone means: (1) it can be tested independently, (2) it can be called outside `plet_orchestrator.py` (e.g., manual debugging: "show me what prompt the impl agent would get"), (3) it keeps `plet_orchestrator.py` focused on orchestration logic.
+**Rationale for `plet_inject_prompt.py` as standalone:** Prompt assembly is the highest-value command in the system — it's the bridge between deterministic state reading and Claude invocation. Making it standalone means: (1) it can be tested independently, (2) it can be called outside `plet_orchestrator.py` (e.g., manual debugging: "show me what prompt the implement agent would get"), (3) it keeps `plet_orchestrator.py` focused on orchestration logic.
 
 **Summary:**
 - Exists: 2 (`plet_state.py`, `plet_entries.py`)
 - New: 8
 - Total: 10
-- Absorbed from PLAN_8: `plet_git_cleanup.py` → `plet_git.py`, pre-flight checker → `plet_router.py`, post-impl/post-verify → `plet_gate_impl.py`/`plet_gate_verify.py`, pre-phase context → `plet_inject_prompt.py`
+- Absorbed from PLAN_8: `plet_git_cleanup.py` → `plet_git.py`, pre-flight checker → `plet_router.py`, post-implement/post-verify → `plet_gate_impl.py`/`plet_gate_verify.py`, pre-phase context → `plet_inject_prompt.py`
 
 **Monitor:** `plet_git.py` has the most commands (8) across 4 concerns (branches, worktrees, tags, squash/stash). If it gets unwieldy during implementation, split into `plet_branch.py`, `plet_worktree.py`, `plet_tag.py`, `plet_stash.py`. Keep as-is for now — assess during build.
 
@@ -433,9 +433,9 @@ Decisions made during §2–§3.1 review of `plet_entries.md`:
 
 3. **Refine agent uses add-learning (ENT_AGT_3 updated):** Refine sessions produce learnings from triage patterns. Was `add-progress, add-emergent` → now `add-progress, add-learning, add-emergent`.
 
-4. **`plan` added as valid phase:** Phase list is now `plan, impl, verify, refine` (in workflow order). Plet ID segment: `p` (plan-1 → `p1`). Affects all command INP sections, error messages, format table.
+4. **`plan` added as valid phase:** Phase list is now `plan, implement, verify, refine` (in workflow order). Plet ID segment: `p` (plan-1 → `p1`). Affects all command INP sections, error messages, format table.
 
-5. **Phase ordering convention:** Always list in workflow order: plan, impl, verify, refine. Not alphabetical, not by frequency.
+5. **Phase ordering convention:** Always list in workflow order: plan, implement, verify, refine. Not alphabetical, not by frequency.
 
 6. **Universal Inputs section (spec + template):** Universal flags (`--output json`, `--pretty`, `--fields`, `--dry-run`) listed once in a table under §3 before per-command sections. Each flag notes which commands it applies to, explicitly stating `--dry-run` is NOT available on read-only commands. Template updated with this convention.
 
@@ -443,7 +443,7 @@ Decisions made during §2–§3.1 review of `plet_entries.md`:
 
 8. **Blocker content embedded in summary:** BLOCKED entries include "Work completed:" and "Work remaining:" sections as part of `--summary` or `--summary-file` content. Tool stays thin — enforces the envelope (fencing, metadata, IDs), content is freeform. Rejected separate `--work-completed`/`--work-remaining` flags. **Rationale:** adding flags for every format variant doesn't scale. The div fencing gives GUI entry boundaries; within entries, markdown structure is parseable enough.
 
-9. **IN_PROGRESS added to valid progress statuses:** Status list is now IN_PROGRESS, COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED. Needed for interim "as things come up" entries (EX_9) and plan session checkpoints. COMPLETE for a checkpoint is misleading — IN_PROGRESS is honest. **--status remains required** (not optional with default) — agent must always specify.
+9. **IN_PROGRESS added to valid progress statuses:** Status list is now IN_PROGRESS, COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED. Needed for interim "as things come up" entries (IMP_9) and plan session checkpoints. COMPLETE for a checkpoint is misleading — IN_PROGRESS is honest. **--status remains required** (not optional with default) — agent must always specify.
 
 10. **Missing entries motivation (ENT_APR_JUS_1):** Added second failure mode: entries went missing during runs, possibly from agents erroneously removing/overwriting when composing markdown freehand. Atomic append addresses both format drift and content loss.
 
@@ -553,7 +553,7 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **ENT_NFR_4** qualified: "within a single-writer scenario" — parallel EM_N races acknowledged, resolved during refine
 - **ENT_NFR_5** added: cross-file concurrent appends allowed (no cross-file locking)
 - **ENT_NFR_6** added: external readers must never see partial entries (atomic append guarantee for GUI consumers)
-- **ENT_DXP_6** added: PITFALLS must list common wrong values agents try (e.g., `complete` vs `COMPLETE`, `implementation` vs `impl`)
+- **ENT_DXP_6** added: PITFALLS must list common wrong values agents try (e.g., `complete` vs `COMPLETE`, `implementation` vs `implement`)
 - **ENT_DXP_7** added: help text documents flag dependencies (--pretty/--fields require --output json, --content/--content-file mutually exclusive)
 - **Open question resolved (--status):** `--status` stays required for consistency. IN_PROGRESS is suppressed from the header line (ENT_APR_BHV_8) — visually clean without sacrificing CLI consistency. Formats.md updated.
 - **ENT_FUT_5 withdrawn:** BLOCKED --work-completed/--work-remaining won't be CLI flags. BLOCKED details are content guidance for agents. Info is recoverable from state files, tests, and git history if omitted.
@@ -587,17 +587,17 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 #### UNV_CMD_24/25: Help hint on errors (2026-03-17)
 
 - **Decision:** Validation errors print a one-line hint (`Run: <script> <command> --help`) instead of the full HELP text. Full HELP only printed for missing-required-args errors.
-- **Why:** Full HELP after every error floods the agent's context window. Validation errors already say what's valid (e.g., "valid: plan, impl, verify, refine"). The hint nudges without noise.
+- **Why:** Full HELP after every error floods the agent's context window. Validation errors already say what's valid (e.g., "valid: plan, implement, verify, refine"). The hint nudges without noise.
 - **Alternatives rejected:** (A) Full HELP on all errors — too noisy, wastes context. (B) No hint at all — agents may not know --help exists.
 - **UNV_CMD_25 (split):** Hint goes to stderr only — never in JSON error payloads on stdout. Agents see both streams via Bash tool; programmatic callers capture them separately.
 - **Added as:** UNV_CMD_24 + UNV_CMD_25 in conventions.md, updated scripts/CLAUDE.md output convention. Pattern implemented in plet_entries.py via `help_hint()` helper.
 - **Applied to:** plet_entries.py (via `help_hint()`) and plet_state.py (2026-03-17).
 
-#### UNV_IMP_1: Resolve missing util deps before impl (2026-03-17)
+#### UNV_IPR_1: Resolve missing util deps before implement (2026-03-17)
 
 - **Decision:** Before implementing a script, check its Dependencies section for imports from `util_*.py`. If any listed function doesn't exist yet, build it first.
-- **Why:** util_io was created for STA's needs. ENT spec declared `load_text` as a dependency, but nobody built it before starting ENT impl. Gap went unnoticed until implementation.
-- **Added as:** UNV_IMP_1 in conventions.md § Implementation Prerequisites. `load_text` added to util_io.py.
+- **Why:** util_io was created for STA's needs. ENT spec declared `load_text` as a dependency, but nobody built it before starting ENT implement. Gap went unnoticed until implementation.
+- **Added as:** UNV_IPR_1 in conventions.md § Implementation Prerequisites. `load_text` added to util_io.py.
 
 #### --iteration-id → --iter-id rename (2026-03-17)
 
@@ -698,19 +698,23 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 
 **UNV_ERR_5/6 added:** Universal convention for file-vs-directory mismatch. Commands that expect a file error on directory and vice versa. Prevents confusing errors (e.g., JSON parse error when agent passes a directory to validate).
 
+#### Terminology unification: impl → implement, EX_ → IMP_ (2026-03-21)
+
+Script-relevant changes: `VALID_PHASES` updated in plet_entries.py, plet_trace.py. `attempts.impl` → `attempts.implement` in plet_state.py and state-schema.md. `UNV_IMP_1` → `UNV_IPR_1` in conventions.md. All specs updated (phase enums, examples, filenames, error messages). Full rationale in root `NOTES.md` § Key Design Decisions.
+
 #### TRC spec review — complete (2026-03-21)
 
 All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 
 - **VAL_OUT per-type counts:** Both text and JSON output include countsByType (decision, criterion_update, etc.). Gate scripts can check "were any decisions logged?" without parsing the full file.
-- **VAL_BHV_8/9/10 added:** pletId prefix validation (must start with `tev_`), phase validation (`impl` or `verify` only — trace events are execution-only), countsByType as explicit testable behavior.
+- **VAL_BHV_8/9/10 added:** pletId prefix validation (must start with `tev_`), phase validation (`implement` or `verify` only — trace events are execution-only), countsByType as explicit testable behavior.
 - **VAL_PRE expanded:** required-args, file exists and readable, file-not-directory (UNV_ERR_5).
-- **Malformed tables fixed:** Unescaped pipes in CMD usage lines (impl|verify, decision|criterion_update|...). Replaced with prose enum lists. DXP_6 shell `||` replaced with behavior description.
+- **Malformed tables fixed:** Unescaped pipes in CMD usage lines (implement|verify, decision|criterion_update|...). Replaced with prose enum lists. DXP_6 shell `||` replaced with behavior description.
 - **--raw added to query (QRY_INP_5, P0):** Bare NDJSON output — one compact JSON per line, no envelope, no indentation. Pipe-friendly for `wc -l`, `jq`, further processing. Mutually exclusive with `--output json`. Not a FUT — useful from day 1 for scripting.
 - **No --iter-id/--phase filters on query:** Confirmed unnecessary — trace files are already per-iteration per-phase. All events in one file share the same context.
 
 - **FMT_5 added:** Enum validation on data fields — criterion_update.phase, criterion_update.status, lifecycle_change.from/to, activity_change.activity. Same enums as plet_state.py. Enforced on both append and validate.
-- **AFL_3 added:** Verify subagent writes trace events (not just reads impl trace).
+- **AFL_3 added:** Verify subagent writes trace events (not just reads implement trace).
 - **AFL_5 added:** Case study / post-run analysis flow using validate + query.
 - **AGT_6 updated:** GUI may use query for filtered views and validate for integrity checks (not just direct file reads).
 - **DXP_8 added:** Help documents --raw as preferred for piping/scripting.

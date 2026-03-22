@@ -18,21 +18,21 @@
 
 ## What is plet?
 
-**PLET = Progress, Learnings, Emergent, Trace** — the four runtime artifacts the system produces. Also works phonetically as Plan + Execute.
+**PLET = Progress, Learnings, Emergent items, Traces** — the four runtime artifacts the system produces. 
 
-plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness. Inspired by and builds on Ralph loops — a spec-driven autonomous coding pattern — via RIDL (Ralph Iteration Definition List), the author's implementation of that pattern. plet is a merger between Claude Code's plan mode (interactive, iterative planning) and the RIDL PRD-driven autonomous loop (structured execution with runtime artifacts).
+plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous implementation, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness. Inspired by and builds on Ralph loops — a spec-driven autonomous coding pattern — via RIDL (Ralph Iteration Definition List), the author's implementation of that pattern. plet is a merger between Claude Code's plan mode (interactive, iterative planning) and the RIDL PRD-driven autonomous loop (structured execution with runtime artifacts).
 
 ---
 
 ## Core Workflow
 
-**Plan -> Loop (Execute → Verify) -> Refine**
+**Plan -> Loop (Implement → Verify) -> Refine**
 
 - **Plan** = spec (interactive requirements creation, iteration decomposition)
-- **Loop** = autonomous impl→verify cycle:
-  - **Execute** = implement then test (red/green discipline, subagents)
+- **Loop** = autonomous implement→verify cycle:
+  - **Implement** = implement then test (red/green discipline, subagents)
   - **Verify** = independent verification in a fresh context window
-- **Refine** = uses Progress, Learnings, Emergent items, and Trace logs to improve the spec and re-plan
+- **Refine** = uses Progress, Learnings, Emergent items, and Traces to improve the spec and re-plan
 
 ---
 
@@ -79,7 +79,7 @@ Canonical definitions for plet's vocabulary, document terms, artifact categories
 project (LOGA)
   └─ session (plan, loop1, refine1, loop2, ...)
        └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
-            └─ phase (impl, verify)
+            └─ phase (implement, verify)
 ```
 
 **Example showing interleaved sessions:**
@@ -88,7 +88,7 @@ project (LOGA)
 ├─ plan session
 ├─ loop session (loop1)
 │  ├─ iteration (ID_001)
-│  │  ├─ impl phase
+│  │  ├─ implement phase
 │  │  └─ verify phase
 │  ├─ iteration (ID_002)
 │  │  └─ ...
@@ -108,13 +108,13 @@ project (LOGA)
 | 0 | **project** | yes | LOGA |
 | 1 | **session** | yes | loop session, refine session, plan session |
 | 2 | **iteration** | yes | ID_001 (loop sessions only) |
-| 3 | **phase** | yes | impl phase, verify phase |
+| 3 | **phase** | yes | implement phase, verify phase |
 
 - **Session** = a `/plet` invocation: plan session, loop session, refine session
 - **Iteration** = a unit of work with acceptance criteria (loop sessions only)
-- **Phase** = impl or verify within an iteration (not plan/loop/refine)
-- Retry numbering (`impl-1`, `impl-2`) is a detail within phases, not a formal hierarchy level
-- "Cycle" is informal shorthand for one impl run + one verify run
+- **Phase** = implement or verify within an iteration (not plan/loop/refine)
+- Retry numbering (`implement-1`, `implement-2`) is a detail within phases, not a formal hierarchy level
+- "Cycle" is informal shorthand for one implement run + one verify run
 
 ### Document Terms
 
@@ -162,7 +162,7 @@ project (LOGA)
 - `FEEDBACK.md` — meta-observations about plet itself (process issues, instruction gaps, tooling friction)
 
 **7. Configuration** (per-project behavior modification)
-- Modify planner, refiner, execute agent, verify agent behavior
+- Modify planner, refiner, implement agent, verify agent behavior
 - *(No files defined yet — shape TBD, see Open Questions)*
 
 ### ID Conventions
@@ -182,7 +182,7 @@ project (LOGA)
 | `ID` | Iterations | iterations.md |
 | `AC` | Acceptance criteria | iterations.md |
 | `MS` | Milestones | iterations.md |
-| `EX` | Execute agent rules | execute.md |
+| `IMP` | Implement agent rules | implement.md |
 | `VF` | Verify agent rules | verify.md |
 | `PL` | Plan session rules | plan.md |
 | `R` | LOGA case study recommendations | LOG_ANALYZER_CASE_STUDY.md |
@@ -280,6 +280,36 @@ Claude Code has three layers of memory:
 
 ### Architecture & Routing
 
+#### Phase terminology unification (2026-03-21)
+
+Comprehensive rename to unify phase terminology across the entire repo.
+
+**Changes:**
+1. `impl` → `implement` as the formal phase name. All four phases are now real English verbs: plan, implement, verify, refine.
+2. `execute.md` → `implement.md` (reference file — every reference file now matches its phase: plan.md, implement.md, verify.md, refine.md).
+3. `EX_` → `IMP_` for PRD requirement IDs (27 IDs). EX prefix freed for EXTRACTABLE.md exclusive use.
+4. `UNV_IMP_1` → `UNV_IPR_1` in conventions.md (avoids IMP_ collision).
+5. `attempts.impl` → `attempts.implement` in state schema and scripts.
+6. Prose "Execute" → "Implement" where it referred to the phase (workflow descriptions, agent names, section headings).
+
+**Preserved (unchanged):**
+- `implementation` / `verification` — criterion two-state model field names (noun form)
+- `implementing` / `verifying` — lifecycle/activity enum values (gerund form)
+- `i1`/`v1` — plet ID segments (already abbreviated)
+- `EX` prefix in EXTRACTABLE.md (different meaning)
+- Historical NOTES.md entries describing old names
+- Case studies and FEEDBACK.md (historical artifacts from actual runs)
+- Generic English uses of "execute" ("execute the user's decisions", "Code executes the same way")
+
+**Rationale:** Three grammatical forms serve three different roles:
+- **Verb** (phase name): implement, verify — "this is what you do"
+- **Noun** (criterion record): implementation, verification — "the record of what was done"
+- **Gerund** (lifecycle state): implementing, verifying — "what is happening now"
+
+Each form is unambiguous in context. `impl` was the only abbreviation among four phase names — the others (plan, verify, refine) were already full words. `execute.md` was the only reference file that didn't match its phase name.
+
+**Scope:** 25+ files across scripts, tests, specs, reference files, PRD, PLET.md, NOTES.md, README.md, SKILL.md, guide/. 533 tests, 0 failures.
+
 #### Artifact format enforcement — A/B test (FB_12 vs FB_17)
 - **FB_17 (progress.md):** stronger prose — "match exactly" language + inline templates in execute.md/verify.md
 - **FB_12 (state files):** tooling — Python helper script shipped via `${CLAUDE_SKILL_DIR}/scripts/` that validates/writes state files. Agents call the tool instead of writing JSON freehand.
@@ -323,7 +353,7 @@ See `specs/NOTES.md` for full cascading changes list.
 - Target projects should also set `bypassPermissions` in `.claude/settings.local.json` for full autonomous operation (FB_22) (2026-03-12)
 
 #### PRD traceability tags are permanent, not build scaffolding
-- Parenthetical PRD references like `(EX_17)`, `(VF_9)` in skill files are kept permanently — not stripped before release
+- Parenthetical PRD references like `(IMP_17)`, `(VF_9)` in skill files are kept permanently — not stripped before release
 - Originally treated as build scaffolding with "will be stripped" notes in every file
 - FB_20 made them semantic (e.g., "per PL_DX_2" in exception text) — stripping would break cross-references
 - Removed all 7 "Build note" blocks from SKILL.md and reference files (2026-03-12)
@@ -340,7 +370,7 @@ Subagents run as subprocess invocations (`claude -p --output-format stream-json`
 
 #### Single skill with reference files
 - One entry point (`/plet`) with state-driven routing
-- Phase-specific instructions in `references/` (plan.md, execute.md, verify.md, refine.md)
+- Phase-specific instructions in `references/` (plan.md, implement.md, verify.md, refine.md)
 - User never has to remember which step they're on — `/plet` reads state and figures it out
 - Can force a phase with `/plet plan`, `/plet loop`, `/plet refine`, `/plet status`
 
@@ -357,7 +387,7 @@ Subagents run as subprocess invocations (`claude -p --output-format stream-json`
 
 #### Loop routing: `/plet execute` + `/plet verify` merged into `/plet loop`
 
-Execute and verify are internal phases of one autonomous loop — the user shouldn't need to invoke them separately. `/plet loop` forces entry into the impl→verify loop. The internal phases still exist as concepts in reference files, but are not user-facing subcommands.
+Implement and verify are internal phases of one autonomous loop — the user shouldn't need to invoke them separately. `/plet loop` forces entry into the implement→verify loop. The internal phases still exist as concepts in reference files, but are not user-facing subcommands.
 
 #### Routing: `ineligible` excluded from LOOP check
 
@@ -504,20 +534,20 @@ All branches and tags are namespaced under `plet/{projectId}/`. Agents never com
 |---------|---------|---------|
 | Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
 | Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
-| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/impl-1` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
 | Subplet loop | `plet/{projectId}/subplet/{subId}/loop{N}/workstream` | `plet/LOGA/subplet/PRSR/loop1/workstream` |
 | Subplet iteration | `plet/{projectId}/subplet/{subId}/loop{N}/{iteration_id}` | `plet/LOGA/subplet/PRSR/loop1/ID_001` |
 
 - `loop{N}` driven by `loopSessionCount` in state.json; `refine{N}` driven by `refineSessionCount`
-- Iteration branches persist across impl and verify phases
+- Iteration branches persist across implement and verify phases
 - After iteration reaches `complete`, rebase onto the loop workstream and fast-forward merge
 - Linear history is strongly preferred
 - Agents commit incrementally during each phase for crash recovery
 - At end of each phase, squash into a single commit
 - Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
-- If an iteration cycles (impl-1, verify-1, impl-2, verify-2), each phase is a separate squashed commit
+- If an iteration cycles (implement-1, verify-1, implement-2, verify-2), each phase is a separate squashed commit
 
 #### Project ID (R_6)
 
@@ -547,7 +577,7 @@ Short project identifier defined during plan session (Step 2, alongside project 
 
 If an agent discovers a missing dependency during execution (prerequisite work doesn't exist), it fixes the DAG in place — adds the dependency to state.json and per-iteration state, sets lifecycle to `ineligible`, documents across all four runtime artifacts, and returns. Not a blocker — the loop continues and the iteration auto-queues when the missing dep completes. Does not count against retry limit. Dependency graph validation step added to plan session iteration review.
 
-#### Test suite execution strategy (EX_4)
+#### Test suite execution strategy (IMP_4)
 
 On large projects, full test suites can take 4-5 minutes. With 5 acceptance criteria, 7 full runs compounds to ~35 minutes. Adopted tiered approach: agent times the first full run and decides strategy. ~30s is a recommended threshold but agent uses discretion. Fast suite = full suite every green step. Slow suite = most relevant subset using the project's test grouping mechanisms. Full suite only at phase end as a final gate.
 
@@ -556,7 +586,7 @@ On large projects, full test suites can take 4-5 minutes. With 5 acceptance crit
 - Full suite at checkpoints (every N criteria) — interesting but adds complexity
 - Pure agent discretion with no guidance — too unstructured for v1
 
-#### `cleanupTagsAutomatically` — audit tag lifecycle (R_4, EX_17) — DECIDED (2026-03-10)
+#### `cleanupTagsAutomatically` — audit tag lifecycle (R_4, IMP_17) — DECIDED (2026-03-10)
 
 Always create audit tags before squash — no opt-in flag, it just happens. Log tag name and commit hash in progress.md at creation. `cleanupTagsAutomatically` (default false) controls whether to delete the tag after squash; if cleaning up, log the deletion with the commit hash in progress.md too. Tag naming: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` — hierarchical `/` separators allow GUI tools to filter at multiple levels. Config: global default in `state.json` (inherited at initialization), per-iteration override. Rejected: `tagBeforeSquash` (wrong default — tagging should be unconditional, the question is cleanup).
 
@@ -588,15 +618,15 @@ The verification report is described in two places: state-schema.md (field-level
 
 #### Verdict enum and progress.md status semantics
 
-Three verdict values: `passed` (all pass, iteration frozen), `rejected` (issues found, returning to impl), `blocked` (needs human input). Used `passed` instead of `complete` to avoid collision with the `complete` lifecycle value. Progress.md status reflects the *phase attempt* outcome, not the iteration outcome — a cycle-back is a `COMPLETE` phase attempt (the verify agent finished its work) with a parenthetical verdict: `COMPLETE (passed, frozen)`, `COMPLETE (rejected, cycle back)`, `BLOCKED`.
+Three verdict values: `passed` (all pass, iteration frozen), `rejected` (issues found, returning to implement), `blocked` (needs human input). Used `passed` instead of `complete` to avoid collision with the `complete` lifecycle value. Progress.md status reflects the *phase attempt* outcome, not the iteration outcome — a cycle-back is a `COMPLETE` phase attempt (the verify agent finished its work) with a parenthetical verdict: `COMPLETE (passed, frozen)`, `COMPLETE (rejected, cycle back)`, `BLOCKED`.
 
 #### Retry exhaustion after `rejected` verdict
 
-When the verify agent rejects and retry limits are exhausted (EX_14), the orchestrator transitions to `lifecycle: "blocked"` and writes progress/emergent entries. The verify agent is unaware of retry policy — it always reports its verdict; the orchestrator decides. Chose `blocked` lifecycle over a new value like `exhausted` — the iteration genuinely needs human intervention.
+When the verify agent rejects and retry limits are exhausted (IMP_14), the orchestrator transitions to `lifecycle: "blocked"` and writes progress/emergent entries. The verify agent is unaware of retry policy — it always reports its verdict; the orchestrator decides. Chose `blocked` lifecycle over a new value like `exhausted` — the iteration genuinely needs human intervention.
 
 #### Verification cycle-back writes red tests (VF_16)
 
-On cycle-back (Path C — substantial issues), the verify agent writes failing tests that demonstrate each finding. The next impl agent inherits these as green-step targets — red/green handoff across the agent boundary. For non-test-expressible issues (wrong abstraction, coupling), the verify agent skips the red test and documents the rationale. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule.
+On cycle-back (Path C — substantial issues), the verify agent writes failing tests that demonstrate each finding. The next implement agent inherits these as green-step targets — red/green handoff across the agent boundary. For non-test-expressible issues (wrong abstraction, coupling), the verify agent skips the red test and documents the rationale. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule.
 
 ### Refine
 
@@ -634,7 +664,7 @@ After resolving a blocker, the agent must summarize the resolution conversation 
 
 Refine appends to progress.md at two granularities: (1) per-decision entries as they happen (each triage action, each re-queue, each revise/reset/withdraw), and (2) a stage summary after completing each step. All use `phase: refine`.
 
-**Rationale:** Per-decision entries give the next impl agent context on why an iteration is back in the queue or why the spec changed. Stage summaries give humans a quick overview without reading every per-decision entry. Both are needed.
+**Rationale:** Per-decision entries give the next implement agent context on why an iteration is back in the queue or why the spec changed. Stage summaries give humans a quick overview without reading every per-decision entry. Both are needed.
 
 Also considered end-of-session summary only (loses per-decision context), per-decision only without summary (hard for humans to scan), and no progress.md writes at all. User: "it should append. not after each session but more regularly. definitely after re-queueing."
 
@@ -688,7 +718,7 @@ The refine session touches more files than any other session (reads 4 artifacts,
 
 #### `refine` phase value added to format spec
 
-formats.md Phase field expanded from `impl | verify` to `impl | verify | refine`. Plet ID context segment `r1` (refine session 1) added alongside `i1`/`v2`. Discovered via consistency pass — refine.md prescribed `phase: refine` but the format spec didn't allow it.
+formats.md Phase field expanded from `implement | verify` to `implement | verify | refine`. Plet ID context segment `r1` (refine session 1) added alongside `i1`/`v2`. Discovered via consistency pass — refine.md prescribed `phase: refine` but the format spec didn't allow it.
 
 #### `refineSessionCount` in state.json
 
@@ -821,7 +851,7 @@ Parallel agents each get their own git worktree for their iteration branch. True
 #### Artifact quality monitoring (R_10) — DECIDED (2026-03-10)
 
 Two-layer enforcement, orchestrator stays simple:
-- **Execute agent** self-checks before marking done — confirms it wrote learnings, emergent, and progress entries, and state file has required fields.
+- **Implement agent** self-checks before marking done — confirms it wrote learnings, emergent, and progress entries, and state file has required fields.
 - **Verify agent** independently confirms — artifact entries exist for the iteration, state file schema compliance. This is additive to its existing checklist.
 - **On failure:** cycle back — missing artifacts treated like a failed acceptance criterion.
 - **Orchestrator does nothing** — it routes and tracks, never inspects artifact content. See orchestrator simplicity principle.
@@ -829,11 +859,11 @@ Two-layer enforcement, orchestrator stays simple:
 
 #### Orchestrator simplicity principle (2026-03-10)
 
-The orchestrator is the longest-lived agent and most vulnerable to context pressure. Its work should be as simple as possible — delegate complexity to short-lived subagents (impl, verify) that have fresh context windows. The orchestrator routes, spawns, and tracks; it does not judge quality or validate content. Heavy lifting belongs in subagents.
+The orchestrator is the longest-lived agent and most vulnerable to context pressure. Its work should be as simple as possible — delegate complexity to short-lived subagents (implement, verify) that have fresh context windows. The orchestrator routes, spawns, and tracks; it does not judge quality or validate content. Heavy lifting belongs in subagents.
 
 #### Co-Author tags on all agent commits (R_13) — DECIDED (2026-03-10)
 
-All agent-authored commits (impl, verify, merge, orchestrator) get a `Co-Authored-By` tag. Git author is the user's identity (Claude Code commits as the user), so the tag is the only signal distinguishing human commits from agent commits. Consistency matters for audit trails. Rejected: no tags (loses the only authorship signal), impl-only (inconsistent, no principled reason to exclude verify/merge).
+All agent-authored commits (implement, verify, merge, orchestrator) get a `Co-Authored-By` tag. Git author is the user's identity (Claude Code commits as the user), so the tag is the only signal distinguishing human commits from agent commits. Consistency matters for audit trails. Rejected: no tags (loses the only authorship signal), implement-only (inconsistent, no principled reason to exclude verify/merge).
 
 #### Logalyzer re-run plan (2026-03-09)
 
@@ -880,7 +910,7 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 **Ownership:** The verify agent owns the rebase step (it already owned the merge-to-workstream step). Whoever performs the rebase is responsible for the green/rebase/green invariant. This keeps the orchestrator thin.
 
 **Changes made:**
-- **prd.md** (EX_16): strengthened from "strongly preferred" to "required", added green/rebase/green invariant, specified verify agent ownership
+- **prd.md** (IMP_16): strengthened from "strongly preferred" to "required", added green/rebase/green invariant, specified verify agent ownership
 - **verify.md**: replaced `git merge` with rebase + `git merge --ff-only`, added full green/rebase/green procedure including conflict resolution and re-squash
 - **execute.md**: added "never create merge commits" critical rule
 - **SKILL.md** and **PLET.md**: already correct, no changes needed
@@ -966,19 +996,19 @@ Standardized hierarchy to eliminate overloaded terms. See **Taxonomy > Vocabular
 
 Key decisions:
 - **"session"** for Level 1 (was "phase") — pluralizes naturally, aligns with `*SessionCount` fields
-- **"phase"** freed up for Level 3 (impl/verify) — zero rename cost, already in file formats
+- **"phase"** freed up for Level 3 (implement/verify) — zero rename cost, already in file formats
 - **"cycle"** reserved as informal only — not a formal level
 - **`sessionHistory`** field with `type` key (not `phase`) inside each entry
 
 **Rejected alternatives:**
 - "mode" for Level 1 — doesn't pluralize naturally ("two loop modes" is awkward)
 - "stage" for Level 1 — could also describe Level 2/3, ambiguous
-- "step" for Level 3 — felt too small for a full impl or verify run
+- "step" for Level 3 — felt too small for a full implement or verify run
 - "round" for cycle — workable but "cycle" is more intuitive
 - "pass" for cycle — collides with pass/fail terminology
 - `"phase"` as the key in `sessionHistory` entries — "what phase of session?" doesn't make sense; `"type"` is more natural ("what type of session?")
 
-**Note:** In code/filenames, `{phase}` in `{phase}-{attempt}` patterns continues to refer to impl/verify (Level 3). This is consistent with the new vocabulary — no rename needed.
+**Note:** In code/filenames, `{phase}` in `{phase}-{attempt}` patterns continues to refer to implement/verify (Level 3). This is consistent with the new vocabulary — no rename needed.
 
 ### Branch Workflow
 
@@ -1062,7 +1092,7 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 - **OR**: OR_4 includes `verifying` lifecycle. OR_11 removed (merged into `/plet loop`). OR_13 — skip scoped to individual acceptance criteria, not iterations
 - **PL**: Plan session intro is prose above the table (interactive, human-driven). PL_12 — write to disk on approval. PL_13–PL_14 are P1
 - **SF**: P0s first. Split state architecture. SF_24 — schema version migration. SF_25 — entry fencing for git merge safety
-- **EX**: EX_23 — heartbeat writes. EX_24 — missing dependency self-correction (does not count against retries). EX_25 — false dependencies are harmless
+- **IMP**: IMP_23 — heartbeat writes. IMP_24 — missing dependency self-correction (does not count against retries). IMP_25 — false dependencies are harmless
 - **VF**: VF_7–VF_13 are the VSDD-inspired deep verification items. VF_19–VF_20 are P1
 - **RT**: Formats defined at high level; templates in references/formats.md. Stable contract (additive only). RT_11 — plet ID scheme for entry IDs
 - **RF**: RF_1 — refine is human-driven with clean UX. Blocked iterations surfaced alongside emergent items
@@ -1089,9 +1119,9 @@ State file management — `init`, `update-criterion`, `update-field`, `validate`
 Runtime artifact entry writer. Addresses FB_29 (learnings/emergent regression) and FB_33 (progress.md incomplete). Same pattern as plet_state.py — agents call a tool instead of composing markdown freehand.
 
 **Commands:**
-- `add-progress <dir> --iter-id ID_xxx --iter-title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json]`
-- `add-learning <dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase impl --attempt 1 [--dry-run] [--output json]`
-- `add-emergent <dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json]`
+- `add-progress <dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json]`
+- `add-learning <dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json]`
+- `add-emergent <dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json]`
 - `check <dir> --iter-id ID_xxx` — reports which artifacts have entries, exits 1 if any are missing (pre-verify gate for R_7)
 
 **Features:**
@@ -1123,10 +1153,10 @@ Plet ID generation. The composable ID scheme (type prefix + Crockford Base32 tim
 PRD refs: RT_11, Plet ID Scheme
 
 **What it would do:**
-- `generate --type epr --iter-id ID_001 --phase impl --attempt 1` — generate a correct plet ID
+- `generate --type epr --iter-id ID_001 --phase implement --attempt 1` — generate a correct plet ID
 - Handles Crockford Base32 encoding (not standard base32 — excludes I/L/O/U, specific casing)
 - Handles iteration ID normalization (ID_001 → id001)
-- Handles phase/attempt encoding (impl-1 → i1, verify-2 → v2, refine-1 → r1)
+- Handles phase/attempt encoding (implement-1 → i1, verify-2 → v2, refine-1 → r1)
 
 **Why it matters:** Crockford Base32 is uncommon — agents will approximate with standard base32 or invent their own encoding. Incorrect IDs break cross-referencing and merge fencing (SF_25).
 
@@ -1134,7 +1164,7 @@ PRD refs: RT_11, Plet ID Scheme
 
 Pre-flight validation before implementation starts. Currently prose — agents can skip steps. FB_16 (LIBT lost spec artifacts) proved the cost of missing a check.
 
-PRD refs: EX_19, FB_16
+PRD refs: IMP_19, FB_16
 
 **What it would do:**
 - `check` — run all pre-flight checks: project builds, tests pass, working tree clean, spec artifacts exist on disk (requirements.md, iterations.md), state files parseable
@@ -1161,10 +1191,10 @@ PRD refs: VF_21–VF_24
 
 Trace event writer. Trace coverage improved dramatically in SPARK (51 files) but event schemas still vary. A tool that writes events in the canonical NDJSON schema would prevent the field-naming drift seen in earlier runs (`timestamp` vs `ts`, `iterationId` vs `iteration`).
 
-PRD refs: EX_10, RT_4, RT_5
+PRD refs: IMP_10, RT_4, RT_5
 
 **What it would do:**
-- `emit --event phase_start --iter-id ID_xxx --phase impl --attempt 1` — append canonical event to trace file
+- `emit --event phase_start --iter-id ID_xxx --phase implement --attempt 1` — append canonical event to trace file
 - `emit --event criterion_start --iter-id ID_xxx --criterion AC_1` — track criterion-level timing
 - Enforces the event schema from formats.md automatically
 
@@ -1172,7 +1202,7 @@ PRD refs: EX_10, RT_4, RT_5
 
 Dependency graph evaluation. "Which iterations are eligible?" is a pure graph algorithm on the dependency map + lifecycle states. No judgment needed — currently the orchestrator reasons about this by reading state files, which is error-prone at scale.
 
-PRD refs: EX_1, EX_5, EX_21, SF_23
+PRD refs: IMP_1, IMP_5, IMP_21, SF_23
 
 **What it would do:**
 - `eligible` — list iteration IDs ready for pickup (all deps complete, lifecycle queued)
@@ -1278,7 +1308,7 @@ As consistency passes are used, note what keeps drifting (which files, which pat
 
 ### Verify retry rate across runs
 
-Track verify first-pass rate and retry causes across case study runs. Goldilocks framing: 0% = rubber-stamping, 50%+ = impl consistently broken, 15-25% may be healthy. Only non-verify retries (git issues, crashes) warrant investigation. Current data: LOGA 85%, LIBT 100%, SPARK 83%.
+Track verify first-pass rate and retry causes across case study runs. Goldilocks framing: 0% = rubber-stamping, 50%+ = implement consistently broken, 15-25% may be healthy. Only non-verify retries (git issues, crashes) warrant investigation. Current data: LOGA 85%, LIBT 100%, SPARK 83%.
 
 ### Extracted skills losing integration context (SPI_1)
 
@@ -1332,7 +1362,7 @@ Revises the ban from FB_9. SPARK run showed 42 stashes despite the ban — stash
 
 #### Verify retry rate Goldilocks framing (2026-03-14)
 
-Withdrawing FB_36 (24% retry overhead) and FB_37 (83% first-pass rate). A 0% retry rate means verify might not be catching anything (rubber-stamping). A very high retry rate (50%+) means impl is consistently producing bad work. Somewhere in the middle is healthy — verify catching real issues is the system working as designed. Only non-verify retries (git issues, crashes) are worth investigating. The user's framing: "there is a Goldilocks zone where we want verify to find problems because that's what it's there for, but if verify is constantly finding problems in every iteration then something is wrong."
+Withdrawing FB_36 (24% retry overhead) and FB_37 (83% first-pass rate). A 0% retry rate means verify might not be catching anything (rubber-stamping). A very high retry rate (50%+) means implement is consistently producing bad work. Somewhere in the middle is healthy — verify catching real issues is the system working as designed. Only non-verify retries (git issues, crashes) are worth investigating. The user's framing: "there is a Goldilocks zone where we want verify to find problems because that's what it's there for, but if verify is constantly finding problems in every iteration then something is wrong."
 
 #### Refine decomposition must happen after triage — DECIDED (2026-03-14)
 
@@ -1346,11 +1376,11 @@ Script tooling decisions (coding standards, orchestrator analysis, script invent
 
 **Problem:** LIBT run agents used `git stash` during execution. Stashes are local-only, invisible to the orchestrator/other agents/external tools, and vulnerable to garbage collection. The case study archival process didn't capture them.
 
-**Decision:** Ban `git stash` entirely. Agents use incremental commits for crash recovery (EX_17 already requires this), making stashes redundant and strictly worse. Eliminates the archival problem at the source.
+**Decision:** Ban `git stash` entirely. Agents use incremental commits for crash recovery (IMP_17 already requires this), making stashes redundant and strictly worse. Eliminates the archival problem at the source.
 
 **Alternative rejected:** Allow stashes but require cleanup or archival — adds complexity for zero benefit over incremental commits.
 
-**Changes:** execute.md (critical rule), verify.md (critical rule), prd.md (EX_17 clarification), case_studies/CLAUDE.md (checklist item retained for older runs), FEEDBACK.md (FB_9 resolved).
+**Changes:** execute.md (critical rule), verify.md (critical rule), prd.md (IMP_17 clarification), case_studies/CLAUDE.md (checklist item retained for older runs), FEEDBACK.md (FB_9 resolved).
 
 ### Case study timing analysis
 
@@ -1458,7 +1488,7 @@ OpenAI's [Symphony](https://github.com/openai/symphony) framework looks like it 
 Priority: informational — not blocking any current work, but worth understanding the competitive landscape and potentially learning from their design choices.
 
 ### Configuration artifact shape
-Per-project behavior modification for planner, refiner, execute agent, and verify agent. No files or format defined yet. Key questions: one file or per-phase files? Declarative (key-value) or prose instructions? How does it compose with reference files? See Artifact Taxonomy § Configuration.
+Per-project behavior modification for planner, refiner, implement agent, and verify agent. No files or format defined yet. Key questions: one file or per-phase files? Declarative (key-value) or prose instructions? How does it compose with reference files? See Artifact Taxonomy § Configuration.
 
 ### PRD input and disambiguation
 

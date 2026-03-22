@@ -123,7 +123,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `parallelGroups` | array of arrays | no | Groups of iterations that can execute concurrently (SF_19) |
 | `breakpoints.before` | array of strings | no | Iteration IDs — orchestrator pauses before these (SF_21) |
 | `breakpoints.after` | array of strings | no | Iteration IDs — orchestrator pauses after these (SF_21) |
-| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after squash (commit hash logged in progress.md for recovery). Default `false` — tags are kept. Agents always create audit tags before squash. Per-iteration state inherits this value at initialization. (EX_17) |
+| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after squash (commit hash logged in progress.md for recovery). Default `false` — tags are kept. Agents always create audit tags before squash. Per-iteration state inherits this value at initialization. (IMP_17) |
 | `loopSessionCount` | integer | no | Number of loop sessions invoked. Incremented at the start of each `/plet loop` invocation. Used in branch names (`loop1`, `loop2`). Default `0`. |
 | `refineSessionCount` | integer | no | Number of refine sessions completed. Incremented at the start of each refine session entry. Used as the attempt number in refine-session plet ID context segments (e.g., `r1`, `r2`). Default `0`. |
 | `sessionHistory` | array | no | Append-only ledger of session transitions. Each entry: `{type, session, branch, startedAt, endedAt}`. `type` is `"loop"` or `"refine"`. `session` matches `loopSessionCount` or `refineSessionCount`. `branch` is the workstream branch for this session. `endedAt` is `null` while the session is active. Last entry is the current session; previous entry is the parent branch. Default `[]`. (OR_14) |
@@ -155,19 +155,19 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
   "activityDetail": "green: all tests passing",
 
   "attempts": {
-    "impl": 1,
+    "implement": 1,
     "verify": 0
   },
 
   "phaseTimestamps": {
-    "impl_1_start": "2026-03-07T14:00:00Z",
-    "impl_1_end": null,
+    "implement_1_start": "2026-03-07T14:00:00Z",
+    "implement_1_end": null,
     "verify_1_start": null,
     "verify_1_end": null
   },
 
   "elapsedSeconds": {
-    "impl_1": null,
+    "implement_1": null,
     "verify_1": null,
     "total": null
   },
@@ -223,7 +223,7 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 }
 ```
 
-### Example: Multi-Attempt Lifecycle (impl → verify → impl → verify)
+### Example: Multi-Attempt Lifecycle (implement → verify → implement → verify)
 
 Shows state after two full cycles: first verification rejected, second passed. Reports elided — see the standalone Verification Report example below for full report structure. Note: criteria objects reflect the latest attempt only — previous attempt evidence is overwritten. Per-attempt history is preserved in `verificationReports` and progress.md entries.
 
@@ -243,25 +243,25 @@ Shows state after two full cycles: first verification rejected, second passed. R
   "activityDetail": null,
 
   "attempts": {
-    "impl": 2,
+    "implement": 2,
     "verify": 2
   },
 
   "phaseTimestamps": {
-    "impl_1_start": "2026-03-07T14:00:00Z",
-    "impl_1_end": "2026-03-07T15:30:00Z",
+    "implement_1_start": "2026-03-07T14:00:00Z",
+    "implement_1_end": "2026-03-07T15:30:00Z",
     "verify_1_start": "2026-03-07T16:00:00Z",
     "verify_1_end": "2026-03-07T17:00:00Z",
-    "impl_2_start": "2026-03-07T17:30:00Z",
-    "impl_2_end": "2026-03-07T18:30:00Z",
+    "implement_2_start": "2026-03-07T17:30:00Z",
+    "implement_2_end": "2026-03-07T18:30:00Z",
     "verify_2_start": "2026-03-07T19:00:00Z",
     "verify_2_end": "2026-03-07T19:30:00Z"
   },
 
   "elapsedSeconds": {
-    "impl_1": 5400,
+    "implement_1": 5400,
     "verify_1": 3600,
-    "impl_2": 3600,
+    "implement_2": 3600,
     "verify_2": 1800,
     "total": 14400
   },
@@ -340,13 +340,13 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `agentId` | string \| null | yes | Agent session ID, null if idle (SF_5) |
 | `agentActivity` | string (enum) | no | Current agent activity state (SF_4) |
 | `activityDetail` | string | no | Human-readable activity description (SF_4) |
-| `attempts.impl` | number | yes | Implementation attempt count (SF_22) |
+| `attempts.implement` | number | yes | Implementation attempt count (SF_22) |
 | `attempts.verify` | number | yes | Verification attempt count (SF_22) |
 | `phaseTimestamps` | object | no | Start/end timestamps per phase per attempt (SF_22) |
-| `elapsedSeconds` | object | no | Time elapsed in seconds per phase attempt (`impl_1`, `verify_1`, etc.) and `total` across all attempts. Updated opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. |
+| `elapsedSeconds` | object | no | Time elapsed in seconds per phase attempt (`implement_1`, `verify_1`, etc.) and `total` across all attempts. Updated opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. |
 | `summary` | string | no | Current work summary (SF_22) |
 | `filesChanged` | array of strings | no | Files modified in current/last phase (SF_22) |
-| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after squash (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. Agents always create audit tags before squash. (EX_17) |
+| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after squash (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. Agents always create audit tags before squash. (IMP_17) |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
 | `lastVerdict` | string | no | Most recent verification verdict (`passed`, `rejected`, `blocked`). Absent until the first verification attempt completes. Updated by the verify agent at the same time as appending to `verificationReports`. Convenience field — canonical source is `verificationReports`. |
 | `verificationReports` | array | no | One verification report per verify attempt, ordered by attempt number. See Verification Report below. |
@@ -378,7 +378,7 @@ The `activityDetail` string provides human-readable context, e.g.:
 - `"red: writing failing test for AC_3"`
 - `"green: all tests passing"`
 - `"running linter — 2 warnings found, fixing"`
-- `"committing: plet: [ID_001] impl-1 - Project scaffolding"`
+- `"committing: plet: [ID_001] implement-1 - Project scaffolding"`
 
 ### Criterion Two-State Model (SF_7)
 
@@ -476,7 +476,7 @@ Each verification attempt appends one report to the `verificationReports` array.
 
 The progress.md status reflects the *phase attempt* outcome (did the verify agent finish its work?), while the parenthetical echoes the verdict for scannability. `BLOCKED` needs no parenthetical — the status is the verdict.
 
-**Retry exhaustion:** A `rejected` verdict normally cycles back to implementation, but the orchestrator enforces retry limits (EX_14). If the limit is exhausted, the orchestrator transitions the iteration to `lifecycle: "blocked"` instead of allowing another implementation attempt, and writes a `BLOCKED` progress entry and `blocker` emergent entry explaining retry exhaustion. The verify agent is unaware of retry limits — it always reports its verdict; the orchestrator decides whether to act on it or stop.
+**Retry exhaustion:** A `rejected` verdict normally cycles back to implementation, but the orchestrator enforces retry limits (IMP_14). If the limit is exhausted, the orchestrator transitions the iteration to `lifecycle: "blocked"` instead of allowing another implementation attempt, and writes a `BLOCKED` progress entry and `blocker` emergent entry explaining retry exhaustion. The verify agent is unaware of retry limits — it always reports its verdict; the orchestrator decides whether to act on it or stop.
 
 The `criteriaResults` array is a compact index — the full evidence stays in each criterion's `verification` object. `relatedEntries` exists at both levels: report-level for iteration-spanning concerns, criterion-level for findings specific to a single AC. This avoids duplication while giving readers a scannable overview with direct links to detailed artifacts.
 
@@ -500,7 +500,7 @@ Each line in a `-events.ndjson` file is a JSON object capturing one semantic eve
   "timestamp": "2026-03-07T15:20:01Z",
   "type": "decision",
   "iterationId": "ID_001",
-  "phase": "impl",
+  "phase": "implement",
   "attempt": 1,
   "data": {}
 }
@@ -519,10 +519,10 @@ Each line in a `-events.ndjson` file is a JSON object capturing one semantic eve
 ### Example Semantic Event Lines
 
 ```ndjson
-{"timestamp":"2026-03-07T15:00:00Z","type":"lifecycle_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"from":"queued","to":"implementing"}}
-{"timestamp":"2026-03-07T15:00:01Z","type":"activity_change","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"activity":"reading_context","detail":"reading requirements.md and learnings.md"}}
-{"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"description":"Using pytest over unittest for testing","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}}
-{"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update","iterationId":"ID_001","phase":"impl","attempt":1,"data":{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}}
+{"timestamp":"2026-03-07T15:00:00Z","type":"lifecycle_change","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"from":"queued","to":"implementing"}}
+{"timestamp":"2026-03-07T15:00:01Z","type":"activity_change","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"activity":"reading_context","detail":"reading requirements.md and learnings.md"}}
+{"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"description":"Using pytest over unittest for testing","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}}
+{"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}}
 ```
 
 ### Raw I/O Transcript

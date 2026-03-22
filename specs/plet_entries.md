@@ -17,7 +17,7 @@ Runtime artifact entries (progress, learnings, emergent) drifted in format acros
 
 | ID | Caller | Context | Commands used |
 |----|--------|---------|---------------|
-| ENT_AGT_1 | impl subagent | after implementing a criterion | `add-progress`, `add-learning`, `add-emergent` |
+| ENT_AGT_1 | implement subagent | after implementing a criterion | `add-progress`, `add-learning`, `add-emergent` |
 | ENT_AGT_2 | verify subagent | after verifying | `add-progress`, `add-learning`, `add-emergent` |
 | ENT_AGT_3 | refine session agent | during triage | `add-progress` (status changes), `add-learning`, `add-emergent` |
 | ENT_AGT_4 | orchestrator | pre-verify gate | `check` (verify entries exist before spawning verify) |
@@ -52,14 +52,14 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_APR_JUS_1 | Why: records what happened in each phase attempt. Progress entries are the primary activity log — the human-readable narrative of the run. Without this tool, agents produce inconsistent headers, missing metadata fields, and malformed div markers. Additionally, many entries went missing during runs — while unproven, agents may have been erroneously removing or overwriting entries when composing markdown freehand rather than appending atomically. | P0 |
-| ENT_APR_JUS_2 | When: called by impl agents after completing a phase attempt, by verify agents after verification, by refine agents after triage actions, and by plan agents after key milestones. Highest-frequency `add-*` command. | P0 |
+| ENT_APR_JUS_2 | When: called by implement agents after completing a phase attempt, by verify agents after verification, by refine agents after triage actions, and by plan agents after key milestones. Highest-frequency `add-*` command. | P0 |
 | ENT_APR_JUS_3 | Deprecation signal: only if progress.md is replaced by a fundamentally different activity log format. | P1 |
 
 #### Definition (ENT_APR_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase impl --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -72,7 +72,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_INP_1 | `artifact_dir` — path to plet directory (e.g., `plet/`) | P0 |
 | ENT_APR_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) or `proj` for project-level | P0 |
 | ENT_APR_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
-| ENT_APR_INP_4 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_APR_INP_4 | `--phase` — `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_APR_INP_5 | `--attempt` — attempt number (positive integer) | P0 |
 | ENT_APR_INP_6 | `--status` — `IN_PROGRESS`, `COMPLETE`, `BLOCKED`, `FAILED`, `SKIPPED`, or `MIGRATED`. Required — agent must always specify. | P0 |
 | ENT_APR_INP_7 | `--content` — freeform content block. For BLOCKED entries, include "Work completed:" and "Work remaining:" sections. | P0 |
@@ -95,7 +95,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_PRE_1 | `{artifact_dir}/progress.md` exists (will not create it) | P0 |
 | ENT_APR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--phase`, `--attempt`, `--status`, and one of `--content` or `--content-file` | P0 |
 | ENT_APR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
-| ENT_APR_PRE_4 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_APR_PRE_4 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_APR_PRE_5 | `--status` is a valid progress status | P0 |
 | ENT_APR_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
 | ENT_APR_PRE_7 | `--files` is a valid JSON array if provided | P0 |
@@ -134,14 +134,14 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_ALR_JUS_1 | Why: records knowledge gained during implementation or verification. Learnings are the cross-iteration knowledge base — future agents read them to avoid repeating mistakes. Format consistency matters because learnings are consumed by agents, not just humans. | P0 |
-| ENT_ALR_JUS_2 | When: called by impl/verify agents whenever they discover something useful. The R_7 mandatory entry rule requires at least one learning per iteration. | P0 |
+| ENT_ALR_JUS_2 | When: called by implement/verify agents whenever they discover something useful. The R_7 mandatory entry rule requires at least one learning per iteration. | P0 |
 | ENT_ALR_JUS_3 | Deprecation signal: only if learnings.md is replaced by a fundamentally different knowledge format. | P1 |
 
 #### Definition (ENT_ALR_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase impl --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -157,7 +157,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_ALR_INP_4 | `--category` — `pattern`, `gotcha`, `technique`, `tool`, `debug`, or `context` | P0 |
 | ENT_ALR_INP_5 | `--title` — short title for the learning | P0 |
 | ENT_ALR_INP_6 | `--content` — 1-5 sentences (specific and actionable) | P0 |
-| ENT_ALR_INP_7 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_ALR_INP_7 | `--phase` — `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_ALR_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
 | ENT_ALR_INP_9 | `--content-file` — (optional) path to a file containing the content text. Mutually exclusive with `--content`. | P1 |
 
@@ -178,7 +178,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_ALR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--category`, `--title`, `--content`, `--phase`, `--attempt` | P0 |
 | ENT_ALR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 | ENT_ALR_PRE_4 | `--category` is a valid learning category | P0 |
-| ENT_ALR_PRE_5 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_ALR_PRE_5 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_ALR_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
 | ENT_ALR_PRE_7 | Exactly one of `--content` or `--content-file` must be provided | P0 |
 | ENT_ALR_PRE_8 | If `--content-file` is provided, the file must exist and be readable | P0 |
@@ -213,14 +213,14 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_AEM_JUS_1 | Why: records items discovered during execution that weren't in the spec — design decisions, requirement gaps, assumptions. Emergent items are the human triage queue. Auto-assigned EM_N numbers provide stable cross-references during refine sessions. | P0 |
-| ENT_AEM_JUS_2 | When: called by impl/verify agents when they encounter something unexpected. Less frequent than progress/learning entries but higher consequence — emergent items drive refine sessions. | P0 |
+| ENT_AEM_JUS_2 | When: called by implement/verify agents when they encounter something unexpected. Less frequent than progress/learning entries but higher consequence — emergent items drive refine sessions. | P0 |
 | ENT_AEM_JUS_3 | Deprecation signal: only if emergent.md is replaced by a different triage mechanism. | P1 |
 
 #### Definition (ENT_AEM_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase impl --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -234,7 +234,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_AEM_INP_2 | `--iter-id` — iteration ID or `proj` | P0 |
 | ENT_AEM_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_AEM_INP_4 | `--title` — short title for the emergent item | P0 |
-| ENT_AEM_INP_5 | `--phase` — `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_AEM_INP_5 | `--phase` — `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_AEM_INP_6 | `--category` — `design decision`, `requirement gap`, `assumption`, `scope question`, `edge case`, or `blocker` | P0 |
 | ENT_AEM_INP_7 | `--content` — description of what came up and what was decided/assumed | P0 |
 | ENT_AEM_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
@@ -257,7 +257,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_AEM_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--title`, `--phase`, `--category`, `--content`, `--attempt` | P0 |
 | ENT_AEM_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 | ENT_AEM_PRE_4 | `--category` is a valid emergent category | P0 |
-| ENT_AEM_PRE_5 | `--phase` is `plan`, `impl`, `verify`, or `refine` | P0 |
+| ENT_AEM_PRE_5 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_AEM_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
 | ENT_AEM_PRE_7 | Exactly one of `--content` or `--content-file` must be provided | P0 |
 | ENT_AEM_PRE_8 | If `--content-file` is provided, the file must exist and be readable | P0 |
@@ -383,7 +383,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_ERR_1 | Missing required args → print specific missing arg name + help text, exit 1 | P0 |
-| ENT_ERR_2 | Invalid phase → `Error: invalid --phase '{phase}' (valid: plan, impl, verify, refine)` | P0 |
+| ENT_ERR_2 | Invalid phase → `Error: invalid --phase '{phase}' (valid: plan, implement, verify, refine)` | P0 |
 | ENT_ERR_3 | Invalid status (progress) → `Error: invalid --status '{status}' (valid: IN_PROGRESS, COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED)` | P0 |
 | ENT_ERR_4 | Invalid category (learning) → `Error: invalid --category '{category}' (valid: pattern, gotcha, technique, tool, debug, context)` | P0 |
 | ENT_ERR_5 | Invalid category (emergent) → `Error: invalid --category '{category}' (valid: design decision, requirement gap, assumption, scope question, edge case, blocker)` | P0 |
@@ -420,7 +420,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | Type prefix | `epr` (progress), `eln` (learning), `eem` (emergent) | `epr` |
 | Timestamp | 10-char Crockford Base32 (milliseconds since epoch) | `01JD8X3K7M` |
 | Iteration | lowercase, no underscore: `ID_001` → `id001`, or `proj` | `id001` |
-| Phase | `i` (impl), `v` (verify), `r` (refine), `p` (plan) + attempt number | `i1` |
+| Phase | `i` (implement), `v` (verify), `r` (refine), `p` (plan) + attempt number | `i1` |
 
 Full example: `epr_01JD8X3K7M_id001_i1`
 
@@ -456,13 +456,13 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 
 ## 8. Examples (ENT_EXM)
 
-### ENT_EXM_1: Full impl phase entry sequence
+### ENT_EXM_1: Full implement phase entry sequence
 
 ```bash
 # After implementing AC_1 successfully
 plet_entries.py add-progress plet/ \
     --iter-id ID_001 --iter-title "Project scaffolding" \
-    --phase impl --attempt 1 --status COMPLETE \
+    --phase implement --attempt 1 --status COMPLETE \
     --content "Initialized project with pytest, ruff. All checks pass." \
     --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
 # OK — epr_01JD8X3K7M_id001_i1
@@ -473,13 +473,13 @@ plet_entries.py add-learning plet/ \
     --category technique \
     --title "ruff config needs explicit rule selection" \
     --content "Default ruff config has no rules enabled. Must add select = ['E', 'F', 'W'] to pyproject.toml." \
-    --phase impl --attempt 1
+    --phase implement --attempt 1
 # OK — eln_01JD8X3K8N_id001_i1
 
 # Record a design decision discovered during implementation
 plet_entries.py add-emergent plet/ \
     --iter-id ID_001 --iter-title "Project scaffolding" \
-    --title "Chose SQLite over PostgreSQL" --phase impl \
+    --title "Chose SQLite over PostgreSQL" --phase implement \
     --category "design decision" \
     --content "Requirements say persistent storage without specifying engine. Chose SQLite for simplicity and zero-dep setup." \
     --attempt 1
@@ -506,7 +506,7 @@ plet_entries.py check plet/ --iter-id ID_002 --output json
 ```bash
 plet_entries.py add-progress plet/ --dry-run \
     --iter-id ID_003 --iter-title "API endpoints" \
-    --phase impl --attempt 1 --status COMPLETE \
+    --phase implement --attempt 1 --status COMPLETE \
     --content "GET and POST endpoints implemented."
 # DRY RUN — would append progress entry epr_01JD8X3KAQ_id003_i1 to plet/progress.md
 ```
@@ -528,11 +528,11 @@ plet_entries.py add-progress plet/ \
 # Mid-implementation checkpoint — record progress before phase ends
 plet_entries.py add-progress plet/ \
     --iter-id ID_002 --iter-title "Core data model" \
-    --phase impl --attempt 1 --status IN_PROGRESS \
+    --phase implement --attempt 1 --status IN_PROGRESS \
     --content "SQLite schema created, CRUD operations implemented. Still working on migration logic." \
     --files '["src/db/schema.py — table definitions", "src/db/crud.py — insert/select/update"]'
 # OK — epr_01JD8X3KCS_id002_i1
-# Header in progress.md: ### [ID_002] impl-1
+# Header in progress.md: ### [ID_002] implement-1
 # (no " — IN_PROGRESS" suffix per ENT_APR_BHV_8)
 ```
 
@@ -543,7 +543,7 @@ plet_entries.py add-progress plet/ \
 | ENT_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
 | ENT_DEP_2 | imports | `util_io` | `atomic_append`, `load_text` (for `--content-file`) |
 | ENT_DEP_5 | imports | `util_id` | `generate_plet_id`, `normalize_iteration` |
-| ENT_DEP_3 | called by | `plet_gate_impl.py` | `check` as post-impl gate |
+| ENT_DEP_3 | called by | `plet_gate_impl.py` | `check` as post-implement gate |
 | ENT_DEP_4 | called by | `plet_gate_verify.py` | `check` as pre-verify gate |
 
 No outgoing calls to other `plet_*.py` scripts — `plet_entries.py` is a leaf CLI tool.
@@ -570,7 +570,7 @@ See `specs/conventions.md` for universal requirements.
 | ENT_DXP_3 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | ENT_DXP_4 | Category/status/phase enums listed in error messages and help text | P0 |
 | ENT_DXP_5 | Help text for mutating commands strongly recommends `--dry-run` in IMPORTANT section | P0 |
-| ENT_DXP_6 | Each command's PITFALLS lists common wrong values agents try (e.g., `complete` instead of `COMPLETE` for status, `implementation` instead of `impl` for phase) | P0 |
+| ENT_DXP_6 | Each command's PITFALLS lists common wrong values agents try (e.g., `complete` instead of `COMPLETE` for status, `implementation` instead of `implement` for phase) | P0 |
 | ENT_DXP_7 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json`; `--dry-run` only on mutating commands; `--content` and `--content-file` are mutually exclusive | P0 |
 
 ## 12. Critical Test Areas (ENT_CRT)

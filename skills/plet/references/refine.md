@@ -102,7 +102,7 @@ Only after the user confirms (option A), update the per-iteration state file:
 Also update:
 - Any spec or iteration changes per the user's decision (requirements.md, iterations.md)
 - The blocker emergent entry's `Outcome` field in `plet/emergent.md`
-- **Append to `plet/progress.md`** — a refine entry documenting what was blocked, what was resolved, and that the iteration was re-queued. Use phase `refine` in the entry. This gives the next impl agent context on why the iteration is back in the queue.
+- **Append to `plet/progress.md`** — a refine entry documenting what was blocked, what was resolved, and that the iteration was re-queued. Use phase `refine` in the entry. This gives the next implement agent context on why the iteration is back in the queue.
 
 If the user chooses **not yet** (option B), leave the iteration as `blocked` and note in progress.md that it was reviewed but not yet resolved.
 
@@ -208,7 +208,7 @@ Iteration ID_NNN is partially complete (3/5 criteria pass). What would you like 
 
 3. If the user chooses **more detail** (option D), dig deeper and present:
    - Full criteria list with pass/fail status and evidence
-   - Progress entries for this iteration (impl and verify attempts)
+   - Progress entries for this iteration (implement and verify attempts)
    - Learnings entries related to this iteration
    - Emergent entries sourced from this iteration
    - Trace highlights if relevant (key decisions, errors, blockers)
@@ -387,7 +387,7 @@ For each new iteration, create `plet/state/{iteration_id}.json` with:
 - `lifecycle`: `"queued"` if no dependencies, `"ineligible"` if dependencies exist
 - `agentId`: `null`
 - `agentActivity`: `"idle"`
-- `attempts`: `{impl: 0, verify: 0}`
+- `attempts`: `{implement: 0, verify: 0}`
 - `criteria`: array from iteration definition, all `status: "not_started"`
 
 ### Dependency Map

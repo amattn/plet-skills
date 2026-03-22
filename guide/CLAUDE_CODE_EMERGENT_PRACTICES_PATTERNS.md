@@ -37,9 +37,9 @@ These are slightly more situational — still high value, but they tend to matte
 
 ## Subagent Patterns
 
-- **Fresh context windows for independence:** Each subagent (impl, verify) runs in a fresh context. No shared memory between them. This prevents contamination and ensures genuine independence.
+- **Fresh context windows for independence:** Each subagent (implement, verify) runs in a fresh context. No shared memory between them. This prevents contamination and ensures genuine independence.
 - **Subagents never ask for confirmation:** Autonomous agents must never prompt "should I proceed?" — it's effectively blocking. Resolve ambiguity by making a decision and documenting it.
-- **Verification independence:** The verify agent checks the *result*, not the *process*. It reads the codebase as-is and runs checks independently. No reading impl diffs first. Prevents rubber-stamping.
+- **Verification independence:** The verify agent checks the *result*, not the *process*. It reads the codebase as-is and runs checks independently. No reading implement diffs first. Prevents rubber-stamping.
 - **Subagents inherit CLAUDE.md and auto-memory, but not skills or tools:** Tested empirically — subagents (via the Agent tool) receive CLAUDE.md and MEMORY.md in their context automatically. They do NOT get the skills list or deferred tools. They also don't inherit conversational context — they start fresh with only your prompt plus the auto-injected project files. (Note: Agent SDK custom subagents are different — those do NOT get CLAUDE.md by default and must use explicit `skills` injection.)
 - **The "may or may not be relevant" caveat can backfire:** CLAUDE.md content is injected with a system note saying "this context may or may not be relevant to your tasks." This can cause Claude to deprioritize or ignore CLAUDE.md instructions, especially short or unconventional ones. If you have critical instructions in CLAUDE.md, make them assertive and unambiguous — don't rely on subtle hints.
 - **All state lives on disk:** Subagents never inherit prior context — they read state files. Any fresh agent can pick up work without prior conversation history.
@@ -113,7 +113,7 @@ These are slightly more situational — still high value, but they tend to matte
 - **Standardizing vocabulary pays off:** Claude drifts on terminology — "phase" vs "session" vs "step," "task" vs "iteration" vs "story." Every ambiguous term becomes a source of subtle misunderstanding that compounds across sessions and agents. Invest early in a precise vocabulary with clear definitions. It also survives compaction better (one known definition reconstructs meaning from compressed context) and lets fresh subagents get up to speed faster (no guessing what a term means). The upfront cost is small; the downstream savings are enormous.
 - **Standardizing formats pays off:** Same logic as vocabulary — ID formats, commit message conventions, file naming patterns, artifact structures. When Claude knows there's exactly one way to write an ID (`XX_N`) or name a branch (`plet/{projectId}/loop{N}/...`), it stops improvising. Reduces drift, survives compaction, and eliminates a whole class of "which format did we use?" questions.
 - **Don't overstandardize:** Standardize the things that need to be consistent (vocabulary, IDs, formats, branch names). But too much standardization constrains agents — they lose autonomy and the ability to be creative where it matters. Standardize the plumbing, not the problem-solving.
-- **"Session" not "phase" for top-level:** Plan/Loop/Refine are sessions. Phase is impl/verify within an iteration. Mixing these causes confusion at every level.
+- **"Session" not "phase" for top-level:** Plan/Loop/Refine are sessions. Phase is implement/verify within an iteration. Mixing these causes confusion at every level.
 - **ID format: underscore, append-only:** `XX_N` format. Deleted items leave gaps — never renumber, never reuse. Numbers don't imply ordering; document position does.
 - **Zero-pad in filenames only:** `ID_001.json` for lexical sort. No zero-padding in prose or artifact content.
 

@@ -18,7 +18,7 @@ This script's success led to two key insights: "Skills for Judgment, Code for Co
 | ID | Caller | Context | Commands used |
 |----|--------|---------|---------------|
 | STA_AGT_1 | plan session agent | Step 8: Initialize State | `init` |
-| STA_AGT_2 | impl subagent | during implementation | `update-criterion`, `update-field` |
+| STA_AGT_2 | implement subagent | during implementation | `update-criterion`, `update-field` |
 | STA_AGT_3 | verify subagent | during verification | `update-criterion`, `update-field` |
 | STA_AGT_4 | orchestrator | after verify completes | `update-field`, `validate` |
 | STA_AGT_5 | refine session agent | re-decomposition | `init`, `update-field` |
@@ -113,7 +113,7 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | STA_UPC_JUS_1 | Why: records the result of implementing or verifying a single acceptance criterion. Enforces the two-state model (separate implementation/verification sub-objects) and derives the top-level status automatically. Without this, agents write inconsistent criterion structures. | P0 |
-| STA_UPC_JUS_2 | When: called by impl agents after each red/green cycle, and by verify agents after independently checking each criterion. Highest-frequency command in the system. | P0 |
+| STA_UPC_JUS_2 | When: called by implement agents after each red/green cycle, and by verify agents after independently checking each criterion. Highest-frequency command in the system. | P0 |
 | STA_UPC_JUS_3 | Deprecation signal: only if the two-state criterion model is replaced by a fundamentally different approach. | P1 |
 
 #### Definition (STA_UPC_CMD)
@@ -188,7 +188,7 @@ The two-state model is the core verification invariant — implementation and ve
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | STA_UPF_JUS_1 | Why: updates top-level fields (lifecycle, agentActivity, agentId, etc.) with enum validation. Without this, agents set invalid lifecycle values or misspell field names — the most common state drift after criteria. | P0 |
-| STA_UPF_JUS_2 | When: lifecycle transitions (queued→implementing→verifying→complete), agent activity updates, phase timestamps. Called throughout impl and verify phases. | P0 |
+| STA_UPF_JUS_2 | When: lifecycle transitions (queued→implementing→verifying→complete), agent activity updates, phase timestamps. Called throughout implement and verify phases. | P0 |
 | STA_UPF_JUS_3 | Deprecation signal: if the orchestrator script handles all lifecycle transitions internally, `update-field` may become orchestrator-only (not called by subagents). Still needed but with a narrower caller set. | P1 |
 
 #### Definition (STA_UPF_CMD)
@@ -206,7 +206,7 @@ The two-state model is the core verification invariant — implementation and ve
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | STA_UPF_INP_1 | `state_file` — path to per-iteration state file | P0 |
-| STA_UPF_INP_2 | `--data` — JSON object of field/value pairs. Keys may use dotted paths (e.g., `attempts.impl`). Values are typed per JSON (strings, numbers, booleans, arrays, null). Mutually exclusive with `--data-file`. | P0 |
+| STA_UPF_INP_2 | `--data` — JSON object of field/value pairs. Keys may use dotted paths (e.g., `attempts.implement`). Values are typed per JSON (strings, numbers, booleans, arrays, null). Mutually exclusive with `--data-file`. | P0 |
 | STA_UPF_INP_3 | `--data-file` — path to a file containing the JSON object. Mutually exclusive with `--data`. Use for payloads that are awkward as shell arguments. | P1 |
 
 #### Outputs (STA_UPF_OUT)
@@ -235,7 +235,7 @@ The two-state model is the core verification invariant — implementation and ve
 |----|-------------|----------|
 | STA_UPF_PST_1 | File is valid JSON (passes `validate`) | P0 |
 | STA_UPF_PST_2 | Specified fields updated to specified values | P0 |
-| STA_UPF_PST_3 | Intermediate objects created for dotted paths (e.g., `attempts.impl` creates `attempts` if missing) | P0 |
+| STA_UPF_PST_3 | Intermediate objects created for dotted paths (e.g., `attempts.implement` creates `attempts` if missing) | P0 |
 | STA_UPF_PST_4 | `lastUpdated` timestamp refreshed | P0 |
 | STA_UPF_PST_5 | No `.tmp` residue files | P0 |
 | STA_UPF_PST_6 | Fields not in `--data` are not modified | P0 |
@@ -313,7 +313,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_INI_PST_1 | File exists and is valid JSON (passes `validate`) | P0 |
 | STA_INI_PST_2 | Lifecycle set to `queued` if no dependencies, `ineligible` otherwise | P0 |
 | STA_INI_PST_3 | Each criterion has two-state model: `implementation: null`, `verification: null`, `status: not_started` | P0 |
-| STA_INI_PST_4 | All required fields present with correct defaults: `schemaVersion`, `lastUpdated`, `lastHeartbeat`, `agentId: null`, `agentActivity: idle`, `attempts: {impl: 0, verify: 0}`, `phaseTimestamps: {}`, `elapsedSeconds: {total: 0}`, `summary: null`, `filesChanged: []`, `cleanupTagsAutomatically: false`, `verificationReports: []` | P0 |
+| STA_INI_PST_4 | All required fields present with correct defaults: `schemaVersion`, `lastUpdated`, `lastHeartbeat`, `agentId: null`, `agentActivity: idle`, `attempts: {implement: 0, verify: 0}`, `phaseTimestamps: {}`, `elapsedSeconds: {total: 0}`, `summary: null`, `filesChanged: []`, `cleanupTagsAutomatically: false`, `verificationReports: []` | P0 |
 | STA_INI_PST_5 | No `.tmp` residue files | P0 |
 
 #### Behaviors (STA_INI_BHV)
@@ -344,7 +344,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_EDG_9 | File path without `.json` extension — error. All state files must end in `.json`. Catches typos early. | P0 |
 | STA_EDG_10 | Dotted path starting with a protected prefix in `--data` (e.g., `criteria.0.status`, `schemaVersion.major`) — error. Same protection as top-level protected fields. | P0 |
 | STA_EDG_11 | Concurrent `init` on same path — race condition. Both callers check "file doesn't exist", both proceed. Atomic rename means second writer wins silently — first writer's content is lost. Documented, not prevented. Plan session creates files sequentially; concurrent init on the same path indicates a bug in the caller. | P1 |
-| STA_EDG_12 | Duplicate flags (e.g., `--phase impl --phase verify`) — error. Agent-first: fail loudly on misuse. `parse_kwargs` in `util_cli.py` detects and rejects duplicate keys. | P0 |
+| STA_EDG_12 | Duplicate flags (e.g., `--phase implement --phase verify`) — error. Agent-first: fail loudly on misuse. `parse_kwargs` in `util_cli.py` detects and rejects duplicate keys. | P0 |
 | STA_EDG_13 | Conflicting flags (e.g., `--dry-run` with `--no-verify-deps` on init) — both honored independently. `--dry-run` previews the output, `--no-verify-deps` skips the dependency check during preview. No conflict. | P1 |
 | STA_EDG_14 | `--output json` without `--fields` combined with `--dry-run` — show full JSON preview of what would be written/changed, wrapped in the standard JSON response envelope. | P1 |
 | STA_EDG_15 | `--pretty` without `--output json` — error. `--pretty` only applies to JSON output. | P0 |
@@ -525,7 +525,7 @@ plet_state.py update-criterion plet/state/ID_001.json \
     --criterion AC_2 --phase implementation --status pass \
     --evidence "ruff check returns 0 warnings" --elapsed 10
 
-# 5. Transition to verifying — clear impl agent, hand off
+# 5. Transition to verifying — clear implement agent, hand off
 plet_state.py update-field plet/state/ID_001.json \
     --data '{"lifecycle":"verifying","agentActivity":"idle","agentId":null}'
 
@@ -544,7 +544,7 @@ plet_state.py update-criterion plet/state/ID_001.json \
 # Top-level AC_2 status derived to 'fail' (verification wins)
 # Agent documents in emergent.md, cycles back for re-implementation
 
-# 8. After re-impl and re-verify (not shown), all criteria pass
+# 8. After re-implement and re-verify (not shown), all criteria pass
 # Orchestrator completes
 plet_state.py update-field plet/state/ID_001.json \
     --data '{"lifecycle":"complete","agentActivity":"idle","agentId":null}'
@@ -610,7 +610,7 @@ plet_state.py update-criterion plet/state/ID_001.json --output json \
 |----|-----------|--------|-------------|
 | STA_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
 | STA_DEP_2 | imports | `util_io` | `load_json`, `atomic_write_json` |
-| STA_DEP_3 | called by | `plet_gate_impl.py` | `validate` as post-impl gate |
+| STA_DEP_3 | called by | `plet_gate_impl.py` | `validate` as post-implement gate |
 | STA_DEP_4 | called by | `plet_gate_verify.py` | `validate` as post-verify gate |
 | STA_DEP_5 | called by | `plet_orchestrator.py` | `update-field` for lifecycle transitions |
 
@@ -635,7 +635,7 @@ See `specs/conventions.md` for universal requirements.
 | STA_DXP_3 | Help text for mutating commands strongly recommends `--dry-run` in IMPORTANT section | P0 |
 | STA_DXP_4 | All enum values listed in help text and error messages | P0 |
 | STA_DXP_5 | `update-field` PITFALLS lists protected fields (`criteria`, `schemaVersion`, `lastUpdated`) and why each is protected | P0 |
-| STA_DXP_6 | Each command's PITFALLS lists common wrong values agents try (e.g., `impl` instead of `implementation`, `done` instead of `complete`). Different from DXP_4 (valid values) — this is "here's what agents get wrong." | P0 |
+| STA_DXP_6 | Each command's PITFALLS lists common wrong values agents try (e.g., `implement` instead of `implementation`, `done` instead of `complete`). Different from DXP_4 (valid values) — this is "here's what agents get wrong." | P0 |
 | STA_DXP_7 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json`. `--no-verify-deps` only applies to `init`. `--dry-run` only applies to mutating commands (`update-criterion`, `update-field`, `init`). | P0 |
 
 ## 12. Critical Test Areas (STA_CRT)
@@ -643,10 +643,10 @@ See `specs/conventions.md` for universal requirements.
 | ID | Area | Risk if broken | Suggested test approach |
 |----|------|---------------|----------------------|
 | STA_CRT_1 | Two-state model enforcement | Agents produce non-conforming criteria | Validate init output, update-criterion creates correct sub-objects |
-| STA_CRT_2 | Status derivation | Verification doesn't override implementation | Update impl pass → verify fail → check top-level is fail |
+| STA_CRT_2 | Status derivation | Verification doesn't override implementation | Update implement pass → verify fail → check top-level is fail |
 | STA_CRT_3 | Enum validation | Invalid lifecycle/status accepted | Test every invalid value is rejected |
 | STA_CRT_4 | Atomic writes | Partial JSON visible to readers | Check no .tmp files remain after operations |
-| STA_CRT_5 | Dotted path creation | Missing intermediate objects crash | Test `{"attempts.impl": 2}` on fresh file |
+| STA_CRT_5 | Dotted path creation | Missing intermediate objects crash | Test `{"attempts.implement": 2}` on fresh file |
 | STA_CRT_6 | --dry-run | Dry-run modifies file | Verify file unchanged after dry-run |
 | STA_CRT_7 | --output json | JSON output missing required fields | Validate all JSON responses have status, command, scriptVersion, timestamp |
 | STA_CRT_8 | --fields | Filtered output includes wrong fields | Verify fieldsIncluded/fieldsOmitted accuracy |
@@ -655,7 +655,7 @@ See `specs/conventions.md` for universal requirements.
 | STA_CRT_11 | Protected field rejection | update-field silently modifies criteria/schemaVersion | Test --data with each protected field errors |
 | STA_CRT_12 | Unknown field rejection | Typos create unexpected fields silently | Test --data with misspelled field names errors |
 | STA_CRT_13 | Dependency file verification | init accepts deps referencing nonexistent files | Test missing dep errors, test --no-verify-deps skips check |
-| STA_CRT_14 | Duplicate flag detection | Last value silently wins | Test --phase impl --phase verify errors |
+| STA_CRT_14 | Duplicate flag detection | Last value silently wins | Test --phase implement --phase verify errors |
 | STA_CRT_15 | .json extension enforcement | Non-json paths accepted silently | Test path without .json errors |
 | STA_CRT_16 | skipRationale deprecation | Old files break, or skipped without evidence | Validator accepts files with/without old skipRationale; update-criterion checks evidence non-empty for skipped |
 
@@ -680,7 +680,7 @@ See `specs/conventions.md` for universal requirements.
 | 3 | Positional args for update-criterion? | Named args only — agent-first CLI design. |
 | 4 | Alternating pairs for update-field? | `--data` JSON object — one format, zero ambiguity. |
 | 5 | File overwrite on init? | Error — UNV_NFR_2. |
-| 6 | Separate `skipRationale` field? | Deprecated — `evidence` serves as skip rationale when `status` is `skipped`. Schema change needed in `state-schema.md`. Skill reference files (`execute.md`, `verify.md`) must note that evidence acts as rationale for skipped criteria. |
+| 6 | Separate `skipRationale` field? | Deprecated — `evidence` serves as skip rationale when `status` is `skipped`. Schema change needed in `state-schema.md`. Skill reference files (`implement.md`, `verify.md`) must note that evidence acts as rationale for skipped criteria. |
 | 7 | Should `validate` support `--fix`? | No — `validate` is read-only. Schema migration is a separate concern (SF_24, STA_FUT_1). Mixing read and write in one command violates the principle that read-only commands are safe to run freely. |
 | 8 | `--data` alternatives for large payloads? | `--data-file path` added (STA_UPF_INP_3). Consistent with ENT's `--content-file` pattern. Stdin support (STA_FUT_5) withdrawn — file-based is simpler for agents. |
 

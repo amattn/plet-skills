@@ -198,7 +198,7 @@ def validate(data, path="<stdin>"):
                 "attempts must be object, got {}".format(type(att).__name__)
             )
         else:
-            for k in ["impl", "verify"]:
+            for k in ["implement", "verify"]:
                 if k not in att:
                     errors.append("attempts.{} missing".format(k))
                 elif not isinstance(att[k], (int, float)):
@@ -301,7 +301,7 @@ PITFALLS:
 - This does NOT fix issues — it only reports them. Use update-criterion,
   update-field, or init to fix state files.
 - Common invalid values: "running" (use "implementing"), "done" (use "complete"),
-  "impl" for lifecycle (use "implementing").
+  "implement" for lifecycle (use "implementing").
 
 USAGE:
     plet_state.py validate <state_file> [--output json [--pretty]] [--fields f1,f2]
@@ -382,7 +382,7 @@ IMPORTANT: Use --dry-run to preview changes before writing. Evidence is
 required and should be specific — it's the permanent record of what happened.
 
 PITFALLS:
-- Phase must be "implementation" or "verification" (not "impl" or "verify")
+- Phase must be "implementation" or "verification" (not "implement" or "verify")
 - Status must be one of: not_started, fail, pass, error, skipped (not "done" or "success")
 - When --status is "skipped", --evidence serves as the skip rationale
 - Verification status ALWAYS overrides implementation for top-level status
@@ -567,7 +567,7 @@ USAGE:
         [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
 PURPOSE: Updates top-level fields with enum validation. Supports dotted paths
-for nested fields (e.g., "attempts.impl"). Auto-refreshes lastUpdated.
+for nested fields (e.g., "attempts.implement"). Auto-refreshes lastUpdated.
 
 Examples:
     plet_state.py update-field plet/state/ID_001.json \\
@@ -577,7 +577,7 @@ Examples:
         --data '{"agentId":"agent_abc","agentActivity":"reading_context"}'
 
     plet_state.py update-field plet/state/ID_001.json \\
-        --data '{"attempts.impl":2}'
+        --data '{"attempts.implement":2}'
 
     plet_state.py update-field plet/state/ID_001.json --dry-run \\
         --data '{"lifecycle":"complete","agentActivity":"idle"}'
@@ -943,7 +943,7 @@ Examples:
         "agentId": None,
         "agentActivity": "idle",
         "activityDetail": None,
-        "attempts": {"impl": 0, "verify": 0},
+        "attempts": {"implement": 0, "verify": 0},
         "phaseTimestamps": {},
         "elapsedSeconds": {"total": 0},
         "summary": None,

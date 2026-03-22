@@ -246,8 +246,8 @@ What happens when you take Part 1's patterns seriously enough to automate them.
 
 **Slide 10.1 — "Fresh Context for Genuine Independence"**
 - Each subagent runs in its own context window — no contamination from the orchestrator
-- Orchestrator → impl agent → verify agent pipeline
-- The verify agent checks the *result*, not the *process* — no reading impl diffs first
+- Orchestrator → implement agent → verify agent pipeline
+- The verify agent checks the *result*, not the *process* — no reading implement diffs first
 - *Talking point:* Independence isn't just nice to have. Self-review always rubber-stamps. The verify agent must be genuinely ignorant of how the code was written — it reads the codebase cold and forms its own opinion.
 
 **Slide 10.2 — "What Subagents Inherit (And What They Don't)"**

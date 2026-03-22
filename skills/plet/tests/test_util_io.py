@@ -173,13 +173,13 @@ def test_atomic_write_json_nested():
         path = os.path.join(tmpdir, "test.json")
         data = {
             "criteria": [{"id": "AC_1", "status": "pass"}],
-            "attempts": {"impl": 2, "verify": 1},
+            "attempts": {"implement": 2, "verify": 1},
         }
         util_io.atomic_write_json(path, data, update_timestamp=False)
 
         loaded = json.load(open(path))
         check("nested list preserved", loaded["criteria"][0]["id"] == "AC_1")
-        check("nested dict preserved", loaded["attempts"]["impl"] == 2)
+        check("nested dict preserved", loaded["attempts"]["implement"] == 2)
 
 
 # ---------------------------------------------------------------------------

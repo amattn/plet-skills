@@ -36,7 +36,7 @@ All reference files live under `skills/plet/references/`.
 | 2a.1 | `references/formats.md` | Runtime artifact format specs |
 | 2a.2 | `references/state-schema.md` | JSON schemas for state files and trace NDJSON |
 | 2b.1 | `references/plan.md` | Plan session instructions |
-| 2b.2 | `references/execute.md` | Implementation subagent prompt |
+| 2b.2 | `references/implement.md` | Implementation subagent prompt |
 | 2b.3 | `references/verify.md` | Verification subagent prompt |
 | 2b.4 | `references/refine.md` | Refine session instructions |
 
@@ -60,7 +60,7 @@ Produced R_1–R_13. Status:
 
 | Rec | Description | Status |
 |-----|-------------|--------|
-| R_1 | Intermediate commits during impl | ✓ Done (`e25e952`) |
+| R_1 | Intermediate commits during implement | ✓ Done (`e25e952`) |
 | R_2 | Intermediate state writes | ✓ Done (`e25e952`) |
 | R_3 | One verify = one commit | ✓ Done (`037a2ab`) |
 | R_4 | Tag lifecycle — always tag, `cleanupTagsAutomatically` | ✓ Done |
@@ -93,7 +93,7 @@ Produced S_1–S_8. All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvement
 - Case study methodology formalized (`case_studies/CLAUDE.md`)
 - Case study → FEEDBACK.md pipeline formalized
 - Git stash banned in agents (FB_9)
-- Linear history and green/rebase/green invariant enforced (EX_16)
+- Linear history and green/rebase/green invariant enforced (IMP_16)
 - Version corrected to 0.1.0 across all files (history rewritten)
 - Debug number hardcoded literal exception added across all artifacts (FB_20)
 - Progress.md format enforcement via "match exactly" prose + inline templates (FB_17)
@@ -170,7 +170,7 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 | FB_31 | Final loop commit required human prompting | `plet_orchestrator.py end-session` |
 | FB_32 | Orphaned worktree after retry | `plet_git.py` worktree cleanup |
 | FB_33 | Progress.md entries incomplete | `plet_gate_impl.py post` / `plet_gate_verify.py post` |
-| FB_35 | Agent lost commits during impl | `plet_git.py` worktree isolation |
+| FB_35 | Agent lost commits during implement | `plet_git.py` worktree isolation |
 | FB_38 | Cross-iteration knowledge transfer | `plet_inject_prompt.py` always injects learnings |
 | FB_40 | State lifecycle not transitioned | `plet_orchestrator.py` transitions deterministically |
 
@@ -234,7 +234,7 @@ Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/tod
 ## Notes
 
 - Each file will be presented for review before moving to the next
-- SKILL.md references the reference files by relative path (e.g., `references/execute.md`)
+- SKILL.md references the reference files by relative path (e.g., `references/implement.md`)
 - All reference files live under `skills/plet/references/` to keep the skill self-contained
 - Version starts at 0.1.0 across all files
 - The PRD stays in `prd.md` as the source of truth; these skill files implement it
