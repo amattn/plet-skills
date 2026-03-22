@@ -63,7 +63,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 7 | `plet_trace.py` spec (TRC) | ✓ complete |
 | 8 | `plet_trace.py` implementation | ✓ complete |
 | 9 | `plet_git_iteration.py` spec (GTI) | ✓ complete |
-| 10 | `plet_git_iteration.py` implementation | not started |
+| 10 | `plet_git_iteration.py` implementation | ✓ complete |
 | 11 | `plet_git_ops.py` spec (GTO) | not started |
 | 12 | `plet_git_ops.py` implementation | not started |
 | 13 | `plet_git_check.py` spec (GTC) | not started |
