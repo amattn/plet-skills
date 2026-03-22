@@ -32,7 +32,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 8 | Implement `plet_trace.py` | Build from spec. |
 | 9 | `plet_git_iteration.py` spec (GTI) | Iteration git lifecycle — branch naming, creation, worktree create/remove. Leaf. |
 | 10 | Implement `plet_git_iteration.py` | Build from spec. |
-| 11 | `plet_git_ops.py` spec (GTO) | Git workflow operations — squash, audit-tag, cleanup-stashes. Called by orchestrator. |
+| 11 | `plet_git_ops.py` spec (GTO) | Git workflow operations — squash, audit-tag. Called by orchestrator. |
 | 12 | Implement `plet_git_ops.py` | Build from spec. |
 | 13 | `plet_git_check.py` spec (GTC) | Git compliance checks — check-iteration, check-session. Called by gate scripts and orchestrator. |
 | 14 | Implement `plet_git_check.py` | Build from spec. |

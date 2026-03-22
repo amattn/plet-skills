@@ -761,6 +761,12 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **QRY BHV prose intro:** Added design rationale paragraph — query lenient, validate strict.
 - **TRC spec complete.** Next: seq 8 (implementation).
 
+#### cleanup-stashes dropped from GTO (2026-03-22)
+
+- **Decision:** Drop `cleanup-stashes` from `plet_git_ops.py`. GTO is now 2 commands: `squash`, `audit-tag`.
+- **Why:** Worktrees (GTI) eliminate the need to stash. The stash ban is in execute.md and verify.md. A cleanup command for a problem that shouldn't exist is backwards — the fix is enforcing the ban (worktrees), not cleaning up after violations.
+- **Monitor:** If PLAN_9 comparison runs or future case studies show stashes appearing despite worktrees, revisit. Until then, YAGNI.
+
 #### plet_git.py split into three scripts (2026-03-21)
 
 **Decision:** Split `plet_git.py` (8 commands, 4 concerns) into three focused scripts by audience:
@@ -768,7 +774,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 | Script | Prefix | Purpose | Commands | Caller |
 |--------|--------|---------|----------|--------|
 | `plet_git_iteration.py` | GIT | Iteration git lifecycle | `branch-name`, `create-branch`, `worktree-create`, `worktree-remove` | Orchestrator + agents |
-| `plet_git_ops.py` | GTO | Git workflow operations | `squash`, `audit-tag`, `cleanup-stashes` | Orchestrator only |
+| `plet_git_ops.py` | GTO | Git workflow operations | `squash`, `audit-tag` | Orchestrator only |
 | `plet_git_check.py` | GTC | Git compliance checks | `check-iteration`, `check-session` | Gate scripts + orchestrator |
 
 **Rationale:** The original 8-command script mixed three audiences (agents, orchestrator, gate scripts) and four concerns (naming, worktrees, workflow ops, compliance). The split follows the existing pattern: compliance tools agents call (like plet_state, plet_entries) vs workflow steps the orchestrator sequences vs checks gate scripts run.
