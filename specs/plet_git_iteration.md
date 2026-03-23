@@ -18,23 +18,20 @@ branch-name ── derive correct branch name from state.json
 worktree-create ── isolated working directory + branch (or auto-resume)
   │
   ▼
-Subagent works in worktree (implement or verify)
+Subagent works in worktree (implement → audit-tag → verify → audit-tag)
   │
   ▼
-audit-tag + squash (GTO)
-  │
-  ▼
-rebase + fast-forward merge (orchestrator)
+merge-squash to workstream (GTO) ── one commit per iteration
   │
   ▼
 worktree-remove ── clean up on-disk directory, optionally delete branch
 ```
 
-GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktree-remove). The middle steps — subagent work, squash, rebase, merge — are other scripts' responsibilities.
+GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktree-remove). The middle steps — subagent work, audit tags, merge-squash — are other scripts' responsibilities.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_PUR_1 | **Git history is never lost.** Worktree operations manage on-disk working directories only — branches, commits, and tags are always preserved in git. `worktree-remove` cleans up the working directory; the branch and all its commits remain fully intact and reachable. Branch deletion is only performed when explicitly requested (`--delete-branch`) and only after the orchestrator has already squashed and rebased the work onto the workstream. The audit tag system (GTO) provides an additional safety net by preserving pre-squash history. | P0 |
+| GTI_PUR_1 | **Git history is never lost.** Worktree operations manage on-disk working directories only — branches, commits, and tags are always preserved in git. `worktree-remove` cleans up the working directory; the branch and all its commits remain fully intact and reachable. Branch deletion is only performed when explicitly requested (`--delete-branch`) or when `cleanupBranchesAutomatically` is true, and only after the orchestrator has merge-squashed the work onto the workstream. Audit tags mark phase boundaries on the iteration branch. | P0 |
 | GTI_PUR_2 | Branch naming convention enforcement. Agents call this instead of constructing branch names, eliminating naming drift across iterations. | P0 |
 | GTI_PUR_3 | Worktree lifecycle management. Each iteration gets an isolated working directory — eliminates stashing (FB_30) and prevents cross-branch contamination (FB_35). | P0 |
 | GTI_PUR_4 | Enforces the branch/tag conventions defined in `prd.md` § Branch and tag conventions. | P0 |
@@ -333,9 +330,9 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 ### GTI_AFL_2: Orchestrator cleans up after completion
 
 1. Iteration ID_001 reaches `complete` lifecycle
-2. Orchestrator runs squash + rebase (via plet_git_ops.py)
-3. `plet_git_iteration.py worktree-remove plet/state.json --iter-id ID_001 --delete-branch`
-4. Worktree and branch cleaned up
+2. Orchestrator runs merge-squash to workstream (via plet_git_ops.py)
+3. `plet_git_iteration.py worktree-remove plet/state.json --iter-id ID_001`
+4. Worktree cleaned up (branch cleanup handled by GTO merge-squash if cleanupBranchesAutomatically)
 
 ### GTI_AFL_3: Orchestrator cleans up orphaned worktrees at session start
 

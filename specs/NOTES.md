@@ -779,7 +779,41 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **GTO squash command → merge-squash.** Fundamentally different operation: runs from workstream, not iteration branch. Takes global + iter state, derives iteration branch name, runs merge --squash.
 - **audit-tag simplified.** Still marks phase END, but no longer a safety net for destructive squash. Lightweight boundary markers.
 - **cleanupBranchesAutomatically added.** New per-iteration state field, default false. Independent of cleanupTagsAutomatically. Controls whether the iteration branch is deleted after merge-squash. If branches deleted, tags still keep commits reachable. Both booleans default false (conservative).
-- **Cascade needed:** state-schema.md (new field), prd.md (IMP_17 squash convention), execute.md/verify.md (tag and squash sections), util_state_iter validation rules, GTO spec rewrite of squash sections.
+**Commit flow diagram:**
+
+```
+ITERATION BRANCH (no squashing, incremental commits preserved):
+
+  c1 ── c2 ── c3 ── v1 ── v2
+               │            │
+          tag:impl-1   tag:verify-1
+          (phase END)  (phase END)
+
+  Cycle-back adds more: c4 ── c5 ── v3
+                               │      │
+                          tag:impl-2  tag:verify-2
+
+WORKSTREAM (one commit per iteration via git merge --squash):
+
+  git checkout workstream
+  git merge --squash plet/LOGA/loop1/ID_001
+  git commit -m "plet: [ID_001] - Project scaffolding"
+
+  B ── [ID_001] ── [ID_002] ── [ID_003] ── ...
+       (all changes   (all changes   (all changes
+        from iter)      from iter)     from iter)
+
+MAIN (receives workstream, one commit per iteration):
+
+  A ── B ── [ID_001] ── [ID_002] ── [ID_003] ── ...
+
+CLEANUP (per-iteration state controls):
+  cleanupTagsAutomatically: false (default) → audit tags preserved
+  cleanupBranchesAutomatically: false (default) → iteration branches preserved
+  Both independent. Tags keep commits reachable even if branch deleted.
+```
+
+- **Cascade needed:** state-schema.md (new field), prd.md (IMP_17 squash convention), execute.md/verify.md (tag and squash sections), util_modules.md (iter validation rules), GTO spec rewrite of squash sections.
 
 #### cleanup-stashes dropped from GTO (2026-03-22)
 

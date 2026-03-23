@@ -67,6 +67,7 @@ State file loading and validation for both global (`plet/state.json`) and per-it
 | `iterationsFingerprint` | object | Required. |
 | `breakpoints` | object | Optional. Default: {before:[], after:[]}. |
 | `cleanupTagsAutomatically` | boolean | Optional. Default: false. |
+| `cleanupBranchesAutomatically` | boolean | Optional. Default: false. |
 
 ### Per-iteration state functions
 
@@ -90,6 +91,6 @@ State file loading and validation for both global (`plet/state.json`) and per-it
 | `attempts` | object | Required. Contains `implement` (int ≥ 0) and `verify` (int ≥ 0). |
 | `criteria` | array | Required. |
 
-Optional fields (returned with defaults if absent): `agentActivity` ("idle"), `activityDetail` (null), `phaseTimestamps` ({}), `elapsedSeconds` ({"total": 0}), `summary` (null), `filesChanged` ([]), `cleanupTagsAutomatically` (false), `verificationReports` ([]), `lastVerdict` (null), `lastHeartbeat` (null).
+Optional fields (returned with defaults if absent): `agentActivity` ("idle"), `activityDetail` (null), `phaseTimestamps` ({}), `elapsedSeconds` ({"total": 0}), `summary` (null), `filesChanged` ([]), `cleanupTagsAutomatically` (false), `cleanupBranchesAutomatically` (false), `verificationReports` ([]), `lastVerdict` (null), `lastHeartbeat` (null).
 
 Full schemas in `references/state-schema.md`.
