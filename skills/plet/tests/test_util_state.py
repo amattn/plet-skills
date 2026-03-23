@@ -442,8 +442,281 @@ def main():
     test_optional_fields_absent()
     test_optional_fields_present()
 
+    # --- iter state tests ---
+    test_iter_valid()
+    test_iter_minimal()
+    test_iter_file_not_found()
+    test_iter_invalid_json()
+    test_iter_missing_required_fields()
+    test_iter_wrong_types()
+    test_iter_invalid_iteration_id()
+    test_iter_invalid_lifecycle()
+    test_iter_attempts_validation()
+    test_iter_optional_defaults()
+    test_iter_load_without_validation()
+    test_iter_validate_function()
+
     print("\n{} passed, {} failed".format(passed, failed))
     return 0 if failed == 0 else 1
+
+
+# ---------------------------------------------------------------------------
+# Iter state test fixtures
+# ---------------------------------------------------------------------------
+
+VALID_ITER_STATE = {
+    "schemaVersion": "0.1.0",
+    "iterationId": "ID_001",
+    "title": "Project scaffolding",
+    "lastUpdated": "2026-03-07T14:00:00Z",
+    "lifecycle": "implementing",
+    "dependencies": [],
+    "agentId": "agent_abc123",
+    "attempts": {"implement": 1, "verify": 0},
+    "criteria": [
+        {"id": "AC_1", "description": "Tests pass", "status": "not_started"},
+    ],
+}
+
+
+def write_iter_state(tmpdir, data):
+    """Write an iter state file and return its path."""
+    path = os.path.join(tmpdir, "ID_001.json")
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Iter state tests
+# ---------------------------------------------------------------------------
+
+def test_iter_valid():
+    print("\n## iter: load_and_validate_iter_state — valid file")
+    import util_state
+
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, VALID_ITER_STATE)
+        result = util_state.load_and_validate_iter_state(path)
+
+        check("returns dict", isinstance(result, dict))
+        check("iterationId", result["iterationId"] == "ID_001")
+        check("title", result["title"] == "Project scaffolding")
+        check("lifecycle", result["lifecycle"] == "implementing")
+        check("attempts.implement", result["attempts"]["implement"] == 1)
+        check("attempts.verify", result["attempts"]["verify"] == 0)
+        check("criteria present", len(result["criteria"]) == 1)
+
+
+def test_iter_minimal():
+    print("\n## iter: load_and_validate_iter_state — minimal (required only)")
+    import util_state
+
+    minimal = {
+        "schemaVersion": "0.1.0",
+        "iterationId": "ID_002",
+        "title": "Core feature",
+        "lastUpdated": "2026-03-07T14:00:00Z",
+        "lifecycle": "queued",
+        "dependencies": ["ID_001"],
+        "agentId": None,
+        "attempts": {"implement": 0, "verify": 0},
+        "criteria": [],
+    }
+
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, minimal)
+        result = util_state.load_and_validate_iter_state(path)
+
+        check("returns dict", isinstance(result, dict))
+        check("agentId null ok", result["agentId"] is None)
+        # Optional defaults injected
+        check("agentActivity default", result["agentActivity"] == "idle")
+        check("activityDetail default", result["activityDetail"] is None)
+        check("phaseTimestamps default", result["phaseTimestamps"] == {})
+        check("elapsedSeconds default", result["elapsedSeconds"] == {"total": 0})
+        check("summary default", result["summary"] is None)
+        check("filesChanged default", result["filesChanged"] == [])
+        check("cleanupTagsAutomatically default", result["cleanupTagsAutomatically"] is False)
+        check("cleanupBranchesAutomatically default", result["cleanupBranchesAutomatically"] is False)
+        check("verificationReports default", result["verificationReports"] == [])
+        check("lastVerdict default", result["lastVerdict"] is None)
+        check("lastHeartbeat default", result["lastHeartbeat"] is None)
+
+
+def test_iter_file_not_found():
+    print("\n## iter: file not found")
+    import util_state
+
+    result = util_state.load_and_validate_iter_state("/nonexistent/ID_001.json")
+    check("returns None", result is None)
+
+
+def test_iter_invalid_json():
+    print("\n## iter: invalid JSON")
+    import util_state
+
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "ID_001.json")
+        with open(path, "w") as f:
+            f.write("not json {{{")
+
+        result = util_state.load_and_validate_iter_state(path)
+        check("returns None", result is None)
+
+
+def test_iter_missing_required_fields():
+    print("\n## iter: missing required fields")
+    import util_state
+
+    required = ["schemaVersion", "iterationId", "title", "lastUpdated",
+                "lifecycle", "dependencies", "agentId", "attempts", "criteria"]
+
+    for field in required:
+        state = dict(VALID_ITER_STATE)
+        del state[field]
+        with tempfile.TemporaryDirectory() as d:
+            path = write_iter_state(d, state)
+            result = util_state.load_and_validate_iter_state(path)
+            check("missing {} rejected".format(field), result is None)
+
+
+def test_iter_wrong_types():
+    print("\n## iter: wrong field types")
+    import util_state
+
+    type_checks = [
+        ("schemaVersion", 123),
+        ("iterationId", 123),
+        ("title", 123),
+        ("lastUpdated", 123),
+        ("lifecycle", 123),
+        ("dependencies", "not_array"),
+        ("attempts", "not_object"),
+        ("criteria", "not_array"),
+    ]
+
+    for field, bad_value in type_checks:
+        state = dict(VALID_ITER_STATE)
+        state[field] = bad_value
+        with tempfile.TemporaryDirectory() as d:
+            path = write_iter_state(d, state)
+            result = util_state.load_and_validate_iter_state(path)
+            check("{} wrong type rejected".format(field), result is None)
+
+
+def test_iter_invalid_iteration_id():
+    print("\n## iter: invalid iterationId patterns")
+    import util_state
+
+    invalid_ids = ["", "001", "id_001", "ID001", "ID_", "ITER_1"]
+
+    for iid in invalid_ids:
+        state = dict(VALID_ITER_STATE)
+        state["iterationId"] = iid
+        with tempfile.TemporaryDirectory() as d:
+            path = write_iter_state(d, state)
+            result = util_state.load_and_validate_iter_state(path)
+            check("rejects '{}'".format(iid), result is None)
+
+
+def test_iter_invalid_lifecycle():
+    print("\n## iter: invalid lifecycle value")
+    import util_state
+
+    state = dict(VALID_ITER_STATE)
+    state["lifecycle"] = "running"
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, state)
+        result = util_state.load_and_validate_iter_state(path)
+        check("invalid lifecycle rejected", result is None)
+
+
+def test_iter_attempts_validation():
+    print("\n## iter: attempts validation")
+    import util_state
+
+    # Missing implement key
+    state = dict(VALID_ITER_STATE)
+    state["attempts"] = {"verify": 0}
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, state)
+        result = util_state.load_and_validate_iter_state(path)
+        check("missing attempts.implement rejected", result is None)
+
+    # Missing verify key
+    state["attempts"] = {"implement": 0}
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, state)
+        result = util_state.load_and_validate_iter_state(path)
+        check("missing attempts.verify rejected", result is None)
+
+    # Negative value
+    state["attempts"] = {"implement": -1, "verify": 0}
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, state)
+        result = util_state.load_and_validate_iter_state(path)
+        check("negative attempt rejected", result is None)
+
+    # String value
+    state["attempts"] = {"implement": "1", "verify": 0}
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, state)
+        result = util_state.load_and_validate_iter_state(path)
+        check("string attempt rejected", result is None)
+
+    # Zero is valid
+    state["attempts"] = {"implement": 0, "verify": 0}
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, state)
+        result = util_state.load_and_validate_iter_state(path)
+        check("zero attempts valid", result is not None)
+
+
+def test_iter_optional_defaults():
+    print("\n## iter: optional fields absent → defaults injected")
+    import util_state
+
+    state = dict(VALID_ITER_STATE)
+    # Remove all optional fields that might be present
+    for key in ["agentActivity", "activityDetail", "phaseTimestamps",
+                "elapsedSeconds", "summary", "filesChanged",
+                "cleanupTagsAutomatically", "cleanupBranchesAutomatically",
+                "verificationReports", "lastVerdict", "lastHeartbeat"]:
+        state.pop(key, None)
+
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, state)
+        result = util_state.load_and_validate_iter_state(path)
+
+        check("returns dict", result is not None)
+        check("agentActivity injected", result["agentActivity"] == "idle")
+        check("cleanupBranchesAutomatically injected",
+              result["cleanupBranchesAutomatically"] is False)
+        check("verificationReports injected", result["verificationReports"] == [])
+
+
+def test_iter_load_without_validation():
+    print("\n## iter: load_iter_state loads without validation")
+    import util_state
+
+    with tempfile.TemporaryDirectory() as d:
+        path = write_iter_state(d, {"arbitrary": "data"})
+        result = util_state.load_iter_state(path)
+        check("returns dict", isinstance(result, dict))
+        check("has arbitrary field", result.get("arbitrary") == "data")
+
+
+def test_iter_validate_function():
+    print("\n## iter: validate_iter_state — valid and invalid")
+    import util_state
+
+    ok = util_state.validate_iter_state(VALID_ITER_STATE)
+    check("valid returns True", ok is True)
+
+    ok = util_state.validate_iter_state({"not": "valid"})
+    check("invalid returns False", ok is False)
 
 
 if __name__ == "__main__":

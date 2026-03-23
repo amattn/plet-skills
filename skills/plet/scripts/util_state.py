@@ -164,3 +164,139 @@ def load_and_validate_global_state(path):
             data[field] = default
 
     return data
+
+
+# ---------------------------------------------------------------------------
+# Per-iteration state: plet/state/{id}.json
+# ---------------------------------------------------------------------------
+
+ITER_ID_RE = re.compile(r"^ID_\d+$")
+
+VALID_LIFECYCLES = [
+    "ineligible", "queued", "implementing", "verifying",
+    "complete", "blocked", "withdrawn",
+]
+
+ITER_REQUIRED_FIELDS = {
+    "schemaVersion": str,
+    "iterationId": str,
+    "title": str,
+    "lastUpdated": str,
+    "lifecycle": str,
+    "dependencies": list,
+    "attempts": dict,
+    "criteria": list,
+}
+
+# agentId is required but may be null — handled separately
+
+ITER_OPTIONAL_DEFAULTS = {
+    "agentActivity": "idle",
+    "activityDetail": None,
+    "phaseTimestamps": {},
+    "elapsedSeconds": {"total": 0},
+    "summary": None,
+    "filesChanged": [],
+    "cleanupTagsAutomatically": False,
+    "cleanupBranchesAutomatically": False,
+    "verificationReports": [],
+    "lastVerdict": None,
+    "lastHeartbeat": None,
+}
+
+
+def load_iter_state(path):
+    """Load a per-iteration state file. Returns parsed dict or None.
+
+    No validation beyond JSON syntax and file existence.
+    Prints specific error messages to stderr.
+    """
+    if os.path.isdir(path):
+        print("Error: expected a file, got directory: {}".format(path),
+              file=sys.stderr)
+        return None
+    return load_json(path)
+
+
+def validate_iter_state(data):
+    """Validate all fields in a parsed per-iteration state dict.
+
+    Returns True if valid, False if any errors.
+    Prints each error to stderr.
+    """
+    errors = []
+
+    # Check required fields exist and have correct types
+    for field, expected_type in ITER_REQUIRED_FIELDS.items():
+        if field not in data:
+            errors.append("missing required field '{}'".format(field))
+        elif not isinstance(data[field], expected_type):
+            errors.append("field '{}' must be {}, got {}".format(
+                field, expected_type.__name__, type(data[field]).__name__))
+
+    # agentId: required, must be string or null
+    if "agentId" not in data:
+        errors.append("missing required field 'agentId'")
+    elif data["agentId"] is not None and not isinstance(data["agentId"], str):
+        errors.append("field 'agentId' must be string or null, got {}".format(
+            type(data["agentId"]).__name__))
+
+    # Validate iterationId pattern
+    if "iterationId" in data and isinstance(data["iterationId"], str):
+        if not ITER_ID_RE.match(data["iterationId"]):
+            errors.append(
+                "iterationId '{}' does not match pattern ID_N+ "
+                "(e.g., ID_001)".format(data["iterationId"]))
+
+    # Validate lifecycle enum
+    if "lifecycle" in data and isinstance(data["lifecycle"], str):
+        if data["lifecycle"] not in VALID_LIFECYCLES:
+            errors.append(
+                "invalid lifecycle '{}' (valid: {})".format(
+                    data["lifecycle"], ", ".join(VALID_LIFECYCLES)))
+
+    # Validate attempts object
+    if "attempts" in data and isinstance(data["attempts"], dict):
+        for phase_key in ("implement", "verify"):
+            if phase_key not in data["attempts"]:
+                errors.append("attempts.{} is required".format(phase_key))
+            else:
+                val = data["attempts"][phase_key]
+                if isinstance(val, bool):
+                    errors.append("attempts.{} must be int, got bool".format(phase_key))
+                elif not isinstance(val, int):
+                    errors.append("attempts.{} must be int, got {}".format(
+                        phase_key, type(val).__name__))
+                elif val < 0:
+                    errors.append("attempts.{} must be non-negative, got {}".format(
+                        phase_key, val))
+
+    if errors:
+        for err in errors:
+            print("Error: iter state: {}".format(err), file=sys.stderr)
+        return False
+
+    return True
+
+
+def load_and_validate_iter_state(path):
+    """Load and validate a per-iteration state file.
+
+    Returns the validated dict on success, or None on failure.
+    Prints errors to stderr. Callers check for None and return exit 1.
+
+    Optional fields that are absent are filled with defaults.
+    """
+    data = load_iter_state(path)
+    if data is None:
+        return None
+
+    if not validate_iter_state(data):
+        return None
+
+    # Inject defaults for absent optional fields
+    for field, default in ITER_OPTIONAL_DEFAULTS.items():
+        if field not in data:
+            data[field] = default
+
+    return data
