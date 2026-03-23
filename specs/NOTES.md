@@ -815,6 +815,23 @@ CLEANUP (per-iteration state controls):
 
 - **Cascade needed:** state-schema.md (new field), prd.md (IMP_17 squash convention), execute.md/verify.md (tag and squash sections), util_modules.md (iter validation rules), GTO spec rewrite of squash sections.
 
+#### GTO spec review + implementation complete (2026-03-22)
+
+**Spec review decisions:**
+- §3.2 squash → merge-squash (MSQ): full rewrite for new architecture. `git merge --squash` from workstream, one commit per iteration.
+- Commit body auto-generated from iter_state: `Phases: implement×N, verify×N` + `Criteria: N/N passed`. FUT_3 promoted.
+- `--cleanup-tag` flag dropped (YAGNI). Tag/branch cleanup controlled by iter_state fields only.
+- EDG_12: detached HEAD detection. EDG_14: merge conflict → error + abort (promoted from FUT_4).
+- ERR updated: removed stale --iter-id/--attempt errors, added iter_state_json directory check, detached HEAD, branch not found, duplicate merge, conflict.
+- Responsibility boundary documented: GTO = pure git tool (returns data), orchestrator = logging (progress + trace).
+- `global_state_json` / `iter_state_json` naming unified across GTI, GTO, STA specs + implementations.
+
+**Implementation (red/green):**
+- audit-tag: 26 tests (red first, then green)
+- merge-squash: 22 tests (red first, then green) — 48 total
+- util_state iter functions: 59 tests (red first, then green) — 117 total for util_state
+- All existing tests passing (no regressions)
+
 #### cleanup-stashes dropped from GTO (2026-03-22)
 
 - **Decision:** Drop `cleanup-stashes` from `plet_git_ops.py`. GTO is now 2 commands: `squash`, `audit-tag`.
