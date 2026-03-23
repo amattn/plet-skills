@@ -304,7 +304,7 @@ PITFALLS:
   "implement" for lifecycle (use "implementing").
 
 USAGE:
-    plet_state.py validate <state_file> [--output json [--pretty]] [--fields f1,f2]
+    plet_state.py validate <iter_state_json> [--output json [--pretty]] [--fields f1,f2]
 
 PURPOSE: Confirms a state file conforms to the schema without modifying it.
 Checks all required fields, types, enum values, and the criterion two-state
@@ -332,7 +332,7 @@ Examples:
         return 1
 
     if len(clean_args) < 1:
-        print("Error: state_file argument is required", file=sys.stderr)
+        print("Error: iter_state_json argument is required", file=sys.stderr)
         print(HELP, file=sys.stderr)
         return 1
 
@@ -389,7 +389,7 @@ PITFALLS:
 - --pretty and --fields require --output json
 
 USAGE:
-    plet_state.py update-criterion <state_file> --criterion AC_1 \\
+    plet_state.py update-criterion <iter_state_json> --criterion AC_1 \\
         --phase implementation --status pass --evidence "..." \\
         [--elapsed N] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
@@ -420,7 +420,7 @@ Examples:
         return 1
 
     if len(clean_args) < 1:
-        print("Error: state_file argument is required", file=sys.stderr)
+        print("Error: iter_state_json argument is required", file=sys.stderr)
         print(HELP, file=sys.stderr)
         return 1
 
@@ -563,7 +563,7 @@ Valid lifecycle values:   ineligible, queued, implementing, verifying, complete,
 Valid agentActivity values: idle, reading_context, implementing, running_checks, committing, wrapping_up
 
 USAGE:
-    plet_state.py update-field <state_file> --data '{"field":"value", ...}' \\
+    plet_state.py update-field <iter_state_json> --data '{"field":"value", ...}' \\
         [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
 PURPOSE: Updates top-level fields with enum validation. Supports dotted paths
@@ -597,7 +597,7 @@ Examples:
         return 1
 
     if len(clean_args) < 1:
-        print("Error: state_file argument is required", file=sys.stderr)
+        print("Error: iter_state_json argument is required", file=sys.stderr)
         print(HELP, file=sys.stderr)
         return 1
 
@@ -749,7 +749,7 @@ PITFALLS:
 - --pretty and --fields require --output json.
 
 USAGE:
-    plet_state.py init <state_file> --iter-id ID_xxx --title "..." \\
+    plet_state.py init <iter_state_json> --iter-id ID_xxx --title "..." \\
         --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' \\
         [--no-verify-deps] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
@@ -783,7 +783,7 @@ Examples:
         return 1
 
     if len(clean_args) < 1:
-        print("Error: state_file argument is required", file=sys.stderr)
+        print("Error: iter_state_json argument is required", file=sys.stderr)
         print(HELP, file=sys.stderr)
         return 1
 

@@ -55,7 +55,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_VAL_CMD_1 | Usage: `plet_state.py validate <state_file> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_VAL_CMD_1 | Usage: `plet_state.py validate <iter_state_json> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -65,7 +65,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_VAL_INP_1 | `state_file` — path to a per-iteration state JSON file | P0 |
+| STA_VAL_INP_1 | `iter_state_json` — path to a per-iteration state JSON file | P0 |
 
 #### Outputs (STA_VAL_OUT)
 
@@ -120,7 +120,7 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion <state_file> --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion <iter_state_json> --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -130,7 +130,7 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPC_INP_1 | `state_file` — path to per-iteration state file | P0 |
+| STA_UPC_INP_1 | `iter_state_json` — path to per-iteration state file | P0 |
 | STA_UPC_INP_2 | `--criterion` — criterion ID (e.g., `AC_1`) | P0 |
 | STA_UPC_INP_3 | `--phase` — `implementation` or `verification` | P0 |
 | STA_UPC_INP_4 | `--status` — one of: `not_started`, `fail`, `pass`, `error`, `skipped` | P0 |
@@ -195,7 +195,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <state_file> --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <iter_state_json> --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -205,7 +205,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_INP_1 | `state_file` — path to per-iteration state file | P0 |
+| STA_UPF_INP_1 | `iter_state_json` — path to per-iteration state file | P0 |
 | STA_UPF_INP_2 | `--data` — JSON object of field/value pairs. Keys may use dotted paths (e.g., `attempts.implement`). Values are typed per JSON (strings, numbers, booleans, arrays, null). Mutually exclusive with `--data-file`. | P0 |
 | STA_UPF_INP_3 | `--data-file` — path to a file containing the JSON object. Mutually exclusive with `--data`. Use for payloads that are awkward as shell arguments. | P1 |
 
@@ -267,7 +267,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INI_CMD_1 | Usage: `plet_state.py init <state_file> --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_INI_CMD_1 | Usage: `plet_state.py init <iter_state_json> --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates file), not idempotent (errors on existing file), atomic
 
@@ -277,7 +277,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INI_INP_1 | `state_file` — path to create | P0 |
+| STA_INI_INP_1 | `iter_state_json` — path to create | P0 |
 | STA_INI_INP_2 | `--iter-id` — iteration ID (e.g., ID_001) | P0 |
 | STA_INI_INP_3 | `--title` — human-readable title | P0 |
 | STA_INI_INP_4 | `--dependencies` — JSON array of dependency iteration IDs (use `'[]'` for none) | P0 |

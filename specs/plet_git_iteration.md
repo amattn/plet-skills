@@ -81,7 +81,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_BRN_CMD_1 | Usage: `plet_git_iteration.py branch-name <state_json> [--iter-id ID_xxx] [--type iteration] [--output json [--pretty] [--fields f1,f2]]` where `--type` is `iteration` (default), `workstream`, `plan`, or `refine` | P0 |
+| GTI_BRN_CMD_1 | Usage: `plet_git_iteration.py branch-name <global_state_json> [--iter-id ID_xxx] [--type iteration] [--output json [--pretty] [--fields f1,f2]]` where `--type` is `iteration` (default), `workstream`, `plan`, or `refine` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes, no git operations)
 
@@ -91,7 +91,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_BRN_INP_1 | `state_json` — path to `plet/state.json`. Loaded and fully validated via `util_state.load_and_validate_global_state()`. Returns validated fields including `projectId`, `loopSessionCount`, `refineSessionCount`. | P0 |
+| GTI_BRN_INP_1 | `global_state_json` — path to `plet/state.json`. Loaded and fully validated via `util_state.load_and_validate_global_state()`. Returns validated fields including `projectId`, `loopSessionCount`, `refineSessionCount`. | P0 |
 | GTI_BRN_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required for `--type iteration`. | P0 |
 | GTI_BRN_INP_3 | `--type` — branch type: `iteration` (default), `workstream`, `plan`, or `refine`. Determines the pattern and which session counter to read. | P0 |
 
@@ -107,10 +107,10 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_BRN_PRE_1 | All required args present: `state_json`, `--iter-id` (when type is iteration) | P0 |
-| GTI_BRN_PRE_2 | `state_json` passes `util_state.load_and_validate_global_state()` (full global state validation) | P0 |
-| GTI_BRN_PRE_3 | `state_json` contains `projectId` (string, matches `[A-Z][A-Z0-9]{2,5}`) | P0 |
-| GTI_BRN_PRE_4 | `state_json` contains the session counter for the requested type: `loopSessionCount` for iteration/workstream, `refineSessionCount` for refine. Plan always uses 1 (no counter in state.json). | P0 |
+| GTI_BRN_PRE_1 | All required args present: `global_state_json`, `--iter-id` (when type is iteration) | P0 |
+| GTI_BRN_PRE_2 | `global_state_json` passes `util_state.load_and_validate_global_state()` (full global state validation) | P0 |
+| GTI_BRN_PRE_3 | `global_state_json` contains `projectId` (string, matches `[A-Z][A-Z0-9]{2,5}`) | P0 |
+| GTI_BRN_PRE_4 | `global_state_json` contains the session counter for the requested type: `loopSessionCount` for iteration/workstream, `refineSessionCount` for refine. Plan always uses 1 (no counter in state.json). | P0 |
 | GTI_BRN_PRE_5 | `--iter-id` matches pattern `ID_N+` when provided | P0 |
 | GTI_BRN_PRE_6 | `--type` is `iteration`, `workstream`, `plan`, or `refine` | P0 |
 
@@ -148,7 +148,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTC_CMD_1 | Usage: `plet_git_iteration.py worktree-create <state_json> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTI_WTC_CMD_1 | Usage: `plet_git_iteration.py worktree-create <global_state_json> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates git worktree and branch), not idempotent (errors if worktree exists), atomic (git-managed — `git worktree add` either fully succeeds or fails, edge-case cleanup via `git worktree prune`)
 
@@ -158,7 +158,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTC_INP_1 | `state_json` — path to `plet/state.json` | P0 |
+| GTI_WTC_INP_1 | `global_state_json` — path to `plet/state.json` | P0 |
 | GTI_WTC_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) | P0 |
 | GTI_WTC_INP_3 | `--base` — (optional) base branch to branch from. Default: the loop workstream branch (derived from state.json). | P1 |
 | GTI_WTC_INP_4 | `--worktree-dir` — (optional) parent directory for worktrees. Default: `.plet/worktrees/`. The iteration worktree is created at `{worktree-dir}/{projectId}/{iter_id}/` — namespaced by projectId to prevent collisions when subplets share the same iteration IDs. | P1 |
@@ -176,8 +176,8 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTC_PRE_1 | All required args present: `state_json`, `--iter-id` | P0 |
-| GTI_WTC_PRE_2 | `state_json` passes `util_state.load_and_validate_global_state()` (full global state validation) | P0 |
+| GTI_WTC_PRE_1 | All required args present: `global_state_json`, `--iter-id` | P0 |
+| GTI_WTC_PRE_2 | `global_state_json` passes `util_state.load_and_validate_global_state()` (full global state validation) | P0 |
 | GTI_WTC_PRE_3 | `--iter-id` matches pattern `ID_N+` | P0 |
 | GTI_WTC_PRE_4 | Worktree path does not already exist (error if it does — no silent overwrite) | P0 |
 | GTI_WTC_PRE_5 | If branch already exists, auto-resume: create worktree on existing branch (no `-b`). This handles blocked→unblocked iterations where partial work is committed on the branch. If branch does NOT exist, create fresh (`-b`). | P0 |
@@ -219,7 +219,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTR_CMD_1 | Usage: `plet_git_iteration.py worktree-remove <state_json> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTI_WTR_CMD_1 | Usage: `plet_git_iteration.py worktree-remove <global_state_json> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (removes git worktree, optionally deletes branch), not idempotent (errors if worktree doesn't exist)
 
@@ -229,7 +229,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTR_INP_1 | `state_json` — path to `plet/state.json` | P0 |
+| GTI_WTR_INP_1 | `global_state_json` — path to `plet/state.json` | P0 |
 | GTI_WTR_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) | P0 |
 | GTI_WTR_INP_3 | `--delete-branch` — (optional flag) also delete the iteration branch after removing the worktree. Default: keep the branch (it may be needed for rebase/merge). | P1 |
 | GTI_WTR_INP_4 | `--worktree-dir` — (optional) parent directory for worktrees. Default: `.plet/worktrees/`. | P1 |
@@ -247,8 +247,8 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTR_PRE_1 | All required args present: `state_json`, `--iter-id` | P0 |
-| GTI_WTR_PRE_2 | `state_json` passes `util_state.load_and_validate_global_state()` (full global state validation) | P0 |
+| GTI_WTR_PRE_1 | All required args present: `global_state_json`, `--iter-id` | P0 |
+| GTI_WTR_PRE_2 | `global_state_json` passes `util_state.load_and_validate_global_state()` (full global state validation) | P0 |
 | GTI_WTR_PRE_3 | `--iter-id` matches pattern `ID_N+` | P0 |
 | GTI_WTR_PRE_4 | Worktree exists at the derived path | P0 |
 | GTI_WTR_PRE_5 | Current directory is inside a git repository | P0 |
@@ -310,7 +310,7 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 | GTI_ERR_14 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | GTI_ERR_15 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | GTI_ERR_16 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
-| GTI_ERR_17 | `state_json` is a directory → `Error: expected a file, got directory: {path}` (UNV_ERR_5) | P0 |
+| GTI_ERR_17 | `global_state_json` is a directory → `Error: expected a file, got directory: {path}` (UNV_ERR_5) | P0 |
 
 ## 6. Formats (GTI_FMT)
 

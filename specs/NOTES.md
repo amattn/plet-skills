@@ -768,6 +768,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
   - `load_and_validate_iter_state(path)` / `load_iter_state` / `validate_iter_state`
 - **Convention established:** Scripts that need per-iteration context (GTO, GTC, GIM, GVR) take `<state_json> <iter_state>` as two positional args + `--phase` as the only flag for context. iter-id, attempt, title, cleanupTagsAutomatically all derived from files. Single source of truth — the state files decide, not the caller's memory.
 - **Why two positional args + --phase:** iter-id and attempt come from the file (can't pass wrong values). Phase must be explicit because lifecycle may be mid-transition when the script is called. Title comes from iter_state.title. This eliminates 3 flags (--iter-id, --attempt, --title) and prevents orchestrator bugs from silently producing wrong tag names or commit messages.
+- **Retrofit ENT/TRC deferred:** plet_entries.py and plet_trace.py use --iter-id, --phase, --attempt flags (called by subagents, not orchestrator). Retrofitting is expensive and the flag pattern works for agents. The two-state-file pattern applies to new orchestrator-called scripts (GTO, GTC, GIM, GVR). Evaluate retrofit after PLAN_9 — if case studies show agents passing wrong values, retrofit then.
 
 #### cleanup-stashes dropped from GTO (2026-03-22)
 

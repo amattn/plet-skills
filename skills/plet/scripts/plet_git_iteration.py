@@ -6,9 +6,9 @@ for isolated iteration execution. Git history is never lost — worktree operati
 manage on-disk working directories only.
 
 Usage:
-    plet_git_iteration.py branch-name <state_json> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_iteration.py worktree-create <state_json> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_iteration.py worktree-remove <state_json> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py branch-name <global_state_json> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-create <global_state_json> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-remove <global_state_json> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     branch-name       Generate the correct branch name from project state
@@ -186,9 +186,9 @@ PITFALLS:
     - Wrong base branch is the #1 cause of merge conflicts — verify session count
 
 USAGE:
-    plet_git_iteration.py branch-name <state_json> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py branch-name <global_state_json> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
 
-    state_json    Path to plet/state.json
+    global_state_json    Path to plet/state.json
     --iter-id     Iteration ID (required for --type iteration)
     --type        iteration (default), workstream, plan, or refine
 
@@ -302,7 +302,7 @@ PITFALLS:
     - If you see "branch already exists" in output, it's a resume, not an error
 
 USAGE:
-    plet_git_iteration.py worktree-create <state_json> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-create <global_state_json> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     state_json      Path to plet/state.json
     --iter-id       Iteration ID (e.g., ID_001)
@@ -468,7 +468,7 @@ PITFALLS:
     - Force-removes untracked files (build artifacts) — committed work is safe.
 
 USAGE:
-    plet_git_iteration.py worktree-remove <state_json> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-remove <global_state_json> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     state_json       Path to plet/state.json
     --iter-id        Iteration ID (e.g., ID_001)
