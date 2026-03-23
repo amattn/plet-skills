@@ -8,6 +8,29 @@ Each phase of an iteration produces incremental commits for crash recovery (IMP_
 
 These commands are called by the orchestrator during phase transitions — they need orchestrator context (branch points, tag naming, session state) and are not called directly by subagents.
 
+**Phase-end workflow (where GTO fits):**
+
+```
+Subagent finishes phase
+  │
+  ▼
+audit-tag ── preserves incremental history as tag
+  │
+  ▼
+squash ── git reset --soft to merge-base, single plet-convention commit
+  │
+  ▼
+rebase ── replay onto workstream tip (orchestrator, not GTO)
+  │
+  ▼
+fast-forward merge ── linear history on workstream (orchestrator, not GTO)
+  │
+  ▼
+worktree-remove ── clean up working directory (GTI)
+```
+
+GTO owns the audit-tag and squash steps. Rebase, merge, and worktree cleanup are orchestrator and GTI responsibilities. If verify made no commits, the orchestrator skips the entire audit-tag → squash sequence.
+
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_PUR_1 | **Git history is never lost.** Audit tags preserve the full incremental commit history before squash. Even after squash, the pre-squash commits are recoverable via the audit tag (or via reflog if tags are cleaned up). | P0 |
@@ -54,7 +77,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_ATG_CMD_1 | Usage: `plet_git_ops.py audit-tag <state_json> --iter-id ID_xxx --phase implement|verify --attempt N [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_ATG_CMD_1 | Usage: `plet_git_ops.py audit-tag <state_json> <iter_state> --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates git tag), idempotent (re-tagging same commit with same name succeeds or can use `--force`)
 
@@ -64,10 +87,9 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_ATG_INP_1 | `state_json` — path to `plet/state.json`. Loaded via `util_state.load_and_validate_global_state()`. | P0 |
-| GTO_ATG_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) | P0 |
-| GTO_ATG_INP_3 | `--phase` — `implement` or `verify` | P0 |
-| GTO_ATG_INP_4 | `--attempt` — positive integer (attempt number for this phase) | P0 |
+| GTO_ATG_INP_1 | `state_json` — path to `plet/state.json`. Loaded via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
+| GTO_ATG_INP_2 | `iter_state` — path to per-iteration state file (e.g., `plet/state/ID_001.json`). Loaded via `util_state.load_and_validate_iter_state()`. Provides `iterationId`, `attempts`. | P0 |
+| GTO_ATG_INP_3 | `--phase` — `implement` or `verify`. Required because lifecycle may be mid-transition when this is called. Attempt number derived from `iter_state.attempts[phase]`. | P0 |
 
 #### Outputs (GTO_ATG_OUT)
 
@@ -82,11 +104,11 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_ATG_PRE_1 | All required args present: `state_json`, `--iter-id`, `--phase`, `--attempt` | P0 |
+| GTO_ATG_PRE_1 | All required args present: `state_json`, `iter_state`, `--phase` | P0 |
 | GTO_ATG_PRE_2 | `state_json` passes `util_state.load_and_validate_global_state()` | P0 |
-| GTO_ATG_PRE_3 | `--iter-id` matches pattern `ID_N+` | P0 |
+| GTO_ATG_PRE_3 | `iter_state` passes `util_state.load_and_validate_iter_state()` | P0 |
 | GTO_ATG_PRE_4 | `--phase` is `implement` or `verify` | P0 |
-| GTO_ATG_PRE_5 | `--attempt` is a positive integer | P0 |
+| GTO_ATG_PRE_5 | `iter_state.attempts[phase]` is a positive integer (> 0 — phase has been attempted) | P0 |
 | GTO_ATG_PRE_6 | Current directory is inside a git repository | P0 |
 | GTO_ATG_PRE_7 | HEAD points to a valid commit (something to tag) | P0 |
 
@@ -101,7 +123,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_ATG_BHV_1 | Reads `projectId` and `loopSessionCount` from state.json to derive tag name | P0 |
+| GTO_ATG_BHV_1 | Reads `projectId` and `loopSessionCount` from state.json, `iterationId` and `attempts` from iter_state to derive tag name and attempt number | P0 |
 | GTO_ATG_BHV_2 | Tag name convention: `plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`. The `/` separators allow GUI tools to filter hierarchically. | P0 |
 | GTO_ATG_BHV_3 | Creates tag at HEAD: `git tag {tag_name}`. If tag already exists (re-run), uses `git tag -f {tag_name}` to update it. | P0 |
 | GTO_ATG_BHV_4 | Captures the commit hash (short, 7 chars) from HEAD for output and logging. | P0 |
@@ -122,7 +144,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_SQH_CMD_1 | Usage: `plet_git_ops.py squash <state_json> --iter-id ID_xxx --phase implement|verify --attempt N --title "iteration title" [--cleanup-tag] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_SQH_CMD_1 | Usage: `plet_git_ops.py squash <state_json> <iter_state> --phase implement|verify [--cleanup-tag] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (rewrites git history on the branch), not idempotent (running twice on an already-squashed branch errors — merge-base equals HEAD)
 
@@ -132,12 +154,10 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_SQH_INP_1 | `state_json` — path to `plet/state.json`. Loaded via `util_state.load_and_validate_global_state()`. | P0 |
-| GTO_SQH_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) | P0 |
-| GTO_SQH_INP_3 | `--phase` — `implement` or `verify` | P0 |
-| GTO_SQH_INP_4 | `--attempt` — positive integer | P0 |
-| GTO_SQH_INP_5 | `--title` — iteration title for the commit message (e.g., "Project scaffolding") | P0 |
-| GTO_SQH_INP_6 | `--cleanup-tag` — (optional flag) delete the audit tag after squash and log the commit hash. Only used when `cleanupTagsAutomatically` is true. The orchestrator reads this from state and passes the flag. | P1 |
+| GTO_SQH_INP_1 | `state_json` — path to `plet/state.json`. Loaded via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
+| GTO_SQH_INP_2 | `iter_state` — path to per-iteration state file (e.g., `plet/state/ID_001.json`). Loaded via `util_state.load_and_validate_iter_state()`. Provides `iterationId`, `title`, `attempts`, `cleanupTagsAutomatically`. | P0 |
+| GTO_SQH_INP_3 | `--phase` — `implement` or `verify`. Attempt number derived from `iter_state.attempts[phase]`. | P0 |
+| GTO_SQH_INP_4 | `--cleanup-tag` — (optional flag) override: force-delete the audit tag after squash regardless of `cleanupTagsAutomatically`. If absent, reads `cleanupTagsAutomatically` from `iter_state`. | P1 |
 
 #### Outputs (GTO_SQH_OUT)
 
@@ -152,11 +172,11 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_SQH_PRE_1 | All required args present: `state_json`, `--iter-id`, `--phase`, `--attempt`, `--title` | P0 |
+| GTO_SQH_PRE_1 | All required args present: `state_json`, `iter_state`, `--phase` | P0 |
 | GTO_SQH_PRE_2 | `state_json` passes `util_state.load_and_validate_global_state()` | P0 |
-| GTO_SQH_PRE_3 | `--iter-id` matches pattern `ID_N+` | P0 |
+| GTO_SQH_PRE_3 | `iter_state` passes `util_state.load_and_validate_iter_state()` | P0 |
 | GTO_SQH_PRE_4 | `--phase` is `implement` or `verify` | P0 |
-| GTO_SQH_PRE_5 | `--attempt` is a positive integer | P0 |
+| GTO_SQH_PRE_5 | `iter_state.attempts[phase]` is a positive integer (> 0) | P0 |
 | GTO_SQH_PRE_6 | Current directory is inside a git repository | P0 |
 | GTO_SQH_PRE_7 | HEAD is ahead of the merge-base with the workstream (there are commits to squash). Error if HEAD equals merge-base (nothing to squash). | P0 |
 | GTO_SQH_PRE_8 | Working tree is clean (no uncommitted changes). Squashing with dirty state risks losing work. | P0 |
@@ -179,7 +199,8 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | GTO_SQH_BHV_3 | Counts commits to squash: `git rev-list --count {merge_base}..HEAD`. Reports in output. | P0 |
 | GTO_SQH_BHV_4 | Squash: `git reset --soft {merge_base}` then `git commit -m "plet: [{iter_id}] {phase}-{attempt} - {title}"`. All staged changes from the incremental commits become one commit. | P0 |
 | GTO_SQH_BHV_5 | Commit message convention: `plet: [{iter_id}] {phase}-{attempt} - {title}`. No body — the commit is a squash; the incremental history is in the audit tag. | P0 |
-| GTO_SQH_BHV_6 | If `--cleanup-tag`: derives audit tag name (`plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`), deletes it with `git tag -d {tag}`, includes the pre-squash commit hash in output. The orchestrator logs this to progress.md for recovery. | P0 |
+| GTO_SQH_BHV_6 | Tag cleanup: if `--cleanup-tag` is passed OR `iter_state.cleanupTagsAutomatically` is true, derives audit tag name, deletes it with `git tag -d {tag}`, includes the pre-squash commit hash in output. The orchestrator logs this to progress.md for recovery. `--cleanup-tag` is a force-override; without it, the script reads the per-iteration state. | P0 |
+| GTO_SQH_BHV_8 | Reads `title` from `iter_state.title` for the commit message. No `--title` flag needed — single source of truth. | P0 |
 | GTO_SQH_BHV_7 | All git operations via `subprocess.run()` with explicit args per UNV_NFR_9 (no shell=True). | P0 |
 
 ---
@@ -208,7 +229,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | GTO_ERR_2 | Invalid `--iter-id` → `Error: --iter-id '{value}' does not match expected pattern ID_N+` | P0 |
 | GTO_ERR_3 | Invalid `--phase` → `Error: invalid --phase '{value}' (valid: implement, verify)` | P0 |
 | GTO_ERR_4 | Invalid `--attempt` → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
-| GTO_ERR_5 | state.json validation failure → error from `util_state` | P0 |
+| GTO_ERR_5 | state.json validation failure → error from `util_state` or `util_state` | P0 |
 | GTO_ERR_6 | Not a git repo → `Error: not inside a git repository` | P0 |
 | GTO_ERR_7 | Nothing to squash → `Error: nothing to squash — HEAD equals merge-base with {workstream}. Orchestrator should skip squash when no commits were made.` | P0 |
 | GTO_ERR_8 | Dirty working tree → `Error: working tree is dirty — commit or stash changes before squashing` | P0 |
@@ -222,7 +243,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_FMT_1 | Reads `plet/state.json` for `projectId`, `loopSessionCount` via `util_state` | P0 |
+| GTO_FMT_1 | Reads `plet/state.json` via `util_state` for `projectId`, `loopSessionCount`. Reads `plet/state/{id}.json` via `util_state` for `iterationId`, `title`, `attempts`, `cleanupTagsAutomatically`. | P0 |
 | GTO_FMT_2 | Audit tag convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | P0 |
 | GTO_FMT_3 | Squash commit message convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}` | P0 |
 
@@ -263,27 +284,25 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 ```bash
 # 1. Create audit tag (preserves pre-squash history)
-plet_git_ops.py audit-tag plet/state.json \
-    --iter-id ID_001 --phase implement --attempt 1
+plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json \
+    --phase implement
 # OK — created audit tag plet/LOGA/loop1/audit/ID_001/implement-1 at abc1234
 
 # 2. Squash incremental commits
-plet_git_ops.py squash plet/state.json \
-    --iter-id ID_001 --phase implement --attempt 1 \
-    --title "Project scaffolding"
+plet_git_ops.py squash plet/state.json plet/state/ID_001.json \
+    --phase implement
 # OK — squashed to: plet: [ID_001] implement-1 - Project scaffolding (def5678)
 ```
 
 ### GTO_EXM_2: Squash with tag cleanup
 
 ```bash
-plet_git_ops.py audit-tag plet/state.json \
-    --iter-id ID_001 --phase implement --attempt 1
+plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json \
+    --phase implement
 # OK — created audit tag plet/LOGA/loop1/audit/ID_001/implement-1 at abc1234
 
-plet_git_ops.py squash plet/state.json \
-    --iter-id ID_001 --phase implement --attempt 1 \
-    --title "Project scaffolding" --cleanup-tag
+plet_git_ops.py squash plet/state.json plet/state/ID_001.json \
+    --phase implement --cleanup-tag
 # OK — squashed to: plet: [ID_001] implement-1 - Project scaffolding (def5678)
 #   Tag plet/LOGA/loop1/audit/ID_001/implement-1 deleted (was at abc1234)
 ```
@@ -291,18 +310,16 @@ plet_git_ops.py squash plet/state.json \
 ### GTO_EXM_3: Dry-run
 
 ```bash
-plet_git_ops.py squash plet/state.json \
-    --iter-id ID_001 --phase implement --attempt 1 \
-    --title "Project scaffolding" --dry-run
+plet_git_ops.py squash plet/state.json plet/state/ID_001.json \
+    --phase implement --dry-run
 # DRY RUN — would squash 5 commits to: plet: [ID_001] implement-1 - Project scaffolding
 ```
 
 ### GTO_EXM_4: JSON output
 
 ```bash
-plet_git_ops.py squash plet/state.json \
-    --iter-id ID_001 --phase implement --attempt 1 \
-    --title "Project scaffolding" --output json --pretty
+plet_git_ops.py squash plet/state.json plet/state/ID_001.json \
+    --phase implement --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "squash",
@@ -320,7 +337,7 @@ plet_git_ops.py squash plet/state.json \
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | GTO_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| GTO_DEP_2 | imports | `util_state` | `load_and_validate_global_state` |
+| GTO_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
 | GTO_DEP_3 | called by | `plet_orchestrator.py` | phase-end squash workflow |
 
 No outgoing calls to other `plet_*.py` scripts — `plet_git_ops.py` is a leaf CLI tool. Calls `git` directly via `subprocess`.
@@ -383,7 +400,8 @@ See `specs/conventions.md` for universal requirements.
 | 2 | Should squash handle rebase too? | No — rebase is a separate orchestrator step between squash and merge. Squash rewrites the iteration branch; rebase replays onto workstream; merge fast-forwards. Separate concerns. |
 | 3 | Should audit-tag error on existing tag? | No — use `git tag -f` for idempotency. Handles re-runs after crash gracefully. |
 | 4 | Who decides to skip squash when verify has no commits? | The orchestrator — it checks if HEAD moved since the last squash. This script errors on nothing-to-squash; the orchestrator decides whether to call it. |
-| 5 | Should --cleanup-tag be automatic based on state? | No — the script takes it as a flag. The orchestrator reads `cleanupTagsAutomatically` from state and passes `--cleanup-tag`. Keeps the script stateless beyond state.json reading. |
+| 5 | Should --cleanup-tag be automatic based on state? | Yes — the script reads `cleanupTagsAutomatically` from the per-iteration state file. `--cleanup-tag` flag is a force-override. Single source of truth — the state file decides, not the orchestrator's memory. |
+| 6 | Should commands take explicit flags or read from state files? | Read from state files. Two positional args (`state_json`, `iter_state`) + only `--phase` as a flag. iter-id, attempt, title, cleanupTagsAutomatically all come from files. Single source of truth for 4+ scripts that need per-iteration context (GTO, GTC, GIM, GVR). |
 
 ## Open Questions
 

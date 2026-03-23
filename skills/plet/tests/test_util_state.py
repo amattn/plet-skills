@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for util_state.py — global state.json loading and validation.
+"""Tests for util_state.py — global and per-iteration state loading and validation.
 
 Zero dependencies beyond stdlib. Run with:
     python3 skills/plet/tests/test_util_state.py

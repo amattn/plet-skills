@@ -700,17 +700,17 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 
 **UNV_ERR_5/6 added:** Universal convention for file-vs-directory mismatch. Commands that expect a file error on directory and vice versa. Prevents confusing errors (e.g., JSON parse error when agent passes a directory to validate).
 
-#### util_state.py — shared state.json reading (2026-03-22)
+#### util_state_global.py — shared state.json reading (2026-03-22)
 
-- **Decision:** New `util_state.py` module for loading and validating common state.json fields.
+- **Decision:** New `util_state_global.py` module for loading and validating common state.json fields.
 - **Why:** 7+ scripts read state.json (GTI, GTO, GTC, RTR, INJ, INV, ORC). Each needs `projectId`, `loopSessionCount`, `refineSessionCount` with type validation. Without a shared function, each script duplicates the same 5-line validation or gets it wrong.
 - **Key function:** `load_and_validate_global_state(path)` — loads state.json, validates projectId (string, `[A-Z][A-Z0-9]{2,5}`), session counts (non-negative integers), returns a dict or prints error + returns None. Callers check for None.
 - **Scope:** Full validation of global state.json — all fields, types, and constraints. Not just the 3 common fields. plet_state.py validates per-iteration files; util_state validates the global file. Clear ownership split.
-- **Location:** `util_state.py` (not util_io) — state.json reading is a distinct concern with its own validation rules.
+- **Location:** `util_state_global.py` (not util_io) — state.json reading is a distinct concern with its own validation rules.
 
 #### GTI spec review decisions continued (2026-03-22)
 
-- **BRN_INP approved.** --type promoted to P0. state_json validated via util_state.load_and_validate_global_state().
+- **BRN_INP approved.** --type promoted to P0. state_json validated via util_state_global.load_and_validate_global_state().
 - **BRN_OUT approved.** Bare text output exception to UNV_CMD_15 noted in DXP_3.
 - **BRN_PRE approved.** PRE_2 references util_state, PRE_3/PRE_4 kept explicit for testability.
 - **BRN_PST approved.** No changes.
@@ -720,7 +720,7 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **WTC_INP:** Worktree path namespaced by projectId: `{worktree-dir}/{projectId}/{iter_id}/`. Prevents collisions when subplets share iteration IDs (parent LOGA/ID_001 vs subplet AUTH/ID_001).
 - **§3.3 WTR approved.** All sub-sections consistent with WTC changes (util_state PRE, projectId path).
 - **PUR_1 added:** "Git history is never lost" invariant — worktree ops manage on-disk dirs only, branches/commits preserved. Prominent placement.
-- **§4 EDG:** Collapsed EDG_7/8/15 into EDG_7 (util_state.load_and_validate_global_state handles all state validation). ERR_5/6 collapsed to ERR_5.
+- **§4 EDG:** Collapsed EDG_7/8/15 into EDG_7 (util_state_global.load_and_validate_global_state handles all state validation). ERR_5/6 collapsed to ERR_5.
 - **specs/util_modules.md created:** Single spec for all util_* modules. One section per module with function tables and validation rules. Avoids per-file spec overhead for internal modules.
 - **load_state_context → load_and_validate_global_state:** Renamed everywhere. Internal split: `load_global_state` (load JSON) + `validate_global_state` (check fields). Public function composes both.
 - **WTC auto-resume on existing branch:** If the iteration branch already exists (blocked→unblocked cycle), `worktree-create` auto-resumes — creates worktree on existing branch without `-b`. No `--resume` flag needed — the branch's existence IS the signal. Preserves all commits from the blocked attempt. EDG_2 and ERR_8 updated (no longer errors). CRT_11 added.
@@ -760,6 +760,14 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **CRT_15 added:** Enum validation in data fields test area.
 - **QRY BHV prose intro:** Added design rationale paragraph — query lenient, validate strict.
 - **TRC spec complete.** Next: seq 8 (implementation).
+
+#### util_state: unified module with global + iter functions (2026-03-22)
+
+- **One module, 6 functions:** `util_state.py` handles both global and per-iteration state. Initially split into `util_state_global.py` + `util_state_iter.py`, then re-unified — 6 functions isn't enough to justify two files.
+  - `load_and_validate_global_state(path)` / `load_global_state` / `validate_global_state`
+  - `load_and_validate_iter_state(path)` / `load_iter_state` / `validate_iter_state`
+- **Convention established:** Scripts that need per-iteration context (GTO, GTC, GIM, GVR) take `<state_json> <iter_state>` as two positional args + `--phase` as the only flag for context. iter-id, attempt, title, cleanupTagsAutomatically all derived from files. Single source of truth — the state files decide, not the caller's memory.
+- **Why two positional args + --phase:** iter-id and attempt come from the file (can't pass wrong values). Phase must be explicit because lifecycle may be mid-transition when the script is called. Title comes from iter_state.title. This eliminates 3 flags (--iter-id, --attempt, --title) and prevents orchestrator bugs from silently producing wrong tag names or commit messages.
 
 #### cleanup-stashes dropped from GTO (2026-03-22)
 

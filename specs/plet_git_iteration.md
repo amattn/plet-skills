@@ -6,6 +6,32 @@
 
 Branch naming was inconsistent across case studies — agents invented their own conventions, used wrong project IDs, forgot session numbers, or created branches in the wrong namespace. Worktree isolation was identified in FB_13/FB_30/FB_35 as the solution to stash abuse and lost commits during parallel execution.
 
+**Iteration lifecycle (where GTI fits):**
+
+```
+Orchestrator identifies eligible iteration
+  │
+  ▼
+branch-name ── derive correct branch name from state.json
+  │
+  ▼
+worktree-create ── isolated working directory + branch (or auto-resume)
+  │
+  ▼
+Subagent works in worktree (implement or verify)
+  │
+  ▼
+audit-tag + squash (GTO)
+  │
+  ▼
+rebase + fast-forward merge (orchestrator)
+  │
+  ▼
+worktree-remove ── clean up on-disk directory, optionally delete branch
+```
+
+GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktree-remove). The middle steps — subagent work, squash, rebase, merge — are other scripts' responsibilities.
+
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTI_PUR_1 | **Git history is never lost.** Worktree operations manage on-disk working directories only — branches, commits, and tags are always preserved in git. `worktree-remove` cleans up the working directory; the branch and all its commits remain fully intact and reachable. Branch deletion is only performed when explicitly requested (`--delete-branch`) and only after the orchestrator has already squashed and rebased the work onto the workstream. The audit tag system (GTO) provides an additional safety net by preserving pre-squash history. | P0 |
@@ -387,7 +413,7 @@ plet_git_iteration.py worktree-create plet/state.json --iter-id ID_005 --dry-run
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | GTI_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| GTI_DEP_2 | imports | `util_state` | `load_and_validate_global_state` (loads state.json, validates projectId + session counts) |
+| GTI_DEP_2 | imports | `util_state` | `load_and_validate_global_state` |
 | GTI_DEP_3 | called by | `plet_orchestrator.py` | iteration setup/teardown |
 
 No outgoing calls to other `plet_*.py` scripts — `plet_git_iteration.py` is a leaf CLI tool. Calls `git` directly via `subprocess`.

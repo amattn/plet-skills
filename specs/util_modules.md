@@ -43,27 +43,53 @@ Plet ID generation — Crockford Base32 timestamps and context segments.
 
 ## util_state.py
 
-Global state.json loading and full validation. Owns the global state file (`plet/state.json`) — distinct from `plet_state.py` which owns per-iteration files (`plet/state/{id}.json`).
+State file loading and validation for both global (`plet/state.json`) and per-iteration (`plet/state/{id}.json`) files. One module, 6 functions. Distinct from `plet_state.py` which owns per-iteration CRUD operations (init, update-criterion, update-field, validate as CLI commands).
+
+### Global state functions
 
 | Function | Visibility | Purpose |
 |----------|------------|---------|
-| `load_and_validate_global_state(path)` | public | Load + validate `plet/state.json`. Calls `load_global_state` then `validate_global_state`. Returns validated dict or None (prints error). Used by GTI, GTO, GTC, RTR, INJ, INV, ORC. |
-| `load_global_state(path)` | internal | Load `plet/state.json` via `util_io.load_json`. Returns parsed dict or None. No validation beyond JSON syntax. |
+| `load_and_validate_global_state(path)` | public | Load + validate `plet/state.json`. Returns validated dict or None (prints error). Used by GTI, GTO, GTC, RTR, INJ, INV, ORC. |
+| `load_global_state(path)` | internal | Load `plet/state.json` via `util_io.load_json`. Returns parsed dict or None. |
 | `validate_global_state(data)` | internal | Validate all fields per `state-schema.md` § Global State. Returns True/False (prints errors to stderr). |
 
-### Validation rules for load_and_validate_global_state
+#### Global validation rules
 
 | Field | Type | Validation |
 |-------|------|------------|
 | `projectId` | string | Required. Matches `[A-Z][A-Z0-9]{2,5}`. |
-| `loopSessionCount` | integer | Required. Non-negative (≥ 0). |
-| `refineSessionCount` | integer | Required. Non-negative (≥ 0). |
+| `loopSessionCount` | integer | Optional. Non-negative (≥ 0). Default: 0. |
+| `refineSessionCount` | integer | Optional. Non-negative (≥ 0). Default: 0. |
 | `schemaVersion` | string | Required. |
 | `dependencyMap` | object | Required. |
 | `milestones` | object | Required. |
-| `sessionHistory` | array | Optional. |
+| `sessionHistory` | array | Optional. Default: []. |
 | `iterationsFingerprint` | object | Required. |
-| `breakpoints` | object | Optional. |
-| `cleanupTagsAutomatically` | boolean | Optional. |
+| `breakpoints` | object | Optional. Default: {before:[], after:[]}. |
+| `cleanupTagsAutomatically` | boolean | Optional. Default: false. |
 
-Full schema in `references/state-schema.md` § Global State.
+### Per-iteration state functions
+
+| Function | Visibility | Purpose |
+|----------|------------|---------|
+| `load_and_validate_iter_state(path)` | public | Load + validate a per-iteration state file. Returns validated dict or None (prints error). Used by GTO, GTC, GIM, GVR. |
+| `load_iter_state(path)` | internal | Load per-iteration state JSON via `util_io.load_json`. Returns parsed dict or None. |
+| `validate_iter_state(data)` | internal | Validate required fields per `state-schema.md` § Per-Iteration State. Returns True/False (prints errors to stderr). |
+
+#### Per-iteration validation rules
+
+| Field | Type | Validation |
+|-------|------|------------|
+| `schemaVersion` | string | Required. |
+| `iterationId` | string | Required. Matches `ID_\d+`. |
+| `title` | string | Required. |
+| `lastUpdated` | string | Required. |
+| `lifecycle` | string | Required. Valid lifecycle enum. |
+| `dependencies` | array | Required. |
+| `agentId` | string or null | Required (may be null). |
+| `attempts` | object | Required. Contains `implement` (int ≥ 0) and `verify` (int ≥ 0). |
+| `criteria` | array | Required. |
+
+Optional fields (returned with defaults if absent): `agentActivity` ("idle"), `activityDetail` (null), `phaseTimestamps` ({}), `elapsedSeconds` ({"total": 0}), `summary` (null), `filesChanged` ([]), `cleanupTagsAutomatically` (false), `verificationReports` ([]), `lastVerdict` (null), `lastHeartbeat` (null).
+
+Full schemas in `references/state-schema.md`.
