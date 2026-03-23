@@ -201,7 +201,7 @@ Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
 | GTO_MSQ_BHV_2 | Derives iteration branch: `plet/{projectId}/loop{N}/{iter_id}`. Verifies exists. | P0 |
 | GTO_MSQ_BHV_3 | Merge-squash: `git merge --squash {iteration_branch}` then `git commit -m "plet: [{iter_id}] - {title}"`. All iteration changes become one commit on workstream. No merge commit created (linear history). | P0 |
 | GTO_MSQ_BHV_4 | Reads `title` from `iter_state_json.title` for commit message. Single source of truth. | P0 |
-| GTO_MSQ_BHV_5 | Commit message: `plet: [{iter_id}] - {title}`. No phase — the iteration is the unit on workstream. Phase details in audit tags and progress.md. | P0 |
+| GTO_MSQ_BHV_5 | Commit message title: `plet: [{iter_id}] - {title}`. No phase — the iteration is the unit on workstream. Body auto-generated from iter_state: lifecycle summary (phases completed, attempt counts) and criteria summary (passed/failed/skipped counts). Example body: `Phases: implement×1, verify×1\nCriteria: 3/3 passed` | P0 |
 | GTO_MSQ_BHV_6 | Tag cleanup: if `iter_state_json.cleanupTagsAutomatically` is true, finds all audit tags matching `plet/{projectId}/loop{N}/audit/{iter_id}/*`, deletes each with `git tag -d`, includes tag names and commit hashes in output. The orchestrator logs this to progress.md. | P0 |
 | GTO_MSQ_BHV_7 | Branch cleanup: if `iter_state_json.cleanupBranchesAutomatically` is true, deletes the iteration branch with `git branch -D {branch}` after tag cleanup. Included in output. | P0 |
 | GTO_MSQ_BHV_8 | All git operations via `subprocess.run()` with explicit args per UNV_NFR_9 (no shell=True). | P0 |
@@ -225,6 +225,7 @@ Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
 | GTO_EDG_11 | Re-run merge-squash after success — iteration branch unchanged, but workstream has moved. `git merge --squash` would re-apply the same changes, creating a duplicate. Detect by checking if iteration branch is an ancestor of workstream HEAD. | P0 |
 | GTO_EDG_12 | Detached HEAD — error. merge-squash requires being on the workstream branch. | P0 |
 | GTO_EDG_13 | `cleanupBranchesAutomatically` true but branch already deleted — warning, not error. | P0 |
+| GTO_EDG_14 | `git merge --squash` encounters conflicts — error. Script aborts the merge (`git merge --abort`), reports conflicting files in output. The orchestrator decides: block, spawn resolution subagent, or alert human. Conflicts are rare by design (dependency graph prevents overlap) but indicate unexpected file overlap. | P0 |
 
 ## 5. Error Handling (GTO_ERR)
 
@@ -240,6 +241,7 @@ Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
 | GTO_ERR_8 | Not on workstream → `Error: must be on workstream branch {expected}, currently on {actual}` | P0 |
 | GTO_ERR_15 | Iteration branch not found → `Error: iteration branch not found: {branch}` | P0 |
 | GTO_ERR_16 | Duplicate merge-squash → `Error: iteration branch {branch} is already merged into workstream` | P0 |
+| GTO_ERR_17 | Merge conflict → `Error: merge --squash has conflicts in {N} files: {file_list}. Merge aborted. Orchestrator must resolve or block.` | P0 |
 | GTO_ERR_9 | Git command failed → `Error: git command failed: {stderr}` | P0 |
 | GTO_ERR_10 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | GTO_ERR_11 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
@@ -253,7 +255,7 @@ Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
 |----|-------------|----------|
 | GTO_FMT_1 | Reads `plet/state.json` via `util_state` for `projectId`, `loopSessionCount`. Reads `plet/state/{id}.json` via `util_state` for `iterationId`, `title`, `attempts`, `cleanupTagsAutomatically`. | P0 |
 | GTO_FMT_2 | Audit tag convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | P0 |
-| GTO_FMT_3 | Workstream commit message convention: `plet: [{iteration_id}] - {title}` (one commit per iteration, no phase) | P0 |
+| GTO_FMT_3 | Workstream commit message: title line `plet: [{iteration_id}] - {title}`, body auto-generated with lifecycle summary (phases × attempts) and criteria summary (passed/failed/skipped counts). | P0 |
 
 ## 7. Agent Flows (GTO_AFL)
 
@@ -291,6 +293,8 @@ plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json --phase verify
 git checkout plet/LOGA/loop1/workstream
 plet_git_ops.py merge-squash plet/state.json plet/state/ID_001.json
 # OK — merged to workstream: plet: [ID_001] - Project scaffolding (ghi9012)
+#   Phases: implement×1, verify×1
+#   Criteria: 3/3 passed
 ```
 
 ### GTO_EXM_2: Merge-squash with auto cleanup (both flags true)
@@ -354,7 +358,7 @@ See `specs/conventions.md` for universal requirements.
 |----|-------------|----------|
 | GTO_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | GTO_DXP_2 | Help text for both commands strongly recommends `--dry-run` in IMPORTANT section | P0 |
-| GTO_DXP_3 | PITFALLS: squash on wrong branch, forgetting audit-tag before squash, dirty working tree | P0 |
+| GTO_DXP_3 | PITFALLS: running merge-squash from iteration branch instead of workstream, forgetting audit-tag before merge-squash, dirty working tree, merge-squash after branch already deleted | P0 |
 | GTO_DXP_4 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json` | P0 |
 | GTO_DXP_5 | Error messages include git's stderr when a git command fails | P0 |
 | GTO_DXP_6 | Output includes commit hashes (short, 7 chars) for cross-referencing with progress.md | P0 |
@@ -410,8 +414,8 @@ None.
 |----|------|-------------|
 | GTO_FUT_1 | ~~Rebase command~~ | Withdrawn — merge --squash replaces rebase + ff-merge. No rebase needed in the new architecture. |
 | GTO_FUT_2 | ~~Merge command~~ | Withdrawn — merge-squash command handles the merge. No separate ff-merge step. |
-| GTO_FUT_3 | Commit body customization | Allow the orchestrator to pass a custom commit body (not just title). Currently no body — the merge-squash commit is intentionally minimal. |
-| GTO_FUT_4 | Merge conflict handling | If `git merge --squash` encounters conflicts (e.g., workstream diverged from iteration branch base), the script would need to detect and report them. Currently assumes the iteration branch is based on the workstream tip or close to it. Monitor during PLAN_9. |
+| GTO_FUT_3 | ~~Commit body customization~~ | Promoted to requirement — body auto-generated from iter_state (lifecycle + criteria summaries). See GTO_MSQ_BHV_5. |
+| GTO_FUT_4 | ~~Merge conflict handling~~ | Promoted to EDG_14 + ERR_17. Error and abort on conflict — orchestrator decides resolution. |
 
 ## 16. FB Items Addressed
 
