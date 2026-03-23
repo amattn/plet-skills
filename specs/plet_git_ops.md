@@ -29,7 +29,7 @@ fast-forward merge ── linear history on workstream (orchestrator, not GTO)
 worktree-remove ── clean up working directory (GTI)
 ```
 
-GTO owns the audit-tag and squash steps. Rebase, merge, and worktree cleanup are orchestrator and GTI responsibilities. If verify made no commits, the orchestrator skips the entire audit-tag → squash sequence.
+GTO owns the audit-tag and squash steps. Rebase, merge, and worktree cleanup are orchestrator and GTI responsibilities. If verify made no commits, the orchestrator still runs audit-tag (consistent audit trail) but skips squash.
 
 **Responsibility boundary:** GTO is a pure git tool — it does git operations and returns results (tag names, commit hashes, squashed counts). It does NOT write to progress.md or trace files. The **orchestrator** is responsible for logging GTO results: calling `plet_entries.py add-progress` with the tag/squash metadata and `plet_trace.py append-event` for the lifecycle record. GTO returns the data; the orchestrator logs it.
 
@@ -98,7 +98,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_ATG_OUT_1 | Text mode: `OK — created audit tag {tag_name} at {commit_hash}` to stdout, exit 0 | P0 |
-| GTO_ATG_OUT_2 | JSON mode: `{"status":"ok", "command":"audit-tag", "tagName":"...", "commitHash":"...", "iterationId":"...", "phase":"...", "attempt":N, ...}` | P0 |
+| GTO_ATG_OUT_2 | JSON mode: `{"status":"ok", "command":"audit-tag", "tagName":"...", "commitHash":"...", "iterationId":"...", "phase":"...", "attempt":N, "replaced":bool, "previousHash":"..." or null, ...}`. `replaced` is true if tag already existed (force-updated). `previousHash` is the old commit hash when replaced, null otherwise. | P0 |
 | GTO_ATG_OUT_3 | Dry-run: `DRY RUN — would create audit tag {tag_name} at {commit_hash}`, exit 0 | P0 |
 | GTO_ATG_OUT_4 | Error: specific message to stderr, exit 1 | P0 |
 
@@ -146,7 +146,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_SQH_CMD_1 | Usage: `plet_git_ops.py squash <global_state_json> <iter_state_json> --phase implement|verify [--cleanup-tag] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_SQH_CMD_1 | Usage: `plet_git_ops.py squash <global_state_json> <iter_state_json> --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (rewrites git history on the branch), not idempotent (running twice on an already-squashed branch errors — merge-base equals HEAD)
 
@@ -159,7 +159,6 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | GTO_SQH_INP_1 | `global_state_json` — path to `plet/state.json`. Loaded via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
 | GTO_SQH_INP_2 | `iter_state_json` — path to per-iteration state file (e.g., `plet/state/ID_001.json`). Loaded via `util_state.load_and_validate_iter_state_json()`. Provides `iterationId`, `title`, `attempts`, `cleanupTagsAutomatically`. | P0 |
 | GTO_SQH_INP_3 | `--phase` — `implement` or `verify`. Attempt number derived from `iter_state_json.attempts[phase]`. | P0 |
-| GTO_SQH_INP_4 | `--cleanup-tag` — (optional flag) override: force-delete the audit tag after squash regardless of `cleanupTagsAutomatically`. If absent, reads `cleanupTagsAutomatically` from `iter_state_json`. | P1 |
 
 #### Outputs (GTO_SQH_OUT)
 
@@ -181,7 +180,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | GTO_SQH_PRE_5 | `iter_state_json.attempts[phase]` is a positive integer (> 0) | P0 |
 | GTO_SQH_PRE_6 | Current directory is inside a git repository | P0 |
 | GTO_SQH_PRE_7 | HEAD is ahead of the merge-base with the workstream (there are commits to squash). Error if HEAD equals merge-base (nothing to squash). | P0 |
-| GTO_SQH_PRE_8 | Working tree is clean (no uncommitted changes). Squashing with dirty state risks losing work. | P0 |
+| GTO_SQH_PRE_8 | Working tree is clean — `git status --porcelain` returns empty. Squashing with uncommitted changes risks silently including unintended files in the squash commit. | P0 |
 
 #### Postconditions (GTO_SQH_PST)
 
@@ -190,7 +189,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | GTO_SQH_PST_1 | Branch has exactly one commit ahead of the workstream merge-base | P0 |
 | GTO_SQH_PST_2 | Commit message matches convention: `plet: [{iter_id}] {phase}-{attempt} - {title}` | P0 |
 | GTO_SQH_PST_3 | All file changes from the squashed commits are preserved in the single commit | P0 |
-| GTO_SQH_PST_4 | If `--cleanup-tag`, the audit tag for this phase/attempt is deleted and the pre-squash commit hash is included in output for logging | P0 |
+| GTO_SQH_PST_4 | If `cleanupTagsAutomatically` is true in iter_state_json, the audit tag for this phase/attempt is deleted and the pre-squash commit hash is included in output for logging | P0 |
 
 #### Behaviors (GTO_SQH_BHV)
 
@@ -201,7 +200,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | GTO_SQH_BHV_3 | Counts commits to squash: `git rev-list --count {merge_base}..HEAD`. Reports in output. | P0 |
 | GTO_SQH_BHV_4 | Squash: `git reset --soft {merge_base}` then `git commit -m "plet: [{iter_id}] {phase}-{attempt} - {title}"`. All staged changes from the incremental commits become one commit. | P0 |
 | GTO_SQH_BHV_5 | Commit message convention: `plet: [{iter_id}] {phase}-{attempt} - {title}`. No body — the commit is a squash; the incremental history is in the audit tag. | P0 |
-| GTO_SQH_BHV_6 | Tag cleanup: if `--cleanup-tag` is passed OR `iter_state_json.cleanupTagsAutomatically` is true, derives audit tag name, deletes it with `git tag -d {tag}`, includes the pre-squash commit hash in output. The orchestrator logs this to progress.md for recovery. `--cleanup-tag` is a force-override; without it, the script reads the per-iteration state. | P0 |
+| GTO_SQH_BHV_6 | Tag cleanup: if `iter_state_json.cleanupTagsAutomatically` is true, derives audit tag name, deletes it with `git tag -d {tag}`, includes the pre-squash commit hash in output. The orchestrator logs this to progress.md for recovery. Single source of truth — the state file decides. | P0 |
 | GTO_SQH_BHV_8 | Reads `title` from `iter_state_json.title` for the commit message. No `--title` flag needed — single source of truth. | P0 |
 | GTO_SQH_BHV_7 | All git operations via `subprocess.run()` with explicit args per UNV_NFR_9 (no shell=True). | P0 |
 
@@ -214,7 +213,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | GTO_EDG_1 | Nothing to squash (HEAD equals merge-base) — error. Orchestrator should skip squash when verify made no commits. | P0 |
 | GTO_EDG_2 | Dirty working tree on squash — error. Uncommitted changes would be silently included in the squash commit. | P0 |
 | GTO_EDG_3 | Audit tag already exists — `audit-tag` uses `git tag -f` to update (idempotent). Handles re-runs after crash. | P0 |
-| GTO_EDG_4 | `--cleanup-tag` but tag doesn't exist — warning, not error. Tag may have been cleaned up in a previous run. | P0 |
+| GTO_EDG_4 | `cleanupTagsAutomatically` is true but audit tag doesn't exist — warning, not error. Tag may have been cleaned up in a previous run. | P0 |
 | GTO_EDG_5 | Workstream branch doesn't exist — error from merge-base. Pass through git error with context. | P0 |
 | GTO_EDG_6 | Not inside a git repo — error before any git operations. | P0 |
 | GTO_EDG_7 | state.json fails `util_state.load_and_validate_global_state()` — error with specific field/issue. | P0 |
@@ -222,24 +221,26 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 | GTO_EDG_9 | `--fields` without `--output json` — error. | P0 |
 | GTO_EDG_10 | Duplicate flags — error via `parse_kwargs`. | P0 |
 | GTO_EDG_11 | Multiple squashes on same branch (re-run after successful squash) — HEAD equals merge-base, caught by EDG_1. | P0 |
+| GTO_EDG_12 | Detached HEAD on squash — error. Squash requires being on a named branch. Check via `git symbolic-ref HEAD` (fails on detached HEAD). | P0 |
 
 ## 5. Error Handling (GTO_ERR)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_ERR_1 | Missing required args → print specific missing arg name + help text, exit 1 | P0 |
-| GTO_ERR_2 | Invalid `--iter-id` → `Error: --iter-id '{value}' does not match expected pattern ID_N+` | P0 |
-| GTO_ERR_3 | Invalid `--phase` → `Error: invalid --phase '{value}' (valid: implement, verify)` | P0 |
-| GTO_ERR_4 | Invalid `--attempt` → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
-| GTO_ERR_5 | state.json validation failure → error from `util_state` or `util_state` | P0 |
-| GTO_ERR_6 | Not a git repo → `Error: not inside a git repository` | P0 |
-| GTO_ERR_7 | Nothing to squash → `Error: nothing to squash — HEAD equals merge-base with {workstream}. Orchestrator should skip squash when no commits were made.` | P0 |
-| GTO_ERR_8 | Dirty working tree → `Error: working tree is dirty — commit or stash changes before squashing` | P0 |
+| GTO_ERR_2 | Invalid `--phase` → `Error: invalid --phase '{value}' (valid: implement, verify)` | P0 |
+| GTO_ERR_3 | Global state validation failure → error from `util_state.load_and_validate_global_state()` | P0 |
+| GTO_ERR_4 | Iter state validation failure → error from `util_state.load_and_validate_iter_state()` | P0 |
+| GTO_ERR_5 | Not a git repo → `Error: not inside a git repository` | P0 |
+| GTO_ERR_6 | Nothing to squash → `Error: nothing to squash — HEAD equals merge-base with {workstream}. Orchestrator should skip squash when no commits were made.` | P0 |
+| GTO_ERR_7 | Dirty working tree → `Error: working tree is dirty (git status --porcelain non-empty) — commit changes before squashing` | P0 |
+| GTO_ERR_8 | Detached HEAD → `Error: HEAD is detached — squash requires a named branch` | P0 |
 | GTO_ERR_9 | Git command failed → `Error: git command failed: {stderr}` | P0 |
 | GTO_ERR_10 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | GTO_ERR_11 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | GTO_ERR_12 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
 | GTO_ERR_13 | `global_state_json` is a directory → `Error: expected a file, got directory: {path}` (UNV_ERR_5) | P0 |
+| GTO_ERR_14 | `iter_state_json` is a directory → `Error: expected a file, got directory: {path}` (UNV_ERR_5) | P0 |
 
 ## 6. Formats (GTO_FMT)
 
@@ -258,14 +259,14 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 3. Tag created: `plet/LOGA/loop1/audit/ID_001/implement-1` at current HEAD
 4. Orchestrator runs: `plet_git_ops.py squash plet/state.json plet/state/ID_001.json --phase implement`
 5. Branch now has one squashed commit: `plet: [ID_001] implement-1 - Project scaffolding`
-6. If `cleanupTagsAutomatically`: add `--cleanup-tag` to squash, tag deleted, hash logged
+6. If `cleanupTagsAutomatically` is true in iter_state_json, squash auto-deletes the tag and logs the hash
 
 ### GTO_AFL_2: End of verify phase (passed, no commits)
 
 1. Verify subagent passes all criteria, no fix-in-place work
-2. Orchestrator detects no new commits since last squash (HEAD unchanged)
-3. Orchestrator **skips** both audit-tag and squash (nothing to tag/squash)
-4. Proceeds directly to rebase + fast-forward merge
+2. Orchestrator runs audit-tag anyway — tag points to same commit as implement squash (cheap, consistent audit trail)
+3. Orchestrator **skips squash** (nothing to squash — HEAD unchanged)
+4. Proceeds to rebase + fast-forward merge
 
 ### GTO_AFL_3: End of verify phase (fix-in-place commits)
 
@@ -296,7 +297,7 @@ plet_git_ops.py squash plet/state.json plet/state/ID_001.json \
 # OK — squashed to: plet: [ID_001] implement-1 - Project scaffolding (def5678)
 ```
 
-### GTO_EXM_2: Squash with tag cleanup
+### GTO_EXM_2: Squash with auto tag cleanup (cleanupTagsAutomatically=true)
 
 ```bash
 plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json \
@@ -304,7 +305,7 @@ plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json \
 # OK — created audit tag plet/LOGA/loop1/audit/ID_001/implement-1 at abc1234
 
 plet_git_ops.py squash plet/state.json plet/state/ID_001.json \
-    --phase implement --cleanup-tag
+    --phase implement
 # OK — squashed to: plet: [ID_001] implement-1 - Project scaffolding (def5678)
 #   Tag plet/LOGA/loop1/audit/ID_001/implement-1 deleted (was at abc1234)
 ```
@@ -375,7 +376,7 @@ See `specs/conventions.md` for universal requirements.
 | GTO_CRT_4 | Merge-base detection | Wrong squash target | Create commits after branching from workstream, verify merge-base is the branch point |
 | GTO_CRT_5 | Nothing to squash | Silent no-op instead of error | Call squash when HEAD equals merge-base, verify error |
 | GTO_CRT_6 | Dirty working tree | Uncommitted changes included in squash | Create uncommitted changes, verify squash errors |
-| GTO_CRT_7 | --cleanup-tag | Tag not deleted or wrong tag | Squash with --cleanup-tag, verify tag gone and hash in output |
+| GTO_CRT_7 | cleanupTagsAutomatically | Tag not deleted or wrong tag | Squash with cleanupTagsAutomatically=true in iter state, verify tag gone and hash in output |
 | GTO_CRT_8 | --dry-run | Dry-run modifies git state | Verify no tags created, no commits changed after dry-run |
 | GTO_CRT_9 | Audit tag idempotency | Re-run fails on existing tag | Create tag twice, verify second succeeds (--force) |
 | GTO_CRT_10 | Squashed count | Reports wrong number of squashed commits | Create known number of commits, verify squashedCount in JSON output |
@@ -402,7 +403,7 @@ See `specs/conventions.md` for universal requirements.
 | 2 | Should squash handle rebase too? | No — rebase is a separate orchestrator step between squash and merge. Squash rewrites the iteration branch; rebase replays onto workstream; merge fast-forwards. Separate concerns. |
 | 3 | Should audit-tag error on existing tag? | No — use `git tag -f` for idempotency. Handles re-runs after crash gracefully. |
 | 4 | Who decides to skip squash when verify has no commits? | The orchestrator — it checks if HEAD moved since the last squash. This script errors on nothing-to-squash; the orchestrator decides whether to call it. |
-| 5 | Should --cleanup-tag be automatic based on state? | Yes — the script reads `cleanupTagsAutomatically` from the per-iteration state file. `--cleanup-tag` flag is a force-override. Single source of truth — the state file decides, not the orchestrator's memory. |
+| 5 | Should tag cleanup be automatic or flag-based? | Automatic — reads `cleanupTagsAutomatically` from iter_state_json. No `--cleanup-tag` flag (YAGNI). Single source of truth — state file decides. Manual cleanup: `git tag -d` directly. |
 | 6 | Should commands take explicit flags or read from state files? | Read from state files. Two positional args (`global_state_json`, `iter_state_json`) + only `--phase` as a flag. iter-id, attempt, title, cleanupTagsAutomatically all come from files. Single source of truth for 4+ scripts that need per-iteration context (GTO, GTC, GIM, GVR). |
 
 ## Open Questions

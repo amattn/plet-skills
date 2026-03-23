@@ -770,6 +770,17 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **Why two positional args + --phase:** iter-id and attempt come from the file (can't pass wrong values). Phase must be explicit because lifecycle may be mid-transition when the script is called. Title comes from iter_state.title. This eliminates 3 flags (--iter-id, --attempt, --title) and prevents orchestrator bugs from silently producing wrong tag names or commit messages.
 - **Retrofit ENT/TRC deferred:** plet_entries.py and plet_trace.py use --iter-id, --phase, --attempt flags (called by subagents, not orchestrator). Retrofitting is expensive and the flag pattern works for agents. The two-state-file pattern applies to new orchestrator-called scripts (GTO, GTC, GIM, GVR). Evaluate retrofit after PLAN_9 — if case studies show agents passing wrong values, retrofit then.
 
+#### Squash architecture redesign (2026-03-22)
+
+- **No per-phase squashing on iteration branch.** Incremental commits stay. Tags mark phase boundaries (phase END). The iteration branch IS the full history — no audit tags needed as safety nets for destructive squash.
+- **One squash at merge-to-workstream time.** `git merge --squash` from workstream creates one commit per iteration. Linear history, no merge commits. Iteration branch untouched.
+- **Commit message changes:** `plet: [ID_001] - {title}` (no phase in message). Phase details in audit tags and progress.md.
+- **AFL_4 (post-rebase re-squash) eliminated.** No rebase needed — merge --squash stages the diff directly.
+- **GTO squash command → merge-squash.** Fundamentally different operation: runs from workstream, not iteration branch. Takes global + iter state, derives iteration branch name, runs merge --squash.
+- **audit-tag simplified.** Still marks phase END, but no longer a safety net for destructive squash. Lightweight boundary markers.
+- **cleanupBranchesAutomatically added.** New per-iteration state field, default false. Independent of cleanupTagsAutomatically. Controls whether the iteration branch is deleted after merge-squash. If branches deleted, tags still keep commits reachable. Both booleans default false (conservative).
+- **Cascade needed:** state-schema.md (new field), prd.md (IMP_17 squash convention), execute.md/verify.md (tag and squash sections), util_state_iter validation rules, GTO spec rewrite of squash sections.
+
 #### cleanup-stashes dropped from GTO (2026-03-22)
 
 - **Decision:** Drop `cleanup-stashes` from `plet_git_ops.py`. GTO is now 2 commands: `squash`, `audit-tag`.
