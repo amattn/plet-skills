@@ -31,6 +31,8 @@ worktree-remove ── clean up working directory (GTI)
 
 GTO owns the audit-tag and squash steps. Rebase, merge, and worktree cleanup are orchestrator and GTI responsibilities. If verify made no commits, the orchestrator skips the entire audit-tag → squash sequence.
 
+**Responsibility boundary:** GTO is a pure git tool — it does git operations and returns results (tag names, commit hashes, squashed counts). It does NOT write to progress.md or trace files. The **orchestrator** is responsible for logging GTO results: calling `plet_entries.py add-progress` with the tag/squash metadata and `plet_trace.py append-event` for the lifecycle record. GTO returns the data; the orchestrator logs it.
+
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_PUR_1 | **Git history is never lost.** Audit tags preserve the full incremental commit history before squash. Even after squash, the pre-squash commits are recoverable via the audit tag (or via reflog if tags are cleaned up). | P0 |
@@ -125,7 +127,7 @@ Command abbreviations: `ATG` (audit-tag), `SQH` (squash).
 |----|-------------|----------|
 | GTO_ATG_BHV_1 | Reads `projectId` and `loopSessionCount` from state.json, `iterationId` and `attempts` from iter_state_json to derive tag name and attempt number | P0 |
 | GTO_ATG_BHV_2 | Tag name convention: `plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`. The `/` separators allow GUI tools to filter hierarchically. | P0 |
-| GTO_ATG_BHV_3 | Creates tag at HEAD: `git tag {tag_name}`. If tag already exists (re-run), uses `git tag -f {tag_name}` to update it. | P0 |
+| GTO_ATG_BHV_3 | Creates tag at HEAD: `git tag {tag_name}`. If tag already exists (re-run), uses `git tag -f {tag_name}` to update it. Logs a warning to stderr: `Warning: tag {name} already existed at {old_hash}, updated to {new_hash}`. If old and new hashes differ, something unexpected happened — the orchestrator should log this to progress and trace. | P0 |
 | GTO_ATG_BHV_4 | Captures the commit hash (short, 7 chars) from HEAD for output and logging. | P0 |
 
 ---
