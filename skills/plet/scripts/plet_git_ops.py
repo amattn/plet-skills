@@ -1,0 +1,580 @@
+#!/usr/bin/env python3
+"""plet git operations — audit-tag and merge-squash for iteration workflow.
+
+Audit tags mark phase boundaries on the iteration branch. Merge-squash creates
+one commit per iteration on the workstream. Git history is never lost —
+incremental commits stay on the iteration branch.
+
+Usage:
+    plet_git_ops.py audit-tag <global_state_json> <iter_state_json> --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py merge-squash <global_state_json> <iter_state_json> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+
+Commands:
+    audit-tag       Create an audit tag marking a phase boundary
+    merge-squash    Merge iteration into workstream as one commit
+"""
+
+import json
+import os
+import re
+import subprocess as sp
+import sys
+
+# Add scripts dir to path for sibling imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from util_cli import (
+    parse_kwargs,
+    require_kwargs,
+    validate_enum,
+    now_iso,
+    dispatch,
+    filter_fields,
+)
+from util_state import (
+    load_and_validate_global_state,
+    load_and_validate_iter_state,
+)
+
+
+SCRIPT_VERSION = "0.1.0"
+SKILL_VERSION = "0.1.1"
+
+VALID_PHASES = ["implement", "verify"]
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def help_hint(command):
+    return "Run: plet_git_ops.py {} --help".format(command)
+
+
+def extract_universal_flags(kwargs):
+    output_json = kwargs.pop("output", None) == "json"
+    pretty = kwargs.pop("pretty", False)
+    if pretty is True and not output_json:
+        print("Error: --pretty requires --output json", file=sys.stderr)
+        return False, False, None, False, False
+
+    fields_raw = kwargs.pop("fields", None)
+    if fields_raw and not output_json:
+        print("Error: --fields requires --output json", file=sys.stderr)
+        return False, False, None, False, False
+    fields = fields_raw.split(",") if fields_raw else None
+
+    dry_run = kwargs.pop("dry_run", False)
+    if dry_run is True:
+        dry_run = True
+
+    return output_json, pretty, fields, dry_run, True
+
+
+def emit_json(data, pretty=False, fields=None):
+    data["scriptVersion"] = SCRIPT_VERSION
+    data["timestamp"] = now_iso()
+    if fields is not None:
+        data = filter_fields(data, fields)
+    if pretty:
+        print(json.dumps(data, indent=2))
+    else:
+        print(json.dumps(data))
+
+
+def emit_json_error(command, message, pretty=False, extra=None):
+    data = {
+        "status": "error",
+        "command": command,
+        "error": message,
+        "scriptVersion": SCRIPT_VERSION,
+        "timestamp": now_iso(),
+    }
+    if extra:
+        data.update(extra)
+    if pretty:
+        print(json.dumps(data, indent=2))
+    else:
+        print(json.dumps(data))
+    print(message, file=sys.stderr)
+
+
+def git_run(args, cwd=None):
+    result = sp.run(["git"] + args, capture_output=True, text=True, cwd=cwd)
+    return result.stdout.strip(), result.stderr.strip(), result.returncode
+
+
+def is_git_repo(cwd=None):
+    _, _, rc = git_run(["rev-parse", "--git-dir"], cwd=cwd)
+    return rc == 0
+
+
+def get_head_short(cwd=None):
+    stdout, _, _ = git_run(["rev-parse", "--short", "HEAD"], cwd=cwd)
+    return stdout
+
+
+def tag_exists(tag_name, cwd=None):
+    _, _, rc = git_run(["rev-parse", "--verify", "refs/tags/" + tag_name], cwd=cwd)
+    return rc == 0
+
+
+def get_tag_hash(tag_name, cwd=None):
+    stdout, _, rc = git_run(["rev-parse", "--short", "refs/tags/" + tag_name], cwd=cwd)
+    return stdout if rc == 0 else None
+
+
+def derive_tag_name(global_state, iter_state, phase):
+    project_id = global_state["projectId"]
+    loop_n = global_state["loopSessionCount"]
+    iter_id = iter_state["iterationId"]
+    attempt = iter_state["attempts"][phase]
+    return "plet/{}/loop{}/audit/{}/{}-{}".format(
+        project_id, loop_n, iter_id, phase, attempt
+    )
+
+
+def derive_workstream_branch(global_state):
+    return "plet/{}/loop{}/workstream".format(
+        global_state["projectId"], global_state["loopSessionCount"]
+    )
+
+
+def derive_iteration_branch(global_state, iter_state):
+    return "plet/{}/loop{}/{}".format(
+        global_state["projectId"],
+        global_state["loopSessionCount"],
+        iter_state["iterationId"],
+    )
+
+
+# ---------------------------------------------------------------------------
+# audit-tag
+# ---------------------------------------------------------------------------
+
+def cmd_audit_tag(args):
+    HELP = """IMPORTANT:
+    audit-tag creates a git tag marking a phase boundary. Use --dry-run first.
+    Tags are idempotent — re-running updates the tag (git tag -f).
+
+PITFALLS:
+    - Takes TWO state file paths: global state.json AND per-iteration state
+    - --phase must be "implement" or "verify" (not "implementation")
+    - Attempt number derived from iter state — don't pass it manually
+
+USAGE:
+    plet_git_ops.py audit-tag <global_state_json> <iter_state_json> --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+
+    global_state_json    Path to plet/state.json
+    iter_state_json      Path to plet/state/ID_xxx.json
+    --phase              implement or verify
+
+PURPOSE:
+    Marks phase boundaries on the iteration branch. Tags provide stable
+    references for debugging and post-run analysis. Unlike branch HEAD
+    which moves, tags are fixed anchors.
+
+Examples:
+    plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json --phase implement
+    plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json --phase verify --dry-run
+"""
+    if "-h" in args or "--help" in args:
+        print(HELP)
+        return 0
+    if len(args) < 2:
+        print(HELP, file=sys.stderr)
+        return 1
+
+    CMD = "audit-tag"
+    hint = help_hint(CMD)
+    gs_path = args[0]
+    is_path = args[1]
+
+    try:
+        kwargs = parse_kwargs(args[2:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
+    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    if not ok:
+        print(hint, file=sys.stderr)
+        return 1
+
+    if not require_kwargs(kwargs, ["phase"], HELP):
+        return 1
+
+    phase = kwargs["phase"]
+    if not validate_enum(phase, VALID_PHASES, "--phase"):
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Load and validate both state files
+    global_state = load_and_validate_global_state(gs_path)
+    if global_state is None:
+        print(hint, file=sys.stderr)
+        return 1
+
+    iter_state = load_and_validate_iter_state(is_path)
+    if iter_state is None:
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Check attempt > 0
+    attempt = iter_state["attempts"].get(phase, 0)
+    if attempt < 1:
+        msg = "Error: attempts.{} is {} — phase has not been attempted".format(phase, attempt)
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    # Check git repo
+    if not is_git_repo():
+        msg = "Error: not inside a git repository"
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    tag_name = derive_tag_name(global_state, iter_state, phase)
+    commit_hash = get_head_short()
+
+    # Check if tag already exists (for replaced/previousHash reporting)
+    replaced = tag_exists(tag_name)
+    previous_hash = get_tag_hash(tag_name) if replaced else None
+
+    if dry_run:
+        msg = "DRY RUN — would create audit tag {} at {}".format(tag_name, commit_hash)
+        if output_json:
+            emit_json({
+                "status": "ok",
+                "command": CMD,
+                "tagName": tag_name,
+                "commitHash": commit_hash,
+                "iterationId": iter_state["iterationId"],
+                "phase": phase,
+                "attempt": attempt,
+                "replaced": replaced,
+                "previousHash": previous_hash,
+                "dryRun": True,
+            }, pretty, fields)
+        else:
+            print(msg)
+        return 0
+
+    # Create tag (force if exists)
+    if replaced:
+        _, stderr, rc = git_run(["tag", "-f", tag_name])
+    else:
+        _, stderr, rc = git_run(["tag", tag_name])
+
+    if rc != 0:
+        msg = "Error: git command failed: {}".format(stderr)
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    if replaced:
+        msg = "OK — updated audit tag {} at {} (was at {})".format(
+            tag_name, commit_hash, previous_hash)
+        print("Warning: tag {} already existed at {}, updated to {}".format(
+            tag_name, previous_hash, commit_hash), file=sys.stderr)
+    else:
+        msg = "OK — created audit tag {} at {}".format(tag_name, commit_hash)
+
+    if output_json:
+        emit_json({
+            "status": "ok",
+            "command": CMD,
+            "tagName": tag_name,
+            "commitHash": commit_hash,
+            "iterationId": iter_state["iterationId"],
+            "phase": phase,
+            "attempt": attempt,
+            "replaced": replaced,
+            "previousHash": previous_hash,
+        }, pretty, fields)
+    else:
+        print(msg)
+
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# merge-squash (placeholder — tests written next)
+# ---------------------------------------------------------------------------
+
+def cmd_merge_squash(args):
+    HELP = """IMPORTANT:
+    merge-squash creates one commit per iteration on the workstream.
+    Must be run FROM the workstream branch. Use --dry-run first.
+
+PITFALLS:
+    - Must checkout workstream branch BEFORE running this command
+    - Takes TWO state file paths: global state.json AND per-iteration state
+    - Tag and branch cleanup controlled by per-iteration state fields
+
+USAGE:
+    plet_git_ops.py merge-squash <global_state_json> <iter_state_json> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+
+    global_state_json    Path to plet/state.json
+    iter_state_json      Path to plet/state/ID_xxx.json
+
+PURPOSE:
+    Merges all iteration work into a single clean commit on the workstream.
+    Incremental commits stay on the iteration branch. The workstream gets
+    one commit per iteration for clean history.
+
+Examples:
+    plet_git_ops.py merge-squash plet/state.json plet/state/ID_001.json
+    plet_git_ops.py merge-squash plet/state.json plet/state/ID_001.json --dry-run
+"""
+    if "-h" in args or "--help" in args:
+        print(HELP)
+        return 0
+    if len(args) < 2:
+        print(HELP, file=sys.stderr)
+        return 1
+
+    CMD = "merge-squash"
+    hint = help_hint(CMD)
+    gs_path = args[0]
+    is_path = args[1]
+
+    try:
+        kwargs = parse_kwargs(args[2:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
+    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    if not ok:
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Load and validate both state files
+    global_state = load_and_validate_global_state(gs_path)
+    if global_state is None:
+        print(hint, file=sys.stderr)
+        return 1
+
+    iter_state = load_and_validate_iter_state(is_path)
+    if iter_state is None:
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Check git repo
+    if not is_git_repo():
+        msg = "Error: not inside a git repository"
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    # Derive branch names
+    ws_branch = derive_workstream_branch(global_state)
+    iter_branch = derive_iteration_branch(global_state, iter_state)
+
+    # Must be on workstream
+    current_branch, _, _ = git_run(["branch", "--show-current"])
+    if current_branch != ws_branch:
+        msg = "Error: must be on workstream branch {}, currently on {}".format(
+            ws_branch, current_branch)
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    # Check not detached HEAD
+    _, _, rc = git_run(["symbolic-ref", "HEAD"])
+    if rc != 0:
+        msg = "Error: HEAD is detached — merge-squash requires a named branch"
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    # Check iteration branch exists
+    _, _, rc = git_run(["rev-parse", "--verify", "refs/heads/" + iter_branch])
+    if rc != 0:
+        msg = "Error: iteration branch not found: {}".format(iter_branch)
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    # Check there's something to merge (iteration branch is not ancestor of workstream)
+    _, _, rc = git_run(["merge-base", "--is-ancestor", iter_branch, "HEAD"])
+    if rc == 0:
+        msg = "Error: iteration branch {} has no changes ahead of workstream — already merged or no work done".format(iter_branch)
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    # Check working tree is clean
+    porcelain, _, _ = git_run(["status", "--porcelain"])
+    if porcelain:
+        msg = "Error: working tree is dirty (git status --porcelain non-empty) — commit changes before merge-squash"
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    # Build commit message
+    iter_id = iter_state["iterationId"]
+    title = iter_state["title"]
+    commit_title = "plet: [{}] - {}".format(iter_id, title)
+
+    # Build commit body from iter state
+    attempts = iter_state["attempts"]
+    body_lines = []
+    phase_parts = []
+    if attempts.get("implement", 0) > 0:
+        phase_parts.append("implement\u00d7{}".format(attempts["implement"]))
+    if attempts.get("verify", 0) > 0:
+        phase_parts.append("verify\u00d7{}".format(attempts["verify"]))
+    if phase_parts:
+        body_lines.append("Phases: {}".format(", ".join(phase_parts)))
+
+    criteria = iter_state.get("criteria", [])
+    if criteria:
+        total = len(criteria)
+        passed_count = sum(1 for c in criteria if c.get("status") == "pass"
+                          or (isinstance(c.get("status"), str) and c["status"] == "pass"))
+        body_lines.append("Criteria: {}/{} passed".format(passed_count, total))
+
+    commit_body = "\n".join(body_lines) if body_lines else ""
+    full_message = commit_title
+    if commit_body:
+        full_message = "{}\n\n{}".format(commit_title, commit_body)
+
+    if dry_run:
+        msg = "DRY RUN — would merge-squash {} to {}: {}".format(
+            iter_branch, ws_branch, commit_title)
+        if output_json:
+            emit_json({
+                "status": "ok",
+                "command": CMD,
+                "commitMessage": commit_title,
+                "iterationBranch": iter_branch,
+                "workstreamBranch": ws_branch,
+                "dryRun": True,
+            }, pretty, fields)
+        else:
+            print(msg)
+        return 0
+
+    # Merge --squash
+    _, stderr, rc = git_run(["merge", "--squash", iter_branch])
+    if rc != 0:
+        # Check for conflicts
+        if "conflict" in stderr.lower() or "CONFLICT" in stderr:
+            # Abort the merge
+            git_run(["merge", "--abort"])
+            msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
+            if output_json:
+                emit_json_error(CMD, msg, pretty)
+            else:
+                print(msg, file=sys.stderr)
+            return 1
+        msg = "Error: git command failed: {}".format(stderr)
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    # Commit
+    _, stderr, rc = git_run(["commit", "-m", full_message])
+    if rc != 0:
+        msg = "Error: git commit failed: {}".format(stderr)
+        if output_json:
+            emit_json_error(CMD, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
+
+    commit_hash = get_head_short()
+
+    # Tag cleanup
+    tags_cleaned = []
+    cleanup_tags = iter_state.get("cleanupTagsAutomatically", False)
+    if cleanup_tags:
+        # Find all audit tags for this iteration
+        tag_prefix = "plet/{}/loop{}/audit/{}/".format(
+            global_state["projectId"],
+            global_state["loopSessionCount"],
+            iter_id,
+        )
+        tag_list_out, _, _ = git_run(["tag", "-l", tag_prefix + "*"])
+        if tag_list_out:
+            for tag_name in tag_list_out.split("\n"):
+                tag_name = tag_name.strip()
+                if tag_name:
+                    tag_hash = get_tag_hash(tag_name)
+                    git_run(["tag", "-d", tag_name])
+                    tags_cleaned.append({"tag": tag_name, "hash": tag_hash})
+
+    # Branch cleanup
+    branch_deleted = False
+    cleanup_branches = iter_state.get("cleanupBranchesAutomatically", False)
+    if cleanup_branches:
+        _, stderr, rc = git_run(["branch", "-D", iter_branch])
+        if rc == 0:
+            branch_deleted = True
+
+    # Output
+    msg = "OK — merged to workstream: {} ({})".format(commit_title, commit_hash)
+    if tags_cleaned:
+        for tc in tags_cleaned:
+            msg += "\n  Tag {} deleted (was at {})".format(tc["tag"], tc["hash"])
+    if branch_deleted:
+        msg += "\n  Branch {} deleted".format(iter_branch)
+
+    if output_json:
+        emit_json({
+            "status": "ok",
+            "command": CMD,
+            "commitMessage": commit_title,
+            "commitHash": commit_hash,
+            "iterationBranch": iter_branch,
+            "workstreamBranch": ws_branch,
+            "tagsCleaned": tags_cleaned,
+            "branchDeleted": branch_deleted,
+        }, pretty, fields)
+    else:
+        print(msg)
+
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    commands = {
+        "audit-tag": cmd_audit_tag,
+        "merge-squash": cmd_merge_squash,
+    }
+    return dispatch(
+        commands, "plet_git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__
+    )
+
+
+if __name__ == "__main__":
+    sys.exit(main())
