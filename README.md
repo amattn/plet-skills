@@ -3,6 +3,35 @@
 **PLET = Progress, Learnings, Emergent items, Traces** — the four runtime artifacts the system produces.
 plet is a Claude Code skill that orchestrates spec-driven autonomous development. It combines interactive planning with autonomous execution, verification, and iterative refinement — all running natively inside Claude Code without requiring an external harness.
 
+## Install
+
+### Option 1: Claude Code Marketplace
+
+```bash
+/plugin marketplace add amattn/plet-skills
+```
+
+```bash
+/plugin install plet-skills@plet-skills-marketplace
+```
+
+### Option 2: Global Installation
+
+Copy the skill into your Claude Code skills directory so it's available across all projects:
+
+```bash
+cp -r skills/plet ~/.claude/skills/
+```
+
+### Option 3: Project-Level Installation
+
+Copy the skill into your project for per-project use:
+
+```bash
+mkdir -p .claude/skills
+cp -r /path/to/plet-skills/skills/plet .claude/skills/
+```
+
 ## Core Workflow
 
 ```
@@ -139,7 +168,7 @@ All branches are namespaced under `plet/{projectId}/`. Agents never commit to ma
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
 
-Agents commit incrementally for crash recovery, then squash into a single commit per phase. Completed iterations rebase onto the loop workstream with fast-forward merge for linear history.
+Agents commit incrementally for crash recovery. Audit tags mark phase boundaries on the iteration branch. When an iteration completes, all work is merge-squashed into a single commit on the workstream — one commit per iteration for clean history. The iteration branch preserves the full incremental history for debugging.
 
 ## Lineage
 
@@ -197,7 +226,7 @@ plet draws from three sources:
 
 ## About This Repo
 
-This repository contains planning artifacts (PRD, design notes) and will also contain the plet skill itself (SKILL.md + reference files) as it is developed.
+This repository contains the plet skill (`skills/plet/`), its PRD (`prd.md`), design notes, behavioral specs (`specs/`), enforcement scripts (`skills/plet/scripts/`), and case studies (`case_studies/`).
 
 A GUI application for visualizing and monitoring plet execution is planned as a **separate project**. The GUI would read plet's state files (`plet/state.json` and `plet/state/{iteration_id}.json`) to provide real-time visibility into iteration progress, agent activity, and lifecycle status. The state format is explicitly designed to support external consumers.
 
