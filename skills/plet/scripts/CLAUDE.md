@@ -164,7 +164,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 |--------|---------|-------------|
 | `plet_git.py` | Git compliance (branches, tags, worktrees, squash, cleanup) | FB_30, FB_31, FB_32 |
 | `plet_trace.py` | Trace NDJSON schema enforcement | FB_11 |
-| `plet_router.py` | Phase detection, status summary, preflight checks | FB_16, FB_22, FB_23 |
+| `plet_session.py` | Phase detection, status summary, preflight checks | FB_16, FB_22, FB_23 |
 | `plet_inject_prompt.py` | Prompt assembly for implement/verify subagents | FB_38 |
 | `plet_invoke.py` | Subprocess launch + transcript capture (assembles prompt, launches `claude -p`, tees JSONL to transcript file) | — |
 | `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop). Calls plet_invoke.py instead of spawning subprocesses directly. | — |

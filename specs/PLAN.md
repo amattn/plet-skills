@@ -15,7 +15,7 @@ Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved
 
 ## FB Traceability
 
-These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_git.py` → FB_30, FB_31, FB_32, FB_35 (git stashes, lost commits, orphaned worktrees). `plet_router.py` → FB_16, FB_22, FB_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FB_11 (trace schema standardization). `plet_gate_impl.py` and `plet_gate_verify.py` → FB_29, FB_33, FB_40 (learnings/emergent enforcement, progress completeness, lifecycle transitions). `plet_inject_prompt.py` → FB_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FB_31, FB_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FB_17, FB_29, FB_44 (runtime artifact formatting, multiline content).
+These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_git.py` → FB_30, FB_31, FB_32, FB_35 (git stashes, lost commits, orphaned worktrees). `plet_session.py` → FB_16, FB_22, FB_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FB_11 (trace schema standardization). `plet_gate_impl.py` and `plet_gate_verify.py` → FB_29, FB_33, FB_40 (learnings/emergent enforcement, progress completeness, lifecycle transitions). `plet_inject_prompt.py` → FB_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FB_31, FB_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FB_17, FB_29, FB_44 (runtime artifact formatting, multiline content).
 
 ## Build Order
 
@@ -37,8 +37,8 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 13 | `plet_git_check.py` spec (GTC) | Git compliance checks — check-iteration, check-session. Called by gate scripts and orchestrator. |
 | 14 | Implement `util_subprocess.py` + retrofit GTI/GTO | Shared subprocess wrapper (run, run_git). Retrofit existing scripts to use it. |
 | 15 | Implement `plet_git_check.py` | Build from spec. Uses util_subprocess. |
-| 16 | `plet_router.py` spec (RTR) | Depends on FPR (calls `check-fingerprints` or reimplements). Preflight checks. |
-| 17 | Implement `plet_router.py` | Build from spec. |
+| 16 | `plet_session.py` spec (SES) | Depends on FPR (calls `check-fingerprints` or reimplements). Preflight checks. |
+| 17 | Implement `plet_session.py` | Build from spec. |
 | 18 | `plet_gate_impl.py` spec (GIM) | Depends on ENT (`check`), STA (`validate`), GTC (`check-iteration`). Called by orchestrator. |
 | 19 | Implement `plet_gate_impl.py` | Build from spec. |
 | 20 | `plet_gate_verify.py` spec (GVR) | Depends on ENT (`check`), STA (`validate`), GTC (`check-iteration`). Called by orchestrator. |
@@ -70,8 +70,8 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 13 | `plet_git_check.py` spec (GTC) | ✓ complete |
 | 14 | `util_subprocess.py` implementation + GTI/GTO retrofit | ✓ complete |
 | 15 | `plet_git_check.py` implementation | ✓ complete |
-| 16 | `plet_router.py` spec (RTR) | not started |
-| 17 | `plet_router.py` implementation | not started |
+| 16 | `plet_session.py` spec (SES) | not started |
+| 17 | `plet_session.py` implementation | not started |
 | 18 | `plet_gate_impl.py` spec (GIM) | not started |
 | 19 | `plet_gate_impl.py` implementation | not started |
 | 20 | `plet_gate_verify.py` spec (GVR) | not started |

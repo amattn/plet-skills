@@ -169,7 +169,7 @@ Source: LIBT S_7
 
 Autonomous agents need `bypassPermissions` in the target project's `.claude/settings.local.json` to actually run autonomously. Without it, agents hit permission prompts for Bash, Write, etc. — defeating the purpose. plet should check for this during plan session setup (or at loop start) and warn the user with specific instructions if the setting is missing. The `allowed-tools` frontmatter in SKILL.md helps for skill-level tools (e.g., `plet_state.py`), but doesn't cover general agent operations (git, test runners, linters, etc.).
 
-`[deferred → PLAN_8]` — `plet_router.py preflight` checks for this.
+`[deferred → PLAN_8]` — `plet_session.py preflight` checks for this.
 
 ### FB_21: Investigate what made learnings/emergent dramatically better [research]
 
@@ -187,7 +187,7 @@ Same gap for NOTES.md and FEEDBACK.md — plet bootstraps the runtime artifacts 
 
 More broadly, plet may need a **bootstrap phase** before plan — a pre-flight that ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK.md exists, bypassPermissions is configured (FB_22), etc. Currently the plan session jumps straight into requirements gathering without verifying the foundation is in place.
 
-`[deferred → PLAN_8]` — `plet_router.py preflight` checks for this.
+`[deferred → PLAN_8]` — `plet_session.py preflight` checks for this.
 
 ### FB_24: Requirements not written to disk incrementally despite PL_12 [artifacts] [prompting]
 

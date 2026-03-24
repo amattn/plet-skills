@@ -30,7 +30,7 @@ This was validated across three case studies: state schema drift (the most persi
 | GTO | `plet_git_ops.py` | GT Operations |
 | GTC | `plet_git_check.py` | GT Check |
 | TRC | `plet_trace.py` | TRaCe |
-| RTR | `plet_router.py` | RouTeR |
+| SES | `plet_session.py` | SESsion |
 | INJ | `plet_inject_prompt.py` | INJect |
 | ORC | `plet_orchestrator.py` | ORChestrator |
 | GIM | `plet_gate_impl.py` | Gate IMpl |

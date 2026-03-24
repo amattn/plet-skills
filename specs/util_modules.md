@@ -49,7 +49,7 @@ State file loading and validation for both global (`plet/state.json`) and per-it
 
 | Function | Visibility | Purpose |
 |----------|------------|---------|
-| `load_and_validate_global_state(path)` | public | Load + validate `plet/state.json`. Returns validated dict or None (prints error). Used by GTI, GTO, GTC, RTR, INJ, INV, ORC. |
+| `load_and_validate_global_state(path)` | public | Load + validate `plet/state.json`. Returns validated dict or None (prints error). Used by GTI, GTO, GTC, SES, INJ, INV, ORC. |
 | `load_global_state(path)` | internal | Load `plet/state.json` via `util_io.load_json`. Returns parsed dict or None. |
 | `validate_global_state(data)` | internal | Validate all fields per `state-schema.md` § Global State. Returns True/False (prints errors to stderr). |
 

@@ -483,7 +483,7 @@ See `specs/conventions.md` for universal requirements.
 
 | # | Question | Context |
 |---|----------|---------|
-| 1 | ~~Should `.plet/worktrees/` be added to `.gitignore` automatically?~~ | Resolved: not GTI's job. `.plet/` should be gitignored entirely (worktrees, temp files, future caches). Preflight (`plet_router.py`) checks `.gitignore` has `.plet/` and warns if not. GTI is a leaf tool, not a project setup wizard. |
+| 1 | ~~Should `.plet/worktrees/` be added to `.gitignore` automatically?~~ | Resolved: not GTI's job. `.plet/` should be gitignored entirely (worktrees, temp files, future caches). Preflight (`plet_session.py`) checks `.gitignore` has `.plet/` and warns if not. GTI is a leaf tool, not a project setup wizard. |
 | 2 | How does the subagent know its worktree path? | The orchestrator passes it as a working directory argument to `claude -p`. Need to verify `claude -p` supports `--cwd` or equivalent. If not, the orchestrator `cd`s into the worktree before spawning. |
 
 ## 15. Future Considerations (GTI_FUT)
