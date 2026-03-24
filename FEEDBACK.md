@@ -396,3 +396,7 @@ Plan sessions currently run interactively in the main conversation. GTI added `-
 4. **What about re-planning during refine?** Refine can modify requirements and iterations — is that a plan operation on a refine branch?
 
 The branch pattern exists in the code and PRD, but the workflow around it is undecided. Evaluate during orchestrator spec (ORC) when the full session lifecycle is defined.
+
+### FB_48: PRD should be explicit that runtime artifacts are committed on iteration branches [artifacts] [prd]
+
+Runtime artifacts (progress.md, learnings.md, emergent.md) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. This is a load-bearing assumption across multiple specs (GTC clean-worktree, GTO merge-squash, gate scripts) but is not explicitly stated in the PRD. Added to `specs/conventions.md` as UNV_NFR_10 during GTC review. PRD and reference files (implement.md, verify.md) should also be explicit about this.

@@ -94,3 +94,12 @@ State file loading and validation for both global (`plet/state.json`) and per-it
 Optional fields (returned with defaults if absent): `agentActivity` ("idle"), `activityDetail` (null), `phaseTimestamps` ({}), `elapsedSeconds` ({"total": 0}), `summary` (null), `filesChanged` ([]), `cleanupTagsAutomatically` (false), `cleanupBranchesAutomatically` (false), `verificationReports` ([]), `lastVerdict` (null), `lastHeartbeat` (null).
 
 Full schemas in `references/state-schema.md`.
+
+## util_subprocess.py
+
+Subprocess execution with capture, error formatting, and timeout handling. General-purpose wrapper — no shell=True, consistent error messages. Includes a `run_git` convenience for the most common case.
+
+| Function | Purpose |
+|----------|---------|
+| `run(args, cwd=None, timeout=None)` | Run subprocess with `capture_output=True`, `text=True`, `shell=False`. Returns `subprocess.CompletedProcess`. On non-zero exit, returns normally (caller decides whether to error). |
+| `run_git(*args, cwd=None, timeout=None)` | Convenience: prepends `"git"` to args, calls `run`. Returns `CompletedProcess`. |

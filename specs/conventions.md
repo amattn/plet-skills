@@ -64,6 +64,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_NFR_6 | Trailing newline after JSON for POSIX compliance and diff-friendliness | P0 |
 | UNV_NFR_7 | Never read-modify-write runtime artifacts — append only. State files are read-modify-write (single writer per iteration) | P0 |
 | UNV_NFR_9 | Subprocess calls use explicit args lists (`subprocess.run([cmd, arg1, arg2])`) — never `shell=True`. Prevents command injection from user-controlled inputs (iteration IDs, branch names, file paths). | P0 |
+| UNV_NFR_10 | Runtime artifacts (progress.md, learnings.md, emergent.md, trace NDJSON) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. Worktree should be clean at phase boundaries. | P0 |
 
 ## Error Handling
 

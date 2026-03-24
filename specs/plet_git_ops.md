@@ -89,7 +89,7 @@ Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_ATG_INP_1 | `global_state_json` — path to `plet/state.json`. Loaded via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
-| GTO_ATG_INP_2 | `iter_state_json` — path to per-iteration state file (e.g., `plet/state/ID_001.json`). Loaded via `util_state.load_and_validate_iter_state_json()`. Provides `iterationId`, `attempts`. | P0 |
+| GTO_ATG_INP_2 | `iter_state_json` — path to per-iteration state file (e.g., `plet/state/ID_001.json`). Loaded via `util_state.load_and_validate_iter_state()`. Provides `iterationId`, `attempts`. | P0 |
 | GTO_ATG_INP_3 | `--phase` — `implement` or `verify`. Required because lifecycle may be mid-transition when this is called. Attempt number derived from `iter_state_json.attempts[phase]`. | P0 |
 
 #### Outputs (GTO_ATG_OUT)
@@ -107,7 +107,7 @@ Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
 |----|-------------|----------|
 | GTO_ATG_PRE_1 | All required args present: `global_state_json`, `iter_state_json`, `--phase` | P0 |
 | GTO_ATG_PRE_2 | `global_state_json` passes `util_state.load_and_validate_global_state()` | P0 |
-| GTO_ATG_PRE_3 | `iter_state_json` passes `util_state.load_and_validate_iter_state_json()` | P0 |
+| GTO_ATG_PRE_3 | `iter_state_json` passes `util_state.load_and_validate_iter_state()` | P0 |
 | GTO_ATG_PRE_4 | `--phase` is `implement` or `verify` | P0 |
 | GTO_ATG_PRE_5 | `iter_state_json.attempts[phase]` is a positive integer (> 0 — phase has been attempted) | P0 |
 | GTO_ATG_PRE_6 | Current directory is inside a git repository | P0 |
@@ -337,7 +337,7 @@ plet_git_ops.py merge-squash plet/state.json plet/state/ID_001.json --output jso
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | GTO_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| GTO_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state_json` |
+| GTO_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
 | GTO_DEP_3 | called by | `plet_orchestrator.py` | phase-end squash workflow |
 
 No outgoing calls to other `plet_*.py` scripts — `plet_git_ops.py` is a leaf CLI tool. Calls `git` directly via `subprocess`.

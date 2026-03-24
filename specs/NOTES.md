@@ -97,6 +97,13 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 | TRC | append-event | APE |
 | TRC | validate | VAL |
 | TRC | query | QRY |
+| GTI | branch-name | BRN |
+| GTI | worktree-create | WTC |
+| GTI | worktree-remove | WTR |
+| GTO | audit-tag | ATG |
+| GTO | merge-squash | MSQ |
+| GTC | check-iteration | CKI |
+| GTC | check-session | CKS |
 
 New scripts define their command abbreviations in their spec files. Add them to this table when defined.
 
@@ -814,6 +821,27 @@ CLEANUP (per-iteration state controls):
 ```
 
 - **Cascade needed:** state-schema.md (new field), prd.md (IMP_17 squash convention), execute.md/verify.md (tag and squash sections), util_modules.md (iter validation rules), GTO spec rewrite of squash sections.
+
+#### GTC spec review (2026-03-23)
+
+- §1 PUR approved as-is.
+- §2 AGT: added GTC_AGT_7 — GUI tool persona for dashboard health display / status polling. Continues pattern from STA_AGT_8, ENT_AGT_7, FPR_AGT_6.
+- §3.1 CKI_JUS_1: broadened "shared by both gate scripts" → "shared by gate scripts, orchestrator, and external tools."
+- §3.1 CKI_OUT: three-tier exit codes (0=pass, 1=fail, 2=warn-only). Title line shows worst severity (PASS/WARN/FAIL). JSON status adds `"warn"` state. Rationale: exit 2 gives callers a distinct signal for warnings without forcing binary pass/fail. Gate scripts and orchestrator decide how to handle exit 2.
+- §3.1 CKI_BHV: confirmed merge-commits-only for linear-history (fast-forwards are fine, duplicate commits from bad rebases are a different problem). No SKIP status — dependent checks fail naturally, check order (BHV_6) tells the story top-to-bottom. Simplest approach, no dependency-linking metadata needed.
+- §3.1 CKI_BHV_8 added: in-progress-operation check — detects interrupted rebase/merge/cherry-pick/bisect. FAIL. Runs first in check order. More actionable than clean-worktree alone (explains *why* the tree is dirty).
+- Clarification: plet runtime artifacts (progress.md, learnings.md, state files, traces) ARE committed on iteration branches alongside code. The branch is a complete record of the iteration's work. Added UNV_NFR_10 to conventions.md. FB_48 filed to make this explicit in PRD and reference files.
+- §3.2 CKS_CMD: `--state-dir` changed to positional `state_dir`. Consistency with check-iteration's two-positional-args pattern. Script validates directory type via ERR_6/ERR_7.
+- §3.2 CKS_BHV_8 added: in-progress-operation check (same as CKI_BHV_8). Session preflight is the only checkpoint before work begins — if repo has an interrupted operation, nothing else matters. Shared check name across both commands.
+- §3.2 CKS_BHV_9 added: orphaned-branches — plet-namespaced branches without corresponding state files. WARN. Reverse of unmerged-complete (branch without state vs state without merge). Rejected: workstream-ahead-of-main (judgment call, not compliance) and active-iteration-branches-exist (state-level, not git-level).
+- util_subprocess.py added: shared subprocess wrapper (run, run_git). No `_check` variants — callers always need custom error context, add them later if 3+ scripts duplicate the check-and-exit pattern. Spec in util_modules.md. Build order: seq 14 (before GTC impl at seq 15). GTI/GTO retrofitted to use it. Rationale: 8 scripts need subprocess calls — well past the "extract at 3" threshold.
+- Naming fix: `load_and_validate_iter_state_json` → `load_and_validate_iter_state` across GTC and GTO specs (matching actual code).
+- §3.2 CKS_JUS_2: GUI tools added (same as CKI_JUS_2).
+- §4 EDG_14 added: multiple interrupted git operations — report all. EDG_15 added: workstream branch excluded from orphaned-branches scan.
+- §7 AFL: all four flows updated — exit code 2 handling (warn → log, don't block), in-progress-operation at session preflight (FAIL → abort), orphaned-branches at session end.
+- §9 DEP_6 added: util_subprocess (run_git).
+- §12 CRT_14 added: orphaned-branches detection + workstream exclusion. CRT_15 added: exit code 2 (warn-only) distinct from 0 and 1.
+- §3 Universal Flags, §5 ERR, §6 FMT, §10 NFR, §11 DXP, §13 TST: approved as-is.
 
 #### GTO spec review + implementation complete (2026-03-22)
 
