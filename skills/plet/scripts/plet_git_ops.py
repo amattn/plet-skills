@@ -17,7 +17,7 @@ Commands:
 import json
 import os
 import re
-import subprocess as sp
+from util_subprocess import run_git
 import sys
 
 # Add scripts dir to path for sibling imports
@@ -99,29 +99,21 @@ def emit_json_error(command, message, pretty=False, extra=None):
     print(message, file=sys.stderr)
 
 
-def git_run(args, cwd=None):
-    result = sp.run(["git"] + args, capture_output=True, text=True, cwd=cwd)
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
-
-
 def is_git_repo(cwd=None):
-    _, _, rc = git_run(["rev-parse", "--git-dir"], cwd=cwd)
-    return rc == 0
+    return run_git("rev-parse", "--git-dir", cwd=cwd).returncode == 0
 
 
 def get_head_short(cwd=None):
-    stdout, _, _ = git_run(["rev-parse", "--short", "HEAD"], cwd=cwd)
-    return stdout
+    return run_git("rev-parse", "--short", "HEAD", cwd=cwd).stdout
 
 
 def tag_exists(tag_name, cwd=None):
-    _, _, rc = git_run(["rev-parse", "--verify", "refs/tags/" + tag_name], cwd=cwd)
-    return rc == 0
+    return run_git("rev-parse", "--verify", "refs/tags/" + tag_name, cwd=cwd).returncode == 0
 
 
 def get_tag_hash(tag_name, cwd=None):
-    stdout, _, rc = git_run(["rev-parse", "--short", "refs/tags/" + tag_name], cwd=cwd)
-    return stdout if rc == 0 else None
+    r = run_git("rev-parse", "--short", "refs/tags/" + tag_name, cwd=cwd)
+    return r.stdout if r.returncode == 0 else None
 
 
 def derive_tag_name(global_state, iter_state, phase):
@@ -268,12 +260,12 @@ Examples:
 
     # Create tag (force if exists)
     if replaced:
-        _, stderr, rc = git_run(["tag", "-f", tag_name])
+        r = run_git("tag", "-f", tag_name)
     else:
-        _, stderr, rc = git_run(["tag", tag_name])
+        r = run_git("tag", tag_name)
 
-    if rc != 0:
-        msg = "Error: git command failed: {}".format(stderr)
+    if r.returncode != 0:
+        msg = "Error: git command failed: {}".format(r.stderr)
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -384,7 +376,7 @@ Examples:
     iter_branch = derive_iteration_branch(global_state, iter_state)
 
     # Must be on workstream
-    current_branch, _, _ = git_run(["branch", "--show-current"])
+    current_branch = run_git("branch", "--show-current").stdout
     if current_branch != ws_branch:
         msg = "Error: must be on workstream branch {}, currently on {}".format(
             ws_branch, current_branch)
@@ -395,8 +387,8 @@ Examples:
         return 1
 
     # Check not detached HEAD
-    _, _, rc = git_run(["symbolic-ref", "HEAD"])
-    if rc != 0:
+    r = run_git("symbolic-ref", "HEAD")
+    if r.returncode != 0:
         msg = "Error: HEAD is detached — merge-squash requires a named branch"
         if output_json:
             emit_json_error(CMD, msg, pretty)
@@ -405,8 +397,8 @@ Examples:
         return 1
 
     # Check iteration branch exists
-    _, _, rc = git_run(["rev-parse", "--verify", "refs/heads/" + iter_branch])
-    if rc != 0:
+    r = run_git("rev-parse", "--verify", "refs/heads/" + iter_branch)
+    if r.returncode != 0:
         msg = "Error: iteration branch not found: {}".format(iter_branch)
         if output_json:
             emit_json_error(CMD, msg, pretty)
@@ -415,8 +407,8 @@ Examples:
         return 1
 
     # Check there's something to merge (iteration branch is not ancestor of workstream)
-    _, _, rc = git_run(["merge-base", "--is-ancestor", iter_branch, "HEAD"])
-    if rc == 0:
+    r = run_git("merge-base", "--is-ancestor", iter_branch, "HEAD")
+    if r.returncode == 0:
         msg = "Error: iteration branch {} has no changes ahead of workstream — already merged or no work done".format(iter_branch)
         if output_json:
             emit_json_error(CMD, msg, pretty)
@@ -425,7 +417,7 @@ Examples:
         return 1
 
     # Check working tree is clean
-    porcelain, _, _ = git_run(["status", "--porcelain"])
+    porcelain = run_git("status", "--porcelain").stdout
     if porcelain:
         msg = "Error: working tree is dirty (git status --porcelain non-empty) — commit changes before merge-squash"
         if output_json:
@@ -479,19 +471,19 @@ Examples:
         return 0
 
     # Merge --squash
-    _, stderr, rc = git_run(["merge", "--squash", iter_branch])
-    if rc != 0:
+    r = run_git("merge", "--squash", iter_branch)
+    if r.returncode != 0:
         # Check for conflicts
-        if "conflict" in stderr.lower() or "CONFLICT" in stderr:
+        if "conflict" in r.stderr.lower() or "CONFLICT" in r.stderr:
             # Abort the merge
-            git_run(["merge", "--abort"])
+            run_git("merge", "--abort")
             msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
             if output_json:
                 emit_json_error(CMD, msg, pretty)
             else:
                 print(msg, file=sys.stderr)
             return 1
-        msg = "Error: git command failed: {}".format(stderr)
+        msg = "Error: git command failed: {}".format(r.stderr)
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -499,9 +491,9 @@ Examples:
         return 1
 
     # Commit
-    _, stderr, rc = git_run(["commit", "-m", full_message])
-    if rc != 0:
-        msg = "Error: git commit failed: {}".format(stderr)
+    r = run_git("commit", "-m", full_message)
+    if r.returncode != 0:
+        msg = "Error: git commit failed: {}".format(r.stderr)
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -520,21 +512,21 @@ Examples:
             global_state["loopSessionCount"],
             iter_id,
         )
-        tag_list_out, _, _ = git_run(["tag", "-l", tag_prefix + "*"])
+        tag_list_out = run_git("tag", "-l", tag_prefix + "*").stdout
         if tag_list_out:
             for tag_name in tag_list_out.split("\n"):
                 tag_name = tag_name.strip()
                 if tag_name:
                     tag_hash = get_tag_hash(tag_name)
-                    git_run(["tag", "-d", tag_name])
+                    run_git("tag", "-d", tag_name)
                     tags_cleaned.append({"tag": tag_name, "hash": tag_hash})
 
     # Branch cleanup
     branch_deleted = False
     cleanup_branches = iter_state.get("cleanupBranchesAutomatically", False)
     if cleanup_branches:
-        _, stderr, rc = git_run(["branch", "-D", iter_branch])
-        if rc == 0:
+        r = run_git("branch", "-D", iter_branch)
+        if r.returncode == 0:
             branch_deleted = True
 
     # Output

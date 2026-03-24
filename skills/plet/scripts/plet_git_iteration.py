@@ -21,7 +21,7 @@ TYPE is iteration (default), workstream, plan, or refine.
 import json
 import os
 import re
-import subprocess as sp
+from util_subprocess import run_git
 import sys
 
 # Add scripts dir to path for sibling imports
@@ -121,25 +121,14 @@ def validate_iter_id(value, command, output_json, pretty):
     return True
 
 
-def git_run(args, cwd=None):
-    """Run a git command. Returns (stdout, stderr, returncode)."""
-    result = sp.run(
-        ["git"] + args,
-        capture_output=True, text=True, cwd=cwd,
-    )
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
-
-
 def is_git_repo(cwd=None):
     """Check if current directory is inside a git repository."""
-    _, _, rc = git_run(["rev-parse", "--git-dir"], cwd=cwd)
-    return rc == 0
+    return run_git("rev-parse", "--git-dir", cwd=cwd).returncode == 0
 
 
 def branch_exists(branch_name, cwd=None):
     """Check if a git branch exists."""
-    _, _, rc = git_run(["rev-parse", "--verify", "refs/heads/" + branch_name], cwd=cwd)
-    return rc == 0
+    return run_git("rev-parse", "--verify", "refs/heads/" + branch_name, cwd=cwd).returncode == 0
 
 
 def derive_branch_name(state, branch_type, iter_id=None):
@@ -422,13 +411,13 @@ Examples:
     # Create worktree
     if resumed:
         # Resume: create worktree on existing branch
-        stdout, stderr, rc = git_run(["worktree", "add", wt_path, branch])
+        r = run_git("worktree", "add", wt_path, branch)
     else:
         # Fresh: create worktree with new branch
-        stdout, stderr, rc = git_run(["worktree", "add", "-b", branch, wt_path, base])
+        r = run_git("worktree", "add", "-b", branch, wt_path, base)
 
-    if rc != 0:
-        msg = "Error: git command failed: {}".format(stderr)
+    if r.returncode != 0:
+        msg = "Error: git command failed: {}".format(r.stderr)
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -566,9 +555,9 @@ Examples:
         return 0
 
     # Remove worktree (--force for untracked files / build artifacts)
-    _, stderr, rc = git_run(["worktree", "remove", "--force", wt_path])
-    if rc != 0:
-        msg = "Error: git command failed: {}".format(stderr)
+    r = run_git("worktree", "remove", "--force", wt_path)
+    if r.returncode != 0:
+        msg = "Error: git command failed: {}".format(r.stderr)
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -576,14 +565,14 @@ Examples:
         return 1
 
     # Prune stale worktree metadata
-    git_run(["worktree", "prune"])
+    run_git("worktree", "prune")
 
     # Optionally delete branch
     branch_deleted = False
     if delete_branch:
-        _, stderr, rc = git_run(["branch", "-D", branch])
-        if rc != 0:
-            msg = "Error: git command failed while deleting branch: {}".format(stderr)
+        r = run_git("branch", "-D", branch)
+        if r.returncode != 0:
+            msg = "Error: git command failed while deleting branch: {}".format(r.stderr)
             if output_json:
                 emit_json_error(CMD, msg, pretty)
             else:
