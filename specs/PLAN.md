@@ -70,7 +70,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 13 | `plet_git_check.py` spec (GTC) | ✓ complete |
 | 14 | `util_subprocess.py` implementation + GTI/GTO retrofit | ✓ complete |
 | 15 | `plet_git_check.py` implementation | ✓ complete |
-| 16 | `plet_session.py` spec (SES) | not started |
+| 16 | `plet_session.py` spec (SES) | draft ready for review |
 | 17 | `plet_session.py` implementation | not started |
 | 18 | `plet_gate_impl.py` spec (GIM) | not started |
 | 19 | `plet_gate_impl.py` implementation | not started |
