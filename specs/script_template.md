@@ -62,8 +62,21 @@ Why this command exists, when it's used, and under what conditions it might beco
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_XXX_OUT_1 | Stdout: what it prints on success | P0 |
-| PRE_XXX_OUT_2 | Exit codes: 0 success, 1 error | P0 |
+| PRE_XXX_OUT_1 | Text mode: what it prints on success. Exit 0. | P0 |
+| PRE_XXX_OUT_2 | JSON mode: structured output (see schema below). Exit 0. | P0 |
+| PRE_XXX_OUT_3 | Error: specific message to stderr, exit 1 | P0 |
+
+**PRE_XXX JSON schema (PRE_XXX_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "command-name",
+  "scriptVersion": "0.1.0",
+  "timestamp": "..."
+}
+```
+
+> **Convention:** JSON schemas are always pulled out as labeled fenced code blocks below the OUT table — never crammed into table cells. Labels use the full stable label: `PRE_XXX JSON schema (PRE_XXX_OUT_2)`, not shorthand like `OUT_2`.
 
 #### Preconditions (PRE)
 

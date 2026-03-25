@@ -97,8 +97,23 @@ Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_ATG_OUT_1 | Text mode: `OK — created audit tag {tag_name} at {commit_hash}` to stdout, exit 0 | P0 |
-| GTO_ATG_OUT_2 | JSON mode: `{"status":"ok", "command":"audit-tag", "tagName":"...", "commitHash":"...", "iterationId":"...", "phase":"...", "attempt":N, "replaced":bool, "previousHash":"..." or null, ...}`. `replaced` is true if tag already existed (force-updated). `previousHash` is the old commit hash when replaced, null otherwise. | P0 |
+| GTO_ATG_OUT_2 | JSON mode: structured output (see schema below). Exit 0. `replaced` is true if tag already existed (force-updated). `previousHash` is the old commit hash when replaced, null otherwise. | P0 |
 | GTO_ATG_OUT_3 | Dry-run: `DRY RUN — would create audit tag {tag_name} at {commit_hash}`, exit 0 | P0 |
+
+**GTO_ATG JSON schema (GTO_ATG_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "audit-tag",
+  "tagName": "...",
+  "commitHash": "...",
+  "iterationId": "...",
+  "phase": "...",
+  "attempt": N,
+  "replaced": bool,
+  "previousHash": "... or null"
+}
+```
 | GTO_ATG_OUT_4 | Error: specific message to stderr, exit 1 | P0 |
 
 #### Preconditions (GTO_ATG_PRE)
@@ -163,8 +178,22 @@ Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_MSQ_OUT_1 | Text mode: `OK — merged to workstream: plet: [{iter_id}] - {title} ({commit_hash})` to stdout, exit 0 | P0 |
-| GTO_MSQ_OUT_2 | JSON mode: `{"status":"ok", "command":"merge-squash", "commitMessage":"...", "commitHash":"...", "iterationBranch":"...", "workstreamBranch":"...", "tagsCleaned":[...], "branchDeleted":bool, ...}` | P0 |
+| GTO_MSQ_OUT_2 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | GTO_MSQ_OUT_3 | Dry-run: `DRY RUN — would merge-squash {iteration_branch} to {workstream}: plet: [{iter_id}] - {title}`, exit 0 | P0 |
+
+**GTO_MSQ JSON schema (GTO_MSQ_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "merge-squash",
+  "commitMessage": "...",
+  "commitHash": "...",
+  "iterationBranch": "...",
+  "workstreamBranch": "...",
+  "tagsCleaned": [...],
+  "branchDeleted": bool
+}
+```
 | GTO_MSQ_OUT_4 | Error: specific message to stderr, exit 1 | P0 |
 
 #### Preconditions (GTO_MSQ_PRE)

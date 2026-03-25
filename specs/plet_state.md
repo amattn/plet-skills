@@ -73,7 +73,20 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 |----|-------------|----------|
 | STA_VAL_OUT_1 | Text mode success: `OK — {path} is valid` to stdout, exit 0 | P0 |
 | STA_VAL_OUT_2 | Text mode failure: `INVALID — N error(s) in {path}:` + itemized errors to stderr, exit 1 | P0 |
-| STA_VAL_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"validate", "path":"...", "errors":[...], "errorCount":N, "scriptVersion":"...", "timestamp":"..."}` | P0 |
+| STA_VAL_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
+
+**STA_VAL JSON schema (STA_VAL_OUT_3):**
+```json
+{
+  "status": "ok or error",
+  "command": "validate",
+  "path": "...",
+  "errors": [...],
+  "errorCount": N,
+  "scriptVersion": "...",
+  "timestamp": "..."
+}
+```
 
 #### Preconditions (STA_VAL_PRE)
 
@@ -143,8 +156,21 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 |----|-------------|----------|
 | STA_UPC_OUT_1 | Text mode success: `OK — {criterion_id}.{phase} set to '{status}' in {path}` to stdout, exit 0 | P0 |
 | STA_UPC_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_UPC_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"update-criterion", "criterion":"AC_1", "phase":"...", "newStatus":"...", "derivedTopLevel":"...", "path":"...", ...}` | P0 |
+| STA_UPC_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | STA_UPC_OUT_4 | Dry-run: `DRY RUN — would set {criterion_id}.{phase} to '{status}' in {path}` — no file modification, exit 0 | P0 |
+
+**STA_UPC JSON schema (STA_UPC_OUT_3):**
+```json
+{
+  "status": "ok or error",
+  "command": "update-criterion",
+  "criterion": "AC_1",
+  "phase": "...",
+  "newStatus": "...",
+  "derivedTopLevel": "...",
+  "path": "..."
+}
+```
 
 #### Preconditions (STA_UPC_PRE)
 
@@ -215,8 +241,18 @@ The two-state model is the core verification invariant — implementation and ve
 |----|-------------|----------|
 | STA_UPF_OUT_1 | Text mode success: `OK — updated {field=value, ...} in {path}` to stdout, exit 0 | P0 |
 | STA_UPF_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_UPF_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"update-field", "fieldsUpdated":{...}, "path":"...", ...}` | P0 |
+| STA_UPF_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | STA_UPF_OUT_4 | Dry-run: `DRY RUN — would update {fields} in {path}` — no file modification, exit 0 | P0 |
+
+**STA_UPF JSON schema (STA_UPF_OUT_3):**
+```json
+{
+  "status": "ok or error",
+  "command": "update-field",
+  "fieldsUpdated": {},
+  "path": "..."
+}
+```
 
 #### Preconditions (STA_UPF_PRE)
 
@@ -290,8 +326,20 @@ The two-state model is the core verification invariant — implementation and ve
 |----|-------------|----------|
 | STA_INI_OUT_1 | Text mode success: `OK — initialized {path} ({id}, {N} criteria, lifecycle={lifecycle})` to stdout, exit 0 | P0 |
 | STA_INI_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| STA_INI_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"init", "path":"...", "iterationId":"...", "criteriaCount":N, "lifecycle":"...", ...}` | P0 |
+| STA_INI_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | STA_INI_OUT_4 | Dry-run: show full generated JSON to stdout without writing, exit 0 | P0 |
+
+**STA_INI JSON schema (STA_INI_OUT_3):**
+```json
+{
+  "status": "ok or error",
+  "command": "init",
+  "path": "...",
+  "iterationId": "...",
+  "criteriaCount": N,
+  "lifecycle": "..."
+}
+```
 
 #### Preconditions (STA_INI_PRE)
 

@@ -91,7 +91,7 @@ The output model is a list of checks, each with a name, status (pass/fail/warn),
 | GTC_CKI_OUT_4 | Exit codes: 0 (no failures, no warnings), 1 (any failure), 2 (no failures, at least one warning). Callers decide how to handle exit 2 — gate scripts may proceed with log, orchestrator may note in progress.md. | P0 |
 | GTC_CKI_OUT_3 | Error (bad inputs, not a git repo): specific message to stderr, exit 1. In JSON mode, structured error to stdout + text to stderr. | P0 |
 
-**CKI JSON schema (OUT_2):**
+**GTC_CKI JSON schema (GTC_CKI_OUT_2):**
 ```json
 {
   "status": "ok|warn|fail",
@@ -184,7 +184,7 @@ Same output model as check-iteration: a list of checks with pass/fail/warn statu
 | GTC_CKS_OUT_3 | Error (bad inputs, not a git repo): specific message to stderr, exit 1. In JSON mode, structured error to stdout + text to stderr. | P0 |
 | GTC_CKS_OUT_4 | Exit codes: 0 (no failures, no warnings), 1 (any failure), 2 (no failures, at least one warning). Callers decide how to handle exit 2. | P0 |
 
-**CKS JSON schema (OUT_2):**
+**GTC_CKS JSON schema (GTC_CKS_OUT_2):**
 ```json
 {
   "status": "ok|warn|fail",

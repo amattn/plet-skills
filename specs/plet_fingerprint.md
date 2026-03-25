@@ -72,8 +72,19 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FPR_EXT_OUT_1 | Text mode: prints the extracted fingerprint as formatted JSON to stdout, exit 0 | P0 |
-| FPR_EXT_OUT_2 | JSON mode: `{"status":"ok","command":"extract","type":"...","path":"...","fingerprint":{...},...}` | P0 |
+| FPR_EXT_OUT_2 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | FPR_EXT_OUT_3 | Error: specific message to stderr, exit 1 | P0 |
+
+**FPR_EXT JSON schema (FPR_EXT_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "extract",
+  "type": "...",
+  "path": "...",
+  "fingerprint": {}
+}
+```
 
 #### Preconditions (FPR_EXT_PRE)
 
@@ -137,8 +148,21 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 |----|-------------|----------|
 | FPR_EMB_OUT_1 | Text mode success: `OK — embedded {type} fingerprint in {path}` to stdout, exit 0. If bumped, append reason(s): ` (timestamp auto-bumped)`, ` (timestamp force-bumped)`, or ` (timestamp auto-bumped, force-bumped)`. | P0 |
 | FPR_EMB_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| FPR_EMB_OUT_3 | JSON mode: `{"status":"ok","command":"embed","type":"...","path":"...","fingerprint":{...},"autoBumped":bool,"forceBumped":bool,...}`. `autoBumped`: true if ID arrays changed vs previous. `forceBumped`: true if `--bump` passed. Both can be true simultaneously. | P0 |
+| FPR_EMB_OUT_3 | JSON mode: structured output (see schema below). Exit 0. `autoBumped`: true if ID arrays changed vs previous. `forceBumped`: true if `--bump` passed. Both can be true simultaneously. | P0 |
 | FPR_EMB_OUT_4 | Dry-run: `DRY RUN — would embed {type} fingerprint in {path}` — no file modification, exit 0 | P0 |
+
+**FPR_EMB JSON schema (FPR_EMB_OUT_3):**
+```json
+{
+  "status": "ok",
+  "command": "embed",
+  "type": "...",
+  "path": "...",
+  "fingerprint": {},
+  "autoBumped": bool,
+  "forceBumped": bool
+}
+```
 
 #### Preconditions (FPR_EMB_PRE)
 
@@ -210,8 +234,19 @@ Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
 |----|-------------|----------|
 | FPR_CHK_OUT_1 | Text mode, all consistent: `OK — all fingerprints consistent` to stdout, exit 0 | P0 |
 | FPR_CHK_OUT_2 | Text mode, stale detected: per-level status lines (OK or STALE) + summary warning matching SY_6 format, exit 1 | P0 |
-| FPR_CHK_OUT_3 | JSON mode: `{"status":"ok" or "stale" or "error", "command":"check", "artifactDir":"...", "levels":{...}, "allConsistent":bool, ...}`. Three statuses: `"ok"` = all consistent (exit 0), `"stale"` = drift detected (exit 1), `"error"` = tool failure (exit 1). | P0 |
+| FPR_CHK_OUT_3 | JSON mode: structured output (see schema below). Exit 0. Three statuses: `"ok"` = all consistent (exit 0), `"stale"` = drift detected (exit 1), `"error"` = tool failure (exit 1). | P0 |
 | FPR_CHK_OUT_4 | Missing artifact files: specific error listing which files are missing, exit 1. Distinguished from staleness — "can't check" vs "checked and stale". | P0 |
+
+**FPR_CHK JSON schema (FPR_CHK_OUT_3):**
+```json
+{
+  "status": "ok or stale or error",
+  "command": "check",
+  "artifactDir": "...",
+  "levels": {},
+  "allConsistent": bool
+}
+```
 
 #### Preconditions (FPR_CHK_PRE)
 

@@ -97,8 +97,20 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTI_BRN_OUT_1 | Text mode: prints the branch name to stdout (bare, no prefix — suitable for `$(...)` capture). Exit 0. | P0 |
-| GTI_BRN_OUT_2 | JSON mode: `{"status":"ok", "command":"branch-name", "branchName":"plet/LOGA/loop1/ID_001", "type":"iteration", "projectId":"LOGA", "sessionNum":1, ...}` | P0 |
+| GTI_BRN_OUT_2 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | GTI_BRN_OUT_3 | Error: specific message to stderr, exit 1 | P0 |
+
+**GTI_BRN JSON schema (GTI_BRN_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "branch-name",
+  "branchName": "plet/LOGA/loop1/ID_001",
+  "type": "iteration",
+  "projectId": "LOGA",
+  "sessionNum": 1
+}
+```
 
 #### Preconditions (GTI_BRN_PRE)
 
@@ -165,8 +177,21 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTI_WTC_OUT_1 | Text mode: `OK — created worktree at {path} on branch {branch}` (fresh) or `OK — resumed worktree at {path} on existing branch {branch}` (resume), exit 0 | P0 |
-| GTI_WTC_OUT_2 | JSON mode: `{"status":"ok", "command":"worktree-create", "worktreePath":"...", "branchName":"...", "baseBranch":"...", "iterationId":"...", "resumed":bool, ...}` | P0 |
+| GTI_WTC_OUT_2 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | GTI_WTC_OUT_3 | Dry-run: `DRY RUN — would create worktree at {path} on branch {branch}` — no git operations, exit 0 | P0 |
+
+**GTI_WTC JSON schema (GTI_WTC_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "worktree-create",
+  "worktreePath": "...",
+  "branchName": "...",
+  "baseBranch": "...",
+  "iterationId": "...",
+  "resumed": bool
+}
+```
 | GTI_WTC_OUT_4 | Error: specific message to stderr, exit 1 | P0 |
 
 #### Preconditions (GTI_WTC_PRE)
@@ -236,8 +261,19 @@ Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (work
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTI_WTR_OUT_1 | Text mode: `OK — removed worktree at {path}` (+ `and branch {branch}` if --delete-branch), exit 0 | P0 |
-| GTI_WTR_OUT_2 | JSON mode: `{"status":"ok", "command":"worktree-remove", "worktreePath":"...", "branchName":"...", "branchDeleted":bool, ...}` | P0 |
+| GTI_WTR_OUT_2 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | GTI_WTR_OUT_3 | Dry-run: `DRY RUN — would remove worktree at {path}` — no git operations, exit 0 | P0 |
+
+**GTI_WTR JSON schema (GTI_WTR_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "worktree-remove",
+  "worktreePath": "...",
+  "branchName": "...",
+  "branchDeleted": bool
+}
+```
 | GTI_WTR_OUT_4 | Error: specific message to stderr, exit 1 | P0 |
 
 #### Preconditions (GTI_WTR_PRE)

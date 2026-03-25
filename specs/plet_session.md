@@ -74,8 +74,25 @@ All commands are read-only — `--dry-run` is NOT applicable.
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SES_DET_OUT_1 | Text mode: bare session type to stdout: `plan`, `loop`, `refine`, or `status`. Suitable for shell capture: `SESSION=$(plet_session.py detect)`. Exit 0. | P0 |
-| SES_DET_OUT_2 | JSON mode: `{"status":"ok", "command":"detect", "sessionType":"plan|loop|refine", "reason":"...", "artifacts":{"requirements":bool, "iterations":bool, "state":bool}, ...}` | P0 |
+| SES_DET_OUT_2 | JSON mode: structured detection result (see schema below). Exit 0. | P0 |
 | SES_DET_OUT_3 | Error: specific message to stderr, exit 1 | P0 |
+
+**SES_DET JSON schema (SES_DET_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "detect",
+  "sessionType": "plan|loop|refine",
+  "reason": "...",
+  "artifacts": {
+    "requirements": true|false,
+    "iterations": true|false,
+    "state": true|false
+  },
+  "scriptVersion": "0.1.0",
+  "timestamp": "..."
+}
+```
 
 #### Preconditions (SES_DET_PRE)
 
@@ -136,8 +153,40 @@ All commands are read-only — `--dry-run` is NOT applicable.
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SES_STS_OUT_1 | Text mode: formatted summary to stdout — project name, session type, iteration counts by lifecycle, blockers listed, active agents listed. Exit 0. | P0 |
-| SES_STS_OUT_2 | JSON mode: `{"status":"ok", "command":"status", "projectId":"...", "sessionType":"...", "iterations":{"total":N, "queued":N, "implementing":N, "verifying":N, "complete":N, "blocked":N, "withdrawn":N, "ineligible":N}, "blockers":[...], "activeAgents":[...], "fingerprints":{"consistent":bool}, ...}` | P0 |
+| SES_STS_OUT_2 | JSON mode: structured project status (see schema below). Exit 0. | P0 |
 | SES_STS_OUT_3 | Error: specific message to stderr, exit 1 | P0 |
+
+**SES_STS JSON schema (SES_STS_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "status",
+  "projectId": "...",
+  "projectName": "...",
+  "sessionType": "plan|loop|refine",
+  "loopSession": N,
+  "iterations": {
+    "total": N,
+    "ineligible": N,
+    "queued": N,
+    "implementing": N,
+    "verifying": N,
+    "complete": N,
+    "blocked": N,
+    "withdrawn": N
+  },
+  "blockers": [
+    {"iterationId": "...", "title": "..."}
+  ],
+  "activeAgents": [
+    {"iterationId": "...", "agentId": "...", "activity": "..."}
+  ],
+  "fingerprints": {"consistent": true|false|null},
+  "warnings": ["..."],
+  "scriptVersion": "0.1.0",
+  "timestamp": "..."
+}
+```
 
 #### Preconditions (SES_STS_PRE)
 
@@ -199,9 +248,25 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SES_PRF_OUT_1 | Text mode: title line `PASS/WARN/FAIL: preflight — {summary}`, then one line per check, then summary line. | P0 |
-| SES_PRF_OUT_2 | JSON mode: `{"status":"ok|warn|fail", "command":"preflight", "checks":[{"name":"...", "status":"pass|fail|warn", "detail":"..."}], "summary":{"total":N, "passed":N, "failed":N, "warnings":N}, ...}` | P0 |
+| SES_PRF_OUT_2 | JSON mode: structured preflight results (see schema below). Same output model as GTC. | P0 |
 | SES_PRF_OUT_3 | Exit codes: 0 (all pass), 1 (any fail), 2 (warn only). Same as GTC. | P0 |
 | SES_PRF_OUT_4 | Error: specific message to stderr, exit 1 | P0 |
+
+**SES_PRF JSON schema (SES_PRF_OUT_2):**
+```json
+{
+  "status": "ok|warn|fail",
+  "command": "preflight",
+  "checks": [
+    {"name": "...", "status": "pass|fail|warn", "detail": "..."}
+  ],
+  "summary": {"total": N, "passed": N, "failed": N, "warnings": N},
+  "scriptVersion": "0.1.0",
+  "timestamp": "..."
+}
+```
+
+**Exit codes:** 0 = all pass (`"ok"`), 1 = any fail (`"fail"`), 2 = warn only (`"warn"`).
 
 #### Preconditions (SES_PRF_PRE)
 
@@ -398,7 +463,7 @@ See `specs/conventions.md` for universal requirements.
 |----|-------------|----------|
 | SES_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | SES_DXP_2 | IMPORTANT: all commands are read-only — safe to run anytime | P0 |
-| SES_DXP_3 | `detect` text output is bare session type for shell capture (exception to UNV_CMD_15, same as GTI branch-name) | P0 |
+| SES_DXP_3 | `detect` text output is bare session type for shell capture (exception to UNV_CMD_15, same pattern as GTI_DXP_3) | P0 |
 | SES_DXP_4 | PITFALLS: detect defaults to `plet/` in cwd — run from project root. status needs both global state AND state dir paths. | P0 |
 | SES_DXP_5 | Check names in preflight are stable identifiers (git-repo, claude-md-exists, gitignore-plet, bypass-permissions, spec-artifacts, state-valid, fingerprints-consistent) | P0 |
 
@@ -442,7 +507,9 @@ See `specs/conventions.md` for universal requirements.
 
 ## Open Questions
 
-None.
+| # | Question | Context |
+|---|----------|---------|
+| 1 | Should SES have a `postflight` command? | GTC `check-session` handles git compliance at session end. But there may be non-git concerns that gate session end: all progress entries written, all emergent items logged, fingerprints re-embedded after refine changes, state.json sessionHistory updated. A SES `postflight` could orchestrate these checks (calling GTC + ENT check + FPR check + state validation) as a single session-end gate. Evaluate during orchestrator spec — the orchestrator is the primary caller of session-end checks. |
 
 ## 15. Future Considerations (SES_FUT)
 

@@ -83,8 +83,20 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 |----|-------------|----------|
 | TRC_APE_OUT_1 | Text mode success: `OK — {plet_id} appended {event_type} event to {path}` to stdout, exit 0. Plet ID is greppable and cross-referenceable with other artifacts. | P0 |
 | TRC_APE_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| TRC_APE_OUT_3 | JSON mode: `{"status":"ok","command":"append-event","eventType":"...","path":"...","pletId":"tev_...","event":{...},...}` | P0 |
+| TRC_APE_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | TRC_APE_OUT_4 | Dry-run: `DRY RUN — would append {event_type} event to {path}` — no file modification, exit 0 | P0 |
+
+**TRC_APE JSON schema (TRC_APE_OUT_3):**
+```json
+{
+  "status": "ok",
+  "command": "append-event",
+  "eventType": "...",
+  "path": "...",
+  "pletId": "tev_...",
+  "event": {}
+}
+```
 
 #### Preconditions (TRC_APE_PRE)
 
@@ -156,7 +168,26 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 |----|-------------|----------|
 | TRC_VAL_OUT_1 | Text mode, valid: `OK — {path} is valid ({N} events: {M} decision, {M} criterion_update, ...)` to stdout, exit 0 | P0 |
 | TRC_VAL_OUT_2 | Text mode, invalid: per-line errors + summary, exit 1 | P0 |
-| TRC_VAL_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"validate", "path":"...", "eventCount":N, "countsByType":{"decision":N, "criterion_update":N, ...}, "errors":[...], "errorCount":N, ...}` | P0 |
+| TRC_VAL_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
+
+**TRC_VAL JSON schema (TRC_VAL_OUT_3):**
+```json
+{
+  "status": "ok or error",
+  "command": "validate",
+  "path": "...",
+  "eventCount": N,
+  "countsByType": {
+    "decision": N,
+    "criterion_update": N,
+    "lifecycle_change": N,
+    "activity_change": N,
+    "error": N
+  },
+  "errors": [...],
+  "errorCount": N
+}
+```
 
 #### Preconditions (TRC_VAL_PRE)
 
@@ -225,8 +256,19 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | TRC_QRY_OUT_1 | Text mode (default): prints matching events as formatted JSON (one per line, indented for readability), exit 0 | P0 |
-| TRC_QRY_OUT_2 | JSON mode: `{"status":"ok","command":"query","path":"...","matchCount":N,"events":[...],...}` | P0 |
+| TRC_QRY_OUT_2 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | TRC_QRY_OUT_3 | No matches: exit 0 with empty results (not an error) | P0 |
+
+**TRC_QRY JSON schema (TRC_QRY_OUT_2):**
+```json
+{
+  "status": "ok",
+  "command": "query",
+  "path": "...",
+  "matchCount": N,
+  "events": [...]
+}
+```
 | TRC_QRY_OUT_4 | Raw mode (`--raw`): prints matching events as bare NDJSON (one compact JSON per line, no envelope, no indentation), exit 0. Pipe-friendly. | P0 |
 
 #### Preconditions (TRC_QRY_PRE)

@@ -85,8 +85,21 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_APR_OUT_1 | Text mode success: `OK — {plet_id}` to stdout, exit 0 | P0 |
 | ENT_APR_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| ENT_APR_OUT_3 | JSON mode: `{"status":"ok","command":"add-progress","pletId":"...","path":"...","iteration":"...","phase":"...","attempt":N,...}` | P0 |
+| ENT_APR_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | ENT_APR_OUT_4 | Dry-run: `DRY RUN — would append progress entry {plet_id} to {path}` — no file modification, exit 0 | P0 |
+
+**ENT_APR JSON schema (ENT_APR_OUT_3):**
+```json
+{
+  "status": "ok",
+  "command": "add-progress",
+  "pletId": "...",
+  "path": "...",
+  "iteration": "...",
+  "phase": "...",
+  "attempt": N
+}
+```
 
 #### Preconditions (ENT_APR_PRE)
 
@@ -167,8 +180,20 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_ALR_OUT_1 | Text mode success: `OK — {plet_id}` to stdout, exit 0 | P0 |
 | ENT_ALR_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| ENT_ALR_OUT_3 | JSON mode: `{"status":"ok","command":"add-learning","pletId":"...","path":"...","category":"...","iteration":"...",...}` | P0 |
+| ENT_ALR_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | ENT_ALR_OUT_4 | Dry-run: `DRY RUN — would append learning entry {plet_id} to {path}` — no file modification, exit 0 | P0 |
+
+**ENT_ALR JSON schema (ENT_ALR_OUT_3):**
+```json
+{
+  "status": "ok",
+  "command": "add-learning",
+  "pletId": "...",
+  "path": "...",
+  "category": "...",
+  "iteration": "..."
+}
+```
 
 #### Preconditions (ENT_ALR_PRE)
 
@@ -246,8 +271,20 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_AEM_OUT_1 | Text mode success: `OK — {plet_id} EM_{N}` to stdout, exit 0 | P0 |
 | ENT_AEM_OUT_2 | Text mode error: specific error to stderr, exit 1 | P0 |
-| ENT_AEM_OUT_3 | JSON mode: `{"status":"ok","command":"add-emergent","pletId":"...","referenceId":"EM_N","path":"...","category":"...",...}` | P0 |
+| ENT_AEM_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
 | ENT_AEM_OUT_4 | Dry-run: `DRY RUN — would append emergent entry {plet_id} EM_{N} to {path}` — no file modification, exit 0 | P0 |
+
+**ENT_AEM JSON schema (ENT_AEM_OUT_3):**
+```json
+{
+  "status": "ok",
+  "command": "add-emergent",
+  "pletId": "...",
+  "referenceId": "EM_N",
+  "path": "...",
+  "category": "..."
+}
+```
 
 #### Preconditions (ENT_AEM_PRE)
 
@@ -321,7 +358,31 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_CHK_OUT_1 | Text mode: per-artifact status lines `OK — {artifact}: N entry(ies)` or `MISSING — {artifact}: 0` | P0 |
 | ENT_CHK_OUT_2 | Text mode summary: `OK — all artifacts have entries for {iteration}` (exit 0) or `INCOMPLETE — missing entries in: {list}` to stderr (exit 1) | P0 |
-| ENT_CHK_OUT_3 | JSON mode: `{"status":"ok" or "error", "command":"check", "iteration":"...", "artifacts":{"progress":{"count":N,"initialized":bool}, "learnings":{...}, "emergent":{...}}, "allPresent":true or false, ...}` | P0 |
+| ENT_CHK_OUT_3 | JSON mode: structured output (see schema below). Exit 0. | P0 |
+
+**ENT_CHK JSON schema (ENT_CHK_OUT_3):**
+```json
+{
+  "status": "ok or error",
+  "command": "check",
+  "iteration": "...",
+  "artifacts": {
+    "progress": {
+      "count": N,
+      "initialized": bool
+    },
+    "learnings": {
+      "count": N,
+      "initialized": bool
+    },
+    "emergent": {
+      "count": N,
+      "initialized": bool
+    }
+  },
+  "allPresent": true or false
+}
+```
 
 #### Preconditions (ENT_CHK_PRE)
 
