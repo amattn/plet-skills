@@ -865,6 +865,31 @@ CLEANUP (per-iteration state controls):
 - **§4–§16 approved.** Added ERR_9 (invalid --session-type), CRT_11 (GTC integration), CRT_12 (fingerprint SKIPPED on plan). FB_22 updated (resolved by invoke architecture).
 - **SES spec review complete.**
 
+#### GIM spec review (2026-03-25)
+
+- **Post-gate caller is the subagent, not the orchestrator.** The implement subagent runs `post` itself before exiting and self-corrects until it passes. This eliminates orchestrator retry logic for missing artifacts — the subagent's exit signal means "I passed my own gate." Orchestrator can optionally re-verify (trust but verify). AGT_2 updated, AFL_1/AFL_2 rewritten.
+- **Unified input convention: `<plet_dir>` + `--iter-id` for all scripts.** All scripts take the plet directory and derive paths internally. No more explicit file paths (`<global_state_json> <iter_state_json>`). Rationale: plet_dir is the root, everything is derivable (`state.json`, `state/{iter_id}.json`, `requirements.md`, etc.). Fewer args, no mismatched files, single source of truth.
+
+**Before (mixed conventions):**
+
+| Script | Command | Input pattern |
+|--------|---------|---------------|
+| plet_state.py | validate, update-*, init | `<state_file>` (single file) |
+| plet_entries.py | add-*, check | `<artifact_dir>` (plet dir) |
+| plet_fingerprint.py | extract, embed, check | `<plet_dir>` |
+| plet_trace.py | append-event, validate, query | `<trace_file>` (single file) |
+| plet_git_iteration.py | branch-name, worktree-* | `<global_state_json>` (single file) |
+| plet_git_ops.py | audit-tag, merge-squash | `<global_state_json> <iter_state_json>` (two files) |
+| plet_git_check.py | check-iteration | `<global_state_json> <iter_state_json>` (two files) |
+| plet_git_check.py | check-session | `<global_state_json> <state_dir>` (file + dir) |
+| plet_session.py | detect, status, preflight | `[<plet_dir>]` (optional dir) |
+
+**After (unified):**
+
+All scripts take `[<plet_dir>]` (optional, default `plet/`) as first positional arg. Commands that need per-iteration context add `--iter-id ID_xxx`. Scripts derive all paths internally. Exceptions: `plet_state.py` and `plet_trace.py` operate on individual files and keep their file-based inputs (they're low-level utilities, not orchestrator-facing).
+
+Retrofitting GTO/GTC/GTI specs first, then implementations. GIM and all future scripts use the new convention from the start.
+
 #### GTO spec review + implementation complete (2026-03-22)
 
 **Spec review decisions:**

@@ -66,7 +66,7 @@ Gate scripts (GIM, GVR) need to verify git state is correct before and after eac
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKI_CMD_1 | Usage: `plet_git_check.py check-iteration <global_state_json> <iter_state_json> --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTC_CKI_CMD_1 | Usage: `plet_git_check.py check-iteration [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -76,8 +76,8 @@ Gate scripts (GIM, GVR) need to verify git state is correct before and after eac
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKI_INP_1 | `global_state_json` — path to `plet/state.json`. Loaded via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
-| GTC_CKI_INP_2 | `iter_state_json` — path to per-iteration state file (e.g., `plet/state/ID_001.json`). Loaded via `util_state.load_and_validate_iter_state()`. Provides `iterationId`. | P0 |
+| GTC_CKI_INP_1 | `plet_dir` — optional positional arg, defaults to `plet/`. Script derives `{plet_dir}/state.json` and loads via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
+| GTC_CKI_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Script derives `{plet_dir}/state/{iter_id}.json` and loads via `util_state.load_and_validate_iter_state()`. Provides `iterationId`. | P0 |
 | GTC_CKI_INP_3 | `--phase` — `implement` or `verify`. Determines the expected branch context. | P0 |
 
 #### Outputs (GTC_CKI_OUT)
@@ -113,9 +113,9 @@ The output model is a list of checks, each with a name, status (pass/fail/warn),
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKI_PRE_1 | All required args present: `global_state_json`, `iter_state_json`, `--phase` | P0 |
-| GTC_CKI_PRE_2 | `global_state_json` passes `util_state.load_and_validate_global_state()` | P0 |
-| GTC_CKI_PRE_3 | `iter_state_json` passes `util_state.load_and_validate_iter_state()` | P0 |
+| GTC_CKI_PRE_1 | All required args present: `--iter-id`, `--phase` | P0 |
+| GTC_CKI_PRE_2 | `{plet_dir}/state.json` passes `util_state.load_and_validate_global_state()` | P0 |
+| GTC_CKI_PRE_3 | `{plet_dir}/state/{iter_id}.json` passes `util_state.load_and_validate_iter_state()` | P0 |
 | GTC_CKI_PRE_4 | `--phase` is `implement` or `verify` | P0 |
 | GTC_CKI_PRE_5 | Current directory is inside a git repository | P0 |
 
@@ -133,7 +133,7 @@ Each check verifies one git invariant. All checks are always run — no short-ci
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKI_BHV_1 | **correct-branch**: Derives expected branch `plet/{projectId}/loop{N}/{iter_id}` from state files. Checks `git branch --show-current` matches. FAIL if on wrong branch or detached HEAD. | P0 |
+| GTC_CKI_BHV_1 | **correct-branch**: Derives expected branch `plet/{projectId}/loop{N}/{iter_id}` from global and iteration state. Checks `git branch --show-current` matches. FAIL if on wrong branch or detached HEAD. | P0 |
 | GTC_CKI_BHV_2 | **clean-worktree**: Checks `git status --porcelain` is empty. FAIL if there are uncommitted changes. Detail includes count of modified/untracked files. | P0 |
 | GTC_CKI_BHV_3 | **linear-history**: Checks for merge commits on the iteration branch since it diverged from the workstream. Uses `git log --merges {workstream}..HEAD`. FAIL if any merge commits found. Detail includes count and first merge commit hash. Linear history is required for clean `git bisect` and audit trails (IMP_16). | P0 |
 | GTC_CKI_BHV_4 | **no-stashes**: Checks `git stash list` is empty. WARN (not FAIL) if stashes exist. Stashes are banned (FB_30) but their presence doesn't block execution — it's a compliance signal. Detail includes stash count. | P0 |
@@ -160,7 +160,7 @@ At session boundaries (start and end), the orchestrator needs a global health ch
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_CMD_1 | Usage: `plet_git_check.py check-session <global_state_json> <state_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTC_CKS_CMD_1 | Usage: `plet_git_check.py check-session [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -170,8 +170,8 @@ At session boundaries (start and end), the orchestrator needs a global health ch
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_INP_1 | `global_state_json` — path to `plet/state.json`. Loaded via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
-| GTC_CKS_INP_2 | `state_dir` — path to the per-iteration state directory (e.g., `plet/state/`). Used to scan all iteration state files and cross-reference their lifecycles against git state. | P0 |
+| GTC_CKS_INP_1 | `plet_dir` — optional positional arg, defaults to `plet/`. Script derives `{plet_dir}/state.json` and loads via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
+| GTC_CKS_INP_2 | Script derives `{plet_dir}/state/` as the per-iteration state directory. Used to scan all iteration state files and cross-reference their lifecycles against git state. | P0 |
 
 #### Outputs (GTC_CKS_OUT)
 
@@ -206,9 +206,9 @@ Same output model as check-iteration: a list of checks with pass/fail/warn statu
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_PRE_1 | All required args present: `global_state_json`, `state_dir` (both positional) | P0 |
-| GTC_CKS_PRE_2 | `global_state_json` passes `util_state.load_and_validate_global_state()` | P0 |
-| GTC_CKS_PRE_3 | `state_dir` is an existing directory | P0 |
+| GTC_CKS_PRE_1 | `plet_dir` resolves to an existing directory (default `plet/`) | P0 |
+| GTC_CKS_PRE_2 | `{plet_dir}/state.json` passes `util_state.load_and_validate_global_state()` | P0 |
+| GTC_CKS_PRE_3 | `{plet_dir}/state/` is an existing directory | P0 |
 | GTC_CKS_PRE_4 | Current directory is inside a git repository | P0 |
 
 #### Postconditions (GTC_CKS_PST)
@@ -221,18 +221,18 @@ Same output model as check-iteration: a list of checks with pass/fail/warn statu
 
 #### Behaviors (GTC_CKS_BHV)
 
-Session-level checks scan across all iterations and git state for the current loop session. The `state_dir` is scanned for `*.json` files (excluding `state.json` itself if present) to enumerate known iterations.
+Session-level checks scan across all iterations and git state for the current loop session. The `{plet_dir}/state/` directory is scanned for `*.json` files to enumerate known iterations.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTC_CKS_BHV_1 | **orphaned-worktrees**: Lists git worktrees (`git worktree list --porcelain`), identifies any under the plet namespace that don't correspond to an active (non-complete, non-withdrawn) iteration. WARN for each orphaned worktree found. Detail includes worktree path and branch. Addresses FB_32. | P0 |
 | GTC_CKS_BHV_2 | **no-stashes**: Checks `git stash list` is empty. WARN if stashes exist. Same as the per-iteration check but at session scope — stashes may have been created outside any iteration context. Detail includes stash count. Addresses FB_30. | P0 |
-| GTC_CKS_BHV_3 | **unmerged-complete**: Scans state files in `state_dir` for iterations with `lifecycle: "complete"`. For each, checks if its iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) is an ancestor of the workstream branch. FAIL for any complete iteration whose branch is not merged (work was declared done but never integrated). Detail lists the unmerged iteration IDs. | P0 |
+| GTC_CKS_BHV_3 | **unmerged-complete**: Scans state files in `{plet_dir}/state/` for iterations with `lifecycle: "complete"`. For each, checks if its iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) is an ancestor of the workstream branch. FAIL for any complete iteration whose branch is not merged (work was declared done but never integrated). Detail lists the unmerged iteration IDs. | P0 |
 | GTC_CKS_BHV_4 | **workstream-exists**: Verifies the workstream branch `plet/{projectId}/loop{N}/workstream` exists. FAIL if it doesn't exist and there are iterations in non-ineligible states (work has started but no workstream). PASS if it doesn't exist and all iterations are ineligible/queued (loop hasn't started yet). | P0 |
 | GTC_CKS_BHV_5 | Check order: in-progress-operation → workstream-exists → orphaned-worktrees → orphaned-branches → no-stashes → unmerged-complete. Broken repo first, then workstream (structural), cleanup checks next, merge verification last. | P0 |
-| GTC_CKS_BHV_9 | **orphaned-branches**: Lists plet-namespaced branches (`plet/{projectId}/loop{N}/*`), identifies any that don't have a corresponding state file in `state_dir`. WARN for each. Detail includes branch name. Reverse of unmerged-complete (branch without state, vs state without merge). | P0 |
+| GTC_CKS_BHV_9 | **orphaned-branches**: Lists plet-namespaced branches (`plet/{projectId}/loop{N}/*`), identifies any that don't have a corresponding state file in `{plet_dir}/state/`. WARN for each. Detail includes branch name. Reverse of unmerged-complete (branch without state, vs state without merge). | P0 |
 | GTC_CKS_BHV_8 | **in-progress-operation**: Same check as CKI_BHV_8 — detects interrupted rebase, merge, cherry-pick, bisect. FAIL if any detected. Catches broken repo state at session preflight before any iterations are spawned. | P0 |
-| GTC_CKS_BHV_6 | Scans `state_dir` for `*.json` files. Each file is loaded via `util_state.load_and_validate_iter_state()`. Files that fail validation are reported as WARN (corrupt state file) and skipped for subsequent checks. | P0 |
+| GTC_CKS_BHV_6 | Scans `{plet_dir}/state/` for `*.json` files. Each file is loaded via `util_state.load_and_validate_iter_state()`. Files that fail validation are reported as WARN (corrupt state file) and skipped for subsequent checks. | P0 |
 | GTC_CKS_BHV_7 | For unmerged-complete check: an iteration branch is "merged" if it is an ancestor of the workstream HEAD. Uses `git merge-base --is-ancestor {iter_branch} {workstream}`. If the iteration branch no longer exists (already cleaned up), treat as PASS (branch deleted = already handled). | P0 |
 
 ---
@@ -246,9 +246,9 @@ Session-level checks scan across all iterations and git state for the current lo
 | GTC_EDG_3 | Iteration branch doesn't exist in check-iteration — FAIL on branch-exists check, remaining checks still run where possible (clean-worktree and no-stashes can still run without needing the branch to exist). | P0 |
 | GTC_EDG_4 | Workstream branch doesn't exist in check-iteration — linear-history check emits WARN (can't determine merge base). Other checks unaffected. | P0 |
 | GTC_EDG_5 | Detached HEAD in check-iteration — branch-exists may PASS (the iteration branch ref can exist while HEAD is detached), correct-branch FAILs (`git branch --show-current` returns empty). Two independent checks, both correct. | P0 |
-| GTC_EDG_6 | No state files in `state_dir` for check-session — all checks that depend on iteration state (unmerged-complete) are PASS (nothing to check). Orphaned worktrees and stash checks still run. | P0 |
-| GTC_EDG_7 | `state_dir` contains non-JSON files — ignored (only `*.json` scanned). | P0 |
-| GTC_EDG_8 | State file in `state_dir` fails validation — WARN (corrupt state file) and skip that iteration for subsequent checks. | P0 |
+| GTC_EDG_6 | No state files in `{plet_dir}/state/` for check-session — all checks that depend on iteration state (unmerged-complete) are PASS (nothing to check). Orphaned worktrees and stash checks still run. | P0 |
+| GTC_EDG_7 | `{plet_dir}/state/` contains non-JSON files — ignored (only `*.json` scanned). | P0 |
+| GTC_EDG_8 | State file in `{plet_dir}/state/` fails validation — WARN (corrupt state file) and skip that iteration for subsequent checks. | P0 |
 | GTC_EDG_9 | `--pretty` without `--output json` — error. | P0 |
 | GTC_EDG_10 | `--fields` without `--output json` — error. | P0 |
 | GTC_EDG_11 | Duplicate flags — error via `parse_kwargs`. | P0 |
@@ -265,25 +265,25 @@ Errors are distinct from check failures. Errors are structural problems that pre
 |----|-------------|----------|
 | GTC_ERR_1 | Missing required args → print specific missing arg name + help text, exit 1 | P0 |
 | GTC_ERR_2 | Invalid `--phase` → `Error: invalid --phase '{value}' (valid: implement, verify)` | P0 |
-| GTC_ERR_3 | Global state validation failure → error from `util_state.load_and_validate_global_state()` | P0 |
-| GTC_ERR_4 | Iter state validation failure → error from `util_state.load_and_validate_iter_state()` | P0 |
+| GTC_ERR_3 | Global state validation failure → error from `util_state.load_and_validate_global_state()` on `{plet_dir}/state.json` | P0 |
+| GTC_ERR_4 | Iter state validation failure → error from `util_state.load_and_validate_iter_state()` on `{plet_dir}/state/{iter_id}.json` | P0 |
 | GTC_ERR_5 | Not a git repo → `Error: not inside a git repository` | P0 |
-| GTC_ERR_6 | `state_dir` is a file, not a directory → `Error: expected a directory, got file: {path}` (UNV_ERR_6) | P0 |
-| GTC_ERR_7 | `state_dir` doesn't exist → `Error: directory not found: {path}` | P0 |
+| GTC_ERR_6 | `plet_dir` is a file, not a directory → `Error: expected a directory, got file: {path}` (UNV_ERR_6) | P0 |
+| GTC_ERR_7 | `plet_dir` doesn't exist → `Error: directory not found: {path}` | P0 |
 | GTC_ERR_8 | Git command failed → `Error: git command failed: {stderr}` | P0 |
 | GTC_ERR_9 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | GTC_ERR_10 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | GTC_ERR_11 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
-| GTC_ERR_12 | `global_state_json` is a directory → `Error: expected a file, got directory: {path}` (UNV_ERR_5) | P0 |
-| GTC_ERR_13 | `iter_state_json` is a directory → `Error: expected a file, got directory: {path}` (UNV_ERR_5) | P0 |
+| GTC_ERR_12 | `{plet_dir}/state/` doesn't exist or is not a directory → `Error: state directory not found: {path}` | P0 |
+| GTC_ERR_13 | `{plet_dir}/state/{iter_id}.json` not found → `Error: iteration state file not found: {path}` | P0 |
 | GTC_ERR_14 | `--dry-run` passed → `Error: --dry-run is not supported (check-iteration and check-session are read-only)` | P0 |
 
 ## 6. Formats (GTC_FMT)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_FMT_1 | Reads `plet/state.json` via `util_state` for `projectId`, `loopSessionCount`. | P0 |
-| GTC_FMT_2 | Reads `plet/state/{id}.json` via `util_state` for `iterationId`, `lifecycle`. | P0 |
+| GTC_FMT_1 | Reads `{plet_dir}/state.json` via `util_state` for `projectId`, `loopSessionCount`. | P0 |
+| GTC_FMT_2 | Reads `{plet_dir}/state/{id}.json` via `util_state` for `iterationId`, `lifecycle`. | P0 |
 | GTC_FMT_3 | Branch name convention: `plet/{projectId}/loop{N}/{iter_id}` (iteration), `plet/{projectId}/loop{N}/workstream` (workstream). Derived from state files, not constructed from flags. | P0 |
 | GTC_FMT_4 | Writes nothing — read-only. | P0 |
 
@@ -292,7 +292,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_1: Gate script pre-phase check
 
 1. Orchestrator spawns gate script (GIM or GVR) before phase begins
-2. Gate script calls: `plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json --phase implement --output json`
+2. Gate script calls: `plet_git_check.py check-iteration --iter-id ID_001 --phase implement --output json`
 3. Gate script parses JSON: checks `status` and individual check results
 4. If exit 1 (`"fail"`): gate script blocks the phase, reports violations to orchestrator
 5. If exit 2 (`"warn"`): gate script proceeds, logs warnings to progress.md
@@ -301,7 +301,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_2: Gate script post-phase check
 
 1. Subagent finishes phase (implement or verify)
-2. Gate script calls: `plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json --phase verify --output json`
+2. Gate script calls: `plet_git_check.py check-iteration --iter-id ID_001 --phase verify --output json`
 3. Gate script verifies phase left git state clean
 4. If exit 1: gate script reports violations to orchestrator (may not block — depends on severity)
 5. If exit 2: gate script logs warnings to progress.md
@@ -309,7 +309,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_3: Orchestrator session preflight
 
 1. Orchestrator starts a new loop session
-2. Calls: `plet_git_check.py check-session plet/state.json plet/state/ --output json`
+2. Calls: `plet_git_check.py check-session --output json`
 3. Inspects results:
    - in-progress-operation FAIL → abort session, alert human (broken repo state)
    - orphaned worktrees → cleanup via `plet_git_iteration.py worktree-remove`
@@ -321,7 +321,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_4: Orchestrator session end
 
 1. Orchestrator finishes all iterations in the loop
-2. Calls: `plet_git_check.py check-session plet/state.json plet/state/ --output json`
+2. Calls: `plet_git_check.py check-session --output json`
 3. Verifies: no orphaned worktrees, no orphaned branches, no stashes, all complete iterations merged
 4. Logs session health summary to progress.md
 
@@ -330,7 +330,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_EXM_1: check-iteration — all passing
 
 ```bash
-plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json --phase implement
+plet_git_check.py check-iteration --iter-id ID_001 --phase implement
 # PASS: check-iteration — 6 passed
 # PASS: in-progress-operation — no interrupted git operations
 # PASS: branch-exists — plet/LOGA/loop1/ID_001 exists
@@ -344,7 +344,7 @@ plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json --phase
 ### GTC_EXM_2: check-iteration — violations found
 
 ```bash
-plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json --phase implement
+plet_git_check.py check-iteration --iter-id ID_001 --phase implement
 # FAIL: check-iteration — 2 failed, 1 warning
 # PASS: in-progress-operation — no interrupted git operations
 # PASS: branch-exists — plet/LOGA/loop1/ID_001 exists
@@ -358,7 +358,7 @@ plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json --phase
 ### GTC_EXM_3: check-iteration — JSON output
 
 ```bash
-plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json \
+plet_git_check.py check-iteration --iter-id ID_001 \
     --phase implement --output json --pretty
 # {
 #   "status": "fail",
@@ -382,7 +382,7 @@ plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json \
 ### GTC_EXM_4: check-session — orphaned worktree found
 
 ```bash
-plet_git_check.py check-session plet/state.json plet/state/
+plet_git_check.py check-session
 # WARN: check-session — 1 warning
 # PASS: in-progress-operation — no interrupted git operations
 # PASS: workstream-exists — plet/LOGA/loop1/workstream exists
@@ -396,7 +396,7 @@ plet_git_check.py check-session plet/state.json plet/state/
 ### GTC_EXM_5: check-session — JSON output with --fields
 
 ```bash
-plet_git_check.py check-session plet/state.json plet/state/ \
+plet_git_check.py check-session \
     --output json --fields status,checks,summary
 # {"status":"ok","checks":[...],"summary":{"total":6,"passed":6,"failed":0,"warnings":0},"fieldsIncluded":["status","checks","summary"],"fieldsOmitted":["command","projectId","loopSession","scriptVersion","timestamp"]}
 ```
@@ -430,7 +430,7 @@ See `specs/conventions.md` for universal requirements.
 |----|-------------|----------|
 | GTC_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | GTC_DXP_2 | IMPORTANT: both commands are read-only — no `--dry-run` needed, safe to run anytime | P0 |
-| GTC_DXP_3 | PITFALLS: check-iteration requires being in a git repo (will fail if run from wrong directory); check-session second positional arg (`state_dir`) must point to the `plet/state/` directory, not a state file | P0 |
+| GTC_DXP_3 | PITFALLS: check-iteration requires being in a git repo (will fail if run from wrong directory); `plet_dir` must point to the plet directory (default `plet/`), not a state file — the script derives `state.json` and `state/` paths internally | P0 |
 | GTC_DXP_4 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json` | P0 |
 | GTC_DXP_5 | Error messages include git's stderr when a git command fails | P0 |
 | GTC_DXP_6 | Check names are stable identifiers (in-progress-operation, branch-exists, correct-branch, clean-worktree, linear-history, no-stashes, workstream-exists, orphaned-worktrees, orphaned-branches, unmerged-complete) — gate scripts and orchestrator can match on them. in-progress-operation is shared by both commands. | P0 |

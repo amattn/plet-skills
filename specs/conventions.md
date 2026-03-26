@@ -31,6 +31,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_CMD_8 | Command-based interface: `script.py <command> [args]` — not flag-based | P0 |
 | UNV_CMD_9 | Every command supports `-h` and `--help`. Top-level `--help` prints the module docstring. Help text is agent-readable with copy-pasteable examples | P0 |
 | UNV_CMD_10 | Only file path / artifact directory as positional arg. All other arguments use named `--key value` format. Agents generate commands programmatically — predictability matters more than brevity. | P0 |
+| UNV_CMD_16 | **Unified plet_dir input:** Orchestrator-facing scripts take `[<plet_dir>]` as optional first positional arg (default: `plet/`). Scripts derive all paths internally (`state.json`, `state/{iter_id}.json`, `requirements.md`, etc.). Commands needing per-iteration context add `--iter-id ID_xxx`. Exceptions: low-level utilities (`plet_state.py`, `plet_trace.py`) that operate on individual files keep file-based inputs. | P0 |
 | UNV_CMD_11 | No argparse — manual parsing via `parse_kwargs()` pattern | P0 |
 | UNV_CMD_12 | Complex values (arrays, objects) passed as JSON strings | P0 |
 | UNV_CMD_13 | Every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)` | P0 |
