@@ -176,7 +176,7 @@ These scripts are **agent tools** that humans occasionally debug — not develop
 - **Single resource per invocation** — scripts operate on one file/entity. Agents control the loop (how many, stop early, parallelize). Predictable output size per call. No multi-file aggregation in scripts. **Exception:** commands whose primary job is producing a list from multiple resources (e.g., scanning all state files for eligible iterations). When the list IS the output, multi-resource scanning is the point — but `--fields` is especially critical for these commands.
 - **Context window protection** — `--fields field1,field2` limits JSON output. Response includes `fieldsIncluded` and `fieldsOmitted` so the agent knows what was filtered. Especially critical for commands that could return large output even for a single resource (validation errors, entry listings). Help text should strongly recommend `--fields` for high-output commands.
 
-This insight was driven by the open question about positional args but applies across all conventions. Six requirements added/modified: UNV_CMD_10 (named args only), UNV_CMD_15 (output format), UNV_CMD_17 (--dry-run), UNV_CMD_18 (--output json), UNV_DXP_5 (help as guidance), UNV_ERR_4 (no unhandled exceptions).
+This insight was driven by the open question about positional args but applies across all conventions. Six requirements added/modified: UNV_CMD_10 (named args only), UNV_CMD_15 (output format), UNV_CMD_26 (--dry-run), UNV_CMD_18 (--output json), UNV_DXP_5 (help as guidance), UNV_ERR_4 (no unhandled exceptions).
 
 #### Open questions #2-4 resolved: agent-first CLI design (2026-03-16)
 
@@ -894,7 +894,9 @@ Retrofitting all specs first, then implementations.
 
 **Layering cleanup:** Raw JSON loading (`load_global_state_json`, `load_iter_state_json`) moves to util_io (path derivation + load_json). Validation stays in util_state. `load_and_validate_*` in util_state now takes `(plet_dir)` / `(plet_dir, iter_id)` and calls util_io internally. `validate_plet_dir()` added to util_io for directory validation.
 
-**Shared CLI helpers (UNV_CMD_17):** `get_plet_dir`, `extract_output_flags`, `emit_json`, `emit_json_error` move to util_cli. Currently duplicated across 6-7 scripts. Single implementation, scripts import from util_cli.
+**Shared CLI helpers (UNV_CMD_26):** `get_plet_dir`, `extract_output_flags`, `emit_json`, `emit_json_error` move to util_cli. Currently duplicated across 6-7 scripts. Single implementation, scripts import from util_cli.
+
+**Exit code convention updated (UNV_CMD_14):** Was "0 = success, 1 = error. No other exit codes." Now allows exit 2 for check/gate commands (warnings only, no failures). GTC, SES preflight, GIM all use this. Duplicate UNV_CMD_17 ID fixed → shared helpers renumbered to UNV_CMD_26.
 
 #### GTO spec review + implementation complete (2026-03-22)
 

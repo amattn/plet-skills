@@ -32,11 +32,11 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_CMD_9 | Every command supports `-h` and `--help`. Top-level `--help` prints the module docstring. Help text is agent-readable with copy-pasteable examples | P0 |
 | UNV_CMD_10 | Only file path / artifact directory as positional arg. All other arguments use named `--key value` format. Agents generate commands programmatically — predictability matters more than brevity. | P0 |
 | UNV_CMD_16 | **Unified plet_dir input:** All scripts take `[<plet_dir>]` as optional first positional arg (default: `plet/` via `util_io.DEFAULT_PLET_DIR`). Scripts derive all paths via `util_io` path functions (`state_json_path`, `iter_state_path`, etc.) — never construct paths manually. Commands needing per-iteration context add `--iter-id ID_xxx`. | P0 |
-| UNV_CMD_17 | **Shared CLI helpers:** Scripts must use `util_cli` for: `get_plet_dir()` (parse plet_dir from args), `extract_output_flags()` (parse --output/--pretty/--fields/--dry-run), `emit_json()` / `emit_json_error()` (structured output). Do not duplicate these patterns per-script. | P0 |
+| UNV_CMD_26 | **Shared CLI helpers:** Scripts must use `util_cli` for: `get_plet_dir()` (parse plet_dir from args), `extract_output_flags()` (parse --output/--pretty/--fields/--dry-run), `emit_json()` / `emit_json_error()` (structured output). Do not duplicate these patterns per-script. | P0 |
 | UNV_CMD_11 | No argparse — manual parsing via `parse_kwargs()` pattern | P0 |
 | UNV_CMD_12 | Complex values (arrays, objects) passed as JSON strings | P0 |
 | UNV_CMD_13 | Every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)` | P0 |
-| UNV_CMD_14 | Exit codes: 0 = success, 1 = error. No other exit codes | P0 |
+| UNV_CMD_14 | Exit codes: 0 = success, 1 = error. Check/gate commands additionally use 2 = warnings only (no failures). Scripts document their exit codes in OUT sections. | P0 |
 | UNV_CMD_15 | Output: results to stdout, errors to stderr. Default is human-readable text. `--output json` produces structured machine-readable output with metadata (status, command, path, scriptVersion, timestamp). Both formats must include the same information. | P0 |
 | UNV_CMD_16 | Each `cmd_*` function defines a `HELP` variable at the top with usage, arguments, and examples | P0 |
 | UNV_CMD_24 | Error output includes a help hint on stderr: `Run: <script> <command> --help`. Print the full HELP only for missing-required-args errors (where the agent needs the full interface). For validation errors (wrong enum, bad format), the error message itself says what's valid — the hint nudges without flooding the agent's context window. | P0 |
