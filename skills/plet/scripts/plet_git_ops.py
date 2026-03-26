@@ -6,8 +6,8 @@ one commit per iteration on the workstream. Git history is never lost —
 incremental commits stay on the iteration branch.
 
 Usage:
-    plet_git_ops.py audit-tag <global_state_json> <iter_state_json> --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_ops.py merge-squash <global_state_json> <iter_state_json> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py audit-tag [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py merge-squash [<plet_dir>] --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     audit-tag       Create an audit tag marking a phase boundary
@@ -30,7 +30,12 @@ from util_cli import (
     now_iso,
     dispatch,
     filter_fields,
+    get_plet_dir,
+    extract_output_flags,
+    emit_json,
+    emit_json_error,
 )
+from util_io import validate_plet_dir, iter_state_path
 from util_state import (
     load_and_validate_global_state,
     load_and_validate_iter_state,
@@ -49,54 +54,6 @@ VALID_PHASES = ["implement", "verify"]
 
 def help_hint(command):
     return "Run: plet_git_ops.py {} --help".format(command)
-
-
-def extract_universal_flags(kwargs):
-    output_json = kwargs.pop("output", None) == "json"
-    pretty = kwargs.pop("pretty", False)
-    if pretty is True and not output_json:
-        print("Error: --pretty requires --output json", file=sys.stderr)
-        return False, False, None, False, False
-
-    fields_raw = kwargs.pop("fields", None)
-    if fields_raw and not output_json:
-        print("Error: --fields requires --output json", file=sys.stderr)
-        return False, False, None, False, False
-    fields = fields_raw.split(",") if fields_raw else None
-
-    dry_run = kwargs.pop("dry_run", False)
-    if dry_run is True:
-        dry_run = True
-
-    return output_json, pretty, fields, dry_run, True
-
-
-def emit_json(data, pretty=False, fields=None):
-    data["scriptVersion"] = SCRIPT_VERSION
-    data["timestamp"] = now_iso()
-    if fields is not None:
-        data = filter_fields(data, fields)
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-
-
-def emit_json_error(command, message, pretty=False, extra=None):
-    data = {
-        "status": "error",
-        "command": command,
-        "error": message,
-        "scriptVersion": SCRIPT_VERSION,
-        "timestamp": now_iso(),
-    }
-    if extra:
-        data.update(extra)
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-    print(message, file=sys.stderr)
 
 
 def is_git_repo(cwd=None):
@@ -150,15 +107,14 @@ def cmd_audit_tag(args):
     Tags are idempotent — re-running updates the tag (git tag -f).
 
 PITFALLS:
-    - Takes TWO state file paths: global state.json AND per-iteration state
     - --phase must be "implement" or "verify" (not "implementation")
     - Attempt number derived from iter state — don't pass it manually
 
 USAGE:
-    plet_git_ops.py audit-tag <global_state_json> <iter_state_json> --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py audit-tag [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    global_state_json    Path to plet/state.json
-    iter_state_json      Path to plet/state/ID_xxx.json
+    plet_dir             Path to plet directory (default: plet/)
+    --iter-id            Iteration ID (e.g., ID_001)
     --phase              implement or verify
 
 PURPOSE:
@@ -167,48 +123,56 @@ PURPOSE:
     which moves, tags are fixed anchors.
 
 Examples:
-    plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json --phase implement
-    plet_git_ops.py audit-tag plet/state.json plet/state/ID_001.json --phase verify --dry-run
+    plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement
+    plet_git_ops.py audit-tag --iter-id ID_001 --phase verify --dry-run
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 2:
-        print(HELP, file=sys.stderr)
-        return 1
 
     CMD = "audit-tag"
     hint = help_hint(CMD)
-    gs_path = args[0]
-    is_path = args[1]
+
+    plet_dir, remaining = get_plet_dir(args)
 
     try:
-        kwargs = parse_kwargs(args[2:])
+        kwargs = parse_kwargs(remaining)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["phase"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase"], HELP):
         return 1
 
+    iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):
         print(hint, file=sys.stderr)
         return 1
 
+    # Validate plet_dir
+    valid, err = validate_plet_dir(plet_dir)
+    if not valid:
+        if output_json:
+            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
+        else:
+            print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
     # Load and validate both state files
-    global_state = load_and_validate_global_state(gs_path)
+    global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
         print(hint, file=sys.stderr)
         return 1
 
-    iter_state = load_and_validate_iter_state(is_path)
+    iter_state = load_and_validate_iter_state(plet_dir, iter_id)
     if iter_state is None:
         print(hint, file=sys.stderr)
         return 1
@@ -218,7 +182,7 @@ Examples:
     if attempt < 1:
         msg = "Error: attempts.{} is {} — phase has not been attempted".format(phase, attempt)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -227,7 +191,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -253,7 +217,7 @@ Examples:
                 "replaced": replaced,
                 "previousHash": previous_hash,
                 "dryRun": True,
-            }, pretty, fields)
+            }, SCRIPT_VERSION, pretty, fields)
         else:
             print(msg)
         return 0
@@ -267,7 +231,7 @@ Examples:
     if r.returncode != 0:
         msg = "Error: git command failed: {}".format(r.stderr)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -291,7 +255,7 @@ Examples:
             "attempt": attempt,
             "replaced": replaced,
             "previousHash": previous_hash,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         print(msg)
 
@@ -309,14 +273,13 @@ def cmd_merge_squash(args):
 
 PITFALLS:
     - Must checkout workstream branch BEFORE running this command
-    - Takes TWO state file paths: global state.json AND per-iteration state
     - Tag and branch cleanup controlled by per-iteration state fields
 
 USAGE:
-    plet_git_ops.py merge-squash <global_state_json> <iter_state_json> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py merge-squash [<plet_dir>] --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    global_state_json    Path to plet/state.json
-    iter_state_json      Path to plet/state/ID_xxx.json
+    plet_dir             Path to plet directory (default: plet/)
+    --iter-id            Iteration ID (e.g., ID_001)
 
 PURPOSE:
     Merges all iteration work into a single clean commit on the workstream.
@@ -324,40 +287,52 @@ PURPOSE:
     one commit per iteration for clean history.
 
 Examples:
-    plet_git_ops.py merge-squash plet/state.json plet/state/ID_001.json
-    plet_git_ops.py merge-squash plet/state.json plet/state/ID_001.json --dry-run
+    plet_git_ops.py merge-squash plet/ --iter-id ID_001
+    plet_git_ops.py merge-squash --iter-id ID_001 --dry-run
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 2:
-        print(HELP, file=sys.stderr)
-        return 1
 
     CMD = "merge-squash"
     hint = help_hint(CMD)
-    gs_path = args[0]
-    is_path = args[1]
+
+    plet_dir, remaining = get_plet_dir(args)
 
     try:
-        kwargs = parse_kwargs(args[2:])
+        kwargs = parse_kwargs(remaining)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
 
+    if not require_kwargs(kwargs, ["iter_id"], HELP):
+        return 1
+
+    iter_id = kwargs["iter_id"]
+
+    # Validate plet_dir
+    valid, err = validate_plet_dir(plet_dir)
+    if not valid:
+        if output_json:
+            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
+        else:
+            print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
     # Load and validate both state files
-    global_state = load_and_validate_global_state(gs_path)
+    global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
         print(hint, file=sys.stderr)
         return 1
 
-    iter_state = load_and_validate_iter_state(is_path)
+    iter_state = load_and_validate_iter_state(plet_dir, iter_id)
     if iter_state is None:
         print(hint, file=sys.stderr)
         return 1
@@ -366,7 +341,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -381,7 +356,7 @@ Examples:
         msg = "Error: must be on workstream branch {}, currently on {}".format(
             ws_branch, current_branch)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -391,7 +366,7 @@ Examples:
     if r.returncode != 0:
         msg = "Error: HEAD is detached — merge-squash requires a named branch"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -401,7 +376,7 @@ Examples:
     if r.returncode != 0:
         msg = "Error: iteration branch not found: {}".format(iter_branch)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -411,7 +386,7 @@ Examples:
     if r.returncode == 0:
         msg = "Error: iteration branch {} has no changes ahead of workstream — already merged or no work done".format(iter_branch)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -421,7 +396,7 @@ Examples:
     if porcelain:
         msg = "Error: working tree is dirty (git status --porcelain non-empty) — commit changes before merge-squash"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -465,7 +440,7 @@ Examples:
                 "iterationBranch": iter_branch,
                 "workstreamBranch": ws_branch,
                 "dryRun": True,
-            }, pretty, fields)
+            }, SCRIPT_VERSION, pretty, fields)
         else:
             print(msg)
         return 0
@@ -479,13 +454,13 @@ Examples:
             run_git("merge", "--abort")
             msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
             if output_json:
-                emit_json_error(CMD, msg, pretty)
+                emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
             else:
                 print(msg, file=sys.stderr)
             return 1
         msg = "Error: git command failed: {}".format(r.stderr)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -495,7 +470,7 @@ Examples:
     if r.returncode != 0:
         msg = "Error: git commit failed: {}".format(r.stderr)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -547,7 +522,7 @@ Examples:
             "workstreamBranch": ws_branch,
             "tagsCleaned": tags_cleaned,
             "branchDeleted": branch_deleted,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         print(msg)
 

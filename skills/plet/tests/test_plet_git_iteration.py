@@ -73,14 +73,14 @@ def make_git_repo(tmpdir):
 
 
 def write_state(repo_dir, data):
-    """Write state.json in a plet/ subdir and return its path."""
+    """Write state.json in a plet/ subdir and return the plet_dir path."""
     plet_dir = os.path.join(repo_dir, "plet")
     os.makedirs(plet_dir, exist_ok=True)
     path = os.path.join(plet_dir, "state.json")
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
-    return path
+    return plet_dir
 
 
 VALID_STATE = {
@@ -135,9 +135,9 @@ def test_branch_name_iteration():
     print("\n## branch-name — iteration type")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", state_path, "--iter-id", "ID_001"],
+        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001"],
                            cwd=repo)
         check("iteration branch", stdout == "plet/LOGA/loop1/ID_001")
 
@@ -146,9 +146,9 @@ def test_branch_name_iteration_default_type():
     print("\n## branch-name — iteration is default type")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", state_path, "--iter-id", "ID_003"],
+        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_003"],
                            cwd=repo)
         check("default type is iteration", stdout == "plet/LOGA/loop1/ID_003")
 
@@ -157,9 +157,9 @@ def test_branch_name_workstream():
     print("\n## branch-name — workstream type")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", state_path, "--type", "workstream"],
+        stdout, _, _ = run(["branch-name", plet_dir, "--type", "workstream"],
                            cwd=repo)
         check("workstream branch", stdout == "plet/LOGA/loop1/workstream")
 
@@ -168,9 +168,9 @@ def test_branch_name_plan():
     print("\n## branch-name — plan type (always 1)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", state_path, "--type", "plan"],
+        stdout, _, _ = run(["branch-name", plet_dir, "--type", "plan"],
                            cwd=repo)
         check("plan branch always 1", stdout == "plet/LOGA/plan1/workstream")
 
@@ -181,9 +181,9 @@ def test_branch_name_refine():
         repo = make_git_repo(d)
         state = dict(VALID_STATE)
         state["refineSessionCount"] = 2
-        state_path = write_state(repo, state)
+        plet_dir = write_state(repo, state)
 
-        stdout, _, _ = run(["branch-name", state_path, "--type", "refine"],
+        stdout, _, _ = run(["branch-name", plet_dir, "--type", "refine"],
                            cwd=repo)
         check("refine branch uses refineSessionCount",
               stdout == "plet/LOGA/refine2/workstream")
@@ -193,9 +193,9 @@ def test_branch_name_json_output():
     print("\n## branch-name — JSON output")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", state_path, "--iter-id", "ID_001",
+        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001",
                             "--output", "json", "--pretty"], cwd=repo)
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
@@ -211,9 +211,9 @@ def test_branch_name_different_session():
         repo = make_git_repo(d)
         state = dict(VALID_STATE)
         state["loopSessionCount"] = 3
-        state_path = write_state(repo, state)
+        plet_dir = write_state(repo, state)
 
-        stdout, _, _ = run(["branch-name", state_path, "--iter-id", "ID_005"],
+        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_005"],
                            cwd=repo)
         check("uses session count 3", stdout == "plet/LOGA/loop3/ID_005")
 
@@ -222,9 +222,9 @@ def test_branch_name_missing_iter_id():
     print("\n## branch-name — missing --iter-id for iteration type")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
 
-        _, stderr, _ = run(["branch-name", state_path], expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["branch-name", plet_dir], expect_exit=1, cwd=repo)
         check("error mentions iter-id", "iter-id" in stderr.lower())
 
 
@@ -232,9 +232,9 @@ def test_branch_name_invalid_type():
     print("\n## branch-name — invalid --type")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
 
-        _, stderr, _ = run(["branch-name", state_path, "--type", "bogus"],
+        _, stderr, _ = run(["branch-name", plet_dir, "--type", "bogus"],
                            expect_exit=1, cwd=repo)
         check("error mentions invalid type", "invalid" in stderr)
 
@@ -243,18 +243,29 @@ def test_branch_name_bad_state():
     print("\n## branch-name — invalid state.json")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, {"not": "valid"})
+        plet_dir = write_state(repo, {"not": "valid"})
 
-        _, stderr, _ = run(["branch-name", state_path, "--iter-id", "ID_001"],
+        _, stderr, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001"],
                            expect_exit=1, cwd=repo)
         check("error from state validation", "error" in stderr.lower())
 
 
-def test_branch_name_state_not_found():
-    print("\n## branch-name — state.json not found")
-    _, stderr, _ = run(["branch-name", "/nonexistent/state.json",
+def test_branch_name_plet_dir_not_found():
+    print("\n## branch-name — plet_dir not found")
+    _, stderr, _ = run(["branch-name", "/nonexistent/plet",
                         "--iter-id", "ID_001"], expect_exit=1)
-    check("error mentions file", "not found" in stderr.lower() or "does not exist" in stderr.lower())
+    check("error mentions directory", "not found" in stderr.lower() or "does not exist" in stderr.lower() or "directory" in stderr.lower())
+
+
+def test_branch_name_dry_run_rejected():
+    print("\n## branch-name — --dry-run rejected (read-only command)")
+    with tempfile.TemporaryDirectory() as d:
+        repo = make_git_repo(d)
+        plet_dir = write_state(repo, VALID_STATE)
+
+        _, stderr, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001",
+                            "--dry-run"], expect_exit=1, cwd=repo)
+        check("error mentions dry-run", "dry-run" in stderr.lower() or "dry_run" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------
@@ -281,10 +292,10 @@ def test_worktree_create():
     print("\n## worktree-create — basic")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        stdout, _, _ = run(["worktree-create", state_path, "--iter-id", "ID_001"],
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"],
                            cwd=repo)
         check("success message", "OK" in stdout and "ID_001" in stdout)
         check("not resumed", "resumed" not in stdout.lower())
@@ -304,10 +315,10 @@ def test_worktree_create_json():
     print("\n## worktree-create — JSON output")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        stdout, _, _ = run(["worktree-create", state_path, "--iter-id", "ID_002",
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_002",
                             "--output", "json", "--pretty"], cwd=repo)
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
@@ -324,10 +335,10 @@ def test_worktree_create_dry_run():
     print("\n## worktree-create — dry-run")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        stdout, _, _ = run(["worktree-create", state_path, "--iter-id", "ID_001",
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001",
                             "--dry-run"], cwd=repo)
         check("dry run message", "DRY RUN" in stdout)
 
@@ -340,14 +351,14 @@ def test_worktree_create_path_exists():
     print("\n## worktree-create — path already exists")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
         # Create the path manually
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
         os.makedirs(wt_path)
 
-        _, stderr, _ = run(["worktree-create", state_path, "--iter-id", "ID_001"],
+        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"],
                            expect_exit=1, cwd=repo)
         check("error mentions path exists", "already exists" in stderr)
 
@@ -356,10 +367,10 @@ def test_worktree_create_no_base_branch():
     print("\n## worktree-create — base branch missing")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         # Don't create workstream branch
 
-        _, stderr, _ = run(["worktree-create", state_path, "--iter-id", "ID_001"],
+        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"],
                            expect_exit=1, cwd=repo)
         check("error mentions base branch", "base branch" in stderr.lower() or "not found" in stderr.lower())
 
@@ -368,11 +379,11 @@ def test_worktree_create_auto_resume():
     print("\n## worktree-create — auto-resume on existing branch")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
         # Create worktree first time
-        run(["worktree-create", state_path, "--iter-id", "ID_001"], cwd=repo)
+        run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
 
         # Remove worktree but keep branch
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
@@ -383,7 +394,7 @@ def test_worktree_create_auto_resume():
               branch_exists_in_repo(repo, "plet/LOGA/loop1/ID_001"))
 
         # Create again — should auto-resume
-        stdout, _, _ = run(["worktree-create", state_path, "--iter-id", "ID_001",
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001",
                             "--output", "json"], cwd=repo)
         data = json.loads(stdout)
         check("resumed is true", data["resumed"] is True)
@@ -396,9 +407,9 @@ def test_worktree_create_not_git_repo():
     print("\n## worktree-create — not a git repo")
     with tempfile.TemporaryDirectory() as d:
         # Don't init git
-        state_path = write_state(d, VALID_STATE)
+        plet_dir = write_state(d, VALID_STATE)
 
-        _, stderr, _ = run(["worktree-create", state_path, "--iter-id", "ID_001"],
+        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"],
                            expect_exit=1, cwd=d)
         check("error mentions git", "git" in stderr.lower())
 
@@ -407,10 +418,10 @@ def test_worktree_create_projectid_namespace():
     print("\n## worktree-create — projectId in worktree path")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        stdout, _, _ = run(["worktree-create", state_path, "--iter-id", "ID_001",
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001",
                             "--output", "json"], cwd=repo)
         data = json.loads(stdout)
         check("path includes projectId",
@@ -429,12 +440,12 @@ def test_worktree_remove():
     print("\n## worktree-remove — basic (keep branch)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
         # Create then remove
-        run(["worktree-create", state_path, "--iter-id", "ID_001"], cwd=repo)
-        stdout, _, _ = run(["worktree-remove", state_path, "--iter-id", "ID_001"],
+        run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001"],
                            cwd=repo)
 
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
@@ -447,12 +458,12 @@ def test_worktree_remove_delete_branch():
     print("\n## worktree-remove — with --delete-branch")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
         # Create then remove with branch deletion
-        run(["worktree-create", state_path, "--iter-id", "ID_001"], cwd=repo)
-        stdout, _, _ = run(["worktree-remove", state_path, "--iter-id", "ID_001",
+        run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001",
                             "--delete-branch"], cwd=repo)
 
         check("success mentions branch", "branch" in stdout.lower())
@@ -463,11 +474,11 @@ def test_worktree_remove_dry_run():
     print("\n## worktree-remove — dry-run")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        run(["worktree-create", state_path, "--iter-id", "ID_001"], cwd=repo)
-        stdout, _, _ = run(["worktree-remove", state_path, "--iter-id", "ID_001",
+        run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001",
                             "--dry-run"], cwd=repo)
 
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
@@ -482,9 +493,9 @@ def test_worktree_remove_not_found():
     print("\n## worktree-remove — worktree doesn't exist")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
 
-        _, stderr, _ = run(["worktree-remove", state_path, "--iter-id", "ID_999"],
+        _, stderr, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_999"],
                            expect_exit=1, cwd=repo)
         check("error mentions not found", "no worktree" in stderr.lower())
 
@@ -493,10 +504,10 @@ def test_worktree_remove_dirty():
     print("\n## worktree-remove — worktree with untracked files (force)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        run(["worktree-create", state_path, "--iter-id", "ID_001"], cwd=repo)
+        run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
 
         # Add untracked files (build artifacts)
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
@@ -504,7 +515,7 @@ def test_worktree_remove_dirty():
             f.write("binary stuff")
 
         # Should succeed (--force)
-        stdout, _, _ = run(["worktree-remove", state_path, "--iter-id", "ID_001"],
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001"],
                            cwd=repo)
         check("removed despite untracked", "OK" in stdout)
         check("worktree gone", not os.path.exists(wt_path))
@@ -514,19 +525,15 @@ def test_worktree_remove_json():
     print("\n## worktree-remove — JSON output")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        state_path = write_state(repo, VALID_STATE)
+        plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        run(["worktree-create", state_path, "--iter-id", "ID_001"], cwd=repo)
-        stdout, _, _ = run(["worktree-remove", state_path, "--iter-id", "ID_001",
+        run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001",
                             "--output", "json", "--pretty"], cwd=repo)
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("branchDeleted false", data["branchDeleted"] is False)
-
-
-
-
 
 
 # ---------------------------------------------------------------------------
@@ -547,7 +554,8 @@ def main():
     test_branch_name_missing_iter_id()
     test_branch_name_invalid_type()
     test_branch_name_bad_state()
-    test_branch_name_state_not_found()
+    test_branch_name_plet_dir_not_found()
+    test_branch_name_dry_run_rejected()
 
     # worktree-create
     test_worktree_create()

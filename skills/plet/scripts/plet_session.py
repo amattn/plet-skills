@@ -30,6 +30,17 @@ from util_cli import (
     now_iso,
     dispatch,
     filter_fields,
+    get_plet_dir,
+    extract_output_flags,
+    emit_json,
+    emit_json_error,
+)
+from util_io import (
+    validate_plet_dir,
+    state_json_path,
+    state_dir_path,
+    requirements_path,
+    iterations_path,
 )
 from util_state import (
     load_and_validate_global_state,
@@ -41,7 +52,6 @@ from util_subprocess import run, run_git
 SCRIPT_VERSION = "0.1.0"
 SKILL_VERSION = "0.1.1"
 
-DEFAULT_PLET_DIR = "plet/"
 VALID_SESSION_TYPES = ["detect", "plan", "loop", "refine"]
 LOOP_LIFECYCLES = {"queued", "implementing", "verifying"}
 
@@ -54,62 +64,7 @@ def help_hint(command):
     return "Run: plet_session.py {} --help".format(command)
 
 
-def extract_output_flags(kwargs):
-    """Extract --output, --pretty, --fields. No --dry-run for read-only commands."""
-    # Reject --dry-run
-    if kwargs.pop("dry_run", None) is not None:
-        print("Error: --dry-run is not supported (all commands are read-only)", file=sys.stderr)
-        return False, False, None, False
-
-    output_json = kwargs.pop("output", None) == "json"
-    pretty = kwargs.pop("pretty", False)
-    if pretty is True and not output_json:
-        print("Error: --pretty requires --output json", file=sys.stderr)
-        return False, False, None, False
-
-    fields_raw = kwargs.pop("fields", None)
-    if fields_raw and not output_json:
-        print("Error: --fields requires --output json", file=sys.stderr)
-        return False, False, None, False
-    fields = fields_raw.split(",") if fields_raw else None
-
-    return output_json, pretty, fields, True
-
-
-def emit_json(data, pretty=False, fields=None):
-    data["scriptVersion"] = SCRIPT_VERSION
-    data["timestamp"] = now_iso()
-    if fields is not None:
-        data = filter_fields(data, fields)
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-
-
-def emit_json_error(command, message, pretty=False):
-    data = {
-        "status": "error",
-        "command": command,
-        "error": message,
-        "scriptVersion": SCRIPT_VERSION,
-        "timestamp": now_iso(),
-    }
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-    print(message, file=sys.stderr)
-
-
-def get_plet_dir(args):
-    """Extract optional plet_dir from positional args. Returns (plet_dir, remaining_args)."""
-    if args and not args[0].startswith("-"):
-        return args[0], args[1:]
-    return DEFAULT_PLET_DIR, args
-
-
-def scan_iter_states(state_dir):
+def scan_iter_states(plet_dir):
     """Scan state directory for iteration state files.
 
     Returns (states, warnings) where states is a list of validated dicts
@@ -117,12 +72,15 @@ def scan_iter_states(state_dir):
     """
     states = []
     warnings = []
-    pattern = os.path.join(state_dir, "*.json")
+    sd = state_dir_path(plet_dir)
+    pattern = os.path.join(sd, "*.json")
     for path in sorted(glob_mod.glob(pattern)):
         basename = os.path.basename(path)
         if basename == "state.json":
             continue
-        data = load_and_validate_iter_state(path)
+        # Extract iter_id from filename (e.g., "ID_001.json" -> "ID_001")
+        iter_id = os.path.splitext(basename)[0]
+        data = load_and_validate_iter_state(plet_dir, iter_id)
         if data is None:
             warnings.append("corrupt state file: {}".format(basename))
         else:
@@ -135,12 +93,10 @@ def detect_session_type(plet_dir):
 
     artifacts is a dict with requirements, iterations, state booleans.
     """
-    has_requirements = os.path.isfile(os.path.join(plet_dir, "requirements.md"))
-    has_iterations = os.path.isfile(os.path.join(plet_dir, "iterations.md"))
-    state_json_path = os.path.join(plet_dir, "state.json")
-    has_state = os.path.isfile(state_json_path)
-    state_dir = os.path.join(plet_dir, "state")
-    has_state_dir = os.path.isdir(state_dir)
+    has_requirements = os.path.isfile(requirements_path(plet_dir))
+    has_iterations = os.path.isfile(iterations_path(plet_dir))
+    has_state = os.path.isfile(state_json_path(plet_dir))
+    has_state_dir = os.path.isdir(state_dir_path(plet_dir))
 
     artifacts = {
         "requirements": has_requirements,
@@ -165,7 +121,7 @@ def detect_session_type(plet_dir):
         return "plan", "missing: {}".format(", ".join(missing)), artifacts
 
     # Load iteration states
-    states, warnings = scan_iter_states(state_dir)
+    states, warnings = scan_iter_states(plet_dir)
     for w in warnings:
         print("Warning: {}".format(w), file=sys.stderr)
 
@@ -239,7 +195,7 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    output_json, pretty, fields, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
@@ -253,7 +209,7 @@ Examples:
             "sessionType": session_type,
             "reason": reason,
             "artifacts": artifacts,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         # Bare output for shell capture (SES_DXP_3)
         print(session_type)
@@ -305,46 +261,37 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    output_json, pretty, fields, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
 
     # Preconditions: plet_dir must exist
-    if not os.path.exists(plet_dir):
-        msg = "Error: directory not found: {}".format(plet_dir)
+    valid, err_msg = validate_plet_dir(plet_dir)
+    if not valid:
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, err_msg, SCRIPT_VERSION, pretty)
         else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    if os.path.isfile(plet_dir):
-        msg = "Error: expected a directory, got file: {}".format(plet_dir)
-        if output_json:
-            emit_json_error(CMD, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
+            print(err_msg, file=sys.stderr)
         return 1
 
     # Load global state
-    state_json_path = os.path.join(plet_dir, "state.json")
-    global_state = load_and_validate_global_state(state_json_path)
+    global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
         print(hint, file=sys.stderr)
         return 1
 
     # Scan iteration states
-    state_dir = os.path.join(plet_dir, "state")
-    if not os.path.isdir(state_dir):
-        msg = "Error: state directory not found: {}".format(state_dir)
+    sd = state_dir_path(plet_dir)
+    if not os.path.isdir(sd):
+        msg = "Error: state directory not found: {}".format(sd)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
 
-    iter_states, warnings = scan_iter_states(state_dir)
+    iter_states, warnings = scan_iter_states(plet_dir)
 
     # Count lifecycles
     lifecycle_counts = {
@@ -443,7 +390,7 @@ Examples:
             "activeAgents": active_agents,
             "fingerprints": fingerprints,
             "warnings": warnings,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         # Formatted text output
         lines = []
@@ -533,7 +480,7 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    output_json, pretty, fields, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
@@ -575,11 +522,11 @@ Examples:
     # 2. git-check (CKS) — call plet_git_check.py check-session via subprocess
     gtc_script = os.path.join(scripts_dir, "plet_git_check.py")
     if os.path.isfile(gtc_script):
-        state_json = os.path.join(plet_dir, "state.json")
-        state_dir_path = os.path.join(plet_dir, "state")
-        if os.path.isfile(state_json) and os.path.isdir(state_dir_path):
+        sjp = state_json_path(plet_dir)
+        sdp = state_dir_path(plet_dir)
+        if os.path.isfile(sjp) and os.path.isdir(sdp):
             gtc_result = run(
-                [sys.executable, gtc_script, "check-session", state_json, state_dir_path, "--output", "json"],
+                [sys.executable, gtc_script, "check-session", sjp, sdp, "--output", "json"],
             )
             try:
                 gtc_data = json.loads(gtc_result.stdout)
@@ -635,8 +582,8 @@ Examples:
     # 5. spec-artifacts
     plet_dir_exists = os.path.isdir(plet_dir)
     if plet_dir_exists:
-        has_req = os.path.isfile(os.path.join(plet_dir, "requirements.md"))
-        has_iter = os.path.isfile(os.path.join(plet_dir, "iterations.md"))
+        has_req = os.path.isfile(requirements_path(plet_dir))
+        has_iter = os.path.isfile(iterations_path(plet_dir))
         if has_req and has_iter:
             checks.append({"name": "spec-artifacts", "status": "pass",
                             "detail": "requirements.md and iterations.md exist"})
@@ -653,9 +600,9 @@ Examples:
                         "detail": "no plet directory (fresh project)"})
 
     # 6. state-valid
-    state_json_path = os.path.join(plet_dir, "state.json")
-    if os.path.isfile(state_json_path):
-        gs = load_and_validate_global_state(state_json_path)
+    sjp = state_json_path(plet_dir)
+    if os.path.isfile(sjp):
+        gs = load_and_validate_global_state(plet_dir)
         if gs is not None:
             checks.append({"name": "state-valid", "status": "pass",
                             "detail": "plet/state.json valid"})
@@ -728,7 +675,7 @@ Examples:
             "sessionType": session_type,
             "checks": checks,
             "summary": counts,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         # Title line
         if overall == "ok":

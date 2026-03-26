@@ -76,8 +76,8 @@ def git_run(repo, args):
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
-def write_global_state(repo, data=None):
-    """Write plet/state.json and return its path."""
+def write_global_state(plet_dir, data=None):
+    """Write state.json inside plet_dir and return its path."""
     if data is None:
         data = {
             "schemaVersion": "0.1.0",
@@ -90,7 +90,6 @@ def write_global_state(repo, data=None):
             "refineSessionCount": 0,
             "iterationsFingerprint": {},
         }
-    plet_dir = os.path.join(repo, "plet")
     os.makedirs(plet_dir, exist_ok=True)
     path = os.path.join(plet_dir, "state.json")
     with open(path, "w") as f:
@@ -99,8 +98,8 @@ def write_global_state(repo, data=None):
     return path
 
 
-def write_iter_state(repo, iter_id="ID_001", lifecycle="implementing", **overrides):
-    """Write plet/state/{iter_id}.json and return its path."""
+def write_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing", **overrides):
+    """Write state/{iter_id}.json inside plet_dir and return its path."""
     data = {
         "schemaVersion": "0.1.0",
         "iterationId": iter_id,
@@ -113,7 +112,7 @@ def write_iter_state(repo, iter_id="ID_001", lifecycle="implementing", **overrid
         "criteria": [{"id": "AC_1", "description": "Tests pass", "status": "not_started"}],
     }
     data.update(overrides)
-    state_dir = os.path.join(repo, "plet", "state")
+    state_dir = os.path.join(plet_dir, "state")
     os.makedirs(state_dir, exist_ok=True)
     path = os.path.join(state_dir, "{}.json".format(iter_id))
     with open(path, "w") as f:
@@ -124,11 +123,12 @@ def write_iter_state(repo, iter_id="ID_001", lifecycle="implementing", **overrid
 
 def setup_clean_iteration(d):
     """Set up a clean repo with workstream + iteration branch + committed state files.
-    Returns (repo, gs_path, is_path).
+    Returns (repo, plet_dir).
     Leaves HEAD on the iteration branch."""
     repo = make_git_repo(d)
-    gs_path = write_global_state(repo)
-    is_path = write_iter_state(repo)
+    plet_dir = os.path.join(repo, "plet")
+    write_global_state(plet_dir)
+    write_iter_state(plet_dir)
 
     # Commit state files
     git_run(repo, ["add", "plet/"])
@@ -144,7 +144,7 @@ def setup_clean_iteration(d):
     git_run(repo, ["add", "impl.txt"])
     git_run(repo, ["commit", "-m", "implement"])
 
-    return repo, gs_path, is_path
+    return repo, plet_dir
 
 
 # ---------------------------------------------------------------------------
@@ -177,10 +177,10 @@ def test_version():
 def test_cki_all_pass():
     print("\n## check-iteration — all passing")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
-                           cwd=repo)
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"], cwd=repo)
         check("PASS in title", stdout.startswith("PASS"))
         check("all checks listed", "branch-exists" in stdout and "correct-branch" in stdout)
         check("exit 0", True)
@@ -189,9 +189,10 @@ def test_cki_all_pass():
 def test_cki_json_output():
     print("\n## check-iteration — JSON output")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement",
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement",
                             "--output", "json", "--pretty"], cwd=repo)
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
@@ -205,12 +206,13 @@ def test_cki_json_output():
 def test_cki_wrong_branch():
     print("\n## check-iteration — wrong branch (FAIL)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
         # Switch to main (wrong branch)
         git_run(repo, ["checkout", "main"])
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         check("FAIL in title", stdout.startswith("FAIL"))
         check("correct-branch failed", "correct-branch" in stdout and "FAIL" in stdout)
@@ -219,13 +221,14 @@ def test_cki_wrong_branch():
 def test_cki_dirty_worktree():
     print("\n## check-iteration — dirty worktree (FAIL)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
         # Create uncommitted change
         with open(os.path.join(repo, "dirty.txt"), "w") as f:
             f.write("dirty\n")
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         check("clean-worktree failed", "clean-worktree" in stdout and "FAIL" in stdout)
 
@@ -233,7 +236,7 @@ def test_cki_dirty_worktree():
 def test_cki_merge_commit():
     print("\n## check-iteration — merge commit (FAIL)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
         # Create a merge commit on the iteration branch
         git_run(repo, ["checkout", "plet/LOGA/loop1/workstream"])
@@ -245,7 +248,8 @@ def test_cki_merge_commit():
         git_run(repo, ["checkout", "plet/LOGA/loop1/ID_001"])
         git_run(repo, ["merge", "plet/LOGA/loop1/workstream", "--no-edit"])
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         check("linear-history failed", "linear-history" in stdout and "FAIL" in stdout)
 
@@ -253,7 +257,7 @@ def test_cki_merge_commit():
 def test_cki_stashes_warn():
     print("\n## check-iteration — stashes (WARN, exit 2)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
         # Create a stash
         with open(os.path.join(repo, "stash_me.txt"), "w") as f:
@@ -261,7 +265,8 @@ def test_cki_stashes_warn():
         git_run(repo, ["add", "stash_me.txt"])
         git_run(repo, ["stash"])
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=2, cwd=repo)
         check("WARN in title", stdout.startswith("WARN"))
         check("no-stashes warned", "no-stashes" in stdout and "WARN" in stdout)
@@ -271,13 +276,15 @@ def test_cki_branch_not_exists():
     print("\n## check-iteration — branch doesn't exist (FAIL)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo)
-        is_path = write_iter_state(repo)
+        plet_dir = os.path.join(repo, "plet")
+        write_global_state(plet_dir)
+        write_iter_state(plet_dir)
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet state"])
 
         # Don't create iteration branch
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         check("branch-exists failed", "branch-exists" in stdout and "FAIL" in stdout)
 
@@ -285,14 +292,15 @@ def test_cki_branch_not_exists():
 def test_cki_all_checks_run():
     print("\n## check-iteration — multiple violations, all checks run")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
         # Switch to wrong branch AND create dirty file
         git_run(repo, ["checkout", "main"])
         with open(os.path.join(repo, "dirty.txt"), "w") as f:
             f.write("dirty\n")
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         # Both correct-branch and clean-worktree should fail
         check("correct-branch in output", "correct-branch" in stdout)
@@ -303,13 +311,14 @@ def test_cki_all_checks_run():
 def test_cki_in_progress_operation():
     print("\n## check-iteration — in-progress rebase (FAIL)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
         # Simulate interrupted rebase
         git_dir = os.path.join(repo, ".git")
         os.makedirs(os.path.join(git_dir, "rebase-merge"), exist_ok=True)
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         check("in-progress-operation failed",
               "in-progress-operation" in stdout and "FAIL" in stdout)
@@ -318,12 +327,13 @@ def test_cki_in_progress_operation():
 def test_cki_detached_head():
     print("\n## check-iteration — detached HEAD")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
         # Detach HEAD
         git_run(repo, ["checkout", "--detach"])
 
-        stdout, _, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         check("correct-branch failed on detached", "correct-branch" in stdout and "FAIL" in stdout)
 
@@ -331,10 +341,13 @@ def test_cki_detached_head():
 def test_cki_not_git_repo():
     print("\n## check-iteration — not a git repo")
     with tempfile.TemporaryDirectory() as d:
-        gs_path = write_global_state(d)
-        is_path = write_iter_state(d)
+        # Create plet dir structure without a git repo
+        plet_dir = os.path.join(d, "plet")
+        write_global_state(plet_dir)
+        write_iter_state(plet_dir)
 
-        _, stderr, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement"],
+        _, stderr, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=d)
         check("error mentions git", "git" in stderr.lower())
 
@@ -342,9 +355,10 @@ def test_cki_not_git_repo():
 def test_cki_invalid_phase():
     print("\n## check-iteration — invalid phase")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
-        _, stderr, _ = run(["check-iteration", gs_path, is_path, "--phase", "plan"],
+        _, stderr, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "plan"],
                            expect_exit=1, cwd=repo)
         check("error mentions invalid", "invalid" in stderr)
 
@@ -352,24 +366,26 @@ def test_cki_invalid_phase():
 def test_cki_dry_run_rejected():
     print("\n## check-iteration — --dry-run rejected")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
-        _, stderr, _ = run(["check-iteration", gs_path, is_path, "--phase", "implement",
-                            "--dry-run"], expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement", "--dry-run"],
+                           expect_exit=1, cwd=repo)
         check("error mentions dry-run", "dry-run" in stderr.lower())
 
 
 def test_cki_read_only():
     print("\n## check-iteration — read-only (no git state modified)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path = setup_clean_iteration(d)
+        repo, plet_dir = setup_clean_iteration(d)
 
         # Get state before
         before_log, _, _ = git_run(repo, ["log", "--oneline", "-5"])
         before_branches, _, _ = git_run(repo, ["branch"])
         before_tags, _, _ = git_run(repo, ["tag"])
 
-        run(["check-iteration", gs_path, is_path, "--phase", "implement"], cwd=repo)
+        run(["check-iteration", plet_dir, "--iter-id", "ID_001",
+             "--phase", "implement"], cwd=repo)
 
         # Get state after
         after_log, _, _ = git_run(repo, ["log", "--oneline", "-5"])
@@ -415,7 +431,6 @@ def main():
     test_cks_orphaned_branch()
     test_cks_in_progress_operation()
     test_cks_state_dir_not_exists()
-    test_cks_state_dir_is_file()
 
     print("\n{} passed, {} failed".format(passed, failed))
     return 0 if failed == 0 else 1
@@ -428,13 +443,14 @@ def main():
 def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
     """Set up a repo with workstream, iteration branches, and state files.
     complete_ids: list of iter IDs to mark as complete.
-    Returns (repo, gs_path, state_dir)."""
+    Returns (repo, plet_dir)."""
     if complete_ids is None:
         complete_ids = []
 
     repo = make_git_repo(d)
-    gs_path = write_global_state(repo)
-    state_dir = os.path.join(repo, "plet", "state")
+    plet_dir = os.path.join(repo, "plet")
+    write_global_state(plet_dir)
+    state_dir = os.path.join(plet_dir, "state")
     os.makedirs(state_dir, exist_ok=True)
 
     # Commit state dir
@@ -447,7 +463,7 @@ def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
     for i in range(1, num_iters + 1):
         iter_id = "ID_{:03d}".format(i)
         lifecycle = "complete" if iter_id in complete_ids else "implementing"
-        write_iter_state(repo, iter_id=iter_id, lifecycle=lifecycle)
+        write_iter_state(plet_dir, iter_id=iter_id, lifecycle=lifecycle)
 
         # Create iteration branch with a commit
         ws_ref = "plet/LOGA/loop1/workstream" if create_workstream else "main"
@@ -464,7 +480,7 @@ def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
     git_run(repo, ["add", "plet/"])
     git_run(repo, ["commit", "-m", "update state files"])
 
-    return repo, gs_path, state_dir
+    return repo, plet_dir
 
 
 # ---------------------------------------------------------------------------
@@ -474,7 +490,7 @@ def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
 def test_cks_all_pass():
     print("\n## check-session — all passing")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, state_dir = setup_session(d, num_iters=2)
+        repo, plet_dir = setup_session(d, num_iters=2)
 
         # Checkout workstream for the check
         git_run(repo, ["checkout", "plet/LOGA/loop1/workstream"])
@@ -482,7 +498,7 @@ def test_cks_all_pass():
         git_run(repo, ["checkout", "main", "--", "plet/"])
         git_run(repo, ["commit", "-m", "bring state to workstream"])
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir], cwd=repo)
+        stdout, _, _ = run(["check-session", plet_dir], cwd=repo)
         check("PASS in title", stdout.startswith("PASS"))
         check("exit 0", True)
 
@@ -490,9 +506,9 @@ def test_cks_all_pass():
 def test_cks_json_output():
     print("\n## check-session — JSON output")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, state_dir = setup_session(d, num_iters=1)
+        repo, plet_dir = setup_session(d, num_iters=1)
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir,
+        stdout, _, _ = run(["check-session", plet_dir,
                             "--output", "json", "--pretty"], cwd=repo)
         data = json.loads(stdout)
         check("status field", data["status"] in ("ok", "warn", "fail"))
@@ -505,10 +521,10 @@ def test_cks_orphaned_worktree():
     print("\n## check-session — orphaned worktree (WARN)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo)
-        state_dir = os.path.join(repo, "plet", "state")
+        plet_dir = os.path.join(repo, "plet")
         # Write a withdrawn iteration (non-active, no merge needed)
-        write_iter_state(repo, iter_id="ID_001", lifecycle="withdrawn")
+        write_global_state(plet_dir)
+        write_iter_state(plet_dir, iter_id="ID_001", lifecycle="withdrawn")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
         git_run(repo, ["branch", "plet/LOGA/loop1/workstream"])
@@ -519,7 +535,7 @@ def test_cks_orphaned_worktree():
         os.makedirs(os.path.dirname(wt_path), exist_ok=True)
         git_run(repo, ["worktree", "add", wt_path, "plet/LOGA/loop1/ID_001"])
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir],
+        stdout, _, _ = run(["check-session", plet_dir],
                            expect_exit=2, cwd=repo)
         check("orphaned-worktrees warned", "orphaned-worktrees" in stdout and "WARN" in stdout)
 
@@ -530,7 +546,7 @@ def test_cks_orphaned_worktree():
 def test_cks_stashes_warn():
     print("\n## check-session — stashes (WARN)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, state_dir = setup_session(d, num_iters=1)
+        repo, plet_dir = setup_session(d, num_iters=1)
 
         # Create a stash
         with open(os.path.join(repo, "stash_me.txt"), "w") as f:
@@ -538,7 +554,7 @@ def test_cks_stashes_warn():
         git_run(repo, ["add", "stash_me.txt"])
         git_run(repo, ["stash"])
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir],
+        stdout, _, _ = run(["check-session", plet_dir],
                            expect_exit=2, cwd=repo)
         check("no-stashes warned", "no-stashes" in stdout and "WARN" in stdout)
 
@@ -546,11 +562,11 @@ def test_cks_stashes_warn():
 def test_cks_unmerged_complete():
     print("\n## check-session — unmerged complete iteration (FAIL)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, state_dir = setup_session(d, num_iters=1,
+        repo, plet_dir = setup_session(d, num_iters=1,
                                                   complete_ids=["ID_001"])
 
         # ID_001 is complete but NOT merged to workstream
-        stdout, _, _ = run(["check-session", gs_path, state_dir],
+        stdout, _, _ = run(["check-session", plet_dir],
                            expect_exit=1, cwd=repo)
         check("unmerged-complete failed",
               "unmerged-complete" in stdout and "FAIL" in stdout)
@@ -560,14 +576,15 @@ def test_cks_no_state_files():
     print("\n## check-session — empty state dir")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo)
-        state_dir = os.path.join(repo, "plet", "state")
+        plet_dir = os.path.join(repo, "plet")
+        write_global_state(plet_dir)
+        state_dir = os.path.join(plet_dir, "state")
         os.makedirs(state_dir, exist_ok=True)
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
         git_run(repo, ["branch", "plet/LOGA/loop1/workstream"])
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir], cwd=repo)
+        stdout, _, _ = run(["check-session", plet_dir], cwd=repo)
         check("passes with no state files", "PASS" in stdout)
 
 
@@ -575,16 +592,17 @@ def test_cks_workstream_missing_no_active():
     print("\n## check-session — workstream missing, no active iterations (PASS)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo)
-        state_dir = os.path.join(repo, "plet", "state")
+        plet_dir = os.path.join(repo, "plet")
+        write_global_state(plet_dir)
+        state_dir = os.path.join(plet_dir, "state")
         os.makedirs(state_dir, exist_ok=True)
         # Write queued iterations
-        write_iter_state(repo, iter_id="ID_001", lifecycle="queued")
+        write_iter_state(plet_dir, iter_id="ID_001", lifecycle="queued")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
         # No workstream branch
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir], cwd=repo)
+        stdout, _, _ = run(["check-session", plet_dir], cwd=repo)
         check("workstream-exists passes", "workstream-exists" in stdout and "PASS" in stdout)
 
 
@@ -592,15 +610,16 @@ def test_cks_workstream_missing_with_active():
     print("\n## check-session — workstream missing, active iterations (FAIL)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo)
-        state_dir = os.path.join(repo, "plet", "state")
+        plet_dir = os.path.join(repo, "plet")
+        write_global_state(plet_dir)
+        state_dir = os.path.join(plet_dir, "state")
         os.makedirs(state_dir, exist_ok=True)
-        write_iter_state(repo, iter_id="ID_001", lifecycle="implementing")
+        write_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
         # No workstream branch
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir],
+        stdout, _, _ = run(["check-session", plet_dir],
                            expect_exit=1, cwd=repo)
         check("workstream-exists failed", "workstream-exists" in stdout and "FAIL" in stdout)
 
@@ -608,12 +627,12 @@ def test_cks_workstream_missing_with_active():
 def test_cks_orphaned_branch():
     print("\n## check-session — orphaned branch (WARN)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, state_dir = setup_session(d, num_iters=1)
+        repo, plet_dir = setup_session(d, num_iters=1)
 
         # Create a plet branch with no corresponding state file
         git_run(repo, ["branch", "plet/LOGA/loop1/ID_999"])
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir],
+        stdout, _, _ = run(["check-session", plet_dir],
                            expect_exit=2, cwd=repo)
         check("orphaned-branches warned",
               "orphaned-branches" in stdout and "WARN" in stdout)
@@ -623,7 +642,7 @@ def test_cks_orphaned_branch():
 def test_cks_in_progress_operation():
     print("\n## check-session — in-progress operation (FAIL)")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, state_dir = setup_session(d, num_iters=1)
+        repo, plet_dir = setup_session(d, num_iters=1)
 
         # Simulate interrupted merge
         git_dir_r = run_git_direct(repo, ["rev-parse", "--git-dir"])
@@ -633,7 +652,7 @@ def test_cks_in_progress_operation():
         with open(os.path.join(git_dir, "MERGE_HEAD"), "w") as f:
             f.write("abc123\n")
 
-        stdout, _, _ = run(["check-session", gs_path, state_dir],
+        stdout, _, _ = run(["check-session", plet_dir],
                            expect_exit=1, cwd=repo)
         check("in-progress-operation failed",
               "in-progress-operation" in stdout and "FAIL" in stdout)
@@ -643,29 +662,18 @@ def test_cks_in_progress_operation():
 
 
 def test_cks_state_dir_not_exists():
-    print("\n## check-session — state_dir doesn't exist")
+    print("\n## check-session — state dir doesn't exist")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo)
+        plet_dir = os.path.join(repo, "plet")
+        write_global_state(plet_dir)
+        # Don't create state/ dir
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
 
-        _, stderr, _ = run(["check-session", gs_path, "/nonexistent/state/"],
+        _, stderr, _ = run(["check-session", plet_dir],
                            expect_exit=1, cwd=repo)
         check("error mentions directory", "directory" in stderr.lower() or "not found" in stderr.lower())
-
-
-def test_cks_state_dir_is_file():
-    print("\n## check-session — state_dir is a file")
-    with tempfile.TemporaryDirectory() as d:
-        repo = make_git_repo(d)
-        gs_path = write_global_state(repo)
-        git_run(repo, ["add", "plet/"])
-        git_run(repo, ["commit", "-m", "add plet"])
-
-        _, stderr, _ = run(["check-session", gs_path, gs_path],
-                           expect_exit=1, cwd=repo)
-        check("error mentions file vs dir", "directory" in stderr.lower() or "file" in stderr.lower())
 
 
 def run_git_direct(repo, args):

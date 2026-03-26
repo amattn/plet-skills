@@ -5,8 +5,8 @@ Verifies git invariants without modifying state. Called by gate scripts and
 the orchestrator. Reports findings as a list of pass/fail/warn checks.
 
 Usage:
-    plet_git_check.py check-iteration <global_state_json> <iter_state_json> --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
-    plet_git_check.py check-session <global_state_json> <state_dir> [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-iteration [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-session [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     check-iteration   Per-iteration git compliance at phase boundaries
@@ -28,6 +28,16 @@ from util_cli import (
     now_iso,
     dispatch,
     filter_fields,
+    get_plet_dir,
+    extract_output_flags,
+    emit_json,
+    emit_json_error,
+)
+from util_io import (
+    validate_plet_dir,
+    state_json_path,
+    iter_state_path,
+    state_dir_path,
 )
 from util_state import (
     load_and_validate_global_state,
@@ -48,49 +58,6 @@ VALID_PHASES = ["implement", "verify"]
 
 def help_hint(command):
     return "Run: plet_git_check.py {} --help".format(command)
-
-
-def extract_output_flags(kwargs):
-    """Extract --output, --pretty, --fields. No --dry-run for read-only commands."""
-    output_json = kwargs.pop("output", None) == "json"
-    pretty = kwargs.pop("pretty", False)
-    if pretty is True and not output_json:
-        print("Error: --pretty requires --output json", file=sys.stderr)
-        return False, False, None, False
-
-    fields_raw = kwargs.pop("fields", None)
-    if fields_raw and not output_json:
-        print("Error: --fields requires --output json", file=sys.stderr)
-        return False, False, None, False
-    fields = fields_raw.split(",") if fields_raw else None
-
-    return output_json, pretty, fields, True
-
-
-def emit_json(data, pretty=False, fields=None):
-    data["scriptVersion"] = SCRIPT_VERSION
-    data["timestamp"] = now_iso()
-    if fields is not None:
-        data = filter_fields(data, fields)
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-
-
-def emit_json_error(command, message, pretty=False):
-    data = {
-        "status": "error",
-        "command": command,
-        "error": message,
-        "scriptVersion": SCRIPT_VERSION,
-        "timestamp": now_iso(),
-    }
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-    print(message, file=sys.stderr)
 
 
 def is_git_repo(cwd=None):
@@ -305,15 +272,14 @@ def cmd_check_iteration(args):
     Reports all violations (no short-circuit on first failure).
 
 PITFALLS:
-    - Takes TWO state file paths: global state.json AND per-iteration state
     - Must be run from inside a git repository
     - --phase is "implement" or "verify" (not "implementation")
 
 USAGE:
-    plet_git_check.py check-iteration <global_state_json> <iter_state_json> --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-iteration [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
-    global_state_json    Path to plet/state.json
-    iter_state_json      Path to plet/state/ID_xxx.json
+    plet_dir             Path to plet directory (default: plet/)
+    --iter-id            Iteration ID (e.g., ID_001)
     --phase              implement or verify
 
 PURPOSE:
@@ -322,55 +288,56 @@ PURPOSE:
     merge commits, stashes. Single canonical check shared by gate scripts.
 
 Examples:
-    plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json --phase implement
-    plet_git_check.py check-iteration plet/state.json plet/state/ID_001.json --phase verify --output json --pretty
+    plet_git_check.py check-iteration --iter-id ID_001 --phase implement
+    plet_git_check.py check-iteration /path/to/plet --iter-id ID_001 --phase verify --output json --pretty
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 2:
-        print(HELP, file=sys.stderr)
-        return 1
 
     CMD = "check-iteration"
     hint = help_hint(CMD)
-    gs_path = args[0]
-    is_path = args[1]
+
+    plet_dir, remaining = get_plet_dir(args)
 
     try:
-        kwargs = parse_kwargs(args[2:])
+        kwargs = parse_kwargs(remaining)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
-    # Reject --dry-run
-    if "dry_run" in kwargs:
-        msg = "Error: --dry-run is not supported (check-iteration is read-only)"
-        print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    output_json, pretty, fields, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["phase"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase"], HELP):
         return 1
 
+    iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):
         print(hint, file=sys.stderr)
         return 1
 
+    # Validate plet_dir
+    valid, err_msg = validate_plet_dir(plet_dir)
+    if not valid:
+        if output_json:
+            emit_json_error(CMD, err_msg, SCRIPT_VERSION, pretty)
+        else:
+            print(err_msg, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
     # Load state
-    global_state = load_and_validate_global_state(gs_path)
+    global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
         print(hint, file=sys.stderr)
         return 1
 
-    iter_state = load_and_validate_iter_state(is_path)
+    iter_state = load_and_validate_iter_state(plet_dir, iter_id)
     if iter_state is None:
         print(hint, file=sys.stderr)
         return 1
@@ -379,7 +346,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -408,7 +375,7 @@ Examples:
             "phase": phase,
             "checks": checks,
             "summary": summary,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         print(format_text_output(CMD, checks, status, summary))
 
@@ -416,7 +383,7 @@ Examples:
 
 
 # ---------------------------------------------------------------------------
-# check-session command (placeholder — tests written next)
+# check-session command
 # ---------------------------------------------------------------------------
 
 def cmd_check_session(args):
@@ -425,73 +392,74 @@ def cmd_check_session(args):
     Scans all iteration state files and cross-references against git state.
 
 PITFALLS:
-    - Second positional arg is a DIRECTORY (plet/state/), not a file
     - Must be run from inside a git repository
 
 USAGE:
-    plet_git_check.py check-session <global_state_json> <state_dir> [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-session [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
 
-    global_state_json    Path to plet/state.json
-    state_dir            Path to plet/state/ directory
+    plet_dir             Path to plet directory (default: plet/)
 
 PURPOSE:
     Session-level git health check. Catches orphaned worktrees, unmerged
     completed iterations, and stashes across the entire loop session.
 
 Examples:
-    plet_git_check.py check-session plet/state.json plet/state/
-    plet_git_check.py check-session plet/state.json plet/state/ --output json --pretty
+    plet_git_check.py check-session
+    plet_git_check.py check-session /path/to/plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 2:
-        print(HELP, file=sys.stderr)
-        return 1
 
     CMD = "check-session"
     hint = help_hint(CMD)
-    gs_path = args[0]
-    state_dir_path = args[1]
+
+    plet_dir, remaining = get_plet_dir(args)
 
     try:
-        kwargs = parse_kwargs(args[2:])
+        kwargs = parse_kwargs(remaining)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
-    # Reject --dry-run
-    if "dry_run" in kwargs:
-        msg = "Error: --dry-run is not supported (check-session is read-only)"
-        print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    output_json, pretty, fields, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
 
+    # Validate plet_dir
+    valid, err_msg = validate_plet_dir(plet_dir)
+    if not valid:
+        if output_json:
+            emit_json_error(CMD, err_msg, SCRIPT_VERSION, pretty)
+        else:
+            print(err_msg, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Derive state paths
+    sd_path = state_dir_path(plet_dir)
+
     # Load global state
-    global_state = load_and_validate_global_state(gs_path)
+    global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
         print(hint, file=sys.stderr)
         return 1
 
     # Validate state_dir
-    if not os.path.exists(state_dir_path):
-        msg = "Error: directory not found: {}".format(state_dir_path)
+    if not os.path.exists(sd_path):
+        msg = "Error: directory not found: {}".format(sd_path)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
 
-    if not os.path.isdir(state_dir_path):
-        msg = "Error: expected a directory, got file: {}".format(state_dir_path)
+    if not os.path.isdir(sd_path):
+        msg = "Error: expected a directory, got file: {}".format(sd_path)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -500,19 +468,21 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
 
     # Load all iteration state files
     iter_states = []
-    json_files = sorted(glob.glob(os.path.join(state_dir_path, "*.json")))
+    json_files = sorted(glob.glob(os.path.join(sd_path, "*.json")))
     for jf in json_files:
         # Skip if it's the global state.json
         if os.path.basename(jf) == "state.json":
             continue
-        ist = load_and_validate_iter_state(jf)
+        # Extract iter_id from filename (e.g., ID_001.json -> ID_001)
+        iter_id_from_file = os.path.splitext(os.path.basename(jf))[0]
+        ist = load_and_validate_iter_state(plet_dir, iter_id_from_file)
         if ist is None:
             # Corrupt file — will be reported as warn
             iter_states.append({"_path": jf, "_valid": False})
@@ -686,7 +656,7 @@ Examples:
             "loopSession": loop_n,
             "checks": checks,
             "summary": summary,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         print(format_text_output(CMD, checks, status, summary))
 

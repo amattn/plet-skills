@@ -70,26 +70,24 @@ def make_git_repo(tmpdir):
     return tmpdir
 
 
-def write_global_state(repo, data):
-    """Write plet/state.json and return its path."""
+def write_state_files(repo, global_data, iter_data, iter_id="ID_001"):
+    """Write plet/state.json and plet/state/{iter_id}.json, return plet_dir."""
     plet_dir = os.path.join(repo, "plet")
     os.makedirs(plet_dir, exist_ok=True)
-    path = os.path.join(plet_dir, "state.json")
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
-    return path
-
-
-def write_iter_state(repo, data, iter_id="ID_001"):
-    """Write plet/state/{iter_id}.json and return its path."""
-    state_dir = os.path.join(repo, "plet", "state")
+    state_dir = os.path.join(plet_dir, "state")
     os.makedirs(state_dir, exist_ok=True)
-    path = os.path.join(state_dir, "{}.json".format(iter_id))
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
+
+    gs_path = os.path.join(plet_dir, "state.json")
+    with open(gs_path, "w") as f:
+        json.dump(global_data, f, indent=2)
         f.write("\n")
-    return path
+
+    is_path = os.path.join(state_dir, "{}.json".format(iter_id))
+    with open(is_path, "w") as f:
+        json.dump(iter_data, f, indent=2)
+        f.write("\n")
+
+    return plet_dir
 
 
 GLOBAL_STATE = {
@@ -203,12 +201,11 @@ def test_audit_tag_basic():
     print("\n## audit-tag — basic")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
-        is_path = write_iter_state(repo, ITER_STATE)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, ITER_STATE)
         create_iteration_branch_with_commits(repo)
 
-        stdout, _, _ = run(["audit-tag", gs_path, is_path, "--phase", "implement"],
-                           cwd=repo)
+        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"], cwd=repo)
         check("success message", "OK" in stdout)
         check("tag name in output", "audit" in stdout and "implement-1" in stdout)
         check("tag exists",
@@ -219,14 +216,13 @@ def test_audit_tag_verify_phase():
     print("\n## audit-tag — verify phase")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
         iter_state = dict(ITER_STATE)
         iter_state["attempts"] = {"implement": 1, "verify": 1}
-        is_path = write_iter_state(repo, iter_state)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
         create_iteration_branch_with_commits(repo)
 
-        stdout, _, _ = run(["audit-tag", gs_path, is_path, "--phase", "verify"],
-                           cwd=repo)
+        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "verify"], cwd=repo)
         check("verify tag exists",
               tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/verify-1"))
 
@@ -235,11 +231,11 @@ def test_audit_tag_json_output():
     print("\n## audit-tag — JSON output")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
-        is_path = write_iter_state(repo, ITER_STATE)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, ITER_STATE)
         create_iteration_branch_with_commits(repo)
 
-        stdout, _, _ = run(["audit-tag", gs_path, is_path, "--phase", "implement",
+        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement",
                             "--output", "json", "--pretty"], cwd=repo)
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
@@ -254,15 +250,16 @@ def test_audit_tag_idempotent():
     print("\n## audit-tag — idempotent (force-update)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
-        is_path = write_iter_state(repo, ITER_STATE)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, ITER_STATE)
         create_iteration_branch_with_commits(repo)
 
         # Create tag first time
-        run(["audit-tag", gs_path, is_path, "--phase", "implement"], cwd=repo)
+        run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+             "--phase", "implement"], cwd=repo)
 
         # Create again — should succeed (force-update)
-        stdout, _, _ = run(["audit-tag", gs_path, is_path, "--phase", "implement",
+        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement",
                             "--output", "json"], cwd=repo)
         data = json.loads(stdout)
         check("replaced true", data["replaced"] is True)
@@ -273,12 +270,11 @@ def test_audit_tag_dry_run():
     print("\n## audit-tag — dry-run")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
-        is_path = write_iter_state(repo, ITER_STATE)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, ITER_STATE)
         create_iteration_branch_with_commits(repo)
 
-        stdout, _, _ = run(["audit-tag", gs_path, is_path, "--phase", "implement",
-                            "--dry-run"], cwd=repo)
+        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement", "--dry-run"], cwd=repo)
         check("dry run message", "DRY RUN" in stdout)
         check("tag NOT created",
               not tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/implement-1"))
@@ -288,10 +284,10 @@ def test_audit_tag_invalid_phase():
     print("\n## audit-tag — invalid phase")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
-        is_path = write_iter_state(repo, ITER_STATE)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, ITER_STATE)
 
-        _, stderr, _ = run(["audit-tag", gs_path, is_path, "--phase", "plan"],
+        _, stderr, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "plan"],
                            expect_exit=1, cwd=repo)
         check("error mentions invalid", "invalid" in stderr)
 
@@ -300,10 +296,10 @@ def test_audit_tag_bad_global_state():
     print("\n## audit-tag — invalid global state")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, {"not": "valid"})
-        is_path = write_iter_state(repo, ITER_STATE)
+        plet_dir = write_state_files(repo, {"not": "valid"}, ITER_STATE)
 
-        _, stderr, _ = run(["audit-tag", gs_path, is_path, "--phase", "implement"],
+        _, stderr, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         check("error from validation", "error" in stderr.lower())
 
@@ -312,10 +308,10 @@ def test_audit_tag_bad_iter_state():
     print("\n## audit-tag — invalid iter state")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
-        is_path = write_iter_state(repo, {"not": "valid"})
+        plet_dir = write_state_files(repo, GLOBAL_STATE, {"not": "valid"})
 
-        _, stderr, _ = run(["audit-tag", gs_path, is_path, "--phase", "implement"],
+        _, stderr, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=repo)
         check("error from validation", "error" in stderr.lower())
 
@@ -323,10 +319,10 @@ def test_audit_tag_bad_iter_state():
 def test_audit_tag_not_git_repo():
     print("\n## audit-tag — not a git repo")
     with tempfile.TemporaryDirectory() as d:
-        gs_path = write_global_state(d, GLOBAL_STATE)
-        is_path = write_iter_state(d, ITER_STATE)
+        plet_dir = write_state_files(d, GLOBAL_STATE, ITER_STATE)
 
-        _, stderr, _ = run(["audit-tag", gs_path, is_path, "--phase", "implement"],
+        _, stderr, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001",
+                            "--phase", "implement"],
                            expect_exit=1, cwd=d)
         check("error mentions git", "git" in stderr.lower())
 
@@ -395,22 +391,22 @@ def setup_for_merge_squash(d, cleanup_tags=False, cleanup_branches=False):
     iter_state["attempts"] = {"implement": 1, "verify": 1}
     iter_state["cleanupTagsAutomatically"] = cleanup_tags
     iter_state["cleanupBranchesAutomatically"] = cleanup_branches
-    gs_path = write_global_state(repo, GLOBAL_STATE)
-    is_path = write_iter_state(repo, iter_state)
+    plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
     # Commit state files so working tree is clean
     git_run(repo, ["add", "plet/"])
     git_run(repo, ["commit", "-m", "add state files"])
 
-    return repo, gs_path, is_path, iter_branch, ws_branch
+    return repo, plet_dir, iter_branch, ws_branch
 
 
 def test_merge_squash_basic():
     print("\n## merge-squash — basic")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path, _, _ = setup_for_merge_squash(d)
+        repo, plet_dir, _, _ = setup_for_merge_squash(d)
 
-        stdout, _, _ = run(["merge-squash", gs_path, is_path], cwd=repo)
+        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"],
+                           cwd=repo)
         check("success message", "OK" in stdout)
         check("iteration ID in output", "ID_001" in stdout)
         check("title in output", "Project scaffolding" in stdout)
@@ -419,9 +415,9 @@ def test_merge_squash_basic():
 def test_merge_squash_json():
     print("\n## merge-squash — JSON output")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path, _, _ = setup_for_merge_squash(d)
+        repo, plet_dir, _, _ = setup_for_merge_squash(d)
 
-        stdout, _, _ = run(["merge-squash", gs_path, is_path,
+        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001",
                             "--output", "json", "--pretty"], cwd=repo)
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
@@ -434,9 +430,9 @@ def test_merge_squash_json():
 def test_merge_squash_commit_message():
     print("\n## merge-squash — commit message format")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path, _, _ = setup_for_merge_squash(d)
+        repo, plet_dir, _, _ = setup_for_merge_squash(d)
 
-        run(["merge-squash", gs_path, is_path], cwd=repo)
+        run(["merge-squash", plet_dir, "--iter-id", "ID_001"], cwd=repo)
 
         # Check the commit message on workstream
         stdout, _, _ = git_run(repo, ["log", "-1", "--format=%s"])
@@ -447,9 +443,9 @@ def test_merge_squash_commit_message():
 def test_merge_squash_commit_body():
     print("\n## merge-squash — commit body has lifecycle + criteria")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path, _, _ = setup_for_merge_squash(d)
+        repo, plet_dir, _, _ = setup_for_merge_squash(d)
 
-        run(["merge-squash", gs_path, is_path], cwd=repo)
+        run(["merge-squash", plet_dir, "--iter-id", "ID_001"], cwd=repo)
 
         # Check commit body
         stdout, _, _ = git_run(repo, ["log", "-1", "--format=%b"])
@@ -460,12 +456,13 @@ def test_merge_squash_commit_body():
 def test_merge_squash_dry_run():
     print("\n## merge-squash — dry-run")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path, _, ws = setup_for_merge_squash(d)
+        repo, plet_dir, _, ws = setup_for_merge_squash(d)
 
         # Get workstream HEAD before
         before_hash = get_head_hash(repo, short=False)
 
-        stdout, _, _ = run(["merge-squash", gs_path, is_path, "--dry-run"], cwd=repo)
+        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001",
+                            "--dry-run"], cwd=repo)
         check("dry run message", "DRY RUN" in stdout)
 
         # Workstream HEAD should not have moved
@@ -478,19 +475,18 @@ def test_merge_squash_not_on_workstream():
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
 
-        # Write state files outside of git tracking (in a temp location)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
+        # Write state files
         iter_state = dict(ITER_STATE)
         iter_state["lifecycle"] = "complete"
         iter_state["attempts"] = {"implement": 1, "verify": 1}
-        is_path = write_iter_state(repo, iter_state)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
         # Create branches
         create_workstream_branch(repo)
         git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001"])
 
         # Stay on iteration branch (wrong branch)
-        _, stderr, _ = run(["merge-squash", gs_path, is_path],
+        _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"],
                            expect_exit=1, cwd=repo)
         check("error mentions workstream", "workstream" in stderr.lower())
 
@@ -499,18 +495,17 @@ def test_merge_squash_nothing_to_merge():
     print("\n## merge-squash — nothing to merge (branches at same commit)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
         iter_state = dict(ITER_STATE)
         iter_state["lifecycle"] = "complete"
         iter_state["attempts"] = {"implement": 1, "verify": 1}
-        is_path = write_iter_state(repo, iter_state)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
         # Create workstream and iteration at same commit (no work done)
         ws = create_workstream_branch(repo)
         git_run(repo, ["branch", "plet/LOGA/loop1/ID_001"])
         git_run(repo, ["checkout", ws])
 
-        _, stderr, _ = run(["merge-squash", gs_path, is_path],
+        _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"],
                            expect_exit=1, cwd=repo)
         check("error mentions no changes", "no change" in stderr.lower() or "already" in stderr.lower())
 
@@ -518,9 +513,9 @@ def test_merge_squash_nothing_to_merge():
 def test_merge_squash_cleanup_tags():
     print("\n## merge-squash — cleanupTagsAutomatically")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path, _, _ = setup_for_merge_squash(d, cleanup_tags=True)
+        repo, plet_dir, _, _ = setup_for_merge_squash(d, cleanup_tags=True)
 
-        stdout, _, _ = run(["merge-squash", gs_path, is_path,
+        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001",
                             "--output", "json"], cwd=repo)
         data = json.loads(stdout)
 
@@ -534,10 +529,10 @@ def test_merge_squash_cleanup_tags():
 def test_merge_squash_cleanup_branches():
     print("\n## merge-squash — cleanupBranchesAutomatically")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path, iter_branch, _ = setup_for_merge_squash(
+        repo, plet_dir, iter_branch, _ = setup_for_merge_squash(
             d, cleanup_branches=True)
 
-        stdout, _, _ = run(["merge-squash", gs_path, is_path,
+        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001",
                             "--output", "json"], cwd=repo)
         data = json.loads(stdout)
 
@@ -548,13 +543,13 @@ def test_merge_squash_cleanup_branches():
 def test_merge_squash_dirty_working_tree():
     print("\n## merge-squash — dirty working tree")
     with tempfile.TemporaryDirectory() as d:
-        repo, gs_path, is_path, _, _ = setup_for_merge_squash(d)
+        repo, plet_dir, _, _ = setup_for_merge_squash(d)
 
         # Create uncommitted change
         with open(os.path.join(repo, "dirty.txt"), "w") as f:
             f.write("dirty\n")
 
-        _, stderr, _ = run(["merge-squash", gs_path, is_path],
+        _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"],
                            expect_exit=1, cwd=repo)
         check("error mentions dirty", "dirty" in stderr.lower() or "clean" in stderr.lower())
 
@@ -563,16 +558,15 @@ def test_merge_squash_iteration_branch_missing():
     print("\n## merge-squash — iteration branch doesn't exist")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
-        gs_path = write_global_state(repo, GLOBAL_STATE)
         iter_state = dict(ITER_STATE)
         iter_state["lifecycle"] = "complete"
-        is_path = write_iter_state(repo, iter_state)
+        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
         # Create workstream but NOT the iteration branch
         ws = create_workstream_branch(repo)
         git_run(repo, ["checkout", ws])
 
-        _, stderr, _ = run(["merge-squash", gs_path, is_path],
+        _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"],
                            expect_exit=1, cwd=repo)
         check("error mentions branch", "branch" in stderr.lower() or "not found" in stderr.lower())
 

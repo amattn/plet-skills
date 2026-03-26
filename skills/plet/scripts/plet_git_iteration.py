@@ -6,9 +6,9 @@ for isolated iteration execution. Git history is never lost — worktree operati
 manage on-disk working directories only.
 
 Usage:
-    plet_git_iteration.py branch-name <global_state_json> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_iteration.py worktree-create <global_state_json> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_iteration.py worktree-remove <global_state_json> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py branch-name [plet_dir] [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-create [plet_dir] --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-remove [plet_dir] --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     branch-name       Generate the correct branch name from project state
@@ -34,7 +34,12 @@ from util_cli import (
     now_iso,
     dispatch,
     filter_fields,
+    get_plet_dir,
+    extract_output_flags,
+    emit_json,
+    emit_json_error,
 )
+from util_io import validate_plet_dir
 from util_state import load_and_validate_global_state
 
 
@@ -55,66 +60,12 @@ def help_hint(command):
     return "Run: plet_git_iteration.py {} --help".format(command)
 
 
-def extract_universal_flags(kwargs):
-    """Extract and validate universal flags (--output, --pretty, --fields, --dry-run).
-
-    Returns (output_json, pretty, fields, dry_run, ok) where ok is False if validation failed.
-    """
-    output_json = kwargs.pop("output", None) == "json"
-    pretty = kwargs.pop("pretty", False)
-    if pretty is True and not output_json:
-        print("Error: --pretty requires --output json", file=sys.stderr)
-        return False, False, None, False, False
-
-    fields_raw = kwargs.pop("fields", None)
-    if fields_raw and not output_json:
-        print("Error: --fields requires --output json", file=sys.stderr)
-        return False, False, None, False, False
-    fields = fields_raw.split(",") if fields_raw else None
-
-    dry_run = kwargs.pop("dry_run", False)
-    if dry_run is True:
-        dry_run = True
-
-    return output_json, pretty, fields, dry_run, True
-
-
-def emit_json(data, pretty=False, fields=None):
-    """Print JSON output to stdout."""
-    data["scriptVersion"] = SCRIPT_VERSION
-    data["timestamp"] = now_iso()
-    if fields is not None:
-        data = filter_fields(data, fields)
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-
-
-def emit_json_error(command, message, pretty=False, extra=None):
-    """Print JSON error to stdout, text to stderr."""
-    data = {
-        "status": "error",
-        "command": command,
-        "error": message,
-        "scriptVersion": SCRIPT_VERSION,
-        "timestamp": now_iso(),
-    }
-    if extra:
-        data.update(extra)
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-    print(message, file=sys.stderr)
-
-
 def validate_iter_id(value, command, output_json, pretty):
     """Validate --iter-id format. Returns True if valid."""
     if not ITER_ID_RE.match(value):
         msg = "Error: --iter-id '{}' does not match expected pattern ID_N+".format(value)
         if output_json:
-            emit_json_error(command, msg, pretty)
+            emit_json_error(command, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return False
@@ -167,7 +118,7 @@ def cmd_branch_name(args):
     HELP = """IMPORTANT:
     branch-name is read-only — it prints the branch name, no git operations.
     Text output is bare (no "OK —" prefix) for shell capture:
-    BRANCH=$(plet_git_iteration.py branch-name plet/state.json --iter-id ID_001)
+    BRANCH=$(plet_git_iteration.py branch-name plet/ --iter-id ID_001)
 
 PITFALLS:
     - --type defaults to "iteration" — omit for the common case
@@ -175,9 +126,9 @@ PITFALLS:
     - Wrong base branch is the #1 cause of merge conflicts — verify session count
 
 USAGE:
-    plet_git_iteration.py branch-name <global_state_json> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py branch-name [plet_dir] [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
 
-    global_state_json    Path to plet/state.json
+    plet_dir         Path to plet directory (default: plet/)
     --iter-id     Iteration ID (required for --type iteration)
     --type        iteration (default), workstream, plan, or refine
 
@@ -187,46 +138,44 @@ PURPOSE:
     naming deterministic.
 
 Examples:
-    plet_git_iteration.py branch-name plet/state.json --iter-id ID_001
-    plet_git_iteration.py branch-name plet/state.json --type workstream
-    plet_git_iteration.py branch-name plet/state.json --type plan
-    plet_git_iteration.py branch-name plet/state.json --type refine
+    plet_git_iteration.py branch-name plet/ --iter-id ID_001
+    plet_git_iteration.py branch-name --iter-id ID_001
+    plet_git_iteration.py branch-name plet/ --type workstream
+    plet_git_iteration.py branch-name plet/ --type plan
+    plet_git_iteration.py branch-name plet/ --type refine
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 1:
-        print(HELP, file=sys.stderr)
-        return 1
 
     CMD = "branch-name"
     hint = help_hint(CMD)
-    state_path = args[0]
+    plet_dir, args = get_plet_dir(args)
 
     try:
-        kwargs = parse_kwargs(args[1:])
+        kwargs = parse_kwargs(args)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
 
-    # --dry-run not valid on branch-name (read-only)
-    if dry_run:
-        msg = "Error: --dry-run is not available on the branch-name command (read-only)"
+    # Validate plet_dir
+    valid, err = validate_plet_dir(plet_dir)
+    if not valid:
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
         else:
-            print(msg, file=sys.stderr)
+            print(err, file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
     # Load and validate state
-    state = load_and_validate_global_state(state_path)
+    state = load_and_validate_global_state(plet_dir)
     if state is None:
         print(hint, file=sys.stderr)
         return 1
@@ -243,7 +192,7 @@ Examples:
         if not iter_id:
             msg = "Error: --iter-id is required for --type iteration"
             if output_json:
-                emit_json_error(CMD, msg, pretty)
+                emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
             else:
                 print(msg, file=sys.stderr)
             print(hint, file=sys.stderr)
@@ -271,7 +220,7 @@ Examples:
             "type": branch_type,
             "projectId": state["projectId"],
             "sessionNum": session_num,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         # Bare output for shell capture — exception to UNV_CMD_15 (GTI_DXP_3)
         print(branch)
@@ -286,14 +235,14 @@ def cmd_worktree_create(args):
     auto-resumes on the existing branch preserving all previous commits.
 
 PITFALLS:
-    - First argument is state_json path, not a directory
+    - First argument is plet_dir (directory), not a file path
     - Default worktree dir is .plet/worktrees/ — add .plet/ to .gitignore
     - If you see "branch already exists" in output, it's a resume, not an error
 
 USAGE:
-    plet_git_iteration.py worktree-create <global_state_json> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-create [plet_dir] --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    state_json      Path to plet/state.json
+    plet_dir         Path to plet directory (default: plet/)
     --iter-id       Iteration ID (e.g., ID_001)
     --base          Base branch (default: loop workstream)
     --worktree-dir  Parent directory for worktrees (default: .plet/worktrees/)
@@ -305,29 +254,26 @@ PURPOSE:
     contamination (FB_35).
 
 Examples:
-    plet_git_iteration.py worktree-create plet/state.json --iter-id ID_001
-    plet_git_iteration.py worktree-create plet/state.json --iter-id ID_001 --dry-run
-    plet_git_iteration.py worktree-create plet/state.json --iter-id ID_001 --base main
+    plet_git_iteration.py worktree-create plet/ --iter-id ID_001
+    plet_git_iteration.py worktree-create plet/ --iter-id ID_001 --dry-run
+    plet_git_iteration.py worktree-create plet/ --iter-id ID_001 --base main
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 1:
-        print(HELP, file=sys.stderr)
-        return 1
 
     CMD = "worktree-create"
     hint = help_hint(CMD)
-    state_path = args[0]
+    plet_dir, args = get_plet_dir(args)
 
     try:
-        kwargs = parse_kwargs(args[1:])
+        kwargs = parse_kwargs(args)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
@@ -340,8 +286,18 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
+    # Validate plet_dir
+    valid, err = validate_plet_dir(plet_dir)
+    if not valid:
+        if output_json:
+            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
+        else:
+            print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
     # Load and validate state
-    state = load_and_validate_global_state(state_path)
+    state = load_and_validate_global_state(plet_dir)
     if state is None:
         print(hint, file=sys.stderr)
         return 1
@@ -350,7 +306,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -365,7 +321,7 @@ Examples:
     if os.path.exists(wt_path):
         msg = "Error: worktree path already exists: {}. Remove with worktree-remove first.".format(wt_path)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -378,7 +334,7 @@ Examples:
         if not branch_exists(base):
             msg = "Error: base branch not found: {}. Create the workstream branch first.".format(base)
             if output_json:
-                emit_json_error(CMD, msg, pretty)
+                emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
             else:
                 print(msg, file=sys.stderr)
             return 1
@@ -398,7 +354,7 @@ Examples:
                 "iterationId": iter_id,
                 "resumed": resumed,
                 "dryRun": True,
-            }, pretty, fields)
+            }, SCRIPT_VERSION, pretty, fields)
         else:
             print(msg)
         return 0
@@ -419,7 +375,7 @@ Examples:
     if r.returncode != 0:
         msg = "Error: git command failed: {}".format(r.stderr)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -438,7 +394,7 @@ Examples:
             "baseBranch": base,
             "iterationId": iter_id,
             "resumed": resumed,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         print(msg)
 
@@ -457,9 +413,9 @@ PITFALLS:
     - Force-removes untracked files (build artifacts) — committed work is safe.
 
 USAGE:
-    plet_git_iteration.py worktree-remove <global_state_json> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-remove [plet_dir] --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    state_json       Path to plet/state.json
+    plet_dir         Path to plet directory (default: plet/)
     --iter-id        Iteration ID (e.g., ID_001)
     --delete-branch  Also delete the iteration branch (default: keep)
     --worktree-dir   Parent directory for worktrees (default: .plet/worktrees/)
@@ -470,29 +426,26 @@ PURPOSE:
     Prevents orphaned worktrees from accumulating (FB_32).
 
 Examples:
-    plet_git_iteration.py worktree-remove plet/state.json --iter-id ID_001
-    plet_git_iteration.py worktree-remove plet/state.json --iter-id ID_001 --delete-branch
-    plet_git_iteration.py worktree-remove plet/state.json --iter-id ID_001 --dry-run
+    plet_git_iteration.py worktree-remove plet/ --iter-id ID_001
+    plet_git_iteration.py worktree-remove plet/ --iter-id ID_001 --delete-branch
+    plet_git_iteration.py worktree-remove plet/ --iter-id ID_001 --dry-run
 """
     if "-h" in args or "--help" in args:
         print(HELP)
         return 0
-    if len(args) < 1:
-        print(HELP, file=sys.stderr)
-        return 1
 
     CMD = "worktree-remove"
     hint = help_hint(CMD)
-    state_path = args[0]
+    plet_dir, args = get_plet_dir(args)
 
     try:
-        kwargs = parse_kwargs(args[1:])
+        kwargs = parse_kwargs(args)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
@@ -507,8 +460,18 @@ Examples:
 
     delete_branch = kwargs.get("delete_branch", False) is True
 
+    # Validate plet_dir
+    valid, err = validate_plet_dir(plet_dir)
+    if not valid:
+        if output_json:
+            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
+        else:
+            print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
     # Load and validate state
-    state = load_and_validate_global_state(state_path)
+    state = load_and_validate_global_state(plet_dir)
     if state is None:
         print(hint, file=sys.stderr)
         return 1
@@ -517,7 +480,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -531,7 +494,7 @@ Examples:
     if not os.path.exists(wt_path):
         msg = "Error: no worktree at {}".format(wt_path)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -549,7 +512,7 @@ Examples:
                 "branchDeleted": delete_branch,
                 "iterationId": iter_id,
                 "dryRun": True,
-            }, pretty, fields)
+            }, SCRIPT_VERSION, pretty, fields)
         else:
             print(msg)
         return 0
@@ -559,7 +522,7 @@ Examples:
     if r.returncode != 0:
         msg = "Error: git command failed: {}".format(r.stderr)
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -574,7 +537,7 @@ Examples:
         if r.returncode != 0:
             msg = "Error: git command failed while deleting branch: {}".format(r.stderr)
             if output_json:
-                emit_json_error(CMD, msg, pretty)
+                emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
             else:
                 print(msg, file=sys.stderr)
             return 1
@@ -592,7 +555,7 @@ Examples:
             "branchName": branch,
             "branchDeleted": branch_deleted,
             "iterationId": iter_id,
-        }, pretty, fields)
+        }, SCRIPT_VERSION, pretty, fields)
     else:
         print(msg)
 
