@@ -313,6 +313,91 @@ def test_path_derivation():
     check("DEFAULT_PLET_DIR", util_io.DEFAULT_PLET_DIR == "plet/")
 
 
+def test_validate_plet_dir():
+    print("\n## validate_plet_dir")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        ok, err = util_io.validate_plet_dir(tmpdir)
+        check("valid dir returns True", ok is True)
+        check("valid dir no error", err is None)
+
+        ok, err = util_io.validate_plet_dir(os.path.join(tmpdir, "nonexistent"))
+        check("missing dir returns False", ok is False)
+        check("missing dir error", "not found" in err)
+
+        fpath = os.path.join(tmpdir, "afile.txt")
+        with open(fpath, "w") as f:
+            f.write("hi")
+        ok, err = util_io.validate_plet_dir(fpath)
+        check("file returns False", ok is False)
+        check("file error mentions file", "got file" in err)
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
+def test_convenience_loaders():
+    print("\n## convenience loaders")
+    tmpdir = tempfile.mkdtemp()
+    plet_dir = os.path.join(tmpdir, "plet")
+    os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+    try:
+        # Create test files
+        with open(os.path.join(plet_dir, "state.json"), "w") as f:
+            json.dump({"projectId": "TEST"}, f)
+        with open(os.path.join(plet_dir, "state", "ID_001.json"), "w") as f:
+            json.dump({"iterationId": "ID_001"}, f)
+        with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+            f.write("# Requirements\n")
+        with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+            f.write("# Iterations\n")
+        with open(os.path.join(plet_dir, "progress.md"), "w") as f:
+            f.write("# Progress\n")
+        with open(os.path.join(plet_dir, "learnings.md"), "w") as f:
+            f.write("# Learnings\n")
+        with open(os.path.join(plet_dir, "emergent.md"), "w") as f:
+            f.write("# Emergent\n")
+        with open(os.path.join(plet_dir, "trace.ndjson"), "w") as f:
+            f.write('{"event":"start"}\n')
+
+        # Test loaders
+        data = util_io.load_global_state_json(plet_dir)
+        check("load_global_state_json", data is not None and data["projectId"] == "TEST")
+
+        data = util_io.load_iter_state_json(plet_dir, "ID_001")
+        check("load_iter_state_json", data is not None and data["iterationId"] == "ID_001")
+
+        text = util_io.load_requirements_md(plet_dir)
+        check("load_requirements_md", text is not None and "Requirements" in text)
+
+        text = util_io.load_iterations_md(plet_dir)
+        check("load_iterations_md", text is not None and "Iterations" in text)
+
+        text = util_io.load_progress_md(plet_dir)
+        check("load_progress_md", text is not None and "Progress" in text)
+
+        text = util_io.load_learnings_md(plet_dir)
+        check("load_learnings_md", text is not None and "Learnings" in text)
+
+        text = util_io.load_emergent_md(plet_dir)
+        check("load_emergent_md", text is not None and "Emergent" in text)
+
+        text = util_io.load_trace_ndjson(plet_dir)
+        check("load_trace_ndjson", text is not None and "start" in text)
+
+        # Test missing files return None
+        empty_dir = os.path.join(tmpdir, "empty")
+        os.makedirs(empty_dir)
+        data = util_io.load_global_state_json(empty_dir)
+        check("missing state.json returns None", data is None)
+
+        text = util_io.load_requirements_md(empty_dir)
+        check("missing requirements.md returns None", text is None)
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir)
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -339,6 +424,8 @@ if __name__ == "__main__":
     test_atomic_append_no_tmp_residue()
     test_atomic_append_multiline()
     test_path_derivation()
+    test_validate_plet_dir()
+    test_convenience_loaders()
 
     print("\n{}".format("=" * 40))
     print("  {} passed, {} failed".format(passed, failed))

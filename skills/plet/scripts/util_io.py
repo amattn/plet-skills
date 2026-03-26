@@ -111,6 +111,28 @@ def trace_path(plet_dir):
     return os.path.join(plet_dir, "trace.ndjson")
 
 
+# ---------------------------------------------------------------------------
+# Plet dir validation
+# ---------------------------------------------------------------------------
+
+def validate_plet_dir(path):
+    """Check that path exists and is a directory.
+
+    Returns (True, None) on success, (False, error_message) on failure.
+    """
+    if not os.path.exists(path):
+        return False, "Error: directory not found: {}".format(path)
+    if os.path.isfile(path):
+        return False, "Error: expected a directory, got file: {}".format(path)
+    if not os.path.isdir(path):
+        return False, "Error: not a directory: {}".format(path)
+    return True, None
+
+
+# ---------------------------------------------------------------------------
+# File I/O
+# ---------------------------------------------------------------------------
+
 def load_json(path):
     """Load and parse a JSON file.
 
@@ -195,3 +217,47 @@ def atomic_append(path, content):
         with open(path, "a") as dst:
             dst.write(src.read())
     os.remove(tmp)
+
+
+# ---------------------------------------------------------------------------
+# Convenience loaders — combine path derivation + load
+# ---------------------------------------------------------------------------
+
+def load_global_state_json(plet_dir):
+    """Load plet/state.json as raw dict (no validation)."""
+    return load_json(state_json_path(plet_dir))
+
+
+def load_iter_state_json(plet_dir, iter_id):
+    """Load plet/state/{iter_id}.json as raw dict (no validation)."""
+    return load_json(iter_state_path(plet_dir, iter_id))
+
+
+def load_requirements_md(plet_dir):
+    """Load plet/requirements.md as text."""
+    return load_text(requirements_path(plet_dir))
+
+
+def load_iterations_md(plet_dir):
+    """Load plet/iterations.md as text."""
+    return load_text(iterations_path(plet_dir))
+
+
+def load_progress_md(plet_dir):
+    """Load plet/progress.md as text."""
+    return load_text(progress_path(plet_dir))
+
+
+def load_learnings_md(plet_dir):
+    """Load plet/learnings.md as text."""
+    return load_text(learnings_path(plet_dir))
+
+
+def load_emergent_md(plet_dir):
+    """Load plet/emergent.md as text."""
+    return load_text(emergent_path(plet_dir))
+
+
+def load_trace_ndjson(plet_dir):
+    """Load plet/trace.ndjson as text."""
+    return load_text(trace_path(plet_dir))

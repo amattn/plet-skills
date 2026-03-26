@@ -53,14 +53,20 @@ All scripts derive file paths through these functions — never construct paths 
 
 **Constant:** `DEFAULT_PLET_DIR = "plet/"` — used by all scripts as the default when no plet_dir is specified.
 
-### JSON loaders (convenience)
+### Convenience loaders
 
-Combine path derivation + `load_json`. These load raw JSON without validation — validation is `util_state`'s job. Scripts that need validated state call `util_state.load_and_validate_*` which uses these internally.
+Combine path derivation + `load_json`/`load_text`. Raw loading without validation — validation is `util_state`'s job for state files, and the caller's job for everything else. Every script that reads a plet file uses these — never `load_json(os.path.join(...))`.
 
-| Function | Returns |
-|----------|---------|
-| `load_global_state_json(plet_dir)` | `load_json(state_json_path(plet_dir))` — parsed dict or None |
-| `load_iter_state_json(plet_dir, iter_id)` | `load_json(iter_state_path(plet_dir, iter_id))` — parsed dict or None |
+| Function | Combines | Returns |
+|----------|----------|---------|
+| `load_global_state_json(plet_dir)` | `state_json_path` + `load_json` | parsed dict or None |
+| `load_iter_state_json(plet_dir, iter_id)` | `iter_state_path` + `load_json` | parsed dict or None |
+| `load_requirements_md(plet_dir)` | `requirements_path` + `load_text` | string or None |
+| `load_iterations_md(plet_dir)` | `iterations_path` + `load_text` | string or None |
+| `load_progress_md(plet_dir)` | `progress_path` + `load_text` | string or None |
+| `load_learnings_md(plet_dir)` | `learnings_path` + `load_text` | string or None |
+| `load_emergent_md(plet_dir)` | `emergent_path` + `load_text` | string or None |
+| `load_trace_ndjson(plet_dir)` | `trace_path` + `load_text` | string or None |
 
 ### Plet dir validation
 
