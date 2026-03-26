@@ -1,27 +1,28 @@
-"""Shared global state.json loading and validation for plet scripts.
+"""Shared state file validation and validated loading for plet scripts.
 
 Internal module — imported by plet_*.py scripts, never called directly.
 Not listed in allowed-tools. Not executable.
 
-Owns the global state file (plet/state.json). Distinct from plet_state.py
-which owns per-iteration files (plet/state/{id}.json).
+Validates global state (plet/state.json) and per-iteration state
+(plet/state/{id}.json). Raw loading lives in util_io; this module
+adds validation on top.
 
 Functions:
-    load_and_validate_global_state(path)
-        Load plet/state.json, validate all fields per state-schema.md
+    load_and_validate_global_state(plet_dir)
+        Load {plet_dir}/state.json, validate all fields per state-schema.md
         § Global State. Returns the validated dict on success, or None
-        on failure (prints errors to stderr). Callers check for None
-        and return exit code 1.
+        on failure (prints errors to stderr).
 
-        Composes load_global_state() and validate_global_state().
-
-    load_global_state(path)
-        Load plet/state.json via util_io.load_json. Returns parsed dict
-        or None. No validation beyond JSON syntax and file existence.
+    load_and_validate_iter_state(plet_dir, iter_id)
+        Load {plet_dir}/state/{iter_id}.json, validate all fields per
+        state-schema.md § Per-Iteration State. Returns the validated dict
+        on success, or None on failure.
 
     validate_global_state(data)
-        Validate all fields in a parsed state.json dict. Returns True
-        if valid, False if any errors (prints each error to stderr).
+        Validate all fields in a parsed state.json dict.
+
+    validate_iter_state(data)
+        Validate all fields in a parsed per-iteration state dict.
 
 Dependencies: Python stdlib only (re, sys). Imports from util_io.
 """
@@ -32,7 +33,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from util_io import load_json
+from util_io import load_global_state_json, load_iter_state_json
 
 
 # projectId pattern: 3-6 chars, starts with letter, uppercase alphanumeric
@@ -60,17 +61,8 @@ OPTIONAL_FIELDS = {
 }
 
 
-def load_global_state(path):
-    """Load plet/state.json. Returns parsed dict or None.
 
-    No validation beyond JSON syntax and file existence.
-    Prints specific error messages to stderr.
-    """
-    if os.path.isdir(path):
-        print("Error: expected a file, got directory: {}".format(path),
-              file=sys.stderr)
-        return None
-    return load_json(path)
+
 
 
 def validate_global_state(data):
@@ -141,8 +133,8 @@ OPTIONAL_DEFAULTS = {
 }
 
 
-def load_and_validate_global_state(path):
-    """Load and validate plet/state.json.
+def load_and_validate_global_state(plet_dir):
+    """Load and validate {plet_dir}/state.json.
 
     Returns the validated dict on success, or None on failure.
     Prints errors to stderr. Callers check for None and return exit 1.
@@ -151,7 +143,7 @@ def load_and_validate_global_state(path):
     can trust all common fields are present (e.g., loopSessionCount is
     always an int, never missing).
     """
-    data = load_global_state(path)
+    data = load_global_state_json(plet_dir)
     if data is None:
         return None
 
@@ -205,17 +197,8 @@ ITER_OPTIONAL_DEFAULTS = {
 }
 
 
-def load_iter_state(path):
-    """Load a per-iteration state file. Returns parsed dict or None.
 
-    No validation beyond JSON syntax and file existence.
-    Prints specific error messages to stderr.
-    """
-    if os.path.isdir(path):
-        print("Error: expected a file, got directory: {}".format(path),
-              file=sys.stderr)
-        return None
-    return load_json(path)
+
 
 
 def validate_iter_state(data):
@@ -279,15 +262,15 @@ def validate_iter_state(data):
     return True
 
 
-def load_and_validate_iter_state(path):
-    """Load and validate a per-iteration state file.
+def load_and_validate_iter_state(plet_dir, iter_id):
+    """Load and validate {plet_dir}/state/{iter_id}.json.
 
     Returns the validated dict on success, or None on failure.
     Prints errors to stderr. Callers check for None and return exit 1.
 
     Optional fields that are absent are filled with defaults.
     """
-    data = load_iter_state(path)
+    data = load_iter_state_json(plet_dir, iter_id)
     if data is None:
         return None
 

@@ -235,3 +235,104 @@ def filter_fields(data, fields):
     result["fieldsIncluded"] = included
     result["fieldsOmitted"] = omitted
     return result
+
+
+# ---------------------------------------------------------------------------
+# Shared CLI helpers (UNV_CMD_17)
+# ---------------------------------------------------------------------------
+
+import json
+
+
+def get_plet_dir(args):
+    """Extract optional plet_dir from positional args.
+
+    If the first arg doesn't start with '-', it's consumed as plet_dir.
+    Otherwise, uses DEFAULT_PLET_DIR from util_io.
+
+    Returns (plet_dir, remaining_args).
+    """
+    from util_io import DEFAULT_PLET_DIR
+    if args and not args[0].startswith("-"):
+        return args[0], args[1:]
+    return DEFAULT_PLET_DIR, args
+
+
+def extract_output_flags(kwargs, allow_dry_run=False):
+    """Extract --output, --pretty, --fields, optionally --dry-run from kwargs.
+
+    Validates flag dependencies (--pretty/--fields require --output json).
+    Consumes the flags from kwargs.
+
+    Args:
+        kwargs: mutable dict from parse_kwargs
+        allow_dry_run: if False, --dry-run causes an error
+
+    Returns (output_json, pretty, fields, dry_run, ok) where ok is False
+    if validation failed (error already printed to stderr).
+    """
+    # Reject --dry-run if not allowed
+    dry_run = kwargs.pop("dry_run", None)
+    if dry_run is not None and not allow_dry_run:
+        print("Error: --dry-run is not supported (read-only command)", file=sys.stderr)
+        return False, False, None, False, False
+
+    dry_run = dry_run is True if dry_run is not None else False
+
+    output_json = kwargs.pop("output", None) == "json"
+    pretty = kwargs.pop("pretty", False)
+    if pretty is True and not output_json:
+        print("Error: --pretty requires --output json", file=sys.stderr)
+        return False, False, None, False, False
+
+    fields_raw = kwargs.pop("fields", None)
+    if fields_raw and not output_json:
+        print("Error: --fields requires --output json", file=sys.stderr)
+        return False, False, None, False, False
+    fields = fields_raw.split(",") if fields_raw else None
+
+    return output_json, pretty, fields, dry_run, True
+
+
+def emit_json(data, script_version, pretty=False, fields=None):
+    """Print structured JSON to stdout.
+
+    Adds scriptVersion and timestamp. Applies field filtering if requested.
+
+    Args:
+        data: dict to serialize
+        script_version: version string for this script
+        pretty: indent output
+        fields: list of field names to include, or None for all
+    """
+    data["scriptVersion"] = script_version
+    data["timestamp"] = now_iso()
+    if fields is not None:
+        data = filter_fields(data, fields)
+    if pretty:
+        print(json.dumps(data, indent=2))
+    else:
+        print(json.dumps(data))
+
+
+def emit_json_error(command, message, script_version, pretty=False):
+    """Print structured JSON error to stdout + text to stderr.
+
+    Args:
+        command: command name
+        message: error message
+        script_version: version string for this script
+        pretty: indent output
+    """
+    data = {
+        "status": "error",
+        "command": command,
+        "error": message,
+        "scriptVersion": script_version,
+        "timestamp": now_iso(),
+    }
+    if pretty:
+        print(json.dumps(data, indent=2))
+    else:
+        print(json.dumps(data))
+    print(message, file=sys.stderr)

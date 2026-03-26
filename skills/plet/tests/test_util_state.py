@@ -33,8 +33,19 @@ def check(name, condition, detail=""):
 
 
 def write_state(tmpdir, data):
-    """Write a state.json file and return its path."""
+    """Write a state.json file into tmpdir (acting as plet_dir) and return its path."""
     path = os.path.join(tmpdir, "state.json")
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    return path
+
+
+def write_iter_state(tmpdir, data, iter_id="ID_001"):
+    """Write an iter state file into tmpdir/state/{iter_id}.json and return its path."""
+    state_dir = os.path.join(tmpdir, "state")
+    os.makedirs(state_dir, exist_ok=True)
+    path = os.path.join(state_dir, "{}.json".format(iter_id))
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
@@ -68,8 +79,8 @@ def test_valid_state():
     import util_state
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, VALID_STATE)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, VALID_STATE)
+        result = util_state.load_and_validate_global_state(d)
 
         check("returns dict", isinstance(result, dict))
         check("projectId present", result["projectId"] == "LOGA")
@@ -96,8 +107,8 @@ def test_valid_state_minimal():
     }
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, minimal)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, minimal)
+        result = util_state.load_and_validate_global_state(d)
 
         check("returns dict", isinstance(result, dict))
         check("projectId ABC", result["projectId"] == "ABC")
@@ -113,11 +124,13 @@ def test_valid_state_minimal():
 # ---------------------------------------------------------------------------
 
 def test_file_not_found():
-    print("\n## load_and_validate_global_state — file not found")
+    print("\n## load_and_validate_global_state — file not found (plet_dir exists but no state.json)")
     import util_state
 
-    result = util_state.load_and_validate_global_state("/nonexistent/state.json")
-    check("returns None", result is None)
+    with tempfile.TemporaryDirectory() as d:
+        # plet_dir exists but state.json does not
+        result = util_state.load_and_validate_global_state(d)
+        check("returns None", result is None)
 
 
 def test_invalid_json():
@@ -129,17 +142,16 @@ def test_invalid_json():
         with open(path, "w") as f:
             f.write("not json {{{")
 
-        result = util_state.load_and_validate_global_state(path)
-        check("returns None", result is None)
-
-
-def test_not_a_file():
-    print("\n## load_and_validate_global_state — path is a directory")
-    import util_state
-
-    with tempfile.TemporaryDirectory() as d:
         result = util_state.load_and_validate_global_state(d)
         check("returns None", result is None)
+
+
+def test_plet_dir_not_found():
+    print("\n## load_and_validate_global_state — plet_dir does not exist")
+    import util_state
+
+    result = util_state.load_and_validate_global_state("/nonexistent/plet_dir")
+    check("returns None", result is None)
 
 
 # ---------------------------------------------------------------------------
@@ -154,8 +166,8 @@ def test_missing_project_id():
     del state["projectId"]
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, state)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
         check("returns None", result is None)
 
 
@@ -167,8 +179,8 @@ def test_project_id_wrong_type():
     state["projectId"] = 123
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, state)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
         check("returns None", result is None)
 
 
@@ -190,8 +202,8 @@ def test_project_id_invalid_pattern():
         state = dict(VALID_STATE)
         state["projectId"] = pid
         with tempfile.TemporaryDirectory() as d:
-            path = write_state(d, state)
-            result = util_state.load_and_validate_global_state(path)
+            write_state(d, state)
+            result = util_state.load_and_validate_global_state(d)
             check("rejects '{}'".format(pid), result is None)
 
 
@@ -211,8 +223,8 @@ def test_project_id_valid_patterns():
         state = dict(VALID_STATE)
         state["projectId"] = pid
         with tempfile.TemporaryDirectory() as d:
-            path = write_state(d, state)
-            result = util_state.load_and_validate_global_state(path)
+            write_state(d, state)
+            result = util_state.load_and_validate_global_state(d)
             check("accepts '{}'".format(pid), result is not None,
                   "got None" if result is None else "")
 
@@ -229,14 +241,14 @@ def test_session_count_wrong_type():
         state = dict(VALID_STATE)
         state[field] = "not_a_number"
         with tempfile.TemporaryDirectory() as d:
-            path = write_state(d, state)
-            result = util_state.load_and_validate_global_state(path)
+            write_state(d, state)
+            result = util_state.load_and_validate_global_state(d)
             check("{} string rejected".format(field), result is None)
 
         state[field] = 1.5
         with tempfile.TemporaryDirectory() as d:
-            path = write_state(d, state)
-            result = util_state.load_and_validate_global_state(path)
+            write_state(d, state)
+            result = util_state.load_and_validate_global_state(d)
             check("{} float rejected".format(field), result is None)
 
 
@@ -248,8 +260,8 @@ def test_session_count_negative():
         state = dict(VALID_STATE)
         state[field] = -1
         with tempfile.TemporaryDirectory() as d:
-            path = write_state(d, state)
-            result = util_state.load_and_validate_global_state(path)
+            write_state(d, state)
+            result = util_state.load_and_validate_global_state(d)
             check("{} negative rejected".format(field), result is None)
 
 
@@ -261,8 +273,8 @@ def test_session_count_zero():
     state["loopSessionCount"] = 0
     state["refineSessionCount"] = 0
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, state)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
         check("zero is valid", result is not None)
 
 
@@ -281,8 +293,8 @@ def test_missing_required_fields():
         state = dict(VALID_STATE)
         del state[field]
         with tempfile.TemporaryDirectory() as d:
-            path = write_state(d, state)
-            result = util_state.load_and_validate_global_state(path)
+            write_state(d, state)
+            result = util_state.load_and_validate_global_state(d)
             check("missing {} rejected".format(field), result is None)
 
 
@@ -301,8 +313,8 @@ def test_required_field_wrong_types():
         state = dict(VALID_STATE)
         state[field] = bad_value
         with tempfile.TemporaryDirectory() as d:
-            path = write_state(d, state)
-            result = util_state.load_and_validate_global_state(path)
+            write_state(d, state)
+            result = util_state.load_and_validate_global_state(d)
             check("{} {} rejected".format(field, desc), result is None)
 
 
@@ -317,8 +329,8 @@ def test_missing_project():
     state = dict(VALID_STATE)
     del state["project"]
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, state)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
         check("missing project rejected", result is None)
 
 
@@ -329,26 +341,14 @@ def test_project_missing_name():
     state = dict(VALID_STATE)
     state["project"] = {"description": "no name"}
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, state)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
         check("missing project.name rejected", result is None)
 
 
 # ---------------------------------------------------------------------------
-# Internal functions
+# Validation-only functions (no loading)
 # ---------------------------------------------------------------------------
-
-def test_load_global_state():
-    print("\n## load_global_state — loads without validation")
-    import util_state
-
-    # Should load any valid JSON, even if it doesn't have required fields
-    with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, {"arbitrary": "data"})
-        result = util_state.load_global_state(path)
-        check("returns dict", isinstance(result, dict))
-        check("has arbitrary field", result.get("arbitrary") == "data")
-
 
 def test_validate_global_state_valid():
     print("\n## validate_global_state — valid data")
@@ -387,8 +387,8 @@ def test_optional_fields_absent():
     }
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, state)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
         check("returns dict (optional fields absent)", result is not None)
         # Defaults should be injected
         check("loopSessionCount injected", result["loopSessionCount"] == 0)
@@ -410,8 +410,8 @@ def test_optional_fields_present():
     state["parallelGroups"] = [["ID_001", "ID_002"]]
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_state(d, state)
-        result = util_state.load_and_validate_global_state(path)
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
         check("returns dict (all optional present)", result is not None)
 
 
@@ -424,7 +424,7 @@ def main():
     test_valid_state_minimal()
     test_file_not_found()
     test_invalid_json()
-    test_not_a_file()
+    test_plet_dir_not_found()
     test_missing_project_id()
     test_project_id_wrong_type()
     test_project_id_invalid_pattern()
@@ -436,7 +436,6 @@ def main():
     test_required_field_wrong_types()
     test_missing_project()
     test_project_missing_name()
-    test_load_global_state()
     test_validate_global_state_valid()
     test_validate_global_state_invalid()
     test_optional_fields_absent()
@@ -453,7 +452,6 @@ def main():
     test_iter_invalid_lifecycle()
     test_iter_attempts_validation()
     test_iter_optional_defaults()
-    test_iter_load_without_validation()
     test_iter_validate_function()
 
     print("\n{} passed, {} failed".format(passed, failed))
@@ -479,15 +477,6 @@ VALID_ITER_STATE = {
 }
 
 
-def write_iter_state(tmpdir, data):
-    """Write an iter state file and return its path."""
-    path = os.path.join(tmpdir, "ID_001.json")
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
-    return path
-
-
 # ---------------------------------------------------------------------------
 # Iter state tests
 # ---------------------------------------------------------------------------
@@ -497,8 +486,8 @@ def test_iter_valid():
     import util_state
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, VALID_ITER_STATE)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, VALID_ITER_STATE, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
 
         check("returns dict", isinstance(result, dict))
         check("iterationId", result["iterationId"] == "ID_001")
@@ -526,8 +515,8 @@ def test_iter_minimal():
     }
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, minimal)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, minimal, "ID_002")
+        result = util_state.load_and_validate_iter_state(d, "ID_002")
 
         check("returns dict", isinstance(result, dict))
         check("agentId null ok", result["agentId"] is None)
@@ -546,11 +535,13 @@ def test_iter_minimal():
 
 
 def test_iter_file_not_found():
-    print("\n## iter: file not found")
+    print("\n## iter: file not found (plet_dir exists but iter state file does not)")
     import util_state
 
-    result = util_state.load_and_validate_iter_state("/nonexistent/ID_001.json")
-    check("returns None", result is None)
+    with tempfile.TemporaryDirectory() as d:
+        # plet_dir exists but state/ID_001.json does not
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("returns None", result is None)
 
 
 def test_iter_invalid_json():
@@ -558,11 +549,13 @@ def test_iter_invalid_json():
     import util_state
 
     with tempfile.TemporaryDirectory() as d:
-        path = os.path.join(d, "ID_001.json")
+        state_dir = os.path.join(d, "state")
+        os.makedirs(state_dir, exist_ok=True)
+        path = os.path.join(state_dir, "ID_001.json")
         with open(path, "w") as f:
             f.write("not json {{{")
 
-        result = util_state.load_and_validate_iter_state(path)
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("returns None", result is None)
 
 
@@ -577,8 +570,8 @@ def test_iter_missing_required_fields():
         state = dict(VALID_ITER_STATE)
         del state[field]
         with tempfile.TemporaryDirectory() as d:
-            path = write_iter_state(d, state)
-            result = util_state.load_and_validate_iter_state(path)
+            write_iter_state(d, state, "ID_001")
+            result = util_state.load_and_validate_iter_state(d, "ID_001")
             check("missing {} rejected".format(field), result is None)
 
 
@@ -601,8 +594,8 @@ def test_iter_wrong_types():
         state = dict(VALID_ITER_STATE)
         state[field] = bad_value
         with tempfile.TemporaryDirectory() as d:
-            path = write_iter_state(d, state)
-            result = util_state.load_and_validate_iter_state(path)
+            write_iter_state(d, state, "ID_001")
+            result = util_state.load_and_validate_iter_state(d, "ID_001")
             check("{} wrong type rejected".format(field), result is None)
 
 
@@ -616,8 +609,8 @@ def test_iter_invalid_iteration_id():
         state = dict(VALID_ITER_STATE)
         state["iterationId"] = iid
         with tempfile.TemporaryDirectory() as d:
-            path = write_iter_state(d, state)
-            result = util_state.load_and_validate_iter_state(path)
+            write_iter_state(d, state, "ID_001")
+            result = util_state.load_and_validate_iter_state(d, "ID_001")
             check("rejects '{}'".format(iid), result is None)
 
 
@@ -628,8 +621,8 @@ def test_iter_invalid_lifecycle():
     state = dict(VALID_ITER_STATE)
     state["lifecycle"] = "running"
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, state)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("invalid lifecycle rejected", result is None)
 
 
@@ -641,36 +634,36 @@ def test_iter_attempts_validation():
     state = dict(VALID_ITER_STATE)
     state["attempts"] = {"verify": 0}
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, state)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("missing attempts.implement rejected", result is None)
 
     # Missing verify key
     state["attempts"] = {"implement": 0}
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, state)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("missing attempts.verify rejected", result is None)
 
     # Negative value
     state["attempts"] = {"implement": -1, "verify": 0}
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, state)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("negative attempt rejected", result is None)
 
     # String value
     state["attempts"] = {"implement": "1", "verify": 0}
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, state)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("string attempt rejected", result is None)
 
     # Zero is valid
     state["attempts"] = {"implement": 0, "verify": 0}
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, state)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("zero attempts valid", result is not None)
 
 
@@ -687,25 +680,14 @@ def test_iter_optional_defaults():
         state.pop(key, None)
 
     with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, state)
-        result = util_state.load_and_validate_iter_state(path)
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
 
         check("returns dict", result is not None)
         check("agentActivity injected", result["agentActivity"] == "idle")
         check("cleanupBranchesAutomatically injected",
               result["cleanupBranchesAutomatically"] is False)
         check("verificationReports injected", result["verificationReports"] == [])
-
-
-def test_iter_load_without_validation():
-    print("\n## iter: load_iter_state loads without validation")
-    import util_state
-
-    with tempfile.TemporaryDirectory() as d:
-        path = write_iter_state(d, {"arbitrary": "data"})
-        result = util_state.load_iter_state(path)
-        check("returns dict", isinstance(result, dict))
-        check("has arbitrary field", result.get("arbitrary") == "data")
 
 
 def test_iter_validate_function():

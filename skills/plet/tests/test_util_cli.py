@@ -376,6 +376,149 @@ def test_filter_fields_empty_request():
 
 
 # ---------------------------------------------------------------------------
+# get_plet_dir
+# ---------------------------------------------------------------------------
+
+def test_get_plet_dir_with_dir():
+    print("\n## get_plet_dir — explicit dir")
+    plet_dir, remaining = util_cli.get_plet_dir(["my/plet", "--flag", "val"])
+    check("extracts dir", plet_dir == "my/plet")
+    check("remaining args", remaining == ["--flag", "val"])
+
+
+def test_get_plet_dir_default():
+    print("\n## get_plet_dir — default")
+    plet_dir, remaining = util_cli.get_plet_dir(["--flag", "val"])
+    check("uses default", plet_dir == "plet/")
+    check("remaining args unchanged", remaining == ["--flag", "val"])
+
+
+def test_get_plet_dir_empty():
+    print("\n## get_plet_dir — empty args")
+    plet_dir, remaining = util_cli.get_plet_dir([])
+    check("uses default", plet_dir == "plet/")
+    check("remaining empty", remaining == [])
+
+
+def test_get_plet_dir_flag_first():
+    print("\n## get_plet_dir — flag as first arg")
+    plet_dir, remaining = util_cli.get_plet_dir(["--output", "json"])
+    check("uses default (flag not consumed)", plet_dir == "plet/")
+    check("remaining includes flag", remaining == ["--output", "json"])
+
+
+# ---------------------------------------------------------------------------
+# extract_output_flags
+# ---------------------------------------------------------------------------
+
+def test_extract_output_flags_json():
+    print("\n## extract_output_flags — json mode")
+    kwargs = {"output": "json", "pretty": True, "fields": "a,b"}
+    output_json, pretty, fields, dry_run, ok = util_cli.extract_output_flags(kwargs)
+    check("output_json True", output_json is True)
+    check("pretty True", pretty is True)
+    check("fields parsed", fields == ["a", "b"])
+    check("dry_run False", dry_run is False)
+    check("ok True", ok is True)
+    check("kwargs consumed", "output" not in kwargs and "pretty" not in kwargs and "fields" not in kwargs)
+
+
+def test_extract_output_flags_text():
+    print("\n## extract_output_flags — text mode (no flags)")
+    kwargs = {}
+    output_json, pretty, fields, dry_run, ok = util_cli.extract_output_flags(kwargs)
+    check("output_json False", output_json is False)
+    check("pretty False", pretty is False)
+    check("fields None", fields is None)
+    check("ok True", ok is True)
+
+
+def test_extract_output_flags_pretty_without_json():
+    print("\n## extract_output_flags — --pretty without --output json")
+    kwargs = {"pretty": True}
+    _, _, _, _, ok = util_cli.extract_output_flags(kwargs)
+    check("ok False", ok is False)
+
+
+def test_extract_output_flags_fields_without_json():
+    print("\n## extract_output_flags — --fields without --output json")
+    kwargs = {"fields": "a,b"}
+    _, _, _, _, ok = util_cli.extract_output_flags(kwargs)
+    check("ok False", ok is False)
+
+
+def test_extract_output_flags_dry_run():
+    print("\n## extract_output_flags — --dry-run allowed")
+    kwargs = {"dry_run": True}
+    _, _, _, dry_run, ok = util_cli.extract_output_flags(kwargs, allow_dry_run=True)
+    check("dry_run True", dry_run is True)
+    check("ok True", ok is True)
+
+
+def test_extract_output_flags_dry_run_rejected():
+    print("\n## extract_output_flags — --dry-run rejected (read-only)")
+    kwargs = {"dry_run": True}
+    _, _, _, _, ok = util_cli.extract_output_flags(kwargs, allow_dry_run=False)
+    check("ok False", ok is False)
+
+
+# ---------------------------------------------------------------------------
+# emit_json / emit_json_error
+# ---------------------------------------------------------------------------
+
+import json
+import io
+
+def test_emit_json_basic():
+    print("\n## emit_json — basic output")
+    import contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        util_cli.emit_json({"status": "ok", "command": "test"}, "0.1.0")
+    output = buf.getvalue().strip()
+    data = json.loads(output)
+    check("has status", data["status"] == "ok")
+    check("has scriptVersion", data["scriptVersion"] == "0.1.0")
+    check("has timestamp", "timestamp" in data)
+
+
+def test_emit_json_pretty():
+    print("\n## emit_json — pretty output")
+    import contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        util_cli.emit_json({"status": "ok"}, "0.1.0", pretty=True)
+    output = buf.getvalue()
+    check("indented", "\n  " in output)
+
+
+def test_emit_json_fields():
+    print("\n## emit_json — field filtering")
+    import contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        util_cli.emit_json({"status": "ok", "extra": "val"}, "0.1.0", fields=["status"])
+    data = json.loads(buf.getvalue().strip())
+    check("status included", "status" in data)
+    check("extra excluded", "extra" not in data)
+    check("fieldsIncluded present", "fieldsIncluded" in data)
+
+
+def test_emit_json_error_basic():
+    print("\n## emit_json_error — basic output")
+    import contextlib
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+    with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+        util_cli.emit_json_error("test-cmd", "something broke", "0.1.0")
+    data = json.loads(stdout_buf.getvalue().strip())
+    check("status error", data["status"] == "error")
+    check("command set", data["command"] == "test-cmd")
+    check("error message", data["error"] == "something broke")
+    check("stderr has message", "something broke" in stderr_buf.getvalue())
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -411,6 +554,20 @@ if __name__ == "__main__":
     test_filter_fields_subset()
     test_filter_fields_nonexistent()
     test_filter_fields_empty_request()
+    test_get_plet_dir_with_dir()
+    test_get_plet_dir_default()
+    test_get_plet_dir_empty()
+    test_get_plet_dir_flag_first()
+    test_extract_output_flags_json()
+    test_extract_output_flags_text()
+    test_extract_output_flags_pretty_without_json()
+    test_extract_output_flags_fields_without_json()
+    test_extract_output_flags_dry_run()
+    test_extract_output_flags_dry_run_rejected()
+    test_emit_json_basic()
+    test_emit_json_pretty()
+    test_emit_json_fields()
+    test_emit_json_error_basic()
 
     print("\n{}".format("=" * 40))
     print("  {} passed, {} failed".format(passed, failed))
