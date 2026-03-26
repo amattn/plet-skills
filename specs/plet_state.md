@@ -37,6 +37,8 @@ The external GUI persona (STA_AGT_8) is a silent consumer that never calls the C
 
 Command abbreviations: `VAL` (validate), `UPC` (update-criterion), `UPF` (update-field), `INI` (init).
 
+All commands take `[<plet_dir>]` as optional first positional arg (default: `plet/`) and `--iter-id ID_xxx` (required) per UNV_CMD_16. Paths derived via `util_io.iter_state_path()`.
+
 Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. Mutating commands also support `--dry-run`. See `specs/conventions.md` UNV_CMD_17, UNV_CMD_18, UNV_CMD_19.
 
 ---
@@ -55,7 +57,7 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_VAL_CMD_1 | Usage: `plet_state.py validate <iter_state_json> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_VAL_CMD_1 | Usage: `plet_state.py validate [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -65,7 +67,8 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_VAL_INP_1 | `iter_state_json` — path to a per-iteration state JSON file | P0 |
+| STA_VAL_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` via `util_io.DEFAULT_PLET_DIR`. Script derives `{plet_dir}/state/{iter_id}.json` via `util_io.iter_state_path(plet_dir, iter_id)`. | P0 |
+| STA_VAL_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to derive the state file path. | P0 |
 
 #### Outputs (STA_VAL_OUT)
 
@@ -92,8 +95,9 @@ Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. M
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_VAL_PRE_1 | File exists at the specified path | P0 |
-| STA_VAL_PRE_2 | File contains valid JSON (parseable) | P0 |
+| STA_VAL_PRE_1 | `plet_dir` exists and is a directory | P0 |
+| STA_VAL_PRE_2 | Derived state file `{plet_dir}/state/{iter_id}.json` exists | P0 |
+| STA_VAL_PRE_3 | File contains valid JSON (parseable) | P0 |
 
 Violated preconditions produce specific errors (not Python tracebacks).
 
@@ -133,7 +137,7 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion <iter_state_json> --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion [<plet_dir>] --iter-id ID_xxx --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -143,7 +147,8 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPC_INP_1 | `iter_state_json` — path to per-iteration state file | P0 |
+| STA_UPC_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` via `util_io.DEFAULT_PLET_DIR`. Script derives `{plet_dir}/state/{iter_id}.json` via `util_io.iter_state_path(plet_dir, iter_id)`. | P0 |
+| STA_UPC_INP_7 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to derive the state file path. | P0 |
 | STA_UPC_INP_2 | `--criterion` — criterion ID (e.g., `AC_1`) | P0 |
 | STA_UPC_INP_3 | `--phase` — `implementation` or `verification` | P0 |
 | STA_UPC_INP_4 | `--status` — one of: `not_started`, `fail`, `pass`, `error`, `skipped` | P0 |
@@ -176,7 +181,8 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPC_PRE_1 | File exists and is valid JSON | P0 |
+| STA_UPC_PRE_1 | `plet_dir` exists and is a directory | P0 |
+| STA_UPC_PRE_6 | Derived state file `{plet_dir}/state/{iter_id}.json` exists and is valid JSON | P0 |
 | STA_UPC_PRE_2 | File contains a criterion matching the specified `--criterion` ID | P0 |
 | STA_UPC_PRE_3 | `--phase` is exactly `implementation` or `verification` | P0 |
 | STA_UPC_PRE_4 | `--status` is a valid criterion status | P0 |
@@ -221,7 +227,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <iter_state_json> --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_UPF_CMD_1 | Usage: `plet_state.py update-field [<plet_dir>] --iter-id ID_xxx --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -231,7 +237,8 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_INP_1 | `iter_state_json` — path to per-iteration state file | P0 |
+| STA_UPF_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` via `util_io.DEFAULT_PLET_DIR`. Script derives `{plet_dir}/state/{iter_id}.json` via `util_io.iter_state_path(plet_dir, iter_id)`. | P0 |
+| STA_UPF_INP_4 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to derive the state file path. | P0 |
 | STA_UPF_INP_2 | `--data` — JSON object of field/value pairs. Keys may use dotted paths (e.g., `attempts.implement`). Values are typed per JSON (strings, numbers, booleans, arrays, null). Mutually exclusive with `--data-file`. | P0 |
 | STA_UPF_INP_3 | `--data-file` — path to a file containing the JSON object. Mutually exclusive with `--data`. Use for payloads that are awkward as shell arguments. | P1 |
 
@@ -258,7 +265,8 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_PRE_1 | File exists and is valid JSON | P0 |
+| STA_UPF_PRE_1 | `plet_dir` exists and is a directory | P0 |
+| STA_UPF_PRE_7 | Derived state file `{plet_dir}/state/{iter_id}.json` exists and is valid JSON | P0 |
 | STA_UPF_PRE_2 | `--data` or `--data-file` is a valid JSON object. Exactly one must be provided. | P0 |
 | STA_UPF_PRE_6 | If `--data-file` is provided, the file must exist and be readable | P0 |
 | STA_UPF_PRE_3 | Enum fields in `--data` have valid values (lifecycle, agentActivity) | P0 |
@@ -303,7 +311,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INI_CMD_1 | Usage: `plet_state.py init <iter_state_json> --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_INI_CMD_1 | Usage: `plet_state.py init [<plet_dir>] --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates file), not idempotent (errors on existing file), atomic
 
@@ -313,8 +321,8 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INI_INP_1 | `iter_state_json` — path to create | P0 |
-| STA_INI_INP_2 | `--iter-id` — iteration ID (e.g., ID_001) | P0 |
+| STA_INI_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` via `util_io.DEFAULT_PLET_DIR`. Script derives the output path `{plet_dir}/state/{iter_id}.json` via `util_io.iter_state_path(plet_dir, iter_id)`. | P0 |
+| STA_INI_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to derive the output file path. | P0 |
 | STA_INI_INP_3 | `--title` — human-readable title | P0 |
 | STA_INI_INP_4 | `--dependencies` — JSON array of dependency iteration IDs (use `'[]'` for none) | P0 |
 | STA_INI_INP_5 | `--criteria` — JSON array of objects with `id` and `description` fields | P0 |
@@ -345,13 +353,14 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INI_PRE_1 | File does NOT exist at the specified path (error if it does — UNV_NFR_2) | P0 |
+| STA_INI_PRE_9 | `plet_dir` exists and is a directory | P0 |
+| STA_INI_PRE_1 | Derived output file `{plet_dir}/state/{iter_id}.json` does NOT exist (error if it does — UNV_NFR_2) | P0 |
 | STA_INI_PRE_2 | `--dependencies` is a valid JSON array | P0 |
 | STA_INI_PRE_3 | `--criteria` is a valid JSON array | P0 |
 | STA_INI_PRE_4 | Each object in `--criteria` has `id` and `description` string fields | P0 |
-| STA_INI_PRE_5 | Parent directory exists | P0 |
+| STA_INI_PRE_5 | Parent directory `{plet_dir}/state/` exists | P0 |
 | STA_INI_PRE_6 | `--iter-id` matches pattern `ID_N+` (e.g., `ID_1`, `ID_001`, `ID_0042`). Prefix `ID_` required, followed by one or more digits. Zero-padding accepted but not required. | P0 |
-| STA_INI_PRE_7 | Each ID in `--dependencies` has a corresponding `{id}.json` file in the same directory as the target file. Error if not found. Use `--no-verify-deps` to skip this check (for out-of-order or parallel creation). | P0 |
+| STA_INI_PRE_7 | Each ID in `--dependencies` has a corresponding `{plet_dir}/state/{id}.json` file. Error if not found. Use `--no-verify-deps` to skip this check (for out-of-order or parallel creation). | P0 |
 | STA_INI_PRE_8 | `--criteria` array is non-empty. Every iteration needs at least one acceptance criterion. | P0 |
 
 #### Postconditions (STA_INI_PST)
@@ -389,7 +398,7 @@ The two-state model is the core verification invariant — implementation and ve
 | STA_EDG_6 | `--data` with empty object `'{}'` in `update-field` — error: "nothing to update" | P0 |
 | STA_EDG_7 | `--dry-run` combined with `--output json` — show the JSON output that would be produced, including the would-be state changes | P1 |
 | STA_EDG_8 | `--data` containing protected fields (`criteria`, `schemaVersion`, `lastUpdated`) in `update-field` — error, do not modify file. Protected fields must be modified through their dedicated commands (`update-criterion` for criteria, `init`/migration for schemaVersion, auto-set for lastUpdated). | P0 |
-| STA_EDG_9 | File path without `.json` extension — error. All state files must end in `.json`. Catches typos early. | P0 |
+| STA_EDG_9 | ~~File path without `.json` extension~~ — withdrawn. Path is now derived via `util_io.iter_state_path()`, always ends in `.json`. | — |
 | STA_EDG_10 | Dotted path starting with a protected prefix in `--data` (e.g., `criteria.0.status`, `schemaVersion.major`) — error. Same protection as top-level protected fields. | P0 |
 | STA_EDG_11 | Concurrent `init` on same path — race condition. Both callers check "file doesn't exist", both proceed. Atomic rename means second writer wins silently — first writer's content is lost. Documented, not prevented. Plan session creates files sequentially; concurrent init on the same path indicates a bug in the caller. | P1 |
 | STA_EDG_12 | Duplicate flags (e.g., `--phase implement --phase verify`) — error. Agent-first: fail loudly on misuse. `parse_kwargs` in `util_cli.py` detects and rejects duplicate keys. | P0 |
@@ -407,17 +416,19 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
+| STA_ERR_29 | `plet_dir` not found → `Error: directory not found: {path}` | P0 |
+| STA_ERR_30 | `plet_dir` is a file → `Error: expected a directory, got file: {path}` | P0 |
 | STA_ERR_1 | Missing required args → print specific missing arg name + help text, exit 1 | P0 |
 | STA_ERR_2 | Invalid `--phase` → `Error: --phase must be 'implementation' or 'verification', got '{value}'` | P0 |
 | STA_ERR_3 | Invalid `--status` → `Error: invalid --status '{value}' (valid: not_started, fail, pass, error, skipped)` | P0 |
 | STA_ERR_4 | Invalid enum in `--data` → `Error: invalid lifecycle '{value}' (valid: ...)` or `Error: invalid agentActivity '{value}' (valid: ...)` | P0 |
 | STA_ERR_5 | Criterion not found → `Error: criterion '{id}' not found in {path} (available: AC_1, AC_2, ...)` | P0 |
 | STA_ERR_6 | Invalid JSON in `--dependencies`, `--criteria`, or `--data` → `Error: --{flag} must be valid JSON: {parse_error}` | P0 |
-| STA_ERR_7 | File not found → `Error: file not found: {path}` | P0 |
-| STA_ERR_8 | File exists on `init` → `Error: file already exists: {path} (use update-field to modify existing files)` | P0 |
+| STA_ERR_7 | Derived state file not found → `Error: file not found: {plet_dir}/state/{iter_id}.json` | P0 |
+| STA_ERR_8 | File exists on `init` → `Error: file already exists: {plet_dir}/state/{iter_id}.json (use update-field to modify existing files)` | P0 |
 | STA_ERR_9 | Invalid JSON in file → `Error: invalid JSON in {path}: {parse_error}` | P0 |
 | STA_ERR_10 | Non-integer `--elapsed` → `Error: --elapsed must be an integer, got '{value}'` | P0 |
-| STA_ERR_11 | Parent directory missing on `init` → `Error: parent directory does not exist: {dir}` | P0 |
+| STA_ERR_11 | State directory missing on `init` → `Error: state directory does not exist: {plet_dir}/state/` | P0 |
 | STA_ERR_12 | Malformed criteria object in `init` → `Error: --criteria[{index}] missing required field '{field}'` (checked at parse time, before validate) | P0 |
 | STA_ERR_13 | Protected field in `update-field` → `Error: '{field}' is a protected field — use update-criterion to modify criteria, init for schemaVersion. lastUpdated is auto-set.` | P0 |
 | STA_ERR_14 | Unknown field in `update-field` → `Error: unknown field '{field}' (valid fields: lifecycle, dependencies, agentId, agentActivity, ...)` | P0 |
@@ -425,7 +436,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | STA_ERR_16 | Dependency file not found → `Error: dependency '{id}' not found — expected {dir}/{id}.json. Use --no-verify-deps to skip this check.` | P0 |
 | STA_ERR_17 | Empty criteria array → `Error: --criteria must contain at least one criterion. Every iteration needs a definition of done.` | P0 |
 | STA_ERR_18 | Empty --data object → `Error: --data is empty — nothing to update` | P0 |
-| STA_ERR_19 | File path without .json extension → `Error: state file path must end in .json, got '{path}'` | P0 |
+| STA_ERR_19 | ~~File path without .json extension~~ — withdrawn. Path is now derived via `util_io.iter_state_path()`, always ends in `.json`. | — |
 | STA_ERR_20 | Dotted path into protected field → `Error: '{path}' modifies protected field '{root}' — use update-criterion for criteria, init for schemaVersion` | P0 |
 | STA_ERR_21 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | STA_ERR_22 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
@@ -454,13 +465,12 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 1. Plan session approves iteration definitions
 2. For each iteration, agent calls:
    ```
-   plet_state.py init plet/state/ID_001.json \
-       --iter-id ID_001 --title "Project scaffolding" \
+   plet_state.py init --iter-id ID_001 --title "Project scaffolding" \
        --dependencies '[]' \
        --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
    ```
-3. Script creates file with correct schema, sets lifecycle based on dependencies
-4. Agent verifies: `plet_state.py validate plet/state/ID_001.json`
+3. Script derives path `plet/state/ID_001.json` via `util_io.iter_state_path()`, creates file with correct schema, sets lifecycle based on dependencies
+4. Agent verifies: `plet_state.py validate --iter-id ID_001`
 
 ### STA_AFL_2: Impl agent updates criteria
 
@@ -468,19 +478,19 @@ Activity updates come BEFORE the action they describe — `agentActivity` reflec
 
 1. Agent sets activity to what it's about to do:
    ```
-   plet_state.py update-field plet/state/ID_001.json \
+   plet_state.py update-field --iter-id ID_001 \
        --data '{"agentActivity":"implementing"}'
    ```
 2. Impl agent writes a failing test (red), makes it pass (green)
 3. Agent sets activity to running checks:
    ```
-   plet_state.py update-field plet/state/ID_001.json \
+   plet_state.py update-field --iter-id ID_001 \
        --data '{"agentActivity":"running_checks"}'
    ```
 4. Agent runs full test suite, confirms green
 5. Agent records the result:
    ```
-   plet_state.py update-criterion plet/state/ID_001.json \
+   plet_state.py update-criterion --iter-id ID_001 \
        --criterion AC_1 --phase implementation --status pass \
        --evidence "test_FR_1 passes — asserts 200 status. Full suite green." \
        --elapsed 45
@@ -492,7 +502,7 @@ Activity updates come BEFORE the action they describe — `agentActivity` reflec
 1. Verify agent independently checks each criterion
 2. If criterion fails:
    ```
-   plet_state.py update-criterion plet/state/ID_001.json \
+   plet_state.py update-criterion --iter-id ID_001 \
        --criterion AC_1 --phase verification --status fail \
        --evidence "Test mocks DB layer — tautological. Needs real DB query."
    ```
@@ -503,13 +513,13 @@ Activity updates come BEFORE the action they describe — `agentActivity` reflec
 
 1. After all criteria pass verification, orchestrator transitions:
    ```
-   plet_state.py update-field plet/state/ID_001.json \
+   plet_state.py update-field --iter-id ID_001 \
        --data '{"lifecycle":"complete","agentActivity":"idle"}'
    ```
 
 ### STA_AFL_5: Error recovery
 
-1. Agent calls `plet_state.py update-criterion` with wrong criterion ID
+1. Agent calls `plet_state.py update-criterion --iter-id ID_001` with wrong criterion ID
 2. Script returns exit 1: `Error: criterion 'AC_99' not found in plet/state/ID_001.json (available: AC_1, AC_2)`
 3. Agent reads error message, identifies available criteria
 4. Agent retries with correct ID: `--criterion AC_1`
@@ -519,7 +529,7 @@ Activity updates come BEFORE the action they describe — `agentActivity` reflec
 1. Agent is about to create a state file for a new iteration
 2. Agent runs with `--dry-run` to preview:
    ```
-   plet_state.py init plet/state/ID_005.json --dry-run \
+   plet_state.py init --dry-run \
        --iter-id ID_005 --title "API endpoints" \
        --dependencies '["ID_001","ID_003"]' \
        --criteria '[{"id":"AC_1","description":"GET /api returns 200"}]'
@@ -545,48 +555,48 @@ This flow is unique — the GUI never calls the CLI. It's a read-only consumer o
 ### STA_EXM_1: Full iteration lifecycle
 
 ```bash
-# 1. Create state file
-plet_state.py init plet/state/ID_001.json \
+# 1. Create state file (path derived: plet/state/ID_001.json)
+plet_state.py init \
     --iter-id ID_001 --title "Project scaffolding" \
     --dependencies '[]' \
     --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"},{"id":"AC_2","description":"ruff check passes"}]'
 # OK — initialized plet/state/ID_001.json (ID_001, 2 criteria, lifecycle=queued)
 
 # 2. Start implementing — set activity BEFORE doing work
-plet_state.py update-field plet/state/ID_001.json \
+plet_state.py update-field --iter-id ID_001 \
     --data '{"lifecycle":"implementing","agentId":"agent_abc123","agentActivity":"implementing"}'
 
 # 3. Signal running checks, then record AC_1 result
-plet_state.py update-field plet/state/ID_001.json \
+plet_state.py update-field --iter-id ID_001 \
     --data '{"agentActivity":"running_checks"}'
-plet_state.py update-criterion plet/state/ID_001.json \
+plet_state.py update-criterion --iter-id ID_001 \
     --criterion AC_1 --phase implementation --status pass \
     --evidence "test_sanity passes, pytest exit 0" --elapsed 30
 
 # 4. Signal implementing AC_2, then running checks, then record
-plet_state.py update-field plet/state/ID_001.json \
+plet_state.py update-field --iter-id ID_001 \
     --data '{"agentActivity":"implementing"}'
 # ... agent writes test, makes it pass ...
-plet_state.py update-field plet/state/ID_001.json \
+plet_state.py update-field --iter-id ID_001 \
     --data '{"agentActivity":"running_checks"}'
-plet_state.py update-criterion plet/state/ID_001.json \
+plet_state.py update-criterion --iter-id ID_001 \
     --criterion AC_2 --phase implementation --status pass \
     --evidence "ruff check returns 0 warnings" --elapsed 10
 
 # 5. Transition to verifying — clear implement agent, hand off
-plet_state.py update-field plet/state/ID_001.json \
+plet_state.py update-field --iter-id ID_001 \
     --data '{"lifecycle":"verifying","agentActivity":"idle","agentId":null}'
 
 # 6. Verify (independent agent) — set its own agentId first
-plet_state.py update-field plet/state/ID_001.json \
+plet_state.py update-field --iter-id ID_001 \
     --data '{"agentId":"agent_def456","agentActivity":"running_checks"}'
 
-plet_state.py update-criterion plet/state/ID_001.json \
+plet_state.py update-criterion --iter-id ID_001 \
     --criterion AC_1 --phase verification --status pass \
     --evidence "Independent pytest run: 3 tests, 0 failures"
 
 # 7. AC_2 verification fails — verify agent catches a real issue
-plet_state.py update-criterion plet/state/ID_001.json \
+plet_state.py update-criterion --iter-id ID_001 \
     --criterion AC_2 --phase verification --status fail \
     --evidence "ruff check passes but ruff.toml missing — no rules configured, check is vacuous"
 # Top-level AC_2 status derived to 'fail' (verification wins)
@@ -594,11 +604,11 @@ plet_state.py update-criterion plet/state/ID_001.json \
 
 # 8. After re-implement and re-verify (not shown), all criteria pass
 # Orchestrator completes
-plet_state.py update-field plet/state/ID_001.json \
+plet_state.py update-field --iter-id ID_001 \
     --data '{"lifecycle":"complete","agentActivity":"idle","agentId":null}'
 
 # 9. Validate final state
-plet_state.py validate plet/state/ID_001.json
+plet_state.py validate --iter-id ID_001
 # OK — plet/state/ID_001.json is valid
 ```
 
@@ -606,19 +616,19 @@ plet_state.py validate plet/state/ID_001.json
 
 ```bash
 # Preview what init would create (text mode)
-plet_state.py init plet/state/ID_002.json --dry-run \
+plet_state.py init --dry-run \
     --iter-id ID_002 --title "Core data model" \
     --dependencies '["ID_001"]' \
     --criteria '[{"id":"AC_1","description":"Models created"}]'
 # DRY RUN — would create plet/state/ID_002.json (ID_002, 1 criteria, lifecycle=ineligible)
 
 # Preview field update (JSON mode — agent can parse the preview)
-plet_state.py update-field plet/state/ID_001.json --dry-run --output json \
+plet_state.py update-field --iter-id ID_001 --dry-run --output json \
     --data '{"lifecycle":"blocked"}'
 # {"status":"ok","command":"update-field","dryRun":true,"path":"plet/state/ID_001.json","fieldsUpdated":{"lifecycle":"blocked"},"scriptVersion":"0.2.0","timestamp":"..."}
 
 # Preview criterion update (text mode)
-plet_state.py update-criterion plet/state/ID_001.json --dry-run \
+plet_state.py update-criterion --iter-id ID_001 --dry-run \
     --criterion AC_1 --phase verification --status pass \
     --evidence "Independent test confirms 200 status"
 # DRY RUN — would set AC_1.verification to 'pass' in plet/state/ID_001.json
@@ -628,24 +638,24 @@ plet_state.py update-criterion plet/state/ID_001.json --dry-run \
 
 ```bash
 # Full JSON output — validate (read-only)
-plet_state.py validate plet/state/ID_001.json --output json
+plet_state.py validate --iter-id ID_001 --output json
 # {"status":"ok","command":"validate","path":"plet/state/ID_001.json","errors":[],"errorCount":0,"scriptVersion":"0.2.0","timestamp":"2026-03-16T..."}
 
 # Filtered — just status and error count (context window protection)
-plet_state.py validate plet/state/ID_001.json --output json --fields status,errorCount
+plet_state.py validate --iter-id ID_001 --output json --fields status,errorCount
 # {"status":"ok","errorCount":0,"fieldsIncluded":["status","errorCount"],"fieldsOmitted":["command","path","errors","scriptVersion","timestamp"]}
 
 # Pretty-printed for human debugging
-plet_state.py validate plet/state/ID_001.json --output json --pretty
+plet_state.py validate --iter-id ID_001 --output json --pretty
 
 # JSON output — mutation (shows derivedTopLevel in response)
-plet_state.py update-criterion plet/state/ID_001.json --output json \
+plet_state.py update-criterion --iter-id ID_001 --output json \
     --criterion AC_1 --phase verification --status fail \
     --evidence "Test mocks DB — tautological"
 # {"status":"ok","command":"update-criterion","criterion":"AC_1","phase":"verification","newStatus":"fail","derivedTopLevel":"fail","path":"plet/state/ID_001.json","scriptVersion":"0.2.0","timestamp":"..."}
 
 # JSON error output — structured error with recovery info
-plet_state.py update-criterion plet/state/ID_001.json --output json \
+plet_state.py update-criterion --iter-id ID_001 --output json \
     --criterion AC_99 --phase implementation --status pass \
     --evidence "test passes"
 # {"status":"error","command":"update-criterion","error":"criterion 'AC_99' not found","path":"plet/state/ID_001.json","available":["AC_1","AC_2"],"scriptVersion":"0.2.0","timestamp":"..."}
@@ -657,7 +667,7 @@ plet_state.py update-criterion plet/state/ID_001.json --output json \
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | STA_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| STA_DEP_2 | imports | `util_io` | `load_json`, `atomic_write_json` |
+| STA_DEP_2 | imports | `util_io` | `load_json`, `atomic_write_json`, `iter_state_path`, `DEFAULT_PLET_DIR` |
 | STA_DEP_3 | called by | `plet_gate_impl.py` | `validate` as post-implement gate |
 | STA_DEP_4 | called by | `plet_gate_verify.py` | `validate` as post-verify gate |
 | STA_DEP_5 | called by | `plet_orchestrator.py` | `update-field` for lifecycle transitions |
@@ -704,7 +714,7 @@ See `specs/conventions.md` for universal requirements.
 | STA_CRT_12 | Unknown field rejection | Typos create unexpected fields silently | Test --data with misspelled field names errors |
 | STA_CRT_13 | Dependency file verification | init accepts deps referencing nonexistent files | Test missing dep errors, test --no-verify-deps skips check |
 | STA_CRT_14 | Duplicate flag detection | Last value silently wins | Test --phase implement --phase verify errors |
-| STA_CRT_15 | .json extension enforcement | Non-json paths accepted silently | Test path without .json errors |
+| STA_CRT_15 | ~~.json extension enforcement~~ — withdrawn. Path derived via `util_io.iter_state_path()`. | — | Test plet_dir validation instead |
 | STA_CRT_16 | skipRationale deprecation | Old files break, or skipped without evidence | Validator accepts files with/without old skipRationale; update-criterion checks evidence non-empty for skipped |
 
 ## 13. Testing & Verification (STA_TST)
@@ -732,6 +742,7 @@ See `specs/conventions.md` for universal requirements.
 | 7 | Should `validate` support `--fix`? | No — `validate` is read-only. Schema migration is a separate concern (SF_24, STA_FUT_1). Mixing read and write in one command violates the principle that read-only commands are safe to run freely. |
 | 8 | `--data` alternatives for large payloads? | `--data-file path` added (STA_UPF_INP_3). Consistent with ENT's `--content-file` pattern. Stdin support (STA_FUT_5) withdrawn — file-based is simpler for agents. |
 | 9 | Who validates global `plet/state.json`? | Not this script. `plet_state.py` handles per-iteration files only. Common global state.json fields (projectId, session counts) are validated by `util_state.load_and_validate_global_state()`, shared across 7+ scripts (GTI, GTO, GTC, SES, INJ, INV, ORC). Full global state.json schema validation is deferred — no script owns it yet. |
+| 10 | Input convention: `<iter_state_json>` positional or `[<plet_dir>] --iter-id`? | Unified `[<plet_dir>] --iter-id` per UNV_CMD_16. All 4 commands retrofitted. Script derives `{plet_dir}/state/{iter_id}.json` via `util_io.iter_state_path()`. Eliminates agents constructing file paths manually — path logic centralized in `util_io`. |
 
 ## Open Questions
 

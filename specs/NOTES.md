@@ -886,9 +886,9 @@ CLEANUP (per-iteration state controls):
 
 **After (unified):**
 
-All scripts take `[<plet_dir>]` (optional, default `plet/`) as first positional arg. Commands that need per-iteration context add `--iter-id ID_xxx`. Scripts derive all paths internally. Exceptions: `plet_state.py` and `plet_trace.py` operate on individual files and keep their file-based inputs (they're low-level utilities, not orchestrator-facing).
+All scripts take `[<plet_dir>]` (optional, default `plet/`) as first positional arg. Commands that need per-iteration context add `--iter-id ID_xxx`. Scripts derive all paths internally via `util_io` path functions. No exceptions — every script uses the same pattern.
 
-Retrofitting GTO/GTC/GTI specs first, then implementations. GIM and all future scripts use the new convention from the start.
+Retrofitting all specs first, then implementations.
 
 **Path derivation in util_io.py:** Added 10 path functions (`state_json_path`, `iter_state_path`, `requirements_path`, etc.) + `DEFAULT_PLET_DIR` constant. Single source of truth for plet directory layout — scripts must use these functions, never construct paths manually. UNV_CMD_16 updated to reference util_io. Template and util_modules.md updated.
 

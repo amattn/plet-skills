@@ -59,17 +59,17 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event <trace_dir> --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, or `error` | P0 |
+| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event [<plet_dir>] --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, or `error` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** mutating (appends to file), not idempotent (each call adds a new line), atomic append
 
-**Concurrency:** single writer per trace file (one subagent per phase per iteration)
+**Concurrency:** single writer per trace file (one subagent active at a time per plet directory)
 
 #### Inputs (TRC_APE_INP)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_INP_1 | `trace_dir` — path to trace directory (e.g., `plet/trace/`). The events file is derived: `{trace_dir}/{iter_id}-{phase}-{attempt}-events.ndjson`. | P0 |
+| TRC_APE_INP_1 | `plet_dir` — (optional) path to plet directory (default: `plet/` via `util_io.DEFAULT_PLET_DIR`). The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
 | TRC_APE_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Used in the filename and the event's `iterationId` field. | P0 |
 | TRC_APE_INP_3 | `--phase` — `implement` or `verify`. Used in the filename and the event's `phase` field. | P0 |
 | TRC_APE_INP_4 | `--attempt` — positive integer. Used in the filename and the event's `attempt` field. | P0 |
@@ -102,7 +102,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_PRE_1 | `trace_dir` exists and is a directory | P0 |
+| TRC_APE_PRE_1 | `plet_dir` exists and is a directory (default: `plet/`) | P0 |
 | TRC_APE_PRE_2 | `--iter-id` matches pattern `ID_\d+` | P0 |
 | TRC_APE_PRE_3 | `--phase` is `implement` or `verify` | P0 |
 | TRC_APE_PRE_4 | `--attempt` is a positive integer | P0 |
@@ -115,7 +115,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_PST_1 | Events file exists at `{trace_dir}/{iter_id}-{phase}-{attempt}-events.ndjson` | P0 |
+| TRC_APE_PST_1 | Trace file exists at `{plet_dir}/trace.ndjson` (derived via `util_io.trace_path()`) | P0 |
 | TRC_APE_PST_2 | Last line of the file is the new event as a single JSON object, terminated by `\n` | P0 |
 | TRC_APE_PST_3 | Event has all base fields: `pletId`, `timestamp`, `type`, `iterationId`, `phase`, `attempt`, `data` | P0 |
 | TRC_APE_PST_4 | `timestamp` is current UTC (ISO 8601, second resolution) | P0 |
@@ -150,7 +150,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_CMD_1 | Usage: `plet_trace.py validate <events_file> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| TRC_VAL_CMD_1 | Usage: `plet_trace.py validate [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -160,7 +160,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_INP_1 | `events_file` — path to the NDJSON events file to validate (e.g., `plet/trace/ID_001-implement-1-events.ndjson`). Takes a file path, not a directory (unlike `append-event` which takes `trace_dir`). | P0 |
+| TRC_VAL_INP_1 | `plet_dir` — (optional) path to plet directory (default: `plet/` via `util_io.DEFAULT_PLET_DIR`). The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
 
 #### Outputs (TRC_VAL_OUT)
 
@@ -193,9 +193,8 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_PRE_1 | All required args present: `events_file` | P0 |
-| TRC_VAL_PRE_2 | `events_file` exists and is readable | P0 |
-| TRC_VAL_PRE_3 | `events_file` is a file, not a directory (UNV_ERR_5) | P0 |
+| TRC_VAL_PRE_1 | `plet_dir` exists and is a directory (default: `plet/`) | P0 |
+| TRC_VAL_PRE_2 | Derived trace file (`{plet_dir}/trace.ndjson`) exists and is readable | P0 |
 
 #### Postconditions (TRC_VAL_PST)
 
@@ -235,7 +234,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_CMD_1 | Usage: `plet_trace.py query <events_file> [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, or `error` | P0 |
+| TRC_QRY_CMD_1 | Usage: `plet_trace.py query [<plet_dir>] [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, or `error` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -245,7 +244,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_INP_1 | `events_file` — path to the NDJSON events file to query | P0 |
+| TRC_QRY_INP_1 | `plet_dir` — (optional) path to plet directory (default: `plet/` via `util_io.DEFAULT_PLET_DIR`). The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
 | TRC_QRY_INP_2 | `--event-type` — (optional) filter to events of this type only | P1 |
 | TRC_QRY_INP_3 | `--criterion` — (optional) filter to `criterion_update` events for this criterion ID only. Implies `--event-type criterion_update`. | P1 |
 | TRC_QRY_INP_4 | `--last N` — (optional) return only the last N matching events. Default: all. | P1 |
@@ -275,9 +274,8 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_PRE_1 | All required args present: `events_file` | P0 |
-| TRC_QRY_PRE_2 | `events_file` exists and is readable | P0 |
-| TRC_QRY_PRE_3 | `events_file` is a file, not a directory (UNV_ERR_5) | P0 |
+| TRC_QRY_PRE_1 | `plet_dir` exists and is a directory (default: `plet/`) | P0 |
+| TRC_QRY_PRE_2 | Derived trace file (`{plet_dir}/trace.ndjson`) exists and is readable | P0 |
 | TRC_QRY_PRE_4 | If `--event-type` provided, must be a valid event type | P0 |
 | TRC_QRY_PRE_5 | If `--last` provided, must be a positive integer | P0 |
 | TRC_QRY_PRE_6 | `--raw` and `--output json` are mutually exclusive | P0 |
@@ -307,10 +305,10 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_EDG_1 | Events file doesn't exist on `append-event` — create it (first event for this phase). Not an error. | P0 |
-| TRC_EDG_2 | Events file doesn't exist on `validate` or `query` — error (can't validate/query a missing file). | P0 |
-| TRC_EDG_3 | Empty events file on `validate` — valid (0 events, exit 0). | P0 |
-| TRC_EDG_4 | Empty events file on `query` — 0 matches, exit 0. | P0 |
+| TRC_EDG_1 | Trace file (`{plet_dir}/trace.ndjson`) doesn't exist on `append-event` — create it (first event). Not an error. | P0 |
+| TRC_EDG_2 | Trace file doesn't exist on `validate` or `query` — error (can't validate/query a missing file). | P0 |
+| TRC_EDG_3 | Empty trace file on `validate` — valid (0 events, exit 0). | P0 |
+| TRC_EDG_4 | Empty trace file on `query` — 0 matches, exit 0. | P0 |
 | TRC_EDG_5 | Malformed JSON line in events file — `validate` reports as error with line number. `query` skips with warning. | P0 |
 | TRC_EDG_6 | `--data` is valid JSON but not an object (e.g., array, string) — error. Data must be a JSON object. | P0 |
 | TRC_EDG_7 | `--data` and `--data-file` both provided — error (mutually exclusive). | P0 |
@@ -323,7 +321,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | TRC_EDG_14 | Event `data` has extra fields beyond required — passed through (TRC_APE_BHV_7). Not an error on append or validate. | P0 |
 | TRC_EDG_15 | `attempt` passed as "01" or "001" — parsed as integer 1. Leading zeros are stripped by int(). | P1 |
 | TRC_EDG_16 | Duplicate flags — error per UNV_CMD_22. | P0 |
-| TRC_EDG_17 | `trace_dir` exists but is a file, not a directory — error. | P0 |
+| TRC_EDG_17 | `plet_dir` exists but is a file, not a directory — error. | P0 |
 | TRC_EDG_18 | `--raw` with `--output json` — error (mutually exclusive). | P0 |
 | TRC_EDG_19 | `--raw` with `--pretty` or `--fields` — error (those require `--output json`). | P0 |
 
@@ -343,9 +341,9 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | TRC_ERR_10 | `--data-file` not readable → `Error: cannot read data file: {path}: {reason}` | P0 |
 | TRC_ERR_11 | `--data-file` invalid JSON → `Error: --data-file must contain valid JSON: {parse_error}` | P0 |
 | TRC_ERR_12 | Missing type-specific required fields → `Error: {event_type} event requires '{field}' in --data (got: {available_fields})` | P0 |
-| TRC_ERR_13 | Events file not found (validate/query) → `Error: {path} does not exist` | P0 |
-| TRC_ERR_14 | `trace_dir` not found → `Error: {path} does not exist` | P0 |
-| TRC_ERR_15 | `trace_dir` is not a directory → `Error: {path} is not a directory` | P0 |
+| TRC_ERR_13 | Trace file not found (validate/query) → `Error: {path} does not exist` (where path is derived via `util_io.trace_path()`) | P0 |
+| TRC_ERR_14 | `plet_dir` not found → `Error: {path} does not exist` | P0 |
+| TRC_ERR_15 | `plet_dir` is not a directory → `Error: {path} is not a directory` | P0 |
 | TRC_ERR_16 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | TRC_ERR_17 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | TRC_ERR_18 | `--dry-run` on read-only command → `Error: --dry-run is not available on the {command} command (read-only)` | P0 |
@@ -359,7 +357,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_FMT_1 | Reads and appends NDJSON files: `plet/trace/{iter_id}-{phase}-{attempt}-events.ndjson` | P0 |
+| TRC_FMT_1 | Reads and appends NDJSON trace file: `{plet_dir}/trace.ndjson` (derived via `util_io.trace_path()`) | P0 |
 | TRC_FMT_2 | Each line is a self-contained JSON object (no multi-line JSON) | P0 |
 | TRC_FMT_3 | Lines terminated by `\n` (POSIX newline) | P0 |
 | TRC_FMT_4 | File created on first append — no initialization header (unlike runtime artifacts) | P0 |
@@ -399,39 +397,37 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | `activity_change` | `activity` | `detail` | `activity` validated: `idle`, `reading_context`, `implementing`, `running_checks`, `committing`, `wrapping_up` |
 | `error` | `message` | `code`, `context`, `recovery` | Error with optional recovery action |
 
-### Filename Convention
+### Trace File Path
+
+Derived via `util_io.trace_path(plet_dir)`:
 
 ```
-{iter_id}-{phase}-{attempt}-events.ndjson
+{plet_dir}/trace.ndjson
 ```
 
-- `iter_id`: zero-padded (GC_3) — `ID_001`, not `ID_1`
-- `phase`: `implement` or `verify`
-- `attempt`: integer, not zero-padded — `1`, `2`, `3`
-
-Examples: `ID_001-implement-1-events.ndjson`, `ID_003-verify-2-events.ndjson`
+Default: `plet/trace.ndjson`. All events (across iterations, phases, and attempts) are appended to this single file. Each event's `iterationId`, `phase`, and `attempt` fields identify its context.
 
 ## 7. Agent Flows (TRC_AFL)
 
 ### TRC_AFL_1: Impl subagent writes trace events during work
 
-1. Orchestrator spawns implement subagent with trace dir path
-2. Subagent starts: `plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase implement --attempt 1 --event-type lifecycle_change --data '{"from":"queued","to":"implementing"}'`
+1. Orchestrator spawns implement subagent with plet dir path
+2. Subagent starts: `plet_trace.py append-event plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type lifecycle_change --data '{"from":"queued","to":"implementing"}'`
 3. During work, subagent writes events for decisions, criterion updates, activity changes
-4. On errors: `plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase implement --attempt 1 --event-type error --data '{"message":"...","recovery":"..."}'`
+4. On errors: `plet_trace.py append-event plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type error --data '{"message":"...","recovery":"..."}'`
 5. Before completing: final trace entries for any remaining decisions
 
 ### TRC_AFL_2: Verify agent reviews implement trace
 
 1. Verify agent starts verification
-2. `plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type decision` — review decisions made during implementation
-3. `plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type error --last 5` — check recent errors
+2. `plet_trace.py query plet/ --event-type decision` — review decisions made during implementation
+3. `plet_trace.py query plet/ --event-type error --last 5` — check recent errors
 4. Verify agent uses findings to inform verification approach
 
 ### TRC_AFL_3: Verify subagent writes trace events during verification
 
 1. Verify agent reviews implement trace (AFL_2), then begins its own work
-2. Subagent starts: `plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase verify --attempt 1 --event-type lifecycle_change --data '{"from":"implementing","to":"verifying"}'`
+2. Subagent starts: `plet_trace.py append-event plet/ --iter-id ID_001 --phase verify --attempt 1 --event-type lifecycle_change --data '{"from":"implementing","to":"verifying"}'`
 3. For each criterion: writes `criterion_update` events with verification status and evidence
 4. Records decisions (e.g., "AC_2 test is tautological — mocks DB layer") as `decision` events
 5. On completion: final criterion updates and lifecycle change
@@ -439,17 +435,17 @@ Examples: `ID_001-implement-1-events.ndjson`, `ID_003-verify-2-events.ndjson`
 ### TRC_AFL_4: Post-phase gate validation
 
 1. Gate script runs after phase completes
-2. `plet_trace.py validate plet/trace/ID_001-implement-1-events.ndjson`
+2. `plet_trace.py validate plet/`
 3. If exit 0 → trace is valid, proceed
 4. If exit 1 → trace has schema issues, report (non-blocking — trace issues don't block the loop)
 
 ### TRC_AFL_5: Case study / post-run analysis
 
 1. Human or analysis agent wants to understand what happened during a run
-2. `plet_trace.py validate plet/trace/ID_001-implement-1-events.ndjson` — check trace integrity
-3. `plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type decision --raw | wc -l` — count decisions made
-4. `plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type error` — review all errors
-5. `plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --criterion AC_2` — trace the history of a specific criterion
+2. `plet_trace.py validate plet/` — check trace integrity
+3. `plet_trace.py query plet/ --event-type decision --raw | wc -l` — count decisions made
+4. `plet_trace.py query plet/ --event-type error` — review all errors
+5. `plet_trace.py query plet/ --criterion AC_2` — trace the history of a specific criterion
 6. Combine findings across iterations to identify patterns (e.g., which iterations had the most errors, which decisions were revised)
 
 ## 8. Examples (TRC_EXM)
@@ -457,60 +453,60 @@ Examples: `ID_001-implement-1-events.ndjson`, `ID_003-verify-2-events.ndjson`
 ### TRC_EXM_1: Append a decision event
 
 ```bash
-plet_trace.py append-event plet/trace/ \
+plet_trace.py append-event plet/ \
     --iter-id ID_001 --phase implement --attempt 1 \
     --event-type decision \
     --data '{"description":"Using pytest over unittest","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}'
-# OK — appended decision event to plet/trace/ID_001-implement-1-events.ndjson
+# OK — appended decision event to plet/trace.ndjson
 ```
 
 ### TRC_EXM_2: Append a criterion update
 
 ```bash
-plet_trace.py append-event plet/trace/ \
+plet_trace.py append-event plet/ \
     --iter-id ID_001 --phase implement --attempt 1 \
     --event-type criterion_update \
     --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}'
-# OK — appended criterion_update event to plet/trace/ID_001-implement-1-events.ndjson
+# OK — appended criterion_update event to plet/trace.ndjson
 ```
 
 ### TRC_EXM_3: Append a lifecycle change
 
 ```bash
-plet_trace.py append-event plet/trace/ \
+plet_trace.py append-event plet/ \
     --iter-id ID_003 --phase verify --attempt 1 \
     --event-type lifecycle_change \
     --data '{"from":"implementing","to":"verifying"}'
-# OK — appended lifecycle_change event to plet/trace/ID_003-verify-1-events.ndjson
+# OK — appended lifecycle_change event to plet/trace.ndjson
 ```
 
 ### TRC_EXM_4: Validate a trace file
 
 ```bash
-plet_trace.py validate plet/trace/ID_001-implement-1-events.ndjson
-# OK — plet/trace/ID_001-implement-1-events.ndjson is valid (12 events)
+plet_trace.py validate plet/
+# OK — plet/trace.ndjson is valid (12 events)
 
-plet_trace.py validate plet/trace/ID_002-implement-1-events.ndjson
+plet_trace.py validate custom/plet/
 # Line 4: missing required field 'rationale' for decision event
 # Line 7: invalid event type 'info'
-# ERROR — 2 errors in plet/trace/ID_002-implement-1-events.ndjson (10 events, 2 invalid)
+# ERROR — 2 errors in custom/plet/trace.ndjson (10 events, 2 invalid)
 ```
 
 ### TRC_EXM_5: Query events by type
 
 ```bash
-plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type decision
+plet_trace.py query plet/ --event-type decision
 # {"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ID_001",...}
 # {"timestamp":"2026-03-07T15:25:00Z","type":"decision","iterationId":"ID_001",...}
 
-plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --criterion AC_1
+plet_trace.py query plet/ --criterion AC_1
 # {"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update",...,"data":{"criterionId":"AC_1",...}}
 ```
 
 ### TRC_EXM_6: Query last N events
 
 ```bash
-plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type error --last 3
+plet_trace.py query plet/ --event-type error --last 3
 # (last 3 error events, if any)
 ```
 
@@ -518,11 +514,11 @@ plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type err
 
 ```bash
 # Count error events
-plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type error --raw | wc -l
+plet_trace.py query plet/ --event-type error --raw | wc -l
 # 3
 
 # Pipe to jq for field extraction
-plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type decision --raw | jq '.data.description'
+plet_trace.py query plet/ --event-type decision --raw | jq '.data.description'
 # "Using pytest over unittest"
 # "SQLite for local storage"
 ```
@@ -530,18 +526,18 @@ plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type dec
 ### TRC_EXM_7: Dry-run append
 
 ```bash
-plet_trace.py append-event plet/trace/ \
+plet_trace.py append-event plet/ \
     --iter-id ID_001 --phase implement --attempt 1 \
     --event-type activity_change \
     --data '{"activity":"running_checks","detail":"green: all tests passing"}' \
     --dry-run
-# DRY RUN — would append activity_change event to plet/trace/ID_001-implement-1-events.ndjson
+# DRY RUN — would append activity_change event to plet/trace.ndjson
 ```
 
 ### TRC_EXM_8: JSON output
 
 ```bash
-plet_trace.py append-event plet/trace/ \
+plet_trace.py append-event plet/ \
     --iter-id ID_001 --phase implement --attempt 1 \
     --event-type decision \
     --data '{"description":"test","rationale":"test"}' \
@@ -550,7 +546,7 @@ plet_trace.py append-event plet/trace/ \
 #   "status": "ok",
 #   "command": "append-event",
 #   "eventType": "decision",
-#   "path": "plet/trace/ID_001-implement-1-events.ndjson",
+#   "path": "plet/trace.ndjson",
 #   "event": {
 #     "timestamp": "2026-03-07T15:10:00Z",
 #     "type": "decision",
@@ -569,7 +565,7 @@ plet_trace.py append-event plet/trace/ \
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | TRC_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| TRC_DEP_2 | imports | `util_io` | `atomic_append`, `load_text` |
+| TRC_DEP_2 | imports | `util_io` | `atomic_append`, `load_text`, `trace_path`, `DEFAULT_PLET_DIR` |
 | TRC_DEP_5 | imports | `util_id` | `generate_plet_id` |
 | TRC_DEP_3 | called by | `plet_gate_impl.py` | `validate` as post-implement check |
 | TRC_DEP_4 | called by | `plet_gate_verify.py` | `validate` as post-verify check |
@@ -584,7 +580,7 @@ See `specs/conventions.md` for universal requirements.
 |----|-------------|----------|
 | TRC_NFR_1 | Append performance — each `append-event` call should complete in under 500ms. Trace writing happens throughout implement/verify phases but is not latency-critical. | P1 |
 | TRC_NFR_2 | Validate handles files with thousands of events without performance issues (NDJSON is line-by-line, no need to load entire file into memory) | P1 |
-| TRC_NFR_3 | No file locking — single-writer per trace file is enforced by architecture (one subagent per phase per iteration), not by the script | P0 |
+| TRC_NFR_3 | No file locking — single-writer per trace file is enforced by architecture (one subagent active at a time per plet directory), not by the script | P0 |
 
 ## 11. Developer Experience (TRC_DXP)
 
@@ -640,7 +636,7 @@ See `specs/conventions.md` for universal requirements.
 | # | Question | Decision |
 |---|----------|----------|
 | 1 | Command name: `emit` vs `append-event`? | `append-event`. More precise — it appends a single event line to the NDJSON file. `emit` is vague (emit where?). Consistent with ENT's `add-*` pattern (verb describes the mutation). |
-| 2 | Should `append-event` take `trace_dir` or `events_file` path? | `trace_dir` (directory) + derive filename from `--iter-id`, `--phase`, `--attempt`. The caller shouldn't construct filenames — that's format compliance work. `validate` and `query` take the file path directly because they operate on existing files and the caller already knows which file they want. |
+| 2 | Should commands take `trace_dir`, `events_file`, or `plet_dir`? | `[<plet_dir>]` (optional, default `plet/`) for all three commands per UNV_CMD_16. Script derives `{plet_dir}/trace.ndjson` via `util_io.trace_path()`. Single consolidated trace file — all events appended to one file with `iterationId`, `phase`, `attempt` fields for context. Callers never construct paths. |
 | 3 | Should `append-event` set the timestamp or accept it as input? | Script sets it. Timestamp fabrication was observed in LIBT (ID_005 had placeholder timestamps). The script always uses `now_iso()`, preventing this. |
 | 4 | Should `validate` fail-fast or accumulate errors? | Accumulate. Per UNV_ERR_3 exception for validation commands. All lines are checked, all errors reported with line numbers. |
 | 5 | Should `query` fail on malformed lines? | No — skip with warning. Trace files may be partially written by crashed agents. A strict `query` that fails on one bad line is useless for debugging. `validate` is the strict checker. |

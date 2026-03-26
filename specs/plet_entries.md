@@ -59,7 +59,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress [<plet_dir>] --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -69,7 +69,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_INP_1 | `artifact_dir` — path to plet directory (e.g., `plet/`) | P0 |
+| ENT_APR_INP_1 | `plet_dir` — path to plet directory. Optional, defaults to `plet/` via `util_io.DEFAULT_PLET_DIR`. Path derivation via `util_io` functions. | P0 |
 | ENT_APR_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) or `proj` for project-level | P0 |
 | ENT_APR_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_APR_INP_4 | `--phase` — `plan`, `implement`, `verify`, or `refine` | P0 |
@@ -105,7 +105,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_PRE_1 | `{artifact_dir}/progress.md` exists (will not create it) | P0 |
+| ENT_APR_PRE_1 | `{plet_dir}/progress.md` exists (will not create it) | P0 |
 | ENT_APR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--phase`, `--attempt`, `--status`, and one of `--content` or `--content-file` | P0 |
 | ENT_APR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 | ENT_APR_PRE_4 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
@@ -131,7 +131,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_APR_BHV_1 | Generate plet ID: `epr_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
 | ENT_APR_BHV_2 | Build formatted entry matching `references/formats.md` RT_1: div markers, horizontal rule, header, metadata fields, summary, files list | P0 |
-| ENT_APR_BHV_3 | Atomically append to `{artifact_dir}/progress.md` | P0 |
+| ENT_APR_BHV_3 | Atomically append to `{plet_dir}/progress.md` | P0 |
 | ENT_APR_BHV_4 | File must already exist — will not create it | P0 |
 | ENT_APR_BHV_5 | If `--files` omitted or empty array, produce `- (none)` in files list | P1 |
 | ENT_APR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
@@ -154,7 +154,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning [<plet_dir>] --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -164,7 +164,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_INP_1 | `artifact_dir` — path to plet directory | P0 |
+| ENT_ALR_INP_1 | `plet_dir` — path to plet directory. Optional, defaults to `plet/` via `util_io.DEFAULT_PLET_DIR`. Path derivation via `util_io` functions. | P0 |
 | ENT_ALR_INP_2 | `--iter-id` — iteration ID or `proj` | P0 |
 | ENT_ALR_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_ALR_INP_4 | `--category` — `pattern`, `gotcha`, `technique`, `tool`, `debug`, or `context` | P0 |
@@ -199,7 +199,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_PRE_1 | `{artifact_dir}/learnings.md` exists | P0 |
+| ENT_ALR_PRE_1 | `{plet_dir}/learnings.md` exists | P0 |
 | ENT_ALR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--category`, `--title`, `--content`, `--phase`, `--attempt` | P0 |
 | ENT_ALR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 | ENT_ALR_PRE_4 | `--category` is a valid learning category | P0 |
@@ -224,7 +224,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_ALR_BHV_1 | Generate plet ID: `eln_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
 | ENT_ALR_BHV_2 | Build formatted entry matching `references/formats.md` RT_2: div markers, category tag, metadata, content | P0 |
-| ENT_ALR_BHV_3 | Atomically append to `{artifact_dir}/learnings.md` | P0 |
+| ENT_ALR_BHV_3 | Atomically append to `{plet_dir}/learnings.md` | P0 |
 | ENT_ALR_BHV_4 | File must already exist — will not create it | P0 |
 | ENT_ALR_BHV_5 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). | P0 |
 | ENT_ALR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
@@ -245,7 +245,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent [<plet_dir>] --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -255,7 +255,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_INP_1 | `artifact_dir` — path to plet directory | P0 |
+| ENT_AEM_INP_1 | `plet_dir` — path to plet directory. Optional, defaults to `plet/` via `util_io.DEFAULT_PLET_DIR`. Path derivation via `util_io` functions. | P0 |
 | ENT_AEM_INP_2 | `--iter-id` — iteration ID or `proj` | P0 |
 | ENT_AEM_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_AEM_INP_4 | `--title` — short title for the emergent item | P0 |
@@ -290,7 +290,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_PRE_1 | `{artifact_dir}/emergent.md` exists | P0 |
+| ENT_AEM_PRE_1 | `{plet_dir}/emergent.md` exists | P0 |
 | ENT_AEM_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--title`, `--phase`, `--category`, `--content`, `--attempt` | P0 |
 | ENT_AEM_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 | ENT_AEM_PRE_4 | `--category` is a valid emergent category | P0 |
@@ -318,7 +318,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_AEM_BHV_1 | Auto-assign next `EM_N` number by scanning existing `emergent.md` for `### EM_N:` headers | P0 |
 | ENT_AEM_BHV_2 | Generate plet ID: `eem_{timestamp}_{iteration}_{phase}{attempt}` | P0 |
 | ENT_AEM_BHV_3 | Outcome always set to `pending` (triaged during refine) | P0 |
-| ENT_AEM_BHV_4 | Atomically append to `{artifact_dir}/emergent.md` | P0 |
+| ENT_AEM_BHV_4 | Atomically append to `{plet_dir}/emergent.md` | P0 |
 | ENT_AEM_BHV_5 | File must already exist — will not create it | P0 |
 | ENT_AEM_BHV_6 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). | P0 |
 | ENT_AEM_BHV_7 | If `--content-file` provided, read file contents as content text | P0 |
@@ -339,7 +339,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_CHK_CMD_1 | Usage: `plet_entries.py check [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -349,7 +349,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_INP_1 | `artifact_dir` — path to plet directory | P0 |
+| ENT_CHK_INP_1 | `plet_dir` — path to plet directory. Optional, defaults to `plet/` via `util_io.DEFAULT_PLET_DIR`. Path derivation via `util_io` functions. | P0 |
 | ENT_CHK_INP_2 | `--iter-id` — iteration ID to check | P0 |
 
 #### Outputs (ENT_CHK_OUT)
@@ -388,7 +388,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_PRE_1 | `artifact_dir` exists | P0 |
+| ENT_CHK_PRE_1 | `plet_dir` exists | P0 |
 | ENT_CHK_PRE_2 | All required args present: `--iter-id` | P0 |
 | ENT_CHK_PRE_3 | `--iter-id` matches pattern `ID_N+` only. `proj` is not accepted — the R_7 mandatory entry rule is per-iteration, and project-level entries are optional milestones. | P0 |
 
@@ -602,7 +602,7 @@ plet_entries.py add-progress plet/ \
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | ENT_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| ENT_DEP_2 | imports | `util_io` | `atomic_append`, `load_text` (for `--content-file`) |
+| ENT_DEP_2 | imports | `util_io` | `atomic_append`, `load_text` (for `--content-file`), `DEFAULT_PLET_DIR`, path derivation functions |
 | ENT_DEP_5 | imports | `util_id` | `generate_plet_id`, `normalize_iteration` |
 | ENT_DEP_3 | called by | `plet_gate_impl.py` | `check` as post-implement gate |
 | ENT_DEP_4 | called by | `plet_gate_verify.py` | `check` as pre-verify gate |
