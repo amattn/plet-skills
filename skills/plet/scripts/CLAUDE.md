@@ -153,10 +153,11 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 
 | Module | Purpose | Key functions |
 |--------|---------|---------------|
-| `util_cli.py` | Argument parsing, validation, timestamps, dispatch, output filtering | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
-| `util_io.py` | Atomic file I/O for state and runtime artifacts | `load_json`, `atomic_write_json`, `atomic_append`, `load_text` |
+| `util_cli.py` | Argument parsing, validation, timestamps, dispatch, output filtering, shared CLI helpers | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields`, `get_plet_dir`, `extract_output_flags`, `emit_json`, `emit_json_error` |
+| `util_io.py` | Atomic file I/O, path derivation, plet dir validation, convenience JSON loaders | `load_json`, `atomic_write_json`, `atomic_append`, `load_text`, `state_json_path`, `iter_state_path`, `requirements_path`, `load_global_state_json`, `load_iter_state_json`, `validate_plet_dir`, `DEFAULT_PLET_DIR` |
 | `util_id.py` | Plet ID generation (Crockford Base32, timestamps, context segments) | `generate_plet_id`, `crockford_encode`, `crockford_timestamp`, `normalize_iteration`, `phase_attempt_segment` |
-| `util_state.py` | State file loading and validation (global + per-iteration) | `load_and_validate_global_state`, `load_and_validate_iter_state` (6 functions total — load, validate, load_and_validate for each) |
+| `util_state.py` | State file validation and validated loading (global + per-iteration) | `load_and_validate_global_state(plet_dir)`, `load_and_validate_iter_state(plet_dir, iter_id)`, `validate_global_state`, `validate_iter_state` |
+| `util_subprocess.py` | Subprocess execution with capture, error formatting, timeout | `run`, `run_git` |
 
 ## Planned (PLAN_8)
 

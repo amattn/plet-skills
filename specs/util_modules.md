@@ -17,6 +17,10 @@ Argument parsing, validation, timestamps, dispatch, output filtering. The founda
 | `now_iso()` | Current UTC as `YYYY-MM-DDTHH:MM:SSZ`. |
 | `dispatch(commands, name, ver, skill_ver, doc)` | Standard main() — handles --help, --version, unknown commands, dispatches. |
 | `filter_fields(data, fields)` | Limit dict to requested fields. Adds fieldsIncluded/fieldsOmitted. |
+| `get_plet_dir(args)` | Extract optional plet_dir from positional args. Returns `(plet_dir, remaining_args)`. Uses `util_io.DEFAULT_PLET_DIR` as default. |
+| `extract_output_flags(kwargs, allow_dry_run=False)` | Extract `--output`, `--pretty`, `--fields`, optionally `--dry-run` from kwargs. Returns `(output_json, pretty, fields, dry_run, ok)`. Validates flag dependencies. |
+| `emit_json(data, script_version, pretty, fields)` | Print structured JSON to stdout. Adds `scriptVersion` and `timestamp`. Applies field filtering. |
+| `emit_json_error(command, message, script_version, pretty)` | Print structured JSON error to stdout + text to stderr. |
 
 ## util_io.py
 
@@ -49,6 +53,21 @@ All scripts derive file paths through these functions — never construct paths 
 
 **Constant:** `DEFAULT_PLET_DIR = "plet/"` — used by all scripts as the default when no plet_dir is specified.
 
+### JSON loaders (convenience)
+
+Combine path derivation + `load_json`. These load raw JSON without validation — validation is `util_state`'s job. Scripts that need validated state call `util_state.load_and_validate_*` which uses these internally.
+
+| Function | Returns |
+|----------|---------|
+| `load_global_state_json(plet_dir)` | `load_json(state_json_path(plet_dir))` — parsed dict or None |
+| `load_iter_state_json(plet_dir, iter_id)` | `load_json(iter_state_path(plet_dir, iter_id))` — parsed dict or None |
+
+### Plet dir validation
+
+| Function | Returns |
+|----------|---------|
+| `validate_plet_dir(path)` | `(True, None)` if path exists and is a directory. `(False, error_message)` otherwise. |
+
 ## util_id.py
 
 Plet ID generation — Crockford Base32 timestamps and context segments.
@@ -63,15 +82,14 @@ Plet ID generation — Crockford Base32 timestamps and context segments.
 
 ## util_state.py
 
-State file loading and validation for both global (`plet/state.json`) and per-iteration (`plet/state/{id}.json`) files. One module, 6 functions. Distinct from `plet_state.py` which owns per-iteration CRUD operations (init, update-criterion, update-field, validate as CLI commands).
+State file validation and validated loading for both global (`plet/state.json`) and per-iteration (`plet/state/{id}.json`) files. Raw loading lives in `util_io`; validation and load+validate lives here. Distinct from `plet_state.py` which owns per-iteration CRUD operations (init, update-criterion, update-field, validate as CLI commands).
 
 ### Global state functions
 
 | Function | Visibility | Purpose |
 |----------|------------|---------|
-| `load_and_validate_global_state(path)` | public | Load + validate `plet/state.json`. Returns validated dict or None (prints error). Used by GTI, GTO, GTC, SES, INJ, INV, ORC. |
-| `load_global_state(path)` | internal | Load `plet/state.json` via `util_io.load_json`. Returns parsed dict or None. |
-| `validate_global_state(data)` | internal | Validate all fields per `state-schema.md` § Global State. Returns True/False (prints errors to stderr). |
+| `load_and_validate_global_state(plet_dir)` | public | Load via `util_io.load_global_state_json(plet_dir)` + validate + inject defaults. Returns validated dict or None. The primary entry point for scripts needing global state. |
+| `validate_global_state(data)` | public | Validate all fields per `state-schema.md` § Global State. Returns True/False (prints errors to stderr). |
 
 #### Global validation rules
 
@@ -93,9 +111,8 @@ State file loading and validation for both global (`plet/state.json`) and per-it
 
 | Function | Visibility | Purpose |
 |----------|------------|---------|
-| `load_and_validate_iter_state(path)` | public | Load + validate a per-iteration state file. Returns validated dict or None (prints error). Used by GTO, GTC, GIM, GVR. |
-| `load_iter_state(path)` | internal | Load per-iteration state JSON via `util_io.load_json`. Returns parsed dict or None. |
-| `validate_iter_state(data)` | internal | Validate required fields per `state-schema.md` § Per-Iteration State. Returns True/False (prints errors to stderr). |
+| `load_and_validate_iter_state(plet_dir, iter_id)` | public | Load via `util_io.load_iter_state_json(plet_dir, iter_id)` + validate + inject defaults. Returns validated dict or None. The primary entry point for scripts needing iteration state. |
+| `validate_iter_state(data)` | public | Validate required fields per `state-schema.md` § Per-Iteration State. Returns True/False (prints errors to stderr). |
 
 #### Per-iteration validation rules
 

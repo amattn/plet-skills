@@ -892,6 +892,10 @@ Retrofitting all specs first, then implementations.
 
 **Path derivation in util_io.py:** Added 10 path functions (`state_json_path`, `iter_state_path`, `requirements_path`, etc.) + `DEFAULT_PLET_DIR` constant. Single source of truth for plet directory layout — scripts must use these functions, never construct paths manually. UNV_CMD_16 updated to reference util_io. Template and util_modules.md updated.
 
+**Layering cleanup:** Raw JSON loading (`load_global_state_json`, `load_iter_state_json`) moves to util_io (path derivation + load_json). Validation stays in util_state. `load_and_validate_*` in util_state now takes `(plet_dir)` / `(plet_dir, iter_id)` and calls util_io internally. `validate_plet_dir()` added to util_io for directory validation.
+
+**Shared CLI helpers (UNV_CMD_17):** `get_plet_dir`, `extract_output_flags`, `emit_json`, `emit_json_error` move to util_cli. Currently duplicated across 6-7 scripts. Single implementation, scripts import from util_cli.
+
 #### GTO spec review + implementation complete (2026-03-22)
 
 **Spec review decisions:**
