@@ -169,7 +169,7 @@ Source: LIBT S_7
 
 Autonomous agents need `bypassPermissions` in the target project's `.claude/settings.local.json` to actually run autonomously. Without it, agents hit permission prompts for Bash, Write, etc. — defeating the purpose. plet should check for this during plan session setup (or at loop start) and warn the user with specific instructions if the setting is missing. The `allowed-tools` frontmatter in SKILL.md helps for skill-level tools (e.g., `plet_state.py`), but doesn't cover general agent operations (git, test runners, linters, etc.).
 
-`[deferred → PLAN_8]` — `plet_session.py preflight` checks for this.
+`[resolved]` — Resolved by architecture: `plet_invoke.py` uses `claude --enable-auto-mode` for subprocess invocations (see https://claude.com/blog/auto-mode). Project-level `bypassPermissions` not needed for subprocess mode. Preflight check dropped from SES spec.
 
 ### FB_21: Investigate what made learnings/emergent dramatically better [research]
 

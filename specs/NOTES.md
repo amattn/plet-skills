@@ -843,6 +843,28 @@ CLEANUP (per-iteration state controls):
 - §12 CRT_14 added: orphaned-branches detection + workstream exclusion. CRT_15 added: exit code 2 (warn-only) distinct from 0 and 1.
 - §3 Universal Flags, §5 ERR, §6 FMT, §10 NFR, §11 DXP, §13 TST: approved as-is.
 
+#### SES spec review decisions (2026-03-25)
+
+- **§1 PUR approved.** Added audience framing table: detect (machines, fast), status (humans+dashboards, moderate), preflight (gate logic, moderate).
+- **Unified input pattern:** All 3 commands take optional `plet_dir` (default `plet/`), derive paths internally. No more mixed `global_state_json + state_dir` vs `plet_dir`. Simpler for callers.
+- **detect stays separate from status:** Different audiences, different perf profiles. detect is a routing primitive (<500ms, bare output). status is a dashboard (<2s, rich formatted output).
+- **Fingerprint check via subprocess:** status calls `plet_fingerprint.py check` via subprocess (P1). Complex logic, already implemented — reuse, don't reimplement.
+- **JSON schemas:** All OUT sections use pulled-out fenced blocks with full stable labels (SES_DET_OUT_2, not OUT_2). Convention applied across all 9 specs.
+- **Postflight open question:** Added OQ_1 — should SES have a postflight command that calls GTC + ENT check + FPR check + state validation as a session-end gate? Evaluate during orchestrator spec.
+- **DXP_3:** detect bare output exception references GTI_DXP_3 precedent.
+- **Router → session rename:** RTR → SES. All active references updated. FB_22/23 updated.
+- **§3.2 STS approved.** Unified plet_dir input (same as detect/preflight). Added BHV_8 (progress percentage), BHV_9 (milestone breakdown — bottom of text, full in JSON). Fingerprint check graceful degradation (null if unavailable).
+- **§3.3 PRF approved.** Major design decisions:
+  - **bypass-permissions dropped** — plet_invoke.py uses `claude --enable-auto-mode`. FB_22 resolved by architecture.
+  - **--session-type required** — `detect|plan|loop|refine`. Controls fingerprint severity. Users can force session type.
+  - **Fingerprint severity by session:** loop→FAIL, refine→WARN, plan→SKIPPED. Stale specs in loop = wasted work.
+  - **SKIPPED status added** — fourth check status (pass/fail/warn/skipped). Doesn't affect exit code.
+  - **Full GTC check-session integrated** — preflight IS a session boundary. CKS checks included with `git:` prefix.
+  - **scripts-installed check** — missing plet scripts = FAIL (corrupted installation).
+  - Check order: scripts-installed → git-check (CKS) → claude-md-exists → gitignore-plet → spec-artifacts → state-valid → fingerprints-consistent.
+- **§4–§16 approved.** Added ERR_9 (invalid --session-type), CRT_11 (GTC integration), CRT_12 (fingerprint SKIPPED on plan). FB_22 updated (resolved by invoke architecture).
+- **SES spec review complete.**
+
 #### GTO spec review + implementation complete (2026-03-22)
 
 **Spec review decisions:**

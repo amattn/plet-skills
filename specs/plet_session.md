@@ -1,6 +1,6 @@
 # plet_session.py (SES)
 
-> Status: draft
+> Status: complete
 
 > Renamed from `plet_router.py` (RTR). "Session" captures all three commands: detect (what session am I in?), status (what's the session state?), preflight (is this session ready?).
 
@@ -8,11 +8,19 @@
 
 The `/plet` entry point needs to know which phase the project is in, what the current state looks like, and whether the environment is ready for work. These are three distinct questions that the SKILL.md routing logic currently answers via prose interpretation — with drift risk across compaction cycles and session boundaries. This script makes all three answers deterministic.
 
+**Three commands, three audiences:**
+
+| Command | Question | Audience | Performance |
+|---------|----------|----------|-------------|
+| `detect` | "What should I do next?" | Machines (SKILL.md routing, orchestrator) | Fast (< 500ms) — bare output, no scans |
+| `status` | "What's the state of the world?" | Humans + dashboards (GUI, manual inspection) | Moderate (< 2s) — scans state files, optional fingerprint check |
+| `preflight` | "Is the environment ready?" | Gate logic (go/no-go before any session) | Moderate (< 2s) — checks files, settings, fingerprints |
+
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SES_PUR_1 | Phase detection from project state. Reads plet artifacts on disk and determines the correct session type (plan, loop, refine). Implements the OR_2–OR_6 routing logic as deterministic code. | P0 |
 | SES_PUR_2 | Project status summary. Machine-readable snapshot of iteration counts, lifecycle distribution, blockers, active agents, and fingerprint consistency. Implements OR_12. | P0 |
-| SES_PUR_3 | Pre-session environment checks. Verifies the project is ready for plet work: CLAUDE.md exists, .gitignore includes .plet/, bypassPermissions configured, spec artifacts exist, fingerprints consistent. Addresses FB_16, FB_22, FB_23. | P0 |
+| SES_PUR_3 | Pre-session environment checks. Verifies the project is ready for plet work: scripts installed, git health (via GTC check-session), CLAUDE.md exists, .gitignore includes .plet/, spec artifacts exist, state valid, fingerprints consistent. Addresses FB_16, FB_23. | P0 |
 
 ## 2. Agent Personas (SES_AGT)
 
@@ -135,7 +143,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_STS_CMD_1 | Usage: `plet_session.py status <global_state_json> <state_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SES_STS_CMD_1 | Usage: `plet_session.py status [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -145,8 +153,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_STS_INP_1 | `global_state_json` — path to `plet/state.json`. | P0 |
-| SES_STS_INP_2 | `state_dir` — path to `plet/state/` directory. | P0 |
+| SES_STS_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Derives `state.json` and `state/` paths internally. Same input pattern as detect and preflight. | P0 |
 
 #### Outputs (SES_STS_OUT)
 
@@ -165,6 +172,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
   "projectName": "...",
   "sessionType": "plan|loop|refine",
   "loopSession": N,
+  "progress": {"complete": N, "total": N, "percent": N},
   "iterations": {
     "total": N,
     "ineligible": N,
@@ -174,6 +182,9 @@ All commands are read-only — `--dry-run` is NOT applicable.
     "complete": N,
     "blocked": N,
     "withdrawn": N
+  },
+  "milestones": {
+    "MS_1": {"name": "...", "complete": N, "total": N, "iterations": {"ID_001": "complete", "ID_002": "implementing"}}
   },
   "blockers": [
     {"iterationId": "...", "title": "..."}
@@ -192,8 +203,9 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_STS_PRE_1 | `global_state_json` passes `util_state.load_and_validate_global_state()` | P0 |
-| SES_STS_PRE_2 | `state_dir` exists and is a directory | P0 |
+| SES_STS_PRE_1 | `plet_dir` exists and is a directory | P0 |
+| SES_STS_PRE_2 | `plet_dir/state.json` passes `util_state.load_and_validate_global_state()` | P0 |
+| SES_STS_PRE_3 | `plet_dir/state/` exists and is a directory | P0 |
 
 #### Postconditions (SES_STS_PST)
 
@@ -210,8 +222,10 @@ All commands are read-only — `--dry-run` is NOT applicable.
 | SES_STS_BHV_3 | Lists blocked iterations with their IDs and titles. | P0 |
 | SES_STS_BHV_4 | Lists active agents (iterations where `agentId` is not null) with iteration ID and activity. | P0 |
 | SES_STS_BHV_5 | Calls `detect` logic internally to include `sessionType` in output. | P0 |
-| SES_STS_BHV_6 | Checks fingerprint consistency by calling `plet_fingerprint.py check` via subprocess. Reports `consistent: true/false`. If fingerprint check fails (missing files), reports `consistent: null` with detail. | P1 |
+| SES_STS_BHV_6 | Checks fingerprint consistency by calling `plet_fingerprint.py check` via subprocess. Reports `consistent: true/false`. If fingerprint check fails (missing files or script not found), reports `consistent: null` with detail. Graceful degradation — status always produces a result. | P1 |
 | SES_STS_BHV_7 | Invalid state files are counted and reported as warnings. | P0 |
+| SES_STS_BHV_8 | Reports progress as `complete / total` with percentage. | P0 |
+| SES_STS_BHV_9 | Milestone breakdown: reads milestones from global state, cross-references iteration IDs to show per-milestone progress. In text output, milestones appear at the bottom (detail, not headline). In JSON output, included as a `milestones` object. | P0 |
 
 ---
 
@@ -229,7 +243,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_PRF_CMD_1 | Usage: `plet_session.py preflight [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SES_PRF_CMD_1 | Usage: `plet_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -240,6 +254,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SES_PRF_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Used to locate state files and spec artifacts. | P0 |
+| SES_PRF_INP_2 | `--session-type` — required. `detect` (auto-detect via detect logic), `plan`, `loop`, or `refine`. Controls session-type-dependent checks (fingerprint severity). `detect` runs auto-detection internally. `plan`/`loop`/`refine` override — allows forcing a session type (e.g., "I'm about to loop" even if detect says "refine"). | P0 |
 
 #### Outputs (SES_PRF_OUT)
 
@@ -257,16 +272,19 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 {
   "status": "ok|warn|fail",
   "command": "preflight",
+  "sessionType": "detect|plan|loop|refine",
   "checks": [
-    {"name": "...", "status": "pass|fail|warn", "detail": "..."}
+    {"name": "...", "status": "pass|fail|warn|skipped", "detail": "..."}
   ],
-  "summary": {"total": N, "passed": N, "failed": N, "warnings": N},
+  "summary": {"total": N, "passed": N, "failed": N, "warnings": N, "skipped": N},
   "scriptVersion": "0.1.0",
   "timestamp": "..."
 }
 ```
 
-**Exit codes:** 0 = all pass (`"ok"`), 1 = any fail (`"fail"`), 2 = warn only (`"warn"`).
+**Check statuses:** `pass` (checked, ok), `fail` (checked, violation), `warn` (checked, concern), `skipped` (intentionally not evaluated — e.g., fingerprints during plan). Skipped checks don't affect the exit code.
+
+**Exit codes:** 0 = no failures, no warnings (`"ok"`), 1 = any fail (`"fail"`), 2 = warn only (`"warn"`).
 
 #### Preconditions (SES_PRF_PRE)
 
@@ -287,12 +305,13 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 |----|-------------|----------|
 | SES_PRF_BHV_1 | **claude-md-exists**: Checks `CLAUDE.md` exists in project root. WARN if missing (FB_23). plet works without it but institutional memory is lost. | P0 |
 | SES_PRF_BHV_2 | **gitignore-plet**: Checks `.gitignore` includes `.plet/` or `.plet`. WARN if missing. `.plet/` is local working state (worktrees, caches) — shouldn't be committed. | P0 |
-| SES_PRF_BHV_3 | **bypass-permissions**: Checks `.claude/settings.local.json` exists and contains `bypassPermissions` (FB_22). WARN if not configured. Autonomous agents can't run without it. | P0 |
+| SES_PRF_BHV_3 | ~~**bypass-permissions**~~: Dropped. `plet_invoke.py` launches subprocesses with `claude --enable-auto-mode` — project-level permission settings don't matter for subprocess invocations. The invoke script owns the permission model. | — |
 | SES_PRF_BHV_4 | **spec-artifacts**: If `plet_dir` exists, checks `requirements.md` and `iterations.md` exist. FAIL if plet_dir exists but spec artifacts are missing (FB_16 — lost artifacts make the project unresumable). PASS if plet_dir doesn't exist (fresh project, plan will create them). | P0 |
 | SES_PRF_BHV_5 | **state-valid**: If `plet/state.json` exists, validates it via `util_state.load_and_validate_global_state()`. FAIL if invalid. PASS if doesn't exist (fresh project). | P0 |
-| SES_PRF_BHV_6 | **fingerprints-consistent**: If all three plan artifacts exist, calls `plet_fingerprint.py check` via subprocess. WARN if stale (drift detected but not blocking). PASS if consistent. PASS if artifacts don't exist yet (fresh project). | P1 |
-| SES_PRF_BHV_7 | **git-repo**: Checks current directory is inside a git repository. FAIL if not — plet requires git for branch management. | P0 |
-| SES_PRF_BHV_8 | Check order: git-repo → claude-md-exists → gitignore-plet → bypass-permissions → spec-artifacts → state-valid → fingerprints-consistent. Environment checks first, then artifact checks. | P0 |
+| SES_PRF_BHV_6 | **fingerprints-consistent**: Severity depends on session type (from `--session-type`): **plan** → SKIPPED (plan creates/overwrites spec artifacts, fingerprint check is irrelevant). **loop** → calls `plet_fingerprint.py check` via subprocess; PASS if consistent, FAIL if stale (agents would implement against stale requirements — wasted work). **refine** → calls `plet_fingerprint.py check`; PASS if consistent, WARN if stale (refine is where you fix staleness). Fingerprint script's own errors bubble up as-is. If `plet_fingerprint.py` itself is missing, caught by scripts-installed check. | P0 |
+| SES_PRF_BHV_7 | **git-check**: Calls `plet_git_check.py check-session` via subprocess. Preflight IS a session boundary — CKS was designed for this. FAIL/WARN results from CKS are included in preflight output (each CKS check becomes a preflight check with its original name prefixed: `git:in-progress-operation`, `git:orphaned-worktrees`, etc). Replaces the standalone git-repo check — CKS already checks for git repo internally. If `plet_git_check.py` is missing, caught by scripts-installed. | P0 |
+| SES_PRF_BHV_9 | **scripts-installed**: Verifies key plet scripts exist in `${CLAUDE_SKILL_DIR}/scripts/` (plet_state.py, plet_entries.py, plet_fingerprint.py, plet_trace.py, plet_git_iteration.py, plet_git_ops.py, plet_git_check.py, plet_invoke.py). FAIL if any missing — corrupted installation. | P0 |
+| SES_PRF_BHV_8 | Check order: scripts-installed → git-check (CKS) → claude-md-exists → gitignore-plet → spec-artifacts → state-valid → fingerprints-consistent. Scripts first (can't run anything without them), then git health (CKS), then project-level checks. | P0 |
 
 ---
 
@@ -309,7 +328,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 | SES_EDG_7 | `--fields` without `--output json` — error. | P0 |
 | SES_EDG_8 | Duplicate flags — error via `parse_kwargs`. | P0 |
 | SES_EDG_9 | `--dry-run` passed — error (all commands are read-only). | P0 |
-| SES_EDG_10 | `.claude/settings.local.json` exists but doesn't contain `bypassPermissions` — WARN (may be intentionally not set for non-autonomous use). | P0 |
+| SES_EDG_10 | ~~`.claude/settings.local.json` bypass-permissions check~~ — Dropped. `plet_invoke.py` uses `claude --enable-auto-mode` for subprocesses. |  |
 | SES_EDG_11 | All iterations `ineligible` only — detect returns `refine`. Circular dependencies or missing upstream work needs human intervention. | P0 |
 
 ## 5. Error Handling (SES_ERR)
@@ -318,12 +337,13 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 |----|-------------|----------|
 | SES_ERR_1 | Missing required args → print specific missing arg name + help text, exit 1 | P0 |
 | SES_ERR_2 | Global state validation failure → error from `util_state` | P0 |
-| SES_ERR_3 | `state_dir` not found → `Error: directory not found: {path}` | P0 |
-| SES_ERR_4 | `state_dir` is a file → `Error: expected a directory, got file: {path}` | P0 |
+| SES_ERR_3 | `plet_dir` not found → `Error: directory not found: {path}` | P0 |
+| SES_ERR_4 | `plet_dir` is a file → `Error: expected a directory, got file: {path}` | P0 |
 | SES_ERR_5 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | SES_ERR_6 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | SES_ERR_7 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
 | SES_ERR_8 | `--dry-run` passed → `Error: --dry-run is not supported (all commands are read-only)` | P0 |
+| SES_ERR_9 | Invalid `--session-type` → `Error: invalid --session-type '{value}' (valid: detect, plan, loop, refine)` | P0 |
 
 ## 6. Formats (SES_FMT)
 
@@ -332,7 +352,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 | SES_FMT_1 | Reads `plet/state.json` via `util_state` for project context. | P0 |
 | SES_FMT_2 | Reads `plet/state/*.json` via `util_state` for iteration lifecycles. | P0 |
 | SES_FMT_3 | Reads `plet/requirements.md`, `plet/iterations.md` for existence checks. | P0 |
-| SES_FMT_4 | Reads `CLAUDE.md`, `.gitignore`, `.claude/settings.local.json` for preflight. | P0 |
+| SES_FMT_4 | Reads `CLAUDE.md`, `.gitignore` for preflight. Calls `plet_git_check.py` and `plet_fingerprint.py` via subprocess. | P0 |
 | SES_FMT_5 | Writes nothing — all commands are read-only. | P0 |
 
 ## 7. Agent Flows (SES_AFL)
@@ -347,7 +367,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 ### SES_AFL_2: Orchestrator session start
 
 1. Orchestrator starts
-2. `plet_session.py preflight plet/ --output json` — verify environment ready
+2. `plet_session.py preflight plet/ --session-type loop --output json` — verify environment ready for loop
 3. If exit 1 (fail): abort, report issues
 4. If exit 2 (warn): log warnings to progress.md, continue
 5. `plet_session.py detect plet/` — confirm loop is the right session
@@ -356,13 +376,13 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 ### SES_AFL_3: GUI dashboard polling
 
 1. GUI polls periodically
-2. `plet_session.py status plet/state.json plet/state/ --output json`
+2. `plet_session.py status plet/ --output json`
 3. GUI updates dashboard with iteration counts, active agents, blockers
 
 ### SES_AFL_4: Human inspection
 
 1. User wants to know project state
-2. `plet_session.py status plet/state.json plet/state/`
+2. `plet_session.py status plet/`
 3. Formatted summary printed to terminal
 
 ## 8. Examples (SES_EXM)
@@ -397,45 +417,60 @@ plet_session.py detect plet/ --output json --pretty
 ### SES_EXM_2: Project status
 
 ```bash
-plet_session.py status plet/state.json plet/state/
+plet_session.py status plet/
 # Project: LOGA (Log Analyzer)
 # Session: loop (loop 1)
+# Progress: 5/13 (38%)
 # Iterations: 13 total
 #   complete: 5 | implementing: 1 | verifying: 0 | queued: 3
 #   ineligible: 3 | blocked: 1 | withdrawn: 0
 # Blockers: ID_008 — OAuth provider sandbox returning 500
 # Active agents: ID_004 (implementing, running_checks)
 # Fingerprints: consistent
+# Milestones:
+#   MS_1 (Scaffolding & Core): 3/3 complete
+#   MS_2 (API & Frontend): 2/7 complete
+#   MS_3 (Polish): 0/3 complete
 ```
 
 ### SES_EXM_3: Preflight checks
 
 ```bash
-plet_session.py preflight plet/
-# PASS: preflight — 7 passed
-# PASS: git-repo — inside a git repository
+plet_session.py preflight plet/ --session-type detect
+# PASS: preflight — 12 passed
+# PASS: scripts-installed — all plet scripts found
+# PASS: git:in-progress-operation — no interrupted git operations
+# PASS: git:workstream-exists — plet/LOGA/loop1/workstream exists
+# PASS: git:orphaned-worktrees — no orphaned plet worktrees
+# PASS: git:orphaned-branches — no plet branches without state files
+# PASS: git:no-stashes — stash list empty
+# PASS: git:unmerged-complete — all complete iterations merged
 # PASS: claude-md-exists — CLAUDE.md found
 # PASS: gitignore-plet — .gitignore includes .plet/
-# WARN: bypass-permissions — .claude/settings.local.json not found
 # PASS: spec-artifacts — requirements.md and iterations.md exist
 # PASS: state-valid — plet/state.json valid
 # PASS: fingerprints-consistent — all fingerprints consistent
-# 7 checks: 6 passed, 0 failed, 1 warnings
+# 12 checks: 12 passed, 0 failed, 0 warnings
 ```
 
 ### SES_EXM_4: Preflight on fresh project
 
 ```bash
-plet_session.py preflight
-# WARN: preflight — 2 warnings
-# PASS: git-repo — inside a git repository
+plet_session.py preflight --session-type detect
+# WARN: preflight — 1 warning
+# PASS: scripts-installed — all plet scripts found
+# PASS: git:in-progress-operation — no interrupted git operations
+# PASS: git:workstream-exists — no workstream, no active iterations (ok)
+# PASS: git:orphaned-worktrees — no orphaned plet worktrees
+# PASS: git:orphaned-branches — no plet branches without state files
+# PASS: git:no-stashes — stash list empty
+# PASS: git:unmerged-complete — no complete iterations to check
 # WARN: claude-md-exists — CLAUDE.md not found
 # PASS: gitignore-plet — .gitignore includes .plet/
-# WARN: bypass-permissions — .claude/settings.local.json not found
 # PASS: spec-artifacts — no plet directory (fresh project)
 # PASS: state-valid — no state.json (fresh project)
-# PASS: fingerprints-consistent — no artifacts to check
-# 7 checks: 5 passed, 0 failed, 2 warnings
+# SKIPPED: fingerprints-consistent — plan session, check not applicable
+# 12 checks: 10 passed, 0 failed, 1 warning, 1 skipped
 ```
 
 ## 9. Dependencies on Other Scripts (SES_DEP)
@@ -445,6 +480,7 @@ plet_session.py preflight
 | SES_DEP_1 | imports | `util_cli` | `parse_kwargs`, `now_iso`, `dispatch`, `filter_fields` |
 | SES_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
 | SES_DEP_3 | calls (subprocess) | `plet_fingerprint.py` | `check` for fingerprint consistency |
+| SES_DEP_6 | calls (subprocess) | `plet_git_check.py` | `check-session` for git health at preflight |
 | SES_DEP_4 | called by | SKILL.md | routing at `/plet` entry |
 | SES_DEP_5 | called by | `plet_orchestrator.py` | session start preflight + detect |
 
@@ -464,8 +500,8 @@ See `specs/conventions.md` for universal requirements.
 | SES_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | SES_DXP_2 | IMPORTANT: all commands are read-only — safe to run anytime | P0 |
 | SES_DXP_3 | `detect` text output is bare session type for shell capture (exception to UNV_CMD_15, same pattern as GTI_DXP_3) | P0 |
-| SES_DXP_4 | PITFALLS: detect defaults to `plet/` in cwd — run from project root. status needs both global state AND state dir paths. | P0 |
-| SES_DXP_5 | Check names in preflight are stable identifiers (git-repo, claude-md-exists, gitignore-plet, bypass-permissions, spec-artifacts, state-valid, fingerprints-consistent) | P0 |
+| SES_DXP_4 | PITFALLS: all commands default to `plet/` in cwd — run from project root. All three commands use the same input pattern (optional plet_dir). | P0 |
+| SES_DXP_5 | Check names in preflight are stable identifiers: scripts-installed, git:* (CKS checks prefixed), claude-md-exists, gitignore-plet, spec-artifacts, state-valid, fingerprints-consistent | P0 |
 
 ## 12. Critical Test Areas (SES_CRT)
 
@@ -478,9 +514,11 @@ See `specs/conventions.md` for universal requirements.
 | SES_CRT_5 | preflight fresh project | Fresh project fails preflight | Run preflight on empty dir, verify passes (no artifacts to check) |
 | SES_CRT_6 | preflight missing CLAUDE.md | Missing CLAUDE.md not caught | Remove CLAUDE.md, verify WARN |
 | SES_CRT_7 | preflight missing spec artifacts | Lost artifacts not caught (FB_16) | Create plet/ with state but no requirements, verify FAIL |
-| SES_CRT_8 | preflight bypass-permissions | Missing config not caught (FB_22) | No .claude/ dir, verify WARN |
+| SES_CRT_8 | ~~preflight bypass-permissions~~ | Dropped — plet_invoke.py uses `claude --enable-auto-mode`. |  |
 | SES_CRT_9 | preflight exit codes | Wrong exit code for warn vs fail | Verify 0/1/2 mapping |
 | SES_CRT_10 | detect bare output | Extra text breaks shell capture | Verify output is exactly one word |
+| SES_CRT_11 | preflight GTC integration | CKS checks missing from preflight | Run preflight, verify git:* checks appear in output |
+| SES_CRT_12 | preflight fingerprint SKIPPED on plan | Fingerprint check runs unnecessarily on plan | Run preflight --session-type plan, verify fingerprints-consistent is SKIPPED |
 
 ## 13. Testing & Verification (SES_TST)
 
@@ -504,6 +542,7 @@ See `specs/conventions.md` for universal requirements.
 | 2 | Should detect output `status` as a session type? | No — `status` is a command, not a session type. detect returns `plan`, `loop`, or `refine`. The user can force `/plet status` via the SKILL.md command parsing, not via detect. |
 | 3 | Should preflight auto-fix issues (create CLAUDE.md, add .gitignore entry)? | No — preflight is read-only. It diagnoses, the caller fixes. Same principle as GTC (check but don't fix). |
 | 4 | Should status call fingerprint check? | Yes but as P1 — it's the most expensive operation. detect deliberately avoids it for speed. |
+| 5 | Should preflight check bypassPermissions? | No — dropped. `plet_invoke.py` launches subprocesses with `claude --enable-auto-mode` (see https://claude.com/blog/auto-mode). Project-level permission settings don't affect subprocess invocations. The invoke script owns the permission model. FB_22 resolved by architecture, not by preflight checks. |
 
 ## Open Questions
 
@@ -522,5 +561,5 @@ See `specs/conventions.md` for universal requirements.
 ## 16. FB Items Addressed
 
 - FB_16 — Spec artifacts not preserved. `preflight` checks requirements.md and iterations.md exist when plet directory is present.
-- FB_22 — bypassPermissions not configured. `preflight` checks .claude/settings.local.json.
+- FB_22 — bypassPermissions not configured. Resolved by architecture: `plet_invoke.py` uses `claude --enable-auto-mode` for subprocesses (see https://claude.com/blog/auto-mode). Preflight check dropped — project-level permission settings don't affect subprocess invocations.
 - FB_23 — CLAUDE.md missing. `preflight` checks CLAUDE.md exists.
