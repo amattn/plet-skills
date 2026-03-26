@@ -45,7 +45,7 @@ Why this command exists, when it's used, and under what conditions it might beco
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_XXX_CMD_1 | Usage: `plet_SCRIPTNAME.py command-name <positional_arg> --flag value` | P0 |
+| PRE_XXX_CMD_1 | Usage: `plet_SCRIPTNAME.py command-name [<plet_dir>] --flag value` (per UNV_CMD_16: optional plet_dir, default `plet/`, derive all paths via `util_io` path functions) | P0 |
 
 **Properties:** read-only | mutating, idempotent | not idempotent, atomic | non-atomic
 
@@ -55,8 +55,9 @@ Why this command exists, when it's used, and under what conditions it might beco
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_XXX_INP_1 | `positional_arg` — description | P0 |
-| PRE_XXX_INP_2 | `--flag` — description (default: X) | P0 |
+| PRE_XXX_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. All paths derived via `util_io` functions (`state_json_path`, `iter_state_path`, etc.). | P0 |
+| PRE_XXX_INP_2 | `--iter-id` — iteration ID (required for per-iteration commands) | P0 |
+| PRE_XXX_INP_3 | `--flag` — description (default: X) | P0 |
 
 #### Outputs (OUT)
 

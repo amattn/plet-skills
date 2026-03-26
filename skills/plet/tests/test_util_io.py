@@ -295,6 +295,25 @@ def test_atomic_append_multiline():
 
 
 # ---------------------------------------------------------------------------
+# Path derivation
+# ---------------------------------------------------------------------------
+
+def test_path_derivation():
+    print("\n## path derivation functions")
+    check("state_json_path", util_io.state_json_path("plet") == os.path.join("plet", "state.json"))
+    check("state_dir_path", util_io.state_dir_path("plet") == os.path.join("plet", "state"))
+    check("iter_state_path", util_io.iter_state_path("plet", "ID_001") == os.path.join("plet", "state", "ID_001.json"))
+    check("requirements_path", util_io.requirements_path("plet") == os.path.join("plet", "requirements.md"))
+    check("iterations_path", util_io.iterations_path("plet") == os.path.join("plet", "iterations.md"))
+    check("progress_path", util_io.progress_path("plet") == os.path.join("plet", "progress.md"))
+    check("learnings_path", util_io.learnings_path("plet") == os.path.join("plet", "learnings.md"))
+    check("emergent_path", util_io.emergent_path("plet") == os.path.join("plet", "emergent.md"))
+    check("trace_path", util_io.trace_path("plet") == os.path.join("plet", "trace.ndjson"))
+    check("custom plet_dir", util_io.state_json_path("/tmp/myproject/plet") == os.path.join("/tmp/myproject/plet", "state.json"))
+    check("DEFAULT_PLET_DIR", util_io.DEFAULT_PLET_DIR == "plet/")
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -319,6 +338,7 @@ if __name__ == "__main__":
     test_atomic_append_existing_file()
     test_atomic_append_no_tmp_residue()
     test_atomic_append_multiline()
+    test_path_derivation()
 
     print("\n{}".format("=" * 40))
     print("  {} passed, {} failed".format(passed, failed))

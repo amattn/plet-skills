@@ -20,7 +20,9 @@ Argument parsing, validation, timestamps, dispatch, output filtering. The founda
 
 ## util_io.py
 
-Atomic file I/O for state files (JSON, read-modify-write) and runtime artifacts (markdown, append-only).
+Atomic file I/O for state files (JSON, read-modify-write) and runtime artifacts (markdown, append-only). Also provides path derivation functions — the single source of truth for plet directory layout (UNV_CMD_16).
+
+### File I/O
 
 | Function | Purpose |
 |----------|---------|
@@ -28,6 +30,24 @@ Atomic file I/O for state files (JSON, read-modify-write) and runtime artifacts 
 | `atomic_write_json(path, data, update_timestamp)` | Write dict as JSON atomically (tmp + rename). |
 | `atomic_append(path, content)` | Append string atomically (tmp + read-back + append + remove). |
 | `load_text(path)` | Load text file. Returns string or None (prints error). |
+
+### Path derivation (plet directory layout)
+
+All scripts derive file paths through these functions — never construct paths manually. This ensures the directory layout has a single source of truth.
+
+| Function | Returns |
+|----------|---------|
+| `state_json_path(plet_dir)` | `{plet_dir}/state.json` |
+| `state_dir_path(plet_dir)` | `{plet_dir}/state/` |
+| `iter_state_path(plet_dir, iter_id)` | `{plet_dir}/state/{iter_id}.json` |
+| `requirements_path(plet_dir)` | `{plet_dir}/requirements.md` |
+| `iterations_path(plet_dir)` | `{plet_dir}/iterations.md` |
+| `progress_path(plet_dir)` | `{plet_dir}/progress.md` |
+| `learnings_path(plet_dir)` | `{plet_dir}/learnings.md` |
+| `emergent_path(plet_dir)` | `{plet_dir}/emergent.md` |
+| `trace_path(plet_dir)` | `{plet_dir}/trace.ndjson` |
+
+**Constant:** `DEFAULT_PLET_DIR = "plet/"` — used by all scripts as the default when no plet_dir is specified.
 
 ## util_id.py
 

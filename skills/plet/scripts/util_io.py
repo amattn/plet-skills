@@ -59,6 +59,58 @@ import sys
 from util_cli import now_iso
 
 
+# ---------------------------------------------------------------------------
+# Path derivation — single source of truth for plet directory layout
+# ---------------------------------------------------------------------------
+
+DEFAULT_PLET_DIR = "plet/"
+
+
+def state_json_path(plet_dir):
+    """Derive path to global state.json."""
+    return os.path.join(plet_dir, "state.json")
+
+
+def state_dir_path(plet_dir):
+    """Derive path to per-iteration state directory."""
+    return os.path.join(plet_dir, "state")
+
+
+def iter_state_path(plet_dir, iter_id):
+    """Derive path to per-iteration state file."""
+    return os.path.join(plet_dir, "state", "{}.json".format(iter_id))
+
+
+def requirements_path(plet_dir):
+    """Derive path to requirements.md."""
+    return os.path.join(plet_dir, "requirements.md")
+
+
+def iterations_path(plet_dir):
+    """Derive path to iterations.md."""
+    return os.path.join(plet_dir, "iterations.md")
+
+
+def progress_path(plet_dir):
+    """Derive path to progress.md."""
+    return os.path.join(plet_dir, "progress.md")
+
+
+def learnings_path(plet_dir):
+    """Derive path to learnings.md."""
+    return os.path.join(plet_dir, "learnings.md")
+
+
+def emergent_path(plet_dir):
+    """Derive path to emergent.md."""
+    return os.path.join(plet_dir, "emergent.md")
+
+
+def trace_path(plet_dir):
+    """Derive path to trace.ndjson."""
+    return os.path.join(plet_dir, "trace.ndjson")
+
+
 def load_json(path):
     """Load and parse a JSON file.
 

@@ -890,6 +890,8 @@ All scripts take `[<plet_dir>]` (optional, default `plet/`) as first positional 
 
 Retrofitting GTO/GTC/GTI specs first, then implementations. GIM and all future scripts use the new convention from the start.
 
+**Path derivation in util_io.py:** Added 10 path functions (`state_json_path`, `iter_state_path`, `requirements_path`, etc.) + `DEFAULT_PLET_DIR` constant. Single source of truth for plet directory layout — scripts must use these functions, never construct paths manually. UNV_CMD_16 updated to reference util_io. Template and util_modules.md updated.
+
 #### GTO spec review + implementation complete (2026-03-22)
 
 **Spec review decisions:**
