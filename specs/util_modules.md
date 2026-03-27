@@ -138,22 +138,6 @@ Optional fields (returned with defaults if absent): `agentActivity` ("idle"), `a
 
 Full schemas in `references/state-schema.md`.
 
-## util_gate_phase.py
-
-Shared gate functions for implement and verify phase gates. Imported by `plet_gate_impl.py` and `plet_gate_verify.py`. Not a CLI tool.
-
-| Function | Purpose |
-|----------|---------|
-| `scripts_dir()` | Return the directory containing plet scripts. |
-| `run_tool(script_name, args)` | Run a sibling plet script via subprocess. Returns `(parsed_json, raw_result)`. |
-| `run_gtc_checks(plet_dir, iter_id, phase)` | Call GTC `check-iteration`, return list of check dicts with `git:` prefix. |
-| `run_sta_validate(plet_dir, iter_id)` | Call STA `validate`, return a check dict. |
-| `run_ent_check(plet_dir, iter_id)` | Call ENT `check`, return 3 check dicts (progress FAIL, learnings WARN, emergent WARN). |
-| `check_trace_events(plet_dir, iter_id, phase, attempt)` | Check trace file exists + TRC validate. WARN if missing/empty/invalid. |
-| `check_lifecycle(iter_state, valid_states, phase_name)` | Check lifecycle is in expected states. WARN if not. |
-| `summarize_checks(checks)` | Compute summary counts + overall status. Returns `(overall, counts, exit_code)`. |
-| `format_text_output(command, checks, overall, counts)` | Format checks as text with title line + per-check lines + summary. |
-
 ## util_subprocess.py
 
 Subprocess execution with capture, error formatting, and timeout handling. General-purpose wrapper — no shell=True, consistent error messages. Includes a `run_git` convenience for the most common case.

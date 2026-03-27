@@ -169,5 +169,4 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `plet_inject_prompt.py` | Prompt assembly for implement/verify subagents | FB_38 |
 | `plet_invoke.py` | Subprocess launch + transcript capture (assembles prompt, launches `claude -p`, tees JSONL to transcript file) | — |
 | `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop). Calls plet_invoke.py instead of spawning subprocesses directly. | — |
-| `plet_gate_impl.py` | Implementation phase pre/post gates | FB_29, FB_33 |
-| `plet_gate_verify.py` | Verification phase pre/post gates | FB_29, FB_33, FB_40 |
+| `plet_gate_phase.py` | Phase gate (pre/post, --phase implement\|verify) | FB_29, FB_33, FB_11, FB_40 |

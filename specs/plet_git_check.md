@@ -408,8 +408,7 @@ plet_git_check.py check-session \
 | GTC_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `now_iso`, `dispatch`, `filter_fields` |
 | GTC_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
 | GTC_DEP_6 | imports | `util_subprocess` | `run_git` |
-| GTC_DEP_3 | called by | `plet_gate_impl.py` | pre/post implement check |
-| GTC_DEP_4 | called by | `plet_gate_verify.py` | pre/post verify check |
+| GTC_DEP_3 | called by | `plet_gate_phase.py` | pre/post checks for both implement and verify phases |
 | GTC_DEP_5 | called by | `plet_orchestrator.py` | session preflight/end |
 
 No outgoing calls to other `plet_*.py` scripts — `plet_git_check.py` is a leaf CLI tool. Calls `git` via `util_subprocess`.
