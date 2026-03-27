@@ -2,10 +2,6 @@
   "permissions": {
     "allow": [
       "Bash(chmod:*)",
-      "Bash(do echo:*)",
-      "Bash(done)",
-      "Bash(find:*)",
-      "Bash(for id:*)",
       "Bash(git add:*)",
       "Bash(git branch:*)",
       "Bash(git commit:*)",
@@ -19,10 +15,7 @@
       "Bash(grep:*)",
       "Bash(jq:*)",
       "Bash(ls:*)",
-      "Bash(mix test:*)",
       "Bash(mkdir:*)",
-      "Bash(python3 skills/plet/scripts/*)",
-      "Bash(python3 skills/plet/tests/*)",
       "Bash(shasum)",
       "Bash(skills/plet/scripts/*)",
       "Bash(skills/plet/tests/*)",
