@@ -6,7 +6,7 @@
 
 ## 1. Purpose (GIM_PUR)
 
-Gate script for the implement phase. Runs pre and post implementation, enforcing compliance checks and mandatory artifact completeness. The orchestrator calls GIM at phase boundaries — before the implement subagent starts and after it finishes.
+Gate script for the implement phase. The primary purpose is to give the orchestrator, subagent, or subprocess a clear signal: **you're not done yet — clean up or block.** Runs pre and post implementation, enforcing compliance checks and mandatory artifact completeness. The implement subagent runs `post` before exiting and self-corrects until it passes — its exit means "I passed my own gate."
 
 Case study evidence: SPARK produced 0.09 learnings and 0.04 emergent entries per iteration despite a prose mandate (FB_29). Only 6 of 23 iterations had explicit progress entries (FB_33). State lifecycle fields were stuck at wrong values in 10 of 23 iterations (FB_40). Prose rules failed consistently — tooling enforcement is the fix.
 
@@ -27,6 +27,7 @@ Case study evidence: SPARK produced 0.09 learnings and 0.04 emergent entries per
 | GIM_AGT_3 | orchestrator script | optional re-verification after subagent exits (trust but verify) | `post` |
 | GIM_AGT_4 | human | manual debugging / phase boundary inspection | both commands |
 | GIM_AGT_5 | GUI tool | phase transition monitoring | both commands |
+| GIM_AGT_6 | case study / audit agent | post-run analysis — verify all iterations passed gates | both commands |
 
 ## 3. Commands
 
@@ -123,7 +124,9 @@ GIM pre delegates to existing tools and aggregates results. Each tool is called 
 | GIM_PRE_BHV_1 | **git-check**: Calls `plet_git_check.py check-iteration <plet_dir> --iter-id <iter_id> --phase implement --output json`. Each GTC check becomes a GIM check with `git:` prefix (e.g., `git:correct-branch`). GTC FAIL/WARN propagate directly. | P0 |
 | GIM_PRE_BHV_2 | **state-valid**: Calls `plet_state.py validate <plet_dir>/state/<iter_id>.json --output json`. PASS if valid, FAIL if invalid. Detail includes validation errors. | P0 |
 | GIM_PRE_BHV_3 | **spec-artifacts**: Checks `requirements.md` and `iterations.md` exist in `plet_dir`. FAIL if either missing. | P0 |
-| GIM_PRE_BHV_4 | Check order: git-check → state-valid → spec-artifacts. Git first (most fundamental — can't do anything on wrong branch), then state, then artifacts. | P0 |
+| GIM_PRE_BHV_5 | **lifecycle-check**: Reads lifecycle from iter state. WARN if lifecycle is not `queued` or `implementing`. Catches obvious mistakes (running pre on a complete/withdrawn iteration) without blocking. | P0 |
+| GIM_PRE_BHV_6 | **fingerprints-consistent**: Calls `plet_fingerprint.py check` via subprocess. WARN if stale — spec drift detected but not blocking per-iteration. Surfaces mid-loop changes to requirements that the human may want to address. | P0 |
+| GIM_PRE_BHV_4 | Check order: git-check → state-valid → lifecycle-check → spec-artifacts → fingerprints-consistent. Git first, then state/lifecycle, then artifacts/fingerprints. | P0 |
 
 ---
 
@@ -285,7 +288,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 
 ```bash
 plet_gate_impl.py pre plet/ --iter-id ID_001
-# PASS: pre — 8 passed
+# PASS: pre — 10 passed
 # PASS: git:in-progress-operation — no interrupted git operations
 # PASS: git:branch-exists — plet/LOGA/loop1/ID_001 exists
 # PASS: git:correct-branch — on plet/LOGA/loop1/ID_001
@@ -293,8 +296,10 @@ plet_gate_impl.py pre plet/ --iter-id ID_001
 # PASS: git:linear-history — no merge commits since workstream divergence
 # PASS: git:no-stashes — stash list empty
 # PASS: state-valid — plet/state/ID_001.json valid
+# PASS: lifecycle-check — lifecycle is implementing
 # PASS: spec-artifacts — requirements.md and iterations.md exist
-# 8 checks: 8 passed, 0 failed, 0 warnings
+# PASS: fingerprints-consistent — all fingerprints consistent
+# 10 checks: 10 passed, 0 failed, 0 warnings
 ```
 
 ### GIM_EXM_2: Post-gate — missing progress entry
@@ -344,6 +349,7 @@ plet_gate_impl.py post plet/ --iter-id ID_001 --output json --pretty
 | GIM_DEP_3 | calls (subprocess) | `plet_git_check.py` | `check-iteration --phase implement` for git compliance |
 | GIM_DEP_4 | calls (subprocess) | `plet_state.py` | `validate` for state schema compliance |
 | GIM_DEP_5 | calls (subprocess) | `plet_entries.py` | `check` for mandatory entry verification (post only) |
+| GIM_DEP_7 | calls (subprocess) | `plet_fingerprint.py` | `check` for fingerprint consistency (pre only) |
 | GIM_DEP_6 | called by | `plet_orchestrator.py` | pre/post implement phase |
 
 ## 10. Non-Functional Requirements (GIM_NFR)
@@ -362,7 +368,7 @@ See `specs/conventions.md` for universal requirements.
 | GIM_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | GIM_DXP_2 | IMPORTANT: both commands are read-only — no `--dry-run` needed, safe to run anytime | P0 |
 | GIM_DXP_3 | PITFALLS: --iter-id is required for both commands. Defaults to plet/ in cwd — run from project root. | P0 |
-| GIM_DXP_4 | Check names are stable identifiers: `git:*` (GTC checks prefixed), `state-valid`, `spec-artifacts`, `progress-entry`, `learnings-entry`, `emergent-entry` | P0 |
+| GIM_DXP_4 | Check names are stable identifiers: `git:*` (GTC checks prefixed), `state-valid`, `lifecycle-check`, `spec-artifacts`, `fingerprints-consistent`, `progress-entry`, `learnings-entry`, `emergent-entry` | P0 |
 
 ## 12. Critical Test Areas (GIM_CRT)
 
@@ -403,7 +409,7 @@ See `specs/conventions.md` for universal requirements.
 
 ### Open Questions
 
-- Should GIM pre-gate check that the iteration lifecycle is `queued` or `implementing`? Currently it doesn't — the orchestrator manages lifecycle. But starting an implement gate on a `complete` iteration is clearly wrong. Deferred to orchestrator spec.
+~~Should GIM pre-gate check lifecycle?~~ — Resolved: added as GIM_PRE_BHV_5. WARN if not queued/implementing.
 
 ## 15. Future Considerations (GIM_FUT)
 
@@ -411,7 +417,7 @@ See `specs/conventions.md` for universal requirements.
 |----|------|-------------|
 | GIM_FUT_1 | Trace validation | Add TRC validate as a post-gate check once trace generation is stable. |
 | GIM_FUT_2 | Entry quality check | Beyond count > 0, check that progress entries have meaningful content (non-empty summary, files listed). Requires ENT to expose content quality metrics. |
-| GIM_FUT_3 | Lifecycle pre-check | Validate that iteration lifecycle is in an expected state (queued/implementing for pre, implementing for post). Requires agreement with orchestrator on who owns lifecycle validation. |
+| GIM_FUT_3 | ~~Lifecycle pre-check~~ | Promoted to GIM_PRE_BHV_5. WARN if lifecycle not queued/implementing. |
 
 ## 16. FB Items Addressed
 

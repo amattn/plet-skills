@@ -437,6 +437,7 @@ See `specs/conventions.md` for universal requirements.
 | 4 | Rebase or merge --squash? | `git merge --squash` — stages all iteration changes as one commit on workstream. No rebase needed. Linear history maintained (no merge commits). Simpler than rebase + ff-merge; eliminates conflict resolution re-squash scenario. |
 | 5 | Should tag cleanup be automatic or flag-based? | Automatic — reads `cleanupTagsAutomatically` from iter state. No `--cleanup-tag` flag (YAGNI). Single source of truth — state file decides. Manual cleanup: `git tag -d` directly. |
 | 6 | Should commands take explicit flags or read from state files? | Read from state files. Optional `[<plet_dir>]` (default `plet/`) + `--iter-id` + `--phase` (audit-tag only). The script derives file paths internally (`{plet_dir}/state.json`, `{plet_dir}/state/{iter_id}.json`). iter-id identifies the iteration; attempt, title, cleanupTagsAutomatically all come from the loaded iter state file. Single source of truth for 4+ scripts that need per-iteration context (GTO, GTC, GIM, GVR). |
+| 7 | Can parallel iterations merge-squash concurrently? | No — merge-squash must be sequential. Parallel iterations append to shared runtime artifacts (progress.md, learnings.md, emergent.md). Concurrent merge-squash would produce conflicts (both branches appended to end of file). Sequential merge is already the natural behavior: GTO checks out workstream first (single writer constraint). Iterations execute in parallel; only merging is serial (< 2s per iteration). |
 
 ## Open Questions
 

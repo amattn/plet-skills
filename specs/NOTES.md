@@ -865,6 +865,14 @@ CLEANUP (per-iteration state controls):
 - **§4–§16 approved.** Added ERR_9 (invalid --session-type), CRT_11 (GTC integration), CRT_12 (fingerprint SKIPPED on plan). FB_22 updated (resolved by invoke architecture).
 - **SES spec review complete.**
 
+#### Worktree + shared artifacts merge strategy (2026-03-26)
+
+- **Problem:** Parallel iterations in separate worktrees all append to shared runtime artifacts (progress.md, learnings.md, emergent.md). When merge-squashing to workstream, the second merge sees a conflict — both branches appended to the end of the file.
+- **Solution:** Sequential merge-squash. Iterations execute in parallel (the expensive part). Merge-squash is serial (fast — < 2s per iteration). This is already the natural behavior: GTO merge-squash checks out the workstream branch first (single writer constraint).
+- **Why not other approaches:** Per-iteration files lose the unified narrative. Auto-resolution is fragile. Separate artifact merging adds complexity. Sequential merge is the simplest fix — 13 iterations × 2s = 26s total merge time vs hours saved by parallel execution.
+- **Per-iteration files (state/{id}.json, trace/{id}-*) never conflict** — different file paths, no shared state.
+- **GUI multi-directory model confirmed:** Main plet/ = session dashboard. Worktree plet/ = iteration dashboard. GUI discovers worktrees via `git worktree list --porcelain`. Both views are valid, different scopes.
+
 #### GIM spec review (2026-03-25)
 
 - **Post-gate caller is the subagent, not the orchestrator.** The implement subagent runs `post` itself before exiting and self-corrects until it passes. This eliminates orchestrator retry logic for missing artifacts — the subagent's exit signal means "I passed my own gate." Orchestrator can optionally re-verify (trust but verify). AGT_2 updated, AFL_1/AFL_2 rewritten.
