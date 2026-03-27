@@ -1,6 +1,6 @@
 # plet_gate_impl.py (GIM)
 
-> Status: draft
+> Status: complete
 
 > **Convention:** Every section can have supporting prose above or below its table — context, rationale, examples, caveats. Tables capture the *requirements*; prose captures the *why*. A table row should be self-contained enough to verify independently, but the surrounding prose provides the understanding needed to write and review it well.
 
@@ -137,7 +137,7 @@ GIM pre delegates to existing tools and aggregates results. Each tool is called 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GIM_PST_JUS_1 | Why: enforces mandatory artifact completeness after implementation finishes. FB_29 showed agents ignoring prose entry rules. FB_33 showed incomplete progress entries. This gate blocks verify until artifacts are complete. | P0 |
-| GIM_PST_JUS_2 | When: called by the orchestrator after the implement subagent finishes, before transitioning to verify. | P0 |
+| GIM_PST_JUS_2 | When: called by the implement subagent before exiting. Subagent self-corrects until post-gate passes — its exit signals "I passed my own gate." Orchestrator can optionally re-verify (trust but verify). | P0 |
 | GIM_PST_JUS_3 | Deprecation signal: only if mandatory entry rules are removed (unlikely — runtime artifacts are plet's primary value). | P1 |
 
 #### Definition (GIM_PST_CMD)
@@ -208,8 +208,9 @@ Post-gate re-verifies git and state (subagent may have left dirty state) and add
 | GIM_PST_BHV_2 | **state-valid**: Same as GIM_PRE_BHV_2. Re-validates `plet_dir/state/{iter_id}.json` after subagent may have modified it. | P0 |
 | GIM_PST_BHV_3 | **progress-entry**: Calls `plet_entries.py check <plet_dir> --iter-id <iter_id> --output json`. FAIL if progress count is 0. The implement phase must produce at least one progress entry (FB_33). Detail includes count. | P0 |
 | GIM_PST_BHV_4 | **learnings-entry**: Uses the same ENT check result as BHV_3. WARN if learnings count is 0. Learnings are strongly encouraged but a missing learnings entry shouldn't block verify — some iterations genuinely have nothing novel to report. Detail includes count. | P0 |
-| GIM_PST_BHV_5 | **emergent-entry**: Uses the same ENT check result as BHV_3. WARN if emergent count is 0. Same rationale as learnings — strongly encouraged, not blocking. | P0 |
-| GIM_PST_BHV_6 | Check order: git-check → state-valid → progress-entry → learnings-entry → emergent-entry. Git and state first (structural), then artifact completeness. | P0 |
+| GIM_PST_BHV_5 | **emergent-entry**: Uses the same ENT check result as BHV_3. WARN if emergent count is 0. Detail message includes actionable guidance: "0 emergent entries for {iter_id} — verify no design decisions, requirement gaps, or assumptions were made during implementation. If none, this is expected. If any were made, write them before exiting." Prompts the subagent to double-check rather than silently proceeding. | P0 |
+| GIM_PST_BHV_8 | **trace-events**: Checks that `plet/trace/{iter_id}-implement-{attempt}-events.ndjson` exists and is non-empty. WARN if missing or empty (FB_11). Not a full TRC validate — just existence check. Catches the "trace files completely missing" failure mode. | P0 |
+| GIM_PST_BHV_6 | Check order: git-check → state-valid → progress-entry → learnings-entry → emergent-entry → trace-events. Git and state first (structural), then artifact completeness. | P0 |
 | GIM_PST_BHV_7 | ENT check is called once and results parsed for all three artifact checks (progress, learnings, emergent). Single subprocess call, three check results extracted. | P0 |
 
 ---
@@ -317,7 +318,8 @@ plet_gate_impl.py post plet/ --iter-id ID_001
 # FAIL: progress-entry — 0 progress entries for ID_001
 # WARN: learnings-entry — 0 learnings entries for ID_001
 # WARN: emergent-entry — 0 emergent entries for ID_001
-# 10 checks: 7 passed, 1 failed, 2 warnings
+# WARN: trace-events — no trace events file for ID_001 implement-1
+# 11 checks: 7 passed, 1 failed, 3 warnings
 ```
 
 ### GIM_EXM_3: Post-gate — JSON output
@@ -333,9 +335,10 @@ plet_gate_impl.py post plet/ --iter-id ID_001 --output json --pretty
 #     ...
 #     {"name": "progress-entry", "status": "fail", "detail": "0 progress entries for ID_001"},
 #     {"name": "learnings-entry", "status": "warn", "detail": "0 learnings entries for ID_001"},
-#     {"name": "emergent-entry", "status": "warn", "detail": "0 emergent entries for ID_001"}
+#     {"name": "emergent-entry", "status": "warn", "detail": "0 emergent entries for ID_001"},
+#     {"name": "trace-events", "status": "warn", "detail": "no trace events file for ID_001 implement-1"}
 #   ],
-#   "summary": {"total": 10, "passed": 7, "failed": 1, "warnings": 2},
+#   "summary": {"total": 11, "passed": 7, "failed": 1, "warnings": 3},
 #   ...
 # }
 ```
@@ -368,7 +371,7 @@ See `specs/conventions.md` for universal requirements.
 | GIM_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | GIM_DXP_2 | IMPORTANT: both commands are read-only — no `--dry-run` needed, safe to run anytime | P0 |
 | GIM_DXP_3 | PITFALLS: --iter-id is required for both commands. Defaults to plet/ in cwd — run from project root. | P0 |
-| GIM_DXP_4 | Check names are stable identifiers: `git:*` (GTC checks prefixed), `state-valid`, `lifecycle-check`, `spec-artifacts`, `fingerprints-consistent`, `progress-entry`, `learnings-entry`, `emergent-entry` | P0 |
+| GIM_DXP_4 | Check names are stable identifiers: `git:*` (GTC checks prefixed), `state-valid`, `lifecycle-check`, `spec-artifacts`, `fingerprints-consistent`, `progress-entry`, `learnings-entry`, `emergent-entry`, `trace-events` | P0 |
 
 ## 12. Critical Test Areas (GIM_CRT)
 
@@ -384,6 +387,7 @@ See `specs/conventions.md` for universal requirements.
 | GIM_CRT_8 | Exit code correctness | Orchestrator gets wrong signal | Verify 0/1/2 mapping |
 | GIM_CRT_9 | JSON output parseable | Orchestrator can't parse results | Verify valid JSON with correct structure |
 | GIM_CRT_10 | Missing dependency script | Gate crashes instead of reporting FAIL | Remove a script, verify FAIL check (not crash) |
+| GIM_CRT_11 | Trace events existence | Missing trace not surfaced (FB_11) | Create iteration with no trace file, verify WARN |
 
 ## 13. Testing & Verification (GIM_TST)
 
@@ -405,7 +409,7 @@ See `specs/conventions.md` for universal requirements.
 |---|----------|----------|
 | 1 | Should learnings/emergent be FAIL or WARN? | WARN. Progress is mandatory (FAIL) because it's the primary record of work done. Learnings and emergent are strongly encouraged but some iterations genuinely have nothing novel — blocking on them creates friction without value. The WARN surfaces the gap without blocking. |
 | 2 | Should GIM check lifecycle transitions (FB_40)? | No — lifecycle transitions are the orchestrator's responsibility. GIM validates state schema (via STA validate) but doesn't check whether lifecycle is in the "right" state. The orchestrator manages transitions; GIM checks artifacts. |
-| 3 | Should GIM call TRC validate for trace events? | Not in v1. Trace validation is valuable but traces are created by the orchestrator/invoke, not the implement subagent. Adding it later is straightforward. |
+| 3 | Should GIM check trace events? | Yes — existence check (WARN if missing/empty), not full TRC validate. The subagent writes events during work (via plet_trace.py). Full schema validation (TRC validate) deferred to GIM_FUT_1. Existence check catches the FB_11 failure mode (files completely missing). |
 
 ### Open Questions
 
@@ -423,4 +427,5 @@ See `specs/conventions.md` for universal requirements.
 
 - FB_29 — Learnings/emergent entries not written. Post-gate calls `plet_entries.py check` and WARNs if learnings/emergent count is 0.
 - FB_33 — Progress entries incomplete. Post-gate calls `plet_entries.py check` and FAILs if progress count is 0.
+- FB_11 — Trace file generation incomplete. Post-gate WARNs if trace events file missing or empty.
 - FB_40 — State lifecycle transitions. GIM validates state schema (STA validate) but defers lifecycle transition logic to the orchestrator.

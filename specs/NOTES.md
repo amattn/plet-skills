@@ -880,6 +880,9 @@ CLEANUP (per-iteration state controls):
 - **§3.1 PRE approved.** Added BHV_5 (lifecycle-check, WARN), BHV_6 (fingerprints-consistent, WARN). FUT_3 promoted. Open question resolved.
 - **§3.2 PST — post does NOT repeat lifecycle/spec-artifacts/fingerprints.** Rationale: lifecycle mid-transition, spec artifacts can't disappear, fingerprints can't change during impl. Post = git + state re-verify + entry checks only.
 - **Worktree merge strategy decided.** Sequential merge-squash for shared runtime artifacts. Parallel execution, serial merge (< 2s each). Already natural behavior. Cascaded to GTO RQ_7, orchestrator placeholder.
+- **§3.2 PST approved.** JUS_2 fixed (subagent calls post). BHV_8 added (trace-events WARN if missing/empty, FB_11). emergent-entry WARN includes actionable guidance ("verify no decisions were made"). RQ_3 updated.
+- **§4–§16 approved.** CRT_11 added (trace events). FB_11 added to §16.
+- **GIM spec review complete.**
 
 #### GIM spec review (2026-03-25)
 
