@@ -873,6 +873,17 @@ CLEANUP (per-iteration state controls):
 - **Per-iteration files (state/{id}.json, trace/{id}-*) never conflict** — different file paths, no shared state.
 - **GUI multi-directory model confirmed:** Main plet/ = session dashboard. Worktree plet/ = iteration dashboard. GUI discovers worktrees via `git worktree list --porcelain`. Both views are valid, different scopes.
 
+#### GVR spec review (2026-03-27)
+
+- **Simpler pre-gate than GIM:** git-check + state-valid + lifecycle-check only. No fingerprints (can't change during verify), no spec-artifacts (can't disappear mid-session).
+- **Lifecycle valid states:** GVR pre accepts only `verifying`. GIM pre accepts `queued`/`implementing`. Clean separation — each gate accepts only its phase's states.
+- **last-verdict check (GVR_PST_BHV_9):** FAIL if `lastVerdict` is null after verify. The orchestrator needs the verdict to decide next steps. Full verificationReports check deferred to GVR_FUT_2.
+- **Shared gate module:** Extract to `util_gate_phase.py` during implementation. 6 shared functions between GIM and GVR. GIM retrofitted to import from shared module.
+- **verification-report check promoted (GVR_FUT_2 → GVR_PST_BHV_10):** FAIL if verificationReports empty or last entry missing required fields (verdict, criteriaResults). The report is the structured output of verify — subagent must self-correct.
+- **Shared gate library promoted (GVR_FUT_3 → RQ_4):** Extract to `util_gate_phase.py` during implementation. GIM retrofitted.
+- **Full trace validation promoted (GVR_FUT_1 → BHV_6, GIM_FUT_1 → BHV_8):** Both gate scripts now call TRC validate (not just existence check). WARN if invalid. Corrupt traces are worse than missing — silent data loss.
+- **GVR spec review complete.**
+
 #### GIM spec review continued (2026-03-26)
 
 - **§1 PUR approved.** Preamble updated: primary purpose is "you're not done yet — clean up or block."
