@@ -75,7 +75,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 18 | `plet_gate_impl.py` spec (GIM) | ✓ complete |
 | 19 | `plet_gate_impl.py` implementation | ✓ complete |
 | 20 | `plet_gate_verify.py` spec (GVR) | ✓ complete |
-| 21 | `plet_gate_verify.py` implementation | not started |
+| 21 | `plet_gate_verify.py` implementation | ✓ complete |
 | 22 | `plet_inject_prompt.py` spec (INJ) | not started |
 | 23 | `plet_inject_prompt.py` implementation | not started |
 | 24 | `plet_invoke.py` spec (INV) | not started |

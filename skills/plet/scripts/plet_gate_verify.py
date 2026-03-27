@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""plet gate impl — implement phase pre/post gate checks.
+"""plet gate verify — verify phase pre/post gate checks.
 
-Enforces compliance at implement phase boundaries. Pre-gate verifies the
-foundation before work starts. Post-gate verifies artifact completeness
-before the subagent exits. The subagent runs post and self-corrects
-until it passes — its exit means "I passed my own gate."
+Enforces compliance at verify phase boundaries. Simpler pre-gate than GIM
+(no fingerprints, no spec-artifacts). Post-gate adds verdict and verification
+report checks. The verify subagent runs post and self-corrects until it passes.
 
 Usage:
-    plet_gate_impl.py pre [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_impl.py post [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_verify.py pre [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_verify.py post [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
-    pre     Pre-implement gate — git, state, lifecycle, artifacts, fingerprints
-    post    Post-implement gate — git, state, progress, learnings, emergent, trace
+    pre     Pre-verify gate — git, state, lifecycle
+    post    Post-verify gate — git, state, entries, trace, verdict, report
 """
 
 import json
@@ -30,17 +29,12 @@ from util_cli import (
     emit_json,
     emit_json_error,
 )
-from util_io import (
-    validate_plet_dir,
-    requirements_path,
-    iterations_path,
-)
+from util_io import validate_plet_dir
 from util_state import (
     load_and_validate_global_state,
     load_and_validate_iter_state,
 )
 from util_gate_phase import (
-    run_tool,
     run_gtc_checks,
     run_sta_validate,
     run_ent_check,
@@ -54,53 +48,45 @@ from util_gate_phase import (
 SCRIPT_VERSION = "0.1.0"
 SKILL_VERSION = "0.1.1"
 
-VALID_PRE_LIFECYCLES = {"queued", "implementing"}
+VALID_PRE_LIFECYCLES = {"verifying"}
 
 
 # ---------------------------------------------------------------------------
-# GIM-specific checks (not shared with GVR)
+# GVR-specific checks
 # ---------------------------------------------------------------------------
 
 def help_hint(command):
-    return "Run: plet_gate_impl.py {} --help".format(command)
+    return "Run: plet_gate_verify.py {} --help".format(command)
 
 
-def check_spec_artifacts(plet_dir):
-    """Check requirements.md and iterations.md exist."""
-    req = requirements_path(plet_dir)
-    itr = iterations_path(plet_dir)
+def check_last_verdict(iter_state):
+    """Check lastVerdict is set (not null)."""
+    verdict = iter_state.get("lastVerdict")
+    if verdict is not None:
+        return {"name": "last-verdict", "status": "pass",
+                "detail": "lastVerdict is '{}'".format(verdict)}
+    return {"name": "last-verdict", "status": "fail",
+            "detail": "lastVerdict is null"}
+
+
+def check_verification_report(iter_state):
+    """Check verificationReports has at least one entry with required fields."""
+    reports = iter_state.get("verificationReports", [])
+    if not reports:
+        return {"name": "verification-report", "status": "fail",
+                "detail": "verificationReports is empty"}
+    last_report = reports[-1]
     missing = []
-    if not os.path.isfile(req):
-        missing.append("requirements.md")
-    if not os.path.isfile(itr):
-        missing.append("iterations.md")
+    if "verdict" not in last_report:
+        missing.append("verdict")
+    if "criteriaResults" not in last_report:
+        missing.append("criteriaResults")
     if missing:
-        return {"name": "spec-artifacts", "status": "fail",
-                "detail": "missing: {}".format(", ".join(missing))}
-    return {"name": "spec-artifacts", "status": "pass",
-            "detail": "requirements.md and iterations.md exist"}
-
-
-def run_fpr_check(plet_dir):
-    """Call plet_fingerprint.py check and return a check dict."""
-    data, result = run_tool("plet_fingerprint.py", [
-        "check", plet_dir, "--output", "json",
-    ])
-    if data is None and result is None:
-        return {"name": "fingerprints-consistent", "status": "warn",
-                "detail": "plet_fingerprint.py not found"}
-    if data is None:
-        return {"name": "fingerprints-consistent", "status": "warn",
-                "detail": "could not parse plet_fingerprint.py output"}
-    consistent = data.get("consistent", None)
-    if consistent is True:
-        return {"name": "fingerprints-consistent", "status": "pass",
-                "detail": "all fingerprints consistent"}
-    if consistent is False:
-        return {"name": "fingerprints-consistent", "status": "warn",
-                "detail": "fingerprints stale — spec drift detected"}
-    return {"name": "fingerprints-consistent", "status": "warn",
-            "detail": "fingerprint consistency unknown"}
+        return {"name": "verification-report", "status": "fail",
+                "detail": "report missing required fields: {}".format(", ".join(missing))}
+    return {"name": "verification-report", "status": "pass",
+            "detail": "verification report present with {} criteria results".format(
+                len(last_report["criteriaResults"]))}
 
 
 # ---------------------------------------------------------------------------
@@ -109,29 +95,26 @@ def run_fpr_check(plet_dir):
 
 def cmd_pre(args):
     HELP = """IMPORTANT:
-    pre is read-only — it checks project state, never modifies it.
-    Safe to run anytime. No --dry-run needed.
+    pre is read-only — safe to run anytime. No --dry-run needed.
 
 PITFALLS:
     - --iter-id is REQUIRED
-    - Defaults to plet/ in current directory — run from project root
-    - Fingerprint check may add ~1s (calls plet_fingerprint.py check)
+    - Simpler than GIM pre — no fingerprint or spec-artifact checks
+    - Only lifecycle=verifying is valid (WARN on anything else)
 
 USAGE:
-    plet_gate_impl.py pre [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_verify.py pre [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (default: plet/)
     --iter-id   Iteration ID (required)
 
 PURPOSE:
-    Pre-implement gate. Verifies git state, state file validity, lifecycle,
-    spec artifacts, and fingerprint consistency before the implement subagent
-    starts. Prevents wasting work on a broken foundation.
+    Pre-verify gate. Verifies git state, state file validity, and lifecycle
+    before the verify subagent starts.
 
 Examples:
-    plet_gate_impl.py pre plet/ --iter-id ID_001
-    plet_gate_impl.py pre --iter-id ID_001
-    plet_gate_impl.py pre plet/ --iter-id ID_001 --output json --pretty
+    plet_gate_verify.py pre plet/ --iter-id ID_001
+    plet_gate_verify.py pre --iter-id ID_001 --output json --pretty
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -175,13 +158,11 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    # Run all checks (BHV_4 order)
+    # Run checks (BHV_4 order)
     checks = []
-    checks.extend(run_gtc_checks(plet_dir, iter_id, "implement"))
+    checks.extend(run_gtc_checks(plet_dir, iter_id, "verify"))
     checks.append(run_sta_validate(plet_dir, iter_id))
-    checks.append(check_lifecycle(iter_state, VALID_PRE_LIFECYCLES, "implement"))
-    checks.append(check_spec_artifacts(plet_dir))
-    checks.append(run_fpr_check(plet_dir))
+    checks.append(check_lifecycle(iter_state, VALID_PRE_LIFECYCLES, "verify"))
 
     overall, counts, exit_code = summarize_checks(checks)
 
@@ -198,31 +179,29 @@ Examples:
 
 def cmd_post(args):
     HELP = """IMPORTANT:
-    post is read-only — it checks artifact completeness, never modifies files.
-    The implement subagent runs this before exiting and self-corrects until
-    it passes. Safe to run multiple times.
+    post is read-only. The verify subagent runs this before exiting and
+    self-corrects until it passes. Safe to run multiple times.
 
 PITFALLS:
     - --iter-id is REQUIRED
-    - Progress entry missing = FAIL (blocks verify)
-    - Learnings/emergent missing = WARN (surfaces gap, doesn't block)
-    - Trace events missing = WARN
+    - Progress missing = FAIL, learnings/emergent missing = WARN
+    - lastVerdict null = FAIL, verificationReports empty = FAIL
+    - Trace events missing/invalid = WARN
 
 USAGE:
-    plet_gate_impl.py post [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_verify.py post [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (default: plet/)
     --iter-id   Iteration ID (required)
 
 PURPOSE:
-    Post-implement gate. Verifies git state is clean, state file is valid,
-    and mandatory runtime artifacts have entries. Progress is mandatory (FAIL).
-    Learnings, emergent, and trace are strongly encouraged (WARN).
+    Post-verify gate. Verifies git state, state file, runtime artifact entries,
+    trace events, verdict, and verification report. Progress and verdict/report
+    are mandatory (FAIL). Learnings, emergent, and trace are WARN.
 
 Examples:
-    plet_gate_impl.py post plet/ --iter-id ID_001
-    plet_gate_impl.py post --iter-id ID_001
-    plet_gate_impl.py post plet/ --iter-id ID_001 --output json --pretty
+    plet_gate_verify.py post plet/ --iter-id ID_001
+    plet_gate_verify.py post --iter-id ID_001 --output json --pretty
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -266,13 +245,15 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    # Run all checks (BHV_6 order)
+    # Run checks (BHV_7 order)
     checks = []
-    checks.extend(run_gtc_checks(plet_dir, iter_id, "implement"))
+    checks.extend(run_gtc_checks(plet_dir, iter_id, "verify"))
     checks.append(run_sta_validate(plet_dir, iter_id))
     checks.extend(run_ent_check(plet_dir, iter_id))
-    attempt = iter_state.get("attempts", {}).get("implement", 1)
-    checks.append(check_trace_events(plet_dir, iter_id, "implement", attempt))
+    attempt = iter_state.get("attempts", {}).get("verify", 1)
+    checks.append(check_trace_events(plet_dir, iter_id, "verify", attempt))
+    checks.append(check_last_verdict(iter_state))
+    checks.append(check_verification_report(iter_state))
 
     overall, counts, exit_code = summarize_checks(checks)
 
@@ -297,7 +278,7 @@ def main():
         "post": cmd_post,
     }
     return dispatch(
-        commands, "plet_gate_impl", SCRIPT_VERSION, SKILL_VERSION, __doc__
+        commands, "plet_gate_verify", SCRIPT_VERSION, SKILL_VERSION, __doc__
     )
 
 

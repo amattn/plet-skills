@@ -350,14 +350,23 @@ def make_runtime_artifacts(plet_dir, iter_id="ID_001", progress=True, learnings=
                 f.write("# Emergent\n")
 
 
-def make_trace_file(plet_dir, iter_id="ID_001", attempt=1):
-    """Create a trace events file."""
+def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1):
+    """Create a valid trace events file."""
     trace_dir = os.path.join(plet_dir, "trace")
     os.makedirs(trace_dir, exist_ok=True)
-    filename = "{}-implement-{}-events.ndjson".format(iter_id, attempt)
+    filename = "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt)
     path = os.path.join(trace_dir, filename)
+    event = {
+        "pletId": "tev_test0001",
+        "timestamp": "2026-03-27T00:00:00Z",
+        "type": "activity_change",
+        "iterationId": iter_id,
+        "phase": phase,
+        "attempt": attempt,
+        "data": {"activity": "implementing"},
+    }
     with open(path, "w") as f:
-        f.write('{"event":"phase_start","phase":"implement"}\n')
+        f.write(json.dumps(event) + "\n")
     return path
 
 
