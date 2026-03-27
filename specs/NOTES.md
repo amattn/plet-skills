@@ -873,6 +873,14 @@ CLEANUP (per-iteration state controls):
 - **Per-iteration files (state/{id}.json, trace/{id}-*) never conflict** — different file paths, no shared state.
 - **GUI multi-directory model confirmed:** Main plet/ = session dashboard. Worktree plet/ = iteration dashboard. GUI discovers worktrees via `git worktree list --porcelain`. Both views are valid, different scopes.
 
+#### GIM spec review continued (2026-03-26)
+
+- **§1 PUR approved.** Preamble updated: primary purpose is "you're not done yet — clean up or block."
+- **§2 AGT approved.** Added AGT_6 (case study / audit agent).
+- **§3.1 PRE approved.** Added BHV_5 (lifecycle-check, WARN), BHV_6 (fingerprints-consistent, WARN). FUT_3 promoted. Open question resolved.
+- **§3.2 PST — post does NOT repeat lifecycle/spec-artifacts/fingerprints.** Rationale: lifecycle mid-transition, spec artifacts can't disappear, fingerprints can't change during impl. Post = git + state re-verify + entry checks only.
+- **Worktree merge strategy decided.** Sequential merge-squash for shared runtime artifacts. Parallel execution, serial merge (< 2s each). Already natural behavior. Cascaded to GTO RQ_7, orchestrator placeholder.
+
 #### GIM spec review (2026-03-25)
 
 - **Post-gate caller is the subagent, not the orchestrator.** The implement subagent runs `post` itself before exiting and self-corrects until it passes. This eliminates orchestrator retry logic for missing artifacts — the subagent's exit signal means "I passed my own gate." Orchestrator can optionally re-verify (trust but verify). AGT_2 updated, AFL_1/AFL_2 rewritten.

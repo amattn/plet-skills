@@ -400,3 +400,16 @@ The branch pattern exists in the code and PRD, but the workflow around it is und
 ### FB_48: PRD should be explicit that runtime artifacts are committed on iteration branches [artifacts] [prd]
 
 Runtime artifacts (progress.md, learnings.md, emergent.md) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. This is a load-bearing assumption across multiple specs (GTC clean-worktree, GTO merge-squash, gate scripts) but is not explicitly stated in the PRD. Added to `specs/conventions.md` as UNV_NFR_10 during GTC review. PRD and reference files (implement.md, verify.md) should also be explicit about this.
+
+### FB_49: GUI must discover and monitor worktree plet/ directories [gui] [worktrees]
+
+With the worktree architecture, during parallel execution each iteration has its own plet/ directory in its worktree (`.plet/worktrees/{projectId}/{iter_id}/plet/`). The main repo's `plet/` has the orchestrator's view (stale during active iterations). A GUI tool can't just watch one `plet/` directory — it needs to:
+
+1. Discover active worktrees via `git worktree list --porcelain`
+2. Watch main `plet/` for session-level state (aggregate progress, milestones, which iterations exist)
+3. Watch each active worktree's `plet/` for live iteration state (agent activity, criterion updates, progress entries)
+4. After merge-squash, iteration changes flow back to main `plet/` — the worktree view disappears, the session view updates
+
+Two scopes: **session dashboard** (main plet/) and **iteration dashboard** (worktree plet/). Both are valid, different update frequencies. This is a feature, not a bug — but the GUI needs to be designed for it.
+
+The PRD mentions an optional GUI (§1 Overview) but doesn't describe this multi-directory model. Document in the GUI design when that project starts.

@@ -1320,6 +1320,34 @@ The three-layer compaction defense (CLAUDE.md POST-COMPACTION RULE → PLET.md M
 
 ---
 
+## GUI Design
+
+Central collection of GUI-relevant design decisions made across specs. The GUI is a separate project (see PRD §1 Overview) that reads plet's state files for visualization. These decisions shape what the GUI needs to handle.
+
+### Multi-directory model (worktrees)
+
+During parallel execution, each iteration has its own `plet/` directory in its worktree. The GUI must watch multiple directories:
+
+- **Session dashboard** — main repo `plet/`. Shows aggregate state: iteration counts, milestones, overall progress. Updated by the orchestrator and after merge-squash.
+- **Iteration dashboard** — each worktree `plet/` (`.plet/worktrees/{projectId}/{iter_id}/plet/`). Shows live agent state: activity, criterion updates, progress entries. Disappears after merge-squash.
+- **Discovery** — `git worktree list --porcelain` to find active worktrees.
+
+See FB_49 for full context.
+
+### State file formats designed for external consumers
+
+Per STA_AGT_8, ENT_AGT_7, FPR_AGT_6, GTC_AGT_7, SES_AGT_6 — external GUI personas are documented across all script specs. State files use JSON for machine readability. `--output json` on every command enables programmatic consumption.
+
+### Transcript live-tail
+
+`plet_invoke.py` flushes after each line write to the transcript file. Filesystem watchers (fswatch, FSEvents, inotify) see changes within ~100ms. GUI can live-tail transcript and events files during execution.
+
+### Trace merge for unified view
+
+GUI merges `-events.ndjson` and `-transcript.jsonl` by timestamp for a unified view. Raw transcript provides full fidelity; semantic events provide structure. See formats.md § GUI Integration.
+
+---
+
 ## Open Questions
 
 ### Consistency checking as a skill?

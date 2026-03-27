@@ -200,7 +200,7 @@ GIM pre delegates to existing tools and aggregates results. Each tool is called 
 
 #### Behaviors (GIM_PST_BHV)
 
-Post-gate runs all pre-gate checks PLUS mandatory entry checks. This means git and state are re-verified after the subagent ran (it may have left dirty state).
+Post-gate re-verifies git and state (subagent may have left dirty state) and adds mandatory entry checks. Does NOT repeat lifecycle-check (mid-transition), spec-artifacts (can't disappear during impl), or fingerprints (can't change during impl).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
