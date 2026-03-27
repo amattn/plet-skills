@@ -1,6 +1,6 @@
 # plet_gate_verify.py (GVR)
 
-> Status: complete
+> Status: **superseded** by `plet_gate_phase.md` (GPH). Kept as historical reference for reviewed decisions.
 
 > **Convention:** Every section can have supporting prose above or below its table — context, rationale, examples, caveats. Tables capture the *requirements*; prose captures the *why*. A table row should be self-contained enough to verify independently, but the surrounding prose provides the understanding needed to write and review it well.
 

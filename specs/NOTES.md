@@ -33,8 +33,9 @@ This was validated across three case studies: state schema drift (the most persi
 | SES | `plet_session.py` | SESsion |
 | INJ | `plet_inject_prompt.py` | INJect |
 | ORC | `plet_orchestrator.py` | ORChestrator |
-| GIM | `plet_gate_impl.py` | Gate IMpl |
-| GVR | `plet_gate_verify.py` | Gate VeRify |
+| GPH | `plet_gate_phase.py` | Gate PHase |
+| ~~GIM~~ | ~~`plet_gate_impl.py`~~ | Merged into GPH |
+| ~~GVR~~ | ~~`plet_gate_verify.py`~~ | Merged into GPH |
 | INV | `plet_invoke.py` | INVoke |
 
 ### Section abbreviations
@@ -107,10 +108,8 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 | SES | detect | DET |
 | SES | status | STS |
 | SES | preflight | PRF |
-| GIM | pre | PRE |
-| GIM | post | PST |
-| GVR | pre | PRE |
-| GVR | post | PST |
+| GPH | pre | PRE |
+| GPH | post | PST |
 
 **ID format examples:**
 - `STA_VAL_BHV_1` — state script, validate command, behavior, requirement #1
@@ -888,6 +887,20 @@ CLEANUP (per-iteration state controls):
 - **Shared gate library promoted (GVR_FUT_3 → RQ_4):** Extract to `util_gate_phase.py` during implementation. GIM retrofitted.
 - **Full trace validation promoted (GVR_FUT_1 → BHV_6, GIM_FUT_1 → BHV_8):** Both gate scripts now call TRC validate (not just existence check). WARN if invalid. Corrupt traces are worse than missing — silent data loss.
 - **GVR spec review complete.**
+
+#### GIM + GVR merged into plet_gate_phase.py (GPH) (2026-03-27)
+
+- **Decision:** Merge `plet_gate_impl.py` (GIM) and `plet_gate_verify.py` (GVR) into single `plet_gate_phase.py` (GPH). The two scripts were 80% identical — `--phase implement|verify` controls the differences.
+- **Why:** GIM (305 lines) and GVR (286 lines) plus util_gate_phase.py (200 lines) = 791 lines across 3 files. Merged: ~400 lines in 1 file. Eliminates util_gate_phase.py entirely. Follows GTC pattern (check-iteration already takes `--phase`).
+- **Prefix change:** GIM + GVR → GPH (Gate PHase). Both old prefixes become historical.
+- **Phase difference table in §1 PUR:** Shows which checks run for each phase/gate combination at a glance.
+- **Key differences by phase:**
+  - implement pre: git + state + lifecycle(queued/implementing) + spec-artifacts + fingerprints (5 extra)
+  - verify pre: git + state + lifecycle(verifying) only (3 checks)
+  - implement post: git + state + entries + trace (shared)
+  - verify post: git + state + entries + trace + last-verdict(FAIL) + verification-report(FAIL) (2 extra)
+- **Stable label prefix table:** GPH replaces GIM + GVR entries. Command abbreviations: PRE, PST (same as before).
+- **PLAN.md:** Seq 18-21 still show GIM/GVR complete. Merged spec replaces both spec files. Implementation will replace both scripts + util_gate_phase.py.
 
 #### GIM spec review continued (2026-03-26)
 
