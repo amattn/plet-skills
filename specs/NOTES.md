@@ -104,8 +104,13 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 | GTO | merge-squash | MSQ |
 | GTC | check-iteration | CKI |
 | GTC | check-session | CKS |
-
-New scripts define their command abbreviations in their spec files. Add them to this table when defined.
+| SES | detect | DET |
+| SES | status | STS |
+| SES | preflight | PRF |
+| GIM | pre | PRE |
+| GIM | post | PST |
+| GVR | pre | PRE |
+| GVR | post | PST |
 
 **ID format examples:**
 - `STA_VAL_BHV_1` — state script, validate command, behavior, requirement #1
