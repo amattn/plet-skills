@@ -413,3 +413,19 @@ With the worktree architecture, during parallel execution each iteration has its
 Two scopes: **session dashboard** (main plet/) and **iteration dashboard** (worktree plet/). Both are valid, different update frequencies. This is a feature, not a bug — but the GUI needs to be designed for it.
 
 The PRD mentions an optional GUI (§1 Overview) but doesn't describe this multi-directory model. Document in the GUI design when that project starts.
+
+### FB_50: Incorporate sandboxing into plet's security model [security] [prd]
+
+Claude Code's sandboxing (https://code.claude.com/docs/en/sandboxing) provides OS-level filesystem and network isolation for subprocess execution. This is highly relevant to plet's autonomous loop — subagents execute code, install packages, and modify files without human supervision.
+
+Key observations:
+1. **Sandbox + bypassPermissions is a valid combo** — sandbox provides OS-level safety (filesystem/network boundaries), bypassPermissions avoids permission prompts. The sandbox catches dangerous actions even when permissions are bypassed.
+2. **Sandboxing is environment-level, not per-invocation** — configured via `/sandbox` or settings.json, inherited by all subprocesses. plet_invoke.py doesn't need a flag for this.
+3. **plet should recommend or require sandboxing** — for autonomous loop sessions, sandboxing provides defense-in-depth against prompt injection, malicious dependencies, and accidental destructive commands.
+4. **Worktree isolation + sandbox = strong isolation** — each iteration runs in its own worktree (filesystem isolation by directory) inside a sandbox (OS-level enforcement). Network isolation prevents data exfiltration.
+
+Where this belongs:
+- **PRD** — security section should describe the sandboxing recommendation
+- **SES preflight** — could check if sandboxing is enabled and WARN if not (similar to CLAUDE.md check)
+- **README/docs** — setup instructions should include sandboxing configuration
+- **reference files** — implement.md/verify.md could note that agents operate in a sandboxed environment
