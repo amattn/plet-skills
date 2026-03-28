@@ -78,8 +78,8 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 20 | `plet_gate_verify.py` spec (GVR) | ✓ complete |
 | 21 | `plet_gate_verify.py` implementation | ✓ complete |
 | 21a | Merge GIM+GVR → `plet_gate_phase.py` (GPH) | ✓ complete |
-| 22 | `plet_prompt.py` spec (PRM) | not started |
-| 23 | `plet_prompt.py` implementation | not started |
+| 22 | `plet_prompt.py` spec (PRM) | ✓ complete |
+| 23 | `plet_prompt.py` implementation | ✓ complete |
 | 24 | `plet_invoke.py` spec (INV) | not started |
 | 25 | `plet_invoke.py` implementation | not started |
 | 26 | `plet_orchestrator.py` spec (ORC) | not started |
