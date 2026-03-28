@@ -2,7 +2,7 @@
 
 > Status: not started
 
-> Subprocess launch + transcript capture. Assembles prompt (via plet_inject_prompt.py), launches `claude -p --output-format stream-json`, tees streaming JSONL to transcript file, returns exit code. This replaces the vague "orchestrator captures transcript" responsibility with deterministic code.
+> Subprocess launch + transcript capture. Assembles prompt (via plet_prompt.py), launches `claude -p --output-format stream-json`, tees streaming JSONL to transcript file, returns exit code. This replaces the vague "orchestrator captures transcript" responsibility with deterministic code.
 
 > **Design notes (from other specs):**
 > - Use `claude --enable-auto-mode` for subprocess permissions (not `--dangerously-skip-permissions`). Auto-mode is safer — tracks and logs approvals. See https://claude.com/blog/auto-mode. Replaces FB_22 bypassPermissions approach.

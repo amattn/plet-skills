@@ -668,8 +668,7 @@ plet_state.py update-criterion --iter-id ID_001 --output json \
 |----|-----------|--------|-------------|
 | STA_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
 | STA_DEP_2 | imports | `util_io` | `load_json`, `atomic_write_json`, `iter_state_path`, `DEFAULT_PLET_DIR` |
-| STA_DEP_3 | called by | `plet_gate_impl.py` | `validate` as post-implement gate |
-| STA_DEP_4 | called by | `plet_gate_verify.py` | `validate` as post-verify gate |
+| STA_DEP_3 | called by | `plet_gate_phase.py` | `validate` as pre/post gate for both phases |
 | STA_DEP_5 | called by | `plet_orchestrator.py` | `update-field` for lifecycle transitions |
 
 No outgoing calls to other `plet_*.py` scripts — `plet_state.py` is a leaf CLI tool.

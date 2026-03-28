@@ -1,3 +1,3 @@
-# plet_inject_prompt.py
+# plet_prompt.py (PRM)
 
-> In progress — spec to be written during PLAN_8.
+> Status: not started — spec to be written during PLAN_8.

@@ -6,6 +6,13 @@ user-invocable: true
 allowed-tools:
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_state.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_entries.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_fingerprint.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_trace.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_iteration.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_ops.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_check.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_session.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_phase.py *)"
 ---
 
 # plet — Spec-Driven Autonomous Development Orchestrator

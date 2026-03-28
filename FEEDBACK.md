@@ -177,7 +177,7 @@ LIBT: 11 learnings, 6 emergent items with cross-iteration knowledge transfer. LO
 
 Source: LIBT S_8
 
-`[withdrawn]` — Script-as-orchestrator makes root cause moot: `plet_inject_prompt.py` ensures learnings are always injected, `plet_gate_impl.py` enforces mandatory entries. The fix is deterministic regardless of why prose rules failed.
+`[withdrawn]` — Script-as-orchestrator makes root cause moot: `plet_prompt.py` ensures learnings are always injected, `plet_gate_phase.py` enforces mandatory entries. The fix is deterministic regardless of why prose rules failed.
 
 ### FB_23: plet should bootstrap CLAUDE.md if it doesn't exist [onboarding] [artifacts]
 
@@ -227,7 +227,7 @@ SPARK produced 2 learnings and 1 emergent from 23 iterations (0.09 and 0.04 per 
 
 Source: SPARK SP_1
 
-`[deferred → PLAN_8]` — `plet_gate_impl.py post` blocks without entries.
+`[deferred → PLAN_8]` — `plet_gate_phase.py post` blocks without entries.
 
 ### FB_30: Agents used 42 git stashes despite ban [git] [autonomy]
 
@@ -259,7 +259,7 @@ Only 6 explicit work entries in progress.md from 23 iterations. Most iterations 
 
 Source: SPARK SP_5
 
-`[deferred → PLAN_8]` — `plet_gate_impl.py post` / `plet_gate_verify.py post` enforce entries.
+`[deferred → PLAN_8]` — `plet_gate_phase.py post` enforces entries for both phases.
 
 ### FB_34: Recommend user stays for first 1-2 iterations [onboarding] [ux]
 
@@ -299,7 +299,7 @@ SPARK's 2 learnings entries existed but weren't referenced by later iterations �
 
 Source: SPARK case study, comparison table
 
-`[deferred → PLAN_8]` — `plet_inject_prompt.py` always injects learnings.md into subagent prompts.
+`[deferred → PLAN_8]` — `plet_prompt.py` always injects learnings.md into subagent prompts.
 
 ### FB_39: SP_6 root cause investigation needs its own entry [research] [scale]
 
@@ -307,7 +307,7 @@ SP_6 (investigate learnings regression root cause) references FB_21 but FB_21 is
 
 Source: SPARK SP_6
 
-`[withdrawn]` — Root cause is academic. The new tooling (`plet_inject_prompt.py` for guaranteed learnings injection, `plet_gate_impl.py` for mandatory entry enforcement) should improve this regardless of why prose rules failed. PLAN_9 comparison runs will validate.
+`[withdrawn]` — Root cause is academic. The new tooling (`plet_prompt.py` for guaranteed learnings injection, `plet_gate_phase.py` for mandatory entry enforcement) should improve this regardless of why prose rules failed. PLAN_9 comparison runs will validate.
 
 ### FB_40: State file lifecycle not transitioned to complete after iteration finishes [state] [orchestrator]
 

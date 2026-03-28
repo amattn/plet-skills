@@ -43,6 +43,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 19 | Implement `plet_gate_impl.py` | Build from spec. |
 | 20 | `plet_gate_verify.py` spec (GVR) | Depends on ENT (`check`), STA (`validate`), GTC (`check-iteration`). Called by orchestrator. |
 | 21 | Implement `plet_gate_verify.py` | Build from spec. |
+| 21a | Merge GIM+GVR → `plet_gate_phase.py` (GPH) | Merged into one script with `--phase implement\|verify`. Eliminated util_gate_phase.py. |
 | 22 | `plet_prompt.py` spec (PRM) | Prompt assembly for subagents. Depends on knowing what reference files exist. Called by plet_invoke.py. |
 | 23 | Implement `plet_prompt.py` | Build from spec. |
 | 24 | `plet_invoke.py` spec (INV) | Depends on PRM (calls assemble) and TRC (writes transcript alongside events). Subprocess launch + transcript capture. |
@@ -76,6 +77,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 19 | `plet_gate_impl.py` implementation | ✓ complete |
 | 20 | `plet_gate_verify.py` spec (GVR) | ✓ complete |
 | 21 | `plet_gate_verify.py` implementation | ✓ complete |
+| 21a | Merge GIM+GVR → `plet_gate_phase.py` (GPH) | ✓ complete |
 | 22 | `plet_prompt.py` spec (PRM) | not started |
 | 23 | `plet_prompt.py` implementation | not started |
 | 24 | `plet_invoke.py` spec (INV) | not started |
