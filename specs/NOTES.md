@@ -31,7 +31,7 @@ This was validated across three case studies: state schema drift (the most persi
 | GTC | `plet_git_check.py` | GT Check |
 | TRC | `plet_trace.py` | TRaCe |
 | SES | `plet_session.py` | SESsion |
-| INJ | `plet_inject_prompt.py` | INJect |
+| PRM | `plet_prompt.py` | PRoMpt |
 | ORC | `plet_orchestrator.py` | ORChestrator |
 | GPH | `plet_gate_phase.py` | Gate PHase |
 | ~~GIM~~ | ~~`plet_gate_impl.py`~~ | Merged into GPH |

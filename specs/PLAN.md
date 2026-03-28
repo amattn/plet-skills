@@ -15,7 +15,7 @@ Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved
 
 ## FB Traceability
 
-These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_git.py` → FB_30, FB_31, FB_32, FB_35 (git stashes, lost commits, orphaned worktrees). `plet_session.py` → FB_16, FB_22, FB_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FB_11 (trace schema standardization). `plet_gate_phase.py` → FB_29, FB_33, FB_11, FB_40 (learnings/emergent enforcement, progress completeness, trace validation, lifecycle transitions). `plet_inject_prompt.py` → FB_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FB_31, FB_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FB_17, FB_29, FB_44 (runtime artifact formatting, multiline content).
+These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_git.py` → FB_30, FB_31, FB_32, FB_35 (git stashes, lost commits, orphaned worktrees). `plet_session.py` → FB_16, FB_22, FB_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FB_11 (trace schema standardization). `plet_gate_phase.py` → FB_29, FB_33, FB_11, FB_40 (learnings/emergent enforcement, progress completeness, trace validation, lifecycle transitions). `plet_prompt.py` → FB_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FB_31, FB_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FB_17, FB_29, FB_44 (runtime artifact formatting, multiline content).
 
 ## Build Order
 
@@ -43,9 +43,9 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 19 | Implement `plet_gate_impl.py` | Build from spec. |
 | 20 | `plet_gate_verify.py` spec (GVR) | Depends on ENT (`check`), STA (`validate`), GTC (`check-iteration`). Called by orchestrator. |
 | 21 | Implement `plet_gate_verify.py` | Build from spec. |
-| 22 | `plet_inject_prompt.py` spec (INJ) | Depends on knowing what reference files exist. Called by plet_invoke.py. |
-| 23 | Implement `plet_inject_prompt.py` | Build from spec. |
-| 24 | `plet_invoke.py` spec (INV) | Depends on INJ (calls assemble) and TRC (writes transcript alongside events). Subprocess launch + transcript capture. |
+| 22 | `plet_prompt.py` spec (PRM) | Prompt assembly for subagents. Depends on knowing what reference files exist. Called by plet_invoke.py. |
+| 23 | Implement `plet_prompt.py` | Build from spec. |
+| 24 | `plet_invoke.py` spec (INV) | Depends on PRM (calls assemble) and TRC (writes transcript alongside events). Subprocess launch + transcript capture. |
 | 25 | Implement `plet_invoke.py` | Build from spec. Uses util_subprocess. |
 | 26 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Calls plet_invoke.py instead of spawning subprocesses directly. |
 | 27 | Implement `plet_orchestrator.py` | Build from spec. |
@@ -76,8 +76,8 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 19 | `plet_gate_impl.py` implementation | ✓ complete |
 | 20 | `plet_gate_verify.py` spec (GVR) | ✓ complete |
 | 21 | `plet_gate_verify.py` implementation | ✓ complete |
-| 22 | `plet_inject_prompt.py` spec (INJ) | not started |
-| 23 | `plet_inject_prompt.py` implementation | not started |
+| 22 | `plet_prompt.py` spec (PRM) | not started |
+| 23 | `plet_prompt.py` implementation | not started |
 | 24 | `plet_invoke.py` spec (INV) | not started |
 | 25 | `plet_invoke.py` implementation | not started |
 | 26 | `plet_orchestrator.py` spec (ORC) | not started |
