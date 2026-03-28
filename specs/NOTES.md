@@ -110,6 +110,7 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 | SES | preflight | PRF |
 | GPH | pre | PRE |
 | GPH | post | PST |
+| PRM | assemble | ASM |
 
 **ID format examples:**
 - `STA_VAL_BHV_1` — state script, validate command, behavior, requirement #1
@@ -876,6 +877,18 @@ CLEANUP (per-iteration state controls):
 - **Why not other approaches:** Per-iteration files lose the unified narrative. Auto-resolution is fragile. Separate artifact merging adds complexity. Sequential merge is the simplest fix — 13 iterations × 2s = 26s total merge time vs hours saved by parallel execution.
 - **Per-iteration files (state/{id}.json, trace/{id}-*) never conflict** — different file paths, no shared state.
 - **GUI multi-directory model confirmed:** Main plet/ = session dashboard. Worktree plet/ = iteration dashboard. GUI discovers worktrees via `git worktree list --porcelain`. Both views are valid, different scopes.
+
+#### PRM spec + implementation (2026-03-27)
+
+- **Renamed:** `plet_inject_prompt.py` (INJ) → `plet_prompt.py` (PRM). Simpler name — "it builds the prompt."
+- **Single command:** `assemble` with `--phase implement|verify`. Reads files on disk, outputs complete prompt.
+- **7 sections in order:** reference-file (implement.md or verify.md), iteration-definition (extracted from iterations.md), formats, state-schema, requirements, learnings (always present — FB_38), iteration-state (formatted readably).
+- **Learnings always injected (FB_38):** Even when learnings.md is empty or missing, the section appears with a "no learnings" note. Guarantees cross-iteration knowledge transfer is deterministic.
+- **Iteration definition extraction:** Regex-based heading match in iterations.md. Extracts from matching heading to next same-level heading.
+- **State formatted as text:** Not raw JSON — human-readable summary of lifecycle, attempts, criteria with statuses.
+- **Matches current SKILL.md injection list.** Will evolve when skills are rewritten to use enforcement scripts. This version is a historical baseline — formats.md and state-schema.md may become unnecessary when agents call scripts instead of writing freehand.
+- **Resolved questions:** No relevance filtering in v1 (full learnings included). No emergent.md injection (not in current SKILL.md list). No target CLAUDE.md injection (agent reads it naturally). No progress.md injection (learnings captures transferable knowledge).
+- **49 tests, all passing.**
 
 #### GVR spec review (2026-03-27)
 
