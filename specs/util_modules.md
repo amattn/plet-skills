@@ -153,6 +153,14 @@ Also provides `now_iso()` for timestamp generation within templates (avoiding a 
 | `build_learning_entry(plet_id, iteration, title, category, entry_title, content_text, phase)` | Build learnings.md entry per formats.md RT_2. |
 | `build_emergent_entry(plet_id, em_number, iteration, title, entry_title, phase, category, content_text)` | Build emergent.md entry per formats.md RT_3. |
 
+## util_git.py
+
+Pure functions for git naming conventions — branch names, tag names, and other git-related string derivation. No git operations (no subprocess calls). Extracted from `plet_git_iteration.py` so multiple scripts can share the same naming logic without duplicating it or calling each other via subprocess.
+
+| Function | Purpose |
+|----------|---------|
+| `derive_branch_name(state, branch_type, iter_id=None)` | Derive branch name from state dict and type (`iteration`, `workstream`, `plan`, `refine`). Returns string like `plet/{projectId}/loop{N}/workstream`. |
+
 ## util_subprocess.py
 
 Subprocess execution with capture, error formatting, and timeout handling. General-purpose wrapper — no shell=True, consistent error messages. Includes a `run_git` convenience for the most common case.

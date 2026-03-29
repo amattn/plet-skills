@@ -1095,3 +1095,11 @@ Retrofitting all specs first, then implementations.
 - **UNV_CMD_29 added:** unknown flags error. New scripts implement from the start; retrofit existing scripts in seq 33.
 - **FB_52 filed:** plan/refine sessions need explicit ambiguity/gap detection steps.
 - **FB_53 filed:** different software types need different planning templates.
+
+#### plet_session.py spec (SES) — complete (2026-03-29)
+
+- 2 mutating commands: `start-session` (increment counter, append session history), `end-session` (set endedAt).
+- Both idempotent: start-session resumes if same-type session active; end-session is no-op if already ended.
+- **Branch name derivation:** `derive_branch_name` extracted from `plet_git_iteration.py` into new `util_git.py`. Pure string function — no git ops, no subprocess. Both `plet_session.py` and `plet_git_iteration.py` import the same function. Single source of truth for branch naming. Chose `util_git.py` over `util_io.py` for discoverability — branch names are git concepts, and nobody would think to look in util_io for git naming conventions even though they're technically string derivation.
+- **Corruption detection:** multiple `sessionHistory` entries with `endedAt: null` is a hard error (SES_EDG_7/ERR_9). Refuse to operate — state needs manual repair. Applies to both start-session and end-session.
+- Does NOT create git branches — returns name for orchestrator to create via plet_git_iteration.py.
