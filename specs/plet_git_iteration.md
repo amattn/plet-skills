@@ -49,7 +49,11 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 ## 3. Commands
 
-Command abbreviations: `BRN` (branch-name), `WTC` (worktree-create), `WTR` (worktree-remove).
+**Command summary:**
+
+- **`branch-name`** (BRN) — Generate the correct branch name from project state and type. Read-only. Ensures consistent naming across all callers.
+- **`worktree-create`** (WTC) — Create an isolated git worktree for an iteration. Called by the orchestrator before spawning an implement subagent.
+- **`worktree-remove`** (WTR) — Clean up a worktree after an iteration completes. Called by the orchestrator after merge-squash.
 
 ### Universal Flags
 

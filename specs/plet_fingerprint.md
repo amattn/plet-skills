@@ -25,7 +25,11 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 ## 3. Commands
 
-Command abbreviations: `EXT` (extract), `EMB` (embed), `CHK` (check).
+**Command summary:**
+
+- **`extract`** (EXT) — Extract a fingerprint from a plan artifact (requirements.md or iterations.md). Read-only. Returns the current hash/metadata for comparison.
+- **`embed`** (EMB) — Write an extracted fingerprint into the correct location in a plan artifact. Called during plan and refine sessions to keep the fingerprint chain in sync.
+- **`check`** (CHK) — Detect staleness across the fingerprint chain (requirements → iterations → state). Read-only. Called by preflight and the orchestrator before loop start.
 
 ### Universal Flags
 

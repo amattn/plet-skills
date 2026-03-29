@@ -28,7 +28,9 @@ Assembles the prompt that gets sent to implement and verify subagents. Reads ref
 
 ## 3. Commands
 
-Command abbreviations: `ASM` (assemble).
+**Command summary:**
+
+- **`assemble`** (ASM) — Build the complete prompt for an implement or verify subagent. Reads reference files, requirements, iterations, learnings, and per-iteration state from disk. Outputs structured prompt JSON. The bridge between deterministic state reading and subagent invocation.
 
 ### Universal Flags
 

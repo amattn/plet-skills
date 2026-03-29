@@ -35,7 +35,11 @@ The `/plet` entry point needs to know which phase the project is in, what the cu
 
 ## 3. Commands
 
-Command abbreviations: `DET` (detect), `STA` (status — note: different script from plet_state.py STA prefix), `PRE` (preflight).
+**Command summary:**
+
+- **`detect`** (DET) — Determine which session type to enter (plan, loop, refine, or status). Read-only routing primitive. Called by SKILL.md at every `/plet` invocation.
+- **`status`** (STA) — Project status dashboard: iteration counts, blockers, active agents. Read-only. Called by SKILL.md for `/plet status` and by humans for inspection. (Note: STA abbreviation is different from plet_state.py's STA prefix.)
+- **`preflight`** (PRE) — Pre-session environment checks (scripts installed, git health, fingerprints consistent). Read-only. Returns go/no-go verdict. Called before every session.
 
 ### Universal Flags
 

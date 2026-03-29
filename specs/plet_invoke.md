@@ -27,7 +27,9 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 
 ## 3. Commands
 
-Command abbreviations: `RUN` (run).
+**Command summary:**
+
+- **`run`** (RUN) — Launch a Claude Code subprocess with transcript capture. Assembles the prompt (via plet_prompt.py), launches `claude -p`, and captures streaming JSONL output to the trace transcript file. Called by the orchestrator for each implement/verify phase.
 
 ### Universal Flags
 

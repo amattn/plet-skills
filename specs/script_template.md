@@ -25,6 +25,13 @@ This was the first enforcement script built — motivated by [describe the case 
 
 Each command gets seven sub-sections with stable-labeled requirements. Command abbreviations are script-specific (defined per spec file).
 
+**Command summary:**
+
+A prose paragraph before the list is welcome when commands share context — common callers, a shared pattern, or a note about who can invoke them. Use it to reduce duplication across the bullet points.
+
+- **`command-name`** (XXX) — What this command does and when it's used. One or two sentences.
+- **`another-command`** (YYY) — What this command does and when it's used.
+
 ### Universal Flags
 
 List universal flags (`--output json`, `--pretty`, `--fields`, `--dry-run`) in a table here, noting which commands each applies to and explicitly stating which commands do NOT support `--dry-run` (read-only commands). Per-command INP/OUT sections then list only command-specific inputs and outputs, avoiding repetition. Include JSON error behavior note (structured JSON to stdout with `status:"error"` + text to stderr, per UNV_ERR_4).

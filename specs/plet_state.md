@@ -35,11 +35,14 @@ The external GUI persona (STA_AGT_8) is a silent consumer that never calls the C
 
 ## 3. Commands
 
-Command abbreviations: `VAL` (validate), `UPC` (update-criterion), `UPF` (update-field), `INI` (init).
+**Command summary:**
+
+- **`validate`** (VAL) — Check a per-iteration state file against the schema. Read-only. Used by gate scripts and humans to verify state integrity.
+- **`update-criterion`** (UPC) — Update a single criterion's implementation or verification status with evidence. Called by subagents after each red/green step.
+- **`update-field`** (UPF) — Update top-level fields (lifecycle, agentActivity, etc.) via `--data` JSON. Called by subagents for state transitions and heartbeats.
+- **`init`** (INI) — Create a new per-iteration state file with correct structure. Called during plan session after iteration decomposition.
 
 All commands take `[<plet_dir>]` as optional first positional arg (default: `plet/`) and `--iter-id ID_xxx` (required) per UNV_CMD_16. Paths derived via `util_io.iter_state_path()`.
-
-Universal flags on all commands: `--output json [--pretty]`, `--fields f1,f2`. Mutating commands also support `--dry-run`. See `specs/conventions.md` UNV_CMD_17, UNV_CMD_18, UNV_CMD_19.
 
 ---
 

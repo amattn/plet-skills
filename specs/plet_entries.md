@@ -28,7 +28,14 @@ Runtime artifact entries (progress, learnings, emergent) drifted in format acros
 
 ## 3. Commands
 
-Command abbreviations: `APR` (add-progress), `ALR` (add-learning), `AEM` (add-emergent), `CHK` (check).
+**Command summary:**
+
+The three `add-*` commands append formatted entries to plet's runtime artifacts (progress.md, learnings.md, emergent.md). Any caller can use them — implement/verify subagents, the orchestrator for session-level events, refine sessions, or manual invocation for ad-hoc entries. The script owns the format; the caller provides the content.
+
+- **`add-progress`** (APR) — Append to progress.md. Phase milestones, status changes, session events.
+- **`add-learning`** (ALR) — Append to learnings.md. Reusable knowledge discovered during work.
+- **`add-emergent`** (AEM) — Append to emergent.md. Items not in the spec that need human triage.
+- **`check`** (CHK) — Audit whether required entries exist for a given iteration. Read-only. Used by gate scripts to verify artifact completeness.
 
 ### Universal Flags
 

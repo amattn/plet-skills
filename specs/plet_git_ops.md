@@ -49,7 +49,10 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 ## 3. Commands
 
-Command abbreviations: `ATG` (audit-tag), `MSQ` (merge-squash).
+**Command summary:**
+
+- **`audit-tag`** (ATG) — Create an audit tag marking a phase boundary. Called by the orchestrator after implement and verify phases to preserve pre-squash history.
+- **`merge-squash`** (MSQ) — Merge an iteration branch into the workstream as one squashed commit. Called by the orchestrator after verification passes. Enforces linear history.
 
 ### Universal Flags
 

@@ -34,7 +34,10 @@ Case study evidence: agents used 42 git stashes despite an explicit ban (FB_30),
 
 ## 3. Commands
 
-Command abbreviations: `CKI` (check-iteration), `CKS` (check-session).
+**Command summary:**
+
+- **`check-iteration`** (CKI) — Per-iteration git compliance at phase boundaries. Read-only. Checks branch exists, no detached HEAD, no uncommitted changes, etc.
+- **`check-session`** (CKS) — Session-level git health at session start/end. Read-only. Checks workstream clean, no stale branches, tag counts match.
 
 ### Universal Flags
 

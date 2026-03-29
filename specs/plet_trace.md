@@ -30,7 +30,11 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 ## 3. Commands
 
-Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
+**Command summary:**
+
+- **`append-event`** (APE) — Append a semantic event to the trace NDJSON file for an iteration phase. Called by subagents for decisions, criterion updates, errors, and lifecycle changes.
+- **`validate`** (VAL) — Check a trace events file against the schema. Read-only. Used by gate scripts to verify trace completeness.
+- **`query`** (QRY) — Filter and extract events by type, criterion, or count. Read-only. Used for debugging and case study analysis.
 
 ### Universal Flags
 

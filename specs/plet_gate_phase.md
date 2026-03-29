@@ -51,7 +51,10 @@ Case study evidence: SPARK produced 0.09 learnings and 0.04 emergent entries per
 
 ## 3. Commands
 
-Command abbreviations: `PRE` (pre), `PST` (post).
+**Command summary:**
+
+- **`pre`** (PRE) — Pre-phase gate. Verifies foundation before work starts: git state, iteration state, lifecycle, phase-specific preconditions. Called by the orchestrator (or subagent) before each implement/verify phase.
+- **`post`** (PST) — Post-phase gate. Verifies artifact completeness before subagent exits: entries exist, state updated, tests pass, trace written. Subagents self-correct until this passes.
 
 ### Universal Flags
 

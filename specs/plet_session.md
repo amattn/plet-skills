@@ -22,6 +22,11 @@ Session lifecycle management — starts and ends loop and refine sessions. Mutat
 
 ## 3. Commands
 
+**Command summary:**
+
+- **`start-session`** (STA) — Start a loop or refine session. Increments the session counter, generates the workstream branch name, and appends a session history entry. Idempotent: resumes if the same session type is already active (crash recovery).
+- **`end-session`** (END) — End the active session. Sets `endedAt` on the current session history entry and computes duration. Idempotent: no-op if already ended.
+
 ### Universal Flags
 
 | Flag | Applies to | Notes |

@@ -22,6 +22,12 @@ Loop scheduling decisions — determines which iterations are eligible for work,
 
 ## 3. Commands
 
+**Command summary:**
+
+- **`eligible`** (ELG) — List iterations ready for work (queued with all dependencies complete). Read-only. The core scheduling function — called at loop start and after each iteration completes.
+- **`check-breakpoints`** (BKP) — Check if a user-set breakpoint is configured for an iteration at a given position (before/after). Read-only. Called twice per iteration by the orchestrator.
+- **`check-retry`** (RTY) — Evaluate whether a failed iteration should retry based on failure trend analysis. Read-only. Called after a verify phase produces a "rejected" verdict. Implements IMP_14 (3 default, 6 if improving).
+
 ### Universal Flags
 
 | Flag | Applies to | Notes |
