@@ -6,12 +6,16 @@ schema drift across iterations. Handles only semantic events
 (-events.ndjson), not raw transcripts (-transcript.jsonl).
 
 Usage:
-    plet_trace.py <command> [args]
+    plet_trace.py <command> [<plet_dir>] [args]
 
 Commands:
     append-event  Append a semantic event to a trace NDJSON file.
     validate      Check a trace events file against the schema.
     query         Filter and extract events by type, criterion, or count.
+
+All commands take an optional plet_dir (defaults to ./plet/) and require
+--iter-id, --phase, --attempt to derive the trace file path:
+    {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 
 Global flags:
     --help, -h    Show this help or command-specific help
@@ -33,6 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     filter_fields,
+    get_plet_dir,
     now_iso,
     parse_kwargs,
     require_kwargs,
@@ -40,7 +45,7 @@ from util_cli import (
     validate_int,
 )
 from util_id import generate_plet_id
-from util_io import atomic_append, load_json, load_text, events_path as _events_path, trace_dir_path
+from util_io import atomic_append, events_path, load_json, load_text, trace_dir_path
 
 SCRIPT_VERSION = "0.1.0"
 SKILL_VERSION = "0.1.1"
@@ -66,7 +71,7 @@ VALID_CRITERION_STATUSES = ["not_started", "fail", "pass", "error", "skipped"]
 
 VALID_CRITERION_PHASES = ["implementation", "verification"]
 
-ITERATION_ID_PATTERN = re.compile(r"^ID_\d+$")
+ITERATION_ID_PATTERN = re.compile(r"^(ID_\d+|proj)$")
 
 # Type-specific required fields in data
 REQUIRED_DATA_FIELDS = {
@@ -153,15 +158,14 @@ def json_response(data, flags):
     print(json.dumps(data, indent=indent))
 
 
-def derive_events_path(trace_dir, iter_id, phase, attempt):
-    """Derive the events file path from trace dir and context.
+def derive_events_path(plet_dir, iter_id, phase, attempt):
+    """Derive the events file path from plet_dir and context.
 
-    Uses the same filename format as util_io.events_path, but accepts
-    trace_dir directly (append-event takes trace_dir, not plet_dir).
+    Path: {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
+    Creates the trace/ subdirectory if it doesn't exist.
     """
-    # Build filename using the same pattern as _events_path
-    filename = "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt)
-    return os.path.join(trace_dir, filename)
+    os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
+    return events_path(plet_dir, iter_id, phase, attempt)
 
 
 # ---------------------------------------------------------------------------
@@ -327,20 +331,23 @@ PITFALLS:
     invocation:       cwd, permissionMode, promptLength
 
 USAGE:
-    plet_trace.py append-event <trace_dir> --iter-id ID_xxx --phase PHASE \\
+    plet_trace.py append-event [<plet_dir>] --iter-id ID_xxx --phase PHASE \\
         --attempt N --event-type TYPE --data '{...}' [--data-file path] \\
         [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+
+    plet_dir defaults to ./plet/ if omitted.
+    Trace file: {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 
 PURPOSE: Records a semantic event during implementation or verification.
 Events capture decisions, criterion updates, lifecycle transitions, activity
 changes, and errors in structured NDJSON format.
 
 Examples:
-    plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase implement \\
+    plet_trace.py append-event plet/ --iter-id ID_001 --phase implement \\
         --attempt 1 --event-type decision \\
         --data '{"description":"Using pytest","rationale":"Requirements specify pytest"}'
 
-    plet_trace.py append-event plet/trace/ --iter-id ID_001 --phase implement \\
+    plet_trace.py append-event --iter-id ID_001 --phase implement \\
         --attempt 1 --event-type criterion_update \\
         --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}'
 """
@@ -357,26 +364,21 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if len(clean_args) < 1:
-        print("Error: trace_dir argument is required", file=sys.stderr)
-        print(HELP, file=sys.stderr)
-        return 1
+    plet_dir, remaining = get_plet_dir(clean_args)
 
-    trace_dir = clean_args[0]
-
-    # Check trace_dir exists and is a directory
-    if not os.path.exists(trace_dir):
-        print("Error: {} does not exist".format(trace_dir), file=sys.stderr)
+    # Check plet_dir exists and is a directory
+    if not os.path.exists(plet_dir):
+        print("Error: {} does not exist".format(plet_dir), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
-    if not os.path.isdir(trace_dir):
-        print("Error: {} is not a directory".format(trace_dir), file=sys.stderr)
+    if not os.path.isdir(plet_dir):
+        print("Error: {} is not a directory".format(plet_dir), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
     # Parse named args
     try:
-        kwargs = parse_kwargs(clean_args[1:])
+        kwargs = parse_kwargs(remaining)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
@@ -499,7 +501,7 @@ Examples:
         "data": data_obj,
     }
 
-    events_path = derive_events_path(trace_dir, iter_id, phase, attempt)
+    events_path = derive_events_path(plet_dir, iter_id, phase, attempt)
 
     if flags["dry_run"]:
         if flags["output"] == "json":
@@ -545,22 +547,25 @@ IMPORTANT: Read-only. Safe to run freely. Accumulates ALL errors before
 reporting so you can fix everything in one pass.
 
 PITFALLS:
-- Takes a file path, not a directory (unlike append-event)
 - Common invalid types: "info" (use "decision" or "error"),
   "decision_made" (use "decision")
 - data.phase for criterion_update is "implementation"/"verification",
   NOT "implement"/"verify"
 
 USAGE:
-    plet_trace.py validate <events_file> [--output json [--pretty] [--fields f1,f2]]
+    plet_trace.py validate [<plet_dir>] --iter-id ID_xxx --phase PHASE \\
+        --attempt N [--output json [--pretty] [--fields f1,f2]]
+
+    plet_dir defaults to ./plet/ if omitted.
+    Derives trace file: {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 
 PURPOSE: Confirms a trace events file conforms to the NDJSON schema without
 modifying it. Each line must be valid JSON with required base fields and
 type-specific data fields.
 
 Examples:
-    plet_trace.py validate plet/trace/ID_001-implement-1-events.ndjson
-    plet_trace.py validate plet/trace/ID_001-implement-1-events.ndjson --output json
+    plet_trace.py validate plet/ --iter-id ID_001 --phase implement --attempt 1
+    plet_trace.py validate --iter-id ID_001 --phase implement --attempt 1 --output json
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -576,22 +581,55 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if len(clean_args) < 1:
-        print("Error: events_file argument is required", file=sys.stderr)
-        print(HELP, file=sys.stderr)
+    plet_dir, remaining = get_plet_dir(clean_args)
+
+    # Parse named args
+    try:
+        kwargs = parse_kwargs(remaining)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
-    path = clean_args[0]
+    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], HELP):
+        return 1
+
+    # Validate iter-id
+    iter_id = kwargs["iter_id"]
+    if not ITERATION_ID_PATTERN.match(iter_id):
+        print(
+            "Error: --iter-id '{}' does not match expected pattern "
+            "ID_N+ (e.g., ID_001)".format(iter_id),
+            file=sys.stderr,
+        )
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Validate phase
+    phase = kwargs["phase"]
+    if not validate_enum(phase, VALID_PHASES, "--phase"):
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Validate attempt
+    attempt, ok = validate_int(kwargs["attempt"], "--attempt")
+    if not ok:
+        print(hint, file=sys.stderr)
+        return 1
+    if attempt < 1:
+        print(
+            "Error: --attempt must be a positive integer, got '{}'".format(
+                kwargs["attempt"]
+            ),
+            file=sys.stderr,
+        )
+        print(hint, file=sys.stderr)
+        return 1
+
+    path = derive_events_path(plet_dir, iter_id, phase, attempt)
 
     if not os.path.exists(path):
         print("Error: {} does not exist".format(path), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if os.path.isdir(path):
-        print(
-            "Error: expected a file, got directory: {}".format(path),
-            file=sys.stderr,
-        )
         print(hint, file=sys.stderr)
         return 1
 
@@ -668,24 +706,27 @@ IMPORTANT: Read-only. Returns exit 0 even with no matches (no matches is
 not an error). Use --raw for pipe-friendly output.
 
 PITFALLS:
-- Takes a file path, not a directory (unlike append-event)
 - --criterion implies --event-type criterion_update. Don't combine
   --criterion with a different --event-type.
 - --raw and --output json are mutually exclusive
 
 USAGE:
-    plet_trace.py query <events_file> [--event-type TYPE] [--criterion AC_1] \\
+    plet_trace.py query [<plet_dir>] --iter-id ID_xxx --phase PHASE \\
+        --attempt N [--event-type TYPE] [--criterion AC_1] \\
         [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]
+
+    plet_dir defaults to ./plet/ if omitted.
+    Derives trace file: {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 
 PURPOSE: Filters events by type, criterion, or count. Agents read trace files
 through this command instead of parsing NDJSON manually. Use --raw for piping
 to wc -l, jq, or other tools.
 
 Examples:
-    plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type decision
-    plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --criterion AC_1
-    plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type error --last 3
-    plet_trace.py query plet/trace/ID_001-implement-1-events.ndjson --event-type decision --raw
+    plet_trace.py query plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type decision
+    plet_trace.py query --iter-id ID_001 --phase implement --attempt 1 --criterion AC_1
+    plet_trace.py query plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type error --last 3
+    plet_trace.py query --iter-id ID_001 --phase implement --attempt 1 --event-type decision --raw
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -701,30 +742,55 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if len(clean_args) < 1:
-        print("Error: events_file argument is required", file=sys.stderr)
-        print(HELP, file=sys.stderr)
-        return 1
+    plet_dir, remaining = get_plet_dir(clean_args)
 
-    path = clean_args[0]
-
-    if not os.path.exists(path):
-        print("Error: {} does not exist".format(path), file=sys.stderr)
+    # Parse named args
+    try:
+        kwargs = parse_kwargs(remaining)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
-    if os.path.isdir(path):
+
+    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], HELP):
+        return 1
+
+    # Validate iter-id
+    iter_id = kwargs["iter_id"]
+    if not ITERATION_ID_PATTERN.match(iter_id):
         print(
-            "Error: expected a file, got directory: {}".format(path),
+            "Error: --iter-id '{}' does not match expected pattern "
+            "ID_N+ (e.g., ID_001)".format(iter_id),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
         return 1
 
-    # Parse named args
-    try:
-        kwargs = parse_kwargs(clean_args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
+    # Validate phase
+    phase = kwargs["phase"]
+    if not validate_enum(phase, VALID_PHASES, "--phase"):
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Validate attempt
+    attempt, ok = validate_int(kwargs["attempt"], "--attempt")
+    if not ok:
+        print(hint, file=sys.stderr)
+        return 1
+    if attempt < 1:
+        print(
+            "Error: --attempt must be a positive integer, got '{}'".format(
+                kwargs["attempt"]
+            ),
+            file=sys.stderr,
+        )
+        print(hint, file=sys.stderr)
+        return 1
+
+    path = derive_events_path(plet_dir, iter_id, phase, attempt)
+
+    if not os.path.exists(path):
+        print("Error: {} does not exist".format(path), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 

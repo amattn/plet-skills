@@ -106,7 +106,7 @@ def test_append_decision():
         check("reports OK", "OK" in out)
         check("has plet ID", "tev_" in out)
 
-        events_file = os.path.join(tmpdir, "ID_001-implement-1-events.ndjson")
+        events_file = os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson")
         check("file created", os.path.exists(events_file))
 
         events = read_events(events_file)
@@ -135,7 +135,7 @@ def test_append_criterion_update():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("type is criterion_update", ev["type"] == "criterion_update")
         check("data.criterionId", ev["data"]["criterionId"] == "AC_1")
@@ -156,7 +156,7 @@ def test_append_lifecycle_change():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("data.from", ev["data"]["from"] == "queued")
         check("data.to", ev["data"]["to"] == "implementing")
@@ -175,7 +175,7 @@ def test_append_activity_change():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("data.activity", ev["data"]["activity"] == "running_checks")
         check("data.detail preserved", ev["data"]["detail"] == "pytest -x")
@@ -194,7 +194,7 @@ def test_append_error_event():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("data.message", ev["data"]["message"] == "pytest not found")
         check("data.recovery preserved", ev["data"]["recovery"] == "install pytest")
@@ -213,7 +213,7 @@ def test_append_invocation_event():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
         ev = events[0]
         check("type is invocation", ev["type"] == "invocation")
         check("data.cwd", ev["data"]["cwd"] == "/tmp/worktree")
@@ -240,7 +240,7 @@ def test_append_invocation_with_prompt():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-verify-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-verify-1-events.ndjson"))
         ev = events[0]
         check("prompt preserved", "full prompt text" in ev["data"]["prompt"])
 
@@ -258,7 +258,7 @@ def test_append_multiple_events():
                 "--data", '{{"description":"decision {}","rationale":"reason {}"}}'.format(i, i),
             ])
 
-        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
         check("three events", len(events) == 3)
         check("each is valid JSON", all("pletId" in e for e in events))
         # Plet IDs should be unique
@@ -277,7 +277,7 @@ def test_append_ndjson_format():
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
         ])
-        path = os.path.join(tmpdir, "ID_001-implement-1-events.ndjson")
+        path = os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson")
         with open(path) as f:
             content = f.read()
         check("ends with newline", content.endswith("\n"))
@@ -291,7 +291,7 @@ def test_append_ndjson_format():
 def test_append_file_creation():
     print("\n## Append — creates file on first event")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = os.path.join(tmpdir, "ID_002-verify-1-events.ndjson")
+        path = os.path.join(tmpdir, "trace", "ID_002-verify-1-events.ndjson")
         check("file does not exist before", not os.path.exists(path))
 
         run([
@@ -509,7 +509,7 @@ def test_append_data_file():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
         check("data from file", events[0]["data"]["description"] == "from file")
 
 
@@ -546,7 +546,7 @@ def test_append_dry_run():
         ])
         check("reports dry run", "DRY RUN" in out)
 
-        events_file = os.path.join(tmpdir, "ID_001-implement-1-events.ndjson")
+        events_file = os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson")
         check("file NOT created", not os.path.exists(events_file))
 
 
@@ -582,7 +582,7 @@ def test_append_extra_data_fields():
             "--data", '{"description":"test","rationale":"test","alternatives":["option A","option B"],"custom":"field"}',
         ])
 
-        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
         check("alternatives preserved", events[0]["data"]["alternatives"] == ["option A", "option B"])
         check("custom field preserved", events[0]["data"]["custom"] == "field")
 
@@ -629,7 +629,8 @@ def test_append_no_tmp_residue():
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
         ])
-        files = os.listdir(tmpdir)
+        trace_dir = os.path.join(tmpdir, "trace")
+        files = os.listdir(trace_dir)
         check("no .tmp files", not any(f.endswith(".tmp") for f in files))
 
 
@@ -638,10 +639,16 @@ def test_append_no_tmp_residue():
 # ---------------------------------------------------------------------------
 
 def make_trace_file(tmpdir, events=None):
-    """Create a trace file with given events, return path."""
+    """Create a trace file with given events, return path.
+
+    Writes to {tmpdir}/trace/ID_001-implement-1-events.ndjson
+    to match the plet_dir/trace/ convention.
+    """
     if events is None:
         events = []
-    path = os.path.join(tmpdir, "ID_001-implement-1-events.ndjson")
+    trace_dir = os.path.join(tmpdir, "trace")
+    os.makedirs(trace_dir, exist_ok=True)
+    path = os.path.join(trace_dir, "ID_001-implement-1-events.ndjson")
     with open(path, "w") as f:
         for ev in events:
             f.write(json.dumps(ev) + "\n")
@@ -678,12 +685,12 @@ def make_event(event_type="decision", **overrides):
 def test_validate_valid():
     print("\n## Validate — valid file")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [
+        make_trace_file(tmpdir, [
             make_event("decision"),
             make_event("criterion_update"),
             make_event("lifecycle_change"),
         ])
-        out, _, _ = run(["validate", path])
+        out, _, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"])
         check("reports OK", "OK" in out)
         check("shows event count", "3 events" in out)
         check("shows types", "decision" in out)
@@ -692,8 +699,8 @@ def test_validate_valid():
 def test_validate_empty_file():
     print("\n## Validate — empty file is valid")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [])
-        out, _, _ = run(["validate", path])
+        make_trace_file(tmpdir, [])
+        out, _, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"])
         check("reports OK", "OK" in out)
         check("0 events", "0 events" in out)
 
@@ -702,8 +709,8 @@ def test_validate_missing_fields():
     print("\n## Validate — missing base fields")
     with tempfile.TemporaryDirectory() as tmpdir:
         bad_event = {"type": "decision", "data": {}}
-        path = make_trace_file(tmpdir, [bad_event])
-        _, err, _ = run(["validate", path], expect_exit=1)
+        make_trace_file(tmpdir, [bad_event])
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
         check("catches missing pletId", "pletId" in err)
         check("catches missing timestamp", "timestamp" in err)
 
@@ -713,18 +720,18 @@ def test_validate_bad_event_type():
     with tempfile.TemporaryDirectory() as tmpdir:
         ev = make_event("decision")
         ev["type"] = "info"
-        path = make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", path], expect_exit=1)
+        make_trace_file(tmpdir, [ev])
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
         check("catches invalid type", "info" in err)
 
 
 def test_validate_bad_phase():
-    print("\n## Validate — invalid phase")
+    print("\n## Validate — invalid phase in event data")
     with tempfile.TemporaryDirectory() as tmpdir:
         ev = make_event("decision")
         ev["phase"] = "plan"
-        path = make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", path], expect_exit=1)
+        make_trace_file(tmpdir, [ev])
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
         check("catches invalid phase", "plan" in err)
 
 
@@ -733,8 +740,8 @@ def test_validate_bad_plet_id_prefix():
     with tempfile.TemporaryDirectory() as tmpdir:
         ev = make_event("decision")
         ev["pletId"] = "epr_01JD8X3K7M_id001_i1"
-        path = make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", path], expect_exit=1)
+        make_trace_file(tmpdir, [ev])
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
         check("catches bad prefix", "tev_" in err)
 
 
@@ -743,8 +750,8 @@ def test_validate_bad_attempt():
     with tempfile.TemporaryDirectory() as tmpdir:
         ev = make_event("decision")
         ev["attempt"] = 0
-        path = make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", path], expect_exit=1)
+        make_trace_file(tmpdir, [ev])
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
         check("catches zero attempt", "positive" in err.lower())
 
 
@@ -753,8 +760,8 @@ def test_validate_missing_data_fields():
     with tempfile.TemporaryDirectory() as tmpdir:
         ev = make_event("decision")
         ev["data"] = {"description": "test"}  # missing rationale
-        path = make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", path], expect_exit=1)
+        make_trace_file(tmpdir, [ev])
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
         check("catches missing rationale", "rationale" in err)
 
 
@@ -763,32 +770,34 @@ def test_validate_enum_in_data():
     with tempfile.TemporaryDirectory() as tmpdir:
         ev = make_event("lifecycle_change")
         ev["data"] = {"from": "queued", "to": "running"}
-        path = make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", path], expect_exit=1)
+        make_trace_file(tmpdir, [ev])
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
         check("catches invalid lifecycle", "running" in err)
 
 
 def test_validate_malformed_json_line():
     print("\n## Validate — malformed JSON line")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = os.path.join(tmpdir, "bad.ndjson")
+        trace_dir = os.path.join(tmpdir, "trace")
+        os.makedirs(trace_dir)
+        path = os.path.join(trace_dir, "ID_001-implement-1-events.ndjson")
         with open(path, "w") as f:
             f.write(json.dumps(make_event("decision")) + "\n")
             f.write("{bad json\n")
             f.write(json.dumps(make_event("error")) + "\n")
-        _, err, _ = run(["validate", path], expect_exit=1)
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
         check("reports line number", "Line 2" in err or "line 2" in err)
 
 
 def test_validate_counts_by_type():
     print("\n## Validate — countsByType in JSON output")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [
+        make_trace_file(tmpdir, [
             make_event("decision"),
             make_event("decision"),
             make_event("error"),
         ])
-        out, _, _ = run(["validate", path, "--output", "json"])
+        out, _, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--output", "json"])
         data = json.loads(out)
         check("countsByType present", "countsByType" in data)
         check("2 decisions", data["countsByType"]["decision"] == 2)
@@ -796,16 +805,17 @@ def test_validate_counts_by_type():
 
 
 def test_validate_file_not_found():
-    print("\n## Validate — file not found")
-    _, err, _ = run(["validate", "/nonexistent/file.ndjson"], expect_exit=1)
-    check("clean error", "does not exist" in err.lower())
+    print("\n## Validate — trace file not found")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_999", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        check("clean error", "does not exist" in err.lower())
 
 
-def test_validate_is_directory():
-    print("\n## Validate — rejects directory")
+def test_validate_missing_required_flags():
+    print("\n## Validate — missing required flags")
     with tempfile.TemporaryDirectory() as tmpdir:
         _, err, _ = run(["validate", tmpdir], expect_exit=1)
-        check("rejects directory", "directory" in err.lower())
+        check("requires iter-id", "iter-id" in err.lower())
 
 
 # ---------------------------------------------------------------------------
@@ -815,24 +825,24 @@ def test_validate_is_directory():
 def test_query_all():
     print("\n## Query — all events (no filter)")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [
+        make_trace_file(tmpdir, [
             make_event("decision"),
             make_event("error"),
             make_event("decision"),
         ])
-        out, _, _ = run(["query", path])
+        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"])
         check("outputs events", "decision" in out and "error" in out)
 
 
 def test_query_by_type():
     print("\n## Query — filter by event type")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [
+        make_trace_file(tmpdir, [
             make_event("decision"),
             make_event("error"),
             make_event("decision"),
         ])
-        out, _, _ = run(["query", path, "--event-type", "decision"])
+        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--event-type", "decision"])
         # Should have 2 decisions, no errors
         check("has decisions", "decision" in out)
         check("no errors in output", "test error" not in out)
@@ -845,8 +855,8 @@ def test_query_by_criterion():
         ev1["data"]["criterionId"] = "AC_1"
         ev2 = make_event("criterion_update")
         ev2["data"]["criterionId"] = "AC_2"
-        path = make_trace_file(tmpdir, [ev1, ev2])
-        out, _, _ = run(["query", path, "--criterion", "AC_1"])
+        make_trace_file(tmpdir, [ev1, ev2])
+        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--criterion", "AC_1"])
         check("has AC_1", "AC_1" in out)
         check("no AC_2", "AC_2" not in out)
 
@@ -859,8 +869,8 @@ def test_query_last_n():
             ev = make_event("decision")
             ev["data"]["description"] = "decision_{}".format(i)
             events.append(ev)
-        path = make_trace_file(tmpdir, events)
-        out, _, _ = run(["query", path, "--event-type", "decision", "--last", "2"])
+        make_trace_file(tmpdir, events)
+        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--event-type", "decision", "--last", "2"])
         check("has decision_3", "decision_3" in out)
         check("has decision_4", "decision_4" in out)
         check("no decision_0", "decision_0" not in out)
@@ -869,8 +879,8 @@ def test_query_last_n():
 def test_query_no_matches():
     print("\n## Query — no matches returns exit 0")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [make_event("decision")])
-        out, _, _ = run(["query", path, "--event-type", "error"])
+        make_trace_file(tmpdir, [make_event("decision")])
+        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--event-type", "error"])
         # Should exit 0 even with no matches
         check("exit 0 with no matches", True)
 
@@ -878,12 +888,14 @@ def test_query_no_matches():
 def test_query_malformed_lines_skipped():
     print("\n## Query — malformed lines skipped with warning")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = os.path.join(tmpdir, "mixed.ndjson")
+        trace_dir = os.path.join(tmpdir, "trace")
+        os.makedirs(trace_dir)
+        path = os.path.join(trace_dir, "ID_001-implement-1-events.ndjson")
         with open(path, "w") as f:
             f.write(json.dumps(make_event("decision")) + "\n")
             f.write("{bad json\n")
             f.write(json.dumps(make_event("decision")) + "\n")
-        out, err, _ = run(["query", path])
+        out, err, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"])
         check("warning on stderr", "warning" in err.lower() or "not valid" in err.lower())
         check("valid events returned", "decision" in out)
 
@@ -891,11 +903,11 @@ def test_query_malformed_lines_skipped():
 def test_query_raw_output():
     print("\n## Query — --raw output")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [
+        make_trace_file(tmpdir, [
             make_event("decision"),
             make_event("error"),
         ])
-        out, _, _ = run(["query", path, "--raw"])
+        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--raw"])
         lines = [l for l in out.split("\n") if l.strip()]
         check("two lines", len(lines) == 2)
         # Each line should be compact JSON (no indentation)
@@ -907,12 +919,12 @@ def test_query_raw_output():
 def test_query_raw_with_filter():
     print("\n## Query — --raw with type filter")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [
+        make_trace_file(tmpdir, [
             make_event("decision"),
             make_event("error"),
             make_event("decision"),
         ])
-        out, _, _ = run(["query", path, "--event-type", "decision", "--raw"])
+        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--event-type", "decision", "--raw"])
         lines = [l for l in out.split("\n") if l.strip()]
         check("two decision lines", len(lines) == 2)
 
@@ -920,9 +932,10 @@ def test_query_raw_with_filter():
 def test_query_raw_with_json_error():
     print("\n## Query — --raw with --output json is error")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [make_event("decision")])
+        make_trace_file(tmpdir, [make_event("decision")])
         _, err, _ = run([
-            "query", path, "--raw", "--output", "json",
+            "query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1",
+            "--raw", "--output", "json",
         ], expect_exit=1)
         check("rejects raw+json", "mutually exclusive" in err.lower())
 
@@ -930,11 +943,11 @@ def test_query_raw_with_json_error():
 def test_query_json_output():
     print("\n## Query — JSON output")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [
+        make_trace_file(tmpdir, [
             make_event("decision"),
             make_event("error"),
         ])
-        out, _, _ = run(["query", path, "--output", "json"])
+        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--output", "json"])
         data = json.loads(out)
         check("json status ok", data["status"] == "ok")
         check("json command", data["command"] == "query")
@@ -945,17 +958,19 @@ def test_query_json_output():
 def test_query_criterion_with_wrong_type():
     print("\n## Query — --criterion with wrong --event-type")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = make_trace_file(tmpdir, [make_event("criterion_update")])
+        make_trace_file(tmpdir, [make_event("criterion_update")])
         _, err, _ = run([
-            "query", path, "--criterion", "AC_1", "--event-type", "decision",
+            "query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1",
+            "--criterion", "AC_1", "--event-type", "decision",
         ], expect_exit=1)
         check("rejects conflicting filters", "criterion_update" in err)
 
 
 def test_query_file_not_found():
-    print("\n## Query — file not found")
-    _, err, _ = run(["query", "/nonexistent/file.ndjson"], expect_exit=1)
-    check("clean error", "does not exist" in err.lower())
+    print("\n## Query — trace file not found")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        _, err, _ = run(["query", tmpdir, "--iter-id", "ID_999", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        check("clean error", "does not exist" in err.lower())
 
 
 # ---------------------------------------------------------------------------
@@ -1008,7 +1023,7 @@ if __name__ == "__main__":
     test_validate_malformed_json_line()
     test_validate_counts_by_type()
     test_validate_file_not_found()
-    test_validate_is_directory()
+    test_validate_missing_required_flags()
 
     # query
     test_query_all()

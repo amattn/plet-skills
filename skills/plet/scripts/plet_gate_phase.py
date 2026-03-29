@@ -199,7 +199,9 @@ def check_trace_events(plet_dir, iter_id, phase, attempt):
         return {"name": "trace-events", "status": "warn",
                 "detail": "trace events file empty for {} {}-{}".format(iter_id, phase, attempt)}
 
-    data, result = run_tool("plet_trace.py", ["validate", trace_file])
+    data, result = run_tool("plet_trace.py", [
+        "validate", plet_dir, "--iter-id", iter_id,
+        "--phase", phase, "--attempt", str(attempt)])
     if result is not None and result.returncode != 0:
         return {"name": "trace-events", "status": "warn",
                 "detail": "trace events file invalid for {} {}-{}".format(iter_id, phase, attempt)}

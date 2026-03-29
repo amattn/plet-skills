@@ -375,9 +375,8 @@ def test_invocation_trace_event():
         env = create_mock_claude(tmpdir)
         run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
              "--cwd", wt], expect_exit=0, env=env)
-        # TRC writes to plet_dir/{iter_id}-{phase}-{attempt}-events.ndjson
-        # (current TRC implementation, not yet retrofitted to unified trace.ndjson)
-        events_file = os.path.join(plet_dir, "ID_001-implement-1-events.ndjson")
+        # TRC writes to plet_dir/trace/{iter_id}-{phase}-{attempt}-events.ndjson
+        events_file = os.path.join(plet_dir, "trace", "ID_001-implement-1-events.ndjson")
         check("events file exists", os.path.isfile(events_file))
         if os.path.isfile(events_file):
             with open(events_file) as f:
