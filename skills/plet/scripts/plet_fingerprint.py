@@ -29,6 +29,7 @@ from util_cli import (
     parse_kwargs,
     require_kwargs,
     validate_enum,
+    validate_known_flags,
     now_iso,
     dispatch,
     filter_fields,
@@ -536,6 +537,8 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
+    if not validate_known_flags(kwargs, {"type", "bump"}, hint):
+        return 1
 
     # --dry-run not valid on extract (read-only)
     if dry_run:
@@ -674,6 +677,8 @@ Examples:
     output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
     if not ok:
         print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"type", "bump"}, hint):
         return 1
 
     force_bump = kwargs.pop("bump", False) is True
@@ -1053,6 +1058,8 @@ Examples:
     output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
     if not ok:
         print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"level", "bump"}, hint):
         return 1
 
     # --dry-run not valid on check (read-only)

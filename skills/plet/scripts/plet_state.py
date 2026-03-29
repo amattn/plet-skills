@@ -41,6 +41,7 @@ from util_cli import (
     require_kwargs,
     validate_enum,
     validate_int,
+    validate_known_flags,
 )
 from util_io import (
     atomic_write_json,
@@ -386,9 +387,11 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    path, _, exit_code = resolve_state_path(clean_args, hint)
+    path, remaining_kwargs, exit_code = resolve_state_path(clean_args, hint)
     if exit_code is not None:
         return exit_code
+    if not validate_known_flags(remaining_kwargs, set(), hint):
+        return 1
 
     data = load_json(path)
     if data is None:
@@ -468,6 +471,8 @@ Examples:
     path, kwargs, exit_code = resolve_state_path(clean_args, hint)
     if exit_code is not None:
         return exit_code
+    if not validate_known_flags(kwargs, {"criterion", "phase", "status", "evidence", "elapsed"}, hint):
+        return 1
 
     if not require_kwargs(kwargs, ["criterion", "phase", "status", "evidence"], HELP):
         return 1
@@ -628,6 +633,8 @@ Examples:
     path, kwargs, exit_code = resolve_state_path(clean_args, hint)
     if exit_code is not None:
         return exit_code
+    if not validate_known_flags(kwargs, {"data"}, hint):
+        return 1
 
     if not require_kwargs(kwargs, ["data"], HELP):
         return 1
@@ -806,6 +813,9 @@ Examples:
         return 1
 
     no_verify_deps = kwargs.pop("no_verify_deps", False)
+
+    if not validate_known_flags(kwargs, {"iter_id", "title", "dependencies", "criteria"}, hint):
+        return 1
 
     if not require_kwargs(
         kwargs, ["iter_id", "title", "dependencies", "criteria"], HELP

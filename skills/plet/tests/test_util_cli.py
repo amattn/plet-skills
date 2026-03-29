@@ -142,6 +142,60 @@ def test_require_kwargs_with_help():
 
 
 # ---------------------------------------------------------------------------
+# validate_known_flags
+# ---------------------------------------------------------------------------
+
+def test_validate_known_flags_all_known():
+    print("\n## validate_known_flags — all known")
+    kwargs = {"iter_id": "ID_001", "output": "json", "pretty": True}
+    result = util_cli.validate_known_flags(kwargs, {"iter_id", "output", "pretty"})
+    check("returns True when all known", result is True)
+
+
+def test_validate_known_flags_unknown():
+    print("\n## validate_known_flags — unknown flag")
+    kwargs = {"iter_id": "ID_001", "banana": "yellow"}
+    import io
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    result = util_cli.validate_known_flags(kwargs, {"iter_id", "output", "pretty"})
+    err = sys.stderr.getvalue()
+    sys.stderr = old_stderr
+
+    check("returns False on unknown", result is False)
+    check("error mentions --banana", "--banana" in err, "stderr: " + err)
+
+
+def test_validate_known_flags_with_hint():
+    print("\n## validate_known_flags — with help hint")
+    kwargs = {"bad_flag": "x"}
+    import io
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    result = util_cli.validate_known_flags(
+        kwargs, set(), help_hint="Run: script cmd --help")
+    err = sys.stderr.getvalue()
+    sys.stderr = old_stderr
+
+    check("returns False", result is False)
+    check("prints hint", "Run: script cmd --help" in err)
+
+
+def test_validate_known_flags_empty_kwargs():
+    print("\n## validate_known_flags — empty kwargs")
+    result = util_cli.validate_known_flags({}, {"iter_id"})
+    check("empty kwargs is valid", result is True)
+
+
+def test_validate_known_flags_hyphen_conversion():
+    print("\n## validate_known_flags — hyphen to underscore")
+    # parse_kwargs converts --iter-id to iter_id, so known_flags uses underscores
+    kwargs = {"iter_id": "ID_001", "dry_run": True}
+    result = util_cli.validate_known_flags(kwargs, {"iter_id", "dry_run"})
+    check("underscore flags match", result is True)
+
+
+# ---------------------------------------------------------------------------
 # validate_enum
 # ---------------------------------------------------------------------------
 
@@ -652,6 +706,11 @@ if __name__ == "__main__":
     test_require_kwargs_all_present()
     test_require_kwargs_missing()
     test_require_kwargs_with_help()
+    test_validate_known_flags_all_known()
+    test_validate_known_flags_unknown()
+    test_validate_known_flags_with_hint()
+    test_validate_known_flags_empty_kwargs()
+    test_validate_known_flags_hyphen_conversion()
     test_validate_enum_valid()
     test_validate_enum_invalid()
     test_validate_int_valid()

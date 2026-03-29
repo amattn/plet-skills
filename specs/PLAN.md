@@ -95,6 +95,6 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 29 | `plet_session.py` spec (SES reused) | ✓ complete |
 | 30 | `plet_session.py` implementation | ✓ complete |
 | 31 | Standardize NDJSON — rename .jsonl → .ndjson | ✓ complete |
-| 32 | Retrofit UNV_CMD_29 (unknown flags) across all scripts | not started |
+| 32 | Retrofit UNV_CMD_29 (unknown flags) across all scripts | ✓ complete |
 | 33 | `plet_orchestrator.py` spec (ORC) | not started |
 | 34 | `plet_orchestrator.py` implementation | not started |

@@ -29,6 +29,8 @@ from util_cli import (
     parse_kwargs,
     require_kwargs,
     validate_enum,
+    validate_known_flags,
+    UNIVERSAL_FLAGS_WRITE,
 )
 from util_io import (
     atomic_write_json,
@@ -113,6 +115,8 @@ def cmd_start_session(args):
 
     plet_dir, remaining = get_plet_dir(args)
     kwargs = parse_kwargs(remaining)
+    if not validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-session")):
+        return 1
 
     if not require_kwargs(kwargs, ["type"], HELP):
         return 1
@@ -263,6 +267,8 @@ def cmd_end_session(args):
 
     plet_dir, remaining = get_plet_dir(args)
     kwargs = parse_kwargs(remaining)
+    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_WRITE, _help_hint("end-session")):
+        return 1
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
         return 1

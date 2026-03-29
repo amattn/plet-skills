@@ -24,6 +24,8 @@ from util_cli import (
     parse_kwargs,
     require_kwargs,
     validate_enum,
+    validate_known_flags,
+    UNIVERSAL_FLAGS_WRITE,
     dispatch,
     get_plet_dir,
     extract_output_flags,
@@ -139,6 +141,8 @@ Examples:
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"iter_id", "phase", "cwd", "permission_mode", "model", "max_budget", "verbose"} | UNIVERSAL_FLAGS_WRITE, hint):
         return 1
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)

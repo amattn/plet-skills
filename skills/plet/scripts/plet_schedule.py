@@ -35,6 +35,8 @@ from util_cli import (
     parse_kwargs,
     require_kwargs,
     validate_enum,
+    validate_known_flags,
+    UNIVERSAL_FLAGS_READ,
 )
 from util_io import (
     load_json,
@@ -91,6 +93,8 @@ def cmd_eligible(args):
 
     plet_dir, remaining = get_plet_dir(args)
     kwargs = parse_kwargs(remaining)
+    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("eligible")):
+        return 1
     output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
     if not ok:
         return 1
@@ -194,6 +198,8 @@ def cmd_check_breakpoints(args):
 
     plet_dir, remaining = get_plet_dir(args)
     kwargs = parse_kwargs(remaining)
+    if not validate_known_flags(kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ, _help_hint("check-breakpoints")):
+        return 1
 
     # Require --iter-id and --position
     if not require_kwargs(kwargs, ["iter_id", "position"], HELP):
@@ -269,6 +275,8 @@ def cmd_check_retry(args):
 
     plet_dir, remaining = get_plet_dir(args)
     kwargs = parse_kwargs(remaining)
+    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("check-retry")):
+        return 1
 
     if not require_kwargs(kwargs, ["iter_id"], HELP):
         return 1

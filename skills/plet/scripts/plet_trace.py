@@ -43,6 +43,7 @@ from util_cli import (
     require_kwargs,
     validate_enum,
     validate_int,
+    validate_known_flags,
 )
 from util_id import generate_plet_id
 from util_io import atomic_append, events_path, load_json, load_text, trace_dir_path
@@ -383,6 +384,8 @@ Examples:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
+    if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt", "event_type", "data", "data_file"}, hint):
+        return 1
 
     if not require_kwargs(
         kwargs, ["iter_id", "phase", "attempt", "event_type"], HELP
@@ -590,6 +593,8 @@ Examples:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
+    if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt"}, hint):
+        return 1
 
     if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], HELP):
         return 1
@@ -750,6 +755,8 @@ Examples:
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt", "event_type", "criterion", "last"}, hint):
         return 1
 
     if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], HELP):

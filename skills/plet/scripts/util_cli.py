@@ -121,6 +121,35 @@ def require_kwargs(kwargs, required, command_help=""):
     return True
 
 
+# Universal flag sets for validate_known_flags.
+# Use: validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_READ, hint)
+UNIVERSAL_FLAGS_READ = frozenset({"output", "pretty", "fields"})
+UNIVERSAL_FLAGS_WRITE = frozenset({"output", "pretty", "fields", "dry_run"})
+
+
+def validate_known_flags(kwargs, known_flags, help_hint=""):
+    """Check that all flags in kwargs are recognized.
+
+    Args:
+        kwargs: dict from parse_kwargs (keys are underscore format)
+        known_flags: set/list of valid flag names in underscore format.
+            Combine command-specific flags with UNIVERSAL_FLAGS_READ or
+            UNIVERSAL_FLAGS_WRITE: {"iter_id"} | UNIVERSAL_FLAGS_READ
+        help_hint: string printed to stderr on failure (e.g., "Run: script cmd --help")
+
+    On first unknown flag, prints error to stderr.
+    Returns True if all flags known, False if unknown found.
+    """
+    known = set(known_flags)
+    for key in kwargs:
+        if key not in known:
+            flag = "--" + key.replace("_", "-")
+            print("Error: unknown flag {}. {}".format(flag, help_hint),
+                  file=sys.stderr)
+            return False
+    return True
+
+
 def validate_enum(value, valid_values, field_name):
     """Check that value is in valid_values.
 

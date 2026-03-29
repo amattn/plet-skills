@@ -31,6 +31,9 @@ from util_cli import (
     parse_kwargs,
     require_kwargs,
     validate_enum,
+    validate_known_flags,
+    UNIVERSAL_FLAGS_READ,
+    UNIVERSAL_FLAGS_WRITE,
     now_iso,
     dispatch,
     filter_fields,
@@ -140,6 +143,8 @@ Examples:
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"type", "iter_id"} | UNIVERSAL_FLAGS_READ, hint):
         return 1
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
@@ -254,6 +259,8 @@ Examples:
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"iter_id", "base", "worktree_dir"} | UNIVERSAL_FLAGS_WRITE, hint):
         return 1
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
@@ -426,6 +433,8 @@ Examples:
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"iter_id", "delete_branch", "worktree_dir"} | UNIVERSAL_FLAGS_WRITE, hint):
         return 1
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)

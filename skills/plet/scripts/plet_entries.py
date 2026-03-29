@@ -34,6 +34,7 @@ from util_cli import (
     now_iso,
     dispatch,
     filter_fields,
+    validate_known_flags,
 )
 from util_format import build_progress_entry, build_learning_entry, build_emergent_entry
 from util_id import generate_plet_id, normalize_iteration
@@ -287,6 +288,8 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
+    if not validate_known_flags(kwargs, {"iter_id", "iter_title", "phase", "attempt", "status", "content", "content_file", "files", "allow_fences"}, hint):
+        return 1
 
     required = ["iter_id", "iter_title", "phase", "attempt", "status"]
     if not require_kwargs(kwargs, required, HELP):
@@ -451,6 +454,8 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
+    if not validate_known_flags(kwargs, {"iter_id", "iter_title", "category", "title", "phase", "attempt", "content", "content_file", "allow_fences"}, hint):
+        return 1
 
     required = ["iter_id", "iter_title", "category", "title", "phase", "attempt"]
     if not require_kwargs(kwargs, required, HELP):
@@ -575,6 +580,8 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
+    if not validate_known_flags(kwargs, {"iter_id", "iter_title", "title", "phase", "category", "attempt", "content", "content_file", "allow_fences"}, hint):
+        return 1
 
     required = ["iter_id", "iter_title", "title", "phase", "category", "attempt"]
     if not require_kwargs(kwargs, required, HELP):
@@ -695,6 +702,8 @@ Examples:
     output_json, pretty, fields, _, ok = extract_universal_flags(kwargs)
     if not ok:
         print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"iter_id"}, hint):
         return 1
 
     if not require_kwargs(kwargs, ["iter_id"], HELP):
