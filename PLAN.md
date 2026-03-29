@@ -11,9 +11,10 @@
 | 5 | PLAN_5 | Notes Skill | ✓ COMPLETE |
 | 6 | PLAN_6 | Extractable Skills | ✓ COMPLETE |
 | 7 | PLAN_7 | Feedback Triage | ✓ COMPLETE |
-| 8 | PLAN_8 | Python Tooling | **← IN PROGRESS** |
-| 9 | PLAN_9 | Eval System + Comparison Runs | |
-| 10 | PLAN_10 | Examples | deferred |
+| 8 | PLAN_8 | Python Tooling | ✓ COMPLETE |
+| 9 | PLAN_9 | PRD + ORC + SKILL.md + Reference Files Rewrite | |
+| 10 | PLAN_10 | Eval System + Comparison Runs | |
+| 11 | PLAN_11 | Examples | deferred |
 
 ---
 
@@ -196,15 +197,37 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 
 ---
 
-## PLAN_8: Python Tooling
+## PLAN_8: Python Tooling ✓ COMPLETE
 
-Build additional enforcement scripts in `skills/plet/scripts/` following the "Skills for Judgment, Code for Compliance" principle validated in PLAN_4.
+Built 11 enforcement scripts + 5 utility modules in `skills/plet/scripts/`. 1230 tests across 16 files. Follows "Skills for Judgment, Code for Compliance" principle.
 
-**Detailed build plan:** `specs/PLAN.md` — sequenced spec authoring and implementation for all 10 scripts. Conventions, template, and per-script specs live in `specs/`.
+**Detailed build plan:** `specs/PLAN.md` — all 27 tasks complete (seq 0–27, including 21a merge).
+
+**Scripts built:** plet_state, plet_entries, plet_fingerprint, plet_trace, plet_git_iteration, plet_git_ops, plet_git_check, plet_session, plet_gate_phase, plet_prompt, plet_invoke.
+
+**Utilities built:** util_cli, util_io, util_id, util_state, util_subprocess.
+
+**Remaining:** plet_orchestrator.py — moved to PLAN_9 (depends on SKILL.md + reference file rewrite).
 
 ---
 
-## PLAN_9: Eval System + Comparison Runs
+## PLAN_9: PRD + ORC + SKILL.md + Reference Files Rewrite
+
+The scripts are built. Now the prose needs to catch up — PRD, SKILL.md, reference files, and the orchestrator all need to reflect the script-based architecture. The orchestrator spec and SKILL.md will co-evolve during implementation.
+
+### Phases
+
+- **PLAN_9a:** PRD catch-up — update with tooling decisions, eval strategy, sandboxing (FB_48, FB_50). Add script inventory. Formalize "skills for judgment, code for compliance" boundary.
+- **PLAN_9b:** SKILL.md rewrite — becomes thinner. Routing + delegation to scripts. Agents call scripts instead of writing artifacts freehand. Knows what all scripts do.
+- **PLAN_9c:** Reference files rewrite (implement.md, verify.md) — updated to reference scripts ("call plet_entries.py" not "write a progress entry"). formats.md and state-schema.md may become unnecessary in prompts (agents call scripts, not write raw files).
+- **PLAN_9d:** ORC spec (plet_orchestrator.py) — the capstone. Main loop, dependency graph, retry, session lifecycle. Ties all scripts together. Co-evolves with SKILL.md during implementation.
+- **PLAN_9e:** ORC implementation + plet_prompt.py update — prompt assembles the new (thinner) reference files. May include script usage cheat sheet instead of full format specs.
+
+**Note:** Phases b/c/d will likely interleave — the orchestrator spec and skill files inform each other. Expect iteration rather than strict sequential execution.
+
+---
+
+## PLAN_10: Eval System + Comparison Runs
 
 Formalize how we measure whether plet's prompts and scripts actually improve outcomes. Currently we do ad-hoc case studies (LOGA, LIBT) — this makes evaluation systematic.
 
@@ -236,14 +259,14 @@ Formalize how we measure whether plet's prompts and scripts actually improve out
 
 ### Phases
 
-- **PLAN_9a:** Formalize the case study template with eval metrics (enhance `case_studies/CLAUDE.md`). Define what gets measured per role.
-- **PLAN_9b:** Re-run logalyzer (from plan checkpoint `203c58a`) with PLAN_8 tooling. Produce a structured comparison: before/after on measurable dimensions.
-- **PLAN_9c:** Broader testing — harder project, refine session, edge cases.
-- **PLAN_9d:** Design the eval tooling (plet_eval.py or similar). Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework.
+- **PLAN_10a:** Formalize the case study template with eval metrics (enhance `case_studies/CLAUDE.md`). Define what gets measured per role.
+- **PLAN_10b:** Re-run logalyzer (from plan checkpoint `203c58a`) with PLAN_8 tooling. Produce a structured comparison: before/after on measurable dimensions.
+- **PLAN_10c:** Broader testing — harder project, refine session, edge cases.
+- **PLAN_10d:** Design the eval tooling (plet_eval.py or similar). Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework.
 
 ---
 
-## PLAN_10: Examples (deferred, trigger met)
+## PLAN_11: Examples (deferred, trigger met)
 
 Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/todo-cli/run1/*` tags. Examples can now be captured from real output rather than written speculatively.
 
