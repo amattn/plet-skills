@@ -34,6 +34,7 @@ from util_io import (
     validate_plet_dir,
     iter_state_path,
     load_iter_state_json,
+    transcript_path,
 )
 from util_subprocess import run
 
@@ -85,12 +86,6 @@ def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model
     if verbose:
         cmd.append("--verbose")
     return cmd
-
-
-def transcript_path(plet_dir, iter_id, phase, attempt):
-    """Derive transcript file path."""
-    return os.path.join(plet_dir, "trace",
-                        "{}-{}-{}-transcript.jsonl".format(iter_id, phase, attempt))
 
 
 # ---------------------------------------------------------------------------

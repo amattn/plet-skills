@@ -33,7 +33,7 @@ from util_cli import (
     dispatch,
     filter_fields,
 )
-from util_io import load_json, atomic_write_json, load_text
+from util_io import load_json, atomic_write_json, load_text, requirements_path, iterations_path, state_json_path
 
 
 SCRIPT_VERSION = "0.1.0"
@@ -571,9 +571,9 @@ Examples:
 
     # Determine target file
     if type_val == "requirements":
-        target_path = os.path.join(artifact_dir, "requirements.md")
+        target_path = requirements_path(artifact_dir)
     else:
-        target_path = os.path.join(artifact_dir, "iterations.md")
+        target_path = iterations_path(artifact_dir)
 
     if not validate_file_exists(target_path, CMD, output_json, pretty):
         print(hint, file=sys.stderr)
@@ -692,15 +692,15 @@ Examples:
 
     # Check required files exist
     if type_val == "requirements":
-        target_path = os.path.join(artifact_dir, "requirements.md")
+        target_path = requirements_path(artifact_dir)
         if not validate_file_exists(target_path, CMD, output_json, pretty):
             return 1
         return _embed_requirements(artifact_dir, target_path, force_bump, dry_run,
                                    output_json, pretty, fields)
 
     elif type_val == "iterations":
-        target_path = os.path.join(artifact_dir, "iterations.md")
-        req_path = os.path.join(artifact_dir, "requirements.md")
+        target_path = iterations_path(artifact_dir)
+        req_path = requirements_path(artifact_dir)
         if not validate_file_exists(target_path, CMD, output_json, pretty):
             return 1
         if not validate_file_exists(req_path, CMD, output_json, pretty,
@@ -710,8 +710,8 @@ Examples:
                                  dry_run, output_json, pretty, fields)
 
     else:  # state
-        target_path = os.path.join(artifact_dir, "state.json")
-        iter_path = os.path.join(artifact_dir, "iterations.md")
+        target_path = state_json_path(artifact_dir)
+        iter_path = iterations_path(artifact_dir)
         if not validate_file_exists(target_path, CMD, output_json, pretty):
             return 1
         if not validate_file_exists(iter_path, CMD, output_json, pretty,
@@ -1085,9 +1085,9 @@ Examples:
         return 1
 
     # Check required files based on level
-    req_path = os.path.join(artifact_dir, "requirements.md")
-    iter_path = os.path.join(artifact_dir, "iterations.md")
-    state_path = os.path.join(artifact_dir, "state.json")
+    req_path = requirements_path(artifact_dir)
+    iter_path = iterations_path(artifact_dir)
+    state_path = state_json_path(artifact_dir)
 
     check_req = level in ("requirements", "all")
     check_iter = level in ("iterations", "all")

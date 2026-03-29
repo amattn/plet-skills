@@ -36,7 +36,7 @@ from util_cli import (
     filter_fields,
 )
 from util_id import generate_plet_id, normalize_iteration
-from util_io import atomic_append, load_text
+from util_io import atomic_append, load_text, emergent_path, learnings_path, progress_path
 
 
 SCRIPT_VERSION = "0.2.0"
@@ -79,10 +79,10 @@ def help_hint(command):
 
 def next_em_number(artifact_dir):
     """Find the next available EM_N number by scanning emergent.md."""
-    emergent_path = os.path.join(artifact_dir, "emergent.md")
-    if not os.path.exists(emergent_path):
+    em_path = emergent_path(artifact_dir)
+    if not os.path.exists(em_path):
         return 1
-    with open(emergent_path, "r") as f:
+    with open(em_path, "r") as f:
         content = f.read()
     numbers = [int(m) for m in re.findall(r"### EM_(\d+):", content)]
     return max(numbers) + 1 if numbers else 1
@@ -432,9 +432,9 @@ Examples:
         files_changed = parsed
 
     # Check artifact file exists
-    progress_path = os.path.join(artifact_dir, "progress.md")
-    if not os.path.exists(progress_path):
-        msg = "Error: {} does not exist".format(progress_path)
+    prog_path = progress_path(artifact_dir)
+    if not os.path.exists(prog_path):
+        msg = "Error: {} does not exist".format(prog_path)
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -449,23 +449,23 @@ Examples:
 
     if dry_run:
         msg = "DRY RUN — would append progress entry {} to {}".format(
-            plet_id, progress_path
+            plet_id, prog_path
         )
         if output_json:
             emit_json({"status": "ok", "command": "add-progress",
-                        "pletId": plet_id, "path": progress_path,
+                        "pletId": plet_id, "path": prog_path,
                         "dryRun": True, "message": msg},
                        pretty, fields)
         else:
             print(msg)
         return 0
 
-    atomic_append(progress_path, entry)
+    atomic_append(prog_path, entry)
 
     if output_json:
         emit_json({
             "status": "ok", "command": "add-progress",
-            "pletId": plet_id, "path": progress_path,
+            "pletId": plet_id, "path": prog_path,
             "iteration": kwargs["iter_id"], "phase": phase,
             "attempt": attempt,
         }, pretty, fields)
@@ -558,9 +558,9 @@ Examples:
         return 1
 
     phase = kwargs["phase"]
-    learnings_path = os.path.join(artifact_dir, "learnings.md")
-    if not os.path.exists(learnings_path):
-        msg = "Error: {} does not exist".format(learnings_path)
+    learn_path = learnings_path(artifact_dir)
+    if not os.path.exists(learn_path):
+        msg = "Error: {} does not exist".format(learn_path)
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -575,23 +575,23 @@ Examples:
 
     if dry_run:
         msg = "DRY RUN — would append learning entry {} to {}".format(
-            plet_id, learnings_path
+            plet_id, learn_path
         )
         if output_json:
             emit_json({"status": "ok", "command": "add-learning",
-                        "pletId": plet_id, "path": learnings_path,
+                        "pletId": plet_id, "path": learn_path,
                         "dryRun": True, "message": msg},
                        pretty, fields)
         else:
             print(msg)
         return 0
 
-    atomic_append(learnings_path, entry)
+    atomic_append(learn_path, entry)
 
     if output_json:
         emit_json({
             "status": "ok", "command": "add-learning",
-            "pletId": plet_id, "path": learnings_path,
+            "pletId": plet_id, "path": learn_path,
             "category": kwargs["category"],
             "iteration": kwargs["iter_id"],
         }, pretty, fields)
@@ -687,9 +687,9 @@ Examples:
     phase = kwargs["phase"]
     em_number = next_em_number(artifact_dir)
 
-    emergent_path = os.path.join(artifact_dir, "emergent.md")
-    if not os.path.exists(emergent_path):
-        msg = "Error: {} does not exist".format(emergent_path)
+    em_path = emergent_path(artifact_dir)
+    if not os.path.exists(em_path):
+        msg = "Error: {} does not exist".format(em_path)
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -704,25 +704,25 @@ Examples:
 
     if dry_run:
         msg = "DRY RUN — would append emergent entry {} EM_{} to {}".format(
-            plet_id, em_number, emergent_path
+            plet_id, em_number, em_path
         )
         if output_json:
             emit_json({"status": "ok", "command": "add-emergent",
                         "pletId": plet_id, "referenceId": "EM_{}".format(em_number),
-                        "path": emergent_path,
+                        "path": em_path,
                         "dryRun": True, "message": msg},
                        pretty, fields)
         else:
             print(msg)
         return 0
 
-    atomic_append(emergent_path, entry)
+    atomic_append(em_path, entry)
 
     if output_json:
         emit_json({
             "status": "ok", "command": "add-emergent",
             "pletId": plet_id, "referenceId": "EM_{}".format(em_number),
-            "path": emergent_path,
+            "path": em_path,
             "category": kwargs["category"],
             "iteration": kwargs["iter_id"],
         }, pretty, fields)

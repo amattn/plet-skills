@@ -35,6 +35,7 @@ from util_io import (
     iter_state_path,
     requirements_path,
     iterations_path,
+    events_path,
 )
 from util_state import (
     load_and_validate_global_state,
@@ -188,9 +189,7 @@ def run_ent_check(plet_dir, iter_id):
 
 def check_trace_events(plet_dir, iter_id, phase, attempt):
     """Check trace file exists, is non-empty, and validates."""
-    trace_dir = os.path.join(plet_dir, "trace")
-    filename = "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt)
-    trace_file = os.path.join(trace_dir, filename)
+    trace_file = events_path(plet_dir, iter_id, phase, attempt)
 
     if not os.path.isfile(trace_file):
         return {"name": "trace-events", "status": "warn",

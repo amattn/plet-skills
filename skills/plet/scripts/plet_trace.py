@@ -40,7 +40,7 @@ from util_cli import (
     validate_int,
 )
 from util_id import generate_plet_id
-from util_io import atomic_append, load_json, load_text
+from util_io import atomic_append, load_json, load_text, events_path as _events_path, trace_dir_path
 
 SCRIPT_VERSION = "0.1.0"
 SKILL_VERSION = "0.1.1"
@@ -154,7 +154,12 @@ def json_response(data, flags):
 
 
 def derive_events_path(trace_dir, iter_id, phase, attempt):
-    """Derive the events file path from trace dir and context."""
+    """Derive the events file path from trace dir and context.
+
+    Uses the same filename format as util_io.events_path, but accepts
+    trace_dir directly (append-event takes trace_dir, not plet_dir).
+    """
+    # Build filename using the same pattern as _events_path
     filename = "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt)
     return os.path.join(trace_dir, filename)
 
