@@ -43,7 +43,7 @@ from util_state import (
     load_and_validate_global_state,
     load_and_validate_iter_state,
 )
-from util_subprocess import run
+from util_subprocess import run, run_git
 
 
 SCRIPT_VERSION = "0.1.0"
@@ -138,6 +138,42 @@ def check_lifecycle(iter_state, phase):
     expected = " or ".join(sorted(valid_states))
     return {"name": "lifecycle-check", "status": "warn",
             "detail": "lifecycle is {} (expected {})".format(lifecycle, expected)}
+
+
+def check_lifecycle_handoff(iter_state):
+    """Post-implement check: lifecycle must be 'verifying' (handoff signal)."""
+    lifecycle = iter_state.get("lifecycle", "unknown")
+    if lifecycle == "verifying":
+        return {"name": "lifecycle-handoff", "status": "pass",
+                "detail": "lifecycle is verifying (handoff complete)"}
+    return {"name": "lifecycle-handoff", "status": "fail",
+            "detail": "lifecycle is {} (expected verifying — implement subagent must set lifecycle to verifying before exiting)".format(lifecycle)}
+
+
+def check_lifecycle_unchanged(iter_state):
+    """Post-verify check: lifecycle must still be 'verifying' (verify must NOT change it)."""
+    lifecycle = iter_state.get("lifecycle", "unknown")
+    if lifecycle == "verifying":
+        return {"name": "lifecycle-unchanged", "status": "pass",
+                "detail": "lifecycle is verifying (unchanged — correct, orchestrator owns post-verify transitions)"}
+    return {"name": "lifecycle-unchanged", "status": "fail",
+            "detail": "lifecycle is {} (expected verifying — verify subagent must NOT touch lifecycle, orchestrator owns post-verify transitions)".format(lifecycle)}
+
+
+def check_audit_tag(global_state, iter_state, phase, cwd=None):
+    """Check that the audit tag exists for this phase."""
+    project_id = global_state.get("projectId", "UNKNOWN")
+    loop_n = global_state.get("loopSessionCount", 0)
+    iter_id = iter_state.get("iterationId", "UNKNOWN")
+    attempt = iter_state.get("attempts", {}).get(phase, 0)
+    tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(
+        project_id, loop_n, iter_id, phase, attempt)
+    result = run_git("rev-parse", "--verify", "refs/tags/" + tag_name, cwd=cwd)
+    if result.returncode == 0:
+        return {"name": "audit-tag", "status": "pass",
+                "detail": "tag {} exists".format(tag_name)}
+    return {"name": "audit-tag", "status": "fail",
+            "detail": "tag {} not found — subagent must create audit tag before exiting".format(tag_name)}
 
 
 def run_ent_check(plet_dir, iter_id):
@@ -438,7 +474,7 @@ Examples:
     if cmd == "pre":
         phase_specific_pre_fn(checks, plet_dir, iter_id, phase, iter_state)
     else:
-        phase_specific_post_fn(checks, plet_dir, iter_id, phase, iter_state)
+        phase_specific_post_fn(checks, plet_dir, iter_id, phase, iter_state, global_state)
 
     overall, counts, exit_code = summarize_checks(checks)
 
@@ -488,11 +524,23 @@ def pre_phase_checks(checks, plet_dir, iter_id, phase, iter_state):
         checks.append(run_fpr_check(plet_dir))
 
 
-def post_phase_checks(checks, plet_dir, iter_id, phase, iter_state):
+def post_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state):
     """Phase-specific post checks."""
+    # Lifecycle ownership checks
+    if phase == "implement":
+        checks.append(check_lifecycle_handoff(iter_state))
+    elif phase == "verify":
+        checks.append(check_lifecycle_unchanged(iter_state))
+
+    # Audit tag check
+    checks.append(check_audit_tag(global_state, iter_state, phase))
+
+    # Entries and trace
     checks.extend(run_ent_check(plet_dir, iter_id))
     attempt = iter_state.get("attempts", {}).get(phase, 1)
     checks.append(check_trace_events(plet_dir, iter_id, phase, attempt))
+
+    # Verify-only checks
     if phase == "verify":
         checks.append(check_last_verdict(iter_state))
         checks.append(check_verification_report(iter_state))

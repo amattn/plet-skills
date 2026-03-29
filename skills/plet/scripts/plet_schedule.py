@@ -143,6 +143,26 @@ def cmd_eligible(args):
         if all_deps_complete:
             eligible.append(iter_id)
 
+    # Detect stuck iterations: queued but deps can never be satisfied
+    # A dep is unsatisfiable if its lifecycle is blocked, withdrawn, or ineligible
+    # (not complete and not queued/implementing/verifying — those could still finish)
+    UNSATISFIABLE = {"blocked", "withdrawn", "ineligible"}
+    stuck_iterations = []
+    for iter_id, deps in sorted(dep_map.items()):
+        if lifecycles[iter_id] != "queued":
+            continue
+        if iter_id in eligible:
+            continue
+        unsatisfiable = [
+            dep_id for dep_id in deps
+            if lifecycles.get(dep_id) in UNSATISFIABLE
+        ]
+        if unsatisfiable:
+            stuck_iterations.append({
+                "iterationId": iter_id,
+                "unsatisfiableDeps": sorted(unsatisfiable),
+            })
+
     # Build lifecycle counts
     counts = {lc: 0 for lc in sorted(VALID_LIFECYCLES)}
     counts["eligible"] = 0
@@ -157,6 +177,7 @@ def cmd_eligible(args):
             "status": "ok",
             "command": "eligible",
             "eligible": eligible,
+            "stuckIterations": stuck_iterations,
             "counts": counts,
         }
         emit_json(data, SCRIPT_VERSION, pretty, fields)
@@ -165,6 +186,9 @@ def cmd_eligible(args):
             print("\n".join(eligible))
         else:
             print("none")
+        for si in stuck_iterations:
+            print("stuck: {} (blocked dep: {})".format(
+                si["iterationId"], ", ".join(si["unsatisfiableDeps"])))
 
     return 0
 

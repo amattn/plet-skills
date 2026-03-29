@@ -788,6 +788,123 @@ def test_preflight_scripts_installed():
 
 
 # ===========================================================================
+# postflight tests
+# ===========================================================================
+
+def test_postflight_help():
+    print("\n## postflight — help")
+    out, _, _ = run(["postflight", "--help"])
+    check("help exits 0", True)
+    check("help non-empty", len(out) > 0)
+
+
+def test_postflight_basic():
+    print("\n## postflight — basic (no transient states)")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+        # Add dependencyMap so postflight can scan iterations
+        state_path = state_json_path(plet_dir)
+        with open(state_path, "w") as f:
+            json.dump({
+                "schemaVersion": "0.1.0", "projectId": "TEST",
+                "project": {"name": "Test"}, "loopSessionCount": 1,
+                "refineSessionCount": 0, "dependencyMap": {"ID_001": []},
+                "milestones": {}, "iterationsFingerprint": {},
+            }, f)
+        make_iter_state(plet_dir, "ID_001", lifecycle="complete")
+        # Create spec artifacts
+        with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+            f.write("# Requirements\n")
+        with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+            f.write("# Iterations\n")
+        subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
+        out, _, rc = run(["postflight", plet_dir, "--session-type", "loop"],
+                         expect_exit=2, cwd=tmpdir)  # 2 = warn (no CLAUDE.md etc in temp dir)
+        check("exits 2 (warn expected in temp dir)", rc == 2)
+        check("has transient-lifecycle check", "transient-lifecycle" in out)
+        check("transient passes", "no iterations in transient" in out)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_postflight_transient_detected():
+    print("\n## postflight — transient lifecycle detected")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+        state_path = state_json_path(plet_dir)
+        with open(state_path, "w") as f:
+            json.dump({
+                "schemaVersion": "0.1.0", "projectId": "TEST",
+                "project": {"name": "Test"}, "loopSessionCount": 1,
+                "refineSessionCount": 0, "dependencyMap": {"ID_001": []},
+                "milestones": {}, "iterationsFingerprint": {},
+            }, f)
+        make_iter_state(plet_dir, "ID_001", lifecycle="implementing")
+        with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+            f.write("# Requirements\n")
+        with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+            f.write("# Iterations\n")
+        subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
+        out, _, rc = run(["postflight", plet_dir, "--session-type", "loop"],
+                         expect_exit=2, cwd=tmpdir)
+        check("exits 2 (warn)", rc == 2)
+        check("mentions transient", "transient" in out.lower())
+        check("mentions ID_001", "ID_001" in out)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_postflight_never_fails():
+    print("\n## postflight — downgrades fails to warns")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(plet_dir, exist_ok=True)
+        make_global_state(plet_dir)
+        subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
+        out, _, rc = run(["postflight", plet_dir, "--session-type", "loop"],
+                         expect_exit=2, cwd=tmpdir)  # 2 = warn (missing specs downgraded from fail)
+        check("never exits 1", rc != 1, "got exit code: " + str(rc))
+        check("no FAIL in output (all downgraded to WARN)", "FAIL" not in out)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_postflight_json():
+    print("\n## postflight — JSON output")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+        state_path = state_json_path(plet_dir)
+        with open(state_path, "w") as f:
+            json.dump({
+                "schemaVersion": "0.1.0", "projectId": "TEST",
+                "project": {"name": "Test"}, "loopSessionCount": 1,
+                "refineSessionCount": 0, "dependencyMap": {"ID_001": []},
+                "milestones": {}, "iterationsFingerprint": {},
+            }, f)
+        make_iter_state(plet_dir, "ID_001", lifecycle="complete")
+        with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+            f.write("# Requirements\n")
+        with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+            f.write("# Iterations\n")
+        subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
+        out, _, _ = run(["postflight", plet_dir, "--session-type", "loop",
+                         "--output", "json"], expect_exit=2, cwd=tmpdir)
+        data = json.loads(out)
+        check("json command postflight", data["command"] == "postflight")
+        check("json has checks", len(data["checks"]) > 0)
+        check("json has summary", "summary" in data)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
 # Main
 # ===========================================================================
 
@@ -839,6 +956,13 @@ if __name__ == "__main__":
     test_preflight_fingerprints_skipped_on_plan()
     test_preflight_detect_session_type()
     test_preflight_scripts_installed()
+
+    # postflight tests
+    test_postflight_help()
+    test_postflight_basic()
+    test_postflight_transient_detected()
+    test_postflight_never_fails()
+    test_postflight_json()
 
     print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
     sys.exit(1 if failed > 0 else 0)

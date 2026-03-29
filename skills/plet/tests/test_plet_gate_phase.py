@@ -174,16 +174,21 @@ def setup_impl_pre(tmpdir):
     return plet_dir
 
 
-def setup_impl_post(tmpdir, progress=True, learnings=True, emergent=True, trace=True):
+def setup_impl_post(tmpdir, progress=True, learnings=True, emergent=True, trace=True,
+                    lifecycle="verifying", audit_tag=True):
     repo = setup_git_repo(tmpdir)
     plet_dir = os.path.join(tmpdir, "plet")
     make_global_state(plet_dir)
-    make_iter_state(plet_dir, lifecycle="implementing")
+    make_iter_state(plet_dir, lifecycle=lifecycle)
     make_spec_artifacts(plet_dir)
     make_runtime_artifacts(plet_dir, phase="implement", progress=progress, learnings=learnings, emergent=emergent)
     if trace:
         make_trace_file(plet_dir, phase="implement")
     setup_iteration_branch(repo)
+    if audit_tag:
+        # Create audit tag: plet/TEST/loop1/audit/ID_001/implement-1
+        subprocess.run(["git", "tag", "-f", "plet/TEST/loop1/audit/ID_001/implement-1"],
+                       cwd=tmpdir, capture_output=True)
     return plet_dir
 
 
@@ -198,19 +203,23 @@ def setup_verify_pre(tmpdir):
 
 
 def setup_verify_post(tmpdir, progress=True, learnings=True, emergent=True,
-                      trace=True, last_verdict="complete", verification_reports=None):
+                      trace=True, last_verdict="complete", verification_reports=None,
+                      lifecycle="verifying", audit_tag=True):
     if verification_reports is None:
         verification_reports = make_verification_report()
     repo = setup_git_repo(tmpdir)
     plet_dir = os.path.join(tmpdir, "plet")
     make_global_state(plet_dir)
-    make_iter_state(plet_dir, lifecycle="verifying", last_verdict=last_verdict,
+    make_iter_state(plet_dir, lifecycle=lifecycle, last_verdict=last_verdict,
                     verification_reports=verification_reports)
     make_spec_artifacts(plet_dir)
     make_runtime_artifacts(plet_dir, phase="verify", progress=progress, learnings=learnings, emergent=emergent)
     if trace:
         make_trace_file(plet_dir, phase="verify")
     setup_iteration_branch(repo)
+    if audit_tag:
+        subprocess.run(["git", "tag", "-f", "plet/TEST/loop1/audit/ID_001/verify-1"],
+                       cwd=tmpdir, capture_output=True)
     return plet_dir
 
 
@@ -587,6 +596,111 @@ def test_post_gate_logs_failure():
 
 
 # ===========================================================================
+# post tests — lifecycle handoff (implement must set verifying)
+# ===========================================================================
+
+def test_impl_post_lifecycle_handoff_fail():
+    print("\n## implement post — lifecycle still implementing → FAIL")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_impl_post(tmpdir, lifecycle="implementing")
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+                            expect_exit=1, cwd=tmpdir)
+        check("exit 1", rc == 1)
+        check("mentions lifecycle-handoff", "lifecycle" in stdout.lower(),
+              "got: " + stdout[:200])
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_impl_post_lifecycle_handoff_pass():
+    print("\n## implement post — lifecycle is verifying → PASS")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_impl_post(tmpdir, lifecycle="verifying")
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+                            expect_exit=0, cwd=tmpdir)
+        check("exit 0", rc == 0)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
+# post tests — lifecycle unchanged (verify must NOT change lifecycle)
+# ===========================================================================
+
+def test_verify_post_lifecycle_unchanged_fail():
+    print("\n## verify post — lifecycle changed to complete → FAIL")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_verify_post(tmpdir, lifecycle="complete")
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
+                            expect_exit=1, cwd=tmpdir)
+        check("exit 1", rc == 1)
+        check("mentions lifecycle", "lifecycle" in stdout.lower(),
+              "got: " + stdout[:200])
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_verify_post_lifecycle_unchanged_pass():
+    print("\n## verify post — lifecycle still verifying → PASS")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_verify_post(tmpdir, lifecycle="verifying")
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
+                            expect_exit=0, cwd=tmpdir)
+        check("exit 0", rc == 0)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
+# post tests — audit tag existence
+# ===========================================================================
+
+def test_impl_post_audit_tag_missing():
+    print("\n## implement post — audit tag missing → FAIL")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_impl_post(tmpdir, audit_tag=False)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+                            expect_exit=1, cwd=tmpdir)
+        check("exit 1", rc == 1)
+        check("mentions audit-tag", "audit" in stdout.lower(),
+              "got: " + stdout[:200])
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_impl_post_audit_tag_present():
+    print("\n## implement post — audit tag present → PASS")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_impl_post(tmpdir, audit_tag=True)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+                            expect_exit=0, cwd=tmpdir)
+        check("exit 0", rc == 0)
+        check("has audit-tag check", "audit-tag" in stdout)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_verify_post_audit_tag_missing():
+    print("\n## verify post — audit tag missing → FAIL")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_verify_post(tmpdir, audit_tag=False)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
+                            expect_exit=1, cwd=tmpdir)
+        check("exit 1", rc == 1)
+        check("mentions audit-tag", "audit" in stdout.lower(),
+              "got: " + stdout[:200])
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
 # Main
 # ===========================================================================
 
@@ -615,6 +729,13 @@ if __name__ == "__main__":
     test_verify_post_git_checks()
     test_post_gate_logs_progress()
     test_post_gate_logs_failure()
+    test_impl_post_lifecycle_handoff_fail()
+    test_impl_post_lifecycle_handoff_pass()
+    test_verify_post_lifecycle_unchanged_fail()
+    test_verify_post_lifecycle_unchanged_pass()
+    test_impl_post_audit_tag_missing()
+    test_impl_post_audit_tag_present()
+    test_verify_post_audit_tag_missing()
 
     print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
     sys.exit(1 if failed > 0 else 0)

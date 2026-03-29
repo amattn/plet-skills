@@ -355,6 +355,125 @@ with tempfile.TemporaryDirectory() as tmp:
 
 
 # ===========================================================================
+# eligible — stuck iterations (blocked dep)
+# ===========================================================================
+
+print("\n## eligible — stuck iteration (dep is blocked)")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = os.path.join(tmp, "plet")
+    make_global_state(plet_dir, dep_map={
+        "ID_001": [],
+        "ID_002": ["ID_001"],
+        "ID_003": ["ID_002"],
+    })
+    make_iter_state(plet_dir, "ID_001", lifecycle="blocked")
+    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
+    make_iter_state(plet_dir, "ID_003", lifecycle="queued")
+
+    out, err, _ = run(["eligible", plet_dir, "--output", "json"])
+    data = json.loads(out)
+    check("no eligible", data["eligible"] == [])
+    check("stuckIterations present", "stuckIterations" in data,
+          "keys: " + str(list(data.keys())))
+    stuck = data.get("stuckIterations", [])
+    stuck_ids = [s["iterationId"] for s in stuck]
+    check("ID_002 is stuck", "ID_002" in stuck_ids, "got: " + str(stuck_ids))
+    # ID_003 depends on ID_002 which is queued (not blocked) — not directly stuck.
+    # Transitive stuckness (ID_002 is stuck so ID_003 is transitively stuck) is
+    # a future concern. Direct detection catches the important case.
+    check("ID_003 not directly stuck (dep is queued)", "ID_003" not in stuck_ids,
+          "got: " + str(stuck_ids))
+
+    # Check unsatisfiable deps reported
+    id002_stuck = [s for s in stuck if s["iterationId"] == "ID_002"][0]
+    check("ID_002 unsatisfiable dep is ID_001", "ID_001" in id002_stuck["unsatisfiableDeps"],
+          "got: " + str(id002_stuck.get("unsatisfiableDeps")))
+
+# ===========================================================================
+# eligible — stuck iteration (dep is withdrawn)
+# ===========================================================================
+
+print("\n## eligible — stuck iteration (dep is withdrawn)")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = os.path.join(tmp, "plet")
+    make_global_state(plet_dir, dep_map={
+        "ID_001": [],
+        "ID_002": ["ID_001"],
+    })
+    make_iter_state(plet_dir, "ID_001", lifecycle="withdrawn")
+    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
+
+    out, err, _ = run(["eligible", plet_dir, "--output", "json"])
+    data = json.loads(out)
+    stuck = data.get("stuckIterations", [])
+    check("ID_002 stuck on withdrawn dep", len(stuck) == 1 and stuck[0]["iterationId"] == "ID_002",
+          "got: " + str(stuck))
+
+# ===========================================================================
+# eligible — stuck iteration (text output)
+# ===========================================================================
+
+print("\n## eligible — stuck iteration text output")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = os.path.join(tmp, "plet")
+    make_global_state(plet_dir, dep_map={
+        "ID_001": [],
+        "ID_002": ["ID_001"],
+    })
+    make_iter_state(plet_dir, "ID_001", lifecycle="blocked")
+    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
+
+    out, err, _ = run(["eligible", plet_dir])
+    check("text mentions stuck", "stuck" in out.lower(), "got: " + out)
+    check("text mentions ID_002", "ID_002" in out, "got: " + out)
+
+# ===========================================================================
+# eligible — not stuck (dep is queued, could still complete)
+# ===========================================================================
+
+print("\n## eligible — dep is queued (not stuck, just waiting)")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = os.path.join(tmp, "plet")
+    make_global_state(plet_dir, dep_map={
+        "ID_001": [],
+        "ID_002": ["ID_001"],
+    })
+    make_iter_state(plet_dir, "ID_001", lifecycle="queued")
+    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
+
+    out, err, _ = run(["eligible", plet_dir, "--output", "json"])
+    data = json.loads(out)
+    stuck = data.get("stuckIterations", [])
+    check("no stuck iterations (dep is queued)", len(stuck) == 0,
+          "got: " + str(stuck))
+
+# ===========================================================================
+# eligible — not stuck (dep is implementing, in progress)
+# ===========================================================================
+
+print("\n## eligible — dep is implementing (not stuck, in progress)")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = os.path.join(tmp, "plet")
+    make_global_state(plet_dir, dep_map={
+        "ID_001": [],
+        "ID_002": ["ID_001"],
+    })
+    make_iter_state(plet_dir, "ID_001", lifecycle="implementing")
+    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
+
+    out, err, _ = run(["eligible", plet_dir, "--output", "json"])
+    data = json.loads(out)
+    stuck = data.get("stuckIterations", [])
+    check("no stuck (dep in progress)", len(stuck) == 0,
+          "got: " + str(stuck))
+
+
+# ===========================================================================
 # check-breakpoints — help
 # ===========================================================================
 

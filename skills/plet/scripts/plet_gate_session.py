@@ -39,8 +39,10 @@ from util_cli import (
 )
 from util_io import (
     validate_plet_dir,
+    load_json,
     state_json_path,
     state_dir_path,
+    iter_state_path,
     requirements_path,
     iterations_path,
 )
@@ -442,74 +444,11 @@ Examples:
 
 
 # ---------------------------------------------------------------------------
-# preflight (placeholder)
+# preflight checks (shared between preflight and postflight)
 # ---------------------------------------------------------------------------
 
-def cmd_preflight(args):
-    HELP = """IMPORTANT:
-    preflight is read-only — it checks the environment, never modifies it.
-    Run before starting any session. Includes GTC check-session for git health.
-
-PITFALLS:
-    - --session-type is REQUIRED (detect, plan, loop, or refine)
-    - Fingerprint severity depends on session type: loop=FAIL, refine=WARN, plan=SKIPPED
-    - Defaults to plet/ in current directory — run from project root
-
-USAGE:
-    plet_gate_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
-
-    plet_dir          Path to plet directory (default: plet/)
-    --session-type    Required. Controls session-specific checks.
-
-PURPOSE:
-    Verifies the project environment is ready for plet work: scripts installed,
-    git health, CLAUDE.md exists, .gitignore configured, spec artifacts present,
-    state valid, fingerprints consistent.
-
-Examples:
-    plet_gate_session.py preflight --session-type detect
-    plet_gate_session.py preflight plet/ --session-type loop
-    plet_gate_session.py preflight plet/ --session-type plan --output json --pretty
-"""
-    if "-h" in args or "--help" in args:
-        print(HELP)
-        return 0
-
-    CMD = "preflight"
-    hint = help_hint(CMD)
-    plet_dir, remaining = get_plet_dir(args)
-
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ, hint):
-        return 1
-
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    # --session-type is required
-    session_type_raw = kwargs.pop("session_type", None)
-    if not session_type_raw:
-        print("Error: --session-type is required (valid: detect, plan, loop, refine)", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_enum(session_type_raw, VALID_SESSION_TYPES, "--session-type"):
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Resolve "detect" to actual session type
-    if session_type_raw == "detect":
-        session_type, _, _ = detect_session_type(plet_dir)
-    else:
-        session_type = session_type_raw
-
-    # Run all checks
+def run_preflight_checks(plet_dir, session_type):
+    """Run all preflight checks. Returns list of check dicts."""
     checks = []
     scripts_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -548,9 +487,6 @@ Examples:
                 checks.append({"name": "git-check", "status": "warn",
                                 "detail": "could not parse GTC output"})
         else:
-            # No state files — run GTC without state args (check basic git health)
-            # GTC requires state files, so we skip GTC checks for fresh projects
-            # but still check basic git repo status
             r = run_git("rev-parse", "--git-dir")
             if r.returncode == 0:
                 checks.append({"name": "git:repo", "status": "pass",
@@ -560,7 +496,6 @@ Examples:
                                 "detail": "not inside a git repository"})
 
     # 3. claude-md-exists
-    # Look for CLAUDE.md in project root (parent of plet_dir, or cwd)
     project_root = os.path.dirname(os.path.abspath(plet_dir)) if os.path.isabs(plet_dir) else os.getcwd()
     claude_md = os.path.join(project_root, "CLAUDE.md")
     if os.path.isfile(claude_md):
@@ -632,25 +567,97 @@ Examples:
                 fpr_result = run(
                     [sys.executable, fpr_script, "check", plet_dir, "--output", "json"],
                 )
-                if fpr_result.returncode == 0:
-                    fpr_data = json.loads(fpr_result.stdout)
-                    consistent = fpr_data.get("consistent", None)
-                    if consistent:
-                        checks.append({"name": "fingerprints-consistent", "status": "pass",
-                                        "detail": "all fingerprints consistent"})
-                    else:
-                        severity = "fail" if session_type == "loop" else "warn"
-                        checks.append({"name": "fingerprints-consistent", "status": severity,
-                                        "detail": "fingerprints stale"})
+                fpr_data = json.loads(fpr_result.stdout)
+                fpr_status = fpr_data.get("status", "error")
+                if fpr_status == "ok":
+                    checks.append({"name": "fingerprints-consistent", "status": "pass",
+                                    "detail": "fingerprints consistent"})
+                elif fpr_status == "stale":
+                    checks.append({"name": "fingerprints-consistent", "status": "warn",
+                                    "detail": "fingerprints stale: {}".format(
+                                        fpr_data.get("detail", "see plet_fingerprint.py check"))})
                 else:
                     checks.append({"name": "fingerprints-consistent", "status": "warn",
-                                    "detail": "fingerprint check returned error"})
-            except Exception:
+                                    "detail": "fingerprint check returned: {}".format(fpr_status)})
+            except (json.JSONDecodeError, Exception):
                 checks.append({"name": "fingerprints-consistent", "status": "warn",
                                 "detail": "fingerprint check failed"})
         else:
             checks.append({"name": "fingerprints-consistent", "status": "pass",
                             "detail": "no plet directory or fingerprint script (fresh project)"})
+
+    return checks
+
+
+# ---------------------------------------------------------------------------
+# preflight
+# ---------------------------------------------------------------------------
+
+def cmd_preflight(args):
+    HELP = """IMPORTANT:
+    preflight is read-only — it checks the environment, never modifies it.
+    Run before starting any session. Includes GTC check-session for git health.
+
+PITFALLS:
+    - --session-type is REQUIRED (detect, plan, loop, or refine)
+    - Fingerprint severity depends on session type: loop=FAIL, refine=WARN, plan=SKIPPED
+    - Defaults to plet/ in current directory — run from project root
+
+USAGE:
+    plet_gate_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
+
+    plet_dir          Path to plet directory (default: plet/)
+    --session-type    Required. Controls session-specific checks.
+
+PURPOSE:
+    Verifies the project environment is ready for plet work: scripts installed,
+    git health, CLAUDE.md exists, .gitignore configured, spec artifacts present,
+    state valid, fingerprints consistent.
+
+Examples:
+    plet_gate_session.py preflight --session-type detect
+    plet_gate_session.py preflight plet/ --session-type loop
+    plet_gate_session.py preflight plet/ --session-type plan --output json --pretty
+"""
+    if "-h" in args or "--help" in args:
+        print(HELP)
+        return 0
+
+    CMD = "preflight"
+    hint = help_hint(CMD)
+    plet_dir, remaining = get_plet_dir(args)
+
+    try:
+        kwargs = parse_kwargs(remaining)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+    if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ, hint):
+        return 1
+
+    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
+    if not ok:
+        print(hint, file=sys.stderr)
+        return 1
+
+    # --session-type is required
+    session_type_raw = kwargs.pop("session_type", None)
+    if not session_type_raw:
+        print("Error: --session-type is required (valid: detect, plan, loop, refine)", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+    if not validate_enum(session_type_raw, VALID_SESSION_TYPES, "--session-type"):
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Resolve "detect" to actual session type
+    if session_type_raw == "detect":
+        session_type, _, _ = detect_session_type(plet_dir)
+    else:
+        session_type = session_type_raw
+
+    checks = run_preflight_checks(plet_dir, session_type)
 
     # Summarize
     counts = {"passed": 0, "failed": 0, "warnings": 0, "skipped": 0}
@@ -715,6 +722,127 @@ Examples:
 
 
 # ---------------------------------------------------------------------------
+# postflight
+# ---------------------------------------------------------------------------
+
+def cmd_postflight(args):
+    """Post-session health checks.
+
+    IMPORTANT: Runs the same checks as preflight, plus end-of-session checks
+    (transient lifecycle detection — iterations stuck in implementing/verifying).
+    Warnings only — never blocks end-session. A closed session with warnings is
+    better than a dangling open session.
+
+    USAGE
+        plet_gate_session.py postflight [<plet_dir>] --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]
+
+    EXAMPLES
+        plet_gate_session.py postflight plet/ --session-type loop
+        plet_gate_session.py postflight plet/ --session-type loop --output json --pretty
+
+    PURPOSE
+        Symmetric with preflight. Called by the orchestrator before end-session.
+        May diverge from preflight in the future.
+    """
+    HELP = cmd_postflight.__doc__
+    if "-h" in args or "--help" in args:
+        print(HELP)
+        return 0
+
+    plet_dir, remaining = get_plet_dir(args)
+    kwargs = parse_kwargs(remaining)
+    if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ,
+                                help_hint("postflight")):
+        return 1
+
+    if not require_kwargs(kwargs, ["session_type"], HELP):
+        return 1
+    session_type = kwargs["session_type"]
+    if not validate_enum(session_type, ["detect", "plan", "loop", "refine"], "session-type"):
+        print(help_hint("postflight"), file=sys.stderr)
+        return 1
+
+    output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
+    if not ok:
+        return 1
+
+    # Run preflight checks (reuse)
+    checks = run_preflight_checks(plet_dir, session_type)
+
+    # End-of-session check: transient lifecycle detection
+    sjp = state_json_path(plet_dir)
+    if os.path.isfile(sjp):
+        gs = load_json(sjp)
+        if gs and "dependencyMap" in gs:
+            transient = []
+            for iter_id in gs["dependencyMap"]:
+                isp = iter_state_path(plet_dir, iter_id)
+                if os.path.isfile(isp):
+                    ist = load_json(isp)
+                    if ist:
+                        lc = ist.get("lifecycle", "")
+                        if lc in ("implementing", "verifying"):
+                            transient.append(iter_id)
+            if transient:
+                checks.append({
+                    "name": "transient-lifecycle",
+                    "status": "warn",
+                    "detail": "iterations in transient state: {} ({})".format(
+                        ", ".join(transient),
+                        "may indicate crashed subagent — orchestrator should clean up on next run")
+                })
+            else:
+                checks.append({
+                    "name": "transient-lifecycle",
+                    "status": "pass",
+                    "detail": "no iterations in transient state"
+                })
+
+    # Summarize — postflight never fails, downgrade all fails to warns
+    for c in checks:
+        if c["status"] == "fail":
+            c["status"] = "warn"
+
+    total = len(checks)
+    passed_count = sum(1 for c in checks if c["status"] == "pass")
+    warn_count = sum(1 for c in checks if c["status"] == "warn")
+    skip_count = sum(1 for c in checks if c["status"] == "skipped")
+
+    overall = "ok" if warn_count == 0 else "warn"
+    exit_code = 0 if warn_count == 0 else 2
+
+    if output_json:
+        data = {
+            "status": overall,
+            "command": "postflight",
+            "sessionType": session_type,
+            "checks": checks,
+            "summary": {
+                "total": total,
+                "passed": passed_count,
+                "warnings": warn_count,
+                "skipped": skip_count,
+            },
+        }
+        emit_json(data, SCRIPT_VERSION, pretty, fields)
+    else:
+        label = "OK" if overall == "ok" else "WARN"
+        print("{}: postflight — {} checks".format(label, total))
+        for c in checks:
+            print("  {}: {:30s} {}".format(
+                c["status"].upper(), c["name"], c.get("detail", "")))
+        counts = {"total": total, "passed": passed_count, "warnings": warn_count, "skipped": skip_count}
+        parts = ["{} passed".format(counts["passed"])]
+        if counts["warnings"] > 0:
+            parts.append("{} warnings".format(counts["warnings"]))
+        if counts["skipped"] > 0:
+            parts.append("{} skipped".format(counts["skipped"]))
+        print("{} checks: {}".format(counts["total"], ", ".join(parts)))
+
+    return exit_code
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -723,6 +851,7 @@ def main():
         "detect": cmd_detect,
         "status": cmd_status,
         "preflight": cmd_preflight,
+        "postflight": cmd_postflight,
     }
     return dispatch(
         commands, "plet_gate_session", SCRIPT_VERSION, SKILL_VERSION, __doc__
