@@ -285,7 +285,7 @@ The audit tag and merge-squash handle tag naming (`plet/{projectId}/loop{N}/audi
 
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
 2. Update per-iteration state via `plet_state.py update-field`:
-   - `lifecycle`: `"verifying"` (signals the orchestrator to spawn a verification agent)
+   - `lifecycle`: `"verifying"` (**handoff signal** — tells the orchestrator you're done and a verification agent should be spawned. This is the one lifecycle transition you own. The post-implement gate (GPH_PST_BHV_11) verifies this was set.)
    - `agentActivity`: `"idle"`, `activityDetail`: `null`, `agentId`: `null`
 3. Write a `COMPLETE` progress entry via `plet_entries.py add-progress`
 4. Write any remaining learnings and emergent items

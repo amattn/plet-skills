@@ -280,11 +280,12 @@ If issues cannot be fixed in this context — wrong abstractions, missing functi
    - **progress.md** — `COMPLETE (rejected, cycle back)` entry listing what passed and what failed
 4. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
 5. Update state:
-   - `lifecycle`: `"implementing"` (returns to the queue for re-implementation)
+   - `lastVerdict`: `"rejected"` (the orchestrator reads this and decides whether to retry or block)
    - `agentActivity`: `"idle"`
    - `agentId`: `null`
    - `phaseTimestamps.verify_{N}_end`: current timestamp
    - `lastUpdated`: current timestamp
+   - **Do NOT set `lifecycle`.** Lifecycle stays `"verifying"`. The orchestrator owns the post-verify transition — it will set lifecycle to `"queued"` (retry) or `"blocked"` (retry exhausted) based on `lastVerdict` + retry policy. See § Lifecycle Ownership below.
 6. Write final trace entries
 7. Commit the failing tests and any other changes:
    ```
@@ -351,7 +352,7 @@ Trace capture is split into two files per phase:
 Write semantic event entries (via `plet_trace.py append-event`) for:
 - Verification decisions and their rationale (`--event-type decision`)
 - Criterion status changes (each `verification` object update) (`--event-type criterion_update`)
-- Lifecycle transitions (verifying → complete, or verifying → implementing) (`--event-type lifecycle_change`)
+- Verdict decisions (lastVerdict set to passed, rejected, or blocked) (`--event-type verdict_set`)
 - Activity changes (`--event-type activity_change`)
 - Issues found and severity assessment (minor fix-in-place vs substantial cycle-back) (`--event-type decision`)
 - Errors encountered and recovery actions (`--event-type error`)
@@ -419,7 +420,8 @@ This handles: rebase onto workstream, squash into one commit (`plet: [ID_xxx] - 
 4. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
 5. Set `lastVerdict` in the per-iteration state file
 6. Update via `plet_state.py update-field`:
-   - `lifecycle`: `"complete"`, `agentActivity`: `"idle"`, `agentId`: `null`
+   - `lastVerdict`: `"passed"`, `agentActivity`: `"idle"`, `agentId`: `null`
+   - **Do NOT set `lifecycle`.** Lifecycle stays `"verifying"`. The orchestrator sets lifecycle → `"complete"` after successful merge-squash to workstream. An iteration isn't truly complete until its code is merged.
 7. Write final trace entries via `plet_trace.py append-event`
 8. **Run post-gate and self-correct until it passes:**
 
@@ -469,10 +471,27 @@ Append a verification report to `verificationReports` with `verdict: "blocked"`.
 ### State Update
 
 After documenting across all four artifacts and writing the verification report:
-- `lifecycle`: `"blocked"`
+- `lastVerdict`: `"blocked"`
 - `agentActivity`: `"idle"`
 - `agentId`: `null`
 - `lastUpdated`: current timestamp
+- **Do NOT set `lifecycle`.** The orchestrator reads `lastVerdict: "blocked"` and transitions lifecycle → `"blocked"`. See § Lifecycle Ownership below.
+
+---
+
+## Lifecycle Ownership
+
+**You do NOT set lifecycle.** This is a critical rule. You set `lastVerdict` only. The lifecycle stays `"verifying"` throughout your work and after you exit.
+
+Why: lifecycle transitions after verification are **decisions** that require multiple inputs (verdict + merge success + retry policy). Only the orchestrator has all three. If you set lifecycle → `"complete"` but the merge fails, lifecycle lies. If you set lifecycle → `"implementing"` for a cycle-back, the orchestrator can't manage the retry queue.
+
+| What you own | What the orchestrator owns |
+|-------------|--------------------------|
+| `lastVerdict` (passed/rejected/blocked) | `lifecycle` → complete (after merge) |
+| `verificationReports` (append report) | `lifecycle` → queued (retry) |
+| `agentActivity`, `agentId` (idle on exit) | `lifecycle` → blocked (retry exhausted or blocked verdict) |
+
+The post-verify gate (GPH_PST_BHV_12) enforces this: if lifecycle changed from `"verifying"`, the gate FAILs and you must revert it.
 
 ---
 

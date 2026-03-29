@@ -364,9 +364,21 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `queued` | All dependencies met, ready for pickup |
 | `implementing` | Implementation subagent is working |
 | `verifying` | Verification subagent is working |
-| `complete` | All criteria pass verification — iteration is frozen (SF_10) |
+| `complete` | All criteria pass verification AND code merged to workstream — iteration is frozen (SF_10) |
 | `blocked` | Agent encountered an unresolvable issue |
 | `withdrawn` | Deliberately retired during refine — superseded, descoped, or user changed direction. Terminal state. |
+
+**Lifecycle Ownership (IMP_8):** Transitions are split into handoffs and decisions:
+
+| Transition | Owner | Type |
+|-----------|-------|------|
+| `queued` → `implementing` | Orchestrator | Reservation (prevents double-spawn) |
+| `implementing` → `verifying` | Implement subagent | Handoff (signals completion) |
+| `verifying` → `complete` | Orchestrator | Decision (after merge-squash succeeds) |
+| `verifying` → `queued` | Orchestrator | Decision (retry — lastVerdict was rejected) |
+| `verifying` → `blocked` | Orchestrator | Decision (retry exhausted or lastVerdict was blocked) |
+
+The verify subagent sets `lastVerdict` only — it does NOT touch `lifecycle`. Gate scripts enforce this.
 
 ### Agent Activity Values (SF_4)
 

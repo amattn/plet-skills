@@ -100,5 +100,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 32 | Retrofit UNV_CMD_29 (unknown flags) across all scripts | ✓ complete |
 | 33 | `plet_orchestrator.py` spec (ORC) | ✓ complete |
 | 34 | Implement ORC-emergent script updates | ✓ complete |
-| 35 | Cascade lifecycle ownership model | not started |
+| 35 | Cascade lifecycle ownership model | ✓ complete |
 | 36 | `plet_orchestrator.py` implementation | not started |

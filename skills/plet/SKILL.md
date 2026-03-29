@@ -228,13 +228,11 @@ Autonomous. Implements iterations, then verifies each in a fresh context.
 
    c. Subagent runs post-gate: `plet_gate_phase.py post plet/ --iter-id ID_xxx --phase verify`
       - Verify post also requires `lastVerdict` (FAIL if null) and `verificationReports` (FAIL if empty/missing fields)
-5. After verification:
-   - All criteria pass → audit tag + merge-squash to workstream:
-     ```bash
-     plet_git_ops.py audit-tag plet/ --iter-id ID_xxx --phase verify
-     plet_git_ops.py merge-squash plet/ --iter-id ID_xxx
-     ```
-   - Issues found → cycle back per `references/verify.md` rules
+5. After verification (orchestrator reads `lastVerdict` from state — verify subagent does NOT set lifecycle):
+   - `lastVerdict: "passed"` → merge-squash to workstream, orchestrator sets lifecycle → `complete`
+   - `lastVerdict: "rejected"` → orchestrator checks retry policy, sets lifecycle → `queued` (retry) or `blocked` (exhausted)
+   - `lastVerdict: "blocked"` → orchestrator sets lifecycle → `blocked`
+   - **Lifecycle ownership:** handoffs (subagent → orchestrator) vs decisions (orchestrator only). See IMP_8, state-schema.md § Lifecycle Ownership.
 6. Clean up worktree: `plet_git_iteration.py worktree-remove plet/ --iter-id ID_xxx`
 7. Re-evaluate dependency graph, spawn next eligible iterations
 8. Check breakpoints before/after each iteration
