@@ -25,7 +25,7 @@ failed = 0
 def run(args, expect_exit=0):
     """Run plet_fingerprint.py with args, return (stdout, stderr, exit_code)."""
     result = subprocess.run(
-        [sys.executable, TOOL] + args,
+        [sys.executable, TOOL, "--no-log"] + args,
         capture_output=True, text=True,
     )
     if result.returncode != expect_exit:

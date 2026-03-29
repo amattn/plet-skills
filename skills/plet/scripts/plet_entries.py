@@ -866,7 +866,8 @@ def main():
         "check": cmd_check,
     }
     return dispatch(
-        commands, "plet_entries", SCRIPT_VERSION, SKILL_VERSION, __doc__
+        commands, "plet_entries", SCRIPT_VERSION, SKILL_VERSION, __doc__,
+        no_log_commands={"add-progress", "add-learning", "add-emergent"},
     )
 
 

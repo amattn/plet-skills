@@ -26,7 +26,7 @@ failed = 0
 
 def run(args, expect_exit=0, cwd=None):
     result = subprocess.run(
-        [sys.executable, TOOL] + args,
+        [sys.executable, TOOL, "--no-log"] + args,
         capture_output=True, text=True, cwd=cwd,
     )
     if result.returncode != expect_exit:

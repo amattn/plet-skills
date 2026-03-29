@@ -903,6 +903,7 @@ def main():
         SCRIPT_VERSION,
         SKILL_VERSION,
         __doc__,
+        no_log_commands={"append-event"},
     )
 
 

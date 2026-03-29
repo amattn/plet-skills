@@ -159,11 +159,13 @@ def now_iso():
     return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def dispatch(commands, script_name, script_version, skill_version, doc, argv=None):
+def dispatch(commands, script_name, script_version, skill_version, doc, argv=None,
+             no_log_commands=None):
     """Standard main() entry point for plet scripts.
 
     Parses argv to extract command name, handles --help, --version,
-    unknown commands, and dispatches to the correct command function.
+    unknown commands, dispatches to the correct command function, and
+    logs the invocation to trace + progress (unless excluded).
 
     Args:
         commands: dict mapping command names to callables (args -> int)
@@ -172,11 +174,24 @@ def dispatch(commands, script_name, script_version, skill_version, doc, argv=Non
         skill_version: plet skill version this was built against
         doc: module docstring, printed on --help
         argv: argument list (defaults to sys.argv)
+        no_log_commands: set of command names that should NOT log
+            (to prevent recursion for write commands on logging scripts)
 
     Returns: int exit code
     """
+    import os as _os
+
     if argv is None:
         argv = sys.argv
+    if no_log_commands is None:
+        no_log_commands = set()
+
+    # --no-log: test-only flag, suppresses invocation logging
+    # Cascades to child processes via env var
+    no_log = "--no-log" in argv or _os.environ.get("PLET_NO_LOG") == "1"
+    if "--no-log" in argv:
+        argv = [a for a in argv if a != "--no-log"]
+        _os.environ["PLET_NO_LOG"] = "1"
 
     if len(argv) < 2:
         print(doc, file=sys.stderr)
@@ -205,7 +220,124 @@ def dispatch(commands, script_name, script_version, skill_version, doc, argv=Non
         )
         return 1
 
-    return commands[cmd](args)
+    exit_code = commands[cmd](args)
+
+    # Log invocation (unless excluded or --no-log)
+    if not no_log and cmd not in no_log_commands:
+        _log_script_invocation(script_name, cmd, args, exit_code, script_version)
+
+    return exit_code
+
+
+def _extract_from_args(args, flag_name):
+    """Extract a flag value from an args list. Returns value or None."""
+    for i, a in enumerate(args):
+        key = a.lstrip("-").replace("-", "_")
+        if key == flag_name and i + 1 < len(args):
+            return args[i + 1]
+    return None
+
+
+def _extract_plet_dir(args):
+    """Extract plet_dir from args (first non-flag arg that is a directory)."""
+    import os as _os
+    from util_io import DEFAULT_PLET_DIR
+    for a in args:
+        if a.startswith("-"):
+            continue
+        if _os.path.isdir(a):
+            return a
+        # Walk up from file path to find plet dir
+        path = a
+        for _ in range(3):
+            parent = _os.path.dirname(path)
+            if parent and _os.path.isdir(parent) and _os.path.isfile(
+                    _os.path.join(parent, "state.json")):
+                return parent
+            path = parent
+        return a
+    return DEFAULT_PLET_DIR
+
+
+def _log_script_invocation(script_name, command, args, exit_code, script_version):
+    """Log a script invocation to trace event + progress entry.
+
+    Uses direct imports (no subprocess) for zero overhead.
+    Fails silently — logging must never break the script.
+    """
+    try:
+        import os as _os
+        from util_io import (atomic_append, events_path, trace_dir_path,
+                             progress_path as _progress_path,
+                             state_json_path as _state_json_path)
+        from util_id import generate_plet_id
+
+        plet_dir = _extract_plet_dir(args)
+        iter_id = _extract_from_args(args, "iter_id") or "proj"
+        phase = _extract_from_args(args, "phase") or "implement"
+        attempt = _extract_from_args(args, "attempt") or "1"
+
+        # Only log if plet_dir exists and has state.json (actual plet project)
+        if not _os.path.isdir(plet_dir):
+            return
+        if not _os.path.isfile(_state_json_path(plet_dir)):
+            return
+
+        full_cmd = "{}.py {} {}".format(script_name, command, " ".join(args))
+        timestamp = now_iso()
+
+        # Trace event — NDJSON line
+        _os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
+        trace_file = events_path(plet_dir, iter_id, phase, int(attempt))
+        tev_id = generate_plet_id("tev", iter_id, phase, int(attempt))
+        trace_line = json.dumps({
+            "pletId": tev_id,
+            "timestamp": timestamp,
+            "type": "invocation",
+            "iterationId": iter_id,
+            "phase": phase,
+            "attempt": int(attempt),
+            "data": {
+                "cwd": _os.getcwd(),
+                "permissionMode": "n/a",
+                "promptLength": 0,
+                "script": script_name,
+                "command": command,
+                "args": args,
+                "exitCode": exit_code,
+                "scriptVersion": script_version,
+            },
+        }) + "\n"
+        atomic_append(trace_file, trace_line)
+
+        # Progress entry — markdown
+        prog_path = _progress_path(plet_dir)
+        if not _os.path.isfile(prog_path):
+            with open(prog_path, "w") as _f:
+                _f.write("")
+        epr_id = generate_plet_id("epr", iter_id, phase, int(attempt))
+        status = "COMPLETE" if exit_code == 0 else "IN_PROGRESS"
+        iter_title = iter_id if iter_id != "proj" else script_name
+        entry = (
+            '\n<div id="plet-{pid}"></div>\n\n---\n\n'
+            "### [{iid}] {phase}-{attempt}\n"
+            "**PletId:** `{pid}`\n"
+            "**Timestamp:** {ts}\n"
+            "**Iteration:** [{iid}] {title}\n"
+            "**Phase:** {phase}\n"
+            "**Attempt:** {attempt}\n"
+            "**Status:** {status}\n"
+            "**Content:**\n"
+            "{content}\n\n"
+            '<div id="END-plet-{pid}"></div>\n'
+        ).format(
+            pid=epr_id, iid=iter_id, phase=phase, attempt=attempt,
+            ts=timestamp, title=iter_title, status=status,
+            content=full_cmd,
+        )
+        atomic_append(prog_path, entry)
+    except Exception:
+        pass  # Logging must never break the script
 
 
 def filter_fields(data, fields):

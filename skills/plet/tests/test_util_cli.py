@@ -519,6 +519,121 @@ def test_emit_json_error_basic():
 
 
 # ---------------------------------------------------------------------------
+# Invocation logging
+# ---------------------------------------------------------------------------
+
+import json
+import subprocess
+import tempfile
+import shutil
+
+SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
+STATE_TOOL = os.path.join(SCRIPTS_DIR, "plet_state.py")
+
+
+def make_test_plet_dir():
+    """Create a plet dir with valid state for logging tests."""
+    tmpdir = tempfile.mkdtemp()
+    plet_dir = os.path.join(tmpdir, "plet")
+    sys.path.insert(0, SCRIPTS_DIR)
+    from util_io import state_json_path, state_dir_path, iter_state_path
+    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
+    with open(state_json_path(plet_dir), "w") as f:
+        json.dump({
+            "schemaVersion": "0.1.0", "projectId": "TEST",
+            "project": {"name": "Test"}, "loopSessionCount": 1,
+            "refineSessionCount": 0, "dependencyMap": {},
+            "milestones": {}, "iterationsFingerprint": {},
+        }, f)
+        f.write("\n")
+    with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
+        json.dump({
+            "schemaVersion": "0.1.0", "iterationId": "ID_001",
+            "title": "Test", "lastUpdated": "2026-03-29T00:00:00Z",
+            "lifecycle": "implementing", "dependencies": [],
+            "agentId": None, "attempts": {"implement": 1, "verify": 0},
+            "criteria": [],
+        }, f)
+        f.write("\n")
+    from util_io import progress_path
+    with open(progress_path(plet_dir), "w") as f:
+        f.write("")
+    return tmpdir, plet_dir
+
+
+def test_invocation_logging_enabled():
+    print("\n## invocation logging — logs when --no-log absent")
+    tmpdir, plet_dir = make_test_plet_dir()
+    try:
+        result = subprocess.run(
+            [sys.executable, STATE_TOOL, "validate", plet_dir, "--iter-id", "ID_001"],
+            capture_output=True, text=True,
+        )
+        check("validate exits 0", result.returncode == 0,
+              "stderr: {}".format(result.stderr[:200]))
+        # Check progress entry was written
+        from util_io import progress_path
+        with open(progress_path(plet_dir)) as f:
+            progress = f.read()
+        check("progress has logging entry", len(progress) > 0)
+        # Check trace event was written
+        from util_io import trace_dir_path
+        tdir = trace_dir_path(plet_dir)
+        if os.path.isdir(tdir):
+            trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]
+        else:
+            trace_files = []
+        check("trace event file created", len(trace_files) >= 1)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_invocation_logging_suppressed():
+    print("\n## invocation logging — suppressed with --no-log")
+    tmpdir, plet_dir = make_test_plet_dir()
+    try:
+        result = subprocess.run(
+            [sys.executable, STATE_TOOL, "--no-log", "validate", plet_dir, "--iter-id", "ID_001"],
+            capture_output=True, text=True,
+        )
+        check("validate still exits 0", result.returncode == 0)
+        from util_io import progress_path
+        with open(progress_path(plet_dir)) as f:
+            check("progress empty", f.read() == "")
+        from util_io import trace_dir_path
+        tdir = trace_dir_path(plet_dir)
+        if os.path.isdir(tdir):
+            trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]
+        else:
+            trace_files = []
+        check("no trace events", len(trace_files) == 0)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_nolog_cascades():
+    print("\n## invocation logging — PLET_NO_LOG env var cascades")
+    tmpdir, plet_dir = make_test_plet_dir()
+    try:
+        env = os.environ.copy()
+        env["PLET_NO_LOG"] = "1"
+        result = subprocess.run(
+            [sys.executable, STATE_TOOL, "validate", plet_dir, "--iter-id", "ID_001"],
+            capture_output=True, text=True, env=env,
+        )
+        check("validate exits 0", result.returncode == 0)
+        from util_io import trace_dir_path
+        tdir = trace_dir_path(plet_dir)
+        if os.path.isdir(tdir):
+            trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]
+        else:
+            trace_files = []
+        check("no trace with env var", len(trace_files) == 0)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -568,6 +683,9 @@ if __name__ == "__main__":
     test_emit_json_pretty()
     test_emit_json_fields()
     test_emit_json_error_basic()
+    test_invocation_logging_enabled()
+    test_invocation_logging_suppressed()
+    test_nolog_cascades()
 
     print("\n{}".format("=" * 40))
     print("  {} passed, {} failed".format(passed, failed))
