@@ -491,3 +491,15 @@ Expanded during lifecycle ownership analysis: post gate now also enforces lifecy
 ### FB_56: plet_gate_session.py needs postflight command [artifacts] [symmetry]
 
 Add `postflight` to `plet_gate_session.py` — symmetric with `preflight`. Internally calls preflight for shared checks, adds end-of-session checks (transient lifecycle detection: iterations stuck in `implementing`/`verifying`). Warnings only — never blocks end-session. Called by orchestrator before `end-session`. Separate command for discoverability; may diverge from preflight over time. Added to GSS command summary in spec.
+
+### FB_57: Replace optional positional plet_dir with required --plet-dir flag [dx] [subplets]
+
+All plet scripts take `[<plet_dir>]` as an optional positional arg (default: `plet/`). This causes two problems:
+
+1. **Command ordering confusion:** The orchestrator hit a bug where `[plet_dir, "update-field", ...]` was passed instead of `["update-field", plet_dir, ...]`. Positional args are ambiguous when composed programmatically.
+
+2. **Subplets break the default:** A subplet's plet directory is a nested path (e.g., `plet/subplets/AUTH/plet/`). Defaulting to `plet/` makes no sense in that context. Every call must be explicit about which plet context it operates in.
+
+**Proposed fix:** Replace `[<plet_dir>]` with `--plet-dir <path>` as a required named flag across all scripts. Named flags have no ordering ambiguity and force explicit context in every call.
+
+**Impact:** Breaking change across all 14+ scripts, all tests, all reference files, SKILL.md. Plan as a dedicated sweep (like the NDJSON rename) when subplet work begins (PLAN_10).
