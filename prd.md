@@ -47,7 +47,7 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GC_1 | All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`). Sub-groups use `XX_YY_N` (e.g., `UI_NAV_1`) when there is a logical grouping or large item count. IDs use append-only numbering: new items get the next available number, deleted items leave gaps, numbers don't imply ordering (document position determines order), IDs are stable once assigned (never renumber, never reuse). This applies globally to requirement IDs, iteration IDs, milestone IDs, and emergent item IDs. **Reserved prefixes:** `MS_` (milestones) and `ID_` (iterations) must not be used for requirement IDs — fingerprint scanning uses these prefixes to disambiguate ID types. | P0 |
+| GC_1 | All IDs use underscore format: `XXX_N` where the prefix is usually 3, but can be 2-4 uppercase letters (e.g., `FRS_1`, `IMP_3`, `MST_1`, `EMR_5`). Sub-groups use `XXX_YYY_N` (e.g., `UI_NAV_1`) when there is a logical grouping or large item count. IDs use append-only numbering: new items get the next available number, deleted items leave gaps, numbers don't imply ordering (document position determines order), IDs are stable once assigned (never renumber, never reuse). This applies globally to requirement IDs, iteration IDs, milestone IDs, and emergent item IDs. **Reserved prefixes:** `MS_` (milestones) and `ID_` (iterations) must not be used for requirement IDs — fingerprint scanning uses these prefixes to disambiguate ID types. Follows the [/stable-label convention](https://github.com/amattn/session-kit): greppable, append-only, one grep always finds exactly one definition. | P0 |
 | GC_2 | Agents prefer making a decision and documenting it in emergent.md over blocking. Blocking is a last resort reserved for situations where no reasonable decision can be made without human input. | P0 |
 | GC_3 | When IDs appear in filenames (e.g., `ID_001.json`, `ID_001-implement-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order in file browsers. Zero-padding is not required in artifact content or prose. | P0 |
 
@@ -136,7 +136,7 @@ The plan session is interactive and human-driven. It is a structured conversatio
 | PL_2 | Generate a structured requirements document saved to `plet/requirements.md` including: overview, functional requirements with IDs and priorities, non-functional requirements, technical architecture, release milestones, open questions, and resolved questions | P0 |
 | PL_3 | The requirements document follows the conventions of the ridl-skills:prd format with requirement tables, architecture diagrams, and milestone definitions | P0 |
 | PL_4 | Present each feature area's requirements to the user for review before finalizing | P0 |
-| PL_5 | All requirement IDs use the `XX_N` format with append-only numbering as defined in GC_1 | P0 |
+| PL_5 | All requirement IDs use the `XXX_N` format (2-3 letter prefix) with append-only numbering as defined in GC_1 | P0 |
 | PL_6 | If `plet/requirements.md` already exists, read it and offer to update rather than replace | P0 |
 | PL_7 | If `plet/emergent.md` has pending items, triage them with the user. If `plet/learnings.md` exists, scan it for patterns that suggest spec changes. Incorporate results into requirements before re-planning. | P0 |
 | PL_8 | Break the requirements into iteration definitions small enough to fit in a single context window without compaction, with dependency relationships. This is the single most important decomposition constraint — err aggressively on the side of smaller iterations. When in doubt about whether a dependency exists, add it — missing dependencies are dangerous (agent wastes a cycle, must self-correct per IMP_24), while false dependencies are harmless (only reduce parallelism slightly). | P0 |
@@ -685,7 +685,7 @@ Iterations with no dependency relationship to each other are eligible for parall
 
 | # | Question | Decision |
 |---|----------|----------|
-| 1 | ID format: hyphens or underscores? | **Underscores (`XX_N`).** Easier to copy-paste. |
+| 1 | ID format: hyphens or underscores? | **Underscores (`XXX_N`, 2-3 letter prefix).** Easier to copy-paste. Follows /stable-label convention. |
 | 2 | ID stability when editing PRDs? | **Append-only with gaps.** Never renumber, never reuse. Gaps visually signal evolution. |
 | 3 | Where do fingerprints live? | **Nested in each artifact.** requirements.md → iterations.md → state.json chain. Future Considerations and Open Questions excluded. |
 | 4 | Should state be one file or split? | **Split.** Global `plet/state.json` + per-iteration `plet/state/{iteration_id}.json`. Eliminates parallel write conflicts. |
