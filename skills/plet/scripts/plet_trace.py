@@ -3,7 +3,7 @@
 
 Agents call this instead of composing event JSON freehand, eliminating
 schema drift across iterations. Handles only semantic events
-(-events.ndjson), not raw transcripts (-transcript.jsonl).
+(-events.ndjson), not raw transcripts (-transcript.ndjson).
 
 Usage:
     plet_trace.py <command> [<plet_dir>] [args]

@@ -95,7 +95,7 @@ my-project/                             # target project root
     ├── learnings.md                    # runtime: knowledge base (audience: agents)
     ├── emergent.md                     # runtime: triage queue (audience: humans)
     └── trace/                          # trace: execution telemetry
-        ├── ID_001-implement-1-transcript.jsonl    # raw I/O (orchestrator-captured)
+        ├── ID_001-implement-1-transcript.ndjson    # raw I/O (orchestrator-captured)
         ├── ID_001-implement-1-events.ndjson       # semantic events (subagent-written)
         └── ...
 ```
@@ -116,7 +116,7 @@ my-project/                             # target project root
 - `plet/emergent.md` — **E**mergent: triage queue (audience: humans)
 
 **4. Trace artifacts** (execution telemetry) — the **T** in plet
-- `plet/trace/{id}-{phase}-{attempt}-transcript.jsonl` — raw I/O (orchestrator-captured)
+- `plet/trace/{id}-{phase}-{attempt}-transcript.ndjson` — raw I/O (orchestrator-captured)
 - `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written)
 
 **5. Version control artifacts**

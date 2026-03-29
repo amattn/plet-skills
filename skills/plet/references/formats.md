@@ -379,15 +379,15 @@ Trace capture is split into two files per phase:
 ### Raw I/O Transcript
 
 ```
-plet/trace/{iteration_id}-{phase}-{attempt}-transcript.jsonl
+plet/trace/{iteration_id}-{phase}-{attempt}-transcript.ndjson
 ```
 
 Contains all assistant text, tool use, tool results, errors, and system messages in Claude Code's native JSONL format. **Subagents do not write this file.** How it's captured depends on the invocation style: *subprocess mode* — `plet_invoke.py` captures streaming JSONL output from `claude -p --output-format stream-json` in real time; *subagent mode* (future) — the orchestrator locates the log file produced by the native subagent and copies/renames it after the subagent concludes.
 
 Examples:
-- `ID_001-implement-1-transcript.jsonl` — ID_001, implementation phase, attempt 1
-- `ID_001-verify-1-transcript.jsonl` — ID_001, verification phase, attempt 1
-- `ID_002-implement-2-transcript.jsonl` — ID_002, implementation phase, attempt 2 (retry)
+- `ID_001-implement-1-transcript.ndjson` — ID_001, implementation phase, attempt 1
+- `ID_001-verify-1-transcript.ndjson` — ID_001, verification phase, attempt 1
+- `ID_002-implement-2-transcript.ndjson` — ID_002, implementation phase, attempt 2 (retry)
 
 ### Semantic Events (subagent-written via `plet_trace.py`)
 

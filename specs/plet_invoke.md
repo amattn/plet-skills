@@ -82,7 +82,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 |----|-------------|----------|
 | INV_RUN_OUT_1 | Text mode: `OK — {phase} subprocess exited {code}` or `ERROR — {phase} subprocess exited {code}`. Exit code matches subprocess exit code. | P0 |
 | INV_RUN_OUT_2 | JSON mode: structured invocation result (see schema below). | P0 |
-| INV_RUN_OUT_3 | Transcript file written: `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.jsonl` | P0 |
+| INV_RUN_OUT_3 | Transcript file written: `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.ndjson` | P0 |
 | INV_RUN_OUT_4 | Dry-run: prints the full `claude` command that would be executed, exit 0. | P0 |
 | INV_RUN_OUT_5 | Error (bad inputs): specific message to stderr, exit 1. | P0 |
 
@@ -117,7 +117,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| INV_RUN_PST_1 | Transcript file exists at `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.jsonl` | P0 |
+| INV_RUN_PST_1 | Transcript file exists at `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.ndjson` | P0 |
 | INV_RUN_PST_2 | Every line of subprocess stdout is in the transcript (no data loss) | P0 |
 | INV_RUN_PST_3 | Script exit code matches subprocess exit code (pass-through) | P0 |
 | INV_RUN_PST_4 | Invocation trace event written with full prompt text. Progress entry written with full prompt text. Both contain invocation details. No separate prompt file — prompt lives in trace + progress. | P0 |
@@ -130,7 +130,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 | INV_RUN_BHV_2 | **Subprocess construction:** Builds command: `claude -p <prompt> --output-format stream-json --permission-mode <mode> --no-session-persistence --bare --name "plet/{iter_id}/{phase}-{attempt}"` plus optional `--max-budget-usd`, `--model`, `--verbose`. The full prompt string is passed as a direct command-line argument to `-p` (not piped via stdin, not read from a file). | P0 |
 | INV_RUN_BHV_3 | **Working directory:** Subprocess is launched with `cwd=<worktree_path>` (from `--cwd`). The subagent sees the worktree as its working directory. | P0 |
 | INV_RUN_BHV_4 | **Transcript capture:** Opens transcript file before launch. Reads subprocess stdout line by line. Writes each line to transcript + flushes immediately. Closes file after subprocess exits. | P0 |
-| INV_RUN_BHV_5 | **Transcript path:** `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.jsonl`. Creates `trace/` directory if needed. Attempt number read from iter state (`attempts.{phase}`). If transcript file already exists (retry of same attempt), append with a separator line — NEVER overwrite. Data must never be lost. | P0 |
+| INV_RUN_BHV_5 | **Transcript path:** `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.ndjson`. Creates `trace/` directory if needed. Attempt number read from iter state (`attempts.{phase}`). If transcript file already exists (retry of same attempt), append with a separator line — NEVER overwrite. Data must never be lost. | P0 |
 | INV_RUN_BHV_6 | **Exit code pass-through:** Returns the subprocess exit code as the script's exit code. 0 = success, non-zero = failure. The orchestrator interprets the exit code. | P0 |
 | INV_RUN_BHV_7 | **Elapsed time:** Records wall-clock elapsed time from subprocess start to finish. Included in JSON output. | P0 |
 | INV_RUN_BHV_8 | **No session persistence:** Uses `--no-session-persistence` — subagent sessions are ephemeral and not resumable. Each invocation is a clean context. | P0 |
@@ -172,7 +172,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | INV_FMT_1 | Reads iter state for attempt number: `{plet_dir}/state/{iter_id}.json` | P0 |
-| INV_FMT_2 | Writes transcript: `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.jsonl` (streaming JSONL) | P0 |
+| INV_FMT_2 | Writes transcript: `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.ndjson` (streaming NDJSON) | P0 |
 | INV_FMT_4 | Writes invocation trace event (via plet_trace.py) + progress entry (via plet_entries.py). Both contain full prompt text. | P0 |
 | INV_FMT_3 | Calls PRM for prompt text (reads indirectly via PRM) | P0 |
 
@@ -213,7 +213,7 @@ plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
 # DRY RUN — would execute:
 # claude -p "..." --output-format stream-json --permission-mode auto \
 #   --no-session-persistence --name "plet/ID_001/implement-1"
-# Transcript would be written to: plet/trace/ID_001-implement-1-transcript.jsonl
+# Transcript would be written to: plet/trace/ID_001-implement-1-transcript.ndjson
 ```
 
 ### INV_EXM_3: JSON output
@@ -228,7 +228,7 @@ plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
 #   "phase": "implement",
 #   "attempt": 1,
 #   "subprocessExitCode": 0,
-#   "transcriptPath": "plet/trace/ID_001-implement-1-transcript.jsonl",
+#   "transcriptPath": "plet/trace/ID_001-implement-1-transcript.ndjson",
 #   "transcriptLines": 847,
 #   "elapsedSeconds": 142,
 #   ...

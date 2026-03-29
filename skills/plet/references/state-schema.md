@@ -493,7 +493,7 @@ The `criteriaResults` array is a compact index — the full evidence stays in ea
 
 Trace capture is split into two files per phase:
 
-- **`plet/trace/{id}-{phase}-{attempt}-transcript.jsonl`** — raw I/O transcript in Claude Code's native JSONL format. Subagents do not write this file. *Subprocess mode:* captured by `plet_invoke.py` from streaming output. *Subagent mode (future):* orchestrator locates and copies the log file after the subagent concludes.
+- **`plet/trace/{id}-{phase}-{attempt}-transcript.ndjson`** — raw I/O transcript in Claude Code's native JSONL format. Subagents do not write this file. *Subprocess mode:* captured by `plet_invoke.py` from streaming output. *Subagent mode (future):* orchestrator locates and copies the log file after the subagent concludes.
 - **`plet/trace/{id}-{phase}-{attempt}-events.ndjson`** — semantic events written by the subagent via `plet_trace.py append-event`. Schema defined below.
 
 ### Semantic Event Line Schema

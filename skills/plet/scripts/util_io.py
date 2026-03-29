@@ -120,7 +120,7 @@ def events_path(plet_dir, iter_id, phase, attempt):
 def transcript_path(plet_dir, iter_id, phase, attempt):
     """Derive path to raw I/O transcript file."""
     return os.path.join(plet_dir, "trace",
-                        "{}-{}-{}-transcript.jsonl".format(iter_id, phase, attempt))
+                        "{}-{}-{}-transcript.ndjson".format(iter_id, phase, attempt))
 
 
 # ---------------------------------------------------------------------------

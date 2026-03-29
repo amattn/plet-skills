@@ -310,7 +310,7 @@ def test_path_derivation():
     check("emergent_path", util_io.emergent_path("plet") == os.path.join("plet", "emergent.md"))
     check("trace_dir_path", util_io.trace_dir_path("plet") == os.path.join("plet", "trace"))
     check("events_path", util_io.events_path("plet", "ID_001", "implement", 1) == os.path.join("plet", "trace", "ID_001-implement-1-events.ndjson"))
-    check("transcript_path", util_io.transcript_path("plet", "ID_001", "verify", 2) == os.path.join("plet", "trace", "ID_001-verify-2-transcript.jsonl"))
+    check("transcript_path", util_io.transcript_path("plet", "ID_001", "verify", 2) == os.path.join("plet", "trace", "ID_001-verify-2-transcript.ndjson"))
     check("custom plet_dir", util_io.state_json_path("/tmp/myproject/plet") == os.path.join("/tmp/myproject/plet", "state.json"))
     check("DEFAULT_PLET_DIR", util_io.DEFAULT_PLET_DIR == "plet/")
 

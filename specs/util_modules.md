@@ -51,7 +51,7 @@ All scripts derive file paths through these functions — never construct paths 
 | `emergent_path(plet_dir)` | `{plet_dir}/emergent.md` |
 | `trace_dir_path(plet_dir)` | `{plet_dir}/trace/` |
 | `events_path(plet_dir, iter_id, phase, attempt)` | `{plet_dir}/trace/{id}-{phase}-{attempt}-events.ndjson` |
-| `transcript_path(plet_dir, iter_id, phase, attempt)` | `{plet_dir}/trace/{id}-{phase}-{attempt}-transcript.jsonl` |
+| `transcript_path(plet_dir, iter_id, phase, attempt)` | `{plet_dir}/trace/{id}-{phase}-{attempt}-transcript.ndjson` |
 
 **Constant:** `DEFAULT_PLET_DIR = "plet/"` — used by all scripts as the default when no plet_dir is specified.
 

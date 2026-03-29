@@ -345,7 +345,7 @@ If the tool's structure feels insufficient for what you need to express, use the
 
 Trace capture is split into two files per phase:
 
-- **`plet/trace/{iteration_id}-verify-{attempt}-transcript.jsonl`** — raw I/O transcript. **You do not write this file.** How it's captured depends on the invocation style: *subprocess mode* — `plet_invoke.py` captures streaming JSONL output from `claude -p --output-format stream-json` in real time as the subprocess runs; *subagent mode* (future) — the orchestrator locates the log file produced by the native subagent and copies/renames it after the subagent concludes.
+- **`plet/trace/{iteration_id}-verify-{attempt}-transcript.ndjson`** — raw I/O transcript. **You do not write this file.** How it's captured depends on the invocation style: *subprocess mode* — `plet_invoke.py` captures streaming JSONL output from `claude -p --output-format stream-json` in real time as the subprocess runs; *subagent mode* (future) — the orchestrator locates the log file produced by the native subagent and copies/renames it after the subagent concludes.
 - **`plet/trace/{iteration_id}-verify-{attempt}-events.ndjson`** — semantic events that you write during work via `plet_trace.py append-event`. Each line is a valid JSON object following the schema in `references/state-schema.md`.
 
 Write semantic event entries (via `plet_trace.py append-event`) for:

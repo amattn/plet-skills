@@ -144,7 +144,7 @@ project (LOGA)
 - `plet/emergent.md` — triage queue (audience: humans)
 
 **4. Trace artifacts** (execution telemetry)
-- `plet/trace/{id}-{phase}-{attempt}-transcript.jsonl` — raw I/O (captured by `plet_invoke.py` in subprocess mode)
+- `plet/trace/{id}-{phase}-{attempt}-transcript.ndjson` — raw I/O (captured by `plet_invoke.py` in subprocess mode)
 - `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (subagent-written via `plet_trace.py`)
 
 **5. Version control artifacts**
@@ -216,7 +216,7 @@ This complements "Skills for Judgment, Code for Compliance" — that principle s
 - **progress.md** — what was done (historical record, append-only)
 - **learnings.md** — agent-facing knowledge (helps future agents)
 - **emergent.md** — human-facing items (needs human decision)
-- **trace/** — two files per phase: `-transcript.jsonl` (raw I/O, captured by `plet_invoke.py`) and `-events.ndjson` (semantic events, subagent-written via `plet_trace.py`)
+- **trace/** — two files per phase: `-transcript.ndjson` (raw I/O, captured by `plet_invoke.py`) and `-events.ndjson` (semantic events, subagent-written via `plet_trace.py`)
 
 ### Runtime artifact write safety
 - All three .md artifacts are single files (humans scan one file better than multiple)
@@ -299,7 +299,7 @@ Claude Code has three layers of memory:
 Every plet file path is derived from `util_io` functions. No script constructs paths manually via `os.path.join`. Functions added during this session:
 - `trace_dir_path(plet_dir)` → `{plet_dir}/trace/`
 - `events_path(plet_dir, iter_id, phase, attempt)` → `{plet_dir}/trace/{id}-{phase}-{attempt}-events.ndjson`
-- `transcript_path(plet_dir, iter_id, phase, attempt)` → `{plet_dir}/trace/{id}-{phase}-{attempt}-transcript.jsonl`
+- `transcript_path(plet_dir, iter_id, phase, attempt)` → `{plet_dir}/trace/{id}-{phase}-{attempt}-transcript.ndjson`
 
 Previously existed: `state_json_path`, `state_dir_path`, `iter_state_path`, `requirements_path`, `iterations_path`, `progress_path`, `learnings_path`, `emergent_path`.
 
@@ -689,7 +689,7 @@ Runtime artifacts grow unbounded, so subagents can't naively read everything. Ti
 
 #### Trace capture: raw I/O + semantic events
 
-Subagents don't self-log full I/O — that's impractical and wasteful of context. Trace is split into two files per phase: (1) raw I/O transcript (`{id}-{phase}-{attempt}-transcript.jsonl`) captured automatically by the orchestrator from Claude Code's `--output-format stream-json` output, and (2) semantic events (`{id}-{phase}-{attempt}-events.ndjson`) written by the subagent for decisions, criterion updates, lifecycle changes, activity changes, and errors. Both have timestamps; a GUI merges by time. `-transcript` suffix chosen over `-raw`/`-stream`/`-io`/`-session` because it describes what the file contains rather than how it was captured.
+Subagents don't self-log full I/O — that's impractical and wasteful of context. Trace is split into two files per phase: (1) raw I/O transcript (`{id}-{phase}-{attempt}-transcript.ndjson`) captured automatically by the orchestrator from Claude Code's `--output-format stream-json` output, and (2) semantic events (`{id}-{phase}-{attempt}-events.ndjson`) written by the subagent for decisions, criterion updates, lifecycle changes, activity changes, and errors. Both have timestamps; a GUI merges by time. `-transcript` suffix chosen over `-raw`/`-stream`/`-io`/`-session` because it describes what the file contains rather than how it was captured.
 
 ### Verification
 
@@ -1433,7 +1433,7 @@ Per STA_AGT_8, ENT_AGT_7, FPR_AGT_6, GTC_AGT_7, GSS_AGT_6 — external GUI perso
 
 ### Trace merge for unified view
 
-GUI merges `-events.ndjson` and `-transcript.jsonl` by timestamp for a unified view. Raw transcript provides full fidelity; semantic events provide structure. See formats.md § GUI Integration.
+GUI merges `-events.ndjson` and `-transcript.ndjson` by timestamp for a unified view. Raw transcript provides full fidelity; semantic events provide structure. See formats.md § GUI Integration.
 
 ---
 

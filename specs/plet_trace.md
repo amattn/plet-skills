@@ -6,7 +6,7 @@
 
 Trace event schema drift was identified across three case studies: LOGA had traces for 1 of 13 iterations with inconsistent field names (`timestamp` vs `ts`, `iterationId` vs `iteration`), LIBT improved to 4 of 5 but still had schema drift, and SPARK finally achieved reliable generation (51 event logs across 23 iterations) but schema consistency remains the gap. This script makes semantic event writing deterministic — agents call it instead of composing NDJSON freehand.
 
-plet has two trace artifact types: semantic events (`-events.ndjson`) written by subagents during work, and raw transcripts (`-transcript.jsonl`) captured from subprocess stdout. This script handles only the **semantic events** side — schema enforcement for the structured annotations agents write. Transcript capture is handled by `plet_invoke.py`, which launches subprocess invocations of `claude -p --output-format stream-json` and tees the JSONL output to the transcript file.
+plet has two trace artifact types: semantic events (`-events.ndjson`) written by subagents during work, and raw transcripts (`-transcript.ndjson`) captured from subprocess stdout. This script handles only the **semantic events** side — schema enforcement for the structured annotations agents write. Transcript capture is handled by `plet_invoke.py`, which launches subprocess invocations of `claude -p --output-format stream-json` and tees the output to the transcript NDJSON file.
 
 **Why subprocess invocations, not native Agent tool:** Subprocess invocations (`claude -p`) produce streaming JSONL output that can be reliably captured by code. Native Agent tool subagents run inside Claude Code with no reliable way to capture their raw I/O — finding and copying log files from the config dir is an implementation detail that may change across versions or be non-portable across harnesses. Native subagents are a future consideration (TRC_FUT_5) — they offer UI benefits but lack the traceability guarantee that subprocess invocations provide.
 
@@ -655,7 +655,7 @@ See `specs/conventions.md` for universal requirements.
 | 3 | Should `append-event` set the timestamp or accept it as input? | Script sets it. Timestamp fabrication was observed in LIBT (ID_005 had placeholder timestamps). The script always uses `now_iso()`, preventing this. |
 | 4 | Should `validate` fail-fast or accumulate errors? | Accumulate. Per UNV_ERR_3 exception for validation commands. All lines are checked, all errors reported with line numbers. |
 | 5 | Should `query` fail on malformed lines? | No — skip with warning. Trace files may be partially written by crashed agents. A strict `query` that fails on one bad line is useless for debugging. `validate` is the strict checker. |
-| 6 | Does this script handle transcript files (`-transcript.jsonl`)? | No. Transcript files are captured by `plet_invoke.py` (subprocess mode) or located/copied by the orchestrator (subagent mode, future). Subagents don't write them. This script handles only semantic events (`-events.ndjson`). |
+| 6 | Does this script handle transcript files (`-transcript.ndjson`)? | No. Transcript files are captured by `plet_invoke.py` (subprocess mode) or located/copied by the orchestrator (subagent mode, future). Subagents don't write them. This script handles only semantic events (`-events.ndjson`). |
 
 ## Open Questions
 
@@ -666,10 +666,10 @@ None.
 | ID | Area | Description |
 |----|------|-------------|
 | TRC_FUT_1 | ~~Plet IDs for trace events~~ | Promoted to requirement — every event gets a `tev_` plet ID (TRC_APE_BHV_1, TRC_APE_PST_3). Greppable and cross-referenceable from day 1. |
-| TRC_FUT_2 | Trace merge | Command that merges events.ndjson and transcript.jsonl by timestamp for unified view (GUI integration). Deferred — the GUI reads files directly. |
+| TRC_FUT_2 | Trace merge | Command that merges events.ndjson and transcript.ndjson by timestamp for unified view (GUI integration). Deferred — the GUI reads files directly. |
 | TRC_FUT_3 | Trace summary | Command that produces a human-readable summary of a trace file (event counts by type, timeline, key decisions). Useful for post-run analysis. |
 | TRC_FUT_4 | Streaming validation | Validate events as they're appended (real-time schema enforcement via a file watcher or hook). |
-| TRC_FUT_5 | Transcript validation/query | If post-run analysis needs to validate or query raw transcript JSONL (e.g., "find all tool_use events", "count tokens per iteration"), add `validate-transcript` and `query-transcript` commands to this script or create a separate tool. Deferred — transcript capture lives in `plet_invoke.py`, analysis needs are unknown until more runs. |
+| TRC_FUT_5 | Transcript validation/query | If post-run analysis needs to validate or query raw transcript NDJSON (e.g., "find all tool_use events", "count tokens per iteration"), add `validate-transcript` and `query-transcript` commands to this script or create a separate tool. Deferred — transcript capture lives in `plet_invoke.py`, analysis needs are unknown until more runs. |
 | TRC_FUT_6 | Native Agent tool support | Native subagents (Claude Code's Agent tool) offer UI benefits but lack reliable transcript capture — no streaming JSONL output, log file locations are implementation details that may change or be non-portable. If native subagent tracing becomes possible (e.g., Claude Code exposes a transcript API), add support. Until then, subprocess invocations are the only architecture that provides the traceability guarantee. |
 
 ## 16. FB Items Addressed
