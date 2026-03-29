@@ -110,7 +110,7 @@ def run_sta_validate(plet_dir, iter_id):
     """Call STA validate. Returns a check dict."""
     is_path = iter_state_path(plet_dir, iter_id)
     data, result = run_tool("plet_state.py", [
-        "validate", is_path, "--output", "json",
+        "validate", plet_dir, "--iter-id", iter_id, "--output", "json",
     ])
     if data is None and result is None:
         return {"name": "state-valid", "status": "fail",

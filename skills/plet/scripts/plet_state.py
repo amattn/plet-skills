@@ -5,13 +5,16 @@ Enforces the schema defined in references/state-schema.md. Agents call this
 instead of writing JSON freehand, eliminating schema drift across iterations.
 
 Usage:
-    plet_state.py <command> [args]
+    plet_state.py <command> [<plet_dir>] --iter-id ID_xxx [args]
 
 Commands:
     validate          Check a state file against the schema. Exits 0 if valid, 1 if not.
     update-criterion  Update a criterion's implementation or verification status.
     update-field      Update top-level fields (lifecycle, agentActivity, etc.) via --data JSON.
     init              Create a new state file with correct structure.
+
+All commands require --iter-id and accept an optional plet_dir positional
+(defaults to "plet/"). The state file path is derived as plet_dir/state/{iter_id}.json.
 
 Global flags:
     --help, -h        Show this help or command-specific help
@@ -32,15 +35,22 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     filter_fields,
+    get_plet_dir,
     now_iso,
     parse_kwargs,
     require_kwargs,
     validate_enum,
     validate_int,
 )
-from util_io import atomic_write_json, load_json
+from util_io import (
+    atomic_write_json,
+    iter_state_path,
+    load_json,
+    state_dir_path,
+    validate_plet_dir,
+)
 
-SCRIPT_VERSION = "0.2.0"
+SCRIPT_VERSION = "0.3.0"
 SKILL_VERSION = "0.1.1"
 SCHEMA_VERSION = "0.1.0"
 
@@ -147,6 +157,50 @@ def check_json_extension(path):
     if not path.endswith(".json"):
         return "Error: state file path must end in .json, got '{}'".format(path)
     return None
+
+
+def resolve_state_path(args, hint):
+    """Parse plet_dir + --iter-id from args, derive and validate state file path.
+
+    Returns (path, remaining_args, error_exit_code) where error_exit_code is
+    None on success or 1 on failure (error already printed to stderr).
+    """
+    plet_dir, remaining = get_plet_dir(args)
+
+    # Parse kwargs to get --iter-id
+    try:
+        kwargs = parse_kwargs(remaining)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None, None, 1
+
+    if "iter_id" not in kwargs:
+        print("Error: --iter-id is required", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None, None, 1
+
+    iter_id = kwargs.pop("iter_id")
+
+    # Validate iteration ID format
+    if not ITERATION_ID_PATTERN.match(iter_id):
+        print(
+            "Error: --iter-id '{}' does not match expected pattern "
+            "ID_N+ (e.g., ID_001)".format(iter_id),
+            file=sys.stderr,
+        )
+        print(hint, file=sys.stderr)
+        return None, None, 1
+
+    # Validate plet_dir
+    valid, err_msg = validate_plet_dir(plet_dir)
+    if not valid:
+        print(err_msg, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None, None, 1
+
+    path = iter_state_path(plet_dir, iter_id)
+    return path, kwargs, None
 
 
 # ---------------------------------------------------------------------------
@@ -304,17 +358,18 @@ PITFALLS:
   "implement" for lifecycle (use "implementing").
 
 USAGE:
-    plet_state.py validate <iter_state_json> [--output json [--pretty]] [--fields f1,f2]
+    plet_state.py validate [<plet_dir>] --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]
 
 PURPOSE: Confirms a state file conforms to the schema without modifying it.
 Checks all required fields, types, enum values, and the criterion two-state
 model (implementation/verification sub-objects).
 
 Examples:
-    plet_state.py validate plet/state/ID_001.json
-    plet_state.py validate plet/state/ID_001.json --output json
-    plet_state.py validate plet/state/ID_001.json --output json --pretty
-    plet_state.py validate plet/state/ID_001.json --output json --fields status,errorCount
+    plet_state.py validate --iter-id ID_001
+    plet_state.py validate plet/ --iter-id ID_001
+    plet_state.py validate plet/ --iter-id ID_001 --output json
+    plet_state.py validate plet/ --iter-id ID_001 --output json --pretty
+    plet_state.py validate plet/ --iter-id ID_001 --output json --fields status,errorCount
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -331,18 +386,9 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if len(clean_args) < 1:
-        print("Error: iter_state_json argument is required", file=sys.stderr)
-        print(HELP, file=sys.stderr)
-        return 1
-
-    path = clean_args[0]
-
-    ext_err = check_json_extension(path)
-    if ext_err:
-        print(ext_err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+    path, _, exit_code = resolve_state_path(clean_args, hint)
+    if exit_code is not None:
+        return exit_code
 
     data = load_json(path)
     if data is None:
@@ -389,7 +435,7 @@ PITFALLS:
 - --pretty and --fields require --output json
 
 USAGE:
-    plet_state.py update-criterion <iter_state_json> --criterion AC_1 \\
+    plet_state.py update-criterion [<plet_dir>] --iter-id ID_xxx --criterion AC_1 \\
         --phase implementation --status pass --evidence "..." \\
         [--elapsed N] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
@@ -397,11 +443,11 @@ PURPOSE: Records the result of implementing or verifying a single acceptance
 criterion. Enforces the two-state model and derives top-level status.
 
 Examples:
-    plet_state.py update-criterion plet/state/ID_001.json \\
+    plet_state.py update-criterion --iter-id ID_001 \\
         --criterion AC_1 --phase implementation --status pass \\
         --evidence "Test test_FR_1 passes. Full suite green." --elapsed 45
 
-    plet_state.py update-criterion plet/state/ID_001.json --dry-run \\
+    plet_state.py update-criterion plet/ --iter-id ID_001 --dry-run \\
         --criterion AC_2 --phase verification --status fail \\
         --evidence "Test mocks DB — tautological."
 """
@@ -419,26 +465,9 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if len(clean_args) < 1:
-        print("Error: iter_state_json argument is required", file=sys.stderr)
-        print(HELP, file=sys.stderr)
-        return 1
-
-    path = clean_args[0]
-
-    ext_err = check_json_extension(path)
-    if ext_err:
-        print(ext_err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Parse named args from remaining clean_args
-    try:
-        kwargs = parse_kwargs(clean_args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+    path, kwargs, exit_code = resolve_state_path(clean_args, hint)
+    if exit_code is not None:
+        return exit_code
 
     if not require_kwargs(kwargs, ["criterion", "phase", "status", "evidence"], HELP):
         return 1
@@ -563,23 +592,23 @@ Valid lifecycle values:   ineligible, queued, implementing, verifying, complete,
 Valid agentActivity values: idle, reading_context, implementing, running_checks, committing, wrapping_up
 
 USAGE:
-    plet_state.py update-field <iter_state_json> --data '{"field":"value", ...}' \\
+    plet_state.py update-field [<plet_dir>] --iter-id ID_xxx --data '{"field":"value", ...}' \\
         [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
 PURPOSE: Updates top-level fields with enum validation. Supports dotted paths
 for nested fields (e.g., "attempts.implement"). Auto-refreshes lastUpdated.
 
 Examples:
-    plet_state.py update-field plet/state/ID_001.json \\
+    plet_state.py update-field --iter-id ID_001 \\
         --data '{"lifecycle":"implementing"}'
 
-    plet_state.py update-field plet/state/ID_001.json \\
+    plet_state.py update-field plet/ --iter-id ID_001 \\
         --data '{"agentId":"agent_abc","agentActivity":"reading_context"}'
 
-    plet_state.py update-field plet/state/ID_001.json \\
+    plet_state.py update-field plet/ --iter-id ID_001 \\
         --data '{"attempts.implement":2}'
 
-    plet_state.py update-field plet/state/ID_001.json --dry-run \\
+    plet_state.py update-field plet/ --iter-id ID_001 --dry-run \\
         --data '{"lifecycle":"complete","agentActivity":"idle"}'
 """
     if "-h" in args or "--help" in args:
@@ -596,26 +625,9 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if len(clean_args) < 1:
-        print("Error: iter_state_json argument is required", file=sys.stderr)
-        print(HELP, file=sys.stderr)
-        return 1
-
-    path = clean_args[0]
-
-    ext_err = check_json_extension(path)
-    if ext_err:
-        print(ext_err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Parse named args
-    try:
-        kwargs = parse_kwargs(clean_args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+    path, kwargs, exit_code = resolve_state_path(clean_args, hint)
+    if exit_code is not None:
+        return exit_code
 
     if not require_kwargs(kwargs, ["data"], HELP):
         return 1
@@ -745,28 +757,26 @@ PITFALLS:
 - --iter-id must match pattern ID_N+ (e.g., ID_001, ID_42). Not "1" or "iter_1".
 - --criteria must be non-empty — every iteration needs a definition of done.
 - --dependencies are verified against sibling files. Use --no-verify-deps to skip.
-- File path must end in .json.
 - --pretty and --fields require --output json.
 
 USAGE:
-    plet_state.py init <iter_state_json> --iter-id ID_xxx --title "..." \\
+    plet_state.py init [<plet_dir>] --iter-id ID_xxx --title "..." \\
         --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' \\
         [--no-verify-deps] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
 PURPOSE: Creates a state file with all required fields, correct types, and the
 two-state criterion model. Lifecycle is "queued" if no dependencies, "ineligible"
-otherwise. Validates the generated file before writing.
+otherwise. Validates the generated file before writing. Creates the state/
+subdirectory if it doesn't exist.
 
 Examples:
-    plet_state.py init plet/state/ID_001.json \\
-        --iter-id ID_001 --title "Project scaffolding" \\
+    plet_state.py init --iter-id ID_001 --title "Project scaffolding" \\
         --dependencies '[]' \\
         --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
 
-    plet_state.py init plet/state/ID_003.json --dry-run \\
-        --iter-id ID_003 --title "OAuth integration" \\
+    plet_state.py init plet/ --iter-id ID_003 --title "OAuth integration" \\
         --dependencies '["ID_001","ID_002"]' \\
-        --criteria '[{"id":"AC_1","description":"Login returns JWT"}]'
+        --criteria '[{"id":"AC_1","description":"Login returns JWT"}]' --dry-run
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -782,22 +792,14 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if len(clean_args) < 1:
-        print("Error: iter_state_json argument is required", file=sys.stderr)
-        print(HELP, file=sys.stderr)
-        return 1
-
-    path = clean_args[0]
-
-    ext_err = check_json_extension(path)
-    if ext_err:
-        print(ext_err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+    # For init, we need to parse plet_dir manually but NOT validate it
+    # exists yet (init may need to create the state/ subdirectory).
+    # We also can't use resolve_state_path because it validates plet_dir.
+    plet_dir, remaining = get_plet_dir(clean_args)
 
     # Parse named args
     try:
-        kwargs = parse_kwargs(clean_args[1:])
+        kwargs = parse_kwargs(remaining)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
@@ -821,21 +823,25 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
+    # Validate plet_dir exists
+    valid, err_msg = validate_plet_dir(plet_dir)
+    if not valid:
+        print(err_msg, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
+    # Derive path — create state/ subdirectory if needed
+    state_dir = state_dir_path(plet_dir)
+    if not os.path.isdir(state_dir):
+        os.makedirs(state_dir, exist_ok=True)
+
+    path = iter_state_path(plet_dir, iteration_id)
+
     # Check file doesn't already exist
     if os.path.exists(path):
         print(
             "Error: file already exists: {} "
             "(use update-field to modify existing files)".format(path),
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Check parent directory exists
-    parent = os.path.dirname(path)
-    if parent and not os.path.isdir(parent):
-        print(
-            "Error: parent directory does not exist: {}".format(parent),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
@@ -904,9 +910,8 @@ Examples:
 
     # Verify dependency files exist
     if not no_verify_deps and dependencies:
-        state_dir = os.path.dirname(path) if os.path.dirname(path) else "."
         for dep_id in dependencies:
-            dep_path = os.path.join(state_dir, "{}.json".format(dep_id))
+            dep_path = iter_state_path(plet_dir, dep_id)
             if not os.path.exists(dep_path):
                 print(
                     "Error: dependency '{}' not found — expected {}. "
