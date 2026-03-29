@@ -166,12 +166,22 @@ The `activityDetail` string is human-readable context:
 - `"red: writing failing test for AC_3"`
 - `"green: implementing AC_3"`
 - `"green: all tests passing"`
+- `"running linter — 2 warnings found, fixing"`
+- `"committing: plet: [ID_001] implement-1 - Project scaffolding"`
+
+### Heartbeat (IMP_23)
+
+Update `lastHeartbeat` on every state file write. A heartbeat older than 5 minutes signals to external consumers (GUI, orchestrator) that the agent may have crashed. Use the real wall-clock time via `date -u`.
+
+### Elapsed Time
+
+Update `elapsedSeconds` opportunistically — on heartbeat writes, on any state file write, and at end of each phase. Tracks per-phase-attempt durations (`implement_1`, `verify_1`, etc.) and `total` across all attempts. No dedicated writes needed — piggyback on other state updates.
 
 ### Criterion Status Updates (IMP_6)
 
 Update criterion statuses in real time — as soon as a criterion passes or fails, call `plet_state.py update-criterion`. Don't wait until the end.
 
-### Files Changed
+### Files Changed and Summary
 
 Update `filesChanged` and `summary` via `plet_state.py update-field` as you create or modify files.
 

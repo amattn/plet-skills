@@ -226,6 +226,14 @@ Update `agentActivity` and `activityDetail` as you transition between activities
 | `committing` | Committing changes |
 | `wrapping_up` | Writing final state updates, artifacts, trace entries |
 
+### Heartbeat
+
+Update `lastHeartbeat` on every state file write. A heartbeat older than 5 minutes signals to external consumers (GUI, orchestrator) that the agent may have crashed. Use the real wall-clock time via `date -u`.
+
+### Elapsed Time
+
+Update `elapsedSeconds` opportunistically — on heartbeat writes, on any state file write, and at end of each phase. Tracks per-phase-attempt durations (`verify_1`, `verify_2`, etc.) and `total` across all attempts.
+
 ---
 
 ## Decision: Complete, Fix-in-Place, or Cycle Back
