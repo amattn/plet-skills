@@ -89,12 +89,14 @@ This is the core implementation loop. For each acceptance criterion:
 
 ### Red Step — Write a Failing Test
 
-1. Update activity: `"implementing"` / `"red: writing failing test for {criterion_id}"`
-2. Write a test that exercises the acceptance criterion
-3. Run **only the new test** — confirm it **fails**
-4. If the test passes without implementation, the test is tautological — rewrite it
+1. **If the unit under test doesn't exist yet** (new file, new function, new class, new endpoint), **stub it first.** The stub must be runnable — it accepts inputs and returns a dummy/zero value. A test that fails with `FileNotFoundError`, `ImportError`, or `AttributeError` is meaningless red — it proves nothing about the test's ability to catch bad behavior.
+2. Update activity: `"implementing"` / `"red: writing failing test for {criterion_id}"`
+3. Write a test that exercises the acceptance criterion
+4. Run **only the new test** — confirm it **fails because the answer is wrong**, not because infrastructure is missing
+5. Log why this is meaningful red in your activity detail: `"red: {criterion_id} — fails because {brief rationale}"`. Examples: `"fails because stub returns empty list instead of eligible IDs"`, `"fails because handler returns 404 instead of user object"`, `"fails because function returns 0 instead of calculated total"`. If meaningful red is not achievable for this criterion (e.g., pure integration wiring with no stub possible), state that: `"red: {criterion_id} — infrastructural only, no stub feasible: {why}"`. The rationale is captured in trace events for case study analysis and prompt tuning.
+6. If the test passes without implementation, the test is tautological — rewrite it
 
-**The test must fail before you write any implementation code.** This proves the test actually exercises the behavior, not just the happy path of existing code.
+**The test must fail before you write any implementation code.** This proves the test actually exercises the behavior, not just the happy path of existing code. The failure must be behavioral (wrong result), not infrastructural (missing file/function).
 
 ### Green Step — Implement Until Green
 

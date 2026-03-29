@@ -476,4 +476,4 @@ The red/green discipline as originally stated ("write tests first, they must fai
 
 The fix (already applied to CLAUDE.md § Red/Green Development Discipline): stub the script first, then write tests (meaningful red), then implement (green). This distinction is load-bearing — without it, red/green is theater that gives false confidence.
 
-**PRD impact:** The red/green discipline is referenced in the PRD (IMP_4) and in implement.md / verify.md reference files. These should be updated to reflect the meaningful-red requirement: "Write a failing test" should clarify that the failure must be behavioral, not infrastructural. Defer to next PRD update pass.
+**PRD impact:** `[resolved]` — IMP_4 in prd.md updated with meaningful-red requirement. implement.md Red Step updated with stub-first rule. The requirement is now formal: stubs before tests, behavioral failures only.
