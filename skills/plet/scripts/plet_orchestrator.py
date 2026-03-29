@@ -170,6 +170,12 @@ def cmd_run(args):
 
     project_id = global_state.get("projectId", "UNKNOWN")
 
+    # Change to project root (parent of plet_dir) — all git ops run from here
+    project_root = os.path.dirname(os.path.abspath(plet_dir))
+    os.chdir(project_root)
+    # Use relative plet_dir from project root
+    plet_dir = os.path.basename(os.path.abspath(plet_dir)) or "plet"
+
     # Pre-check: anything to do? (before starting session)
     eligible_data, err, rc = _run_script_json("plet_schedule.py", ["eligible", plet_dir])
     if rc != 0 or eligible_data is None:

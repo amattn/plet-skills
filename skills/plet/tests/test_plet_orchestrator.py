@@ -19,7 +19,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from util_io import (state_json_path, state_dir_path, iter_state_path,
                      requirements_path, iterations_path, progress_path,
-                     events_path, trace_dir_path)
+                     events_path, trace_dir_path, load_json)
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_orchestrator.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
@@ -28,7 +28,7 @@ passed = 0
 failed = 0
 
 
-def run(args, expect_exit=0, env=None):
+def run(args, expect_exit=0, env=None, cwd=None):
     """Run the orchestrator with args via subprocess."""
     run_env = os.environ.copy()
     if env:
@@ -36,6 +36,7 @@ def run(args, expect_exit=0, env=None):
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
         capture_output=True, text=True, env=run_env,
+        timeout=60, cwd=cwd,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
@@ -90,9 +91,10 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
         "loopSessionCount": 0,
         "refineSessionCount": 0,
         "dependencyMap": dep_map,
-        "milestones": [],
+        "milestones": {},
         "parallelGroups": [],
         "sessionHistory": [],
+        "iterationsFingerprint": {},
     }
     with open(state_json_path(plet_dir), "w") as f:
         json.dump(state, f)
@@ -147,172 +149,29 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
 def create_mock_claude(tmpdir, behavior="pass"):
     """Create a mock claude script that simulates subagent behavior.
 
-    Behaviors:
-    - "pass": implement sets criteria to pass, verify sets lastVerdict to passed
-    - "reject_then_pass": first verify rejects, second passes
-    - "no_commits": implement does nothing (no commits)
-    - "crash": exit with non-zero code
-
-    The mock reads MOCK_PLET_DIR and MOCK_ITER_ID from env to know where to write.
-    It reads MOCK_PHASE to know if it's implement or verify.
+    The mock parses --name plet/{iter_id}/{phase}-{attempt} from argv to
+    determine what to do. It reads MOCK_PLET_DIR and MOCK_SCRIPTS_DIR from
+    env, and MOCK_BEHAVIOR to control the scenario.
     """
     mock_dir = os.path.join(tmpdir, "mock_bin")
     os.makedirs(mock_dir, exist_ok=True)
 
-    # The mock claude is a Python script (portable, no bash dependency issues)
+    mock_dir = os.path.join(tmpdir, "mock_bin")
+    os.makedirs(mock_dir, exist_ok=True)
+
+    # Copy the mock helper module
+    helper_src = os.path.join(os.path.dirname(__file__), "mock_claude_helper.py")
+    helper_dst = os.path.join(mock_dir, "mock_claude_helper.py")
+    shutil.copy2(helper_src, helper_dst)
+
+    # Create the mock claude script that imports the helper
     mock_script = os.path.join(mock_dir, "claude")
     with open(mock_script, "w") as f:
-        f.write("""#!/usr/bin/env python3
-import json, os, sys, subprocess
-
-# Parse the prompt to figure out phase and iteration
-# plet_invoke passes the prompt via stdin or -p flag
-prompt = " ".join(sys.argv)
-plet_dir = os.environ.get("MOCK_PLET_DIR", "plet")
-behavior = os.environ.get("MOCK_BEHAVIOR", "pass")
-
-# Determine phase from the prompt content or --phase flag
-# plet_invoke.py run passes --phase implement|verify
-phase = "implement"
-for i, arg in enumerate(sys.argv):
-    if "verify" in arg.lower():
-        phase = "verify"
-        break
-
-# Find iter_id from prompt
-iter_id = "ID_001"
-for i, arg in enumerate(sys.argv):
-    if "ID_" in arg:
-        import re
-        m = re.search(r'ID_\\d+', arg)
-        if m:
-            iter_id = m.group()
-            break
-
-scripts_dir = os.environ.get("MOCK_SCRIPTS_DIR", "")
-python = sys.executable
-
-def run_script(name, args):
-    path = os.path.join(scripts_dir, name)
-    subprocess.run([python, path, "--no-log"] + args, capture_output=True)
-
-if behavior == "crash":
-    sys.exit(1)
-
-if behavior == "no_commits":
-    # Output some NDJSON but don't do anything
-    print(json.dumps({{"type": "assistant", "message": "no work done"}}))
-    sys.exit(0)
-
-# Get state to read attempts
-state_path = os.path.join(plet_dir, "state", iter_id + ".json")
-with open(state_path) as sf:
-    state = json.load(sf)
-
-if phase == "implement":
-    # Update criteria to pass
-    run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-        "update-criterion", "--criterion", "AC_1", "--phase", "implementation",
-        "--status", "pass", "--evidence", "Test passed"])
-
-    # Increment attempt
-    state["attempts"]["implement"] = state["attempts"].get("implement", 0) + 1
-    state["lifecycle"] = "verifying"  # handoff
-    state["agentActivity"] = "idle"
-    with open(state_path, "w") as sf:
-        json.dump(state, sf)
-
-    # Create a commit
-    test_file = os.path.join(os.getcwd(), "test_output.py")
-    with open(test_file, "w") as tf:
-        tf.write("# test\\n")
-    subprocess.run(["git", "add", "-A"], capture_output=True)
-    subprocess.run(["git", "commit", "-m", "implement " + iter_id], capture_output=True)
-
-    # Create audit tag
-    global_state_path = os.path.join(plet_dir, "state.json")
-    with open(global_state_path) as gf:
-        gs = json.load(gf)
-    tag = "plet/{{}}/loop{{}}/audit/{{}}/implement-{{}}".format(
-        gs["projectId"], gs["loopSessionCount"], iter_id, state["attempts"]["implement"])
-    subprocess.run(["git", "tag", "-f", tag], capture_output=True)
-
-    # Write progress entry
-    run_script("plet_entries.py", [plet_dir, "add-progress",
-        "--iter-id", iter_id, "--iter-title", "Test",
-        "--phase", "implement", "--attempt", str(state["attempts"]["implement"]),
-        "--status", "COMPLETE", "--content", "Implementation done"])
-
-    # Write trace event
-    trace_dir = os.path.join(plet_dir, "trace")
-    os.makedirs(trace_dir, exist_ok=True)
-    events_file = os.path.join(trace_dir, "{{}}-implement-{{}}-events.ndjson".format(
-        iter_id, state["attempts"]["implement"]))
-    with open(events_file, "a") as ef:
-        ef.write(json.dumps({{"type": "phase_complete", "phase": "implement"}}) + "\\n")
-
-elif phase == "verify":
-    attempt = state["attempts"].get("verify", 0) + 1
-    state["attempts"]["verify"] = attempt
-
-    verdict = "passed"
-    if behavior == "reject_then_pass" and attempt == 1:
-        verdict = "rejected"
-
-    state["lastVerdict"] = verdict
-    # Do NOT set lifecycle — verify subagent doesn't own it
-    state["agentActivity"] = "idle"
-
-    if verdict == "passed":
-        for c in state.get("criteria", []):
-            if "verification" in c:
-                c["verification"]["status"] = "pass"
-
-    # Write verification report
-    if "verificationReports" not in state:
-        state["verificationReports"] = []
-    report = {{
-        "attempt": attempt,
-        "verdict": verdict,
-        "criteriaResults": [{{"id": "AC_1", "status": "pass" if verdict == "passed" else "fail"}}],
-    }}
-    state["verificationReports"].append(report)
-
-    with open(state_path, "w") as sf:
-        json.dump(state, sf)
-
-    # Create a commit
-    verify_file = os.path.join(os.getcwd(), "verify_output.txt")
-    with open(verify_file, "w") as vf:
-        vf.write("verified\\n")
-    subprocess.run(["git", "add", "-A"], capture_output=True)
-    subprocess.run(["git", "commit", "-m", "verify " + iter_id], capture_output=True)
-
-    # Create audit tag
-    global_state_path = os.path.join(plet_dir, "state.json")
-    with open(global_state_path) as gf:
-        gs = json.load(gf)
-    tag = "plet/{{}}/loop{{}}/audit/{{}}/verify-{{}}".format(
-        gs["projectId"], gs["loopSessionCount"], iter_id, attempt)
-    subprocess.run(["git", "tag", "-f", tag], capture_output=True)
-
-    # Write progress entry
-    run_script("plet_entries.py", [plet_dir, "add-progress",
-        "--iter-id", iter_id, "--iter-title", "Test",
-        "--phase", "verify", "--attempt", str(attempt),
-        "--status", "COMPLETE", "--content", "Verification done: " + verdict])
-
-    # Write trace event
-    trace_dir = os.path.join(plet_dir, "trace")
-    os.makedirs(trace_dir, exist_ok=True)
-    events_file = os.path.join(trace_dir, "{{}}-verify-{{}}-events.ndjson".format(iter_id, attempt))
-    with open(events_file, "a") as ef:
-        ef.write(json.dumps({{"type": "phase_complete", "phase": "verify", "verdict": verdict}}) + "\\n")
-
-# Output some NDJSON (plet_invoke expects streaming output)
-print(json.dumps({{"type": "result", "subtype": "success"}}))
-sys.exit(0)
-""")
+        f.write("#!/usr/bin/env python3\n")
+        f.write("import sys, os\n")
+        f.write("sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))\n")
+        f.write("import mock_claude_helper\n")
+        f.write("sys.exit(mock_claude_helper.main(sys.argv))\n")
     os.chmod(mock_script, 0o755)
     return mock_dir
 
@@ -365,6 +224,62 @@ with tempfile.TemporaryDirectory() as tmp:
           "got: " + str(result.get("reason")))
     check("no session_start event", not any(l.get("type") == "session_start" for l in lines),
           "should not start a session for zero work")
+
+
+# ===========================================================================
+# run — single iteration happy path (implement → verify → pass → complete)
+# ===========================================================================
+
+print("\n## run — single iteration happy path")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = setup_project(tmp, iterations=[
+        {"id": "ID_001", "title": "Test iteration", "deps": []},
+    ])
+    mock_dir = create_mock_claude(tmp, behavior="pass")
+
+    # Set up env: mock claude on PATH, tell it where plet_dir and scripts are
+    env = os.environ.copy()
+    env.update({
+        "PATH": mock_dir + ":" + env.get("PATH", ""),
+        "MOCK_PLET_DIR": plet_dir,
+        "MOCK_SCRIPTS_DIR": SCRIPTS_DIR,
+        "MOCK_BEHAVIOR": "pass",
+    })
+
+    out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env,
+                        cwd=tmp)  # must run from project root for git ops
+
+    # Parse NDJSON events
+    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    event_types = [l.get("type") for l in lines]
+    result = lines[-1] if lines else {}
+
+    check("exits 0", rc == 0)
+    check("has session_start event", "session_start" in event_types,
+          "events: " + str(event_types))
+    check("has iteration_start implement", any(
+        l.get("type") == "iteration_start" and l.get("phase") == "implement"
+        for l in lines))
+    check("has iteration_start verify", any(
+        l.get("type") == "iteration_start" and l.get("phase") == "verify"
+        for l in lines))
+    check("has iteration_complete", "iteration_complete" in event_types)
+    check("result reason all_complete", result.get("reason") == "all_complete",
+          "got: " + str(result.get("reason")))
+    check("result iterationsCompleted 1", result.get("iterationsCompleted") == 1,
+          "got: " + str(result.get("iterationsCompleted")))
+
+    # Verify state on disk
+    ist = load_json(iter_state_path(plet_dir, "ID_001"))
+    check("state lifecycle complete", ist and ist.get("lifecycle") == "complete",
+          "got: " + str(ist.get("lifecycle") if ist else "None"))
+
+    # Verify session history closed
+    gs = load_json(state_json_path(plet_dir))
+    history = gs.get("sessionHistory", []) if gs else []
+    check("session ended", len(history) > 0 and history[-1].get("endedAt") is not None,
+          "history: " + str(history))
 
 
 # ===========================================================================
