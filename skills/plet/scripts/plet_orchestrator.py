@@ -384,22 +384,32 @@ def cmd_run(args):
                 _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
             elif verdict == "passed":
                 # Merge-squash to workstream
+                # Commit state/artifact changes before merge (orchestrator writes continuously)
+                subprocess.run(["git", "add", "-A"], capture_output=True)
+                subprocess.run(["git", "commit", "-m",
+                    "plet: state updates before merge-squash {}".format(iter_id),
+                    "--allow-empty"], capture_output=True)
+
                 ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", plet_dir,
                     "--iter-id", iter_id])
                 if ms_rc != 0:
                     _emit_event({"type": "error", "iterationId": iter_id,
                                  "error": "merge-squash failed: " + ms_err[:200]}, output_ndjson)
-                    _emit_text("  merge-squash failed: {}".format(ms_err[:200]), output_ndjson)
-                _, uf_err, uf_rc = _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "complete"})])
-                if uf_rc != 0:
-                    _emit_event({"type": "error", "iterationId": iter_id,
-                                 "error": "update-field failed: " + uf_err[:200]}, output_ndjson)
-                completed_this_run += 1
-                _emit_event({"type": "iteration_merged", "iterationId": iter_id}, output_ndjson)
-                _emit_event({"type": "iteration_complete", "iterationId": iter_id,
-                             "lifecycle": "complete"}, output_ndjson)
-                _emit_text("[{}] {}: passed, merged".format(
-                    completed_this_run, iter_id), output_ndjson)
+                    _emit_text("  merge-squash failed — blocking: {}".format(ms_err[:200]), output_ndjson)
+                    _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id,
+                        "--data", json.dumps({"lifecycle": "blocked"})])
+                    _emit_event({"type": "iteration_complete", "iterationId": iter_id,
+                                 "lifecycle": "blocked"}, output_ndjson)
+                    failed_this_round.add(iter_id)
+                else:
+                    _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id,
+                        "--data", json.dumps({"lifecycle": "complete"})])
+                    completed_this_run += 1
+                    _emit_event({"type": "iteration_merged", "iterationId": iter_id}, output_ndjson)
+                    _emit_event({"type": "iteration_complete", "iterationId": iter_id,
+                                 "lifecycle": "complete"}, output_ndjson)
+                    _emit_text("[{}] {}: passed, merged".format(
+                        completed_this_run, iter_id), output_ndjson)
             elif verdict == "rejected":
                 # Check retry
                 retry_data, _, _ = _run_script_json("plet_schedule.py",
