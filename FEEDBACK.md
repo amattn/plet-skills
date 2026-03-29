@@ -429,3 +429,15 @@ Where this belongs:
 - **SES preflight** — could check if sandboxing is enabled and WARN if not (similar to CLAUDE.md check)
 - **README/docs** — setup instructions should include sandboxing configuration
 - **reference files** — implement.md/verify.md could note that agents operate in a sandboxed environment
+
+### FB_51: plet_state.py should auto-calculate elapsedSeconds and auto-update lastHeartbeat [tooling] [dx]
+
+Currently agents must manually include `elapsedSeconds` and `lastHeartbeat` in every `update-field` call. This is error-prone — agents forget, pass stale timestamps, or skip it entirely. Two improvements:
+
+1. **elapsedSeconds should auto-calculate.** `plet_state.py` knows `phaseTimestamps` and can compute elapsed time from the phase start timestamp to now. Every `update-field` and `update-criterion` call should update `elapsedSeconds` automatically without the agent passing it.
+
+2. **lastHeartbeat should auto-update.** Every `plet_state.py` write (any command that modifies the state file) should set `lastHeartbeat` to the current timestamp automatically. The agent never needs to think about heartbeat — it happens as a side effect of any state write.
+
+3. **Convenience flag for heartbeat-only updates.** Sometimes the agent wants to signal "I'm alive" without changing any fields. A `plet_state.py heartbeat plet/ --iter-id ID_xxx` command (or `update-field` with no `--data`) would update just `lastHeartbeat` and `elapsedSeconds`. Useful for long-running operations where no state fields change but the agent needs to prevent the 5-minute stale detection.
+
+**Impact:** Eliminates a class of agent compliance failures. Heartbeat and elapsed time become infrastructure, not agent responsibility. Reference files (implement.md, verify.md) can simplify their "update heartbeat on every write" guidance to just "call plet_state.py — heartbeat updates automatically."
