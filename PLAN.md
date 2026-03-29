@@ -13,8 +13,9 @@
 | 7 | PLAN_7 | Feedback Triage | ✓ COMPLETE |
 | 8 | PLAN_8 | Python Tooling | ✓ COMPLETE |
 | 9 | PLAN_9 | PRD + ORC + SKILL.md + Reference Files Rewrite | |
-| 10 | PLAN_10 | Eval System + Comparison Runs | |
-| 11 | PLAN_11 | Examples | deferred |
+| 10 | PLAN_10 | Subplets | |
+| 11 | PLAN_11 | Eval System + Comparison Runs | |
+| 12 | PLAN_12 | Examples | deferred |
 
 ---
 
@@ -227,7 +228,26 @@ The scripts are built. Now the prose needs to catch up — PRD, SKILL.md, refere
 
 ---
 
-## PLAN_10: Eval System + Comparison Runs
+## PLAN_10: Subplets
+
+Hierarchical decomposition — a plet loop can spawn sub-plets for iterations that are themselves complex enough to warrant their own plan→loop→refine cycle. Subplets have their own `plet/` directory, state files, and runtime artifacts, namespaced under the parent project.
+
+Design thinking exists in NOTES.md (§ Multi-Developer Analysis, subplet branch conventions). Key decisions already made:
+- Branch convention: `plet/{projectId}/subplet/{subId}/loop{N}/...`
+- `subplet/` path segment makes hierarchy self-documenting
+- No sub-sub-plets (one level of nesting only)
+
+### Phases
+
+- **PLAN_10a:** Formalize subplet requirements in PRD
+- **PLAN_10b:** Subplet lifecycle — how parent iterations spawn, monitor, and integrate subplets
+- **PLAN_10c:** State file extensions — subplet references in parent state, subplet directory layout
+- **PLAN_10d:** Script updates — GTI/GTO/GTC need subplet awareness for branch naming and compliance checks
+- **PLAN_10e:** SKILL.md + reference file updates for subplet support
+
+---
+
+## PLAN_11: Eval System + Comparison Runs
 
 Formalize how we measure whether plet's prompts and scripts actually improve outcomes. Currently we do ad-hoc case studies (LOGA, LIBT) — this makes evaluation systematic.
 
@@ -259,14 +279,14 @@ Formalize how we measure whether plet's prompts and scripts actually improve out
 
 ### Phases
 
-- **PLAN_10a:** Formalize the case study template with eval metrics (enhance `case_studies/CLAUDE.md`). Define what gets measured per role.
-- **PLAN_10b:** Re-run logalyzer (from plan checkpoint `203c58a`) with PLAN_8 tooling. Produce a structured comparison: before/after on measurable dimensions.
-- **PLAN_10c:** Broader testing — harder project, refine session, edge cases.
-- **PLAN_10d:** Design the eval tooling (plet_eval.py or similar). Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework.
+- **PLAN_11a:** Formalize the case study template with eval metrics (enhance `case_studies/CLAUDE.md`). Define what gets measured per role.
+- **PLAN_11b:** Re-run logalyzer (from plan checkpoint `203c58a`) with PLAN_8 tooling. Produce a structured comparison: before/after on measurable dimensions.
+- **PLAN_11c:** Broader testing — harder project, refine session, edge cases.
+- **PLAN_11d:** Design the eval tooling (plet_eval.py or similar). Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework.
 
 ---
 
-## PLAN_11: Examples (deferred, trigger met)
+## PLAN_12: Examples (deferred, trigger met)
 
 Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/todo-cli/run1/*` tags. Examples can now be captured from real output rather than written speculatively.
 
