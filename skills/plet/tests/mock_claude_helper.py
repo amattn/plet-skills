@@ -1,13 +1,14 @@
-"""Mock claude helper — simulates implement/verify subagent behavior.
+"""Mock claude helper — minimal simulation of implement/verify behavior.
 
 Parses --name plet/{iter_id}/{phase}-{attempt} from argv.
-Reads MOCK_PLET_DIR, MOCK_SCRIPTS_DIR, MOCK_BEHAVIOR from env.
+Reads MOCK_PLET_DIR and MOCK_BEHAVIOR from env.
 
-Behaviors:
-- "pass": implement sets criteria to pass + handoff, verify sets lastVerdict to passed
-- "reject_then_pass": first verify rejects, second passes
-- "no_commits": implement does nothing
-- "crash": exit 1
+Does the minimum needed for the orchestrator to proceed:
+- implement: set lifecycle → verifying, create a commit
+- verify: set lastVerdict, create a commit
+
+Skips entries, trace, audit tags — those are tested separately.
+The orchestrator handles missing artifacts gracefully.
 """
 
 import json
@@ -17,174 +18,86 @@ import subprocess
 import sys
 
 
-def _parse_name_arg(argv):
-    """Parse --name plet/{iter_id}/{phase}-{attempt} from argv."""
+def _parse_name(argv):
+    """Parse --name plet/{iter_id}/{phase}-{attempt}."""
     for i, arg in enumerate(argv):
         if arg == "--name" and i + 1 < len(argv):
-            name = argv[i + 1]
-            # e.g., plet/ID_001/implement-1
-            m = re.match(r"plet/(ID_\d+)/(implement|verify)-(\d+)", name)
+            m = re.match(r"plet/(ID_\d+)/(implement|verify)-(\d+)", argv[i + 1])
             if m:
                 return m.group(1), m.group(2), int(m.group(3))
-    # Fallback: try to find phase and iter_id anywhere in argv
-    phase = "implement"
-    iter_id = "ID_001"
-    for arg in argv:
-        if "verify" in arg.lower():
-            phase = "verify"
-        m = re.search(r"ID_\d+", arg)
-        if m:
-            iter_id = m.group()
-    return iter_id, phase, 1
-
-
-def _run_plet_script(name, args):
-    """Run a plet script via subprocess."""
-    scripts_dir = os.environ.get("MOCK_SCRIPTS_DIR", "")
-    path = os.path.join(scripts_dir, name)
-    return subprocess.run(
-        [sys.executable, path, "--no-log"] + args,
-        capture_output=True, text=True,
-    )
+    return "ID_001", "implement", 1
 
 
 def main(argv):
-    plet_dir = os.environ.get("MOCK_PLET_DIR", "plet")
     behavior = os.environ.get("MOCK_BEHAVIOR", "pass")
+    plet_dir = os.environ.get("MOCK_PLET_DIR", "plet")
 
     if behavior == "crash":
-        print(json.dumps({"type": "error", "message": "mock crash"}))
+        print('{"type":"error","message":"crash"}', flush=True)
         return 1
 
-    iter_id, phase, _ = _parse_name_arg(argv)
+    iter_id, phase, _ = _parse_name(argv)
 
-    # Read current state
     state_path = os.path.join(plet_dir, "state", iter_id + ".json")
     if not os.path.isfile(state_path):
-        print(json.dumps({"type": "error", "message": "state file not found"}))
+        print('{"type":"error","message":"no state file"}', flush=True)
         return 1
 
     with open(state_path) as f:
         state = json.load(f)
 
-    global_state_path = os.path.join(plet_dir, "state.json")
-    with open(global_state_path) as f:
-        gs = json.load(f)
-
-    if behavior == "no_commits":
-        print(json.dumps({"type": "result", "message": "no work done"}))
-        return 0
-
     if phase == "implement":
-        _do_implement(plet_dir, iter_id, state, gs)
-    elif phase == "verify":
-        _do_verify(plet_dir, iter_id, state, gs, behavior)
-
-    # Output streaming NDJSON (plet_invoke expects this)
-    print(json.dumps({"type": "result", "message": "done"}))
-    return 0
-
-
-def _do_implement(plet_dir, iter_id, state, gs):
-    """Simulate implement subagent."""
-    attempt = state["attempts"].get("implement", 0) + 1
-    state["attempts"]["implement"] = attempt
-    state["lifecycle"] = "verifying"  # handoff
-    state["agentActivity"] = "idle"
-
-    # Update criteria
-    for c in state.get("criteria", []):
-        if "implementation" in c:
-            c["implementation"]["status"] = "pass"
-            c["implementation"]["evidence"] = "Mock implementation"
-
-    state_path = os.path.join(plet_dir, "state", iter_id + ".json")
-    with open(state_path, "w") as f:
-        json.dump(state, f)
-
-    # Create a commit
-    with open("mock_impl_{}.txt".format(iter_id), "w") as f:
-        f.write("implemented\n")
-    subprocess.run(["git", "add", "-A"], capture_output=True)
-    subprocess.run(["git", "commit", "-m", "implement " + iter_id], capture_output=True)
-
-    # Audit tag
-    tag = "plet/{}/loop{}/audit/{}/implement-{}".format(
-        gs["projectId"], gs["loopSessionCount"], iter_id, attempt)
-    subprocess.run(["git", "tag", "-f", tag], capture_output=True)
-
-    # Progress entry
-    _run_plet_script("plet_entries.py", [plet_dir, "add-progress",
-        "--iter-id", iter_id, "--iter-title", "Test",
-        "--phase", "implement", "--attempt", str(attempt),
-        "--status", "COMPLETE", "--content", "Mock implementation done"])
-
-    # Trace event
-    trace_dir = os.path.join(plet_dir, "trace")
-    os.makedirs(trace_dir, exist_ok=True)
-    events_file = os.path.join(trace_dir,
-        "{}-implement-{}-events.ndjson".format(iter_id, attempt))
-    with open(events_file, "a") as f:
-        f.write(json.dumps({"type": "phase_complete", "phase": "implement"}) + "\n")
-
-
-def _do_verify(plet_dir, iter_id, state, gs, behavior):
-    """Simulate verify subagent."""
-    attempt = state["attempts"].get("verify", 0) + 1
-    state["attempts"]["verify"] = attempt
-
-    verdict = "passed"
-    if behavior == "reject_then_pass" and attempt == 1:
-        verdict = "rejected"
-
-    state["lastVerdict"] = verdict
-    # Do NOT set lifecycle — verify subagent doesn't own it
-    state["agentActivity"] = "idle"
-
-    if verdict == "passed":
+        state["attempts"]["implement"] = state["attempts"].get("implement", 0) + 1
+        state["lifecycle"] = "verifying"  # handoff
+        state["agentActivity"] = "idle"
         for c in state.get("criteria", []):
-            if "verification" in c:
-                c["verification"]["status"] = "pass"
+            if "implementation" in c:
+                c["implementation"]["status"] = "pass"
 
-    # Verification report
-    if "verificationReports" not in state:
-        state["verificationReports"] = []
-    state["verificationReports"].append({
-        "attempt": attempt,
-        "verdict": verdict,
-        "criteriaResults": [
-            {"id": c["id"], "status": "pass" if verdict == "passed" else "fail"}
-            for c in state.get("criteria", [])
-        ],
-    })
+        with open(state_path, "w") as f:
+            json.dump(state, f)
 
-    state_path = os.path.join(plet_dir, "state", iter_id + ".json")
-    with open(state_path, "w") as f:
-        json.dump(state, f)
+        # Create a commit (orchestrator checks for commits)
+        with open("mock_impl_{}.txt".format(iter_id), "w") as f:
+            f.write("implemented\n")
+        subprocess.run(["git", "add", "-A"], capture_output=True)
+        subprocess.run(["git", "commit", "-m", "implement " + iter_id],
+                       capture_output=True)
 
-    # Create a commit
-    with open("mock_verify_{}.txt".format(iter_id), "w") as f:
-        f.write("verified\n")
-    subprocess.run(["git", "add", "-A"], capture_output=True)
-    subprocess.run(["git", "commit", "-m", "verify " + iter_id], capture_output=True)
+    elif phase == "verify":
+        attempt = state["attempts"].get("verify", 0) + 1
+        state["attempts"]["verify"] = attempt
 
-    # Audit tag
-    tag = "plet/{}/loop{}/audit/{}/verify-{}".format(
-        gs["projectId"], gs["loopSessionCount"], iter_id, attempt)
-    subprocess.run(["git", "tag", "-f", tag], capture_output=True)
+        verdict = "passed"
+        if behavior == "reject_then_pass" and attempt == 1:
+            verdict = "rejected"
 
-    # Progress entry
-    _run_plet_script("plet_entries.py", [plet_dir, "add-progress",
-        "--iter-id", iter_id, "--iter-title", "Test",
-        "--phase", "verify", "--attempt", str(attempt),
-        "--status", "COMPLETE",
-        "--content", "Mock verification: " + verdict])
+        state["lastVerdict"] = verdict
+        state["agentActivity"] = "idle"
+        # Do NOT set lifecycle — verify doesn't own it
 
-    # Trace event
-    trace_dir = os.path.join(plet_dir, "trace")
-    os.makedirs(trace_dir, exist_ok=True)
-    events_file = os.path.join(trace_dir,
-        "{}-verify-{}-events.ndjson".format(iter_id, attempt))
-    with open(events_file, "a") as f:
-        f.write(json.dumps({"type": "phase_complete", "phase": "verify",
-                            "verdict": verdict}) + "\n")
+        if "verificationReports" not in state:
+            state["verificationReports"] = []
+        state["verificationReports"].append({
+            "attempt": attempt,
+            "verdict": verdict,
+            "criteriaResults": [
+                {"id": c["id"],
+                 "status": "pass" if verdict == "passed" else "fail"}
+                for c in state.get("criteria", [])
+            ],
+        })
+
+        with open(state_path, "w") as f:
+            json.dump(state, f)
+
+        with open("mock_verify_{}.txt".format(iter_id), "w") as f:
+            f.write("verified\n")
+        subprocess.run(["git", "add", "-A"], capture_output=True)
+        subprocess.run(["git", "commit", "-m", "verify " + iter_id],
+                       capture_output=True)
+
+    # Output JSONL (plet_invoke reads stdout line by line)
+    print('{"type":"system","subtype":"init","session_id":"mock"}', flush=True)
+    print('{"type":"result","subtype":"success"}', flush=True)
+    return 0

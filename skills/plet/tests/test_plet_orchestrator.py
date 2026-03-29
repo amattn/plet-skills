@@ -36,7 +36,7 @@ def run(args, expect_exit=0, env=None, cwd=None):
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
         capture_output=True, text=True, env=run_env,
-        timeout=60, cwd=cwd,
+        timeout=30, cwd=cwd,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
@@ -107,6 +107,7 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
             "title": it["title"],
             "lifecycle": "queued",
             "attempts": {"implement": 0, "verify": 0},
+            "dependencies": it["deps"],
             "criteria": [
                 {"id": "AC_1", "description": "Test criterion",
                  "implementation": {"status": "not_started"},
@@ -124,7 +125,14 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
     with open(requirements_path(plet_dir), "w") as f:
         f.write("# Requirements\n\n## FR_1: Test requirement\n")
     with open(iterations_path(plet_dir), "w") as f:
-        f.write("# Iterations\n\n## ID_001: Test iteration\n")
+        iter_content = "# Iterations\n\n"
+        for it in iterations:
+            iter_content += "## {}: {}\n\n".format(it["id"], it["title"])
+            iter_content += "**Dependencies:** {}\n\n".format(
+                ", ".join(it["deps"]) if it["deps"] else "none")
+            iter_content += "**Acceptance Criteria:**\n\n"
+            iter_content += "- AC_1: Test criterion passes\n\n"
+        f.write(iter_content)
 
     # Progress/learnings/emergent (empty but exist)
     with open(progress_path(plet_dir), "w") as f:
@@ -249,6 +257,19 @@ with tempfile.TemporaryDirectory() as tmp:
 
     out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env,
                         cwd=tmp)  # must run from project root for git ops
+
+    # Debug: dump raw output
+    print("  DEBUG stdout lines: {}".format(len(out.split("\n"))))
+    for i, line in enumerate(out.split("\n")[:15]):
+        if line.strip():
+            try:
+                ev = json.loads(line)
+                print("    [{}] type={} {}".format(i, ev.get("type"),
+                    ev.get("error", ev.get("lifecycle", ""))[:80]))
+            except json.JSONDecodeError:
+                print("    [{}] RAW: {}".format(i, line[:100]))
+    if err:
+        print("  DEBUG stderr: {}".format(err[:300]))
 
     # Parse NDJSON events
     lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]

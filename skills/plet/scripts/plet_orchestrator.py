@@ -265,8 +265,10 @@ def cmd_run(args):
     # -------------------------------------------------------------------
 
     completed_this_run = 0
+    failed_this_round = set()  # guard against infinite retry of same iteration
+    max_rounds = 100  # safety limit
 
-    while True:
+    for _round in range(max_rounds):
         # Re-evaluate eligible
         eligible_data, _, rc = _run_script_json("plet_schedule.py", ["eligible", plet_dir])
         if rc != 0 or eligible_data is None:
@@ -291,8 +293,13 @@ def cmd_run(args):
             # (shouldn't happen in this sequential model — break for now)
             break
 
+        # Filter out iterations that already failed this round (prevent infinite loop)
+        actionable = [i for i in eligible_ids if i not in failed_this_round]
+        if not actionable:
+            break  # all eligible iterations failed — exit loop
+
         # Process iterations (sequential for now, parallel is future)
-        for iter_id in eligible_ids:
+        for iter_id in actionable:
             # Breakpoint before
             bp_data, _, _ = _run_script_json("plet_schedule.py",
                 ["check-breakpoints", plet_dir, "--iter-id", iter_id, "--position", "before"])
@@ -324,14 +331,21 @@ def cmd_run(args):
                 _emit_text("  Error creating worktree: {}".format(wt_err), output_ndjson)
                 _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
                     "update-field", "--data", json.dumps({"lifecycle": "blocked"})])
+                failed_this_round.add(iter_id)
                 continue
 
             worktree_path = wt_data.get("worktreePath", "")
 
             # IMPLEMENT
-            _run_script("plet_invoke.py", ["run", plet_dir,
+            impl_out, impl_err, impl_rc = _run_script("plet_invoke.py", ["run", plet_dir,
                 "--iter-id", iter_id, "--phase", "implement",
                 "--cwd", worktree_path], cwd=worktree_path)
+
+            if impl_rc != 0:
+                _emit_text("  Invoke implement failed (rc={}): {}".format(
+                    impl_rc, impl_err[:200]), output_ndjson)
+                _emit_event({"type": "error", "iterationId": iter_id,
+                             "phase": "implement", "error": impl_err[:200]}, output_ndjson)
 
             _emit_event({"type": "iteration_phase_complete", "iterationId": iter_id,
                          "phase": "implement"}, output_ndjson)
@@ -340,7 +354,12 @@ def cmd_run(args):
             head_result = subprocess.run(["git", "log", "--oneline", "-1"],
                 capture_output=True, text=True, cwd=worktree_path)
 
-            # Read state to check lifecycle handoff
+            # Read state to check lifecycle handoff — use raw load for debug
+            raw_path = iter_state_path(plet_dir, iter_id)
+            raw_state = load_json(raw_path)
+            _emit_event({"type": "debug_raw", "path": raw_path, "exists": os.path.isfile(raw_path),
+                         "lifecycle": raw_state.get("lifecycle") if raw_state else "NONE",
+                         "cwd": os.getcwd()}, output_ndjson)
             iter_state = load_and_validate_iter_state(plet_dir, iter_id)
             if iter_state is None or iter_state.get("lifecycle") != "verifying":
                 _emit_text("  Implement did not complete handoff", output_ndjson)
@@ -348,6 +367,7 @@ def cmd_run(args):
                     "update-field", "--data", json.dumps({"lifecycle": "blocked"})])
                 _run_script("plet_git_iteration.py", ["worktree-remove", plet_dir,
                     "--iter-id", iter_id])
+                failed_this_round.add(iter_id)
                 continue
 
             # VERIFY
