@@ -255,6 +255,20 @@ Meanwhile, learnings/emergent capture (enforced only via prose rule R_7) regress
 
 **Implication:** Any plet rule that agents consistently violate should be a candidate for tooling enforcement, not stronger prose. The pattern: (1) define the rule in prose, (2) if agents drift, build a tool that makes compliance automatic, (3) ship the tool inside the skill.
 
+### Meaningful red vs meaningless red in red/green testing
+
+A test that fails because the thing it's testing doesn't exist yet is **meaningless red** — it proves nothing about the test's ability to catch bad behavior. Whether it's a missing script (`FileNotFoundError`), a missing class (`ImportError`), or a missing function (`AttributeError`), the test would fail identically regardless of what it asserts. Meaningless red gives false confidence that the red/green discipline was followed.
+
+**Meaningful red** requires the unit under test to exist and execute, but produce the wrong result. The stub accepts inputs, returns output, runs without crashing — but the output is wrong (empty list, hardcoded dummy, zero value, stub response). The test fails because the *behavior* is wrong, which proves the test would catch a real regression.
+
+This applies at every level:
+- **Scripts:** stub the script with dispatch + command functions returning dummy values before writing subprocess tests.
+- **Functions:** stub the function with a signature that returns a default/zero value before writing unit tests.
+- **Classes:** stub the class with method signatures that return dummies before writing tests.
+- **APIs:** stub the endpoint with a handler that returns a placeholder response before writing integration tests.
+
+The principle is the same everywhere: the test must fail because the answer is wrong, not because the infrastructure is missing. Without this, red/green is theater.
+
 ### Use subagents to explore during design
 During the execute.md build, we used subagents to research ridler2's trace mechanism, check Claude Code flags, test tool capabilities, and verify file paths. Subagents are cheap and fast for exploratory validation — use proactively during brainstorming, not just for delegated work.
 

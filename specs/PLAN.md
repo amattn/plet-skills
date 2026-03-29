@@ -90,7 +90,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 25 | `plet_invoke.py` implementation | ✓ complete |
 | 26 | Rename `plet_session.py` → `plet_gate_session.py` (GSS) | ✓ complete |
 | 27 | `plet_schedule.py` spec (SCH) | ✓ complete |
-| 28 | `plet_schedule.py` implementation | not started |
+| 28 | `plet_schedule.py` implementation | ✓ complete |
 | 29 | `plet_session.py` spec (SES reused) | not started |
 | 30 | `plet_session.py` implementation | not started |
 | 31 | `plet_orchestrator.py` spec (ORC) | not started |

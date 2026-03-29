@@ -66,15 +66,16 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 
 **Non-negotiable for all script implementations.** Every command is implemented through a red/green cycle:
 
-1. **Write tests for one command first** — tests that call the script via subprocess and assert expected behavior
-2. **Run tests — they must fail (red)** — this proves the tests are load-bearing. A test that was never red might always pass regardless of implementation.
-3. **Implement the command**
-4. **Run tests — they must pass (green)**
-5. **Move to the next command and repeat**
+1. **Stub the script first** — create the script with shebang, docstring, dispatch, and a stub command function that accepts args but returns a dummy/zero value (e.g., empty list, hardcoded "ok"). The script must be runnable — `--help` and `--version` work, the command executes without crashing, but it doesn't do real work yet.
+2. **Write tests for one command** — tests that call the script via subprocess and assert expected behavior
+3. **Run tests — they must fail (red)** — this proves the tests are load-bearing. The script runs but returns the wrong answer. A test that fails because the file doesn't exist (`FileNotFoundError`) is not meaningful red — it proves nothing about the test's ability to catch bad behavior.
+4. **Implement the command**
+5. **Run tests — they must pass (green)**
+6. **Move to the next command and repeat** (stub the next command, write tests, red, implement, green)
 
 **Granularity:** command-by-command, not all-at-once. Later commands often depend on earlier ones (e.g., `embed` depends on `extract`). Writing all tests before any implementation adds mocking complexity for no benefit.
 
-**No shortcuts:** Do not write the script and tests together. Do not write the script first and backfill tests. The red step is not optional — it's the proof that your test catches what it claims to catch.
+**No shortcuts:** Do not write the script and tests together. Do not write the script first and backfill tests. The red step is not optional — it's the proof that your test catches what it claims to catch. But the script must exist as a stub before tests are written — "file not found" is not red, it's missing infrastructure.
 
 ## NOTES.md Routing
 

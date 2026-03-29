@@ -467,3 +467,13 @@ The current plan session and requirements template is shaped by the projects we'
 A requirements document for a web app needs sections on UI/UX, navigation, responsive design, and user personas that a CLI tool spec doesn't. A library spec needs API surface documentation that a web app doesn't.
 
 plet's plan session should either support multiple requirements templates (selected during project setup) or have a flexible enough structure that the agent adapts the sections to the project type. Currently the template is implicit in plan.md's guidance — making it explicit and configurable would produce better specs for non-CLI projects.
+
+### FB_54: Red/green discipline needs meaningful red — stub before test [prompting] [testing]
+
+The red/green discipline as originally stated ("write tests first, they must fail") has a gap: if the script doesn't exist yet, tests fail with `FileNotFoundError` — which is **meaningless red**. It proves nothing about the test's ability to catch bad behavior. The same test would fail identically regardless of what it asserts.
+
+**Meaningful red** requires the script to exist as a runnable stub (dispatch, help, command functions returning dummy values). Tests fail because the behavior is wrong (empty list, hardcoded zero), not because the file is missing. This proves the test is actually load-bearing.
+
+The fix (already applied to CLAUDE.md § Red/Green Development Discipline): stub the script first, then write tests (meaningful red), then implement (green). This distinction is load-bearing — without it, red/green is theater that gives false confidence.
+
+**PRD impact:** The red/green discipline is referenced in the PRD (IMP_4) and in implement.md / verify.md reference files. These should be updated to reflect the meaningful-red requirement: "Write a failing test" should clarify that the failure must be behavioral, not infrastructural. Defer to next PRD update pass.
