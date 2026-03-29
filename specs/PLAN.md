@@ -56,7 +56,8 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 31 | Standardize NDJSON — rename .jsonl → .ndjson across repo | Sweep pass: transcript paths in util_io, plet_invoke, state-schema, tests, specs, references. ~51 references in 16 files. NDJSON for plet-produced files; preserve source format for copied files. |
 | 32 | Retrofit UNV_CMD_29 (unknown flags error) across existing scripts | Extract `validate_flags` into `util_cli`, retrofit all 11 existing scripts + 3 new scripts. Pattern proven during plet_schedule + plet_session implementation. |
 | 33 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Toolkit + run model. Calls plet_schedule, plet_session, plet_invoke, and all existing scripts. |
-| 34 | Implement `plet_orchestrator.py` | Build from spec. |
+| 34 | Cascade lifecycle ownership model | Sweep: update implement.md, verify.md, SKILL.md, state-schema.md, prd.md, PLET.md, plet_state.md with handoffs-vs-decisions model. Must complete before ORC implementation — subagents read these during work. |
+| 35 | Implement `plet_orchestrator.py` | Build from spec. |
 
 ## Status
 
@@ -96,5 +97,6 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 30 | `plet_session.py` implementation | ✓ complete |
 | 31 | Standardize NDJSON — rename .jsonl → .ndjson | ✓ complete |
 | 32 | Retrofit UNV_CMD_29 (unknown flags) across all scripts | ✓ complete |
-| 33 | `plet_orchestrator.py` spec (ORC) | not started |
-| 34 | `plet_orchestrator.py` implementation | not started |
+| 33 | `plet_orchestrator.py` spec (ORC) | in progress |
+| 34 | Cascade lifecycle ownership model | not started |
+| 35 | `plet_orchestrator.py` implementation | not started |
