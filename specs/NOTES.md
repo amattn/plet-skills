@@ -111,6 +111,7 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 | GPH | pre | PRE |
 | GPH | post | PST |
 | PRM | assemble | ASM |
+| INV | run | RUN |
 
 **ID format examples:**
 - `STA_VAL_BHV_1` — state script, validate command, behavior, requirement #1
@@ -877,6 +878,23 @@ CLEANUP (per-iteration state controls):
 - **Why not other approaches:** Per-iteration files lose the unified narrative. Auto-resolution is fragile. Separate artifact merging adds complexity. Sequential merge is the simplest fix — 13 iterations × 2s = 26s total merge time vs hours saved by parallel execution.
 - **Per-iteration files (state/{id}.json, trace/{id}-*) never conflict** — different file paths, no shared state.
 - **GUI multi-directory model confirmed:** Main plet/ = session dashboard. Worktree plet/ = iteration dashboard. GUI discovers worktrees via `git worktree list --porcelain`. Both views are valid, different scopes.
+
+#### INV spec + implementation (2026-03-28)
+
+- **Single command:** `run` with `--phase implement|verify`, `--cwd <worktree>`, `--iter-id`.
+- **Prompt delivery:** Full prompt string passed as direct positional arg to `claude -p`. Not stdin, not file.
+- **Claude flags:** `--output-format stream-json`, `--permission-mode auto` (default) or `bypassPermissions` (fallback), `--no-session-persistence`, `--bare` (skip hooks/LSP/plugins for fast startup), `--name "plet/{iter_id}/{phase}-{attempt}"`.
+- **`--bare` monitor:** May need to be optional if subagents need user skills/plugins. Fine for now since subagents are batch workers.
+- **Transcript capture:** Line-by-line with flush after each write (~100ms GUI live-tail). Append-never-overwrite — retries add separator + append. No data loss.
+- **Exit code pass-through:** Subprocess exit code = INV exit code. Orchestrator interprets.
+- **Stderr:** Goes to INV's own stderr (visible to orchestrator), not to transcript. Only stdout (stream-json) goes to transcript.
+- **State reads, doesn't write:** Reads attempt number from iter state for filename. Doesn't increment — orchestrator's job.
+- **`--permission-mode auto`** requires one-time `claude --enable-auto-mode` setup (https://claude.com/blog/auto-mode). `bypassPermissions` as fallback for older models.
+- **No `--dangerously-skip-permissions`:** Use `--permission-mode bypassPermissions` instead.
+- **Sandboxing:** Environment-level config, not per-invocation. See FB_50.
+- **`--dry-run`** supported — previews full claude command without launching.
+- **Mock testing strategy:** Mock `claude` script on PATH outputs JSONL and exits with controlled code.
+- **37 tests, all passing.**
 
 #### PRM spec + implementation (2026-03-27)
 

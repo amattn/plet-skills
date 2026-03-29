@@ -148,6 +148,14 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `plet_state.py` | State file schema enforcement | `validate`, `update-criterion`, `update-field`, `init` |
 | `plet_entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
 | `plet_fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` |
+| `plet_trace.py` | Trace NDJSON schema enforcement | `append-event`, `validate`, `query` |
+| `plet_git_iteration.py` | Git iteration lifecycle (branches, worktrees) | `branch-name`, `worktree-create`, `worktree-remove` |
+| `plet_git_ops.py` | Git workflow operations | `audit-tag`, `merge-squash` |
+| `plet_git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
+| `plet_session.py` | Session detection, status, preflight | `detect`, `status`, `preflight` |
+| `plet_gate_phase.py` | Phase gate (pre/post, `--phase implement\|verify`) | `pre`, `post` |
+| `plet_prompt.py` | Prompt assembly for subagents | `assemble` |
+| `plet_invoke.py` | Subprocess launch + transcript capture | `run` |
 
 ### Internal Modules (`util_*.py`)
 
@@ -159,14 +167,8 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `util_state.py` | State file validation and validated loading (global + per-iteration) | `load_and_validate_global_state(plet_dir)`, `load_and_validate_iter_state(plet_dir, iter_id)`, `validate_global_state`, `validate_iter_state` |
 | `util_subprocess.py` | Subprocess execution with capture, error formatting, timeout | `run`, `run_git` |
 
-## Planned (PLAN_8)
+## Remaining (PLAN_8)
 
-| Script | Purpose | Key FB items |
-|--------|---------|-------------|
-| `plet_git.py` | Git compliance (branches, tags, worktrees, squash, cleanup) | FB_30, FB_31, FB_32 |
-| `plet_trace.py` | Trace NDJSON schema enforcement | FB_11 |
-| `plet_session.py` | Phase detection, status summary, preflight checks | FB_16, FB_22, FB_23 |
-| `plet_prompt.py` | Prompt assembly for implement/verify subagents | FB_38 |
-| `plet_invoke.py` | Subprocess launch + transcript capture (assembles prompt, launches `claude -p`, tees JSONL to transcript file) | — |
-| `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop). Calls plet_invoke.py instead of spawning subprocesses directly. | — |
-| `plet_gate_phase.py` | Phase gate (pre/post, --phase implement\|verify) | FB_29, FB_33, FB_11, FB_40 |
+| Script | Purpose | Status |
+|--------|---------|--------|
+| `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop) | spec not started |
