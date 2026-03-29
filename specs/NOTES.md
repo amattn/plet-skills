@@ -879,6 +879,15 @@ CLEANUP (per-iteration state controls):
 - **Per-iteration files (state/{id}.json, trace/{id}-*) never conflict** — different file paths, no shared state.
 - **GUI multi-directory model confirmed:** Main plet/ = session dashboard. Worktree plet/ = iteration dashboard. GUI discovers worktrees via `git worktree list --porcelain`. Both views are valid, different scopes.
 
+#### Invocation logging + --allow-fences + invocation event type (2026-03-28)
+
+- **INV logs to both trace AND progress.** Every subprocess launch writes: (1) invocation trace event with full prompt + invocation details in structured JSON, (2) progress entry with full prompt + invocation details in human-readable markdown. No separate prompt.md file — prompt lives in two places with different audiences.
+- **Why both:** Trace is for machines (eval, comparison, replay). Progress is for humans (narrative log, case study analysis). Same data, different formats.
+- **--allow-fences added to plet_entries.py.** Prompt text legitimately contains fence pattern examples (from formats.md reference file). ENT's fence rejection was too aggressive — blocked logging the exact prompt. New `--allow-fences` flag bypasses the check. Added to all three add-* commands.
+- **"invocation" event type added to plet_trace.py (6th type).** Required fields: cwd, permissionMode, promptLength. Optional: prompt (full text), model, maxBudget. First event in every trace file — makes the trace self-describing.
+- **Fence safety preserved by default.** --allow-fences is opt-in. Normal agent usage still gets fence rejection. Only INV (which knows it's logging a prompt) passes the flag.
+- **Content-file for large prompts.** INV uses `--content-file` (not `--content`) because prompts can be 40KB+. Temp file written to trace dir, cleaned up after.
+
 #### Eval system design direction (2026-03-28)
 
 - **PLAN_9 redefined:** Was "comparison runs" (vague). Now "eval system + comparison runs" with per-role eval strategy (planner, implementer, verifier).

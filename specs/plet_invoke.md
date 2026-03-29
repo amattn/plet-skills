@@ -118,6 +118,7 @@ Command abbreviations: `RUN` (run).
 | INV_RUN_PST_1 | Transcript file exists at `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.jsonl` | P0 |
 | INV_RUN_PST_2 | Every line of subprocess stdout is in the transcript (no data loss) | P0 |
 | INV_RUN_PST_3 | Script exit code matches subprocess exit code (pass-through) | P0 |
+| INV_RUN_PST_4 | Invocation trace event written with full prompt text. Progress entry written with full prompt text. Both contain invocation details. No separate prompt file — prompt lives in trace + progress. | P0 |
 
 #### Behaviors (INV_RUN_BHV)
 
@@ -133,6 +134,8 @@ Command abbreviations: `RUN` (run).
 | INV_RUN_BHV_8 | **No session persistence:** Uses `--no-session-persistence` — subagent sessions are ephemeral and not resumable. Each invocation is a clean context. | P0 |
 | INV_RUN_BHV_9 | **Session name:** Uses `--name "plet/{iter_id}/{phase}-{attempt}"` for identification in `claude /resume` or session listing. | P0 |
 | INV_RUN_BHV_10 | **Bare mode:** Uses `--bare` — skips hooks, LSP, plugin sync, auto-memory, background prefetches. Subagents are non-interactive batch workers; IDE features add latency with no benefit. Monitor: if subagents need skills or plugins from the user's setup, `--bare` may need to be optional. | P0 |
+| INV_RUN_BHV_11 | **Invocation trace event:** Calls `plet_trace.py append-event --type invocation` before launch. Data includes full prompt text + invocation details (cwd, permissionMode, promptLength, model, maxBudget, verbose, bare, transcriptPath). First event in the events file — makes the trace self-describing. | P0 |
+| INV_RUN_BHV_12 | **Invocation progress entry:** Calls `plet_entries.py add-progress` before launch with status IN_PROGRESS. Content includes invocation details + full prompt text. Human-readable record in progress.md. | P0 |
 
 ---
 
@@ -168,6 +171,7 @@ Command abbreviations: `RUN` (run).
 |----|-------------|----------|
 | INV_FMT_1 | Reads iter state for attempt number: `{plet_dir}/state/{iter_id}.json` | P0 |
 | INV_FMT_2 | Writes transcript: `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-transcript.jsonl` (streaming JSONL) | P0 |
+| INV_FMT_4 | Writes invocation trace event (via plet_trace.py) + progress entry (via plet_entries.py). Both contain full prompt text. | P0 |
 | INV_FMT_3 | Calls PRM for prompt text (reads indirectly via PRM) | P0 |
 
 ## 7. Agent Flows (INV_AFL)
@@ -238,6 +242,8 @@ plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
 | INV_DEP_3 | imports | `util_subprocess` | `run` for PRM subprocess call |
 | INV_DEP_4 | calls (subprocess) | `plet_prompt.py` | `assemble` for prompt text |
 | INV_DEP_5 | calls (subprocess) | `claude` | the actual subagent |
+| INV_DEP_7 | calls (subprocess) | `plet_trace.py` | `append-event --type invocation` — invocation details + full prompt |
+| INV_DEP_8 | calls (subprocess) | `plet_entries.py` | `add-progress` — invocation details + full prompt (human-readable) |
 | INV_DEP_6 | called by | `plet_orchestrator.py` | spawns subagents |
 
 ## 10. Non-Functional Requirements (INV_NFR)
@@ -269,6 +275,7 @@ plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
 | INV_CRT_6 | Missing claude | Crash instead of error | Remove claude from PATH, verify error |
 | INV_CRT_7 | Dry-run output | Incomplete preview | Verify full command visible |
 | INV_CRT_8 | Elapsed time | Wrong timing | Verify > 0 for real invocation |
+| INV_CRT_9 | Prompt logged | Can't eval without knowing what agent received | Verify invocation trace event has full prompt in data.prompt, progress entry has full prompt in content |
 
 ## 13. Testing & Verification (INV_TST)
 

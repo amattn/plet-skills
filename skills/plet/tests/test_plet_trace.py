@@ -200,6 +200,51 @@ def test_append_error_event():
         check("data.recovery preserved", ev["data"]["recovery"] == "install pytest")
 
 
+def test_append_invocation_event():
+    print("\n## Append — invocation event")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out, _, _ = run([
+            "append-event", tmpdir,
+            "--iter-id", "ID_001",
+            "--phase", "implement",
+            "--attempt", "1",
+            "--event-type", "invocation",
+            "--data", '{"cwd":"/tmp/worktree","permissionMode":"auto","promptLength":42000}',
+        ])
+        check("reports OK", "OK" in out)
+
+        events = read_events(os.path.join(tmpdir, "ID_001-implement-1-events.ndjson"))
+        ev = events[0]
+        check("type is invocation", ev["type"] == "invocation")
+        check("data.cwd", ev["data"]["cwd"] == "/tmp/worktree")
+        check("data.permissionMode", ev["data"]["permissionMode"] == "auto")
+        check("data.promptLength", ev["data"]["promptLength"] == 42000)
+
+
+def test_append_invocation_with_prompt():
+    print("\n## Append — invocation event with full prompt in data")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        data = json.dumps({
+            "cwd": "/tmp/wt",
+            "permissionMode": "auto",
+            "promptLength": 100,
+            "prompt": "This is the full prompt text with special chars: <div> \"quotes\" etc.",
+        })
+        out, _, _ = run([
+            "append-event", tmpdir,
+            "--iter-id", "ID_001",
+            "--phase", "verify",
+            "--attempt", "1",
+            "--event-type", "invocation",
+            "--data", data,
+        ])
+        check("reports OK", "OK" in out)
+
+        events = read_events(os.path.join(tmpdir, "ID_001-verify-1-events.ndjson"))
+        ev = events[0]
+        check("prompt preserved", "full prompt text" in ev["data"]["prompt"])
+
+
 def test_append_multiple_events():
     print("\n## Append — multiple events to same file")
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -929,6 +974,8 @@ if __name__ == "__main__":
     test_append_lifecycle_change()
     test_append_activity_change()
     test_append_error_event()
+    test_append_invocation_event()
+    test_append_invocation_with_prompt()
     test_append_multiple_events()
     test_append_ndjson_format()
     test_append_file_creation()

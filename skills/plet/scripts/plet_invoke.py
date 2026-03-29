@@ -257,6 +257,58 @@ Examples:
     if not os.path.isdir(trace_dir):
         os.makedirs(trace_dir, exist_ok=True)
 
+    # Log invocation + full prompt to trace event
+    trc_script = os.path.join(scripts_dir(), "plet_trace.py")
+    if os.path.isfile(trc_script):
+        invocation_data = json.dumps({
+            "cwd": cwd,
+            "permissionMode": permission_mode,
+            "promptLength": len(prompt_text),
+            "model": model or "default",
+            "maxBudget": max_budget or "none",
+            "verbose": verbose,
+            "bare": True,
+            "transcriptPath": t_path,
+            "prompt": prompt_text,
+        })
+        run([sys.executable, trc_script, "append-event", plet_dir,
+             "--iter-id", iter_id, "--phase", phase, "--attempt", str(attempt),
+             "--event-type", "invocation", "--data", invocation_data])
+
+    # Log invocation + full prompt to progress.md (via temp file for large prompts)
+    iter_title = state_data.get("title", iter_id)
+    progress_content = (
+        "Launching {} subagent (attempt {})\n\n"
+        "**Invocation details:**\n"
+        "- Permission mode: {}\n"
+        "- Model: {}\n"
+        "- Max budget: {}\n"
+        "- Working directory: {}\n"
+        "- Prompt length: {} chars\n"
+        "- Transcript: {}\n\n"
+        "**Full prompt:**\n\n"
+        "{}"
+    ).format(phase, attempt, permission_mode, model or "default",
+             max_budget or "none", cwd, len(prompt_text), t_path, prompt_text)
+    ent_script = os.path.join(scripts_dir(), "plet_entries.py")
+    if os.path.isfile(ent_script):
+        # Use --content-file for large content (prompt can be 40KB+)
+        # --allow-fences because prompt legitimately contains fence pattern examples
+        content_tmp = os.path.join(trace_dir, ".progress_content.tmp")
+        with open(content_tmp, "w") as f:
+            f.write(progress_content)
+        ent_result = run([sys.executable, ent_script, "add-progress", plet_dir,
+             "--iter-id", iter_id, "--iter-title", iter_title,
+             "--phase", phase, "--attempt", str(attempt),
+             "--status", "IN_PROGRESS",
+             "--content-file", content_tmp,
+             "--allow-fences"])
+        if ent_result.returncode != 0:
+            print("Warning: progress entry failed: {}".format(ent_result.stderr.strip()),
+                  file=sys.stderr)
+        if os.path.isfile(content_tmp):
+            os.unlink(content_tmp)
+
     # Launch subprocess with transcript capture
     start_time = time.time()
     transcript_lines = 0

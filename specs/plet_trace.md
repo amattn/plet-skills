@@ -13,7 +13,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | TRC_PUR_1 | Semantic event NDJSON writing and validation. Agents call this instead of composing event JSON freehand, eliminating schema drift across iterations and phases. Trace events capture **significant** events in agent-readable JSON — distinct from progress.md which is human-scannable and includes both minor and significant events. | P0 |
-| TRC_PUR_2 | Enforces the semantic event schema defined in `references/state-schema.md` § Semantic Event Line Schema. Five event types: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`. | P0 |
+| TRC_PUR_2 | Enforces the semantic event schema defined in `references/state-schema.md` § Semantic Event Line Schema. Six event types: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, `invocation`. | P0 |
 | TRC_PUR_3 | Validates existing trace files against the schema — for debugging, post-run analysis, and gate scripts. | P0 |
 | TRC_PUR_4 | Queries trace events by type, criterion, or count — agents and humans read trace files through this command instead of parsing NDJSON manually. Verify agents review implement traces, retry logic inspects failure patterns. | P0 |
 
@@ -23,7 +23,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 |----|--------|---------|---------------|
 | TRC_AGT_1 | implement subagent | during implementation work | `append-event` (decisions, criterion updates, activity changes, errors) |
 | TRC_AGT_2 | verify subagent | during verification work | `append-event` (decisions, criterion updates, activity changes, errors), `query` (review implement trace for decisions and errors) |
-| TRC_AGT_3 | orchestrator / invoke scripts | before/after subagent launch | `append-event` (lifecycle_change: queued → implementing/verifying) |
+| TRC_AGT_3 | orchestrator / invoke scripts | before/after subagent launch | `append-event` (lifecycle_change: queued → implementing/verifying, invocation: subagent launch metadata) |
 | TRC_AGT_4 | gate scripts | post-phase validation | `validate` (check trace file schema compliance) |
 | TRC_AGT_5 | human | debugging / post-run analysis | `validate`, `query` |
 | TRC_AGT_6 | external GUI / monitoring tool | real-time event display, historical analysis | reads NDJSON files directly for live-tail, may also use `query` for filtered views and `validate` for integrity checks |
@@ -59,7 +59,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event [<plet_dir>] --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, or `error` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event [<plet_dir>] --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** mutating (appends to file), not idempotent (each call adds a new line), atomic append
 
@@ -73,7 +73,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | TRC_APE_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Used in the filename and the event's `iterationId` field. | P0 |
 | TRC_APE_INP_3 | `--phase` — `implement` or `verify`. Used in the filename and the event's `phase` field. | P0 |
 | TRC_APE_INP_4 | `--attempt` — positive integer. Used in the filename and the event's `attempt` field. | P0 |
-| TRC_APE_INP_5 | `--event-type` — one of: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`. | P0 |
+| TRC_APE_INP_5 | `--event-type` — one of: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, `invocation`. | P0 |
 | TRC_APE_INP_6 | `--data` — JSON object with type-specific fields. Required unless `--data-file` is provided. Mutually exclusive with `--data-file`. | P0 |
 | TRC_APE_INP_7 | `--data-file` — path to file containing the JSON data object. Required unless `--data` is provided. Mutually exclusive with `--data`. For large data payloads (e.g., verbose error context). | P0 |
 
@@ -127,12 +127,12 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | TRC_APE_BHV_1 | Constructs the full event object: `{"pletId": "tev_01JD8X3K7M_id001_i1", "timestamp": now_iso(), "type": event_type, "iterationId": iter_id, "phase": phase, "attempt": attempt_int, "data": data_obj}`. The `pletId` uses `tev_` prefix with the standard plet ID context segments: `{iteration}_{phase_attempt}` (e.g., `tev_01JD8X3K7M_id001_i1`). Same scheme as ENT's `epr_`/`eln_`/`eem_` IDs — iteration normalized to lowercase without underscores, phase as single letter + attempt number. The `timestamp` is always set by the script (not from user input) to prevent fabricated timestamps (FB_11). | P0 |
-| TRC_APE_BHV_2 | Validates type-specific required fields in `data`: **decision** requires `description`, `rationale`; **criterion_update** requires `criterionId`, `phase`, `status`; **lifecycle_change** requires `from`, `to`; **activity_change** requires `activity`; **error** requires `message`. Optional fields are allowed and passed through. | P0 |
+| TRC_APE_BHV_2 | Validates type-specific required fields in `data`: **decision** requires `description`, `rationale`; **criterion_update** requires `criterionId`, `phase`, `status`; **lifecycle_change** requires `from`, `to`; **activity_change** requires `activity`; **error** requires `message`; **invocation** requires `cwd`, `permissionMode`, `promptLength`. Optional fields are allowed and passed through (e.g., invocation may include `prompt` with the full text, but it is not required for validation). | P0 |
 | TRC_APE_BHV_3 | Serializes the event as a single JSON line (no indentation, no trailing comma) followed by a newline. This is NDJSON format — one JSON object per line. | P0 |
 | TRC_APE_BHV_4 | Appends to the events file using atomic append (write to temp, then append). Creates the file if it doesn't exist. | P0 |
 | TRC_APE_BHV_5 | The `attempt` field in the event object is an integer, not a string. Convert from CLI string input. | P0 |
 | TRC_APE_BHV_6 | The `phase` field in the event's `data` for `criterion_update` is the criterion phase (`implementation` or `verification`), NOT the iteration phase (`implement` or `verify`). These are different — the top-level `phase` is the iteration phase, the `data.phase` is the criterion tracking phase per the two-state model. | P0 |
-| TRC_APE_BHV_7 | Extra fields in `data` beyond the required ones are passed through unchanged. Agents may include context-specific fields (e.g., `alternatives` in decisions, `detail` in activity changes, `evidence` in criterion updates, `recovery` in errors). | P0 |
+| TRC_APE_BHV_7 | Extra fields in `data` beyond the required ones are passed through unchanged. Agents may include context-specific fields (e.g., `alternatives` in decisions, `detail` in activity changes, `evidence` in criterion updates, `recovery` in errors, `prompt` in invocations). | P0 |
 
 ---
 
@@ -182,7 +182,8 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
     "criterion_update": N,
     "lifecycle_change": N,
     "activity_change": N,
-    "error": N
+    "error": N,
+    "invocation": N
   },
   "errors": [...],
   "errorCount": N
@@ -234,7 +235,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_CMD_1 | Usage: `plet_trace.py query [<plet_dir>] [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, or `error` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_QRY_CMD_1 | Usage: `plet_trace.py query [<plet_dir>] [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -330,7 +331,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | TRC_ERR_1 | Missing required args → print specific missing arg name + help text, exit 1 | P0 |
-| TRC_ERR_2 | Invalid `--event-type` → `Error: invalid --event-type '{value}' (valid: decision, criterion_update, lifecycle_change, activity_change, error)` | P0 |
+| TRC_ERR_2 | Invalid `--event-type` → `Error: invalid --event-type '{value}' (valid: decision, criterion_update, lifecycle_change, activity_change, error, invocation)` | P0 |
 | TRC_ERR_3 | Invalid `--phase` → `Error: invalid --phase '{value}' (valid: implement, verify)` | P0 |
 | TRC_ERR_4 | Invalid `--attempt` → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
 | TRC_ERR_5 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ID_N+` | P0 |
@@ -381,7 +382,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 |-------|------|----------|-------------|
 | `pletId` | string | yes | Globally unique plet ID with `tev_` prefix. Crockford Base32 timestamp + context segments. Greppable, cross-referenceable with state files and runtime artifacts. |
 | `timestamp` | string | yes | ISO 8601 UTC, second resolution (`YYYY-MM-DDTHH:MM:SSZ`). Set by script, not caller. |
-| `type` | string | yes | One of: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error` |
+| `type` | string | yes | One of: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, `invocation` |
 | `iterationId` | string | yes | Iteration ID (e.g., `ID_001`) |
 | `phase` | string | yes | `implement` or `verify` |
 | `attempt` | integer | yes | Positive integer (1-based) |
@@ -396,6 +397,7 @@ Command abbreviations: `APE` (append-event), `VAL` (validate), `QRY` (query).
 | `lifecycle_change` | `from`, `to` | — | Both validated against lifecycle enum: `ineligible`, `queued`, `implementing`, `verifying`, `complete`, `blocked`, `withdrawn` |
 | `activity_change` | `activity` | `detail` | `activity` validated: `idle`, `reading_context`, `implementing`, `running_checks`, `committing`, `wrapping_up` |
 | `error` | `message` | `code`, `context`, `recovery` | Error with optional recovery action |
+| `invocation` | `cwd`, `permissionMode`, `promptLength` | `prompt` | Subagent invocation metadata. `prompt` (full text) is optional — useful for post-run analysis but not required for validation. |
 
 ### Trace File Path
 
@@ -478,6 +480,16 @@ plet_trace.py append-event plet/ \
     --event-type lifecycle_change \
     --data '{"from":"implementing","to":"verifying"}'
 # OK — appended lifecycle_change event to plet/trace.ndjson
+```
+
+### TRC_EXM_10: Append an invocation event
+
+```bash
+plet_trace.py append-event plet/ \
+    --iter-id ID_001 --phase implement --attempt 1 \
+    --event-type invocation \
+    --data '{"cwd":"/Users/dev/myproject","permissionMode":"bypassPermissions","promptLength":4820,"prompt":"Implement iteration ID_001..."}'
+# OK — appended invocation event to plet/trace.ndjson
 ```
 
 ### TRC_EXM_4: Validate a trace file
@@ -587,7 +599,7 @@ See `specs/conventions.md` for universal requirements.
 |----|-------------|----------|
 | TRC_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | TRC_DXP_2 | Help text for `append-event` strongly recommends `--dry-run` in IMPORTANT section | P0 |
-| TRC_DXP_3 | All enum values listed in help text and error messages: `--event-type` (5 types), `--phase` (implement, verify) | P0 |
+| TRC_DXP_3 | All enum values listed in help text and error messages: `--event-type` (6 types), `--phase` (implement, verify) | P0 |
 | TRC_DXP_4 | Each command's PITFALLS lists common wrong values agents try. Examples: `--phase implementation` instead of `implement`, `--event-type decision_made` instead of `decision`, `--data` as string instead of JSON object | P0 |
 | TRC_DXP_5 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json`; `--dry-run` only on `append-event`; `--data` and `--data-file` are mutually exclusive; `--raw` is mutually exclusive with `--output json` | P0 |
 | TRC_DXP_6 | `validate` exit code enables gating — exit 0 means valid, exit 1 means invalid or error. Gate scripts check the exit code to proceed or block. | P0 |

@@ -47,7 +47,7 @@ SKILL_VERSION = "0.1.1"
 
 VALID_EVENT_TYPES = [
     "decision", "criterion_update", "lifecycle_change",
-    "activity_change", "error",
+    "activity_change", "error", "invocation",
 ]
 
 VALID_PHASES = ["implement", "verify"]
@@ -75,6 +75,7 @@ REQUIRED_DATA_FIELDS = {
     "lifecycle_change": ["from", "to"],
     "activity_change": ["activity"],
     "error": ["message"],
+    "invocation": ["cwd", "permissionMode", "promptLength"],
 }
 
 # ---------------------------------------------------------------------------
@@ -307,7 +308,7 @@ set automatically — cannot be overridden.
 PITFALLS:
 - --phase must be "implement" or "verify" (not "implementation" or "plan")
 - --event-type must be one of: decision, criterion_update, lifecycle_change,
-  activity_change, error (not "decision_made" or "info")
+  activity_change, error, invocation
 - --data must be a JSON object, not a string or array
 - --data and --data-file are mutually exclusive
 - For criterion_update, data.phase is "implementation" or "verification"
@@ -318,6 +319,7 @@ PITFALLS:
     lifecycle_change: from, to
     activity_change:  activity
     error:            message
+    invocation:       cwd, permissionMode, promptLength
 
 USAGE:
     plet_trace.py append-event <trace_dir> --iter-id ID_xxx --phase PHASE \\

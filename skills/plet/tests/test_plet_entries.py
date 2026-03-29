@@ -731,6 +731,62 @@ def test_fence_rejection_content_file():
 
 
 # ---------------------------------------------------------------------------
+# --allow-fences flag
+# ---------------------------------------------------------------------------
+
+def test_allow_fences_flag():
+    """--allow-fences bypasses fence rejection."""
+    print("\n## --allow-fences flag")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        content_with_fence = 'Example: <div id="plet-abc123"></div> shows a start fence'
+
+        # Without flag — should fail
+        _, stderr, _ = run([
+            "add-progress", d,
+            "--iter-id", "ID_001", "--iter-title", "Test",
+            "--phase", "implement", "--attempt", "1",
+            "--status", "COMPLETE", "--content", content_with_fence,
+        ], expect_exit=1)
+        check("rejects without flag", "fence" in stderr.lower())
+
+        # With flag — should succeed
+        stdout, _, rc = run([
+            "add-progress", d,
+            "--iter-id", "ID_001", "--iter-title", "Test",
+            "--phase", "implement", "--attempt", "1",
+            "--status", "COMPLETE", "--content", content_with_fence,
+            "--allow-fences",
+        ], expect_exit=0)
+        check("accepts with --allow-fences", rc == 0)
+
+        # Verify the content was written with fence intact
+        with open(os.path.join(d, "progress.md")) as f:
+            written = f.read()
+        check("fence preserved in output", '<div id="plet-abc123">' in written)
+
+
+def test_allow_fences_content_file():
+    """--allow-fences works with --content-file too."""
+    print("\n## --allow-fences with --content-file")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        fence_file = os.path.join(d, "fence_content.txt")
+        with open(fence_file, "w") as f:
+            f.write('Full prompt with <div id="plet-xyz"></div> fence example')
+
+        stdout, _, rc = run([
+            "add-learning", d,
+            "--iter-id", "ID_001", "--iter-title", "Test",
+            "--category", "pattern", "--title", "test",
+            "--content-file", fence_file,
+            "--phase", "implement", "--attempt", "1",
+            "--allow-fences",
+        ], expect_exit=0)
+        check("accepts fence via content-file", rc == 0)
+
+
+# ---------------------------------------------------------------------------
 # Empty content validation (ENT_EDG_15, ENT_EDG_16)
 # ---------------------------------------------------------------------------
 
@@ -1146,6 +1202,8 @@ if __name__ == "__main__":
     test_unknown_command()
     test_fence_rejection()
     test_fence_rejection_content_file()
+    test_allow_fences_flag()
+    test_allow_fences_content_file()
     test_empty_content()
     test_empty_content_file()
     test_content_file()

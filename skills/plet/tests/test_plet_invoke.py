@@ -364,6 +364,61 @@ def test_trace_dir_created():
         shutil.rmtree(tmpdir)
 
 
+
+
+def test_invocation_trace_event():
+    print("\n## run — invocation trace event with full prompt")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        wt = make_worktree(tmpdir)
+        env = create_mock_claude(tmpdir)
+        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
+             "--cwd", wt], expect_exit=0, env=env)
+        # TRC writes to plet_dir/{iter_id}-{phase}-{attempt}-events.ndjson
+        # (current TRC implementation, not yet retrofitted to unified trace.ndjson)
+        events_file = os.path.join(plet_dir, "ID_001-implement-1-events.ndjson")
+        check("events file exists", os.path.isfile(events_file))
+        if os.path.isfile(events_file):
+            with open(events_file) as f:
+                lines = f.readlines()
+            check("has at least 1 event", len(lines) >= 1)
+            first = json.loads(lines[0])
+            check("first event is invocation", first.get("type") == "invocation")
+            data = first.get("data", {})
+            check("has cwd", "cwd" in data)
+            check("has permissionMode", "permissionMode" in data)
+            check("has promptLength", "promptLength" in data)
+            check("has full prompt", "prompt" in data and len(data["prompt"]) > 100)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_invocation_progress_entry():
+    print("\n## run — progress entry with full prompt")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        wt = make_worktree(tmpdir)
+        env = create_mock_claude(tmpdir)
+        # Create progress.md so ENT can append
+        with open(os.path.join(plet_dir, "progress.md"), "w") as f:
+            f.write("")
+        stdout, stderr, _ = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
+             "--cwd", wt], expect_exit=0, env=env)
+        progress_path = os.path.join(plet_dir, "progress.md")
+        with open(progress_path) as f:
+            content = f.read()
+        check("progress has content", len(content) > 0, "len={}, stderr={}".format(len(content), stderr[:200]))
+        check("mentions launching", "launching" in content.lower() or "launch" in content.lower())
+        check("has invocation details", "permission mode" in content.lower())
+        check("has full prompt", "full prompt" in content.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+
+
 # ===========================================================================
 # Main
 # ===========================================================================
@@ -382,6 +437,8 @@ if __name__ == "__main__":
     test_json_output_after_launch()
     test_transcript_append_not_overwrite()
     test_trace_dir_created()
+    test_invocation_trace_event()
+    test_invocation_progress_entry()
 
     print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
     sys.exit(1 if failed > 0 else 0)

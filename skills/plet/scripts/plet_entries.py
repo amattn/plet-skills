@@ -116,22 +116,23 @@ def validate_positive_int(value, field_name):
     return parsed, True
 
 
-def validate_content(content_text):
-    """Validate content: not empty, no fence patterns. Returns True/False."""
+def validate_content(content_text, allow_fences=False):
+    """Validate content: not empty, no fence patterns (unless allowed). Returns True/False."""
     if not content_text or not content_text.strip():
         print("Error: content must not be empty", file=sys.stderr)
         return False
-    if FENCE_PATTERN.search(content_text):
+    if not allow_fences and FENCE_PATTERN.search(content_text):
         print(
             'Error: content must not contain plet fence markers '
-            '(<div id="plet-..." or <div id="END-plet-...">)',
+            '(<div id="plet-..." or <div id="END-plet-...">). '
+            'Use --allow-fences if the content legitimately contains fence patterns.',
             file=sys.stderr,
         )
         return False
     return True
 
 
-def resolve_content(kwargs):
+def resolve_content(kwargs, allow_fences=False):
     """Resolve content from --content or --content-file. Returns (text, True) or (None, False)."""
     has_content = "content" in kwargs and kwargs["content"] is not True
     has_file = "content_file" in kwargs
@@ -155,7 +156,7 @@ def resolve_content(kwargs):
     else:
         text = kwargs["content"]
 
-    if not validate_content(text):
+    if not validate_content(text, allow_fences=allow_fences):
         return None, False
 
     return text, True
@@ -328,6 +329,7 @@ USAGE:
         --content "..."           Freeform content (mutually exclusive with --content-file)
         [--content-file path]     Read content from file (mutually exclusive with --content)
         [--files '["p — d"]']     JSON array of "path — description" strings
+        [--allow-fences]          Bypass fence pattern validation (for logging prompts)
         [--dry-run]               Preview without writing
         [--output json [--pretty]] [--fields f1,f2]
 
@@ -397,7 +399,8 @@ Examples:
         return 1
 
     # Resolve content
-    content_text, ok = resolve_content(kwargs)
+    allow_fences = kwargs.pop("allow_fences", False) is True
+    content_text, ok = resolve_content(kwargs, allow_fences=allow_fences)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
@@ -492,6 +495,7 @@ USAGE:
         [--content-file path]     Read content from file (mutually exclusive with --content)
         --phase PHASE             plan, implement, verify, or refine
         --attempt N               Attempt number (positive integer)
+        [--allow-fences]          Bypass fence pattern validation (for logging prompts)
         [--dry-run]               Preview without writing
         [--output json [--pretty]] [--fields f1,f2]
 
@@ -547,7 +551,8 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    content_text, ok = resolve_content(kwargs)
+    allow_fences = kwargs.pop("allow_fences", False) is True
+    content_text, ok = resolve_content(kwargs, allow_fences=allow_fences)
     if not ok:
         print(hint, file=sys.stderr)
         return 1
@@ -617,6 +622,7 @@ USAGE:
         --content "..."           Description (mutually exclusive with --content-file)
         [--content-file path]     Read content from file (mutually exclusive with --content)
         --attempt N               Attempt number (positive integer)
+        [--allow-fences]          Bypass fence pattern validation (for logging prompts)
         [--dry-run]               Preview without writing
         [--output json [--pretty]] [--fields f1,f2]
 
@@ -672,7 +678,8 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    content_text, ok = resolve_content(kwargs)
+    allow_fences = kwargs.pop("allow_fences", False) is True
+    content_text, ok = resolve_content(kwargs, allow_fences=allow_fences)
     if not ok:
         print(hint, file=sys.stderr)
         return 1

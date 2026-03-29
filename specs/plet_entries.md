@@ -40,6 +40,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | `--pretty` | all commands | Indent JSON output (requires `--output json`) |
 | `--fields f1,f2` | all commands | Limit JSON output to named fields (requires `--output json`) |
 | `--dry-run` | mutating commands only (`add-progress`, `add-learning`, `add-emergent`) | Preview what would be appended without writing. NOT available on `check` (read-only). |
+| `--allow-fences` | mutating commands only (`add-progress`, `add-learning`, `add-emergent`) | Bypass fence pattern validation. Use when content legitimately contains plet fence markers. NOT available on `check` (read-only). |
 
 **JSON error behavior:** When `--output json` is active, errors produce structured JSON to stdout with `"status":"error"` plus a text message to stderr. Exit code is still 1. Both modes always emit text to stderr for human debugging. Per UNV_ERR_4.
 
@@ -59,7 +60,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress [<plet_dir>] --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress [<plet_dir>] --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -78,6 +79,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_INP_7 | `--content` — freeform content block. For BLOCKED entries, include "Work completed:" and "Work remaining:" sections. | P0 |
 | ENT_APR_INP_8 | `--files` — (optional) JSON array of `"path — description"` strings | P1 |
 | ENT_APR_INP_9 | `--content-file` — (optional) path to a file containing the content text. Mutually exclusive with `--content`. Use for long content that's awkward as a shell argument (e.g., plan session milestones, blocker details). | P1 |
+| ENT_APR_INP_10 | `--allow-fences` — Optional. Bypasses fence pattern validation. Use when content legitimately contains plet fence markers (e.g., logging full prompts that include format examples). | P1 |
 
 #### Outputs (ENT_APR_OUT)
 
@@ -135,7 +137,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_BHV_4 | File must already exist — will not create it | P0 |
 | ENT_APR_BHV_5 | If `--files` omitted or empty array, produce `- (none)` in files list | P1 |
 | ENT_APR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
-| ENT_APR_BHV_7 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). | P0 |
+| ENT_APR_BHV_7 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). Bypassed when `--allow-fences` is set. | P0 |
 | ENT_APR_BHV_8 | When `--status IN_PROGRESS`, suppress status from the header line. Header becomes `### [ID_xxx] phase-N` instead of `### [ID_xxx] phase-N — IN_PROGRESS`. All other statuses are printed. | P0 |
 
 ---
@@ -154,7 +156,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning [<plet_dir>] --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning [<plet_dir>] --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -173,6 +175,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_ALR_INP_7 | `--phase` — `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_ALR_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
 | ENT_ALR_INP_9 | `--content-file` — (optional) path to a file containing the content text. Mutually exclusive with `--content`. | P1 |
+| ENT_ALR_INP_10 | `--allow-fences` — Optional. Bypasses fence pattern validation. Use when content legitimately contains plet fence markers (e.g., logging full prompts that include format examples). | P1 |
 
 #### Outputs (ENT_ALR_OUT)
 
@@ -226,7 +229,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_ALR_BHV_2 | Build formatted entry matching `references/formats.md` RT_2: div markers, category tag, metadata, content | P0 |
 | ENT_ALR_BHV_3 | Atomically append to `{plet_dir}/learnings.md` | P0 |
 | ENT_ALR_BHV_4 | File must already exist — will not create it | P0 |
-| ENT_ALR_BHV_5 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). | P0 |
+| ENT_ALR_BHV_5 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). Bypassed when `--allow-fences` is set. | P0 |
 | ENT_ALR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
 
 ---
@@ -245,7 +248,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent [<plet_dir>] --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent [<plet_dir>] --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -264,6 +267,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_AEM_INP_7 | `--content` — description of what came up and what was decided/assumed | P0 |
 | ENT_AEM_INP_8 | `--attempt` — attempt number (positive integer) | P0 |
 | ENT_AEM_INP_9 | `--content-file` — (optional) path to a file containing the content text. Mutually exclusive with `--content`. | P1 |
+| ENT_AEM_INP_10 | `--allow-fences` — Optional. Bypasses fence pattern validation. Use when content legitimately contains plet fence markers (e.g., logging full prompts that include format examples). | P1 |
 
 #### Outputs (ENT_AEM_OUT)
 
@@ -320,7 +324,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_AEM_BHV_3 | Outcome always set to `pending` (triaged during refine) | P0 |
 | ENT_AEM_BHV_4 | Atomically append to `{plet_dir}/emergent.md` | P0 |
 | ENT_AEM_BHV_5 | File must already exist — will not create it | P0 |
-| ENT_AEM_BHV_6 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). | P0 |
+| ENT_AEM_BHV_6 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). Bypassed when `--allow-fences` is set. | P0 |
 | ENT_AEM_BHV_7 | If `--content-file` provided, read file contents as content text | P0 |
 
 ---
@@ -430,7 +434,7 @@ Missing artifact files are distinguished from "initialized but no entries" — s
 | ENT_EDG_10 | `--pretty` without `--output json` — error | P0 |
 | ENT_EDG_11 | `--fields` without `--output json` — error | P0 |
 | ENT_EDG_12 | Duplicate flags — error via `parse_kwargs` | P0 |
-| ENT_EDG_13 | Content contains fence patterns — rejected with error. Prevents parser breakage. | P0 |
+| ENT_EDG_13 | Content contains fence patterns — rejected with error unless `--allow-fences` is set. Prevents parser breakage. | P0 |
 | ENT_EDG_14 | Both `--content` and `--content-file` provided — mutually exclusive error | P0 |
 | ENT_EDG_15 | `--content-file` exists but is empty — error: "content must not be empty" | P0 |
 | ENT_EDG_16 | `--content` is empty string — error: "content must not be empty" | P0 |
@@ -454,7 +458,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ENT_ERR_9 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | ENT_ERR_10 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | ENT_ERR_11 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |
-| ENT_ERR_12 | Content contains fence pattern → `Error: content must not contain plet fence markers (<div id="plet-..." or <div id="END-plet-...")` | P0 |
+| ENT_ERR_12 | Content contains fence pattern → `Error: content must not contain plet fence markers (<div id="plet-..." or <div id="END-plet-..."). Use --allow-fences to bypass.` Suppressed when `--allow-fences` is set. | P0 |
 | ENT_ERR_13 | Both `--content` and `--content-file` provided → `Error: --content and --content-file are mutually exclusive` | P0 |
 | ENT_ERR_14 | `--content-file` path not found → `Error: content file not found: {path}` | P0 |
 | ENT_ERR_15 | Empty content → `Error: content must not be empty` (applies to both `--content ""` and empty `--content-file`) | P0 |
@@ -674,7 +678,7 @@ See `specs/conventions.md` for universal requirements.
 | 6 | Should error paths print HELP text? | Yes — per UNV_CMD_16, print HELP to stderr after the error message. |
 | 7 | FB_44: multiline content support? | Resolved — `--content-file` added (ENT_APR_INP_9). All three commands unified to `--content`/`--content-file`. |
 | 8 | Unified entry format? | Yes — all three entry types share KV metadata on top, `**Content:**` marker, freeform content block until end fence. See specs/NOTES.md for full rationale. |
-| 9 | Fencing safety? | Reject content containing fence patterns. Agent-first: fail loudly rather than silently escaping. |
+| 9 | Fencing safety? | Reject content containing fence patterns by default. Agent-first: fail loudly rather than silently escaping. `--allow-fences` overrides for legitimate cases (e.g., logging prompts that include format examples). |
 | 10 | IN_PROGRESS visual noise? | `--status` stays required (consistency). IN_PROGRESS is suppressed from the header line — entry just shows `### [ID_xxx] phase-N`. All other statuses printed. See ENT_APR_BHV_8. |
 | 11 | BLOCKED --work-completed/--work-remaining? | No new flags. BLOCKED details are content guidance for agents. Recoverable from state files/tests/git if omitted. ENT_FUT_5 withdrawn. |
 
