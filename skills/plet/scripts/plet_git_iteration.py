@@ -82,24 +82,7 @@ def branch_exists(branch_name, cwd=None):
     return run_git("rev-parse", "--verify", "refs/heads/" + branch_name, cwd=cwd).returncode == 0
 
 
-def derive_branch_name(state, branch_type, iter_id=None):
-    """Derive the branch name from state and type.
-
-    Returns the branch name string.
-    """
-    project_id = state["projectId"]
-
-    if branch_type == "iteration":
-        n = state["loopSessionCount"]
-        return "plet/{}/loop{}/{}".format(project_id, n, iter_id)
-    elif branch_type == "workstream":
-        n = state["loopSessionCount"]
-        return "plet/{}/loop{}/workstream".format(project_id, n)
-    elif branch_type == "plan":
-        return "plet/{}/plan1/workstream".format(project_id)
-    elif branch_type == "refine":
-        n = state["refineSessionCount"]
-        return "plet/{}/refine{}/workstream".format(project_id, n)
+from util_git import derive_branch_name  # noqa: E402 — shared naming logic
 
 
 def derive_worktree_path(state, iter_id, worktree_dir):
