@@ -542,6 +542,47 @@ def test_verify_post_git_checks():
         shutil.rmtree(tmpdir)
 
 
+def test_post_gate_logs_progress():
+    print("\n## post gate — logs result to progress.md")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_impl_post(tmpdir)
+        # Create progress.md so ENT can append
+        progress_file = os.path.join(plet_dir, "progress.md")
+        if not os.path.isfile(progress_file):
+            with open(progress_file, "w") as f:
+                f.write("")
+        run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+            expect_exit=0, cwd=tmpdir)
+        with open(progress_file) as f:
+            content = f.read()
+        check("progress has gate entry", len(content) > 0)
+        check("mentions gate post", "gate" in content.lower() or "post" in content.lower())
+        check("mentions phase", "implement" in content.lower())
+        check("mentions result", "passed" in content.lower() or "pass" in content.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_post_gate_logs_failure():
+    print("\n## post gate — logs failure to progress.md")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_impl_post(tmpdir, progress=False)
+        progress_file = os.path.join(plet_dir, "progress.md")
+        if not os.path.isfile(progress_file):
+            with open(progress_file, "w") as f:
+                f.write("")
+        run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+            expect_exit=1, cwd=tmpdir)
+        with open(progress_file) as f:
+            content = f.read()
+        check("progress has gate entry on failure", len(content) > 0)
+        check("mentions failed", "fail" in content.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 # ===========================================================================
 # Main
 # ===========================================================================
@@ -569,6 +610,8 @@ if __name__ == "__main__":
     test_verify_post_missing_progress()
     test_verify_post_json()
     test_verify_post_git_checks()
+    test_post_gate_logs_progress()
+    test_post_gate_logs_failure()
 
     print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
     sys.exit(1 if failed > 0 else 0)
