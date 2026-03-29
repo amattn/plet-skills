@@ -308,7 +308,9 @@ def test_path_derivation():
     check("progress_path", util_io.progress_path("plet") == os.path.join("plet", "progress.md"))
     check("learnings_path", util_io.learnings_path("plet") == os.path.join("plet", "learnings.md"))
     check("emergent_path", util_io.emergent_path("plet") == os.path.join("plet", "emergent.md"))
-    check("trace_path", util_io.trace_path("plet") == os.path.join("plet", "trace.ndjson"))
+    check("trace_dir_path", util_io.trace_dir_path("plet") == os.path.join("plet", "trace"))
+    check("events_path", util_io.events_path("plet", "ID_001", "implement", 1) == os.path.join("plet", "trace", "ID_001-implement-1-events.ndjson"))
+    check("transcript_path", util_io.transcript_path("plet", "ID_001", "verify", 2) == os.path.join("plet", "trace", "ID_001-verify-2-transcript.jsonl"))
     check("custom plet_dir", util_io.state_json_path("/tmp/myproject/plet") == os.path.join("/tmp/myproject/plet", "state.json"))
     check("DEFAULT_PLET_DIR", util_io.DEFAULT_PLET_DIR == "plet/")
 
@@ -357,7 +359,8 @@ def test_convenience_loaders():
             f.write("# Learnings\n")
         with open(os.path.join(plet_dir, "emergent.md"), "w") as f:
             f.write("# Emergent\n")
-        with open(os.path.join(plet_dir, "trace.ndjson"), "w") as f:
+        os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
+        with open(os.path.join(plet_dir, "trace", "ID_001-implement-1-events.ndjson"), "w") as f:
             f.write('{"event":"start"}\n')
 
         # Test loaders
@@ -382,8 +385,8 @@ def test_convenience_loaders():
         text = util_io.load_emergent_md(plet_dir)
         check("load_emergent_md", text is not None and "Emergent" in text)
 
-        text = util_io.load_trace_ndjson(plet_dir)
-        check("load_trace_ndjson", text is not None and "start" in text)
+        text = util_io.load_events_ndjson(plet_dir, "ID_001", "implement", 1)
+        check("load_events_ndjson", text is not None and "start" in text)
 
         # Test missing files return None
         empty_dir = os.path.join(tmpdir, "empty")

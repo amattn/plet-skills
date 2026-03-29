@@ -106,9 +106,21 @@ def emergent_path(plet_dir):
     return os.path.join(plet_dir, "emergent.md")
 
 
-def trace_path(plet_dir):
-    """Derive path to trace.ndjson."""
-    return os.path.join(plet_dir, "trace.ndjson")
+def trace_dir_path(plet_dir):
+    """Derive path to trace directory."""
+    return os.path.join(plet_dir, "trace")
+
+
+def events_path(plet_dir, iter_id, phase, attempt):
+    """Derive path to semantic events NDJSON file."""
+    return os.path.join(plet_dir, "trace",
+                        "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt))
+
+
+def transcript_path(plet_dir, iter_id, phase, attempt):
+    """Derive path to raw I/O transcript file."""
+    return os.path.join(plet_dir, "trace",
+                        "{}-{}-{}-transcript.jsonl".format(iter_id, phase, attempt))
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +270,6 @@ def load_emergent_md(plet_dir):
     return load_text(emergent_path(plet_dir))
 
 
-def load_trace_ndjson(plet_dir):
-    """Load plet/trace.ndjson as text."""
-    return load_text(trace_path(plet_dir))
+def load_events_ndjson(plet_dir, iter_id, phase, attempt):
+    """Load a specific iteration's events NDJSON file as text."""
+    return load_text(events_path(plet_dir, iter_id, phase, attempt))
