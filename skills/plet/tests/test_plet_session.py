@@ -14,6 +14,10 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (state_json_path, state_dir_path, iter_state_path,
+                     requirements_path, iterations_path)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_session.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 
@@ -59,14 +63,14 @@ def make_global_state(plet_dir, project_id="TEST", loop_session=1):
         "milestones": {},
         "iterationsFingerprint": {},
     }
-    state_path = os.path.join(plet_dir, "state.json")
+    state_path = state_json_path(plet_dir)
     with open(state_path, "w") as f:
         json.dump(state, f)
         f.write("\n")
     return state_path
 
 
-def make_iter_state(state_dir, iter_id, lifecycle, title=None):
+def make_iter_state(plet_dir, iter_id, lifecycle, title=None):
     """Create a minimal valid per-iteration state file."""
     state = {
         "schemaVersion": "0.1.0",
@@ -79,7 +83,7 @@ def make_iter_state(state_dir, iter_id, lifecycle, title=None):
         "attempts": {"implement": 0, "verify": 0},
         "criteria": [],
     }
-    path = os.path.join(state_dir, "{}.json".format(iter_id))
+    path = iter_state_path(plet_dir, iter_id)
     with open(path, "w") as f:
         json.dump(state, f)
         f.write("\n")
@@ -92,16 +96,15 @@ def make_plet_dir(tmpdir, with_requirements=False, with_iterations=False, with_s
     os.makedirs(plet_dir, exist_ok=True)
 
     if with_requirements:
-        with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+        with open(requirements_path(plet_dir), "w") as f:
             f.write("# Requirements\n")
 
     if with_iterations:
-        with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+        with open(iterations_path(plet_dir), "w") as f:
             f.write("# Iterations\n")
 
     if with_state:
-        state_dir = os.path.join(plet_dir, "state")
-        os.makedirs(state_dir, exist_ok=True)
+        os.makedirs(state_dir_path(plet_dir), exist_ok=True)
         make_global_state(plet_dir)
 
     return plet_dir
@@ -167,9 +170,8 @@ def test_detect_queued_iterations():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "queued")
-        make_iter_state(state_dir, "ID_002", "queued")
+        make_iter_state(plet_dir, "ID_001", "queued")
+        make_iter_state(plet_dir, "ID_002", "queued")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns loop", stdout == "loop")
     finally:
@@ -181,8 +183,7 @@ def test_detect_implementing():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "implementing")
+        make_iter_state(plet_dir, "ID_001", "implementing")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns loop", stdout == "loop")
     finally:
@@ -194,8 +195,7 @@ def test_detect_verifying():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "verifying")
+        make_iter_state(plet_dir, "ID_001", "verifying")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns loop", stdout == "loop")
     finally:
@@ -207,9 +207,8 @@ def test_detect_all_complete():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "complete")
-        make_iter_state(state_dir, "ID_002", "complete")
+        make_iter_state(plet_dir, "ID_001", "complete")
+        make_iter_state(plet_dir, "ID_002", "complete")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns refine", stdout == "refine")
     finally:
@@ -221,9 +220,8 @@ def test_detect_blocked_no_actionable():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "blocked")
-        make_iter_state(state_dir, "ID_002", "complete")
+        make_iter_state(plet_dir, "ID_001", "blocked")
+        make_iter_state(plet_dir, "ID_002", "complete")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns refine", stdout == "refine")
     finally:
@@ -235,9 +233,8 @@ def test_detect_ineligible_only():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "ineligible")
-        make_iter_state(state_dir, "ID_002", "ineligible")
+        make_iter_state(plet_dir, "ID_001", "ineligible")
+        make_iter_state(plet_dir, "ID_002", "ineligible")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns refine", stdout == "refine")
     finally:
@@ -249,9 +246,8 @@ def test_detect_mix_complete_withdrawn():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "complete")
-        make_iter_state(state_dir, "ID_002", "withdrawn")
+        make_iter_state(plet_dir, "ID_001", "complete")
+        make_iter_state(plet_dir, "ID_002", "withdrawn")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns refine", stdout == "refine")
     finally:
@@ -263,9 +259,8 @@ def test_detect_mix_queued_and_complete():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "complete")
-        make_iter_state(state_dir, "ID_002", "queued")
+        make_iter_state(plet_dir, "ID_001", "complete")
+        make_iter_state(plet_dir, "ID_002", "queued")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns loop", stdout == "loop")
     finally:
@@ -277,8 +272,7 @@ def test_detect_json_output():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "queued")
+        make_iter_state(plet_dir, "ID_001", "queued")
         stdout, _, _ = run(["detect", plet_dir, "--output", "json"])
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
@@ -325,10 +319,9 @@ def test_detect_corrupt_state_file():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
-        make_iter_state(state_dir, "ID_001", "queued")
+        make_iter_state(plet_dir, "ID_001", "queued")
         # Write a corrupt state file
-        with open(os.path.join(state_dir, "ID_002.json"), "w") as f:
+        with open(iter_state_path(plet_dir, "ID_002"), "w") as f:
             f.write("not json")
         stdout, stderr, _ = run(["detect", plet_dir])
         check("returns loop (valid file counted)", stdout == "loop")
@@ -392,9 +385,8 @@ def make_full_project(tmpdir, iterations):
     Returns plet_dir path.
     """
     plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-    state_dir = os.path.join(plet_dir, "state")
     for iter_id, lifecycle, title in iterations:
-        make_iter_state(state_dir, iter_id, lifecycle, title)
+        make_iter_state(plet_dir, iter_id, lifecycle, title)
     return plet_dir
 
 
@@ -472,7 +464,6 @@ def test_status_active_agents():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
-        state_dir = os.path.join(plet_dir, "state")
         # Create an iteration with an agent
         state = {
             "schemaVersion": "0.1.0",
@@ -486,7 +477,7 @@ def test_status_active_agents():
             "attempts": {"implement": 1, "verify": 0},
             "criteria": [],
         }
-        with open(os.path.join(state_dir, "ID_001.json"), "w") as f:
+        with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
             json.dump(state, f)
             f.write("\n")
 
@@ -536,8 +527,7 @@ def test_status_corrupt_state_file():
         plet_dir = make_full_project(tmpdir, [
             ("ID_001", "complete", "Good one"),
         ])
-        state_dir = os.path.join(plet_dir, "state")
-        with open(os.path.join(state_dir, "ID_002.json"), "w") as f:
+        with open(iter_state_path(plet_dir, "ID_002"), "w") as f:
             f.write("not json")
         stdout, _, _ = run(["status", plet_dir, "--output", "json"])
         data = json.loads(stdout)
@@ -667,7 +657,7 @@ def test_preflight_missing_spec_artifacts():
         subprocess.run(["git", "-C", tmpdir, "config", "user.name", "Test"], capture_output=True)
         # Create plet dir with state but no requirements/iterations
         plet_dir = os.path.join(tmpdir, "plet")
-        os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+        os.makedirs(state_dir_path(plet_dir), exist_ok=True)
         make_global_state(plet_dir)
         subprocess.run(["git", "-C", tmpdir, "add", "."], capture_output=True)
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)

@@ -16,6 +16,12 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (state_json_path, state_dir_path, iter_state_path,
+                     requirements_path, iterations_path, learnings_path,
+                     trace_dir_path, transcript_path, events_path,
+                     progress_path)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_invoke.py")
 
 passed = 0
@@ -92,11 +98,11 @@ def create_mock_claude(tmpdir):
 def make_plet_dir(tmpdir):
     """Create minimal plet directory for invoke tests."""
     plet_dir = os.path.join(tmpdir, "plet")
-    os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-    os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
+    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
+    os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
 
     # Global state
-    with open(os.path.join(plet_dir, "state.json"), "w") as f:
+    with open(state_json_path(plet_dir), "w") as f:
         json.dump({
             "schemaVersion": "0.1.0", "projectId": "TEST",
             "project": {"name": "Test"},
@@ -106,7 +112,7 @@ def make_plet_dir(tmpdir):
         f.write("\n")
 
     # Iter state
-    with open(os.path.join(plet_dir, "state", "ID_001.json"), "w") as f:
+    with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
         json.dump({
             "schemaVersion": "0.1.0", "iterationId": "ID_001",
             "title": "Test", "lastUpdated": "2026-03-28T00:00:00Z",
@@ -117,11 +123,11 @@ def make_plet_dir(tmpdir):
         f.write("\n")
 
     # Requirements + iterations (needed by PRM)
-    with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+    with open(requirements_path(plet_dir), "w") as f:
         f.write("# Requirements\n")
-    with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+    with open(iterations_path(plet_dir), "w") as f:
         f.write("# Iterations\n\n## ID_001 — Test\n\nTest iteration.\n")
-    with open(os.path.join(plet_dir, "learnings.md"), "w") as f:
+    with open(learnings_path(plet_dir), "w") as f:
         f.write("")
 
     return plet_dir
@@ -260,7 +266,7 @@ def test_launch_and_capture():
                              "--cwd", wt], expect_exit=0, env=env)
         check("exit 0", rc == 0)
         # Check transcript was written
-        transcript = os.path.join(plet_dir, "trace", "ID_001-implement-1-transcript.jsonl")
+        transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
         check("transcript exists", os.path.isfile(transcript))
         if os.path.isfile(transcript):
             with open(transcript) as f:
@@ -291,7 +297,7 @@ def test_exit_code_passthrough():
                         "--cwd", wt], expect_exit=1, env=env)
         check("exit 1 passed through", rc == 1)
         # Transcript should still exist
-        transcript = os.path.join(plet_dir, "trace", "ID_001-implement-1-transcript.jsonl")
+        transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
         check("transcript still written", os.path.isfile(transcript))
     finally:
         shutil.rmtree(tmpdir)
@@ -326,7 +332,7 @@ def test_transcript_append_not_overwrite():
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
-        transcript = os.path.join(plet_dir, "trace", "ID_001-implement-1-transcript.jsonl")
+        transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
 
         # First run
         run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
@@ -354,11 +360,11 @@ def test_trace_dir_created():
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
         # Remove trace dir
-        shutil.rmtree(os.path.join(plet_dir, "trace"))
+        shutil.rmtree(trace_dir_path(plet_dir))
         run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
              "--cwd", wt], expect_exit=0, env=env)
-        check("trace dir created", os.path.isdir(os.path.join(plet_dir, "trace")))
-        transcript = os.path.join(plet_dir, "trace", "ID_001-implement-1-transcript.jsonl")
+        check("trace dir created", os.path.isdir(trace_dir_path(plet_dir)))
+        transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
         check("transcript written", os.path.isfile(transcript))
     finally:
         shutil.rmtree(tmpdir)
@@ -376,7 +382,7 @@ def test_invocation_trace_event():
         run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
              "--cwd", wt], expect_exit=0, env=env)
         # TRC writes to plet_dir/trace/{iter_id}-{phase}-{attempt}-events.ndjson
-        events_file = os.path.join(plet_dir, "trace", "ID_001-implement-1-events.ndjson")
+        events_file = events_path(plet_dir, "ID_001", "implement", 1)
         check("events file exists", os.path.isfile(events_file))
         if os.path.isfile(events_file):
             with open(events_file) as f:
@@ -401,12 +407,12 @@ def test_invocation_progress_entry():
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
         # Create progress.md so ENT can append
-        with open(os.path.join(plet_dir, "progress.md"), "w") as f:
+        with open(progress_path(plet_dir), "w") as f:
             f.write("")
         stdout, stderr, _ = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
              "--cwd", wt], expect_exit=0, env=env)
-        progress_path = os.path.join(plet_dir, "progress.md")
-        with open(progress_path) as f:
+        prog_path = progress_path(plet_dir)
+        with open(prog_path) as f:
             content = f.read()
         check("progress has content", len(content) > 0, "len={}, stderr={}".format(len(content), stderr[:200]))
         check("mentions launching", "launching" in content.lower() or "launch" in content.lower())

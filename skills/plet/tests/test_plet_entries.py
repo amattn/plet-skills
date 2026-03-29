@@ -17,6 +17,11 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (progress_path as progress_path_fn,
+                     learnings_path as learnings_path_fn,
+                     emergent_path as emergent_path_fn)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_entries.py")
 
 passed = 0
@@ -55,12 +60,12 @@ def check(name, condition, detail=""):
 
 def make_artifacts(tmpdir):
     """Create minimal runtime artifact files in tmpdir."""
-    for name, header in [
-        ("progress.md", "# Progress\n\n- **plet:** v0.1.0\n\n"),
-        ("learnings.md", "# Learnings\n\n- **plet:** v0.1.0\n\n"),
-        ("emergent.md", "# Emergent Items\n\n- **plet:** v0.1.0\n\n"),
+    for path, header in [
+        (progress_path_fn(tmpdir), "# Progress\n\n- **plet:** v0.1.0\n\n"),
+        (learnings_path_fn(tmpdir), "# Learnings\n\n- **plet:** v0.1.0\n\n"),
+        (emergent_path_fn(tmpdir), "# Emergent Items\n\n- **plet:** v0.1.0\n\n"),
     ]:
-        with open(os.path.join(tmpdir, name), "w") as f:
+        with open(path, "w") as f:
             f.write(header)
 
 
@@ -184,7 +189,7 @@ def test_progress_entry_format():
         ])
         plet_id = parse_ok_id(stdout)
 
-        with open(os.path.join(d, "progress.md")) as f:
+        with open(progress_path_fn(d)) as f:
             content = f.read()
 
         check("starts with header", content.startswith("# Progress"))
@@ -213,7 +218,7 @@ def test_progress_no_files():
             "--phase", "implement", "--attempt", "1",
             "--status", "COMPLETE", "--content", "test",
         ])
-        with open(os.path.join(d, "progress.md")) as f:
+        with open(progress_path_fn(d)) as f:
             content = f.read()
         check("shows (none) for no files", "(none)" in content)
 
@@ -229,7 +234,7 @@ def test_progress_in_progress_header_suppression():
             "--phase", "implement", "--attempt", "1", "--status", "IN_PROGRESS",
             "--content", "Working on schema.",
         ])
-        with open(os.path.join(d, "progress.md")) as f:
+        with open(progress_path_fn(d)) as f:
             content = f.read()
         # Header should NOT have " — IN_PROGRESS"
         check("header has no IN_PROGRESS suffix",
@@ -280,7 +285,7 @@ def test_learning_entry_format():
         ])
         plet_id = parse_ok_id(stdout)
 
-        with open(os.path.join(d, "learnings.md")) as f:
+        with open(learnings_path_fn(d)) as f:
             content = f.read()
 
         check("type prefix is eln", plet_id.startswith("eln_"))
@@ -347,7 +352,7 @@ def test_emergent_entry_format():
         plet_id = parts[0]
         em_id = parts[1] if len(parts) > 1 else ""
 
-        with open(os.path.join(d, "emergent.md")) as f:
+        with open(emergent_path_fn(d)) as f:
             content = f.read()
 
         check("type prefix is eem", plet_id.startswith("eem_"))
@@ -475,7 +480,7 @@ def test_check_not_initialized():
     print("\n## Check — NOT_INITIALIZED vs MISSING")
     with tempfile.TemporaryDirectory() as d:
         # Create only progress.md, not the others
-        with open(os.path.join(d, "progress.md"), "w") as f:
+        with open(progress_path_fn(d), "w") as f:
             f.write("# Progress\n\n")
         stdout, stderr, _ = run(
             ["check", d, "--iter-id", "ID_001"],
@@ -492,7 +497,7 @@ def test_check_not_initialized_json():
     print("\n## Check — JSON output with initialized field")
     with tempfile.TemporaryDirectory() as d:
         # Create only progress.md
-        with open(os.path.join(d, "progress.md"), "w") as f:
+        with open(progress_path_fn(d), "w") as f:
             f.write("# Progress\n\n")
         stdout, _, _ = run(
             ["check", d, "--iter-id", "ID_001", "--output", "json"],
@@ -627,7 +632,7 @@ def test_auto_create_artifact_file():
             "--status", "COMPLETE", "--content", "auto-created test",
         ], expect_exit=0)
         check("succeeds with auto-created file", rc == 0)
-        check("progress.md was created", os.path.isfile(os.path.join(d, "progress.md")))
+        check("progress.md was created", os.path.isfile(progress_path_fn(d)))
 
 
 def test_attempt_validation():
@@ -763,7 +768,7 @@ def test_allow_fences_flag():
         check("accepts with --allow-fences", rc == 0)
 
         # Verify the content was written with fence intact
-        with open(os.path.join(d, "progress.md")) as f:
+        with open(progress_path_fn(d)) as f:
             written = f.read()
         check("fence preserved in output", '<div id="plet-abc123">' in written)
 
@@ -841,7 +846,7 @@ def test_content_file():
         ])
         check("content-file accepted", stdout.startswith("OK"))
 
-        with open(os.path.join(d, "progress.md")) as f:
+        with open(progress_path_fn(d)) as f:
             content = f.read()
         check("content from file present", "This is content from a file." in content)
         check("multiline preserved", "With multiple lines." in content)
@@ -864,7 +869,7 @@ def test_content_file_learning():
         ])
         check("learning content-file accepted", stdout.startswith("OK"))
 
-        with open(os.path.join(d, "learnings.md")) as f:
+        with open(learnings_path_fn(d)) as f:
             content = f.read()
         check("learning content from file", "WAL mode is required" in content)
         check("learning multiline preserved", "PRAGMA journal_mode" in content)
@@ -888,7 +893,7 @@ def test_content_file_emergent():
         ])
         check("emergent content-file accepted", stdout.startswith("OK"))
 
-        with open(os.path.join(d, "emergent.md")) as f:
+        with open(emergent_path_fn(d)) as f:
             content = f.read()
         check("emergent content from file", "Chose SQLite for simplicity" in content)
         check("emergent multiline preserved", "PostgreSQL would work too" in content)
@@ -936,7 +941,7 @@ def test_dry_run():
         make_artifacts(d)
 
         # Get file size before
-        progress_path = os.path.join(d, "progress.md")
+        progress_path = progress_path_fn(d)
         with open(progress_path) as f:
             before = f.read()
 
@@ -1119,7 +1124,7 @@ def test_multiple_appends():
             ])
             ids.append(parse_ok_id(stdout))
 
-        with open(os.path.join(d, "learnings.md")) as f:
+        with open(learnings_path_fn(d)) as f:
             content = f.read()
 
         check("header preserved", content.startswith("# Learnings"))
@@ -1148,7 +1153,7 @@ def test_fencing_structure():
         ])
         plet_id = parse_ok_id(stdout)
 
-        with open(os.path.join(d, "progress.md")) as f:
+        with open(progress_path_fn(d)) as f:
             content = f.read()
 
         start_pos = content.index('<div id="plet-{}"></div>'.format(plet_id))

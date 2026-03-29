@@ -13,6 +13,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (state_json_path, requirements_path, iterations_path)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_fingerprint.py")
 
 passed = 0
@@ -143,11 +146,11 @@ STATE_JSON = {
 
 def make_artifacts(tmpdir):
     """Create minimal plan artifacts in tmpdir."""
-    with open(os.path.join(tmpdir, "requirements.md"), "w") as f:
+    with open(requirements_path(tmpdir), "w") as f:
         f.write(REQUIREMENTS_MD)
-    with open(os.path.join(tmpdir, "iterations.md"), "w") as f:
+    with open(iterations_path(tmpdir), "w") as f:
         f.write(ITERATIONS_MD)
-    with open(os.path.join(tmpdir, "state.json"), "w") as f:
+    with open(state_json_path(tmpdir), "w") as f:
         json.dump(STATE_JSON, f, indent=2)
         f.write("\n")
 
@@ -260,7 +263,7 @@ def test_embed_requirements():
         check("force-bumped", "force-bumped" in stdout)
 
         # Verify fingerprint block was written
-        with open(os.path.join(d, "requirements.md")) as f:
+        with open(requirements_path(d)) as f:
             content = f.read()
         check("has fingerprint marker", "<!-- plet:fingerprint -->" in content)
 
@@ -299,7 +302,7 @@ def test_embed_auto_bump():
         ts1 = fp1["lastNonTrivialUpdate"]
 
         # Add a new requirement
-        req_path = os.path.join(d, "requirements.md")
+        req_path = requirements_path(d)
         with open(req_path) as f:
             content = f.read()
         content = content.replace(
@@ -349,14 +352,14 @@ def test_embed_dry_run():
         make_artifacts(d)
 
         # Read original content
-        with open(os.path.join(d, "requirements.md")) as f:
+        with open(requirements_path(d)) as f:
             original = f.read()
 
         stdout, _, _ = run(["embed", d, "--type", "requirements", "--bump", "--dry-run"])
         check("dry run message", "DRY RUN" in stdout)
 
         # File should be unchanged
-        with open(os.path.join(d, "requirements.md")) as f:
+        with open(requirements_path(d)) as f:
             after = f.read()
         check("file unchanged", original == after)
 
@@ -388,7 +391,7 @@ def test_check_staleness():
         run(["embed", d, "--type", "state"])
 
         # Add a requirement
-        req_path = os.path.join(d, "requirements.md")
+        req_path = requirements_path(d)
         with open(req_path) as f:
             content = f.read()
         content = content.replace(
@@ -431,7 +434,7 @@ def test_check_missing_file():
     print("\n## Check missing file")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        os.remove(os.path.join(d, "state.json"))
+        os.remove(state_json_path(d))
 
         _, stderr, _ = run(["check", d], expect_exit=1)
         check("error mentions state.json", "state.json" in stderr)
@@ -482,7 +485,7 @@ def test_lenient_read_strict_write():
         make_artifacts(d)
 
         # Write a malformed fingerprint (unsorted arrays, missing fields)
-        req_path = os.path.join(d, "requirements.md")
+        req_path = requirements_path(d)
         with open(req_path) as f:
             content = f.read()
 
@@ -513,7 +516,7 @@ def test_first_embed_creates_block():
         make_artifacts(d)
 
         # Verify no fingerprint block exists
-        with open(os.path.join(d, "requirements.md")) as f:
+        with open(requirements_path(d)) as f:
             content = f.read()
         check("no block initially", "<!-- plet:fingerprint -->" not in content)
 
@@ -521,7 +524,7 @@ def test_first_embed_creates_block():
         run(["embed", d, "--type", "requirements"])
 
         # Verify block was created
-        with open(os.path.join(d, "requirements.md")) as f:
+        with open(requirements_path(d)) as f:
             content = f.read()
         check("block created", "<!-- plet:fingerprint -->" in content)
 

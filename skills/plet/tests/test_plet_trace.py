@@ -14,6 +14,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (trace_dir_path, events_path)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_trace.py")
 
 passed = 0
@@ -106,7 +109,7 @@ def test_append_decision():
         check("reports OK", "OK" in out)
         check("has plet ID", "tev_" in out)
 
-        events_file = os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson")
+        events_file = events_path(tmpdir, "ID_001", "implement", 1)
         check("file created", os.path.exists(events_file))
 
         events = read_events(events_file)
@@ -135,7 +138,7 @@ def test_append_criterion_update():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         ev = events[0]
         check("type is criterion_update", ev["type"] == "criterion_update")
         check("data.criterionId", ev["data"]["criterionId"] == "AC_1")
@@ -156,7 +159,7 @@ def test_append_lifecycle_change():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         ev = events[0]
         check("data.from", ev["data"]["from"] == "queued")
         check("data.to", ev["data"]["to"] == "implementing")
@@ -175,7 +178,7 @@ def test_append_activity_change():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         ev = events[0]
         check("data.activity", ev["data"]["activity"] == "running_checks")
         check("data.detail preserved", ev["data"]["detail"] == "pytest -x")
@@ -194,7 +197,7 @@ def test_append_error_event():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         ev = events[0]
         check("data.message", ev["data"]["message"] == "pytest not found")
         check("data.recovery preserved", ev["data"]["recovery"] == "install pytest")
@@ -213,7 +216,7 @@ def test_append_invocation_event():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         ev = events[0]
         check("type is invocation", ev["type"] == "invocation")
         check("data.cwd", ev["data"]["cwd"] == "/tmp/worktree")
@@ -240,7 +243,7 @@ def test_append_invocation_with_prompt():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-verify-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "verify", 1))
         ev = events[0]
         check("prompt preserved", "full prompt text" in ev["data"]["prompt"])
 
@@ -258,7 +261,7 @@ def test_append_multiple_events():
                 "--data", '{{"description":"decision {}","rationale":"reason {}"}}'.format(i, i),
             ])
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         check("three events", len(events) == 3)
         check("each is valid JSON", all("pletId" in e for e in events))
         # Plet IDs should be unique
@@ -277,7 +280,7 @@ def test_append_ndjson_format():
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
         ])
-        path = os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson")
+        path = events_path(tmpdir, "ID_001", "implement", 1)
         with open(path) as f:
             content = f.read()
         check("ends with newline", content.endswith("\n"))
@@ -291,7 +294,7 @@ def test_append_ndjson_format():
 def test_append_file_creation():
     print("\n## Append — creates file on first event")
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = os.path.join(tmpdir, "trace", "ID_002-verify-1-events.ndjson")
+        path = events_path(tmpdir, "ID_002", "verify", 1)
         check("file does not exist before", not os.path.exists(path))
 
         run([
@@ -509,7 +512,7 @@ def test_append_data_file():
         ])
         check("reports OK", "OK" in out)
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         check("data from file", events[0]["data"]["description"] == "from file")
 
 
@@ -546,7 +549,7 @@ def test_append_dry_run():
         ])
         check("reports dry run", "DRY RUN" in out)
 
-        events_file = os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson")
+        events_file = events_path(tmpdir, "ID_001", "implement", 1)
         check("file NOT created", not os.path.exists(events_file))
 
 
@@ -582,7 +585,7 @@ def test_append_extra_data_fields():
             "--data", '{"description":"test","rationale":"test","alternatives":["option A","option B"],"custom":"field"}',
         ])
 
-        events = read_events(os.path.join(tmpdir, "trace", "ID_001-implement-1-events.ndjson"))
+        events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         check("alternatives preserved", events[0]["data"]["alternatives"] == ["option A", "option B"])
         check("custom field preserved", events[0]["data"]["custom"] == "field")
 
@@ -629,7 +632,7 @@ def test_append_no_tmp_residue():
             "--event-type", "decision",
             "--data", '{"description":"test","rationale":"test"}',
         ])
-        trace_dir = os.path.join(tmpdir, "trace")
+        trace_dir = trace_dir_path(tmpdir)
         files = os.listdir(trace_dir)
         check("no .tmp files", not any(f.endswith(".tmp") for f in files))
 
@@ -646,9 +649,9 @@ def make_trace_file(tmpdir, events=None):
     """
     if events is None:
         events = []
-    trace_dir = os.path.join(tmpdir, "trace")
+    trace_dir = trace_dir_path(tmpdir)
     os.makedirs(trace_dir, exist_ok=True)
-    path = os.path.join(trace_dir, "ID_001-implement-1-events.ndjson")
+    path = events_path(tmpdir, "ID_001", "implement", 1)
     with open(path, "w") as f:
         for ev in events:
             f.write(json.dumps(ev) + "\n")
@@ -778,9 +781,9 @@ def test_validate_enum_in_data():
 def test_validate_malformed_json_line():
     print("\n## Validate — malformed JSON line")
     with tempfile.TemporaryDirectory() as tmpdir:
-        trace_dir = os.path.join(tmpdir, "trace")
+        trace_dir = trace_dir_path(tmpdir)
         os.makedirs(trace_dir)
-        path = os.path.join(trace_dir, "ID_001-implement-1-events.ndjson")
+        path = events_path(tmpdir, "ID_001", "implement", 1)
         with open(path, "w") as f:
             f.write(json.dumps(make_event("decision")) + "\n")
             f.write("{bad json\n")
@@ -888,9 +891,9 @@ def test_query_no_matches():
 def test_query_malformed_lines_skipped():
     print("\n## Query — malformed lines skipped with warning")
     with tempfile.TemporaryDirectory() as tmpdir:
-        trace_dir = os.path.join(tmpdir, "trace")
+        trace_dir = trace_dir_path(tmpdir)
         os.makedirs(trace_dir)
-        path = os.path.join(trace_dir, "ID_001-implement-1-events.ndjson")
+        path = events_path(tmpdir, "ID_001", "implement", 1)
         with open(path, "w") as f:
             f.write(json.dumps(make_event("decision")) + "\n")
             f.write("{bad json\n")

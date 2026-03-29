@@ -14,6 +14,9 @@ import subprocess as sp
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (state_json_path, state_dir_path, iter_state_path)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_git_ops.py")
 
 passed = 0
@@ -74,15 +77,14 @@ def write_state_files(repo, global_data, iter_data, iter_id="ID_001"):
     """Write plet/state.json and plet/state/{iter_id}.json, return plet_dir."""
     plet_dir = os.path.join(repo, "plet")
     os.makedirs(plet_dir, exist_ok=True)
-    state_dir = os.path.join(plet_dir, "state")
-    os.makedirs(state_dir, exist_ok=True)
+    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
 
-    gs_path = os.path.join(plet_dir, "state.json")
+    gs_path = state_json_path(plet_dir)
     with open(gs_path, "w") as f:
         json.dump(global_data, f, indent=2)
         f.write("\n")
 
-    is_path = os.path.join(state_dir, "{}.json".format(iter_id))
+    is_path = iter_state_path(plet_dir, iter_id)
     with open(is_path, "w") as f:
         json.dump(iter_data, f, indent=2)
         f.write("\n")

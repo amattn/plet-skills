@@ -14,6 +14,9 @@ import subprocess as sp
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (state_json_path, state_dir_path, iter_state_path)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_git_check.py")
 
 passed = 0
@@ -91,7 +94,7 @@ def write_global_state(plet_dir, data=None):
             "iterationsFingerprint": {},
         }
     os.makedirs(plet_dir, exist_ok=True)
-    path = os.path.join(plet_dir, "state.json")
+    path = state_json_path(plet_dir)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
@@ -112,9 +115,8 @@ def write_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing", **ove
         "criteria": [{"id": "AC_1", "description": "Tests pass", "status": "not_started"}],
     }
     data.update(overrides)
-    state_dir = os.path.join(plet_dir, "state")
-    os.makedirs(state_dir, exist_ok=True)
-    path = os.path.join(state_dir, "{}.json".format(iter_id))
+    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
+    path = iter_state_path(plet_dir, iter_id)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
@@ -450,8 +452,7 @@ def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
     repo = make_git_repo(d)
     plet_dir = os.path.join(repo, "plet")
     write_global_state(plet_dir)
-    state_dir = os.path.join(plet_dir, "state")
-    os.makedirs(state_dir, exist_ok=True)
+    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
 
     # Commit state dir
     git_run(repo, ["add", "plet/"])
@@ -578,8 +579,7 @@ def test_cks_no_state_files():
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
         write_global_state(plet_dir)
-        state_dir = os.path.join(plet_dir, "state")
-        os.makedirs(state_dir, exist_ok=True)
+        os.makedirs(state_dir_path(plet_dir), exist_ok=True)
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
         git_run(repo, ["branch", "plet/LOGA/loop1/workstream"])
@@ -594,8 +594,7 @@ def test_cks_workstream_missing_no_active():
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
         write_global_state(plet_dir)
-        state_dir = os.path.join(plet_dir, "state")
-        os.makedirs(state_dir, exist_ok=True)
+        os.makedirs(state_dir_path(plet_dir), exist_ok=True)
         # Write queued iterations
         write_iter_state(plet_dir, iter_id="ID_001", lifecycle="queued")
         git_run(repo, ["add", "plet/"])
@@ -612,8 +611,7 @@ def test_cks_workstream_missing_with_active():
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
         write_global_state(plet_dir)
-        state_dir = os.path.join(plet_dir, "state")
-        os.makedirs(state_dir, exist_ok=True)
+        os.makedirs(state_dir_path(plet_dir), exist_ok=True)
         write_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])

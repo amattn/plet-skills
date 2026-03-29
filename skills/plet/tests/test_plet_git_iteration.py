@@ -14,6 +14,9 @@ import subprocess as sp
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import state_json_path
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_git_iteration.py")
 DEFAULT_WORKTREE_DIR = ".plet/worktrees"
 
@@ -76,7 +79,7 @@ def write_state(repo_dir, data):
     """Write state.json in a plet/ subdir and return the plet_dir path."""
     plet_dir = os.path.join(repo_dir, "plet")
     os.makedirs(plet_dir, exist_ok=True)
-    path = os.path.join(plet_dir, "state.json")
+    path = state_json_path(plet_dir)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")

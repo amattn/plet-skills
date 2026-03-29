@@ -12,6 +12,11 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (state_json_path, state_dir_path, iter_state_path,
+                     requirements_path, iterations_path, trace_dir_path,
+                     events_path, progress_path as progress_path_fn)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_gate_phase.py")
 ENT_TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_entries.py")
 
@@ -55,15 +60,14 @@ def make_global_state(plet_dir, project_id="TEST", loop_session=1):
         "loopSessionCount": loop_session, "refineSessionCount": 0,
         "dependencyMap": {}, "milestones": {}, "iterationsFingerprint": {},
     }
-    with open(os.path.join(plet_dir, "state.json"), "w") as f:
+    with open(state_json_path(plet_dir), "w") as f:
         json.dump(state, f)
         f.write("\n")
 
 
 def make_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing",
                     last_verdict=None, verification_reports=None):
-    state_dir = os.path.join(plet_dir, "state")
-    os.makedirs(state_dir, exist_ok=True)
+    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
     state = {
         "schemaVersion": "0.1.0", "iterationId": iter_id,
         "title": "Test iteration", "lastUpdated": "2026-03-27T00:00:00Z",
@@ -74,15 +78,15 @@ def make_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing",
         state["lastVerdict"] = last_verdict
     if verification_reports is not None:
         state["verificationReports"] = verification_reports
-    with open(os.path.join(state_dir, "{}.json".format(iter_id)), "w") as f:
+    with open(iter_state_path(plet_dir, iter_id), "w") as f:
         json.dump(state, f)
         f.write("\n")
 
 
 def make_spec_artifacts(plet_dir):
-    with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+    with open(requirements_path(plet_dir), "w") as f:
         f.write("# Requirements\n")
-    with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+    with open(iterations_path(plet_dir), "w") as f:
         f.write("# Iterations\n")
 
 
@@ -142,8 +146,7 @@ def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement",
 
 
 def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1):
-    trace_dir = os.path.join(plet_dir, "trace")
-    os.makedirs(trace_dir, exist_ok=True)
+    os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
     filename = "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt)
     event = {
         "pletId": "tev_test0001", "timestamp": "2026-03-27T00:00:00Z",
@@ -151,7 +154,7 @@ def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1):
         "phase": phase, "attempt": attempt,
         "data": {"activity": "implementing"},
     }
-    with open(os.path.join(trace_dir, filename), "w") as f:
+    with open(events_path(plet_dir, iter_id, phase, attempt), "w") as f:
         f.write(json.dumps(event) + "\n")
 
 
@@ -548,7 +551,7 @@ def test_post_gate_logs_progress():
     try:
         plet_dir = setup_impl_post(tmpdir)
         # Create progress.md so ENT can append
-        progress_file = os.path.join(plet_dir, "progress.md")
+        progress_file = progress_path_fn(plet_dir)
         if not os.path.isfile(progress_file):
             with open(progress_file, "w") as f:
                 f.write("")
@@ -569,7 +572,7 @@ def test_post_gate_logs_failure():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, progress=False)
-        progress_file = os.path.join(plet_dir, "progress.md")
+        progress_file = progress_path_fn(plet_dir)
         if not os.path.isfile(progress_file):
             with open(progress_file, "w") as f:
                 f.write("")

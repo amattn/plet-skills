@@ -13,6 +13,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (state_dir_path, iter_state_path)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_state.py")
 
 passed = 0
@@ -75,16 +78,14 @@ def make_valid_state():
 
 def make_plet_dir(tmpdir):
     """Create plet_dir structure (tmpdir as plet_dir with state/ subdir)."""
-    state_dir = os.path.join(tmpdir, "state")
-    os.makedirs(state_dir, exist_ok=True)
+    os.makedirs(state_dir_path(tmpdir), exist_ok=True)
     return tmpdir
 
 
 def write_state(plet_dir, data, iter_id="ID_001"):
     """Write a state dict to the correct path under plet_dir, return path."""
-    state_dir = os.path.join(plet_dir, "state")
-    os.makedirs(state_dir, exist_ok=True)
-    path = os.path.join(state_dir, "{}.json".format(iter_id))
+    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
+    path = iter_state_path(plet_dir, iter_id)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
     return path
@@ -92,7 +93,7 @@ def write_state(plet_dir, data, iter_id="ID_001"):
 
 def state_path(plet_dir, iter_id="ID_001"):
     """Return the expected state file path for an iter_id."""
-    return os.path.join(plet_dir, "state", "{}.json".format(iter_id))
+    return iter_state_path(plet_dir, iter_id)
 
 
 def init_state(tmpdir, iteration_id="ID_001",
@@ -954,8 +955,7 @@ def test_atomic_write():
             "--data", '{"lifecycle":"verifying"}',
         ])
 
-        state_dir = os.path.join(plet_dir, "state")
-        files = os.listdir(state_dir)
+        files = os.listdir(state_dir_path(plet_dir))
         check("no .tmp files left", not any(f.endswith(".tmp") for f in files))
         check("state file exists", "ID_001.json" in files)
 

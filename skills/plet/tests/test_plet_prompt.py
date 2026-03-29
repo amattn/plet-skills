@@ -12,6 +12,10 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import (state_json_path, state_dir_path, iter_state_path,
+                     requirements_path, iterations_path, learnings_path)
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_prompt.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 REFS_DIR = os.path.join(os.path.dirname(__file__), "..", "references")
@@ -51,10 +55,10 @@ def check(name, condition, detail=""):
 def make_plet_dir(tmpdir):
     """Create a full plet directory with all files needed for prompt assembly."""
     plet_dir = os.path.join(tmpdir, "plet")
-    os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
 
     # Global state
-    with open(os.path.join(plet_dir, "state.json"), "w") as f:
+    with open(state_json_path(plet_dir), "w") as f:
         json.dump({
             "schemaVersion": "0.1.0", "projectId": "TEST",
             "project": {"name": "Test Project"},
@@ -64,7 +68,7 @@ def make_plet_dir(tmpdir):
         f.write("\n")
 
     # Iter state
-    with open(os.path.join(plet_dir, "state", "ID_001.json"), "w") as f:
+    with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
         json.dump({
             "schemaVersion": "0.1.0", "iterationId": "ID_001",
             "title": "Project scaffolding", "lastUpdated": "2026-03-27T00:00:00Z",
@@ -77,11 +81,11 @@ def make_plet_dir(tmpdir):
         f.write("\n")
 
     # Requirements
-    with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+    with open(requirements_path(plet_dir), "w") as f:
         f.write("# Requirements\n\n## FR_1: Project initialization\n\nSet up the project structure.\n")
 
     # Iterations
-    with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+    with open(iterations_path(plet_dir), "w") as f:
         f.write("# Iterations\n\n## ID_001 — Project scaffolding\n\n"
                 "Set up the project with pytest and basic structure.\n\n"
                 "### Acceptance Criteria\n\n"
@@ -90,7 +94,7 @@ def make_plet_dir(tmpdir):
                 "Implement OAuth flow.\n")
 
     # Learnings (may be empty for some tests)
-    with open(os.path.join(plet_dir, "learnings.md"), "w") as f:
+    with open(learnings_path(plet_dir), "w") as f:
         f.write("# Learnings\n\n### Pattern: Use conftest.py for shared fixtures\n\n"
                 "Shared fixtures belong in conftest.py, not in test files.\n")
 
@@ -239,7 +243,7 @@ def test_learnings_empty_file():
     try:
         plet_dir = make_plet_dir(tmpdir)
         # Overwrite learnings with empty file
-        with open(os.path.join(plet_dir, "learnings.md"), "w") as f:
+        with open(learnings_path(plet_dir), "w") as f:
             f.write("")
         stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
                             "--output", "json"])
@@ -257,7 +261,7 @@ def test_learnings_missing_file():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        os.unlink(os.path.join(plet_dir, "learnings.md"))
+        os.unlink(learnings_path(plet_dir))
         stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
                             "--output", "json"])
         data = json.loads(stdout)
@@ -373,7 +377,7 @@ def test_missing_requirements():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        os.unlink(os.path.join(plet_dir, "requirements.md"))
+        os.unlink(requirements_path(plet_dir))
         _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
                            expect_exit=1)
         check("error about requirements", "requirements" in stderr.lower())
@@ -386,7 +390,7 @@ def test_missing_iterations():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        os.unlink(os.path.join(plet_dir, "iterations.md"))
+        os.unlink(iterations_path(plet_dir))
         _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
                            expect_exit=1)
         check("error about iterations", "iterations" in stderr.lower())
@@ -399,7 +403,7 @@ def test_missing_state_file():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        os.unlink(os.path.join(plet_dir, "state", "ID_001.json"))
+        os.unlink(iter_state_path(plet_dir, "ID_001"))
         _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
                            expect_exit=1)
         check("error about state", "state" in stderr.lower() or "not found" in stderr.lower())
