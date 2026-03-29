@@ -2,7 +2,7 @@
 """Tests for plet_invoke.py — subprocess launch + transcript capture.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_invoke.py
+    ./skills/plet/tests/test_plet_invoke.py
 
 Uses a mock claude script for tests that need subprocess launch.
 Dry-run tests verify command construction without mocks.

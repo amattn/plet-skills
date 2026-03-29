@@ -2,7 +2,7 @@
 """Tests for plet_trace.py — semantic event trace tool.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_trace.py
+    ./skills/plet/tests/test_plet_trace.py
 
 Red/green, command-by-command. Creates temp fixtures, runs commands
 via subprocess, validates output, cleans up.

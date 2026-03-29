@@ -35,6 +35,7 @@ from util_cli import (
     dispatch,
     filter_fields,
 )
+from util_format import build_progress_entry, build_learning_entry, build_emergent_entry
 from util_id import generate_plet_id, normalize_iteration
 from util_io import atomic_append, load_text, emergent_path, learnings_path, progress_path
 
@@ -220,87 +221,9 @@ def emit_json_error(command, message, pretty=False, extra=None):
 # Entry builders
 # ---------------------------------------------------------------------------
 
-def build_progress_entry(plet_id, iteration, title, phase, attempt, status, content_text, files_changed):
-    """Build a progress.md entry string per formats.md RT_1."""
-    # ENT_APR_BHV_8: suppress IN_PROGRESS from header
-    if status == "IN_PROGRESS":
-        header = "### [{}] {}-{}".format(iteration, phase, attempt)
-    else:
-        header = "### [{}] {}-{} — {}".format(iteration, phase, attempt, status)
 
-    lines = [
-        '<div id="plet-{}"></div>'.format(plet_id),
-        "",
-        "---",
-        "",
-        header,
-        "**PletId:** `{}`".format(plet_id),
-        "**Timestamp:** {}".format(now_iso()),
-        "**Iteration:** [{}] {}".format(iteration, title),
-        "**Phase:** {}".format(phase),
-        "**Attempt:** {}".format(attempt),
-        "**Files changed:**",
-    ]
-    if files_changed:
-        for f in files_changed:
-            lines.append("- {}".format(f))
-    else:
-        lines.append("- (none)")
-    lines.extend([
-        "",
-        "**Content:**",
-        content_text,
-        "",
-        '<div id="END-plet-{}"></div>'.format(plet_id),
-        "",
-    ])
-    return "\n".join(lines)
-
-
-def build_learning_entry(plet_id, iteration, title, category, entry_title, content_text, phase):
-    """Build a learnings.md entry string per formats.md RT_2."""
-    lines = [
-        '<div id="plet-{}"></div>'.format(plet_id),
-        "",
-        "---",
-        "",
-        "### [{}] {}".format(category, entry_title),
-        "**PletId:** `{}`".format(plet_id),
-        "**Timestamp:** {}".format(now_iso()),
-        "**Iteration:** [{}] {}".format(iteration, title),
-        "**Phase:** {}".format(phase),
-        "",
-        "**Content:**",
-        content_text,
-        "",
-        '<div id="END-plet-{}"></div>'.format(plet_id),
-        "",
-    ]
-    return "\n".join(lines)
-
-
-def build_emergent_entry(plet_id, em_number, iteration, title, entry_title, phase, category, content_text):
-    """Build an emergent.md entry string per formats.md RT_3."""
-    lines = [
-        '<div id="plet-{}"></div>'.format(plet_id),
-        "",
-        "---",
-        "",
-        "### EM_{}: {}".format(em_number, entry_title),
-        "**PletId:** `{}`".format(plet_id),
-        "**Timestamp:** {}".format(now_iso()),
-        "**Iteration:** [{}] {}".format(iteration, title),
-        "**Phase:** {}".format(phase),
-        "**Category:** {}".format(category),
-        "**Outcome:** pending",
-        "",
-        "**Content:**",
-        content_text,
-        "",
-        '<div id="END-plet-{}"></div>'.format(plet_id),
-        "",
-    ]
-    return "\n".join(lines)
+# build_progress_entry, build_learning_entry, build_emergent_entry
+# live in util_format.py — imported at top of file
 
 
 # ---------------------------------------------------------------------------

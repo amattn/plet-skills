@@ -2,7 +2,7 @@
 """Tests for plet_state.py — state file validation and update tool.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_state.py
+    ./skills/plet/tests/test_plet_state.py
 
 Creates temp fixtures, runs commands via subprocess, validates output, cleans up.
 """

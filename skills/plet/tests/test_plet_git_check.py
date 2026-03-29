@@ -2,7 +2,7 @@
 """Tests for plet_git_check.py — git compliance checks at phase and session boundaries.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_git_check.py
+    ./skills/plet/tests/test_plet_git_check.py
 
 Creates temporary git repos as fixtures. All tests clean up after themselves.
 """

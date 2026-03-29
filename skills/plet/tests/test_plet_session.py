@@ -2,7 +2,7 @@
 """Tests for plet_session.py — session detection, status, and preflight.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_session.py
+    ./skills/plet/tests/test_plet_session.py
 
 Red/green, command-by-command: detect first, then status, then preflight.
 """

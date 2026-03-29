@@ -2,7 +2,7 @@
 """Tests for plet_gate_phase.py — phase gate (pre/post, implement/verify).
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_gate_phase.py
+    ./skills/plet/tests/test_plet_gate_phase.py
 """
 
 import json

@@ -2,7 +2,7 @@
 """Tests for plet_entries.py — runtime artifact entry tool.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_entries.py
+    ./skills/plet/tests/test_plet_entries.py
 
 Creates temp fixtures, runs commands via subprocess, validates output, cleans up.
 

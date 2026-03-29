@@ -2,7 +2,7 @@
 """Tests for plet_prompt.py — prompt assembly for subagents.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_prompt.py
+    ./skills/plet/tests/test_plet_prompt.py
 """
 
 import json

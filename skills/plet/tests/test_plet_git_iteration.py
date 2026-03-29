@@ -2,7 +2,7 @@
 """Tests for plet_git_iteration.py — branch naming and worktree management.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_git_iteration.py
+    ./skills/plet/tests/test_plet_git_iteration.py
 
 Creates temporary git repos as fixtures. All tests clean up after themselves.
 """

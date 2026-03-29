@@ -2,7 +2,7 @@
 """Tests for util_cli.py — shared CLI utilities.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_util_cli.py
+    ./skills/plet/tests/test_util_cli.py
 
 Since util_cli is an internal module (not a CLI tool), these tests
 import directly rather than using subprocess.

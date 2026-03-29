@@ -140,6 +140,19 @@ Optional fields (returned with defaults if absent): `agentActivity` ("idle"), `a
 
 Full schemas in `references/state-schema.md`.
 
+## util_format.py
+
+Canonical markdown templates for plet runtime artifact entries (progress.md, learnings.md, emergent.md). Single source of truth for entry format — eliminates drift between the entries CLI (`plet_entries.py`) and invocation logging (`util_cli._log_script_invocation`).
+
+Also provides `now_iso()` for timestamp generation within templates (avoiding a circular dependency with `util_cli`).
+
+| Function | Purpose |
+|----------|---------|
+| `now_iso()` | Current UTC as `YYYY-MM-DDTHH:MM:SSZ`. |
+| `build_progress_entry(plet_id, iteration, title, phase, attempt, status, content_text, files_changed)` | Build progress.md entry per formats.md RT_1. |
+| `build_learning_entry(plet_id, iteration, title, category, entry_title, content_text, phase)` | Build learnings.md entry per formats.md RT_2. |
+| `build_emergent_entry(plet_id, em_number, iteration, title, entry_title, phase, category, content_text)` | Build emergent.md entry per formats.md RT_3. |
+
 ## util_subprocess.py
 
 Subprocess execution with capture, error formatting, and timeout handling. General-purpose wrapper — no shell=True, consistent error messages. Includes a `run_git` convenience for the most common case.

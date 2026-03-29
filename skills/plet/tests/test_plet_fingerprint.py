@@ -2,7 +2,7 @@
 """Tests for plet_fingerprint.py — fingerprint generation, embedding, and staleness detection.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_fingerprint.py
+    ./skills/plet/tests/test_plet_fingerprint.py
 
 Creates temp fixtures, runs commands via subprocess, validates output, cleans up.
 """

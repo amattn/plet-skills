@@ -2,7 +2,7 @@
 """Tests for util_id.py — plet ID generation utilities.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_util_id.py
+    ./skills/plet/tests/test_util_id.py
 
 Since util_id is an internal module (not a CLI tool), these tests
 import directly rather than using subprocess.

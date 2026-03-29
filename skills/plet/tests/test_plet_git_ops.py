@@ -2,7 +2,7 @@
 """Tests for plet_git_ops.py — audit-tag and merge-squash for iterations.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_plet_git_ops.py
+    ./skills/plet/tests/test_plet_git_ops.py
 
 Creates temporary git repos as fixtures. All tests clean up after themselves.
 """

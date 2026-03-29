@@ -2,7 +2,7 @@
 """Tests for util_subprocess.py — shared subprocess utilities.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_util_subprocess.py
+    ./skills/plet/tests/test_util_subprocess.py
 
 Since util_subprocess is an internal module (not a CLI tool), these tests
 import directly rather than using subprocess.

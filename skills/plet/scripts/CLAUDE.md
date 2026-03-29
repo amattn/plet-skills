@@ -165,6 +165,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `util_io.py` | Atomic file I/O, path derivation, plet dir validation, convenience JSON loaders | `load_json`, `atomic_write_json`, `atomic_append`, `load_text`, `state_json_path`, `iter_state_path`, `requirements_path`, `load_global_state_json`, `load_iter_state_json`, `validate_plet_dir`, `DEFAULT_PLET_DIR` |
 | `util_id.py` | Plet ID generation (Crockford Base32, timestamps, context segments) | `generate_plet_id`, `crockford_encode`, `crockford_timestamp`, `normalize_iteration`, `phase_attempt_segment` |
 | `util_state.py` | State file validation and validated loading (global + per-iteration) | `load_and_validate_global_state(plet_dir)`, `load_and_validate_iter_state(plet_dir, iter_id)`, `validate_global_state`, `validate_iter_state` |
+| `util_format.py` | Canonical markdown templates for runtime artifact entries | `now_iso`, `build_progress_entry`, `build_learning_entry`, `build_emergent_entry` |
 | `util_subprocess.py` | Subprocess execution with capture, error formatting, timeout | `run`, `run_git` |
 
 ## Remaining (PLAN_8)

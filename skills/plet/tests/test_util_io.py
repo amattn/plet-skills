@@ -2,7 +2,7 @@
 """Tests for util_io.py — shared file I/O utilities.
 
 Zero dependencies beyond stdlib. Run with:
-    python3 skills/plet/tests/test_util_io.py
+    ./skills/plet/tests/test_util_io.py
 
 Since util_io is an internal module (not a CLI tool), these tests
 import directly rather than using subprocess.

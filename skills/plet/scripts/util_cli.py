@@ -310,7 +310,8 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
         }) + "\n"
         atomic_append(trace_file, trace_line)
 
-        # Progress entry — markdown
+        # Progress entry — canonical format via util_format
+        from util_format import build_progress_entry
         prog_path = _progress_path(plet_dir)
         if not _os.path.isfile(prog_path):
             with open(prog_path, "w") as _f:
@@ -318,22 +319,9 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
         epr_id = generate_plet_id("epr", iter_id, phase, int(attempt))
         status = "COMPLETE" if exit_code == 0 else "IN_PROGRESS"
         iter_title = iter_id if iter_id != "proj" else script_name
-        entry = (
-            '\n<div id="plet-{pid}"></div>\n\n---\n\n'
-            "### [{iid}] {phase}-{attempt}\n"
-            "**PletId:** `{pid}`\n"
-            "**Timestamp:** {ts}\n"
-            "**Iteration:** [{iid}] {title}\n"
-            "**Phase:** {phase}\n"
-            "**Attempt:** {attempt}\n"
-            "**Status:** {status}\n"
-            "**Content:**\n"
-            "{content}\n\n"
-            '<div id="END-plet-{pid}"></div>\n'
-        ).format(
-            pid=epr_id, iid=iter_id, phase=phase, attempt=attempt,
-            ts=timestamp, title=iter_title, status=status,
-            content=full_cmd,
+        entry = build_progress_entry(
+            epr_id, iter_id, iter_title, phase, int(attempt),
+            status, full_cmd, [],
         )
         atomic_append(prog_path, entry)
     except Exception:
