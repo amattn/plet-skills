@@ -280,6 +280,36 @@ Claude Code has three layers of memory:
 
 ### Architecture & Routing
 
+#### Reference file rewrite — judgment vs compliance analysis (2026-03-28)
+
+PLAN_9c: rewriting implement.md and verify.md to delegate compliance to scripts while keeping judgment as prose. The principle: **agents call scripts for format/schema compliance, read prose for judgment calls.**
+
+**implement.md section analysis:**
+
+| Section | Type | Action |
+|---------|------|--------|
+| Before You Start | Judgment | Keep prose — context reading, understanding the task |
+| Red/Green Test Discipline | Judgment | Keep prose — this IS the agent's job |
+| State Updates During Work | Compliance | Replace with `plet_state.py` calls |
+| Runtime Artifact Writes | Compliance | Replace with `plet_entries.py` calls |
+| Trace Writing | Compliance | Replace with `plet_trace.py` calls |
+| Completing the Phase | Mixed | Keep judgment, add `plet_gate_phase.py post` call |
+| Blocker Protocol | Judgment + Compliance | Keep judgment, script-ify artifact writes |
+| Failed Attempt Protocol | Mixed | Keep judgment |
+| Missing Dependency Self-Correction | Judgment | Keep prose |
+| Retry Awareness | Context | Keep prose |
+| Criteria Skip Rules | Compliance | Replace with `plet_state.py` calls |
+| Atomic Write Rules | **DELETE** | Scripts handle atomicity |
+| Summary Checklist | Update | Add gate script call |
+
+**verify.md follows the same pattern** plus verify-specific judgment sections (Independent Verification, Anti-Slop Bias, Convergence Signal, Verification Report — all judgment, all stay as prose).
+
+**formats.md decision:** Keep condensed in prompt. Agents call scripts to write entries but still read existing entries (learnings, progress). A brief structural overview helps comprehension without the full 421-line format spec.
+
+**state-schema.md decision:** Keep condensed in prompt. Agents call scripts for state updates but need to understand fields conceptually (lifecycle values, criteria statuses, what fields mean). Don't need the full JSON schema.
+
+**Net effect:** implement.md and verify.md get thinner (compliance sections become script call references). formats.md and state-schema.md get condensed versions for the prompt (agent understanding, not agent writing).
+
 #### Phase terminology unification (2026-03-21)
 
 Comprehensive rename to unify phase terminology across the entire repo.

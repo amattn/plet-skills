@@ -202,6 +202,18 @@ Update criterion statuses in real time — as soon as you've verified a criterio
 
 ## State Updates During Work
 
+Use `plet_state.py` for all state file modifications:
+
+```bash
+STATE="plet_state.py"
+
+# Update activity and heartbeat
+$STATE update-field plet/ --iter-id ID_001 --data '{"agentActivity":"running_checks","activityDetail":"verifying AC_1: API returns 200 for valid requests"}'
+
+# Update criterion verification status (VF_6)
+$STATE update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase verification --status pass --evidence "All API endpoints return correct status codes"
+```
+
 ### Activity Updates
 
 Update `agentActivity` and `activityDetail` as you transition between activities:
@@ -209,25 +221,10 @@ Update `agentActivity` and `activityDetail` as you transition between activities
 | Activity | When |
 |----------|------|
 | `reading_context` | Reading state, requirements, learnings, source code |
-| `running_checks` | Running test suite, linter, formatter, type checker, verifying criteria |
+| `running_checks` | Running test suite, linter, verifying criteria |
 | `implementing` | Writing new tests or fixing minor issues (VF_15 fix-in-place) |
 | `committing` | Committing changes |
 | `wrapping_up` | Writing final state updates, artifacts, trace entries |
-
-The `activityDetail` string is human-readable context:
-- `"verifying AC_1: API returns 200 for valid requests"`
-- `"running full test suite — 42 tests, all passing"`
-- `"spec fidelity: comparing FR_3 implementation against requirement"`
-- `"fix-in-place: red/green for missing edge case test"`
-- `"cycle-back: documenting 3 substantial issues for re-implementation"`
-
-### Heartbeat
-
-Update `lastHeartbeat` in the per-iteration state file at regular intervals. A heartbeat older than 5 minutes signals to external consumers that the agent may have crashed.
-
-### Elapsed Time
-
-Update `elapsedSeconds` opportunistically — on heartbeat writes, on any state file write, and at end of each phase. Tracks per-phase-attempt durations (`verify_1`, `verify_2`, etc.) and `total` across all attempts.
 
 ---
 
@@ -385,76 +382,44 @@ When all acceptance criteria pass verification (Path A or after all Path B fixes
 
 ### Tag and Squash
 
-Always create an audit tag preserving commit history before squashing:
+Use the git operations scripts:
 
-```
-git tag plet/{projectId}/loop{N}/audit/{iteration_id}/verify-{attempt}
-```
-
-Log the tag name and commit hash in `plet/progress.md`.
-
-If `cleanupTagsAutomatically` is `true` in the per-iteration state file, delete the tag after squash and log the deletion with the commit hash in `plet/progress.md`.
-
-Squash any verification-phase commits (fix-in-place work) into a single commit:
-
-```
-git reset --soft $(git merge-base HEAD plet/{projectId}/loop{N}/workstream)
-git commit -m "plet: [ID_xxx] verify-{attempt} - {title}"
+```bash
+# Create audit tag preserving incremental commit history
+plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase verify
 ```
 
 If no commits were made during verification (no fix-in-place work), skip the squash — there's nothing to squash.
 
-Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
-
-Tag naming convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`
-
 ### Rebase and Merge to Workstream (IMP_16)
 
-**Green/rebase/green invariant:** Linear history is required — never create merge commits. Tests must be green before the rebase (already confirmed by Final Checks above) and again after the rebase, before the fast-forward merge.
+**Note:** The merge-squash to workstream is done by the **orchestrator** after verification completes, not by the verify agent. The orchestrator calls:
 
-1. Rebase the iteration branch onto the current workstream tip:
-
-```
-git rebase plet/{projectId}/loop{N}/workstream
+```bash
+plet_git_ops.py merge-squash plet/ --iter-id ID_001
 ```
 
-2. If the rebase has conflicts, resolve them. After resolution, re-run the full test suite, linter, and formatter. If tests fail post-rebase, fix the issue using red/green discipline, commit the fix, then re-squash (tag + squash as above, so the final result is still one commit per phase).
+This handles: rebase onto workstream, squash into one commit (`plet: [ID_xxx] - {title}`), tag/branch cleanup, and conflict detection (aborts on conflict).
 
-3. Fast-forward merge to the workstream (must be `--ff-only` — if this fails, something went wrong with the rebase):
+**Green/rebase/green invariant:** Linear history required. Tests must pass before and after the rebase. If post-rebase tests fail, the orchestrator handles resolution.
 
-```
-git checkout plet/{projectId}/loop{N}/workstream
-git merge --ff-only plet/{projectId}/loop{N}/{iteration_id}
-```
-
-4. **Post-merge verification** — confirm nothing was lost during rebase:
-   - Run the full test suite — all tests must pass. A test count drop or import error signals a lost file.
-   - Compare the file list from the iteration branch against the merged workstream. Any file present on the iteration branch that is missing from the workstream after merge must be investigated and restored.
-   - If files were lost, restore them, commit, and re-run the full test suite before proceeding.
-
-5. Return to the iteration branch for state updates:
-
-```
-git checkout plet/{projectId}/loop{N}/{iteration_id}
-```
-
-The iteration branch may be kept or deleted per project convention.
-
-### Update State
+### Update State and Run Post-Gate
 
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
-2. Append a `COMPLETE (passed, frozen)` entry to `plet/progress.md`
-3. Write any remaining learnings to `plet/learnings.md` — if no entries were written during work, write a "no learnings" entry now
-4. Write any remaining emergent items to `plet/emergent.md` — if no entries were written during work, write a "no emergent items" entry now
-5. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
-6. Update per-iteration state file:
-   - `lifecycle`: `"complete"` (iteration is frozen)
-   - `agentActivity`: `"idle"`
-   - `activityDetail`: `null`
-   - `agentId`: `null`
-   - `phaseTimestamps.verify_{N}_end`: current timestamp
-   - `lastUpdated`: current timestamp
-7. Write final trace entries
+2. Write a `COMPLETE (passed, frozen)` progress entry via `plet_entries.py add-progress`
+3. Write any remaining learnings and emergent items
+4. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
+5. Set `lastVerdict` in the per-iteration state file
+6. Update via `plet_state.py update-field`:
+   - `lifecycle`: `"complete"`, `agentActivity`: `"idle"`, `agentId`: `null`
+7. Write final trace entries via `plet_trace.py append-event`
+8. **Run post-gate and self-correct until it passes:**
+
+```bash
+plet_gate_phase.py post plet/ --iter-id ID_001 --phase verify --output json
+```
+
+The verify post-gate checks everything the implement post-gate checks PLUS: `lastVerdict` must not be null (FAIL), `verificationReports` must have an entry with `verdict` and `criteriaResults` (FAIL). Your exit signals "I passed my own gate."
 
 ---
 
@@ -528,37 +493,23 @@ Only skip when verification is genuinely impossible — not when it's merely dif
 
 ---
 
-## Atomic Write Rules
-
-### State Files (SF_15, SF_16)
-
-**Ideal: atomic rename** — write to a temp file in the same directory (e.g., `.ID_001.json.tmp`), then rename to the target path.
-
-**Acceptable for v1: Write tool** — Claude Code's Write tool writes directly to the target path. On local filesystems, this is effectively atomic for small JSON files. Each state file has a single writer (one subagent per iteration).
-
-Use Bash with temp-file-then-rename when practical. Use the Write tool when it's simpler. Don't let the atomicity concern block your work.
-
-### Runtime Artifacts (SF_17, SF_18)
-
-Runtime artifact writes should be complete, self-contained blocks:
-- Each append is a full entry — never a partial block
-- Keep entries under ~4KB
-- See `references/formats.md` for entry formats
-- **Use Bash append (`cat >>`) rather than the Write tool** for runtime artifacts.
-
----
-
 ## Summary Checklist
 
-Before returning, verify:
+Before returning, run the post-gate and self-correct until it passes:
 
-- [ ] All acceptance criteria have `verification` objects with statuses (pass, fail, skipped) and evidence
-- [ ] Verification report appended to `verificationReports` array with `vrp` plet ID, verdict, criteria results, and related plet IDs
-- [ ] Per-iteration state file reflects final state (lifecycle, timestamps, criteria)
-- [ ] `plet/progress.md` has an entry for this verification phase
-- [ ] `plet/learnings.md` has an entry for this iteration (even if "no learnings — verification found no novel insights")
-- [ ] `plet/emergent.md` has an entry for this iteration (even if "no emergent items — implementation matched spec completely")
-- [ ] Semantic events file has decision, criterion, lifecycle, and activity entries
-- [ ] All changes are committed (squashed for completion, incremental for cycle-back)
-- [ ] Implementation agent's runtime artifacts were audited (VF_20)
-- [ ] State file writes used atomic rename where practical
+```bash
+plet_gate_phase.py post plet/ --iter-id ID_001 --phase verify --output json
+```
+
+The gate checks everything:
+- [ ] Git state clean
+- [ ] Per-iteration state file valid
+- [ ] `plet/progress.md` has an entry (FAIL if missing)
+- [ ] `plet/learnings.md` has an entry (WARN if missing)
+- [ ] `plet/emergent.md` has an entry (WARN if missing)
+- [ ] Trace events file valid
+- [ ] `lastVerdict` set (FAIL if null)
+- [ ] `verificationReports` has entry with verdict + criteriaResults (FAIL if missing)
+- [ ] All changes committed
+
+**Atomic writes are handled by the scripts** — `plet_state.py`, `plet_entries.py`, and `plet_trace.py` all use atomic I/O internally.

@@ -135,6 +135,21 @@ git commit -m "wip: [ID_xxx] AC_N - [short description]"
 
 ## State Updates During Work
 
+Use `plet_state.py` for all state file modifications:
+
+```bash
+STATE="plet_state.py"
+
+# Update activity, heartbeat, summary, files changed
+$STATE update-field plet/ --iter-id ID_001 --data '{"agentActivity":"implementing","activityDetail":"red: writing failing test for AC_3"}'
+
+# Update criterion status in real time (IMP_6)
+$STATE update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase implementation --status pass --evidence "All 12 tests pass (3.2s)"
+
+# Heartbeat — update at regular intervals (IMP_23)
+$STATE update-field plet/ --iter-id ID_001 --data '{"lastHeartbeat":"2026-03-28T10:00:00Z"}'
+```
+
 ### Activity Updates (IMP_7)
 
 Update `agentActivity` and `activityDetail` as you transition between activities:
@@ -151,24 +166,14 @@ The `activityDetail` string is human-readable context:
 - `"red: writing failing test for AC_3"`
 - `"green: implementing AC_3"`
 - `"green: all tests passing"`
-- `"running linter — 2 warnings found, fixing"`
-- `"committing: plet: [ID_001] implement-1 - Project scaffolding"`
-
-### Heartbeat (IMP_23)
-
-Update `lastHeartbeat` in the per-iteration state file at regular intervals. A heartbeat older than 5 minutes signals to external consumers that the agent may have crashed.
-
-### Elapsed Time
-
-Update `elapsedSeconds` opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. Tracks per-phase-attempt durations (`implement_1`, `verify_1`, etc.) and `total` across all attempts.
 
 ### Criterion Status Updates (IMP_6)
 
-Update criterion statuses in real time — as soon as a criterion passes or fails, write it to the state file. Don't wait until the end.
+Update criterion statuses in real time — as soon as a criterion passes or fails, call `plet_state.py update-criterion`. Don't wait until the end.
 
 ### Files Changed
 
-Update `filesChanged` in the per-iteration state file as you create or modify files. Update `summary` with a brief description of current work.
+Update `filesChanged` and `summary` via `plet_state.py update-field` as you create or modify files.
 
 ---
 
@@ -252,43 +257,34 @@ When all acceptance criteria pass:
 
 ### Tag and Squash (IMP_17)
 
-Always create an audit tag preserving the incremental commit history before squashing:
+Use the git operations scripts:
 
-```
-git tag plet/{projectId}/loop{N}/audit/{iteration_id}/implement-{attempt}
-```
+```bash
+# Create audit tag preserving incremental commit history
+plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement
 
-Log the tag name and commit hash in `plet/progress.md`.
-
-If `cleanupTagsAutomatically` is `true` in the per-iteration state file, delete the tag after squash and log the deletion with the commit hash in `plet/progress.md`.
-
-Then squash all incremental commits into a single commit:
-
-```
-git reset --soft $(git merge-base HEAD plet/{projectId}/loop{N}/workstream)
-git commit -m "plet: [ID_xxx] implement-{attempt} - {title}"
+# Squash all incremental commits into one commit on the iteration branch
+# (merge-squash to workstream is done by the orchestrator AFTER verify completes)
 ```
 
-`git merge-base HEAD` finds where the iteration branch diverged from the loop workstream — the correct squash target regardless of attempt number.
+The audit tag and merge-squash handle tag naming (`plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`), commit messages (`plet: [ID_xxx] - {title}`), and cleanup (`cleanupTagsAutomatically`) automatically.
 
-Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
-
-Tag naming convention: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` — the `/` separators allow GUI tools to filter hierarchically.
-
-### Update State
+### Update State and Run Post-Gate
 
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
-2. Update per-iteration state file:
+2. Update per-iteration state via `plet_state.py update-field`:
    - `lifecycle`: `"verifying"` (signals the orchestrator to spawn a verification agent)
-   - `agentActivity`: `"idle"`
-   - `activityDetail`: `null`
-   - `agentId`: `null`
-   - `phaseTimestamps.implement_{N}_end`: current timestamp
-   - `lastUpdated`: current timestamp
-3. Append a `COMPLETE` entry to `plet/progress.md`
-4. Write any remaining learnings to `plet/learnings.md` — if no entries were written during work, write a "no learnings" entry now
-5. Write any remaining emergent items to `plet/emergent.md` — if no entries were written during work, write a "no emergent items" entry now
-6. Write final trace entries
+   - `agentActivity`: `"idle"`, `activityDetail`: `null`, `agentId`: `null`
+3. Write a `COMPLETE` progress entry via `plet_entries.py add-progress`
+4. Write any remaining learnings and emergent items
+5. Write final trace entries via `plet_trace.py append-event`
+6. **Run post-gate and self-correct until it passes:**
+
+```bash
+plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement --output json
+```
+
+The post-gate checks: git state clean, state valid, progress entry exists (FAIL if missing), learnings entry (WARN if missing), emergent entry (WARN if missing), trace events valid. If exit 1 (fail), fix the issue and re-run. Your exit signals "I passed my own gate."
 
 ---
 
@@ -449,36 +445,21 @@ Example state:
 
 ---
 
-## Atomic Write Rules
-
-### State Files (SF_15, SF_16)
-
-**Ideal: atomic rename** — write to a temp file in the same directory (e.g., `.ID_001.json.tmp`), then rename to the target path. This guarantees external readers never see partial JSON.
-
-**Acceptable for v1: Write tool** — Claude Code's Write tool writes directly to the target path. On local filesystems (macOS APFS, Linux ext4), this is effectively atomic for the small JSON files involved (~1-5KB). Each state file has a single writer (one subagent per iteration), so concurrent write corruption is not a risk. A GUI reader that catches a partial write gets a transient parse error and retries on next poll.
-
-Use Bash with temp-file-then-rename when practical. Use the Write tool when it's simpler. Don't let the atomicity concern block your work.
-
-### Runtime Artifacts (SF_17, SF_18)
-
-Runtime artifact writes should be complete, self-contained blocks:
-- Each append is a full entry — never a partial block
-- Keep entries under ~4KB
-- See `references/formats.md` for entry formats
-- **Use Bash append (`cat >>`) rather than the Write tool** for runtime artifacts. The Write tool overwrites the entire file — appending would require reading the full file, concatenating, and writing it all back. That's wasteful and gets worse as files grow. Bash `cat >>` is a true append.
-- A partial append only affects the last entry — prior entries are never corrupted.
-
----
-
 ## Summary Checklist
 
-Before returning, verify:
+Before returning, run the post-gate and self-correct until it passes:
 
-- [ ] All acceptance criteria have statuses (pass, fail, skipped) with evidence
-- [ ] Per-iteration state file reflects final state (lifecycle, timestamps, criteria)
-- [ ] `plet/progress.md` has an entry for this phase
-- [ ] `plet/learnings.md` has an entry for this iteration (even if "no learnings — implementation was straightforward")
-- [ ] `plet/emergent.md` has an entry for this iteration (even if "no emergent items — spec fully covered this work")
-- [ ] Semantic events file has decision, criterion, lifecycle, and activity entries
-- [ ] All changes are committed (squashed for completion, incremental for blockers/failed attempts)
-- [ ] State file writes used atomic rename where practical
+```bash
+plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement --output json
+```
+
+The gate checks everything you need to verify:
+- [ ] Git state clean (correct branch, no uncommitted changes, linear history)
+- [ ] Per-iteration state file valid
+- [ ] `plet/progress.md` has an entry for this phase (FAIL if missing)
+- [ ] `plet/learnings.md` has an entry (WARN if missing — write one even if "no learnings")
+- [ ] `plet/emergent.md` has an entry (WARN if missing — write one even if "no emergent items")
+- [ ] Trace events file valid
+- [ ] All changes committed
+
+**Atomic writes are handled by the scripts** — `plet_state.py`, `plet_entries.py`, and `plet_trace.py` all use atomic I/O internally. You don't need to manage temp files or rename patterns.
