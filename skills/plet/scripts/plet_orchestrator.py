@@ -254,7 +254,7 @@ def cmd_run(args):
         subprocess.run(["git", "checkout", branch], capture_output=True)
 
     # Write ACTIVE canary
-    _run_script("plet_entries.py", [plet_dir, "add-progress",
+    _run_script("plet_entries.py", ["add-progress", plet_dir,
                 "--iter-id", "SESSION", "--iter-title", "Orchestrator",
                 "--phase", "orchestrator", "--attempt", "1",
                 "--status", "IN_PROGRESS",
@@ -320,8 +320,7 @@ def cmd_run(args):
                 completed_this_run + 1, iter_id), output_ndjson)
 
             # Reserve: set lifecycle → implementing
-            _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-                        "update-field", "--data", json.dumps({"lifecycle": "implementing"})])
+            _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "implementing"})])
 
             # Create worktree
             wt_data, wt_err, wt_rc = _run_script_json("plet_git_iteration.py",
@@ -329,17 +328,16 @@ def cmd_run(args):
 
             if wt_rc != 0 or wt_data is None:
                 _emit_text("  Error creating worktree: {}".format(wt_err), output_ndjson)
-                _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-                    "update-field", "--data", json.dumps({"lifecycle": "blocked"})])
+                _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
                 failed_this_round.add(iter_id)
                 continue
 
-            worktree_path = wt_data.get("worktreePath", "")
+            worktree_path = os.path.abspath(wt_data.get("worktreePath", ""))
 
             # IMPLEMENT
             impl_out, impl_err, impl_rc = _run_script("plet_invoke.py", ["run", plet_dir,
                 "--iter-id", iter_id, "--phase", "implement",
-                "--cwd", worktree_path], cwd=worktree_path)
+                "--cwd", worktree_path])
 
             if impl_rc != 0:
                 _emit_text("  Invoke implement failed (rc={}): {}".format(
@@ -354,17 +352,11 @@ def cmd_run(args):
             head_result = subprocess.run(["git", "log", "--oneline", "-1"],
                 capture_output=True, text=True, cwd=worktree_path)
 
-            # Read state to check lifecycle handoff — use raw load for debug
-            raw_path = iter_state_path(plet_dir, iter_id)
-            raw_state = load_json(raw_path)
-            _emit_event({"type": "debug_raw", "path": raw_path, "exists": os.path.isfile(raw_path),
-                         "lifecycle": raw_state.get("lifecycle") if raw_state else "NONE",
-                         "cwd": os.getcwd()}, output_ndjson)
+            # Read state to check lifecycle handoff
             iter_state = load_and_validate_iter_state(plet_dir, iter_id)
             if iter_state is None or iter_state.get("lifecycle") != "verifying":
                 _emit_text("  Implement did not complete handoff", output_ndjson)
-                _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-                    "update-field", "--data", json.dumps({"lifecycle": "blocked"})])
+                _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
                 _run_script("plet_git_iteration.py", ["worktree-remove", plet_dir,
                     "--iter-id", iter_id])
                 failed_this_round.add(iter_id)
@@ -378,7 +370,7 @@ def cmd_run(args):
 
             _run_script("plet_invoke.py", ["run", plet_dir,
                 "--iter-id", iter_id, "--phase", "verify",
-                "--cwd", worktree_path], cwd=worktree_path)
+                "--cwd", worktree_path])
 
             _emit_event({"type": "iteration_phase_complete", "iterationId": iter_id,
                          "phase": "verify"}, output_ndjson)
@@ -389,14 +381,19 @@ def cmd_run(args):
 
             if verdict is None:
                 _emit_text("  Verify did not set lastVerdict — blocking", output_ndjson)
-                _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-                    "update-field", "--data", json.dumps({"lifecycle": "blocked"})])
+                _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
             elif verdict == "passed":
                 # Merge-squash to workstream
-                _run_script("plet_git_ops.py", ["merge-squash", plet_dir,
+                ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", plet_dir,
                     "--iter-id", iter_id])
-                _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-                    "update-field", "--data", json.dumps({"lifecycle": "complete"})])
+                if ms_rc != 0:
+                    _emit_event({"type": "error", "iterationId": iter_id,
+                                 "error": "merge-squash failed: " + ms_err[:200]}, output_ndjson)
+                    _emit_text("  merge-squash failed: {}".format(ms_err[:200]), output_ndjson)
+                _, uf_err, uf_rc = _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "complete"})])
+                if uf_rc != 0:
+                    _emit_event({"type": "error", "iterationId": iter_id,
+                                 "error": "update-field failed: " + uf_err[:200]}, output_ndjson)
                 completed_this_run += 1
                 _emit_event({"type": "iteration_merged", "iterationId": iter_id}, output_ndjson)
                 _emit_event({"type": "iteration_complete", "iterationId": iter_id,
@@ -409,22 +406,19 @@ def cmd_run(args):
                     ["check-retry", plet_dir, "--iter-id", iter_id])
                 decision = retry_data.get("decision", "abort") if retry_data else "abort"
                 if decision == "continue" or decision == "first":
-                    _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-                        "update-field", "--data", json.dumps({"lifecycle": "queued"})])
+                    _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "queued"})])
                     _emit_event({"type": "iteration_complete", "iterationId": iter_id,
                                  "lifecycle": "queued"}, output_ndjson)
                     _emit_text("[{}] {}: rejected, retry queued".format(
                         completed_this_run + 1, iter_id), output_ndjson)
                 else:
-                    _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-                        "update-field", "--data", json.dumps({"lifecycle": "blocked"})])
+                    _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
                     _emit_event({"type": "iteration_complete", "iterationId": iter_id,
                                  "lifecycle": "blocked"}, output_ndjson)
                     _emit_text("[{}] {}: rejected, retry exhausted — blocked".format(
                         completed_this_run + 1, iter_id), output_ndjson)
             elif verdict == "blocked":
-                _run_script("plet_state.py", [plet_dir, "--iter-id", iter_id,
-                    "update-field", "--data", json.dumps({"lifecycle": "blocked"})])
+                _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
                 _emit_event({"type": "iteration_complete", "iterationId": iter_id,
                              "lifecycle": "blocked"}, output_ndjson)
 
@@ -466,7 +460,7 @@ def cmd_run(args):
     _run_script("plet_session.py", ["end-session", plet_dir])
 
     # Write COMPLETE canary
-    _run_script("plet_entries.py", [plet_dir, "add-progress",
+    _run_script("plet_entries.py", ["add-progress", plet_dir,
                 "--iter-id", "SESSION", "--iter-title", "Orchestrator",
                 "--phase", "orchestrator", "--attempt", "1",
                 "--status", "COMPLETE",

@@ -258,19 +258,6 @@ with tempfile.TemporaryDirectory() as tmp:
     out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env,
                         cwd=tmp)  # must run from project root for git ops
 
-    # Debug: dump raw output
-    print("  DEBUG stdout lines: {}".format(len(out.split("\n"))))
-    for i, line in enumerate(out.split("\n")[:15]):
-        if line.strip():
-            try:
-                ev = json.loads(line)
-                print("    [{}] type={} {}".format(i, ev.get("type"),
-                    ev.get("error", ev.get("lifecycle", ""))[:80]))
-            except json.JSONDecodeError:
-                print("    [{}] RAW: {}".format(i, line[:100]))
-    if err:
-        print("  DEBUG stderr: {}".format(err[:300]))
-
     # Parse NDJSON events
     lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
     event_types = [l.get("type") for l in lines]
