@@ -431,15 +431,12 @@ Examples:
             return 1
         files_changed = parsed
 
-    # Check artifact file exists
+    # Auto-create artifact file if it doesn't exist
     prog_path = progress_path(artifact_dir)
     if not os.path.exists(prog_path):
-        msg = "Error: {} does not exist".format(prog_path)
-        if output_json:
-            emit_json_error(CMD, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+        os.makedirs(os.path.dirname(prog_path) or ".", exist_ok=True)
+        with open(prog_path, "w") as f:
+            f.write("")
 
     plet_id = generate_plet_id(TYPE_PREFIXES["progress"], kwargs["iter_id"], phase, attempt)
     entry = build_progress_entry(
@@ -560,12 +557,9 @@ Examples:
     phase = kwargs["phase"]
     learn_path = learnings_path(artifact_dir)
     if not os.path.exists(learn_path):
-        msg = "Error: {} does not exist".format(learn_path)
-        if output_json:
-            emit_json_error(CMD, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+        os.makedirs(os.path.dirname(learn_path) or ".", exist_ok=True)
+        with open(learn_path, "w") as f:
+            f.write("")
 
     plet_id = generate_plet_id(TYPE_PREFIXES["learning"], kwargs["iter_id"], phase, attempt)
     entry = build_learning_entry(
@@ -689,12 +683,9 @@ Examples:
 
     em_path = emergent_path(artifact_dir)
     if not os.path.exists(em_path):
-        msg = "Error: {} does not exist".format(em_path)
-        if output_json:
-            emit_json_error(CMD, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+        os.makedirs(os.path.dirname(em_path) or ".", exist_ok=True)
+        with open(em_path, "w") as f:
+            f.write("")
 
     plet_id = generate_plet_id(TYPE_PREFIXES["emergent"], kwargs["iter_id"], phase, attempt)
     entry = build_emergent_entry(

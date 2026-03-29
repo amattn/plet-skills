@@ -616,16 +616,18 @@ def test_missing_required_args():
         check("add-emergent requires args", "required" in stderr.lower())
 
 
-def test_missing_artifact_file():
-    print("\n## Missing artifact file")
+def test_auto_create_artifact_file():
+    print("\n## Auto-create artifact file")
     with tempfile.TemporaryDirectory() as d:
-        _, stderr, _ = run([
+        # Artifact files are auto-created if they don't exist
+        stdout, _, rc = run([
             "add-progress", d,
             "--iter-id", "ID_001", "--iter-title", "Test",
             "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-        ], expect_exit=1)
-        check("errors on missing progress.md", "does not exist" in stderr)
+            "--status", "COMPLETE", "--content", "auto-created test",
+        ], expect_exit=0)
+        check("succeeds with auto-created file", rc == 0)
+        check("progress.md was created", os.path.isfile(os.path.join(d, "progress.md")))
 
 
 def test_attempt_validation():
@@ -1196,7 +1198,7 @@ if __name__ == "__main__":
     test_check_no_false_positives()
     test_phase_validation()
     test_missing_required_args()
-    test_missing_artifact_file()
+    test_auto_create_artifact_file()
     test_attempt_validation()
     test_iter_id_validation()
     test_unknown_command()
