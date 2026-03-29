@@ -1103,3 +1103,10 @@ Retrofitting all specs first, then implementations.
 - **Branch name derivation:** `derive_branch_name` extracted from `plet_git_iteration.py` into new `util_git.py`. Pure string function — no git ops, no subprocess. Both `plet_session.py` and `plet_git_iteration.py` import the same function. Single source of truth for branch naming. Chose `util_git.py` over `util_io.py` for discoverability — branch names are git concepts, and nobody would think to look in util_io for git naming conventions even though they're technically string derivation.
 - **Corruption detection:** multiple `sessionHistory` entries with `endedAt: null` is a hard error (SES_EDG_7/ERR_9). Refuse to operate — state needs manual repair. Applies to both start-session and end-session.
 - Does NOT create git branches — returns name for orchestrator to create via plet_git_iteration.py.
+
+#### Standardize on NDJSON, retire JSONL for plet-produced files (2026-03-29)
+
+- **Decision:** NDJSON is the canonical name and extension for all files plet produces. `.ndjson` extension, "NDJSON" in prose. Replaces `.jsonl` in transcript filenames and all references.
+- **Exception:** If plet copies a file wholesale from an external source (e.g., Claude config dir transcripts), preserve the source's original format and extension. We don't rename files we didn't create.
+- **Why:** Two names for the same format (NDJSON vs JSONL) is a consistency problem. NDJSON is the more formal spec (ndjson.org), already 2.5x more usage in the repo, and more descriptive (Newline Delimited JSON). JSONL was a historical artifact from copying transcripts.
+- **Scope:** ~51 JSONL references across 16 files. Sweep-level pass — transcript paths in util_io, plet_invoke, state-schema, tests, specs. Deferred to a dedicated pass (not blocking orchestrator spec).
