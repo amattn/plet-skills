@@ -280,6 +280,46 @@ Claude Code has three layers of memory:
 
 ### Architecture & Routing
 
+#### util_io as single source of truth for all file paths (2026-03-29)
+
+Every plet file path is derived from `util_io` functions. No script constructs paths manually via `os.path.join`. Functions added during this session:
+- `trace_dir_path(plet_dir)` → `{plet_dir}/trace/`
+- `events_path(plet_dir, iter_id, phase, attempt)` → `{plet_dir}/trace/{id}-{phase}-{attempt}-events.ndjson`
+- `transcript_path(plet_dir, iter_id, phase, attempt)` → `{plet_dir}/trace/{id}-{phase}-{attempt}-transcript.jsonl`
+
+Previously existed: `state_json_path`, `state_dir_path`, `iter_state_path`, `requirements_path`, `iterations_path`, `progress_path`, `learnings_path`, `emergent_path`.
+
+Replaced `trace_path` (old single-file convention) with `trace_dir_path` (per-iteration directory). Replaced `load_trace_ndjson` with `load_events_ndjson(plet_dir, iter_id, phase, attempt)`.
+
+Custom path functions removed from scripts: `plet_invoke.py transcript_path()` (moved to util_io). `plet_gate_phase.py` manual trace path construction replaced with `events_path()`.
+
+#### Universal invocation logging — design decisions (2026-03-29)
+
+**Decision:** Every script invocation logs to both trace event and progress entry. Implemented in `util_cli.dispatch()` after each command completes.
+
+**No-recursion exclusions:** Write commands on logging scripts don't log (to avoid recursion):
+- `plet_entries.py`: add-progress, add-learning, add-emergent (write path)
+- `plet_trace.py`: append-event (write path)
+Read commands on those scripts (check, validate, query) DO log.
+
+**`--no-log` flag:** Test-only flag. Stripped by dispatch() before routing. Cascades to child processes via `PLET_NO_LOG=1` env var. Not in help text.
+
+**Direct imports, not subprocess:** Logging writes trace events and progress entries via `util_io.atomic_append` and `util_id.generate_plet_id` directly — no subprocess calls. Zero overhead, no cascading performance problem.
+
+**Self-initializing artifact files:** `plet_entries.py` add-* commands auto-create progress.md/learnings.md/emergent.md if they don't exist (was an error). Required because logging may happen before bootstrap creates the files.
+
+**Remaining work:**
+- plet_state.py: needs plet_dir retrofit (specs done, implementation deferred)
+- plet_trace.py: needs plet_dir retrofit (specs done, implementation deferred)
+- Universal logging: infrastructure in util_cli, needs wiring + testing
+- Test scripts: need util_io path functions (currently use manual os.path.join)
+
+#### Post-gate progress logging → universal logging (2026-03-29)
+
+- **Started as:** gate scripts log results to progress.md (custom code in plet_gate_phase.py)
+- **Evolved to:** universal convention — every script logs via dispatch()
+- **Principle:** observability as infrastructure, not per-script boilerplate
+
 #### Reference file rewrite — judgment vs compliance analysis (2026-03-28)
 
 PLAN_9c: rewriting implement.md and verify.md to delegate compliance to scripts while keeping judgment as prose. The principle: **agents call scripts for format/schema compliance, read prose for judgment calls.**
