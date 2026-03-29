@@ -49,7 +49,9 @@ All scripts derive file paths through these functions — never construct paths 
 | `progress_path(plet_dir)` | `{plet_dir}/progress.md` |
 | `learnings_path(plet_dir)` | `{plet_dir}/learnings.md` |
 | `emergent_path(plet_dir)` | `{plet_dir}/emergent.md` |
-| `trace_path(plet_dir)` | `{plet_dir}/trace.ndjson` |
+| `trace_dir_path(plet_dir)` | `{plet_dir}/trace/` |
+| `events_path(plet_dir, iter_id, phase, attempt)` | `{plet_dir}/trace/{id}-{phase}-{attempt}-events.ndjson` |
+| `transcript_path(plet_dir, iter_id, phase, attempt)` | `{plet_dir}/trace/{id}-{phase}-{attempt}-transcript.jsonl` |
 
 **Constant:** `DEFAULT_PLET_DIR = "plet/"` — used by all scripts as the default when no plet_dir is specified.
 
@@ -66,7 +68,7 @@ Combine path derivation + `load_json`/`load_text`. Raw loading without validatio
 | `load_progress_md(plet_dir)` | `progress_path` + `load_text` | string or None |
 | `load_learnings_md(plet_dir)` | `learnings_path` + `load_text` | string or None |
 | `load_emergent_md(plet_dir)` | `emergent_path` + `load_text` | string or None |
-| `load_trace_ndjson(plet_dir)` | `trace_path` + `load_text` | string or None |
+| `load_events_ndjson(plet_dir, iter_id, phase, attempt)` | `events_path` + `load_text` | string or None |
 
 ### Plet dir validation
 

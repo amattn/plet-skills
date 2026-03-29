@@ -107,7 +107,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_PRE_1 | `{plet_dir}/progress.md` exists (will not create it) | P0 |
+| ENT_APR_PRE_1 | `{plet_dir}/progress.md` — auto-created if missing | P0 |
 | ENT_APR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--phase`, `--attempt`, `--status`, and one of `--content` or `--content-file` | P0 |
 | ENT_APR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 | ENT_APR_PRE_4 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
@@ -202,7 +202,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_PRE_1 | `{plet_dir}/learnings.md` exists | P0 |
+| ENT_ALR_PRE_1 | `{plet_dir}/learnings.md` — auto-created if missing | P0 |
 | ENT_ALR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--category`, `--title`, `--content`, `--phase`, `--attempt` | P0 |
 | ENT_ALR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 | ENT_ALR_PRE_4 | `--category` is a valid learning category | P0 |
@@ -294,7 +294,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_PRE_1 | `{plet_dir}/emergent.md` exists | P0 |
+| ENT_AEM_PRE_1 | `{plet_dir}/emergent.md` — auto-created if missing | P0 |
 | ENT_AEM_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--title`, `--phase`, `--category`, `--content`, `--attempt` | P0 |
 | ENT_AEM_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
 | ENT_AEM_PRE_4 | `--category` is a valid emergent category | P0 |
@@ -454,7 +454,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ENT_ERR_5 | Invalid category (emergent) → `Error: invalid --category '{category}' (valid: design decision, requirement gap, assumption, scope question, edge case, blocker)` | P0 |
 | ENT_ERR_6 | Invalid JSON in `--files` → `Error: --files must be valid JSON array: {parse_error}` | P0 |
 | ENT_ERR_7 | Non-integer `--attempt` → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
-| ENT_ERR_8 | Artifact file not found → `Error: {path} does not exist` | P0 |
+| ENT_ERR_8 | ~~Artifact file not found~~ — add-* commands now auto-create. Only applies to `check` command (reports NOT_INITIALIZED). | P0 |
 | ENT_ERR_9 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
 | ENT_ERR_10 | `--fields` without `--output json` → `Error: --fields requires --output json` | P0 |
 | ENT_ERR_11 | Duplicate flag → `Error: --{flag} specified more than once` | P0 |

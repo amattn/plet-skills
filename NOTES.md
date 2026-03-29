@@ -308,11 +308,16 @@ Read commands on those scripts (check, validate, query) DO log.
 
 **Self-initializing artifact files:** `plet_entries.py` add-* commands auto-create progress.md/learnings.md/emergent.md if they don't exist (was an error). Required because logging may happen before bootstrap creates the files.
 
+**Completed:**
+- plet_state.py: retrofitted to plet_dir + --iter-id. All 4 commands use `resolve_state_path()` (composes get_plet_dir + parse_kwargs + validate + iter_state_path). Gate script updated to pass new interface.
+- plet_trace.py: retrofitted to plet_dir + --iter-id + --phase + --attempt. All 3 commands derive events file via util_io. `derive_events_path()` thin wrapper auto-creates trace/ dir. Accepts "proj" as iter-id. Gate + invoke updated.
+- plet_entries.py: auto-creates progress.md/learnings.md/emergent.md if missing (was error). Required for universal logging.
+- All scripts: manual os.path.join replaced with util_io functions (ENT, FPR, GPH, INV, TRC).
+
 **Remaining work:**
-- plet_state.py: needs plet_dir retrofit (specs done, implementation deferred)
-- plet_trace.py: needs plet_dir retrofit (specs done, implementation deferred)
-- Universal logging: infrastructure in util_cli, needs wiring + testing
+- Universal logging: infrastructure in util_cli (dispatch + _log_script_invocation), needs wiring + testing
 - Test scripts: need util_io path functions (currently use manual os.path.join)
+- Specs: need updating for STA/TRC retrofit, ENT auto-create, util_io new functions
 
 #### Post-gate progress logging → universal logging (2026-03-29)
 
