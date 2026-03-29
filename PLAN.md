@@ -167,11 +167,11 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 | FB_13 | Branch isolation via worktrees | `plet_git.py` worktree commands |
 | FB_22 | Warn if bypassPermissions not configured | `plet_router.py preflight` |
 | FB_23 | Bootstrap CLAUDE.md if missing | `plet_router.py preflight` |
-| FB_29 | Learnings/emergent mandatory rule not enforced | `plet_gate_impl.py post` |
+| FB_29 | Learnings/emergent mandatory rule not enforced | `plet_gate_phase.py post` |
 | FB_30 | 42 git stashes despite ban | `plet_git.py` worktrees eliminate stashing |
 | FB_31 | Final loop commit required human prompting | `plet_orchestrator.py end-session` |
 | FB_32 | Orphaned worktree after retry | `plet_git.py` worktree cleanup |
-| FB_33 | Progress.md entries incomplete | `plet_gate_impl.py post` / `plet_gate_verify.py post` |
+| FB_33 | Progress.md entries incomplete | `plet_gate_phase.py post` |
 | FB_35 | Agent lost commits during implement | `plet_git.py` worktree isolation |
 | FB_38 | Cross-iteration knowledge transfer | `plet_inject_prompt.py` always injects learnings |
 | FB_40 | State lifecycle not transitioned | `plet_orchestrator.py` transitions deterministically |
@@ -204,7 +204,7 @@ Built 11 enforcement scripts + 5 utility modules in `skills/plet/scripts/`. 1230
 
 **Detailed build plan:** `specs/PLAN.md` — all 27 tasks complete (seq 0–27, including 21a merge).
 
-**Scripts built:** plet_state, plet_entries, plet_fingerprint, plet_trace, plet_git_iteration, plet_git_ops, plet_git_check, plet_session, plet_gate_phase, plet_prompt, plet_invoke.
+**Scripts built:** plet_state, plet_entries, plet_fingerprint, plet_trace, plet_git_iteration, plet_git_ops, plet_git_check, plet_gate_session (originally plet_session), plet_gate_phase, plet_prompt, plet_invoke.
 
 **Utilities built:** util_cli, util_io, util_id, util_state, util_subprocess.
 
@@ -218,9 +218,9 @@ The scripts are built. Now the prose needs to catch up — PRD, SKILL.md, refere
 
 ### Phases
 
-- **PLAN_9a:** PRD catch-up — update with tooling decisions, eval strategy, sandboxing (FB_48, FB_50). Add script inventory. Formalize "skills for judgment, code for compliance" boundary.
-- **PLAN_9b:** SKILL.md rewrite — becomes thinner. Routing + delegation to scripts. Agents call scripts instead of writing artifacts freehand. Knows what all scripts do.
-- **PLAN_9c:** Reference files rewrite (implement.md, verify.md) — updated to reference scripts ("call plet_entries.py" not "write a progress entry"). formats.md and state-schema.md may become unnecessary in prompts (agents call scripts, not write raw files).
+- **PLAN_9a:** ✓ PRD catch-up — update with tooling decisions, eval strategy, sandboxing (FB_48, FB_50). Add script inventory. Formalize "skills for judgment, code for compliance" boundary. (`3082710`)
+- **PLAN_9b:** ✓ SKILL.md rewrite — becomes thinner. Routing + delegation to scripts. Agents call scripts instead of writing artifacts freehand. Knows what all scripts do. (`46c5a5d`)
+- **PLAN_9c:** ✓ Reference files rewrite (implement.md, verify.md) — updated to reference scripts ("call plet_entries.py" not "write a progress entry"). formats.md and state-schema.md may become unnecessary in prompts (agents call scripts, not write raw files). (`456f929`)
 - **PLAN_9d:** ORC spec (plet_orchestrator.py) — the capstone. Main loop, dependency graph, retry, session lifecycle. Ties all scripts together. Co-evolves with SKILL.md during implementation.
 - **PLAN_9e:** ORC implementation + plet_prompt.py update — prompt assembles the new (thinner) reference files. May include script usage cheat sheet instead of full format specs.
 

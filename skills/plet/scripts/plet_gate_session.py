@@ -5,9 +5,9 @@ Determines which session to enter, produces status summaries, and verifies the
 project environment is ready for work. All commands are read-only.
 
 Usage:
-    plet_session.py detect [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
-    plet_session.py status [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
-    plet_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py detect [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py status [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     detect      Determine which session type to enter (plan, loop, refine)
@@ -61,7 +61,7 @@ LOOP_LIFECYCLES = {"queued", "implementing", "verifying"}
 # ---------------------------------------------------------------------------
 
 def help_hint(command):
-    return "Run: plet_session.py {} --help".format(command)
+    return "Run: plet_gate_session.py {} --help".format(command)
 
 
 def scan_iter_states(plet_dir):
@@ -159,7 +159,7 @@ def cmd_detect(args):
     HELP = """IMPORTANT:
     detect is read-only — it checks project state and prints the session type.
     Text output is bare (plan, loop, or refine) for shell capture:
-    SESSION=$(plet_session.py detect)
+    SESSION=$(plet_gate_session.py detect)
 
 PITFALLS:
     - Defaults to plet/ in current directory — run from project root
@@ -167,7 +167,7 @@ PITFALLS:
     - ineligible-only iterations return refine (not loop)
 
 USAGE:
-    plet_session.py detect [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py detect [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (default: plet/)
 
@@ -176,9 +176,9 @@ PURPOSE:
     Implements the OR_2–OR_6 routing logic as deterministic code.
 
 Examples:
-    plet_session.py detect
-    plet_session.py detect plet/
-    plet_session.py detect /path/to/project/plet --output json --pretty
+    plet_gate_session.py detect
+    plet_gate_session.py detect plet/
+    plet_gate_session.py detect /path/to/project/plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -211,7 +211,7 @@ Examples:
             "artifacts": artifacts,
         }, SCRIPT_VERSION, pretty, fields)
     else:
-        # Bare output for shell capture (SES_DXP_3)
+        # Bare output for shell capture (GSS_DXP_3)
         print(session_type)
 
     return 0
@@ -232,7 +232,7 @@ PITFALLS:
     - Fingerprint check may be slow — it calls plet_fingerprint.py via subprocess
 
 USAGE:
-    plet_session.py status [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py status [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (default: plet/)
 
@@ -242,9 +242,9 @@ PURPOSE:
     fingerprint consistency.
 
 Examples:
-    plet_session.py status
-    plet_session.py status plet/
-    plet_session.py status plet/ --output json --pretty
+    plet_gate_session.py status
+    plet_gate_session.py status plet/
+    plet_gate_session.py status plet/ --output json --pretty
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -450,7 +450,7 @@ PITFALLS:
     - Defaults to plet/ in current directory — run from project root
 
 USAGE:
-    plet_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir          Path to plet directory (default: plet/)
     --session-type    Required. Controls session-specific checks.
@@ -461,9 +461,9 @@ PURPOSE:
     state valid, fingerprints consistent.
 
 Examples:
-    plet_session.py preflight --session-type detect
-    plet_session.py preflight plet/ --session-type loop
-    plet_session.py preflight plet/ --session-type plan --output json --pretty
+    plet_gate_session.py preflight --session-type detect
+    plet_gate_session.py preflight plet/ --session-type loop
+    plet_gate_session.py preflight plet/ --session-type plan --output json --pretty
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -717,7 +717,7 @@ def main():
         "preflight": cmd_preflight,
     }
     return dispatch(
-        commands, "plet_session", SCRIPT_VERSION, SKILL_VERSION, __doc__
+        commands, "plet_gate_session", SCRIPT_VERSION, SKILL_VERSION, __doc__
     )
 
 

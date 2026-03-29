@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_session.py — session detection, status, and preflight.
+"""Tests for plet_gate_session.py — session detection, status, and preflight.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_session.py
+    ./skills/plet/tests/test_plet_gate_session.py
 
 Red/green, command-by-command: detect first, then status, then preflight.
 """
@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from util_io import (state_json_path, state_dir_path, iter_state_path,
                      requirements_path, iterations_path)
 
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_session.py")
+TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_gate_session.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 
 passed = 0

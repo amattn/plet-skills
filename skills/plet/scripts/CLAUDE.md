@@ -94,7 +94,7 @@ Tests live at `skills/plet/tests/` (sibling to `scripts/`, not inside it).
 
 **Zero dependencies applies to tests too.** No pytest, no unittest, no third-party test frameworks. Tests use a minimal custom harness built on stdlib only. This matches the constraint on the scripts themselves — if the scripts can't use third-party packages, neither can their tests.
 
-**Run with:** `python3 skills/plet/tests/test_<script_name>.py` — each test file is directly executable.
+**Run with:** `./skills/plet/tests/test_<script_name>.py` — each test file is directly executable.
 
 **Test harness pattern** (consistent across all test files):
 
@@ -152,7 +152,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `plet_git_iteration.py` | Git iteration lifecycle (branches, worktrees) | `branch-name`, `worktree-create`, `worktree-remove` |
 | `plet_git_ops.py` | Git workflow operations | `audit-tag`, `merge-squash` |
 | `plet_git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
-| `plet_session.py` | Session detection, status, preflight | `detect`, `status`, `preflight` |
+| `plet_gate_session.py` | Session detection, status, preflight | `detect`, `status`, `preflight` |
 | `plet_gate_phase.py` | Phase gate (pre/post, `--phase implement\|verify`) | `pre`, `post` |
 | `plet_prompt.py` | Prompt assembly for subagents | `assemble` |
 | `plet_invoke.py` | Subprocess launch + transcript capture | `run` |

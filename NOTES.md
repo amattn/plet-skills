@@ -1411,7 +1411,7 @@ See FB_49 for full context.
 
 ### State file formats designed for external consumers
 
-Per STA_AGT_8, ENT_AGT_7, FPR_AGT_6, GTC_AGT_7, SES_AGT_6 — external GUI personas are documented across all script specs. State files use JSON for machine readability. `--output json` on every command enables programmatic consumption.
+Per STA_AGT_8, ENT_AGT_7, FPR_AGT_6, GTC_AGT_7, GSS_AGT_6 — external GUI personas are documented across all script specs. State files use JSON for machine readability. `--output json` on every command enables programmatic consumption.
 
 ### Transcript live-tail
 

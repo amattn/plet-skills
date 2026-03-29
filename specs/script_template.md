@@ -205,7 +205,7 @@ Script-specific non-functional requirements (if any):
 
 **Test infrastructure:**
 - File: `skills/plet/tests/test_plet_SCRIPTNAME.py`
-- Run: `python3 skills/plet/tests/test_plet_SCRIPTNAME.py`
+- Run: `./skills/plet/tests/test_plet_SCRIPTNAME.py`
 - Harness: stdlib-only custom harness per UNV_TST_2
 - All tests call the script via `subprocess.run()` (UNV_TST_4)
 - Temp fixtures via `tempfile.TemporaryDirectory()` (UNV_TST_5)

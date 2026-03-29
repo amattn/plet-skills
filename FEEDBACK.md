@@ -187,7 +187,7 @@ Same gap for NOTES.md and FEEDBACK.md — plet bootstraps the runtime artifacts 
 
 More broadly, plet may need a **bootstrap phase** before plan — a pre-flight that ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK.md exists, bypassPermissions is configured (FB_22), etc. Currently the plan session jumps straight into requirements gathering without verifying the foundation is in place.
 
-`[deferred → PLAN_8]` — `plet_session.py preflight` checks for this.
+`[deferred → PLAN_8]` — `plet_gate_session.py preflight` checks for this.
 
 ### FB_24: Requirements not written to disk incrementally despite PL_12 [artifacts] [prompting]
 

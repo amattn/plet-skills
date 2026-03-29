@@ -460,7 +460,7 @@ See `specs/conventions.md` for universal requirements.
 
 **Test infrastructure:**
 - File: `skills/plet/tests/test_plet_git_check.py`
-- Run: `python3 skills/plet/tests/test_plet_git_check.py`
+- Run: `./skills/plet/tests/test_plet_git_check.py`
 - Harness: stdlib-only custom harness per UNV_TST_2. Uses `run()` (subprocess) and `check()` (assert).
 - All tests call the script via `subprocess.run()` (UNV_TST_4).
 - **Git fixtures:** tests create temporary git repos with mock state.json, iteration state files, branches, worktrees, and controlled git state (dirty files, merge commits, stashes). Tests must clean up all git state after completion.

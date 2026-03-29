@@ -500,7 +500,7 @@ See `specs/conventions.md` for universal requirements.
 
 **Test infrastructure:**
 - File: `skills/plet/tests/test_plet_git_iteration.py`
-- Run: `python3 skills/plet/tests/test_plet_git_iteration.py`
+- Run: `./skills/plet/tests/test_plet_git_iteration.py`
 - Harness: stdlib-only custom harness per UNV_TST_2. Uses `run()` (subprocess) and `check()` (assert).
 - All tests call the script via `subprocess.run()` (UNV_TST_4).
 - **Git fixtures:** tests create temporary git repos (`git init` in tmpdir) with mock state.json and workstream branches. Tests must clean up all git state (worktrees, branches) after completion.
@@ -525,7 +525,7 @@ See `specs/conventions.md` for universal requirements.
 
 | # | Question | Context |
 |---|----------|---------|
-| 1 | ~~Should `.plet/worktrees/` be added to `.gitignore` automatically?~~ | Resolved: not GTI's job. `.plet/` should be gitignored entirely (worktrees, temp files, future caches). Preflight (`plet_session.py`) checks `.gitignore` has `.plet/` and warns if not. GTI is a leaf tool, not a project setup wizard. |
+| 1 | ~~Should `.plet/worktrees/` be added to `.gitignore` automatically?~~ | Resolved: not GTI's job. `.plet/` should be gitignored entirely (worktrees, temp files, future caches). Preflight (`plet_gate_session.py`) checks `.gitignore` has `.plet/` and warns if not. GTI is a leaf tool, not a project setup wizard. |
 | 2 | How does the subagent know its worktree path? | The orchestrator passes it as a working directory argument to `claude -p`. Need to verify `claude -p` supports `--cwd` or equivalent. If not, the orchestrator `cd`s into the worktree before spawning. |
 
 ## 15. Future Considerations (GTI_FUT)

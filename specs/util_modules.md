@@ -15,7 +15,7 @@ Argument parsing, validation, timestamps, dispatch, output filtering. The founda
 | `validate_enum(value, valid, name)` | Check value in valid list. Prints "invalid X, valid: ..." |
 | `validate_int(value, name)` | Parse string as int. Returns (int, True) or (None, False). |
 | `now_iso()` | Current UTC as `YYYY-MM-DDTHH:MM:SSZ`. |
-| `dispatch(commands, name, ver, skill_ver, doc)` | Standard main() — handles --help, --version, unknown commands, dispatches. |
+| `dispatch(commands, script_name, script_version, skill_version, doc, argv=None, no_log_commands=None)` | Standard main() — handles --help, --version, unknown commands, dispatches. Logs invocation via progress entry unless suppressed by `--no-log`, `PLET_NO_LOG=1`, or command in `no_log_commands` set. |
 | `filter_fields(data, fields)` | Limit dict to requested fields. Adds fieldsIncluded/fieldsOmitted. |
 | `get_plet_dir(args)` | Extract optional plet_dir from positional args. Returns `(plet_dir, remaining_args)`. Uses `util_io.DEFAULT_PLET_DIR` as default. |
 | `extract_output_flags(kwargs, allow_dry_run=False)` | Extract `--output`, `--pretty`, `--fields`, optionally `--dry-run` from kwargs. Returns `(output_json, pretty, fields, dry_run, ok)`. Validates flag dependencies. |

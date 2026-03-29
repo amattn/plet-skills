@@ -396,7 +396,7 @@ See `specs/conventions.md` for universal requirements.
 
 **Test infrastructure:**
 - File: `skills/plet/tests/test_plet_gate_impl.py`
-- Run: `python3 skills/plet/tests/test_plet_gate_impl.py`
+- Run: `./skills/plet/tests/test_plet_gate_impl.py`
 - Harness: stdlib-only custom harness per UNV_TST_2.
 - All tests call the script via `subprocess.run()` (UNV_TST_4).
 - **Fixtures:** tests create temp directories with git repos, state files, and plet runtime artifacts. Tests must create real git state (branches, clean worktree) for GTC integration to work.

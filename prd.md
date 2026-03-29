@@ -66,7 +66,7 @@ All branches namespaced under `plet/{projectId}/`. Agents never commit to main. 
 
 ### 3.1 Orchestration & Routing (OR)
 
-The core entry point logic that reads state and routes to the correct phase. OR_2–OR_6 routing is implemented by `plet_session.py detect`. OR_12 status is implemented by `plet_session.py status`. Environment readiness checks are implemented by `plet_session.py preflight`.
+The core entry point logic that reads state and routes to the correct phase. OR_2–OR_6 routing is implemented by `plet_gate_session.py detect`. OR_12 status is implemented by `plet_gate_session.py status`. Environment readiness checks are implemented by `plet_gate_session.py preflight`.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -379,7 +379,7 @@ Python scripts shipped in `skills/plet/scripts/` that enforce compliance determi
 | `plet_git_iteration.py` | Git iteration lifecycle | `branch-name`, `worktree-create`, `worktree-remove` |
 | `plet_git_ops.py` | Git workflow operations | `audit-tag`, `merge-squash` |
 | `plet_git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
-| `plet_session.py` | Session detection, status, preflight | `detect`, `status`, `preflight` |
+| `plet_gate_session.py` | Session detection, status, preflight | `detect`, `status`, `preflight` |
 | `plet_gate_phase.py` | Phase gate (pre/post) | `pre`, `post` (with `--phase implement\|verify`) |
 
 **Internal scripts** (called by orchestrator/invoke, not agent-callable):
@@ -404,8 +404,8 @@ Python scripts shipped in `skills/plet/scripts/` that enforce compliance determi
 ```
 Orchestrator
     │
-    ├── plet_session.py detect     → which session type?
-    ├── plet_session.py preflight  → environment ready?
+    ├── plet_gate_session.py detect     → which session type?
+    ├── plet_gate_session.py preflight  → environment ready?
     ├── plet_gate_phase.py pre     → iteration ready for phase?
     │
     ├── plet_prompt.py assemble    → build the prompt
@@ -555,7 +555,7 @@ DX items that the plan session should always consider incorporating into target 
 | Prompt assembly | `plet_prompt.py` | Assembles deterministic prompts from reference files + project state |
 | State management | `plet_state.py`, `util_state.py`, `util_io.py` | Schema enforcement, atomic writes, path derivation |
 | Compliance gates | `plet_gate_phase.py` | Pre/post phase checks, subagent self-correction |
-| Session detection | `plet_session.py` | Routing (detect), status, preflight checks |
+| Session detection | `plet_gate_session.py` | Routing (detect), status, preflight checks |
 | Git operations | `plet_git_iteration.py`, `plet_git_ops.py`, `plet_git_check.py` | Branches, worktrees, merge-squash, compliance checks |
 | Runtime artifacts | `plet_entries.py` | Formatted entry appends to progress/learnings/emergent |
 | Fingerprints | `plet_fingerprint.py` | Spec artifact consistency checking |

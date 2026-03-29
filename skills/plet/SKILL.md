@@ -11,7 +11,7 @@ allowed-tools:
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_iteration.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_ops.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_check.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_session.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_session.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_phase.py *)"
 ---
 
@@ -36,8 +36,8 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 
 ## The Job
 
-1. Detect the current phase via `plet_session.py detect`
-2. Run preflight via `plet_session.py preflight --session-type detect`
+1. Detect the current phase via `plet_gate_session.py detect`
+2. Run preflight via `plet_gate_session.py preflight --session-type detect`
 3. Route to the correct workflow
 4. For loop: assemble prompts via `plet_prompt.py`, launch subagents via `plet_invoke.py`
 
@@ -49,16 +49,16 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 | `/plet plan` | Force entry into Plan phase |
 | `/plet loop` | Force entry into autonomous loop |
 | `/plet refine` | Force entry into Refine phase |
-| `/plet status` | Print status via `plet_session.py status` |
+| `/plet status` | Print status via `plet_gate_session.py status` |
 
 ---
 
 ## Routing
 
-Phase detection is implemented by `plet_session.py detect`, but the skill should understand the logic it encodes:
+Phase detection is implemented by `plet_gate_session.py detect`, but the skill should understand the logic it encodes:
 
 ```bash
-SESSION=$(plet_session.py detect plet/)
+SESSION=$(plet_gate_session.py detect plet/)
 # Returns: plan, loop, or refine
 ```
 
@@ -111,7 +111,7 @@ Any iterations lifecycle: blocked AND none queued/implementing?
 Before entering any session, run preflight:
 
 ```bash
-plet_session.py preflight plet/ --session-type detect --output json
+plet_gate_session.py preflight plet/ --session-type detect --output json
 ```
 
 Checks: scripts installed, git health, CLAUDE.md exists, .gitignore configured, spec artifacts exist, state valid, fingerprints consistent. Exit 0 = ready, exit 1 = blocked, exit 2 = warnings.
@@ -166,7 +166,7 @@ plet_fingerprint.py embed plet/ --type requirements
 - After any requirements change: embed requirements → iterations → state
 - After iteration changes: embed iterations → state
 - After state-only changes: embed state
-- Before entering loop: `plet_session.py preflight` checks consistency
+- Before entering loop: `plet_gate_session.py preflight` checks consistency
 
 ---
 
@@ -284,12 +284,12 @@ The orchestrator is the longest-lived agent and most vulnerable to context compa
 ## Status
 
 ```bash
-plet_session.py status plet/
+plet_gate_session.py status plet/
 ```
 
 Prints: project name, session type, progress percentage, iteration counts by lifecycle, blockers, active agents, fingerprint consistency, milestones.
 
-JSON output available: `plet_session.py status plet/ --output json --pretty`
+JSON output available: `plet_gate_session.py status plet/ --output json --pretty`
 
 ---
 
@@ -366,8 +366,8 @@ Key commands for the orchestrator:
 
 ```bash
 # Routing
-plet_session.py detect plet/
-plet_session.py preflight plet/ --session-type loop
+plet_gate_session.py detect plet/
+plet_gate_session.py preflight plet/ --session-type loop
 
 # Gate checks
 plet_gate_phase.py pre plet/ --iter-id ID_xxx --phase implement
@@ -404,8 +404,8 @@ Semantic versioning in frontmatter `version`:
 
 Before entering any phase:
 
-- [ ] Run `plet_session.py detect` to determine phase
-- [ ] Run `plet_session.py preflight` to verify environment
+- [ ] Run `plet_gate_session.py detect` to determine phase
+- [ ] Run `plet_gate_session.py preflight` to verify environment
 - [ ] Warn user if preflight has failures or warnings
 - [ ] Read `plet/requirements.md` for project context (if it exists)
 - [ ] Read the appropriate reference file

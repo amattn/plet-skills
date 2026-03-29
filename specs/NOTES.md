@@ -30,7 +30,9 @@ This was validated across three case studies: state schema drift (the most persi
 | GTO | `plet_git_ops.py` | GT Operations |
 | GTC | `plet_git_check.py` | GT Check |
 | TRC | `plet_trace.py` | TRaCe |
-| SES | `plet_session.py` | SESsion |
+| GSS | `plet_gate_session.py` | Gate SeSsion (renamed from plet_session.py) |
+| SES | `plet_session.py` (new) | SESsion lifecycle (prefix reused after rename) |
+| SCH | `plet_schedule.py` | SCHedule |
 | PRM | `plet_prompt.py` | PRoMpt |
 | ORC | `plet_orchestrator.py` | ORChestrator |
 | GPH | `plet_gate_phase.py` | Gate PHase |
@@ -855,8 +857,8 @@ CLEANUP (per-iteration state controls):
 - **Unified input pattern:** All 3 commands take optional `plet_dir` (default `plet/`), derive paths internally. No more mixed `global_state_json + state_dir` vs `plet_dir`. Simpler for callers.
 - **detect stays separate from status:** Different audiences, different perf profiles. detect is a routing primitive (<500ms, bare output). status is a dashboard (<2s, rich formatted output).
 - **Fingerprint check via subprocess:** status calls `plet_fingerprint.py check` via subprocess (P1). Complex logic, already implemented — reuse, don't reimplement.
-- **JSON schemas:** All OUT sections use pulled-out fenced blocks with full stable labels (SES_DET_OUT_2, not OUT_2). Convention applied across all 9 specs.
-- **Postflight open question:** Added OQ_1 — should SES have a postflight command that calls GTC + ENT check + FPR check + state validation as a session-end gate? Evaluate during orchestrator spec.
+- **JSON schemas:** All OUT sections use pulled-out fenced blocks with full stable labels (GSS_DET_OUT_2, not OUT_2). Convention applied across all 9 specs.
+- **Postflight open question:** Added OQ_1 — should GSS have a postflight command that calls GTC + ENT check + FPR check + state validation as a session-end gate? Evaluate during orchestrator spec.
 - **DXP_3:** detect bare output exception references GTI_DXP_3 precedent.
 - **Router → session rename:** RTR → SES. All active references updated. FB_22/23 updated.
 - **§3.2 STS approved.** Unified plet_dir input (same as detect/preflight). Added BHV_8 (progress percentage), BHV_9 (milestone breakdown — bottom of text, full in JSON). Fingerprint check graceful degradation (null if unavailable).
@@ -979,7 +981,7 @@ CLEANUP (per-iteration state controls):
 | plet_git_ops.py | audit-tag, merge-squash | `<global_state_json> <iter_state_json>` (two files) |
 | plet_git_check.py | check-iteration | `<global_state_json> <iter_state_json>` (two files) |
 | plet_git_check.py | check-session | `<global_state_json> <state_dir>` (file + dir) |
-| plet_session.py | detect, status, preflight | `[<plet_dir>]` (optional dir) |
+| plet_gate_session.py | detect, status, preflight | `[<plet_dir>]` (optional dir) |
 
 **After (unified):**
 
@@ -1039,3 +1041,42 @@ Retrofitting all specs first, then implementations.
 - **Command-by-command red/green is non-negotiable** for all script implementations going forward. Write tests for one command first → run and confirm they fail (red) → implement the command → run and confirm they pass (green) → move to next command. No writing the script and tests together. No writing the script first.
 - **Why:** FPR was implemented script-and-tests-together, which worked but skipped the verification that tests actually catch failures. Red/green proves the tests are load-bearing — a test that was never red might always pass regardless of implementation.
 - **Granularity:** command-by-command, not all-at-once. Later commands often depend on earlier ones (embed depends on extract working). Writing all tests before any implementation would require mocking or placeholder behavior that adds complexity for no benefit.
+
+#### Structural consistency pass — --no-log convention + stale refs (2026-03-29)
+
+- **UNV_CMD_28 added** to `specs/conventions.md`: `--no-log` flag convention. Intentionally excluded from `--help` output — this flag is for tests and GUIs only, not agent use. Cascades via `PLET_NO_LOG=1` env var.
+- **`dispatch()` signature fixed** in `specs/util_modules.md`: was missing `argv` and `no_log_commands` parameters, now complete with logging behavior description.
+- **PLAN.md FB_29/FB_33 updated**: stale references to `plet_gate_impl.py`/`plet_gate_verify.py` corrected to `plet_gate_phase.py` (scripts were merged).
+- **11 spec files fixed** (earlier in session): `python3 skills/plet/tests/test_...` → `./skills/plet/tests/test_...` to match shebang-style convention from commit 7b8c0cc.
+
+#### Orchestrator execution model — toolkit + run (2026-03-29)
+
+- **Decision:** plet_orchestrator.py uses the **toolkit + run** model. Individual commands (`eligible`, `check-retry`, `start-session`, `end-session`, `check-breakpoints`) are available standalone for testing, debugging, and manual use. A `run` command implements the main loop as deterministic code, calling the individual commands internally and delegating subagent spawning to `plet_invoke.py`.
+- **Why:** The main loop is the most compaction-vulnerable and drift-prone part of the system. Case studies showed orchestrator prose drifting across iterations. Making the loop deterministic code eliminates this. Individual commands stay available for SKILL.md edge cases (breakpoint responses, merge conflicts, user intervention).
+- **Rejected alternatives:**
+  - **(A) Toolkit only** — loop logic stays in SKILL.md prose. Rejected because this is the exact failure mode from case studies (orchestrator drift under compaction).
+  - **(C) Full script-as-orchestrator** — Python script is the entry point, no SKILL.md loop. Deferred to v2 — open questions about `claude -p` capabilities need resolution first. Comparison runs should validate current architecture before committing.
+- **Interaction model:** `run` returns structured JSON indicating why it paused (breakpoint hit, iteration blocked, all complete). SKILL.md decides what to do next.
+
+#### Command distribution — 3 new scripts, 1 rename (2026-03-29)
+
+- **Decision:** Distribute orchestrator helper commands across focused scripts rather than packing them into existing scripts.
+- **Rename:** `plet_session.py` → `plet_gate_session.py`. The existing script (detect, status, preflight) is read-only session-level gate checks — parallel to `plet_gate_phase.py` for phase-level gates. Renaming makes this relationship explicit.
+- **New `plet_session.py`** — mutating session lifecycle: `start-session`, `end-session`. Manages loopSessionCount, sessionHistory, workstream branches.
+- **New `plet_schedule.py`** — loop scheduling decisions: `eligible` (dependency graph traversal), `check-breakpoints` (breakpoint lookup), `check-retry` (retry trend analysis). All read-only. These read state but their logic is orchestration decisions, not state CRUD.
+- **New `plet_orchestrator.py`** — the main loop: `run`. Calls plet_schedule, plet_session, plet_invoke, and all existing scripts.
+- **Why not add to existing scripts:** plet_state.py already 1032 lines / 4 commands — adding 3 more would push to ~1400+ / 7 commands. plet_session.py (now plet_gate_session.py) is read-only; mixing in mutating commands changes its character. Separate scripts keep each focused.
+- **Rejected:** (A) all helpers in plet_state.py (too large, wrong domain — scheduling ≠ CRUD); (B) split 2+1 across plet_state and new script (inconsistent — all 3 are scheduling concerns).
+
+**Updated script inventory (4 new scripts, 1 rename):**
+
+| Script | Commands | Domain |
+|--------|----------|--------|
+| `plet_gate_session.py` (renamed) | detect, status, preflight | Session-level gate checks (read-only) |
+| `plet_session.py` (new) | start-session, end-session | Session lifecycle (mutating) |
+| `plet_schedule.py` (new) | eligible, check-breakpoints, check-retry | Loop scheduling decisions (read-only) |
+| `plet_orchestrator.py` (new) | run | Main loop |
+
+#### Rename plet_session.py → plet_gate_session.py complete (2026-03-29)
+
+- Renamed 3 files: script, test, spec. Prefix SES_ → GSS_ globally (169 in spec, 2 elsewhere). All `plet_session` references updated to `plet_gate_session` across 12 files. 1247 tests pass. Parallel spawning model: eligible iterations launch concurrently, merge-squash stays serial.
