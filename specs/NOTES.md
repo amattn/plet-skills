@@ -879,6 +879,15 @@ CLEANUP (per-iteration state controls):
 - **Per-iteration files (state/{id}.json, trace/{id}-*) never conflict** — different file paths, no shared state.
 - **GUI multi-directory model confirmed:** Main plet/ = session dashboard. Worktree plet/ = iteration dashboard. GUI discovers worktrees via `git worktree list --porcelain`. Both views are valid, different scopes.
 
+#### Eval system design direction (2026-03-28)
+
+- **PLAN_9 redefined:** Was "comparison runs" (vague). Now "eval system + comparison runs" with per-role eval strategy (planner, implementer, verifier).
+- **Key insight from prompt work:** Building plet_prompt.py surfaced that we have no way to measure whether prompt changes improve outcomes. Ad-hoc case studies (LOGA, LIBT) extracted feedback but didn't systematically compare before/after.
+- **Three failure modes by role:** Planner failures = implementer/verifier blocked by vague specs. Implementer failures = rubber-stamped tests, poor coverage. Verifier failures = false negatives (things that slipped through).
+- **Long-term goal:** Eval as a first-class plet feature, like skill-creator's eval framework. Metrics collection, comparison reports, trend tracking.
+- **Phased approach:** Formalize case study template first (cheap), then comparison runs (PLAN_9b), then broader testing (PLAN_9c), then eval tooling (PLAN_9d).
+- **Both synthetic and emergent test cases needed.** Synthetic = deliberately vague criteria, injected bugs. Emergent = real failures from case study runs.
+
 #### INV spec + implementation (2026-03-28)
 
 - **Single command:** `run` with `--phase implement|verify`, `--cwd <worktree>`, `--iter-id`.

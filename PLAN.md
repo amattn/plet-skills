@@ -12,7 +12,7 @@
 | 6 | PLAN_6 | Extractable Skills | ✓ COMPLETE |
 | 7 | PLAN_7 | Feedback Triage | ✓ COMPLETE |
 | 8 | PLAN_8 | Python Tooling | **← IN PROGRESS** |
-| 9 | PLAN_9 | Comparison Runs | |
+| 9 | PLAN_9 | Eval System + Comparison Runs | |
 | 10 | PLAN_10 | Examples | deferred |
 
 ---
@@ -204,13 +204,42 @@ Build additional enforcement scripts in `skills/plet/scripts/` following the "Sk
 
 ---
 
-## PLAN_9: Comparison Runs
+## PLAN_9: Eval System + Comparison Runs
 
-Re-run case studies with improved plet to validate fixes.
+Formalize how we measure whether plet's prompts and scripts actually improve outcomes. Currently we do ad-hoc case studies (LOGA, LIBT) — this makes evaluation systematic.
 
-- **PLAN_9a:** Re-run logalyzer from plan checkpoint (`203c58a`, rebased from original `7cecbf5`) with improved plet
-- **PLAN_9b:** Compare Run 1 vs Run 2, identify impact of changes
-- **PLAN_9c:** Broader testing (refine session, harder project)
+**Long-term goal:** Eval becomes a first-class feature of plet, similar to how skill-creator measures triggering accuracy and skill performance. plet's eval measures prompt effectiveness across three roles (planner, implementer, verifier).
+
+### Eval Strategy by Role
+
+**Planner eval:**
+- Success: implement-verify loops run smoothly without hitting walls
+- Failure signals: implementer/verifier blocked by vague specs, missing requirements, poorly defined acceptance criteria — something wasn't surfaced during planning
+- Also: bugs or performance issues post-deployment signal a planning gap
+- Capture: emergent during case study runs
+
+**Implementer eval:**
+- Success: meets the spirit of acceptance criteria, not just the letter
+- Failure signals: rubber-stamped tests, poor coverage, code that technically passes but doesn't exercise the right things
+- Track: both synthetic failures (deliberately vague criteria) and wild failures (things verifier catches)
+
+**Verifier eval:**
+- Success: catches real problems, not catching the most things
+- Failure signals: false negatives — things that slipped through
+- Build: corpus of synthetic injected bugs and real wild misses
+
+**Common threads:**
+- Defining success criteria is harder than "more is better"
+- Need both synthetic and emergent test cases
+- Observability is the foundation — can't improve what you can't see
+- The feedback loop is the point — failures feed back into prompt iteration
+
+### Phases
+
+- **PLAN_9a:** Formalize the case study template with eval metrics (enhance `case_studies/CLAUDE.md`). Define what gets measured per role.
+- **PLAN_9b:** Re-run logalyzer (from plan checkpoint `203c58a`) with PLAN_8 tooling. Produce a structured comparison: before/after on measurable dimensions.
+- **PLAN_9c:** Broader testing — harder project, refine session, edge cases.
+- **PLAN_9d:** Design the eval tooling (plet_eval.py or similar). Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework.
 
 ---
 
