@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Run all plet test files and report results.
 
+Default mode is progress (-p) — shows a running counter with elapsed time.
+Subagents should use this default so the user can see progress. Before
+running, tell the user approximately how long to expect (typically 45-60s
+for the full suite as of 2026-03-29).
+
 Usage:
-    ./skills/plet/tests/test_all.py          # run all tests
-    ./skills/plet/tests/test_all.py -v        # verbose (show each file)
+    ./skills/plet/tests/test_all.py          # progress mode (default)
+    ./skills/plet/tests/test_all.py -v        # verbose (show each file with pass/fail counts)
     ./skills/plet/tests/test_all.py -q        # quiet (summary only)
-    ./skills/plet/tests/test_all.py -p        # progress (running count)
 """
 
 import glob
@@ -21,7 +25,12 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 def main():
     verbose = "-v" in sys.argv
     quiet = "-q" in sys.argv
-    progress = "-p" in sys.argv
+    # Progress is the default — only disabled by -v or -q
+    progress = not verbose and not quiet
+
+    if not quiet:
+        print("Hint: tell the user how long to expect (~45-60s for full suite)")
+        print()
 
     test_files = sorted(glob.glob(os.path.join(TESTS_DIR, "test_*.py")))
     # Exclude ourselves

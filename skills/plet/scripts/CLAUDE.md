@@ -96,6 +96,8 @@ Tests live at `skills/plet/tests/` (sibling to `scripts/`, not inside it).
 
 **Run with:** `./skills/plet/tests/test_<script_name>.py` — each test file is directly executable.
 
+**Run all:** `./skills/plet/tests/test_all.py` — runs all test files with progress output (default). Takes ~45-60s. Tell the user the expected duration before running. Use `-v` for verbose or `-q` for quiet summary only.
+
 **Test harness pattern** (consistent across all test files):
 
 ```python
