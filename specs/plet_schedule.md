@@ -80,6 +80,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
   "status": "ok",
   "command": "eligible",
   "eligible": ["ID_002", "ID_003"],
+  "stuckIterations": [],
   "counts": {
     "eligible": 2,
     "queued": 0,
@@ -120,6 +121,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 | SCH_ELG_BHV_2 | Iterations with empty dependency lists (`[]`) are eligible if their lifecycle is `queued` — they have no prerequisites. | P0 |
 | SCH_ELG_BHV_3 | The `counts` object in JSON output provides a full lifecycle census across all iterations in `dependencyMap`. This enables the orchestrator to detect loop completion (all `complete` or `blocked`) without reading every state file separately. | P1 |
 | SCH_ELG_BHV_4 | Output order: sorted by iteration ID ascending (e.g., `ID_001` before `ID_002`). | P0 |
+| SCH_ELG_BHV_5 | **Stuck iteration detection:** After evaluating eligibility, check for `queued` iterations whose dependencies can never be satisfied — any dep with lifecycle `blocked`, `withdrawn`, or `ineligible` (not `complete` and not `queued`). These are stuck. Report them in the `stuckIterations` array in JSON output. Each entry: `{"iterationId": "ID_004", "unsatisfiableDeps": ["ID_002"]}`. Circular dependencies are a special case: all iterations in the cycle are stuck because none can reach `complete` first. Text mode: print `stuck: ID_004 (blocked dep: ID_002)` after the eligible list. | P0 |
 
 ### 3.2 check-breakpoints (BKP)
 
@@ -288,7 +290,7 @@ Retry policy implements IMP_14. The decision tree:
 |----|-------------|----------|
 | SCH_EDG_1 | `eligible`: iteration references a dependency ID that has no state file. Hard error — exit 1, name the missing file. The dependency map references an iteration that doesn't exist on disk; the project needs manual repair. | P0 |
 | SCH_EDG_2 | `eligible`: `dependencyMap` is empty (`{}`). Return empty list, `counts` all zero. Exit 0. | P0 |
-| SCH_EDG_3 | `eligible`: circular dependency in `dependencyMap`. Not detected — this script does not validate the graph structure. Graph validation belongs in plan session (plet_fingerprint.py or a future consistency tool). Circular deps result in no iterations being eligible (none can satisfy all deps). | P1 |
+| SCH_EDG_3 | `eligible`: stuck iterations — `queued` but dependencies can never be satisfied (dep is `blocked`, `withdrawn`, or part of a circular chain). Detected by `eligible`: if an iteration is `queued` and any dep has lifecycle other than `complete` or `queued`, it is stuck. Reported in `stuckIterations` array in JSON output with the unsatisfiable dep IDs. Circular deps are a special case — all iterations in the cycle are stuck (none can reach `complete` first). | P0 |
 | SCH_EDG_4 | `check-breakpoints`: `--iter-id` not in `dependencyMap`. Still check the breakpoints arrays — breakpoints reference iteration IDs directly, independent of the dependency map. Return `hit` or `miss` normally. | P0 |
 | SCH_EDG_5 | `check-retry`: per-iteration state has `verificationReports` with reports that have no `criteriaResults`. Treat as 0 failures for that report. | P1 |
 | SCH_EDG_6 | `check-retry`: only one verification report exists. Cannot determine trend from a single point. If verify attempts < 3, decision is `continue`. | P0 |
@@ -460,7 +462,7 @@ See `specs/conventions.md` for requirements common to all scripts.
 | 1 | Should `eligible` detect stuck iterations (stale heartbeat)? | No — `eligible` only evaluates the dependency graph against lifecycles. Stuck-iteration detection is a separate concern for the orchestrator or a health check command. (SCH_EDG_7) |
 | 2 | Should `eligible` return iterations in `implementing`/`verifying` for resume? | No — only `queued` iterations with satisfied deps. Resume logic is the orchestrator's job — it reads lifecycles directly. |
 | 3 | Should `check-retry` count `error` and `skipped` criteria as failures? | No — only `fail` status counts. `error` indicates an unexpected problem (different from a quality issue). `skipped` is a deliberate decision. (SCH_RTY_BHV_3) |
-| 4 | Should `eligible` validate the dependency graph (cycles, missing IDs)? | No — graph validation belongs in the plan session. This script evaluates an assumed-valid graph. Circular deps naturally result in no iterations being eligible. (SCH_EDG_3) |
+| 4 | Should `eligible` detect stuck iterations (unsatisfiable deps, cycles)? | Yes — `eligible` already reads the full graph. If it returns empty but queued iterations remain, something is stuck. Report stuck iterations with their unsatisfiable deps in `stuckIterations` array. Full graph validation (structural correctness) still belongs in the plan session, but runtime dead-end detection belongs here. (SCH_EDG_3, SCH_ELG_BHV_5) |
 | 5 | Where do these commands live — in existing scripts or a new one? | New `plet_schedule.py` script. plet_state.py already 1032 lines / 4 commands. These are scheduling concerns, not state CRUD. See specs/NOTES.md § Command distribution. |
 | 6 | Should `eligible` include `parallelGroups` in JSON output? | No — keep eligible focused on dependency evaluation. The orchestrator already reads state.json for session history and breakpoints, so it has `parallelGroups` in hand. Duplicating it in eligible output mixes "who's ready" with "how to schedule", and couples eligible to scheduling strategy changes. |
 

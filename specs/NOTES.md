@@ -1104,6 +1104,16 @@ Retrofitting all specs first, then implementations.
 - **Corruption detection:** multiple `sessionHistory` entries with `endedAt: null` is a hard error (SES_EDG_7/ERR_9). Refuse to operate — state needs manual repair. Applies to both start-session and end-session.
 - Does NOT create git branches — returns name for orchestrator to create via plet_git_iteration.py.
 
+#### Lifecycle transition ownership — handoffs vs decisions (2026-03-29)
+
+- **Model:** Lifecycle transitions split into handoffs (subagent signals "I'm done") and decisions (orchestrator chooses next state based on multiple inputs).
+- **Implement subagent:** owns `implementing → verifying` (handoff — sender signals completion). If crash, stays `implementing` — clean signal.
+- **Verify subagent:** does NOT touch lifecycle. Only sets `lastVerdict` + verification report. Lifecycle stays `verifying` until orchestrator acts.
+- **Orchestrator:** owns `queued → implementing` (reservation), `verifying → complete` (after merge), `verifying → queued` (retry), `verifying → blocked` (exhausted/blocked verdict).
+- **Why asymmetric:** `implementing → verifying` is a handoff (subagent knows it's done). `verifying → ???` is a decision requiring verdict + merge success + retry policy — three inputs only the orchestrator has. Letting verify subagent set `complete` makes lifecycle lie when merge fails.
+- **State window after verify exits:** lifecycle `verifying` + lastVerdict `passed/rejected/blocked` = truthful at every moment. `complete` only after code is on workstream.
+- **Impact:** verify.md needs updating — remove lifecycle transitions from verify subagent. implement.md stays as-is. Gate scripts enforce the model (see below).
+
 #### Standardize on NDJSON, retire JSONL for plet-produced files (2026-03-29)
 
 - **Decision:** NDJSON is the canonical name and extension for all files plet produces. `.ndjson` extension, "NDJSON" in prose. Replaces `.jsonl` in transcript filenames and all references.

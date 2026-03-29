@@ -477,3 +477,13 @@ The red/green discipline as originally stated ("write tests first, they must fai
 The fix (already applied to CLAUDE.md § Red/Green Development Discipline): stub the script first, then write tests (meaningful red), then implement (green). This distinction is load-bearing — without it, red/green is theater that gives false confidence.
 
 **PRD impact:** `[resolved]` — IMP_4 in prd.md updated with meaningful-red requirement. implement.md Red Step updated with stub-first rule. The requirement is now formal: stubs before tests, behavioral failures only.
+
+### FB_55: plet_gate_phase.py post should verify audit tag exists [artifacts] [git]
+
+The post gate checks entries, state, trace — but not whether the subagent created the audit tag via `plet_git_ops.py audit-tag`. If the subagent skips it, the tag is silently missing. The orchestrator relies on the tag for pre-squash history preservation.
+
+Fix: add a git tag existence check to `plet_gate_phase.py post`. Verify the expected tag (`plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`) exists. If missing, the subagent self-corrects by creating it before exiting.
+
+Discovered during ORC spec review — audit-tag was initially duplicated between subagent and orchestrator. Resolution: subagent owns it, post gate verifies it.
+
+Expanded during lifecycle ownership analysis: post gate now also enforces lifecycle handoff (post implement: lifecycle must be `verifying`) and lifecycle unchanged (post verify: lifecycle must still be `verifying` — verify subagent must not touch it). Added as GPH_PST_BHV_11, BHV_12, BHV_13 in plet_gate_phase.md spec.

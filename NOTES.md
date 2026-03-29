@@ -255,6 +255,20 @@ Meanwhile, learnings/emergent capture (enforced only via prose rule R_7) regress
 
 **Implication:** Any plet rule that agents consistently violate should be a candidate for tooling enforcement, not stronger prose. The pattern: (1) define the rule in prose, (2) if agents drift, build a tool that makes compliance automatic, (3) ship the tool inside the skill.
 
+### Handoffs vs decisions — lifecycle transition ownership
+
+State transitions in a multi-agent system fall into two categories, and confusing them causes bugs:
+
+**Handoffs** — "I'm done, next step please." Owned by the sender. The agent that just finished signals completion by writing a state change. Example: the implement subagent sets lifecycle → `verifying` to signal "my work is committed, spawn verify." If it crashes, lifecycle stays `implementing` — clean signal that work didn't complete.
+
+**Decisions** — "What happens next based on multiple inputs." Owned by the coordinator. The orchestrator evaluates verdict + merge success + retry policy to choose the next state. Example: after verify, the orchestrator sets lifecycle → `complete` (after merge), `queued` (retry), or `blocked` (exhausted). No single subagent has all the inputs needed for this decision.
+
+**Why this matters:** If a subagent makes a decision it shouldn't (verify agent sets `complete` before merge), the state lies when merge fails. If the coordinator makes a handoff it shouldn't (orchestrator sets `verifying` instead of letting the implement agent signal), there's a gap where completion status is ambiguous.
+
+**Enforcement:** Gate scripts enforce the model. Post-implement gate FAILs if lifecycle isn't `verifying` (handoff didn't happen). Post-verify gate FAILs if lifecycle changed from `verifying` (decision was made by wrong owner). Self-correction loops catch violations before the subagent exits.
+
+This principle applies beyond plet — any system where multiple agents modify shared state needs clear ownership of each transition.
+
 ### Meaningful red vs meaningless red in red/green testing
 
 A test that fails because the thing it's testing doesn't exist yet is **meaningless red** — it proves nothing about the test's ability to catch bad behavior. Whether it's a missing script (`FileNotFoundError`), a missing class (`ImportError`), or a missing function (`AttributeError`), the test would fail identically regardless of what it asserts. Meaningless red gives false confidence that the red/green discipline was followed.

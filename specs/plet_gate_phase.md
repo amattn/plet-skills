@@ -241,7 +241,10 @@ Post-gate re-verifies git and state, then checks artifacts. Verify adds verdict 
 | GPH_PST_BHV_7 | **last-verdict**: Reads `lastVerdict` from iter state. FAIL if null. **verify only** — implement doesn't produce verdicts. | P0 |
 | GPH_PST_BHV_8 | **verification-report**: Reads `verificationReports` from iter state. FAIL if empty or last entry missing `verdict`/`criteriaResults`. **verify only**. | P0 |
 | GPH_PST_BHV_9 | ENT check called once, three check results extracted. Both phases. | P0 |
-| GPH_PST_BHV_10 | Check order: git-check → state-valid → progress → learnings → emergent → trace → last-verdict (verify only) → verification-report (verify only). | P0 |
+| GPH_PST_BHV_10 | Check order: git-check → state-valid → lifecycle-handoff → audit-tag → progress → learnings → emergent → trace → last-verdict (verify only) → verification-report (verify only) → lifecycle-unchanged (verify only). | P0 |
+| GPH_PST_BHV_11 | **lifecycle-handoff**: Reads lifecycle from iter state. **implement post**: FAIL if not `verifying` — the implement subagent must set lifecycle → `verifying` as its handoff signal before exiting. Self-correction: subagent sets it and re-runs post gate. | P0 |
+| GPH_PST_BHV_12 | **lifecycle-unchanged**: Reads lifecycle from iter state. **verify post only**: FAIL if not `verifying` — the verify subagent must NOT touch lifecycle. If it changed to `complete`, `implementing`, or `blocked`, that violates the ownership model (orchestrator owns post-verify transitions). Self-correction: subagent reverts lifecycle to `verifying` and re-runs post gate. | P0 |
+| GPH_PST_BHV_13 | **audit-tag**: Checks git tag exists for current phase: `plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`. FAIL if missing — the subagent must create the audit tag before exiting (FB_55). Both phases. | P0 |
 
 ---
 
