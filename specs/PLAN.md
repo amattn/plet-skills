@@ -55,6 +55,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 30 | Implement `plet_session.py` | Build from spec. |
 | 31 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Toolkit + run model. Calls plet_schedule, plet_session, plet_invoke, and all existing scripts. |
 | 32 | Implement `plet_orchestrator.py` | Build from spec. |
+| 33 | Retrofit UNV_CMD_29 (unknown flags error) across existing scripts | Extract `validate_flags` into `util_cli`, retrofit all 11 existing scripts + 3 new scripts. Pattern proven during plet_schedule + plet_session implementation. |
 
 ## Status
 
@@ -88,9 +89,10 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 24 | `plet_invoke.py` spec (INV) | ✓ complete |
 | 25 | `plet_invoke.py` implementation | ✓ complete |
 | 26 | Rename `plet_session.py` → `plet_gate_session.py` (GSS) | ✓ complete |
-| 27 | `plet_schedule.py` spec (SCH) | not started |
+| 27 | `plet_schedule.py` spec (SCH) | ✓ complete |
 | 28 | `plet_schedule.py` implementation | not started |
 | 29 | `plet_session.py` spec (SES reused) | not started |
 | 30 | `plet_session.py` implementation | not started |
 | 31 | `plet_orchestrator.py` spec (ORC) | not started |
 | 32 | `plet_orchestrator.py` implementation | not started |
+| 33 | Retrofit UNV_CMD_29 (unknown flags) across all scripts | not started |

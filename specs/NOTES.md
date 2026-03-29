@@ -1080,3 +1080,18 @@ Retrofitting all specs first, then implementations.
 #### Rename plet_session.py → plet_gate_session.py complete (2026-03-29)
 
 - Renamed 3 files: script, test, spec. Prefix SES_ → GSS_ globally (169 in spec, 2 elsewhere). All `plet_session` references updated to `plet_gate_session` across 12 files. 1247 tests pass. Parallel spawning model: eligible iterations launch concurrently, merge-squash stays serial.
+
+#### plet_schedule.py spec (SCH) — complete (2026-03-29)
+
+- 3 read-only commands: `eligible` (dependency graph), `check-breakpoints` (breakpoint lookup), `check-retry` (retry trend analysis per IMP_14).
+- `eligible` does NOT detect stuck agents, does NOT validate graph, does NOT include `parallelGroups` — single responsibility (what's ready, not how to schedule).
+- `check-retry` failure count = criteria with `status == "fail"` only. `error`/`skipped` excluded.
+- `parallelGroups` excluded from eligible output — orchestrator already has state.json in hand, avoids coupling eligible to scheduling strategy.
+- **Review decisions:**
+  - Missing state file in dependency map → hard error (exit 1), not warning. Corruption needs manual fix.
+  - Retry limit applies to verify attempts only, not total (implement + verify).
+  - SCH_RTY_BHV_6: `blocked` verdict → orchestrator must NOT call check-retry. Retry only evaluates `rejected`.
+  - SCH_NFR_2: uses `util_state.load_and_validate_iter_state` + explicit lifecycle enum check. Catches both structural corruption and lifecycle typos.
+- **UNV_CMD_29 added:** unknown flags error. New scripts implement from the start; retrofit existing scripts in seq 33.
+- **FB_52 filed:** plan/refine sessions need explicit ambiguity/gap detection steps.
+- **FB_53 filed:** different software types need different planning templates.

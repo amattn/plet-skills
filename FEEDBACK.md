@@ -441,3 +441,29 @@ Currently agents must manually include `elapsedSeconds` and `lastHeartbeat` in e
 3. **Convenience flag for heartbeat-only updates.** Sometimes the agent wants to signal "I'm alive" without changing any fields. A `plet_state.py heartbeat plet/ --iter-id ID_xxx` command (or `update-field` with no `--data`) would update just `lastHeartbeat` and `elapsedSeconds`. Useful for long-running operations where no state fields change but the agent needs to prevent the 5-minute stale detection.
 
 **Impact:** Eliminates a class of agent compliance failures. Heartbeat and elapsed time become infrastructure, not agent responsibility. Reference files (implement.md, verify.md) can simplify their "update heartbeat on every write" guidance to just "call plet_state.py — heartbeat updates automatically."
+
+### FB_52: Plan and refine sessions need explicit ambiguity/gap detection steps [planning] [prompting]
+
+Plan and refine session reference files (plan.md, refine.md) should include explicit directives for the agent to actively look for ambiguities, functionality gaps, and specificity gaps in requirements and acceptance criteria. Currently these sessions focus on capturing what the user wants, but don't systematically probe for what's missing or underspecified — the kind of gaps that cause `blocked` verdicts during implementation or verification.
+
+Examples of what the agent should surface:
+- Requirements that are too vague to verify ("good performance" → what threshold?)
+- Acceptance criteria that don't cover edge cases or error paths
+- Functionality gaps between requirements (feature A assumes feature B exists, but B isn't specified)
+- Ambiguous terms that different agents might interpret differently
+
+This would reduce `blocked` iterations and cycle-backs caused by spec gaps that could have been caught during planning.
+
+### FB_53: Different software types need different planning templates [planning] [config]
+
+The current plan session and requirements template is shaped by the projects we've built so far (CLI tools, Python scripts). But different kinds of software need fundamentally different specs:
+
+- **CLI tools** — command inventory, input/output contracts, error codes, flag conventions
+- **Web apps** — routes, pages, components, user flows, auth, responsive behavior
+- **APIs** — endpoints, request/response schemas, auth, rate limiting, versioning
+- **Libraries** — public API surface, type signatures, backwards compatibility
+- **Data pipelines** — input/output schemas, transformation rules, error handling, idempotency
+
+A requirements document for a web app needs sections on UI/UX, navigation, responsive design, and user personas that a CLI tool spec doesn't. A library spec needs API surface documentation that a web app doesn't.
+
+plet's plan session should either support multiple requirements templates (selected during project setup) or have a flexible enough structure that the agent adapts the sections to the project type. Currently the template is implicit in plan.md's guidance — making it explicit and configurable would produce better specs for non-CLI projects.
