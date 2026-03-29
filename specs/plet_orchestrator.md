@@ -1,10 +1,36 @@
 # plet_orchestrator.py (ORC)
 
-> Status: draft
+> Status: complete
 
 > **Design notes (from other specs)** preserved from pre-spec stub — incorporated into formal sections below.
 
 The capstone script — the main implement→verify loop as deterministic code. Reads state, spawns subagents, processes results, manages git operations, and loops until all iterations are complete, blocked, or a breakpoint is hit. Returns structured JSON so SKILL.md knows why it stopped.
+
+> **Historical reference — SKILL.md Loop Phase prose (what this script codifies):**
+>
+> The following is the prose-based loop orchestration from SKILL.md that this script replaces with deterministic code. Preserved here as a guide for what the script is meant to do — the BHV requirements below are the formal specification.
+>
+> 1. Session setup: increment `loopSessionCount`, branch from previous workstream (or main), update `sessionHistory`
+> 2. Identify eligible iterations: dependencies `complete`, lifecycle `queued`
+> 3. For each eligible iteration:
+>    a. Run pre-gate: `plet_gate_phase.py pre --iter-id ID_xxx --phase implement`
+>    b. Create worktree: `plet_git_iteration.py worktree-create --iter-id ID_xxx`
+>    c. Launch implement subagent: `plet_invoke.py run --iter-id ID_xxx --phase implement --cwd <worktree>`
+>       - Prompt assembled by `plet_prompt.py assemble` (includes implement.md, iteration definition, formats.md, state-schema.md sections, requirements.md, learnings.md, per-iteration state)
+>       - Invocation logged to trace event + progress entry. Transcript captured line-by-line.
+>    d. Subagent runs post-gate before exiting: `plet_gate_phase.py post --phase implement`
+> 4. After implementation completes (lifecycle → `verifying`), spawn verification subagent in fresh context on same branch. One verify per iteration — never batch.
+>    a. Pre-gate: `plet_gate_phase.py pre --phase verify`
+>    b. Launch: `plet_invoke.py run --phase verify --cwd <worktree>`
+>       - Verify prompt: same sections but verify.md instead of implement.md
+>       - Verify agent verifies the **result**, not the **process**
+>    c. Subagent runs post-gate: `plet_gate_phase.py post --phase verify` (also checks lastVerdict + verificationReports)
+> 5. After verification: pass → audit tag + merge-squash; issues → cycle back
+> 6. Clean up worktree
+> 7. Re-evaluate dependency graph, spawn next eligible
+> 8. Check breakpoints before/after each iteration
+> 9. Continue until all `complete` or `blocked`
+> 10. End session: update `sessionHistory.endedAt`, offer merge options
 
 ## 1. Purpose (PUR)
 
@@ -194,18 +220,18 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ORC_RUN_BHV_6 | Call `plet_schedule.py eligible --output json`. Read the `eligible` list and `counts`. If no eligible iterations and nothing in-progress → session end (Phase 3). | P0 |
-| ORC_RUN_BHV_7 | **Parallel spawn (default):** The parallel window is: breakpoint-before check → worktree-create → implement → verify. All eligible iterations run this window concurrently. The sequential boundary is after verify completes — each iteration joins a queue for verdict processing, merge-squash, worktree removal, breakpoint-after, and progress entry. Merge-squash must be serial (shared runtime artifacts). `--sequential` forces the entire per-iteration flow to be one-at-a-time. | P0 |
-| ORC_RUN_BHV_8 | **Breakpoint check (before):** Call `plet_schedule.py check-breakpoints --iter-id {id} --position before --output json`. If `hit`, return immediately with `reason: "breakpoint_before"` and `pauseContext.iterationId`. Do not start the iteration. | P0 |
+| ORC_RUN_BHV_7 | **Parallel spawn (default):** The parallel window is: breakpoint-before check → worktree-create → implement → verify. All eligible iterations run this window concurrently. The sequential boundary is after verify completes — each iteration joins a queue for verdict processing, merge-squash, worktree removal, breakpoint-after, and progress entry. Merge-squash must be serial (shared runtime artifacts). `--sequential` forces the entire per-iteration flow to be one-at-a-time. **Round-based:** all eligible iterations spawn as one round. Wait for all to finish their parallel window, then process all sequentially, then re-evaluate eligible for the next round. Streaming re-evaluation (dynamically adding to the parallel pool mid-round) is a future consideration (ORC_FUT_2). | P0 |
+| ORC_RUN_BHV_8 | **Breakpoint check (before):** Call `plet_schedule.py check-breakpoints --iter-id {id} --position before --output json`. If `hit`, do not start this iteration. In parallel mode, let all other in-flight iterations in the current round finish their parallel window and sequential processing before returning. Then return with `reason: "breakpoint_before"` and `pauseContext.iterationId`. This ensures no work is abandoned mid-phase. | P0 |
 | ORC_RUN_BHV_9 | **Worktree creation:** Call `plet_git_iteration.py worktree-create --iter-id {id} --output json`. Read `worktreePath` from response. | P0 |
 | ORC_RUN_BHV_10 | **Implement phase:** Update lifecycle to `implementing` via `plet_state.py update-field --data '{"lifecycle":"implementing"}'`. Then call `plet_invoke.py run --iter-id {id} --phase implement --cwd {worktreePath} --output json`. The subagent handles audit-tag and post-gate self-correction before exiting — the orchestrator does not call audit-tag. | P0 |
 | ORC_RUN_BHV_11 | **Verify phase:** Read lifecycle from iter state — expect `verifying` (implement subagent's handoff). If not `verifying`, the implement subagent didn't complete cleanly — handle per ORC_EDG_3. Then call `plet_invoke.py run --iter-id {id} --phase verify --cwd {worktreePath} --output json`. The subagent handles audit-tag and post-gate self-correction before exiting. The verify subagent does NOT touch lifecycle — it only sets `lastVerdict`. | P0 |
-| ORC_RUN_BHV_12 | **Verdict processing:** Read `lastVerdict` from per-iteration state file. Three paths: | P0 |
+| ORC_RUN_BHV_12 | **Verdict processing:** Read `lastVerdict` from per-iteration state file. If `lastVerdict` is missing or null after verify returns, the verify subagent didn't complete properly despite post-gate (GPH_PST_BHV_7 should have caught this) — treat as error, set lifecycle → `blocked`, write progress + emergent entries. Defensive check, not expected in normal operation. Otherwise, three paths: | P0 |
 
 **Verdict: `passed`**
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_RUN_BHV_13 | Merge iteration to workstream: orchestrator runs `plet_git_ops.py merge-squash --iter-id {id} --output json` from the workstream branch (not the worktree). merge-squash squashes the iteration branch into the workstream as a single commit. Worktree still exists at this point — removed in BHV_16 after merge. If HEAD unchanged since last squash (no commits in iteration), skip audit-tag and merge-squash entirely. Update lifecycle to `complete`. | P0 |
+| ORC_RUN_BHV_13 | Merge iteration to workstream: orchestrator runs `plet_git_ops.py merge-squash --iter-id {id} --output json` from the workstream branch (not the worktree). merge-squash squashes the iteration branch into the workstream as a single commit. Worktree still exists at this point — removed in BHV_16 after merge. Orchestrator sets lifecycle → `complete`. (No-commits case is blocked earlier — see ORC_EDG_1.) | P0 |
 
 **Verdict: `rejected`**
 
@@ -233,6 +259,7 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
+| ORC_RUN_BHV_27 | **Postflight:** Call `plet_gate_session.py postflight --session-type loop --output json`. Runs the same checks as preflight (git health, state validity, fingerprints) plus any end-of-session checks (transient lifecycle detection). Warnings logged to the COMPLETE canary — do not block end-session. A closed session with warnings is better than a dangling open session. | P0 |
 | ORC_RUN_BHV_21 | Call `plet_session.py end-session --output json`. | P0 |
 | ORC_RUN_BHV_22 | Write a COMPLETE canary progress entry with session summary (iterations completed, blocked, duration). | P0 |
 | ORC_RUN_BHV_23 | Return structured JSON with `reason` and lifecycle counts. | P0 |
@@ -241,19 +268,19 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_RUN_BHV_24 | **Logging responsibility:** The orchestrator logs results of git operations (audit-tag, merge-squash) to progress.md via `plet_entries.py` and to trace via `plet_trace.py append-event`. The git scripts (GTO, GTI) are pure tools — they return data but don't log. | P0 |
-| ORC_RUN_BHV_25 | **Trace events:** The orchestrator writes semantic events for its own decisions: session start/end, iteration spawn, verdict received, retry decision, breakpoint hit, merge result. Event type prefix: `orchestrator_*`. | P1 |
+| ORC_RUN_BHV_24 | **Logging responsibility:** The orchestrator logs merge-squash results and verdict decisions to trace via `plet_trace.py append-event`. The per-iteration progress entry (BHV_18) covers the human-readable record — includes verdict, merge result, and retry decision in one entry. Git scripts (GTO, GTI) are pure tools — return data, don't log. Audit-tag is the subagent's responsibility (not orchestrator). | P0 |
+| ORC_RUN_BHV_25 | **Trace events:** The orchestrator writes semantic events for its own decisions via `plet_trace.py append-event`. Event type prefix: `orchestrator_*`. Events: session start/end, eligible round snapshot (which iterations were eligible + counts at each re-evaluation), iteration spawn, verdict received, retry decision, breakpoint hit, merge result, fingerprint check result (stale? allow-stale override?). Round snapshots and fingerprint decisions are orchestrator-specific insights not derivable from other sources. | P1 |
 | ORC_RUN_BHV_26 | **Heartbeat with subagent status:** During subagent execution, the orchestrator emits a `heartbeat` NDJSON event every 60 seconds. Each heartbeat reads `lastHeartbeat` and `agentActivity` from the per-iteration state file (written by the subagent). If the subagent's `lastHeartbeat` is >5 minutes old, emit a `stale_subagent` event instead — the subagent may have crashed or hung. This gives SKILL.md and the GUI a complete liveness picture from one stream. | P0 |
 
 ## 4. Edge Cases (EDG)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_EDG_1 | **No commits in iteration:** If the implement phase produces no commits (HEAD unchanged), skip audit-tag and merge-squash for implement. If verify also produces no commits, skip those too. The orchestrator detects this by comparing HEAD before and after `plet_invoke.py run`. | P0 |
+| ORC_EDG_1 | **No commits in implement:** If the implement phase produces no commits (HEAD unchanged), block the iteration — red/green discipline means every criterion produces at least one commit. Zero commits means the subagent didn't follow protocol. Write progress + emergent entries. Do not proceed to verify. The orchestrator detects this by comparing HEAD before and after `plet_invoke.py run`. | P0 |
 | ORC_EDG_2 | **Merge conflict:** If `plet_git_ops.py merge-squash` fails with a conflict, set the iteration to `blocked`, write a progress entry and emergent entry describing the conflict. Do NOT attempt automatic resolution — merge conflicts indicate an unexpected file overlap between iterations, likely a dependency graph gap. | P0 |
-| ORC_EDG_3 | **Subagent crash (non-zero exit from plet_invoke):** The transcript is captured regardless (plet_invoke handles this). Log the failure, check if the subagent made partial progress (state file updates, commits). If partial progress exists, attempt verify anyway. If no progress, set lifecycle to `blocked`. | P0 |
+| ORC_EDG_3 | **Subagent crash (non-zero exit from plet_invoke):** The transcript is captured regardless (plet_invoke handles this). Log the failure, then check criteria status in the per-iteration state file. If all criteria have implementation status `pass`, the crash was during wrap-up (audit tag, post gate) — proceed to verify. If any criteria are incomplete, block the iteration. This same heuristic applies to EDG_5 (resume after crash). | P0 |
 | ORC_EDG_4 | **All eligible iterations hit breakpoints:** If every eligible iteration has a `before` breakpoint, the orchestrator pauses immediately with the first one. SKILL.md presents the breakpoint to the user, who can remove it and re-run. | P0 |
-| ORC_EDG_5 | **Interrupted resume:** The orchestrator is re-invoked after a crash. `start-session` resumes (idempotent). `eligible` returns the current state. Iterations left in `implementing` or `verifying` (agent crashed mid-work) need cleanup: check if the worktree still exists, check for partial commits, decide whether to re-queue or block. | P0 |
+| ORC_EDG_5 | **Interrupted resume:** The orchestrator is re-invoked after a crash. `start-session` resumes (idempotent). `eligible` returns the current state. Iterations left in `implementing` or `verifying` (agent crashed mid-work) need cleanup: check if the worktree still exists, then apply the same heuristic as EDG_3 — read criteria status from per-iteration state file. All criteria pass → proceed to next phase (verify or merge). Incomplete criteria → re-queue (`queued`) for fresh attempt. | P0 |
 | ORC_EDG_6 | **Stale fingerprints:** `plet_fingerprint.py check` reports staleness. The orchestrator warns but continues — implementing against a slightly stale spec is better than blocking the entire loop. Staleness is triaged during refine. | P0 |
 | ORC_EDG_7 | **Concurrent plet_orchestrator.py instances:** Not supported. If two orchestrators run on the same project, state corruption is likely. Detection: check for an ACTIVE canary in progress.md with a recent timestamp (< 5 minutes). If found, warn and refuse to start. | P1 |
 
@@ -263,7 +290,7 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 |----|-------------|----------|
 | ORC_ERR_1 | Missing `state.json`: `Error: state.json not found at {path}` → exit 1. | P0 |
 | ORC_ERR_2 | Preflight fails (exit 1): `Error: preflight failed — {details}` → exit 1. | P0 |
-| ORC_ERR_3 | Script call failure (non-zero exit from any plet script): log the error, include script name, command, args, stderr. For non-critical scripts (entries, trace), log and continue. For critical scripts (state, git_ops, invoke), evaluate impact per EDG rules. | P0 |
+| ORC_ERR_3 | Script call failure (non-zero exit from any plet script): every script call is critical. Log the error with script name, command, args, stderr. Evaluate impact per EDG rules — block the iteration or session depending on which script failed and whether recovery is possible. Do not silently skip failures. | P0 |
 | ORC_ERR_4 | Unknown flags: per UNV_CMD_29. | P0 |
 | ORC_ERR_5 | Invalid `--max-iterations` value (not a positive integer): `Error: --max-iterations must be a positive integer` → exit 1. | P1 |
 
@@ -273,7 +300,7 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 |----|-------------|----------|
 | ORC_FMT_1 | Reads: `state.json` (via plet_schedule, plet_session), per-iteration state files (via plet_schedule, plet_state). | P0 |
 | ORC_FMT_2 | Writes (via other scripts): `state.json` (session lifecycle), per-iteration state (lifecycle transitions), `progress.md` (session events), trace events (orchestrator decisions). | P0 |
-| ORC_FMT_3 | Does not read or write files directly — all I/O goes through plet scripts via subprocess. Exception: util_* modules for path derivation and JSON loading when needed for orchestrator-internal logic (e.g., reading lastVerdict from iter state). | P0 |
+| ORC_FMT_3 | Does not read or write files directly — all I/O goes through plet scripts via subprocess. Exception: util_* modules imported directly (they are libraries). Uses `util_state.load_and_validate_iter_state` to read per-iteration state for `lastVerdict` and `lifecycle` checks — structural validation included, consistent with plet_schedule.py (SCH_NFR_2). | P0 |
 
 ## 7. Agent Flows (AFL)
 
@@ -314,11 +341,27 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 1. Orchestrator crashes mid-implement for ID_002
 2. State: ID_001 complete, ID_002 lifecycle `implementing` with stale heartbeat
 3. SKILL.md re-invokes orchestrator
-4. start-session → resumed
+4. start-session → resumed (idempotent)
 5. eligible → ID_002 not eligible (lifecycle `implementing`, not `queued`)
-6. Orchestrator detects stale in-progress: check worktree, check commits
-7. If partial progress: attempt verify. If no progress: set lifecycle → `queued` to retry.
+6. Orchestrator detects stale in-progress: check worktree exists, read criteria status from per-iteration state (EDG_3/EDG_5 heuristic)
+7. All criteria pass → proceed to verify (crash was during wrap-up). Incomplete criteria → set lifecycle → `queued` to retry with fresh attempt.
 8. Continues loop normally
+
+### ORC_AFL_5: Mixed complete + blocked outcome
+
+1. ID_001, ID_002, ID_003 processed. ID_001 complete, ID_002 complete.
+2. ID_003: implement → verify → `rejected` → retry → `rejected` → retry → `rejected` (3 attempts, not decreasing)
+3. check-retry → `abort`. Orchestrator sets lifecycle → `blocked`, writes progress + emergent.
+4. eligible → empty. counts: complete=2, blocked=1.
+5. Returns `{"reason": "all_blocked_or_complete", ...}`
+6. SKILL.md recommends: "1 iteration blocked. Run `/plet refine` to triage."
+
+### ORC_AFL_6: Stuck iterations (unsatisfiable deps)
+
+1. ID_001 complete, ID_002 blocked (retry exhausted), ID_003 depends on ID_002.
+2. eligible → empty. stuckIterations: `[{"iterationId": "ID_003", "unsatisfiableDeps": ["ID_002"]}]`
+3. Orchestrator returns `{"reason": "all_blocked_or_complete", "stuckIterations": [...]}`
+4. SKILL.md reports: "ID_003 is stuck — depends on blocked ID_002. Run `/plet refine` to unblock or re-plan."
 
 ## 8. Examples (EXM)
 
@@ -339,19 +382,16 @@ plet_orchestrator.py run plet/
 
 ```bash
 plet_orchestrator.py run plet/ --output ndjson
-# {
-#   "status": "ok",
-#   "command": "run",
-#   "reason": "breakpoint_before",
-#   "sessionType": "loop",
-#   "sessionNumber": 2,
-#   "branch": "plet/TEST/loop2/workstream",
-#   "iterationsCompleted": 2,
-#   "iterationsBlocked": 0,
-#   "iterationsRemaining": 3,
-#   "counts": { ... },
-#   "pauseContext": { "iterationId": "ID_003", "phase": null, "error": null }
-# }
+# {"type":"session_start","sessionType":"loop","sessionNumber":2,"branch":"plet/TEST/loop2/workstream","timestamp":"..."}
+# {"type":"iteration_start","iterationId":"ID_001","phase":"implement","timestamp":"..."}
+# {"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"...","subagentActivity":"implementing","timestamp":"..."}
+# {"type":"iteration_phase_complete","iterationId":"ID_001","phase":"implement","timestamp":"..."}
+# {"type":"iteration_start","iterationId":"ID_001","phase":"verify","timestamp":"..."}
+# {"type":"iteration_phase_complete","iterationId":"ID_001","phase":"verify","verdict":"passed","timestamp":"..."}
+# {"type":"iteration_merged","iterationId":"ID_001","timestamp":"..."}
+# {"type":"iteration_complete","iterationId":"ID_001","lifecycle":"complete","timestamp":"..."}
+# {"type":"breakpoint_hit","iterationId":"ID_003","position":"before","timestamp":"..."}
+# {"type":"result","status":"ok","reason":"breakpoint_before","iterationsCompleted":2,"iterationsBlocked":0,"iterationsRemaining":3,"counts":{...},"pauseContext":{"iterationId":"ID_003","phase":null,"error":null},"scriptVersion":"0.1.0","timestamp":"..."}
 ```
 
 ### ORC_EXM_3: Limited run for testing
@@ -378,7 +418,8 @@ plet_orchestrator.py run plet/ --max-iterations 1 --sequential
 | ORC_DEP_9 | calls | `plet_trace.py` | `append-event` — orchestrator decisions |
 | ORC_DEP_10 | calls | `plet_fingerprint.py` | `check` — staleness detection |
 | ORC_DEP_11 | imports | `util_cli` | `parse_kwargs`, `validate_known_flags`, `dispatch`, `get_plet_dir`, `now_iso`, `UNIVERSAL_FLAGS_READ` |
-| ORC_DEP_12 | imports | `util_io` | `load_json`, `state_json_path`, `iter_state_path` — orchestrator reads state for verdict/lifecycle checks |
+| ORC_DEP_12 | imports | `util_io` | `state_json_path`, `iter_state_path` — path derivation |
+| ORC_DEP_14 | imports | `util_state` | `load_and_validate_iter_state` — read per-iteration state for lastVerdict/lifecycle with structural validation |
 | ORC_DEP_13 | called by | SKILL.md | Primary caller — routes loop phase to orchestrator |
 
 ## 10. Non-Functional Requirements (NFR)
@@ -388,7 +429,7 @@ See `specs/conventions.md` for requirements common to all scripts.
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ORC_NFR_1 | **All script calls via subprocess.** The orchestrator calls plet scripts as subprocesses with `--output json` to get structured results. Does not import cmd_* functions from other scripts. util_* modules are imported directly (they are libraries). | P0 |
-| ORC_NFR_2 | **Subprocess error handling:** Every subprocess call checks exit code. Non-zero exit is logged with script name, command, args, and stderr. Critical failures (state, git, invoke) trigger error handling per ERR_3. Non-critical failures (entries, trace) are logged and continue. | P0 |
+| ORC_NFR_2 | **Subprocess error handling:** Every subprocess call checks exit code. Non-zero exit is logged with script name, command, args, and stderr. Every script call is critical — no silent skipping. Evaluate impact per ERR_3 and EDG rules. | P0 |
 | ORC_NFR_3 | **Progress visibility:** Human-readable progress output to stdout during execution (iteration count, phase, verdict). JSON mode suppresses this, producing only the final result JSON. | P1 |
 | ORC_NFR_4 | **No context window.** The orchestrator is a Python script, not a Claude session. It has no context window, no compaction, no drift. This is the core architectural advantage over the prose-based orchestrator in SKILL.md. | P0 |
 
@@ -410,8 +451,12 @@ See `specs/conventions.md` for requirements common to all scripts.
 | ORC_CRT_4 | Merge-squash sequencing | Parallel merge corruption, skipped merge | Verify merge-squash called once per completed iteration, sequentially |
 | ORC_CRT_5 | Breakpoint enforcement | Breakpoint skipped, wrong pause reason | Set breakpoints, verify orchestrator returns correct reason |
 | ORC_CRT_6 | Retry logic | Infinite retry, premature block, wrong trend evaluation | Mock decreasing/increasing failure trends, verify continue/abort |
-| ORC_CRT_7 | Crash resume | Duplicate session entries, lost progress | Kill mid-loop, re-run, verify clean resume |
-| ORC_CRT_8 | Error propagation | Script failure silently ignored, or non-critical failure blocks loop | Mock script failures for critical/non-critical, verify handling |
+| ORC_CRT_7 | Crash resume + criteria heuristic | Duplicate session entries, lost progress, wrong resume decision | Kill mid-loop, re-run. Test both paths: all criteria pass → proceeds to verify; incomplete criteria → re-queued. Verify start-session resumes idempotently. |
+| ORC_CRT_8 | Error propagation | Script failure silently ignored | Mock script failures, verify every failure handled — no silent skipping |
+| ORC_CRT_9 | Lifecycle ownership | Orchestrator sets wrong lifecycle, or sets one it shouldn't | Verify: complete only after merge, queued on retry, blocked on exhaustion. Verify orchestrator does NOT set verifying (implement subagent's handoff). |
+| ORC_CRT_10 | NDJSON streaming output | SKILL.md can't parse events, stall detection broken | Verify event types, correct order, result always last line, heartbeat every 60s during subagent execution, stale_subagent emitted when heartbeat >5min old |
+| ORC_CRT_11 | Stuck iteration reporting | Stuck iterations silently ignored, user not informed | Test: blocked dep → stuck reported. Withdrawn dep → stuck reported. Circular chain → all cycle members stuck. Verify orchestrator includes stuckIterations in result. |
+| ORC_CRT_12 | No-commits blocking (EDG_1) | Zero-commit implement silently proceeds to verify | Mock implement that produces no commits, verify iteration blocked immediately — not passed to verify |
 
 ## 13. Testing & Verification (TST)
 
@@ -421,11 +466,11 @@ See `specs/conventions.md` for requirements common to all scripts.
 - Harness: stdlib-only custom harness per UNV_TST_2
 - All tests call the script via `subprocess.run()` (UNV_TST_4)
 
-**Mock strategy:** The orchestrator calls ~10 other scripts. Tests must mock these to control behavior. Strategy: create mock scripts that return controlled JSON and place them first on PATH (same pattern as `test_plet_invoke.py`'s mock claude). Mock scripts read env vars or fixture files to determine what to return.
+**Mock strategy: real scripts + mock claude only.** The orchestrator's value is integration — testing with real scripts catches real bugs. All plet scripts (schedule, session, state, entries, trace, git_iteration, git_ops, gate_phase, gate_session, fingerprint) run for real against temp git repos with proper state fixtures. The only mock is the `claude` binary — a shell script placed first on PATH (same pattern as `test_plet_invoke.py`). The mock claude simulates implement/verify by creating commits and updating state files per the test scenario.
 
-**Testing levels:**
-1. **Unit tests:** Mock all external scripts, test orchestrator logic in isolation (verdict processing, retry decisions, breakpoint handling, session lifecycle)
-2. **Integration tests:** Use real scripts with temp fixtures, test end-to-end flow for simple graphs (1-2 iterations). Mock only `plet_invoke.py` (don't launch real Claude).
+**Fixture setup:** Each test creates a temp git repo with `plet/` directory, state.json, per-iteration state files, requirements.md, iterations.md. The mock claude script reads env vars or fixture files to know what scenario to simulate (all pass, reject then pass, crash, no commits, etc.).
+
+**Why not mock 10 scripts:** Mocking every script risks drift between mocks and real behavior. Real scripts are fast (JSON files in temp dirs). Only `plet_invoke.py` → `claude -p` is untestable without a mock. One mock instead of ten.
 
 ## 14. Resolved Questions
 
@@ -440,7 +485,7 @@ See `specs/conventions.md` for requirements common to all scripts.
 
 ### Open Questions
 
-1. **In-progress iteration cleanup on resume (ORC_EDG_5):** When the orchestrator finds an iteration in `implementing` or `verifying` with a stale heartbeat, how does it decide between re-queue and block? Heuristic: if commits exist in the iteration branch, attempt verify (partial progress). If no commits, re-queue. Need to validate this heuristic during implementation.
+1. ~~**In-progress iteration cleanup on resume (ORC_EDG_5):**~~ **Resolved.** Check criteria status in per-iteration state file. All criteria pass → proceed to next phase. Incomplete criteria → re-queue. Same heuristic for crash-during-run (EDG_3) and crash-between-runs (EDG_5). Criteria status is a better signal than commit count.
 
 2. **Concurrent instance detection (ORC_EDG_7):** The ACTIVE canary approach (check progress.md for recent orchestrator entry) is heuristic. A PID-based lockfile in `.plet/` would be more reliable. Decide during implementation.
 

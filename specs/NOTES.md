@@ -1114,6 +1114,18 @@ Retrofitting all specs first, then implementations.
 - **State window after verify exits:** lifecycle `verifying` + lastVerdict `passed/rejected/blocked` = truthful at every moment. `complete` only after code is on workstream.
 - **Impact:** verify.md needs updating — remove lifecycle transitions from verify subagent. implement.md stays as-is. Gate scripts enforce the model (see below).
 
+#### plet_orchestrator.py spec (ORC) — complete (2026-03-29)
+
+- Single command: `run` — the main implement→verify loop as deterministic code.
+- NDJSON streaming output (`--output ndjson`) with heartbeat + subagent status. Stale subagent detection (>5min).
+- Stale fingerprints block by default, `--allow-stale` to override.
+- Parallel spawn (round-based), sequential merge. `--sequential` for debugging. `--max-iterations N` for incremental runs.
+- No-commits after implement → block (EDG_1). Red/green means every criterion produces commits.
+- Crash recovery: criteria-check heuristic (all pass → proceed, incomplete → re-queue). Unified for EDG_3 and EDG_5.
+- Postflight command added to plet_gate_session.py (FB_56) — symmetric with preflight, may diverge.
+- Testing: real scripts + mock claude only. One mock instead of ten.
+- **Emergent updates needed (seq 34):** plet_gate_phase.py (3 new post checks), plet_gate_session.py (postflight), plet_schedule.py (stuck iteration detection).
+
 #### Standardize on NDJSON, retire JSONL for plet-produced files (2026-03-29)
 
 - **Decision:** NDJSON is the canonical name and extension for all files plet produces. `.ndjson` extension, "NDJSON" in prose. Replaces `.jsonl` in transcript filenames and all references.

@@ -487,3 +487,7 @@ Fix: add a git tag existence check to `plet_gate_phase.py post`. Verify the expe
 Discovered during ORC spec review — audit-tag was initially duplicated between subagent and orchestrator. Resolution: subagent owns it, post gate verifies it.
 
 Expanded during lifecycle ownership analysis: post gate now also enforces lifecycle handoff (post implement: lifecycle must be `verifying`) and lifecycle unchanged (post verify: lifecycle must still be `verifying` — verify subagent must not touch it). Added as GPH_PST_BHV_11, BHV_12, BHV_13 in plet_gate_phase.md spec.
+
+### FB_56: plet_gate_session.py needs postflight command [artifacts] [symmetry]
+
+Add `postflight` to `plet_gate_session.py` — symmetric with `preflight`. Internally calls preflight for shared checks, adds end-of-session checks (transient lifecycle detection: iterations stuck in `implementing`/`verifying`). Warnings only — never blocks end-session. Called by orchestrator before `end-session`. Separate command for discoverability; may diverge from preflight over time. Added to GSS command summary in spec.

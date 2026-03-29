@@ -269,6 +269,18 @@ State transitions in a multi-agent system fall into two categories, and confusin
 
 This principle applies beyond plet — any system where multiple agents modify shared state needs clear ownership of each transition.
 
+### Defense in depth for load-bearing checks
+
+Checking the same critical invariant in multiple places is acceptable and intentional — not redundancy. Each layer catches failures at a different point in the pipeline with different recovery options.
+
+Example — `lastVerdict` after verify:
+- **Layer 1 (gate):** Post-verify gate FAILs if null. Subagent is still alive and can self-correct. Best outcome — problem fixed before anyone notices.
+- **Layer 2 (orchestrator):** Defensive check after verify returns. Subagent is gone. Can only block the iteration and log. Worst-case fallback.
+
+The layers are ordered by recovery power: earliest check has the most options (self-correct), latest check has the fewest (block and report). This pattern applies to lifecycle ownership, audit tags, state validity, and any invariant where violation means data loss or incorrect execution.
+
+This is distinct from accidental duplication (same check, same point, no additional recovery). Defense in depth is deliberate overlap across pipeline stages. Accidental duplication is waste.
+
 ### Meaningful red vs meaningless red in red/green testing
 
 A test that fails because the thing it's testing doesn't exist yet is **meaningless red** — it proves nothing about the test's ability to catch bad behavior. Whether it's a missing script (`FileNotFoundError`), a missing class (`ImportError`), or a missing function (`AttributeError`), the test would fail identically regardless of what it asserts. Meaningless red gives false confidence that the red/green discipline was followed.

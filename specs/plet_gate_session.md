@@ -40,6 +40,7 @@ The `/plet` entry point needs to know which phase the project is in, what the cu
 - **`detect`** (DET) — Determine which session type to enter (plan, loop, refine, or status). Read-only routing primitive. Called by SKILL.md at every `/plet` invocation.
 - **`status`** (STA) — Project status dashboard: iteration counts, blockers, active agents. Read-only. Called by SKILL.md for `/plet status` and by humans for inspection. (Note: STA abbreviation is different from plet_state.py's STA prefix.)
 - **`preflight`** (PRE) — Pre-session environment checks (scripts installed, git health, fingerprints consistent). Read-only. Returns go/no-go verdict. Called before every session.
+- **`postflight`** (PSF) — Post-session health checks. Internally calls preflight for shared checks, then adds end-of-session checks (transient lifecycle detection — iterations stuck in `implementing`/`verifying`). Read-only. Warnings only, never blocks end-session. Called by orchestrator before closing the session. Separate command for discoverability and symmetry with preflight; may diverge in the future.
 
 ### Universal Flags
 
