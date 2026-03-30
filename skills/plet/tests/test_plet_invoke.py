@@ -203,7 +203,7 @@ def test_dry_run():
         check("shows -p", "-p" in stdout)
         check("shows stream-json", "stream-json" in stdout)
         check("shows permission-mode", "permission-mode" in stdout)
-        check("shows bare", "bare" in stdout)
+        check("shows no-session-persistence", "no-session-persistence" in stdout)
         check("shows transcript path", "transcript" in stdout.lower())
     finally:
         shutil.rmtree(tmpdir)

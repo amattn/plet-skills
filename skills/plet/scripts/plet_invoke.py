@@ -41,7 +41,7 @@ from util_io import (
 from util_subprocess import run
 
 
-SCRIPT_VERSION = "0.1.2"
+SCRIPT_VERSION = "0.1.3"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -79,7 +79,7 @@ def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model
     """Build the claude -p command list."""
     cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
            "--permission-mode", permission_mode,
-           "--no-session-persistence", "--bare",
+           "--no-session-persistence",
            "--name", "plet/{}/{}-{}".format(iter_id, phase, attempt)]
     if model:
         cmd.extend(["--model", model])
