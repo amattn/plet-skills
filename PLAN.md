@@ -12,7 +12,7 @@
 | 6 | PLAN_6 | Extractable Skills | ✓ COMPLETE |
 | 7 | PLAN_7 | Feedback Triage | ✓ COMPLETE |
 | 8 | PLAN_8 | Python Tooling | ✓ COMPLETE |
-| 9 | PLAN_9 | PRD + ORC + SKILL.md + Reference Files Rewrite | |
+| 9 | PLAN_9 | PRD + ORC + SKILL.md + Reference Files Rewrite | 9a-9e done, cleanup remaining |
 | 10 | PLAN_10 | Subplets | |
 | 11 | PLAN_11 | Eval System + Comparison Runs | |
 | 12 | PLAN_12 | Examples | deferred |
@@ -200,31 +200,44 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 
 ## PLAN_8: Python Tooling ✓ COMPLETE
 
-Built 11 enforcement scripts + 5 utility modules in `skills/plet/scripts/`. 1230 tests across 16 files. Follows "Skills for Judgment, Code for Compliance" principle.
+Built 14 enforcement scripts + 6 utility modules in `skills/plet/scripts/`. 1507 tests across 19 files (~22s parallel). Follows "Skills for Judgment, Code for Compliance" principle.
 
-**Detailed build plan:** `specs/PLAN.md` — all 27 tasks complete (seq 0–27, including 21a merge).
+**Detailed build plan:** `specs/PLAN.md` — all 37 tasks complete (seq 0–37).
 
-**Scripts built:** plet_state, plet_entries, plet_fingerprint, plet_trace, plet_git_iteration, plet_git_ops, plet_git_check, plet_gate_session (originally plet_session), plet_gate_phase, plet_prompt, plet_invoke.
+**Scripts built (14):** plet_state, plet_entries, plet_fingerprint, plet_trace, plet_git_iteration, plet_git_ops, plet_git_check, plet_gate_session (originally plet_session), plet_gate_phase, plet_prompt, plet_invoke, plet_schedule (PLAN_9), plet_session (PLAN_9, new — lifecycle management), plet_orchestrator (PLAN_9 — the capstone).
 
-**Utilities built:** util_cli, util_io, util_id, util_state, util_subprocess.
-
-**Remaining:** plet_orchestrator.py — moved to PLAN_9 (depends on SKILL.md + reference file rewrite).
+**Utilities built (6):** util_cli, util_io, util_id, util_state, util_subprocess, util_git (PLAN_9 — shared branch naming).
 
 ---
 
 ## PLAN_9: PRD + ORC + SKILL.md + Reference Files Rewrite
 
-The scripts are built. Now the prose needs to catch up — PRD, SKILL.md, reference files, and the orchestrator all need to reflect the script-based architecture. The orchestrator spec and SKILL.md will co-evolve during implementation.
+The scripts are built. Prose caught up. Orchestrator built and tested. Remaining: plet_prompt.py update (9e), SKILL.md Loop Phase simplification to delegate to orchestrator, final consistency pass.
 
 ### Phases
 
-- **PLAN_9a:** ✓ PRD catch-up — update with tooling decisions, eval strategy, sandboxing (FB_48, FB_50). Add script inventory. Formalize "skills for judgment, code for compliance" boundary. (`3082710`)
-- **PLAN_9b:** ✓ SKILL.md rewrite — becomes thinner. Routing + delegation to scripts. Agents call scripts instead of writing artifacts freehand. Knows what all scripts do. (`46c5a5d`)
-- **PLAN_9c:** ✓ Reference files rewrite (implement.md, verify.md) — updated to reference scripts ("call plet_entries.py" not "write a progress entry"). formats.md and state-schema.md may become unnecessary in prompts (agents call scripts, not write raw files). (`456f929`)
-- **PLAN_9d:** ORC spec (plet_orchestrator.py) — the capstone. Main loop, dependency graph, retry, session lifecycle. Ties all scripts together. Co-evolves with SKILL.md during implementation.
-- **PLAN_9e:** ORC implementation + plet_prompt.py update — prompt assembles the new (thinner) reference files. May include script usage cheat sheet instead of full format specs.
+- **PLAN_9a:** ✓ PRD catch-up (`3082710`)
+- **PLAN_9b:** ✓ SKILL.md rewrite (`46c5a5d`)
+- **PLAN_9c:** ✓ Reference files rewrite (`456f929`)
+- **PLAN_9d:** ✓ ORC spec — toolkit + run model, NDJSON streaming, lifecycle ownership (handoffs vs decisions), 12 CRT areas
+- **PLAN_9e:** ORC implementation done (58 tests). Remaining cleanup:
+  - SKILL.md Loop Phase: simplify to call `plet_orchestrator.py run` and handle NDJSON result/pause reasons. Current prose loop becomes historical reference (already preserved in ORC spec).
+  - SKILL.md allowed-tools: add plet_orchestrator.py, plet_schedule.py, plet_session.py, util_git.py
+  - plet_prompt.py: may need updates for orchestrator's prompt assembly needs
+  - scripts/CLAUDE.md: update inventory with 3 new scripts + 1 new util
+  - Final consistency pass across all artifacts
 
-**Note:** Phases b/c/d will likely interleave — the orchestrator spec and skill files inform each other. Expect iteration rather than strict sequential execution.
+### Emergent work completed during PLAN_9
+
+- **Lifecycle ownership model** — handoffs (subagent) vs decisions (orchestrator). Cascaded to verify.md, implement.md, state-schema.md, PRD, SKILL.md. Gate scripts enforce.
+- **3 new scripts:** plet_schedule.py (scheduling), plet_session.py (lifecycle), plet_orchestrator.py (loop)
+- **1 rename:** plet_session.py → plet_gate_session.py (GSS)
+- **1 new util:** util_git.py (shared branch naming)
+- **Gate phase updates:** lifecycle-handoff, lifecycle-unchanged, audit-tag checks (GPH_PST_BHV_11-13)
+- **Gate session update:** postflight command (FB_56)
+- **Schedule update:** stuck iteration detection (SCH_ELG_BHV_5)
+- **Cross-cutting:** UNV_CMD_29 (unknown flags), NDJSON standardization, meaningful red, defense in depth, test_all parallel execution
+- **FB items filed:** FB_52–FB_57
 
 ---
 

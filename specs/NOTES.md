@@ -1124,7 +1124,9 @@ Retrofitting all specs first, then implementations.
 - Crash recovery: criteria-check heuristic (all pass → proceed, incomplete → re-queue). Unified for EDG_3 and EDG_5.
 - Postflight command added to plet_gate_session.py (FB_56) — symmetric with preflight, may diverge.
 - Testing: real scripts + mock claude only. One mock instead of ten.
-- **Emergent updates needed (seq 34):** plet_gate_phase.py (3 new post checks), plet_gate_session.py (postflight), plet_schedule.py (stuck iteration detection).
+- **Emergent updates completed (seq 34):** plet_gate_phase.py (3 new post checks), plet_gate_session.py (postflight), plet_schedule.py (stuck iteration detection).
+- **Implementation completed (seq 36):** 58 integration tests with real scripts + mock claude. Bugs found and fixed: worktree path (relative→absolute), command ordering (plet_dir before command→command before plet_dir), merge-squash dirty tree (commit state before merge), fingerprint check field name (consistent→allConsistent), infinite loop guard (failed_this_round set).
+- **Test coverage:** happy path, reject+retry, dependency chain, breakpoint, mixed outcome, max-iterations, no-commits block, crash recovery, stale fingerprints.
 
 #### Standardize on NDJSON, retire JSONL for plet-produced files (2026-03-29)
 

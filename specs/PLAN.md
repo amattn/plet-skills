@@ -102,5 +102,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 33 | `plet_orchestrator.py` spec (ORC) | ✓ complete |
 | 34 | Implement ORC-emergent script updates | ✓ complete |
 | 35 | Cascade lifecycle ownership model | ✓ complete |
-| 36 | `plet_orchestrator.py` implementation | in progress |
+| 36 | `plet_orchestrator.py` implementation | ✓ complete |
 | 37 | Replace positional plet_dir with --plet-dir flag | not started |
