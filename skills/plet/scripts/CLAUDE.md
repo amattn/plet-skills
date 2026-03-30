@@ -96,7 +96,7 @@ Tests live at `skills/plet/tests/` (sibling to `scripts/`, not inside it).
 
 **Run with:** `./skills/plet/tests/test_<script_name>.py` — each test file is directly executable.
 
-**Run all:** `./skills/plet/tests/test_all.py` — runs all test files in parallel with progress (default, ~12s). Tell the user the expected duration before running. Use `-s` for sequential (~47s), `-v` for verbose (sequential with pass/fail counts), or `-q` for quiet summary only.
+**Run all:** `./skills/plet/tests/test_all.py` — runs all test files in parallel with progress (default, ~27s). Tell the user the expected duration before running. Use `-s` for sequential (~68s), `-v` for verbose (sequential with pass/fail counts), or `-q` for quiet summary only.
 
 **Test harness pattern** (consistent across all test files):
 

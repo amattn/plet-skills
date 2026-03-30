@@ -4,8 +4,8 @@
 Default mode is parallel with progress — launches all test files at once,
 shows results as each completes, then a sorted summary. Subagents should
 use the default so the user can see progress. Before running, tell the
-user approximately how long to expect (typically ~12s parallel, ~47s sequential
-as of 2026-03-29 with 18 test files).
+user approximately how long to expect (typically ~27s parallel, ~68s sequential
+as of 2026-03-29 with 19 test files / 1507 tests).
 
 Usage:
     ./skills/plet/tests/test_all.py          # parallel + progress (default)
@@ -148,7 +148,7 @@ def main():
 
     if not quiet:
         mode = "sequential" if sequential else "parallel"
-        print("Hint: tell the user how long to expect (~12s parallel, ~47s sequential)")
+        print("Hint: tell the user how long to expect (~27s parallel, ~68s sequential)")
         print("Mode: {} | {} test files".format(mode, "scanning..."), end="")
 
     test_files = sorted(glob.glob(os.path.join(TESTS_DIR, "test_*.py")))
