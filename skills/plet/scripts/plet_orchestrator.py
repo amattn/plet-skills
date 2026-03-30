@@ -216,9 +216,13 @@ def cmd_run(args):
         return 1
 
     # Fingerprint check
-    fp_data, _, fp_rc = _run_script_json("plet_fingerprint.py", ["check", plet_dir, "--level", "all"])
-    if fp_data and not fp_data.get("consistent", True):
+    fp_data, fp_err, fp_rc = _run_script_json("plet_fingerprint.py", ["check", plet_dir, "--level", "all"])
+    is_stale = fp_rc != 0 or (fp_data and not fp_data.get("allConsistent", True))
+    if is_stale:
         if not allow_stale:
+            detail = ""
+            if fp_data:
+                detail = fp_data.get("levels", {})
             msg = "Fingerprints stale. Use --allow-stale to override."
             print("Error: {}".format(msg), file=sys.stderr)
             result = _make_result("error", counts, error=msg)

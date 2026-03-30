@@ -472,20 +472,21 @@ See `specs/conventions.md` for requirements common to all scripts.
 
 **Why not mock 10 scripts:** Mocking every script risks drift between mocks and real behavior. Real scripts are fast (JSON files in temp dirs). Only `plet_invoke.py` → `claude -p` is untestable without a mock. One mock instead of ten.
 
-**Implemented tests (v1):**
+**Implemented tests (v1) — 58 tests:**
 - Help, missing state, nothing-eligible pre-check
 - Single iteration happy path (implement → verify → pass → merge → complete)
 - Reject + retry (reject first verify, pass second — exercises full cycle-back)
-- Two-iteration dependency chain (ID_001 unlocks ID_002)
-- Breakpoint before (pause, session stays active)
-- Mixed outcome (pass + blocked + stuck dependent)
+- Two-iteration dependency chain (ID_001 unlocks ID_002, correct ordering)
+- Breakpoint before (pause, session stays active for resume)
+- Mixed outcome (pass + blocked + stuck dependent reported)
+- Max-iterations limit (stop after N completions)
+- No-commits blocking (MOCK_BEHAVIOR="no_commits" → implement blocked)
+- Crash recovery / resume (pre-existing active session, ID_001 already complete, ID_002 processes)
+- Stale fingerprints blocking (blocks by default, --allow-stale override)
 
 **Deferred tests (future):**
-- CRT_6: Crash recovery / resume (kill mid-iteration, re-invoke, criteria heuristic)
-- CRT_8: Error propagation (script failures, critical vs non-critical — all critical now)
-- CRT_10: NDJSON event stream strict ordering and heartbeat
-- CRT_12: No-commits blocking (MOCK_BEHAVIOR="no_commits")
-- Stale fingerprints blocking (--allow-stale override)
+- CRT_8: Error propagation (individual script failures)
+- CRT_10: NDJSON event stream strict ordering and heartbeat timing
 - Parallel eligible ordering (CRT_4)
 
 ## 14. Resolved Questions

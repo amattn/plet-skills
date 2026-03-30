@@ -224,7 +224,7 @@ with tempfile.TemporaryDirectory() as tmp:
     with open(isp, "w") as f:
         json.dump(ist, f)
 
-    out, err, _ = run(["run", plet_dir, "--output", "ndjson"])
+    out, err, _ = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"])
     # Should return immediately with all_complete, no session started
     lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
     result = lines[-1]
@@ -255,7 +255,7 @@ with tempfile.TemporaryDirectory() as tmp:
         "MOCK_BEHAVIOR": "pass",
     })
 
-    out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env,
+    out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env,
                         cwd=tmp)  # must run from project root for git ops
 
     # Parse NDJSON events
@@ -309,7 +309,7 @@ with tempfile.TemporaryDirectory() as tmp:
         "MOCK_BEHAVIOR": "reject_then_pass",
     })
 
-    out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env, cwd=tmp)
+    out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
     lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
     result = lines[-1] if lines else {}
 
@@ -353,7 +353,7 @@ with tempfile.TemporaryDirectory() as tmp:
         "MOCK_BEHAVIOR": "pass",
     })
 
-    out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env, cwd=tmp)
+    out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
     lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
     result = lines[-1] if lines else {}
 
@@ -406,7 +406,7 @@ with tempfile.TemporaryDirectory() as tmp:
         "MOCK_BEHAVIOR": "pass",
     })
 
-    out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env, cwd=tmp)
+    out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
     lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
     result = lines[-1] if lines else {}
 
@@ -470,7 +470,7 @@ with tempfile.TemporaryDirectory() as tmp:
         "MOCK_BEHAVIOR": "pass",
     })
 
-    out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env, cwd=tmp)
+    out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
     lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
     result = lines[-1] if lines else {}
 
@@ -496,6 +496,204 @@ with tempfile.TemporaryDirectory() as tmp:
     ist3 = load_json(iter_state_path(plet_dir, "ID_003"))
     check("ID_003 still queued (stuck)", ist3 and ist3.get("lifecycle") == "queued",
           "got: " + str(ist3.get("lifecycle") if ist3 else "None"))
+
+
+# ===========================================================================
+# run — max-iterations limit (#4)
+# ===========================================================================
+
+print("\n## run — max-iterations limit")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = setup_project(tmp, iterations=[
+        {"id": "ID_001", "title": "First", "deps": []},
+        {"id": "ID_002", "title": "Second", "deps": []},
+    ])
+    mock_dir = create_mock_claude(tmp)
+    env = os.environ.copy()
+    env.update({
+        "PATH": mock_dir + ":" + env.get("PATH", ""),
+        "MOCK_PLET_DIR": plet_dir,
+        "MOCK_SCRIPTS_DIR": SCRIPTS_DIR,
+        "MOCK_BEHAVIOR": "pass",
+    })
+
+    out, err, rc = run(["run", plet_dir, "--allow-stale", "--max-iterations", "1",
+                         "--output", "ndjson"], env=env, cwd=tmp)
+    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    result = lines[-1] if lines else {}
+
+    check("exits 0", rc == 0)
+    check("reason max_iterations_reached",
+          result.get("reason") == "max_iterations_reached",
+          "got: " + str(result.get("reason")))
+    check("iterationsCompleted 1", result.get("iterationsCompleted") == 1,
+          "got: " + str(result.get("iterationsCompleted")))
+
+    # One iteration complete, one still queued
+    ist1 = load_json(iter_state_path(plet_dir, "ID_001"))
+    ist2 = load_json(iter_state_path(plet_dir, "ID_002"))
+    completed = sum(1 for ist in [ist1, ist2]
+                    if ist and ist.get("lifecycle") == "complete")
+    queued = sum(1 for ist in [ist1, ist2]
+                 if ist and ist.get("lifecycle") == "queued")
+    check("one complete one queued", completed == 1 and queued == 1,
+          "complete={} queued={}".format(completed, queued))
+
+
+# ===========================================================================
+# run — no commits → block (#5)
+# ===========================================================================
+
+print("\n## run — no commits blocks iteration")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = setup_project(tmp, iterations=[
+        {"id": "ID_001", "title": "No commits test", "deps": []},
+    ])
+    mock_dir = create_mock_claude(tmp)
+    env = os.environ.copy()
+    env.update({
+        "PATH": mock_dir + ":" + env.get("PATH", ""),
+        "MOCK_PLET_DIR": plet_dir,
+        "MOCK_SCRIPTS_DIR": SCRIPTS_DIR,
+        "MOCK_BEHAVIOR": "no_commits",
+    })
+
+    out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
+    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    result = lines[-1] if lines else {}
+
+    check("exits 0", rc == 0)
+    check("iterationsCompleted 0", result.get("iterationsCompleted") == 0,
+          "got: " + str(result.get("iterationsCompleted")))
+
+    # Iteration should be blocked (no commits = handoff didn't happen)
+    ist = load_json(iter_state_path(plet_dir, "ID_001"))
+    check("lifecycle blocked", ist and ist.get("lifecycle") == "blocked",
+          "got: " + str(ist.get("lifecycle") if ist else "None"))
+
+
+# ===========================================================================
+# run — crash recovery / resume (#6)
+# ===========================================================================
+
+print("\n## run — crash recovery (resume after interrupted session)")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = setup_project(tmp, iterations=[
+        {"id": "ID_001", "title": "Already done", "deps": []},
+        {"id": "ID_002", "title": "Needs work", "deps": []},
+    ])
+
+    # Simulate a crashed session: ID_001 already complete, session active
+    ist1 = load_json(iter_state_path(plet_dir, "ID_001"))
+    ist1["lifecycle"] = "complete"
+    ist1["lastVerdict"] = "passed"
+    with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
+        json.dump(ist1, f)
+
+    # Start a session manually (so it's active with endedAt=null)
+    gs = load_json(state_json_path(plet_dir))
+    gs["loopSessionCount"] = 1
+    gs["sessionHistory"] = [{
+        "type": "loop", "session": 1,
+        "branch": "plet/TEST/loop1/workstream",
+        "startedAt": "2026-03-29T10:00:00Z",
+        "endedAt": None,
+    }]
+    with open(state_json_path(plet_dir), "w") as f:
+        json.dump(gs, f)
+
+    # Create the workstream branch
+    subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "pre-crash state"], cwd=tmp, capture_output=True)
+    subprocess.run(["git", "checkout", "-b", "plet/TEST/loop1/workstream"],
+                   cwd=tmp, capture_output=True)
+
+    mock_dir = create_mock_claude(tmp)
+    env = os.environ.copy()
+    env.update({
+        "PATH": mock_dir + ":" + env.get("PATH", ""),
+        "MOCK_PLET_DIR": plet_dir,
+        "MOCK_SCRIPTS_DIR": SCRIPTS_DIR,
+        "MOCK_BEHAVIOR": "pass",
+    })
+
+    out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
+    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    result = lines[-1] if lines else {}
+
+    # Should have session_start with resumed=true
+    session_events = [l for l in lines if l.get("type") == "session_start"]
+    check("exits 0", rc == 0)
+    check("has session_start", len(session_events) > 0)
+    if session_events:
+        check("session resumed", session_events[0].get("resumed") is True,
+              "got: " + str(session_events[0].get("resumed")))
+
+    check("reason all_complete", result.get("reason") == "all_complete",
+          "got: " + str(result.get("reason")))
+
+    # ID_001 was already complete, ID_002 should now be complete
+    ist2 = load_json(iter_state_path(plet_dir, "ID_002"))
+    check("ID_002 complete", ist2 and ist2.get("lifecycle") == "complete",
+          "got: " + str(ist2.get("lifecycle") if ist2 else "None"))
+
+    # Session should be ended now
+    gs = load_json(state_json_path(plet_dir))
+    history = gs.get("sessionHistory", []) if gs else []
+    check("session ended", history and history[-1].get("endedAt") is not None)
+
+    # Should NOT have created a new session (resumed the existing one)
+    check("still one session", len(history) == 1,
+          "got: " + str(len(history)))
+
+
+# ===========================================================================
+# run — stale fingerprints blocking (#8)
+# ===========================================================================
+
+print("\n## run — stale fingerprints block by default")
+
+with tempfile.TemporaryDirectory() as tmp:
+    plet_dir = setup_project(tmp, iterations=[
+        {"id": "ID_001", "title": "Test", "deps": []},
+    ])
+
+    # Make fingerprints stale by modifying requirements without updating fp
+    with open(os.path.join(plet_dir, "requirements.md"), "a") as f:
+        f.write("\n## FR_2: New requirement added after fingerprint\n")
+    subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "add req without fp update"],
+                   cwd=tmp, capture_output=True)
+
+    mock_dir = create_mock_claude(tmp)
+    env = os.environ.copy()
+    env.update({
+        "PATH": mock_dir + ":" + env.get("PATH", ""),
+        "MOCK_PLET_DIR": plet_dir,
+        "MOCK_SCRIPTS_DIR": SCRIPTS_DIR,
+        "MOCK_BEHAVIOR": "pass",
+    })
+
+    # Without --allow-stale: should block
+    out, err, rc = run(["run", plet_dir, "--output", "ndjson"], env=env, cwd=tmp,
+                        expect_exit=1)
+    check("blocked without --allow-stale", rc == 1)
+    check("error mentions fingerprint or stale",
+          "stale" in (out + err).lower() or "fingerprint" in (out + err).lower(),
+          "out: " + out[:200] + " err: " + err[:200])
+
+    # With --allow-stale: should proceed
+    out2, err2, rc2 = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"],
+                           env=env, cwd=tmp)
+    lines = [json.loads(l) for l in out2.strip().split("\n") if l.strip()]
+    result = lines[-1] if lines else {}
+    check("proceeds with --allow-stale", rc2 == 0)
+    check("completed with allow-stale",
+          result.get("reason") in ("all_complete", "all_blocked_or_complete"),
+          "got: " + str(result.get("reason")))
 
 
 # ===========================================================================

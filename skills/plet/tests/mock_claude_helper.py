@@ -36,6 +36,11 @@ def main(argv):
         print('{"type":"error","message":"crash"}', flush=True)
         return 1
 
+    if behavior == "no_commits":
+        # Do nothing — no state updates, no commits, just output and exit
+        print('{"type":"result","message":"no work done"}', flush=True)
+        return 0
+
     iter_id, phase, _ = _parse_name(argv)
 
     state_path = os.path.join(plet_dir, "state", iter_id + ".json")
