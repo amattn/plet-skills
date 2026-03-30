@@ -220,8 +220,9 @@ The scripts are built. Prose caught up. Orchestrator built and tested. Remaining
 - **PLAN_9b:** ✓ SKILL.md rewrite (`46c5a5d`)
 - **PLAN_9c:** ✓ Reference files rewrite (`456f929`)
 - **PLAN_9d:** ✓ ORC spec — toolkit + run model, NDJSON streaming, lifecycle ownership (handoffs vs decisions), 12 CRT areas
-- **PLAN_9e:** ORC implementation done (58 tests). Remaining cleanup:
-  - SKILL.md Loop Phase: simplify to call `plet_orchestrator.py run` and handle NDJSON result/pause reasons. Current prose loop becomes historical reference (already preserved in ORC spec).
+- **PLAN_9e:** ✓ ORC implementation done (58 integration tests, real scripts + mock claude).
+- **PLAN_9f:** SKILL.md + artifact updates for ORC integration. Remaining:
+  - SKILL.md Loop Phase: thin but informed — delegates execution to ORC but understands the model. Needs to interpret NDJSON pause reasons (breakpoint → ask user, blocked → recommend refine, error → surface details). Conceptual understanding stays, step-by-step prose removed.
   - SKILL.md allowed-tools: add plet_orchestrator.py, plet_schedule.py, plet_session.py, util_git.py
   - plet_prompt.py: may need updates for orchestrator's prompt assembly needs
   - scripts/CLAUDE.md: update inventory with 3 new scripts + 1 new util
