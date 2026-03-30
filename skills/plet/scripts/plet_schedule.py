@@ -92,6 +92,8 @@ def cmd_eligible(args):
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("eligible")):
         return 1
@@ -221,6 +223,8 @@ def cmd_check_breakpoints(args):
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ, _help_hint("check-breakpoints")):
         return 1
@@ -298,6 +302,8 @@ def cmd_check_retry(args):
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("check-retry")):
         return 1

@@ -394,17 +394,18 @@ import json
 
 
 def get_plet_dir(args):
-    """Extract optional plet_dir from positional args.
+    """Extract required plet_dir from positional args.
 
-    If the first arg doesn't start with '-', it's consumed as plet_dir.
-    Otherwise, uses DEFAULT_PLET_DIR from util_io.
+    The first arg must be the plet directory path (not starting with '-').
+    Errors if missing — no default. Every caller must be explicit about
+    which plet context it operates in (required for subplet support).
 
     Returns (plet_dir, remaining_args).
     """
-    from util_io import DEFAULT_PLET_DIR
     if args and not args[0].startswith("-"):
         return args[0], args[1:]
-    return DEFAULT_PLET_DIR, args
+    print("Error: <plet_dir> is required as the first argument", file=sys.stderr)
+    return None, args
 
 
 def extract_output_flags(kwargs, allow_dry_run=False):

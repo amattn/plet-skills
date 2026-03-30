@@ -114,6 +114,8 @@ def cmd_start_session(args):
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-session")):
         return 1
@@ -266,6 +268,8 @@ def cmd_end_session(args):
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_WRITE, _help_hint("end-session")):
         return 1

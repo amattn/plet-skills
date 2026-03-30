@@ -424,6 +424,8 @@ Examples:
 
     hint = help_hint(cmd)
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
 
     try:
         kwargs = parse_kwargs(remaining)

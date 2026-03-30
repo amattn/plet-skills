@@ -127,7 +127,7 @@ def test_invalid_phase():
     print("\n## assemble — invalid --phase")
     tmpdir = tempfile.mkdtemp()
     try:
-        _, stderr, _ = run(["assemble", "--iter-id", "ID_001", "--phase", "bogus"], expect_exit=1, cwd=tmpdir)
+        _, stderr, _ = run(["assemble", tmpdir, "--iter-id", "ID_001", "--phase", "bogus"], expect_exit=1, cwd=tmpdir)
         check("error about phase", "invalid" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)

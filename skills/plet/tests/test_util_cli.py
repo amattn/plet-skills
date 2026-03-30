@@ -441,23 +441,23 @@ def test_get_plet_dir_with_dir():
 
 
 def test_get_plet_dir_default():
-    print("\n## get_plet_dir — default")
+    print("\n## get_plet_dir — no plet_dir (flag first)")
     plet_dir, remaining = util_cli.get_plet_dir(["--flag", "val"])
-    check("uses default", plet_dir == "plet/")
+    check("returns None", plet_dir is None)
     check("remaining args unchanged", remaining == ["--flag", "val"])
 
 
 def test_get_plet_dir_empty():
     print("\n## get_plet_dir — empty args")
     plet_dir, remaining = util_cli.get_plet_dir([])
-    check("uses default", plet_dir == "plet/")
+    check("returns None", plet_dir is None)
     check("remaining empty", remaining == [])
 
 
 def test_get_plet_dir_flag_first():
     print("\n## get_plet_dir — flag as first arg")
     plet_dir, remaining = util_cli.get_plet_dir(["--output", "json"])
-    check("uses default (flag not consumed)", plet_dir == "plet/")
+    check("returns None (flag not consumed)", plet_dir is None)
     check("remaining includes flag", remaining == ["--output", "json"])
 
 

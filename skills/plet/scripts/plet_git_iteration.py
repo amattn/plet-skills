@@ -137,6 +137,8 @@ Examples:
     CMD = "branch-name"
     hint = help_hint(CMD)
     plet_dir, args = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
 
     try:
         kwargs = parse_kwargs(args)
@@ -253,6 +255,8 @@ Examples:
     CMD = "worktree-create"
     hint = help_hint(CMD)
     plet_dir, args = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
 
     try:
         kwargs = parse_kwargs(args)
@@ -427,6 +431,8 @@ Examples:
     CMD = "worktree-remove"
     hint = help_hint(CMD)
     plet_dir, args = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
 
     try:
         kwargs = parse_kwargs(args)

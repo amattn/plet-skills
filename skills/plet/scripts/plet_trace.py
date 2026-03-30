@@ -366,6 +366,8 @@ Examples:
         return 1
 
     plet_dir, remaining = get_plet_dir(clean_args)
+    if plet_dir is None:
+        return 1
 
     # Check plet_dir exists and is a directory
     if not os.path.exists(plet_dir):
@@ -585,6 +587,8 @@ Examples:
         return 1
 
     plet_dir, remaining = get_plet_dir(clean_args)
+    if plet_dir is None:
+        return 1
 
     # Parse named args
     try:
@@ -748,6 +752,8 @@ Examples:
         return 1
 
     plet_dir, remaining = get_plet_dir(clean_args)
+    if plet_dir is None:
+        return 1
 
     # Parse named args
     try:

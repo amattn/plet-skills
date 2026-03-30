@@ -167,7 +167,7 @@ def test_invalid_phase():
     print("\n## run — invalid --phase")
     tmpdir = tempfile.mkdtemp()
     try:
-        _, stderr, _ = run(["run", "--iter-id", "ID_001", "--phase", "bogus", "--cwd", tmpdir],
+        _, stderr, _ = run(["run", tmpdir, "--iter-id", "ID_001", "--phase", "bogus", "--cwd", tmpdir],
                            expect_exit=1, cwd=tmpdir)
         check("error about phase", "invalid" in stderr.lower())
     finally:

@@ -191,6 +191,8 @@ Examples:
     CMD = "detect"
     hint = help_hint(CMD)
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
 
     try:
         kwargs = parse_kwargs(remaining)
@@ -259,6 +261,8 @@ Examples:
     CMD = "status"
     hint = help_hint(CMD)
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
 
     try:
         kwargs = parse_kwargs(remaining)
@@ -626,6 +630,8 @@ Examples:
     CMD = "preflight"
     hint = help_hint(CMD)
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
 
     try:
         kwargs = parse_kwargs(remaining)
@@ -750,6 +756,8 @@ def cmd_postflight(args):
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ,
                                 help_hint("postflight")):

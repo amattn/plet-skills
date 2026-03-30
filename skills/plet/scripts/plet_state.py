@@ -167,6 +167,8 @@ def resolve_state_path(args, hint):
     None on success or 1 on failure (error already printed to stderr).
     """
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return None, None, 1
 
     # Parse kwargs to get --iter-id
     try:
@@ -803,6 +805,8 @@ Examples:
     # exists yet (init may need to create the state/ subdirectory).
     # We also can't use resolve_state_path because it validates plet_dir.
     plet_dir, remaining = get_plet_dir(clean_args)
+    if plet_dir is None:
+        return 1
 
     # Parse named args
     try:

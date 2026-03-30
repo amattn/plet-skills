@@ -248,7 +248,7 @@ def test_pre_invalid_phase():
     print("\n## pre — invalid --phase")
     tmpdir = tempfile.mkdtemp()
     try:
-        _, stderr, _ = run(["pre", "--iter-id", "ID_001", "--phase", "bogus"], expect_exit=1, cwd=tmpdir)
+        _, stderr, _ = run(["pre", tmpdir, "--iter-id", "ID_001", "--phase", "bogus"], expect_exit=1, cwd=tmpdir)
         check("error about phase", "invalid" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)

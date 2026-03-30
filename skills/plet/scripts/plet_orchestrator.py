@@ -136,6 +136,8 @@ def cmd_run(args):
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return 1
     kwargs = parse_kwargs(remaining)
 
     # Custom flag set — output is "ndjson" not "json", no pretty, no fields
