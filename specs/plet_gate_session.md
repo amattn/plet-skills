@@ -70,7 +70,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_DET_CMD_1 | Usage: `plet_gate_session.py detect [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_DET_CMD_1 | Usage: `plet_gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -148,7 +148,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_STS_CMD_1 | Usage: `plet_gate_session.py status [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_STS_CMD_1 | Usage: `plet_gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -248,7 +248,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PRF_CMD_1 | Usage: `plet_gate_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_PRF_CMD_1 | Usage: `plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

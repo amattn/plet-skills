@@ -54,7 +54,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_ELG_CMD_1 | Usage: `plet_schedule.py eligible [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SCH_ELG_CMD_1 | Usage: `plet_schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (reads multiple files)
 
@@ -137,7 +137,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_BKP_CMD_1 | Usage: `plet_schedule.py check-breakpoints [<plet_dir>] --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SCH_BKP_CMD_1 | Usage: `plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, atomic (single file read)
 
@@ -207,7 +207,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_RTY_CMD_1 | Usage: `plet_schedule.py check-retry [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SCH_RTY_CMD_1 | Usage: `plet_schedule.py check-retry <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, atomic (single file read)
 

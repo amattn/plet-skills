@@ -69,7 +69,7 @@ Gate scripts (GIM, GVR) need to verify git state is correct before and after eac
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKI_CMD_1 | Usage: `plet_git_check.py check-iteration [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTC_CKI_CMD_1 | Usage: `plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -163,7 +163,7 @@ At session boundaries (start and end), the orchestrator needs a global health ch
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_CMD_1 | Usage: `plet_git_check.py check-session [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTC_CKS_CMD_1 | Usage: `plet_git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

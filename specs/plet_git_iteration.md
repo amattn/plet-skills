@@ -82,7 +82,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_BRN_CMD_1 | Usage: `plet_git_iteration.py branch-name [<plet_dir>] [--iter-id ID_xxx] [--type iteration] [--output json [--pretty] [--fields f1,f2]]` where `--type` is `iteration` (default), `workstream`, `plan`, or `refine` | P0 |
+| GTI_BRN_CMD_1 | Usage: `plet_git_iteration.py branch-name <plet_dir> [--iter-id ID_xxx] [--type iteration] [--output json [--pretty] [--fields f1,f2]]` where `--type` is `iteration` (default), `workstream`, `plan`, or `refine` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes, no git operations)
 
@@ -162,7 +162,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTC_CMD_1 | Usage: `plet_git_iteration.py worktree-create [<plet_dir>] --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTI_WTC_CMD_1 | Usage: `plet_git_iteration.py worktree-create <plet_dir> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates git worktree and branch), not idempotent (errors if worktree exists), atomic (git-managed — `git worktree add` either fully succeeds or fails, edge-case cleanup via `git worktree prune`)
 
@@ -246,7 +246,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTR_CMD_1 | Usage: `plet_git_iteration.py worktree-remove [<plet_dir>] --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTI_WTR_CMD_1 | Usage: `plet_git_iteration.py worktree-remove <plet_dir> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (removes git worktree, optionally deletes branch), not idempotent (errors if worktree doesn't exist)
 

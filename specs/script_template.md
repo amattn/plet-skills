@@ -52,7 +52,7 @@ Why this command exists, when it's used, and under what conditions it might beco
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_XXX_CMD_1 | Usage: `plet_SCRIPTNAME.py command-name [<plet_dir>] --flag value` (per UNV_CMD_16: optional plet_dir, default `plet/`, derive all paths via `util_io` path functions) | P0 |
+| PRE_XXX_CMD_1 | Usage: `plet_SCRIPTNAME.py command-name <plet_dir> --flag value` (per UNV_CMD_16: required plet_dir, derive all paths via `util_io` path functions) | P0 |
 
 **Properties:** read-only | mutating, idempotent | not idempotent, atomic | non-atomic
 

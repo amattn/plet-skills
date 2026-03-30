@@ -144,7 +144,7 @@ def test_version():
     out, _, _ = run(["--version"])
     check("has script name", "plet_state" in out)
     check("has version", "0.3.0" in out)
-    check("has skill version", "0.1.1" in out)
+    check("has skill version", "0.3.0" in out)
 
 
 # ---------------------------------------------------------------------------

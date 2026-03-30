@@ -85,7 +85,7 @@ Both commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PRE_CMD_1 | Usage: `plet_gate_phase.py pre [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GPH_PRE_CMD_1 | Usage: `plet_gate_phase.py pre <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 
@@ -170,7 +170,7 @@ All pre-gates run git-check and state-valid. Additional checks depend on `--phas
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PST_CMD_1 | Usage: `plet_gate_phase.py post [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GPH_PST_CMD_1 | Usage: `plet_gate_phase.py post <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 

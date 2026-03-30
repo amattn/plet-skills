@@ -61,7 +61,7 @@ Both commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GVR_PRE_CMD_1 | Usage: `plet_gate_verify.py pre [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GVR_PRE_CMD_1 | Usage: `plet_gate_verify.py pre <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 
@@ -142,7 +142,7 @@ Simpler than GIM pre — only git and state, plus lifecycle check.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GVR_PST_CMD_1 | Usage: `plet_gate_verify.py post [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GVR_PST_CMD_1 | Usage: `plet_gate_verify.py post <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 

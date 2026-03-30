@@ -60,7 +60,7 @@ Assemble is read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRM_ASM_CMD_1 | Usage: `plet_prompt.py assemble [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| PRM_ASM_CMD_1 | Usage: `plet_prompt.py assemble <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

@@ -63,7 +63,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event [<plet_dir>] --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event <plet_dir> --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** mutating (appends to file), not idempotent (each call adds a new line), atomic append
 
@@ -154,7 +154,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_CMD_1 | Usage: `plet_trace.py validate [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_VAL_CMD_1 | Usage: `plet_trace.py validate <plet_dir> [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -239,7 +239,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_CMD_1 | Usage: `plet_trace.py query [<plet_dir>] [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_QRY_CMD_1 | Usage: `plet_trace.py query <plet_dir> [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -651,7 +651,7 @@ See `specs/conventions.md` for universal requirements.
 | # | Question | Decision |
 |---|----------|----------|
 | 1 | Command name: `emit` vs `append-event`? | `append-event`. More precise — it appends a single event line to the NDJSON file. `emit` is vague (emit where?). Consistent with ENT's `add-*` pattern (verb describes the mutation). |
-| 2 | Should commands take `trace_dir`, `events_file`, or `plet_dir`? | `[<plet_dir>]` (optional, default `plet/`) for all three commands per UNV_CMD_16. Script derives `{plet_dir}/trace.ndjson` via `util_io.trace_path()`. Single consolidated trace file — all events appended to one file with `iterationId`, `phase`, `attempt` fields for context. Callers never construct paths. |
+| 2 | Should commands take `trace_dir`, `events_file`, or `plet_dir`? | `<plet_dir>` (optional, default `plet/`) for all three commands per UNV_CMD_16. Script derives `{plet_dir}/trace.ndjson` via `util_io.trace_path()`. Single consolidated trace file — all events appended to one file with `iterationId`, `phase`, `attempt` fields for context. Callers never construct paths. |
 | 3 | Should `append-event` set the timestamp or accept it as input? | Script sets it. Timestamp fabrication was observed in LIBT (ID_005 had placeholder timestamps). The script always uses `now_iso()`, preventing this. |
 | 4 | Should `validate` fail-fast or accumulate errors? | Accumulate. Per UNV_ERR_3 exception for validation commands. All lines are checked, all errors reported with line numbers. |
 | 5 | Should `query` fail on malformed lines? | No — skip with warning. Trace files may be partially written by crashed agents. A strict `query` that fails on one bad line is useless for debugging. `validate` is the strict checker. |

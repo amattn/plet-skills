@@ -107,13 +107,20 @@ Each command also has its own 3-letter abbreviation (script-specific). Combined 
 | GTO | merge-squash | MSQ |
 | GTC | check-iteration | CKI |
 | GTC | check-session | CKS |
-| SES | detect | DET |
-| SES | status | STS |
-| SES | preflight | PRF |
+| GSS | detect | DET |
+| GSS | status | STS |
+| GSS | preflight | PRF |
+| GSS | postflight | PSF |
 | GPH | pre | PRE |
 | GPH | post | PST |
 | PRM | assemble | ASM |
 | INV | run | RUN |
+| SCH | eligible | ELG |
+| SCH | check-breakpoints | BKP |
+| SCH | check-retry | RTY |
+| SES | start-session | STA |
+| SES | end-session | END |
+| ORC | run | RUN |
 
 **ID format examples:**
 - `STA_VAL_BHV_1` — state script, validate command, behavior, requirement #1
@@ -981,11 +988,11 @@ CLEANUP (per-iteration state controls):
 | plet_git_ops.py | audit-tag, merge-squash | `<global_state_json> <iter_state_json>` (two files) |
 | plet_git_check.py | check-iteration | `<global_state_json> <iter_state_json>` (two files) |
 | plet_git_check.py | check-session | `<global_state_json> <state_dir>` (file + dir) |
-| plet_gate_session.py | detect, status, preflight | `[<plet_dir>]` (optional dir) |
+| plet_gate_session.py | detect, status, preflight | `<plet_dir>` (optional dir) |
 
 **After (unified):**
 
-All scripts take `[<plet_dir>]` (optional, default `plet/`) as first positional arg. Commands that need per-iteration context add `--iter-id ID_xxx`. Scripts derive all paths internally via `util_io` path functions. No exceptions — every script uses the same pattern.
+All scripts take `<plet_dir>` (optional, default `plet/`) as first positional arg. Commands that need per-iteration context add `--iter-id ID_xxx`. Scripts derive all paths internally via `util_io` path functions. No exceptions — every script uses the same pattern.
 
 Retrofitting all specs first, then implementations.
 

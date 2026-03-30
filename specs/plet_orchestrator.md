@@ -86,7 +86,7 @@ NDJSON errors: `{"status":"error", ...}` line to stdout + text to stderr (per UN
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_RUN_CMD_1 | Usage: `plet_orchestrator.py run [<plet_dir>] [--max-iterations N] [--sequential] [--allow-stale] [--output ndjson]` | P0 |
+| ORC_RUN_CMD_1 | Usage: `plet_orchestrator.py run <plet_dir> [--max-iterations N] [--sequential] [--allow-stale] [--output ndjson]` | P0 |
 
 **Properties:** mutating (orchestrates state changes via other scripts), not idempotent (each run advances state), non-atomic (multi-step process)
 

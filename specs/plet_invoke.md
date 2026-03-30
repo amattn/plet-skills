@@ -57,7 +57,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| INV_RUN_CMD_1 | Usage: `plet_invoke.py run [<plet_dir>] --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--max-budget N] [--model MODEL] [--permission-mode MODE] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| INV_RUN_CMD_1 | Usage: `plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--max-budget N] [--model MODEL] [--permission-mode MODE] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (launches subprocess that modifies files), not idempotent (each run produces new transcript)
 

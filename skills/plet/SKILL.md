@@ -35,7 +35,7 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 - All IDs use underscore format: `XXX_N` where the prefix is usually 3, but can be 2-4 uppercase letters (e.g., `FRS_1`, `IMP_3`, `MST_1`, `EMR_5`). Sub-groups use `XXX_YYY_N`. Append-only — never renumber, never reuse. One grep must find exactly one definition ([/stable-label convention](https://github.com/amattn/session-kit)).
 - Agents prefer making a decision and documenting it in emergent.md over blocking. Blocking is a last resort.
 - Every runtime artifact entry includes a globally unique plet ID for cross-referencing and git merge fencing.
-- All scripts take `[<plet_dir>]` as optional first arg (default: `plet/`). Derive paths via `util_io` — never construct paths manually.
+- All scripts take `<plet_dir>` as required first arg (no default). Every call must be explicit about which plet context it operates in. Derive paths via `util_io` — never construct paths manually.
 
 ---
 

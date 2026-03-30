@@ -42,7 +42,7 @@ from util_io import atomic_append, load_text, emergent_path, learnings_path, pro
 
 
 SCRIPT_VERSION = "0.2.0"
-SKILL_VERSION = "0.1.1"
+SKILL_VERSION = "0.3.0"
 
 VALID_PROGRESS_STATUSES = [
     "IN_PROGRESS", "COMPLETE", "BLOCKED", "FAILED", "SKIPPED", "MIGRATED",

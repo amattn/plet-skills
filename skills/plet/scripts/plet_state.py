@@ -52,7 +52,7 @@ from util_io import (
 )
 
 SCRIPT_VERSION = "0.3.0"
-SKILL_VERSION = "0.1.1"
+SKILL_VERSION = "0.3.0"
 SCHEMA_VERSION = "0.1.0"
 
 REQUIRED_TOP_LEVEL = [

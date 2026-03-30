@@ -61,7 +61,7 @@ Both commands are read-only — `--dry-run` is NOT applicable (nothing to dry-ru
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GIM_PRE_CMD_1 | Usage: `plet_gate_impl.py pre [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GIM_PRE_CMD_1 | Usage: `plet_gate_impl.py pre <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -144,7 +144,7 @@ GIM pre delegates to existing tools and aggregates results. Each tool is called 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GIM_PST_CMD_1 | Usage: `plet_gate_impl.py post [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GIM_PST_CMD_1 | Usage: `plet_gate_impl.py post <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

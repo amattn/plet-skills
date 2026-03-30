@@ -46,7 +46,7 @@ from util_io import (
 )
 
 SCRIPT_VERSION = "0.1.0"
-SKILL_VERSION = "0.2.0"
+SKILL_VERSION = "0.3.0"
 
 VALID_LIFECYCLES = {
     "ineligible", "queued", "implementing", "verifying",

@@ -42,7 +42,7 @@ The external GUI persona (STA_AGT_8) is a silent consumer that never calls the C
 - **`update-field`** (UPF) — Update top-level fields (lifecycle, agentActivity, etc.) via `--data` JSON. Called by subagents for state transitions and heartbeats.
 - **`init`** (INI) — Create a new per-iteration state file with correct structure. Called during plan session after iteration decomposition.
 
-All commands take `[<plet_dir>]` as optional first positional arg (default: `plet/`) and `--iter-id ID_xxx` (required) per UNV_CMD_16. Paths derived via `util_io.iter_state_path()`.
+All commands take `<plet_dir>` as optional first positional arg (default: `plet/`) and `--iter-id ID_xxx` (required) per UNV_CMD_16. Paths derived via `util_io.iter_state_path()`.
 
 ---
 
@@ -60,7 +60,7 @@ All commands take `[<plet_dir>]` as optional first positional arg (default: `ple
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_VAL_CMD_1 | Usage: `plet_state.py validate [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_VAL_CMD_1 | Usage: `plet_state.py validate <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -140,7 +140,7 @@ The validator accumulates all errors before reporting — the exception to UNV_E
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion [<plet_dir>] --iter-id ID_xxx --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_UPC_CMD_1 | Usage: `plet_state.py update-criterion <plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -230,7 +230,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_UPF_CMD_1 | Usage: `plet_state.py update-field [<plet_dir>] --iter-id ID_xxx --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_UPF_CMD_1 | Usage: `plet_state.py update-field <plet_dir> --iter-id ID_xxx --data '{"field":"value", ...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (timestamps change), atomic
 
@@ -314,7 +314,7 @@ The two-state model is the core verification invariant — implementation and ve
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| STA_INI_CMD_1 | Usage: `plet_state.py init [<plet_dir>] --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| STA_INI_CMD_1 | Usage: `plet_state.py init <plet_dir> --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates file), not idempotent (errors on existing file), atomic
 
@@ -744,7 +744,7 @@ See `specs/conventions.md` for universal requirements.
 | 7 | Should `validate` support `--fix`? | No — `validate` is read-only. Schema migration is a separate concern (SF_24, STA_FUT_1). Mixing read and write in one command violates the principle that read-only commands are safe to run freely. |
 | 8 | `--data` alternatives for large payloads? | `--data-file path` added (STA_UPF_INP_3). Consistent with ENT's `--content-file` pattern. Stdin support (STA_FUT_5) withdrawn — file-based is simpler for agents. |
 | 9 | Who validates global `plet/state.json`? | Not this script. `plet_state.py` handles per-iteration files only. Common global state.json fields (projectId, session counts) are validated by `util_state.load_and_validate_global_state()`, shared across 7+ scripts (GTI, GTO, GTC, SES, INJ, INV, ORC). Full global state.json schema validation is deferred — no script owns it yet. |
-| 10 | Input convention: `<iter_state_json>` positional or `[<plet_dir>] --iter-id`? | Unified `[<plet_dir>] --iter-id` per UNV_CMD_16. All 4 commands retrofitted. Script derives `{plet_dir}/state/{iter_id}.json` via `util_io.iter_state_path()`. Eliminates agents constructing file paths manually — path logic centralized in `util_io`. |
+| 10 | Input convention: `<iter_state_json>` positional or `<plet_dir> --iter-id`? | Unified `<plet_dir> --iter-id` per UNV_CMD_16. All 4 commands retrofitted. Script derives `{plet_dir}/state/{iter_id}.json` via `util_io.iter_state_path()`. Eliminates agents constructing file paths manually — path logic centralized in `util_io`. |
 
 ## Open Questions
 

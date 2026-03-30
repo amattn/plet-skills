@@ -45,7 +45,7 @@ from util_state import (
 
 
 SCRIPT_VERSION = "0.1.0"
-SKILL_VERSION = "0.1.1"
+SKILL_VERSION = "0.3.0"
 
 VALID_PHASES = ["implement", "verify"]
 

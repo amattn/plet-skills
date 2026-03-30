@@ -494,7 +494,7 @@ Add `postflight` to `plet_gate_session.py` — symmetric with `preflight`. Inter
 
 ### FB_57: Replace optional positional plet_dir with required --plet-dir flag [dx] [subplets]
 
-All plet scripts take `[<plet_dir>]` as an optional positional arg (default: `plet/`). This causes two problems:
+All plet scripts take `<plet_dir>` as an optional positional arg (default: `plet/`). This causes two problems:
 
 1. **Command ordering confusion:** The orchestrator hit a bug where `[plet_dir, "update-field", ...]` was passed instead of `["update-field", plet_dir, ...]`. Positional args are ambiguous when composed programmatically.
 
