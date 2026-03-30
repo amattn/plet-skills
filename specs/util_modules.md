@@ -161,6 +161,15 @@ Pure functions for git naming conventions — branch names, tag names, and other
 |----------|---------|
 | `derive_branch_name(state, branch_type, iter_id=None)` | Derive branch name from state dict and type (`iteration`, `workstream`, `plan`, `refine`). Returns string like `plet/{projectId}/loop{N}/workstream`. |
 
+## util_constants.py
+
+Single source of truth for shared constants. All scripts import version numbers from here instead of hardcoding — version bumps are a one-line change.
+
+| Constant | Purpose |
+|----------|---------|
+| `SCHEMA_VERSION` | State file schema version (e.g., `"0.2.0"`). Bump when state file format changes. Additive = minor, breaking = major. Used by `plet_state.py init` and state validation. |
+| `SKILL_VERSION` | Plet skill version (e.g., `"0.3.0"`). Matches `SKILL.md` frontmatter. Shown in `--version` output of every script. |
+
 ## util_subprocess.py
 
 Subprocess execution with capture, error formatting, and timeout handling. General-purpose wrapper — no shell=True, consistent error messages. Includes a `run_git` convenience for the most common case.
