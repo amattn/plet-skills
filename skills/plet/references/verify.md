@@ -287,11 +287,12 @@ If issues cannot be fixed in this context — wrong abstractions, missing functi
    - `lastUpdated`: current timestamp
    - **Do NOT set `lifecycle`.** Lifecycle stays `"verifying"`. The orchestrator owns the post-verify transition — it will set lifecycle to `"queued"` (retry) or `"blocked"` (retry exhausted) based on `lastVerdict` + retry policy. See § Lifecycle Ownership below.
 6. Write final trace entries
-7. Commit the failing tests and any other changes:
+7. Commit the failing tests, state updates, and runtime artifacts:
    ```
-   git add [specific files]
+   git add [specific files] plet/
    git commit -m "plet: [ID_xxx] verify-{attempt} - cycle back: {summary}"
    ```
+   **Always include `plet/` in commits** — state files, progress entries, learnings, emergent items, and trace events must be committed or they're lost on crash.
 
 **The branch is left with intentionally failing tests.** This is an explicit exception to the "all tests must pass" rule. The failing tests are the verify agent's handoff to the next implementation agent — they define exactly what needs to be fixed. The implementation agent's job is to make them green.
 

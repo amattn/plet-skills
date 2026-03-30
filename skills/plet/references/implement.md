@@ -128,8 +128,10 @@ The tool enforces the two-state model automatically — it creates the correct `
 
 Commit after each red step (failing test written) and after each green step (implementation passing) at a minimum. Also commit after any other logical unit of work. These incremental commits are for crash recovery — they will be squashed at the end of the phase.
 
+**Always include `plet/` in your commits.** Runtime artifacts (progress.md, learnings.md, emergent.md, state files, trace files) live in the `plet/` directory. If you only commit source code, runtime artifacts are lost on crash or worktree removal.
+
 ```
-git add [specific files]
+git add [specific source files] plet/
 git commit -m "wip: [ID_xxx] AC_N - [short description]"
 ```
 

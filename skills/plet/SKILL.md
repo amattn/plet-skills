@@ -222,13 +222,17 @@ Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`
 
 Autonomous. The orchestrator script handles the entire loop as deterministic code.
 
-**Invocation:**
+**MANDATORY: Call the orchestrator script. Do NOT implement the loop yourself.**
 
 ```bash
 plet_orchestrator.py run <plet_dir> --allow-stale --output ndjson
 ```
 
-The orchestrator streams NDJSON events (session_start, iteration_start, heartbeat, iteration_complete, result). SKILL.md reads events and communicates status to the user. The final `result` event has a `reason` field explaining why the loop stopped.
+The orchestrator script handles the entire implement→verify loop as deterministic code. You MUST call it via Bash — do NOT manually spawn subagents, create worktrees, manage branches, or process verdicts. The orchestrator does all of this. Your job is to call it, read the NDJSON events, and communicate results to the user.
+
+If the orchestrator is not available or fails to start, tell the user — do NOT fall back to implementing the loop in prose.
+
+The orchestrator streams NDJSON events (session_start, iteration_start, heartbeat, iteration_complete, result). Read events and communicate status to the user. The final `result` event has a `reason` field explaining why the loop stopped.
 
 **What the orchestrator does (conceptual understanding):**
 

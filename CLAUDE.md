@@ -26,6 +26,12 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - `PLAN.md` — build plan for implementing the skill
 - `case_studies/` — case studies from real plet runs (logalyzer, etc.). **When asked to produce a case study, read `case_studies/CLAUDE.md` first** — it contains the standard template, required sections, and analysis checklists.
 
+## Testing with Local Skill vs Published Plugin
+
+When testing plet on a target project from this repo, **uninstall the published marketplace plugin first.** If both the published plugin and the local skill are active, Claude Code may load either one — the published version will be outdated and missing orchestrator integration, enforcement scripts, lifecycle ownership, etc. This causes hard-to-diagnose issues (agent uses old prose-based loop, ignores scripts, asks for permissions).
+
+To test: use this repo's skill directly (Claude Code should pick it up from the local `skills/plet/` directory).
+
 ## Common Misspellings (voice input)
 
 | Heard/Typed | Means |

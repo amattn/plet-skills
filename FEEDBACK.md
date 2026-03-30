@@ -529,3 +529,27 @@ Observations from first live run with PLAN_9 tooling on the logalyzer project. T
 **Root cause hypothesis:** Most issues trace back to #4 and #8 — the agent isn't using plet_orchestrator.py or the v0.3.0 SKILL.md. If it's running the old skill, all the PLAN_9 work (orchestrator, lifecycle ownership, NDJSON streaming, etc.) is invisible to it.
 
 **Next step:** Complete iter 01, do full case study. Verify which skill version the agent is actually loading.
+
+### FB_59: Phase name drift — "implementation" vs "implement" in traces [state] [prompting]
+
+LOGA Run 2 trace files show both `implement-1` and `implementation-1` filenames for the same iteration. The agent used "implementation" as the phase name in some plet_trace.py calls. `VALID_PHASES = ["implement", "verify"]` should reject "implementation", but the universal invocation logging (`util_cli._log_script_invocation`) may use whatever phase was passed to the calling script (e.g., `plet_state.py update-criterion --phase implementation` is valid for criterion phases but wrong for trace filenames).
+
+Fix: ensure trace file naming always uses "implement"/"verify" regardless of what the criterion phase is called. Or unify: rename criterion phases from "implementation"/"verification" to "implement"/"verify" everywhere.
+
+### FB_60: Runtime artifacts not committed during implement/verify [git] [prompting]
+
+LOGA Run 2: `plet/progress.md`, `plet/learnings.md`, `plet/emergent.md`, `plet/state/`, and `plet/trace/` were all modified/created but never committed. Only source code was committed.
+
+implement.md says "commit after every red/green step" but agents interpret this as committing source code only. Need explicit `git add plet/ && git commit` guidance or have the orchestrator handle it (the orchestrator already does `git add -A && git commit` before merge-squash).
+
+### FB_61: Implement attempt counter never incremented [state] [prompting]
+
+LOGA Run 2: `attempts.implement` stayed 0 despite implementation clearly happening. The agent updated criteria, wrote artifacts, and set lifecycle → verifying, but never incremented the attempt counter. implement.md should make this a critical early step.
+
+### FB_62: lastVerdict not set despite completion [state] [prompting]
+
+LOGA Run 2: ID_001 has `lifecycle: "complete"` but `lastVerdict: null`. The verify agent set lifecycle directly (violating ownership model) without setting lastVerdict. The post-verify gate (GPH_PST_BHV_7, BHV_12) should have caught both issues — but gate scripts weren't called.
+
+### FB_63: Verification report schema drift — "decision" vs "verdict" [state]
+
+LOGA Run 2: Verification report uses `"decision": "pass"` instead of `"verdict": "passed"`. The state-schema.md defines `verdict` as the field name with values `passed`/`rejected`/`blocked`. Agent used wrong field name and wrong value format.
