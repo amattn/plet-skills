@@ -39,6 +39,29 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 
 ---
 
+## Pre-Session Check
+
+**Before entering any session**, check that the environment is configured for autonomous execution:
+
+1. **bypassPermissions:** The loop session spawns subagents that need to run tools (Bash, Edit, Write, Read) without human approval. Check if the user's Claude Code settings have `bypassPermissions` or equivalent configured. If not, warn:
+
+   ```
+   ⚠ Permission mode warning:
+   The loop session spawns autonomous subagents that need tool access
+   without per-call approval. Without bypassPermissions configured,
+   every tool call will pause for human approval — making the loop
+   effectively manual.
+
+   To fix: configure bypassPermissions in your Claude Code settings,
+   or use --dangerously-skip-permissions when launching subagents.
+   ```
+
+   This check applies to loop sessions (subagents need autonomy). Plan and refine sessions are interactive and don't need it.
+
+2. **Preflight:** Run `plet_gate_session.py preflight <plet_dir> --session-type <type>` for environment health checks (git state, scripts installed, fingerprints, etc.).
+
+---
+
 ## The Job
 
 1. Detect the current phase via `plet_gate_session.py detect`
