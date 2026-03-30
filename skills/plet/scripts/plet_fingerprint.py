@@ -37,7 +37,7 @@ from util_cli import (
 from util_io import load_json, atomic_write_json, load_text, requirements_path, iterations_path, state_json_path
 
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.1.1"
 SKILL_VERSION = "0.3.0"
 
 VALID_EXTRACT_TYPES = ["requirements", "iterations"]

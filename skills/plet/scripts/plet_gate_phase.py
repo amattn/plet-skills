@@ -46,7 +46,7 @@ from util_state import (
 from util_subprocess import run, run_git
 
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.2.0"
 SKILL_VERSION = "0.3.0"
 
 VALID_PHASES = ["implement", "verify"]

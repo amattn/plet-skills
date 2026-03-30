@@ -180,7 +180,7 @@ def test_help_all_commands():
 def test_version():
     print("\n## Version")
     stdout, _, _ = run(["--version"])
-    check("version output", "plet_fingerprint" in stdout and "0.1.0" in stdout)
+    check("version output", "plet_fingerprint" in stdout and "0.1.1" in stdout)
 
 
 def test_extract_requirements():

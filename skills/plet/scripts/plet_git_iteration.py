@@ -46,7 +46,7 @@ from util_io import validate_plet_dir
 from util_state import load_and_validate_global_state
 
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.1.1"
 SKILL_VERSION = "0.3.0"
 
 VALID_TYPES = ["iteration", "workstream", "plan", "refine"]

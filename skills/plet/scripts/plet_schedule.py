@@ -45,7 +45,7 @@ from util_io import (
     iter_state_path,
 )
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.2.0"
 SKILL_VERSION = "0.3.0"
 
 VALID_LIFECYCLES = {
