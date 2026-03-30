@@ -503,3 +503,29 @@ All plet scripts take `<plet_dir>` as an optional positional arg (default: `plet
 **Proposed fix:** Make `<plet_dir>` a required positional arg (no default). Less invasive than a `--plet-dir` named flag — keep the positional convention, just remove the fallback. `get_plet_dir` errors if missing instead of defaulting to `plet/`. Agents already pass it every time.
 
 **Impact:** Update `get_plet_dir` in util_cli + tests that rely on the default. Much smaller sweep than a named flag change. Plan with PLAN_10 (subplets).
+
+`[resolved]` — implemented in seq 37. `get_plet_dir` now returns None if missing.
+
+### FB_58: LOGA run 2 — live observations (2026-03-29) [prompting] [testing]
+
+Observations from first live run with PLAN_9 tooling on the logalyzer project. The orchestrator script exists but these issues surfaced during the run:
+
+1. **Plan session: no progress entries written.** plan.md had zero guidance on progress entries. `[fixed]` — added critical rule + examples to plan.md.
+
+2. **Plan session: no commits.** Commit-after-approval guidance was buried in step lists. Agent skipped it. `[fixed]` — elevated to critical rule at top of plan.md.
+
+3. **No bypassPermissions warning.** Agent kept asking for permission during loop. No warning surfaced about needing autonomous mode. `[fixed]` — added Pre-Session Check to SKILL.md (FB_22).
+
+4. **Agent used native Agent tool, not plet_invoke.py.** No transcripts, no trace capture. The SKILL.md says "call plet_orchestrator.py run" but the agent appears to be doing the loop in prose — possibly using the old published plugin version instead of the local repo's v0.3.0.
+
+5. **No verification branch.** Verify runs on the same branch as implement (by design), but verify.md doesn't clarify this — agent may be confused about branch context.
+
+6. **Runtime artifacts never committed.** `plet/` directory not staged in incremental commits. Implement.md says "commit after red/green" but agents commit source code only, not the plet/ directory with progress/learnings/emergent/trace.
+
+7. **Git stash + rebase attempted.** Both are banned (FB_9, IMP_16). Strong indicator the agent is reading the old published plugin, not the local v0.3.0 skill.
+
+8. **Possible plugin conflict.** Published marketplace version and local repo both have the plet skill. Claude Code may pick up either one — version confusion. Need to uninstall published version for clean testing.
+
+**Root cause hypothesis:** Most issues trace back to #4 and #8 — the agent isn't using plet_orchestrator.py or the v0.3.0 SKILL.md. If it's running the old skill, all the PLAN_9 work (orchestrator, lifecycle ownership, NDJSON streaming, etc.) is invisible to it.
+
+**Next step:** Complete iter 01, do full case study. Verify which skill version the agent is actually loading.
