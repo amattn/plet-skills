@@ -54,7 +54,7 @@ def check(name, condition, detail=""):
 def make_global_state(plet_dir, project_id="TEST", loop_session=1):
     """Create a minimal valid global state.json."""
     state = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "projectId": project_id,
         "project": {"name": "Test Project"},
         "loopSessionCount": loop_session,
@@ -73,7 +73,7 @@ def make_global_state(plet_dir, project_id="TEST", loop_session=1):
 def make_iter_state(plet_dir, iter_id, lifecycle, title=None):
     """Create a minimal valid per-iteration state file."""
     state = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "iterationId": iter_id,
         "title": title or "Test iteration {}".format(iter_id),
         "lastUpdated": "2026-03-25T00:00:00Z",
@@ -466,7 +466,7 @@ def test_status_active_agents():
         plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True)
         # Create an iteration with an agent
         state = {
-            "schemaVersion": "0.1.0",
+            "schemaVersion": "0.2.0",
             "iterationId": "ID_001",
             "title": "Add auth",
             "lastUpdated": "2026-03-25T00:00:00Z",
@@ -809,7 +809,7 @@ def test_postflight_basic():
         state_path = state_json_path(plet_dir)
         with open(state_path, "w") as f:
             json.dump({
-                "schemaVersion": "0.1.0", "projectId": "TEST",
+                "schemaVersion": "0.2.0", "projectId": "TEST",
                 "project": {"name": "Test"}, "loopSessionCount": 1,
                 "refineSessionCount": 0, "dependencyMap": {"ID_001": []},
                 "milestones": {}, "iterationsFingerprint": {},
@@ -839,7 +839,7 @@ def test_postflight_transient_detected():
         state_path = state_json_path(plet_dir)
         with open(state_path, "w") as f:
             json.dump({
-                "schemaVersion": "0.1.0", "projectId": "TEST",
+                "schemaVersion": "0.2.0", "projectId": "TEST",
                 "project": {"name": "Test"}, "loopSessionCount": 1,
                 "refineSessionCount": 0, "dependencyMap": {"ID_001": []},
                 "milestones": {}, "iterationsFingerprint": {},
@@ -884,7 +884,7 @@ def test_postflight_json():
         state_path = state_json_path(plet_dir)
         with open(state_path, "w") as f:
             json.dump({
-                "schemaVersion": "0.1.0", "projectId": "TEST",
+                "schemaVersion": "0.2.0", "projectId": "TEST",
                 "project": {"name": "Test"}, "loopSessionCount": 1,
                 "refineSessionCount": 0, "dependencyMap": {"ID_001": []},
                 "milestones": {}, "iterationsFingerprint": {},

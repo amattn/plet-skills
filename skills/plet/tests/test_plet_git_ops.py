@@ -93,7 +93,7 @@ def write_state_files(repo, global_data, iter_data, iter_id="ID_001"):
 
 
 GLOBAL_STATE = {
-    "schemaVersion": "0.1.0",
+    "schemaVersion": "0.2.0",
     "lastUpdated": "2026-03-07T14:00:00Z",
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer"},
@@ -105,7 +105,7 @@ GLOBAL_STATE = {
 }
 
 ITER_STATE = {
-    "schemaVersion": "0.1.0",
+    "schemaVersion": "0.2.0",
     "iterationId": "ID_001",
     "title": "Project scaffolding",
     "lastUpdated": "2026-03-07T14:00:00Z",

@@ -55,7 +55,7 @@ def check(name, condition, detail=""):
 def make_global_state(plet_dir, project_id="TEST", loop_session=1):
     os.makedirs(plet_dir, exist_ok=True)
     state = {
-        "schemaVersion": "0.1.0", "projectId": project_id,
+        "schemaVersion": "0.2.0", "projectId": project_id,
         "project": {"name": "Test Project"},
         "loopSessionCount": loop_session, "refineSessionCount": 0,
         "dependencyMap": {}, "milestones": {}, "iterationsFingerprint": {},
@@ -69,7 +69,7 @@ def make_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing",
                     last_verdict=None, verification_reports=None):
     os.makedirs(state_dir_path(plet_dir), exist_ok=True)
     state = {
-        "schemaVersion": "0.1.0", "iterationId": iter_id,
+        "schemaVersion": "0.2.0", "iterationId": iter_id,
         "title": "Test iteration", "lastUpdated": "2026-03-27T00:00:00Z",
         "lifecycle": lifecycle, "dependencies": [], "agentId": None,
         "attempts": {"implement": 1, "verify": 1}, "criteria": [],

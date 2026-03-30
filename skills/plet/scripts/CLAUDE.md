@@ -173,3 +173,4 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `util_format.py` | Canonical markdown templates for runtime artifact entries | `now_iso`, `build_progress_entry`, `build_learning_entry`, `build_emergent_entry` |
 | `util_subprocess.py` | Subprocess execution with capture, error formatting, timeout | `run`, `run_git` |
 | `util_git.py` | Pure git naming conventions (branch names, no git ops) | `derive_branch_name` |
+| `util_constants.py` | Shared constants (single source of truth for versions) | `SCHEMA_VERSION`, `SKILL_VERSION` |

@@ -45,7 +45,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 
 ```json
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "lastUpdated": "2026-03-07T14:00:00Z",
 
   "projectId": "MYPR",
@@ -143,7 +143,7 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 
 ```json
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "iterationId": "ID_001",
   "title": "Project scaffolding",
   "lastUpdated": "2026-03-07T15:30:00Z",
@@ -232,7 +232,7 @@ Shows state after two full cycles: first verification rejected, second passed. R
 
 ```json
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "iterationId": "ID_002",
   "title": "User authentication endpoint",
   "lastUpdated": "2026-03-07T19:30:00Z",

@@ -52,8 +52,8 @@ from util_io import (
 )
 
 SCRIPT_VERSION = "0.3.0"
-SKILL_VERSION = "0.3.0"
-SCHEMA_VERSION = "0.1.0"
+from util_constants import SKILL_VERSION  # noqa: E402
+from util_constants import SCHEMA_VERSION  # noqa: E402
 
 REQUIRED_TOP_LEVEL = [
     "schemaVersion", "iterationId", "title", "lastUpdated",

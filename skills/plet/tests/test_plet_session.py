@@ -52,7 +52,7 @@ def make_global_state(plet_dir, project_id="TEST", loop_count=0, refine_count=0,
                       session_history=None):
     """Create a minimal global state.json."""
     state = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "projectId": project_id,
         "project": {"name": "Test Project"},
         "loopSessionCount": loop_count,
@@ -284,7 +284,7 @@ with tempfile.TemporaryDirectory() as tmp:
     path = state_json_path(plet_dir)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
-        json.dump({"schemaVersion": "0.1.0", "projectId": "MYPR"}, f)
+        json.dump({"schemaVersion": "0.2.0", "projectId": "MYPR"}, f)
 
     out, err, _ = run(["start-session", plet_dir, "--type", "loop"])
     check("missing sessionHistory initializes ok", "Session: loop 1" in out, "got: " + out)
@@ -404,7 +404,7 @@ with tempfile.TemporaryDirectory() as tmp:
     path = state_json_path(plet_dir)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
-        json.dump({"schemaVersion": "0.1.0", "projectId": "MYPR"}, f)
+        json.dump({"schemaVersion": "0.2.0", "projectId": "MYPR"}, f)
 
     out, err, _ = run(["end-session", plet_dir], expect_exit=1)
     check("missing sessionHistory field exits 1", True)

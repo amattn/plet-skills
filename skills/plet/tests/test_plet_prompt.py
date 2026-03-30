@@ -60,7 +60,7 @@ def make_plet_dir(tmpdir):
     # Global state
     with open(state_json_path(plet_dir), "w") as f:
         json.dump({
-            "schemaVersion": "0.1.0", "projectId": "TEST",
+            "schemaVersion": "0.2.0", "projectId": "TEST",
             "project": {"name": "Test Project"},
             "loopSessionCount": 1, "refineSessionCount": 0,
             "dependencyMap": {}, "milestones": {}, "iterationsFingerprint": {},
@@ -70,7 +70,7 @@ def make_plet_dir(tmpdir):
     # Iter state
     with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
         json.dump({
-            "schemaVersion": "0.1.0", "iterationId": "ID_001",
+            "schemaVersion": "0.2.0", "iterationId": "ID_001",
             "title": "Project scaffolding", "lastUpdated": "2026-03-27T00:00:00Z",
             "lifecycle": "implementing", "dependencies": [], "agentId": None,
             "attempts": {"implement": 1, "verify": 0},

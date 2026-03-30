@@ -49,7 +49,7 @@ from util_id import generate_plet_id
 from util_io import atomic_append, events_path, load_json, load_text, trace_dir_path
 
 SCRIPT_VERSION = "0.1.1"
-SKILL_VERSION = "0.3.0"
+from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_EVENT_TYPES = [
     "decision", "criterion_update", "lifecycle_change",

@@ -47,7 +47,7 @@ from util_state import load_and_validate_global_state
 
 
 SCRIPT_VERSION = "0.1.1"
-SKILL_VERSION = "0.3.0"
+from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_TYPES = ["iteration", "workstream", "plan", "refine"]
 ITER_ID_RE = re.compile(r"^ID_\d+$")

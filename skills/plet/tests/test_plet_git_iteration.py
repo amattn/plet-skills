@@ -87,7 +87,7 @@ def write_state(repo_dir, data):
 
 
 VALID_STATE = {
-    "schemaVersion": "0.1.0",
+    "schemaVersion": "0.2.0",
     "lastUpdated": "2026-03-07T14:00:00Z",
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer"},

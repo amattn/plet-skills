@@ -51,7 +51,7 @@ def check(name, condition, detail=""):
 def make_global_state(plet_dir, dep_map=None, breakpoints=None):
     """Create a minimal global state.json with dependency map."""
     state = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "projectId": "TEST",
         "project": {"name": "Test Project"},
         "loopSessionCount": 1,
@@ -74,7 +74,7 @@ def make_iter_state(plet_dir, iter_id, lifecycle="queued", attempts=None,
                     verification_reports=None, last_verdict=None):
     """Create a minimal per-iteration state file."""
     state = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "iterationId": iter_id,
         "title": "Test iteration {}".format(iter_id),
         "lifecycle": lifecycle,

@@ -37,7 +37,7 @@ from util_io import (
 from util_state import load_and_validate_iter_state
 
 SCRIPT_VERSION = "0.1.0"
-SKILL_VERSION = "0.3.0"
+from util_constants import SKILL_VERSION  # noqa: E402
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 

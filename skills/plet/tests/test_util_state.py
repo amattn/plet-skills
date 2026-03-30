@@ -53,7 +53,7 @@ def write_iter_state(tmpdir, data, iter_id="ID_001"):
 
 
 VALID_STATE = {
-    "schemaVersion": "0.1.0",
+    "schemaVersion": "0.2.0",
     "lastUpdated": "2026-03-07T14:00:00Z",
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer", "description": "A log analysis tool"},
@@ -86,7 +86,7 @@ def test_valid_state():
         check("projectId present", result["projectId"] == "LOGA")
         check("loopSessionCount present", result["loopSessionCount"] == 1)
         check("refineSessionCount present", result["refineSessionCount"] == 0)
-        check("schemaVersion present", result["schemaVersion"] == "0.1.0")
+        check("schemaVersion present", result["schemaVersion"] == "0.2.0")
         check("dependencyMap present", "dependencyMap" in result)
         check("milestones present", "milestones" in result)
         check("iterationsFingerprint present", "iterationsFingerprint" in result)
@@ -97,7 +97,7 @@ def test_valid_state_minimal():
     import util_state
 
     minimal = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "lastUpdated": "2026-03-07T14:00:00Z",
         "projectId": "ABC",
         "project": {"name": "Test"},
@@ -375,7 +375,7 @@ def test_optional_fields_absent():
     import util_state
 
     state = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "lastUpdated": "2026-03-07T14:00:00Z",
         "projectId": "TEST",
         "project": {"name": "Test"},
@@ -463,7 +463,7 @@ def main():
 # ---------------------------------------------------------------------------
 
 VALID_ITER_STATE = {
-    "schemaVersion": "0.1.0",
+    "schemaVersion": "0.2.0",
     "iterationId": "ID_001",
     "title": "Project scaffolding",
     "lastUpdated": "2026-03-07T14:00:00Z",
@@ -503,7 +503,7 @@ def test_iter_minimal():
     import util_state
 
     minimal = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "iterationId": "ID_002",
         "title": "Core feature",
         "lastUpdated": "2026-03-07T14:00:00Z",

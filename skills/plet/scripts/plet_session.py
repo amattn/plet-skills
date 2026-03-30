@@ -40,7 +40,7 @@ from util_io import (
 from util_git import derive_branch_name
 
 SCRIPT_VERSION = "0.1.0"
-SKILL_VERSION = "0.3.0"
+from util_constants import SKILL_VERSION  # noqa: E402
 
 COUNTER_KEY = {
     "loop": "loopSessionCount",

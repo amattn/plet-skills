@@ -43,7 +43,7 @@ from util_io import (
 
 
 SCRIPT_VERSION = "0.1.1"
-SKILL_VERSION = "0.3.0"
+from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
 

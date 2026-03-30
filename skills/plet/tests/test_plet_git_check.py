@@ -83,7 +83,7 @@ def write_global_state(plet_dir, data=None):
     """Write state.json inside plet_dir and return its path."""
     if data is None:
         data = {
-            "schemaVersion": "0.1.0",
+            "schemaVersion": "0.2.0",
             "lastUpdated": "2026-03-07T14:00:00Z",
             "projectId": "LOGA",
             "project": {"name": "Log Analyzer"},
@@ -104,7 +104,7 @@ def write_global_state(plet_dir, data=None):
 def write_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing", **overrides):
     """Write state/{iter_id}.json inside plet_dir and return its path."""
     data = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "iterationId": iter_id,
         "title": "Test iteration",
         "lastUpdated": "2026-03-07T14:00:00Z",

@@ -57,7 +57,7 @@ from util_subprocess import run, run_git
 
 
 SCRIPT_VERSION = "0.2.0"
-SKILL_VERSION = "0.3.0"
+from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_SESSION_TYPES = ["detect", "plan", "loop", "refine"]
 LOOP_LIFECYCLES = {"queued", "implementing", "verifying"}

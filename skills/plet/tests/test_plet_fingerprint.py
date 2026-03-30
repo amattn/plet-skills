@@ -139,7 +139,7 @@ ITERATIONS_MD = """# Iterations
 """
 
 STATE_JSON = {
-    "schemaVersion": "0.1.0",
+    "schemaVersion": "0.2.0",
     "lastUpdated": "2026-03-07T14:30:00Z",
 }
 

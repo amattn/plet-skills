@@ -85,7 +85,7 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
 
     # state.json
     state = {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "projectId": "TEST",
         "project": {"name": "Test Project"},
         "loopSessionCount": 0,
@@ -102,7 +102,7 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
     # Per-iteration state files
     for it in iterations:
         iter_state = {
-            "schemaVersion": "0.1.0",
+            "schemaVersion": "0.2.0",
             "iterationId": it["id"],
             "title": it["title"],
             "lifecycle": "queued",

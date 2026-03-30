@@ -55,7 +55,7 @@ def check(name, condition, detail=""):
 def make_valid_state():
     """Return a minimal valid state dict."""
     return {
-        "schemaVersion": "0.1.0",
+        "schemaVersion": "0.2.0",
         "iterationId": "ID_001",
         "title": "Test iteration",
         "lastUpdated": "2026-03-10T00:00:00Z",
@@ -164,7 +164,7 @@ def test_validate_missing_fields():
     print("\n## Validate — missing required fields")
     with tempfile.TemporaryDirectory() as tmpdir:
         plet_dir = make_plet_dir(tmpdir)
-        data = {"schemaVersion": "0.1.0"}
+        data = {"schemaVersion": "0.2.0"}
         write_state(plet_dir, data)
         _, err, _ = run(["validate", plet_dir, "--iter-id", "ID_001"], expect_exit=1)
         check("reports INVALID", "INVALID" in err)
@@ -392,7 +392,7 @@ def test_init():
         check("file created", os.path.exists(path))
 
         data = json.load(open(path))
-        check("has schemaVersion", data["schemaVersion"] == "0.1.0")
+        check("has schemaVersion", data["schemaVersion"] == "0.2.0")
         check("has iterationId", data["iterationId"] == "ID_001")
         check("has title", data["title"] == "Test")
         check("lifecycle is queued", data["lifecycle"] == "queued")

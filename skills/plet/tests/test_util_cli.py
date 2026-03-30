@@ -594,7 +594,7 @@ def make_test_plet_dir():
     os.makedirs(state_dir_path(plet_dir), exist_ok=True)
     with open(state_json_path(plet_dir), "w") as f:
         json.dump({
-            "schemaVersion": "0.1.0", "projectId": "TEST",
+            "schemaVersion": "0.2.0", "projectId": "TEST",
             "project": {"name": "Test"}, "loopSessionCount": 1,
             "refineSessionCount": 0, "dependencyMap": {},
             "milestones": {}, "iterationsFingerprint": {},
@@ -602,7 +602,7 @@ def make_test_plet_dir():
         f.write("\n")
     with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
         json.dump({
-            "schemaVersion": "0.1.0", "iterationId": "ID_001",
+            "schemaVersion": "0.2.0", "iterationId": "ID_001",
             "title": "Test", "lastUpdated": "2026-03-29T00:00:00Z",
             "lifecycle": "implementing", "dependencies": [],
             "agentId": None, "attempts": {"implement": 1, "verify": 0},
