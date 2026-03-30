@@ -154,10 +154,13 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `plet_git_iteration.py` | Git iteration lifecycle (branches, worktrees) | `branch-name`, `worktree-create`, `worktree-remove` |
 | `plet_git_ops.py` | Git workflow operations | `audit-tag`, `merge-squash` |
 | `plet_git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
-| `plet_gate_session.py` | Session detection, status, preflight | `detect`, `status`, `preflight` |
+| `plet_gate_session.py` | Session-level gate checks (read-only) | `detect`, `status`, `preflight`, `postflight` |
 | `plet_gate_phase.py` | Phase gate (pre/post, `--phase implement\|verify`) | `pre`, `post` |
 | `plet_prompt.py` | Prompt assembly for subagents | `assemble` |
 | `plet_invoke.py` | Subprocess launch + transcript capture | `run` |
+| `plet_schedule.py` | Loop scheduling decisions (read-only) | `eligible`, `check-breakpoints`, `check-retry` |
+| `plet_session.py` | Session lifecycle management (mutating) | `start-session`, `end-session` |
+| `plet_orchestrator.py` | Main implement→verify loop (the capstone) | `run` |
 
 ### Internal Modules (`util_*.py`)
 
@@ -169,9 +172,4 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `util_state.py` | State file validation and validated loading (global + per-iteration) | `load_and_validate_global_state(plet_dir)`, `load_and_validate_iter_state(plet_dir, iter_id)`, `validate_global_state`, `validate_iter_state` |
 | `util_format.py` | Canonical markdown templates for runtime artifact entries | `now_iso`, `build_progress_entry`, `build_learning_entry`, `build_emergent_entry` |
 | `util_subprocess.py` | Subprocess execution with capture, error formatting, timeout | `run`, `run_git` |
-
-## Remaining (PLAN_8)
-
-| Script | Purpose | Status |
-|--------|---------|--------|
-| `plet_orchestrator.py` | Loop orchestrator (session lifecycle, dependency graph, retry, main loop) | spec not started |
+| `util_git.py` | Pure git naming conventions (branch names, no git ops) | `derive_branch_name` |

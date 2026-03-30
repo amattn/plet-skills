@@ -1,6 +1,6 @@
 ---
 name: plet
-version: 0.2.0
+version: 0.3.0
 description: "Spec-driven autonomous development orchestrator. Use when the user asks to 'plet', 'start plet', 'plan and execute', 'autonomous loop', 'iterate on this feature', or 'run the dev loop'. Single entry point that reads project state and routes to the correct session: plan (interactive requirements and iteration design), loop (autonomous implementation and verification phases for each iteration), or refine (human-driven triage of emergent items, spec updates, and re-planning)."
 user-invocable: true
 allowed-tools:
@@ -13,6 +13,11 @@ allowed-tools:
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_check.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_session.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_phase.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_prompt.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_invoke.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_schedule.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_session.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_orchestrator.py *)"
 ---
 
 # plet — Spec-Driven Autonomous Development Orchestrator
@@ -192,52 +197,37 @@ Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`
 
 **References:** `references/implement.md` + `references/verify.md`
 
-Autonomous. Implements iterations, then verifies each in a fresh context.
+Autonomous. The orchestrator script handles the entire loop as deterministic code.
 
-**Orchestrator actions:**
-1. Session setup: increment `loopSessionCount`, branch from previous workstream (or main), update `sessionHistory`
-2. Identify eligible iterations: dependencies `complete`, lifecycle `queued`
-3. For each eligible iteration:
-   a. Run pre-gate: `plet_gate_phase.py pre plet/ --iter-id ID_xxx --phase implement`
-   b. Create worktree: `plet_git_iteration.py worktree-create plet/ --iter-id ID_xxx`
-   c. Launch subagent: `plet_invoke.py run plet/ --iter-id ID_xxx --phase implement --cwd <worktree>`
+**Invocation:**
 
-   The subagent prompt (assembled by `plet_prompt.py assemble`) includes:
-   - The full contents of `references/implement.md` **(primary — inject first, defines agent behavior)**
-   - The iteration definition from `plet/iterations.md`
-   - The full contents of `references/formats.md`
-   - Relevant sections of `references/state-schema.md`
-   - `plet/requirements.md` (universal context)
-   - `plet/learnings.md` (prior knowledge — always injected, FB_38)
-   - Per-iteration state file (formatted readably)
+```bash
+plet_orchestrator.py run <plet_dir> --allow-stale --output ndjson
+```
 
-   Invocation is logged to both trace event (invocation type) and progress entry (with full prompt text). Transcript captured line-by-line.
+The orchestrator streams NDJSON events (session_start, iteration_start, heartbeat, iteration_complete, result). SKILL.md reads events and communicates status to the user. The final `result` event has a `reason` field explaining why the loop stopped.
 
-   d. Subagent runs post-gate before exiting: `plet_gate_phase.py post plet/ --iter-id ID_xxx --phase implement`
-      - Self-corrects until post passes (progress entry required, learnings/emergent warned)
-4. After implementation completes (lifecycle → `verifying`), spawn a **verification subagent** in a fresh context on the same branch. **One verification subagent per iteration** — never batch multiple iterations into a single verify invocation.
+**What the orchestrator does (conceptual understanding):**
 
-   a. Pre-gate: `plet_gate_phase.py pre plet/ --iter-id ID_xxx --phase verify`
-   b. Launch: `plet_invoke.py run plet/ --iter-id ID_xxx --phase verify --cwd <worktree>`
+1. **Pre-check:** Calls `plet_schedule.py eligible` before starting a session. If nothing to do, returns immediately without creating a session.
+2. **Session setup:** Starts a loop session (`plet_session.py start-session`), creates the workstream branch, checks fingerprints (blocks if stale unless `--allow-stale`), writes an ACTIVE canary to progress.md.
+3. **Iteration loop:** For each eligible iteration: create worktree → spawn implement subagent (`plet_invoke.py run`) → check lifecycle handoff → spawn verify subagent → read `lastVerdict` → merge-squash or retry/block → remove worktree → check breakpoints → re-evaluate eligible.
+4. **Verdict processing:** `passed` → merge to workstream, lifecycle → `complete`. `rejected` → check retry policy (3 default, 6 if improving), lifecycle → `queued` or `blocked`. `blocked` → lifecycle → `blocked`.
+5. **Session end:** Runs postflight (`plet_gate_session.py postflight`), ends session, writes COMPLETE canary.
 
-   The verify prompt includes the same sections as implement, except:
-   - `references/verify.md` instead of `references/implement.md`
-   - The per-iteration state file shows implementation criterion statuses
+**Lifecycle ownership:** The implement subagent sets lifecycle → `verifying` (handoff signal). The verify subagent sets `lastVerdict` only — does NOT touch lifecycle. The orchestrator owns all post-verify transitions (complete, queued, blocked). Gate scripts enforce this. See IMP_8, state-schema.md § Lifecycle Ownership.
 
-   The verification agent verifies the **result**, not the **process** — it does not initially read implementation diffs.
+**Handling the result:**
 
-   c. Subagent runs post-gate: `plet_gate_phase.py post plet/ --iter-id ID_xxx --phase verify`
-      - Verify post also requires `lastVerdict` (FAIL if null) and `verificationReports` (FAIL if empty/missing fields)
-5. After verification (orchestrator reads `lastVerdict` from state — verify subagent does NOT set lifecycle):
-   - `lastVerdict: "passed"` → merge-squash to workstream, orchestrator sets lifecycle → `complete`
-   - `lastVerdict: "rejected"` → orchestrator checks retry policy, sets lifecycle → `queued` (retry) or `blocked` (exhausted)
-   - `lastVerdict: "blocked"` → orchestrator sets lifecycle → `blocked`
-   - **Lifecycle ownership:** handoffs (subagent → orchestrator) vs decisions (orchestrator only). See IMP_8, state-schema.md § Lifecycle Ownership.
-6. Clean up worktree: `plet_git_iteration.py worktree-remove plet/ --iter-id ID_xxx`
-7. Re-evaluate dependency graph, spawn next eligible iterations
-8. Check breakpoints before/after each iteration
-9. Continue until all `complete` or `blocked`
-10. End session: update `sessionHistory.endedAt`, offer merge options
+| Reason | What SKILL.md should do |
+|--------|------------------------|
+| `all_complete` | Congratulate. Offer to merge workstream to main. |
+| `all_blocked_or_complete` | Report blocked iterations + stuck dependents. Recommend `/plet refine`. |
+| `breakpoint_before` / `breakpoint_after` | Show the breakpointed iteration ID. Ask user: continue, remove breakpoint, or stop. To continue: remove breakpoint from state.json, re-run orchestrator. |
+| `max_iterations_reached` | Report progress. Ask: continue or stop. |
+| `error` | Surface the error from `pauseContext.error`. Investigate. |
+
+**Parallel execution:** Eligible iterations with no dependency relationship launch concurrently (round-based). Merge-squash is always sequential. Use `--sequential` for debugging.
 
 ### Refine Phase
 
@@ -360,14 +350,30 @@ All reference files live under `skills/plet/references/`:
 
 All scripts live under `skills/plet/scripts/`. Specs in `specs/`. See PRD §3.9 for full inventory.
 
-Key commands for the orchestrator:
+Key commands:
 
 ```bash
-# Routing
+# The loop (SKILL.md calls this, orchestrator handles everything)
+plet_orchestrator.py run plet/ --output ndjson
+plet_orchestrator.py run plet/ --allow-stale --output ndjson
+plet_orchestrator.py run plet/ --max-iterations 1 --sequential --output ndjson
+
+# Routing + session detection
 plet_gate_session.py detect plet/
 plet_gate_session.py preflight plet/ --session-type loop
+plet_gate_session.py postflight plet/ --session-type loop
+plet_gate_session.py status plet/
 
-# Gate checks
+# Session lifecycle
+plet_session.py start-session plet/ --type loop
+plet_session.py end-session plet/
+
+# Scheduling decisions
+plet_schedule.py eligible plet/
+plet_schedule.py check-breakpoints plet/ --iter-id ID_xxx --position before
+plet_schedule.py check-retry plet/ --iter-id ID_xxx
+
+# Gate checks (called by subagents, not orchestrator)
 plet_gate_phase.py pre plet/ --iter-id ID_xxx --phase implement
 plet_gate_phase.py post plet/ --iter-id ID_xxx --phase verify
 
@@ -379,11 +385,9 @@ plet_invoke.py run plet/ --iter-id ID_xxx --phase implement --cwd <worktree>
 plet_git_iteration.py worktree-create plet/ --iter-id ID_xxx
 plet_git_ops.py merge-squash plet/ --iter-id ID_xxx
 
-# State
-plet_state.py validate plet/state/ID_xxx.json
+# State + artifacts
+plet_state.py validate plet/ --iter-id ID_xxx
 plet_entries.py check plet/ --iter-id ID_xxx
-
-# Fingerprints
 plet_fingerprint.py check plet/ --output json
 ```
 
