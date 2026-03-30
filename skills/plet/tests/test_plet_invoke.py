@@ -117,7 +117,7 @@ def make_plet_dir(tmpdir):
             "schemaVersion": "0.2.0", "iterationId": "ID_001",
             "title": "Test", "lastUpdated": "2026-03-28T00:00:00Z",
             "lifecycle": "implementing", "dependencies": [], "agentId": None,
-            "attempts": {"implement": 1, "verify": 0},
+            "attempts": {"implement": 0, "verify": 0},
             "criteria": [{"id": "AC_1", "description": "test", "status": "pending"}],
         }, f)
         f.write("\n")

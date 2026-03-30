@@ -41,7 +41,7 @@ from util_io import (
 from util_subprocess import run
 
 
-SCRIPT_VERSION = "0.1.1"
+SCRIPT_VERSION = "0.1.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -77,7 +77,7 @@ def assemble_prompt(plet_dir, iter_id, phase):
 
 def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model, max_budget, verbose):
     """Build the claude -p command list."""
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json",
+    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
            "--permission-mode", permission_mode,
            "--no-session-persistence", "--bare",
            "--name", "plet/{}/{}-{}".format(iter_id, phase, attempt)]
@@ -85,8 +85,6 @@ def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model
         cmd.extend(["--model", model])
     if max_budget:
         cmd.extend(["--max-budget-usd", str(max_budget)])
-    if verbose:
-        cmd.append("--verbose")
     return cmd
 
 
@@ -200,7 +198,7 @@ Examples:
         else:
             print(msg, file=sys.stderr)
         return 1
-    attempt = state_data.get("attempts", {}).get(phase, 1)
+    attempt = state_data.get("attempts", {}).get(phase, 0) + 1
 
     # Derive transcript path
     t_path = transcript_path(plet_dir, iter_id, phase, attempt)

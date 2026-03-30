@@ -95,6 +95,28 @@ This repo has multiple NOTES.md files. When writing notes, route to the correct 
 
 **Default rule:** If working in `specs/` or on script tooling, write to `specs/NOTES.md`. If working in `guide/`, write to `guide/NOTES.md`. Otherwise write to root `NOTES.md`. If ambiguous, ask.
 
+## SemVer Discipline
+
+**Bump versions when you change behavior, not later.** Version bumps are part of the change, not a separate task. Every commit that changes script behavior, skill behavior, or state schema should include the version bump in the same commit.
+
+**What to bump:**
+
+| Change type | What to bump | Example |
+|-------------|-------------|---------|
+| Bug fix in a script | Script's `SCRIPT_VERSION` patch | 0.1.1 → 0.1.2 |
+| New feature/command in a script | Script's `SCRIPT_VERSION` minor | 0.1.2 → 0.2.0 |
+| Any skill behavior change | `SKILL_VERSION` in `util_constants.py` + SKILL.md frontmatter + plugin.json + marketplace.json | 0.3.0 → 0.3.1 |
+| State file format change (additive) | `SCHEMA_VERSION` in `util_constants.py` | 0.2.0 → 0.3.0 |
+| State file format change (breaking) | `SCHEMA_VERSION` major | 0.3.0 → 1.0.0 |
+
+**Where versions live (single source of truth):**
+- `SKILL_VERSION` and `SCHEMA_VERSION`: `skills/plet/scripts/util_constants.py` — all scripts import from here
+- SKILL.md frontmatter `version:` — must match `SKILL_VERSION`
+- `.claude-plugin/plugin.json` and `marketplace.json` — must match `SKILL_VERSION`
+- Per-script `SCRIPT_VERSION` — in each script file, independently versioned
+
+**Don't forget:** When bumping `SKILL_VERSION`, update all four locations (util_constants, SKILL.md, plugin.json, marketplace.json). When bumping `SCRIPT_VERSION`, check if tests assert the version string.
+
 ## NOTES.md Discipline
 
 **Update NOTES.md after every decision, before moving to the next topic.** This is not optional and not deferrable. The pattern of "I'll catch up on notes later" always fails — decisions accumulate faster than memory, and by the end of a session the rationale is lost.
