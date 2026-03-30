@@ -205,3 +205,9 @@ Yes — this is clean scaffolding code. No over-engineering, no unnecessary pack
 - Loop session: 1 (active, iter 01 only)
 - Refine sessions: 0
 - **Limitations:** Only 1 of 13 iterations completed. Single data point. Agent may have been using old published plugin (FB_58 #8). No transcript data available for analysis.
+
+### Post-Run Note: Plugin Conflict Deeper Than Expected
+
+The published marketplace plet-skills plugin was manually disabled before the run. Despite this, the agent appears to have read the old marketplace skill from the Claude Code config/cache directory. **Disabling a plugin is not sufficient — the cached skill files remain readable.** The agent cannot be trusted to respect disabled status.
+
+**Action for next run:** Fully uninstall the marketplace version AND delete the cached skill files from the Claude config directory (e.g., `~/.claude/` or equivalent). Only the local repo's skill should be present on disk. This is the only way to guarantee the agent loads the correct v0.3.0 skill with orchestrator integration.
