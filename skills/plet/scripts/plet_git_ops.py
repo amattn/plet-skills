@@ -6,8 +6,8 @@ one commit per iteration on the workstream. Git history is never lost —
 incremental commits stay on the iteration branch.
 
 Usage:
-    plet_git_ops.py audit-tag [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_ops.py merge-squash [<plet_dir>] --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     audit-tag       Create an audit tag marking a phase boundary
@@ -113,7 +113,7 @@ PITFALLS:
     - Attempt number derived from iter state — don't pass it manually
 
 USAGE:
-    plet_git_ops.py audit-tag [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (default: plet/)
     --iter-id            Iteration ID (e.g., ID_001)
@@ -282,7 +282,7 @@ PITFALLS:
     - Tag and branch cleanup controlled by per-iteration state fields
 
 USAGE:
-    plet_git_ops.py merge-squash [<plet_dir>] --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (default: plet/)
     --iter-id            Iteration ID (e.g., ID_001)

@@ -6,7 +6,7 @@ from disk; outputs a complete prompt. This is the bridge between plet's
 deterministic state and the non-deterministic subagent.
 
 Usage:
-    plet_prompt.py assemble [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_prompt.py assemble <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     assemble    Build complete prompt from files on disk
@@ -153,7 +153,7 @@ PITFALLS:
     - Text output is pipe-friendly: suitable for `... | claude -p`
 
 USAGE:
-    plet_prompt.py assemble [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_prompt.py assemble <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (default: plet/)
     --iter-id   Iteration ID (required)

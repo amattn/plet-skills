@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""plet session tool — detect session type, project status, and preflight checks.
+"""plet gate session tool — session-level gate checks (read-only).
 
-Determines which session to enter, produces status summaries, and verifies the
-project environment is ready for work. All commands are read-only.
+Determines which session to enter, produces status summaries, verifies the
+project environment is ready for work, and checks session health at end.
+All commands are read-only. Paired with plet_session.py for mutating lifecycle.
 
 Usage:
-    plet_gate_session.py detect [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_session.py status [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     detect      Determine which session type to enter (plan, loop, refine)
     status      Project status summary (iterations, blockers, agents)
     preflight   Pre-session environment checks (go/no-go)
+    postflight  Post-session health checks (warnings only, never blocks)
 """
 
 import glob as glob_mod
@@ -171,7 +174,7 @@ PITFALLS:
     - ineligible-only iterations return refine (not loop)
 
 USAGE:
-    plet_gate_session.py detect [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (default: plet/)
 
@@ -240,7 +243,7 @@ PITFALLS:
     - Fingerprint check may be slow — it calls plet_fingerprint.py via subprocess
 
 USAGE:
-    plet_gate_session.py status [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (default: plet/)
 
@@ -608,7 +611,7 @@ PITFALLS:
     - Defaults to plet/ in current directory — run from project root
 
 USAGE:
-    plet_gate_session.py preflight [<plet_dir>] --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir          Path to plet directory (default: plet/)
     --session-type    Required. Controls session-specific checks.
@@ -740,7 +743,7 @@ def cmd_postflight(args):
     better than a dangling open session.
 
     USAGE
-        plet_gate_session.py postflight [<plet_dir>] --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]
+        plet_gate_session.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_gate_session.py postflight plet/ --session-type loop

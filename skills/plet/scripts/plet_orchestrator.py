@@ -6,7 +6,7 @@ and loops until all iterations are complete, blocked, or a breakpoint is hit.
 Returns structured NDJSON so SKILL.md knows why it stopped.
 
 Usage:
-    plet_orchestrator.py run [<plet_dir>] [--max-iterations N] [--sequential] [--allow-stale] [--output ndjson]
+    plet_orchestrator.py run <plet_dir> [--max-iterations N] [--sequential] [--allow-stale] [--output ndjson]
 
 Commands:
     run     Execute the main implement→verify loop
@@ -118,7 +118,7 @@ def cmd_run(args):
     code, not prose-interpreted instructions.
 
     USAGE
-        plet_orchestrator.py run [<plet_dir>] [--max-iterations N] [--sequential] [--allow-stale] [--output ndjson]
+        plet_orchestrator.py run <plet_dir> [--max-iterations N] [--sequential] [--allow-stale] [--output ndjson]
 
     EXAMPLES
         plet_orchestrator.py run plet/

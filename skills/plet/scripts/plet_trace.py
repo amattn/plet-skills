@@ -6,14 +6,14 @@ schema drift across iterations. Handles only semantic events
 (-events.ndjson), not raw transcripts (-transcript.ndjson).
 
 Usage:
-    plet_trace.py <command> [<plet_dir>] [args]
+    plet_trace.py <command> <plet_dir> [args]
 
 Commands:
     append-event  Append a semantic event to a trace NDJSON file.
     validate      Check a trace events file against the schema.
     query         Filter and extract events by type, criterion, or count.
 
-All commands take an optional plet_dir (defaults to ./plet/) and require
+All commands take a plet_dir positional (defaults to ./plet/) and require
 --iter-id, --phase, --attempt to derive the trace file path:
     {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 
@@ -332,11 +332,10 @@ PITFALLS:
     invocation:       cwd, permissionMode, promptLength
 
 USAGE:
-    plet_trace.py append-event [<plet_dir>] --iter-id ID_xxx --phase PHASE \\
+    plet_trace.py append-event <plet_dir> --iter-id ID_xxx --phase PHASE \\
         --attempt N --event-type TYPE --data '{...}' [--data-file path] \\
         [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir defaults to ./plet/ if omitted.
     Trace file: {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 
 PURPOSE: Records a semantic event during implementation or verification.
@@ -558,10 +557,9 @@ PITFALLS:
   NOT "implement"/"verify"
 
 USAGE:
-    plet_trace.py validate [<plet_dir>] --iter-id ID_xxx --phase PHASE \\
+    plet_trace.py validate <plet_dir> --iter-id ID_xxx --phase PHASE \\
         --attempt N [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir defaults to ./plet/ if omitted.
     Derives trace file: {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 
 PURPOSE: Confirms a trace events file conforms to the NDJSON schema without
@@ -720,11 +718,10 @@ PITFALLS:
 - --raw and --output json are mutually exclusive
 
 USAGE:
-    plet_trace.py query [<plet_dir>] --iter-id ID_xxx --phase PHASE \\
+    plet_trace.py query <plet_dir> --iter-id ID_xxx --phase PHASE \\
         --attempt N [--event-type TYPE] [--criterion AC_1] \\
         [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir defaults to ./plet/ if omitted.
     Derives trace file: {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 
 PURPOSE: Filters events by type, criterion, or count. Agents read trace files

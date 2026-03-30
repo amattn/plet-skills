@@ -5,7 +5,7 @@ Enforces the schema defined in references/state-schema.md. Agents call this
 instead of writing JSON freehand, eliminating schema drift across iterations.
 
 Usage:
-    plet_state.py <command> [<plet_dir>] --iter-id ID_xxx [args]
+    plet_state.py <command> <plet_dir> --iter-id ID_xxx [args]
 
 Commands:
     validate          Check a state file against the schema. Exits 0 if valid, 1 if not.
@@ -13,8 +13,8 @@ Commands:
     update-field      Update top-level fields (lifecycle, agentActivity, etc.) via --data JSON.
     init              Create a new state file with correct structure.
 
-All commands require --iter-id and accept an optional plet_dir positional
-(defaults to "plet/"). The state file path is derived as plet_dir/state/{iter_id}.json.
+All commands require --iter-id and a plet_dir positional (defaults to "plet/").
+The state file path is derived as plet_dir/state/{iter_id}.json.
 
 Global flags:
     --help, -h        Show this help or command-specific help
@@ -361,7 +361,7 @@ PITFALLS:
   "implement" for lifecycle (use "implementing").
 
 USAGE:
-    plet_state.py validate [<plet_dir>] --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]
+    plet_state.py validate <plet_dir> --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]
 
 PURPOSE: Confirms a state file conforms to the schema without modifying it.
 Checks all required fields, types, enum values, and the criterion two-state
@@ -440,7 +440,7 @@ PITFALLS:
 - --pretty and --fields require --output json
 
 USAGE:
-    plet_state.py update-criterion [<plet_dir>] --iter-id ID_xxx --criterion AC_1 \\
+    plet_state.py update-criterion <plet_dir> --iter-id ID_xxx --criterion AC_1 \\
         --phase implementation --status pass --evidence "..." \\
         [--elapsed N] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
@@ -599,7 +599,7 @@ Valid lifecycle values:   ineligible, queued, implementing, verifying, complete,
 Valid agentActivity values: idle, reading_context, implementing, running_checks, committing, wrapping_up
 
 USAGE:
-    plet_state.py update-field [<plet_dir>] --iter-id ID_xxx --data '{"field":"value", ...}' \\
+    plet_state.py update-field <plet_dir> --iter-id ID_xxx --data '{"field":"value", ...}' \\
         [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 
 PURPOSE: Updates top-level fields with enum validation. Supports dotted paths
@@ -769,7 +769,7 @@ PITFALLS:
 - --pretty and --fields require --output json.
 
 USAGE:
-    plet_state.py init [<plet_dir>] --iter-id ID_xxx --title "..." \\
+    plet_state.py init <plet_dir> --iter-id ID_xxx --title "..." \\
         --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' \\
         [--no-verify-deps] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
 

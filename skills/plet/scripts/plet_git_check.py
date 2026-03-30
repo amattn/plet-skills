@@ -5,8 +5,8 @@ Verifies git invariants without modifying state. Called by gate scripts and
 the orchestrator. Reports findings as a list of pass/fail/warn checks.
 
 Usage:
-    plet_git_check.py check-iteration [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
-    plet_git_check.py check-session [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     check-iteration   Per-iteration git compliance at phase boundaries
@@ -278,7 +278,7 @@ PITFALLS:
     - --phase is "implement" or "verify" (not "implementation")
 
 USAGE:
-    plet_git_check.py check-iteration [<plet_dir>] --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (default: plet/)
     --iter-id            Iteration ID (e.g., ID_001)
@@ -401,7 +401,7 @@ PITFALLS:
     - Must be run from inside a git repository
 
 USAGE:
-    plet_git_check.py check-session [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (default: plet/)
 

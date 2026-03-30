@@ -6,8 +6,8 @@ state.json (session counters, session history). Paired with
 plet_gate_session.py which handles read-only session detection and preflight.
 
 Usage:
-    plet_session.py start-session [<plet_dir>] --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_session.py end-session [<plet_dir>] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     start-session   Start a loop or refine session (increment counter, append history)
@@ -97,7 +97,7 @@ def cmd_start_session(args):
           (idempotent) rather than creating a duplicate.
 
     USAGE
-        plet_session.py start-session [<plet_dir>] --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+        plet_session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_session.py start-session plet/ --type loop
@@ -251,7 +251,7 @@ def cmd_end_session(args):
         - Does NOT merge branches or perform any git operations.
 
     USAGE
-        plet_session.py end-session [<plet_dir>] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+        plet_session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_session.py end-session plet/

@@ -5,7 +5,7 @@ Assembles prompt via plet_prompt.py, launches claude -p, captures streaming
 NDJSON to transcript file line by line. Returns subprocess exit code.
 
 Usage:
-    plet_invoke.py run [<plet_dir>] --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--permission-mode MODE] [--model MODEL] [--max-budget N] [--verbose] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--permission-mode MODE] [--model MODEL] [--max-budget N] [--verbose] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     run     Assemble prompt, launch subprocess, capture transcript
@@ -106,7 +106,7 @@ PITFALLS:
     - --bare skips hooks/LSP/plugins for faster startup
 
 USAGE:
-    plet_invoke.py run [<plet_dir>] --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--permission-mode MODE] [--model MODEL] [--max-budget N] [--verbose] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--permission-mode MODE] [--model MODEL] [--max-budget N] [--verbose] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir           Path to plet directory (default: plet/)
     --iter-id          Iteration ID (required)

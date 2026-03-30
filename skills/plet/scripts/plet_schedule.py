@@ -6,9 +6,9 @@ evaluates retry policy. All commands are read-only. The orchestrator calls
 these to make deterministic routing decisions.
 
 Usage:
-    plet_schedule.py eligible [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
-    plet_schedule.py check-breakpoints [<plet_dir>] --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]
-    plet_schedule.py check-retry [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+    plet_schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]
+    plet_schedule.py check-retry <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     eligible            List iterations ready for work (queued + all deps complete)
@@ -76,7 +76,7 @@ def cmd_eligible(args):
           "complet" would silently break scheduling if not caught.
 
     USAGE
-        plet_schedule.py eligible [<plet_dir>] [--output json [--pretty] [--fields f1,f2]]
+        plet_schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_schedule.py eligible
@@ -206,7 +206,7 @@ def cmd_check_breakpoints(args):
     arrays always return "miss".
 
     USAGE
-        plet_schedule.py check-breakpoints [<plet_dir>] --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]
+        plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_schedule.py check-breakpoints plet/ --iter-id ID_003 --position before
@@ -286,7 +286,7 @@ def cmd_check_retry(args):
     strictly decreasing across attempts, extend to 6. Abort if not decreasing.
 
     USAGE
-        plet_schedule.py check-retry [<plet_dir>] --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+        plet_schedule.py check-retry <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_schedule.py check-retry plet/ --iter-id ID_002

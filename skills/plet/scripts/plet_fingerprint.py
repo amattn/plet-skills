@@ -7,9 +7,9 @@ dependent artifacts. Computing, embedding, and comparing these structures is
 purely mechanical — this script makes fingerprint operations deterministic.
 
 Usage:
-    plet_fingerprint.py extract <artifact_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]
-    plet_fingerprint.py embed <artifact_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_fingerprint.py check <artifact_dir> [--level requirements|iterations|all] [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py extract <plet_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py embed <plet_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py check <plet_dir> [--level requirements|iterations|all] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     extract    Extract a fingerprint from a plan artifact by scanning its content
@@ -491,15 +491,15 @@ def cmd_extract(args):
     modifying anything. Use embed to write fingerprints into files.
 
 PITFALLS:
-    - First argument is artifact_dir (directory), not a file path.
+    - First argument is plet_dir (directory), not a file path.
       Use: plet_fingerprint.py extract plet/ --type requirements
       NOT:  plet_fingerprint.py extract plet/requirements.md --type requirements
     - --type must be "requirements" or "iterations", not "req" or "iter"
 
 USAGE:
-    plet_fingerprint.py extract <artifact_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py extract <plet_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]
 
-    artifact_dir    Path to plet directory (e.g., plet/)
+    plet_dir        Path to plet directory (e.g., plet/)
     --type          requirements or iterations
     --output json   Structured JSON output
     --pretty        Indent JSON (requires --output json)
@@ -623,15 +623,15 @@ def cmd_embed(args):
     is auto-bumped. Use --bump to force-bump for prose-only changes.
 
 PITFALLS:
-    - First argument is artifact_dir (directory), not a file path
+    - First argument is plet_dir (directory), not a file path
     - --type "state" reads from iterations.md and writes to state.json
     - --type "iterations" reads requirements fingerprint from requirements.md
     - --bump is for prose-only changes — if IDs changed, auto-bump fires anyway
 
 USAGE:
-    plet_fingerprint.py embed <artifact_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py embed <plet_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    artifact_dir    Path to plet directory (e.g., plet/)
+    plet_dir        Path to plet directory (e.g., plet/)
     --type          requirements, iterations, or state
     --bump          Force-bump lastNonTrivialUpdate (for prose-only changes)
     --dry-run       Preview without modifying files
@@ -1014,14 +1014,14 @@ def cmd_check(args):
     Exit code 0 = all consistent, exit code 1 = stale or error.
 
 PITFALLS:
-    - First argument is artifact_dir (directory), not a file path
+    - First argument is plet_dir (directory), not a file path
     - --level defaults to "all" — checks both requirements and iterations levels
     - "stale" means drift detected, not a tool error
 
 USAGE:
-    plet_fingerprint.py check <artifact_dir> [--level requirements|iterations|all] [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py check <plet_dir> [--level requirements|iterations|all] [--output json [--pretty] [--fields f1,f2]]
 
-    artifact_dir     Path to plet directory (e.g., plet/)
+    plet_dir         Path to plet directory (e.g., plet/)
     --level          requirements, iterations, or all (default: all)
     --output json    Structured JSON output
     --pretty         Indent JSON (requires --output json)
