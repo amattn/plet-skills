@@ -1141,3 +1141,19 @@ Retrofitting all specs first, then implementations.
 - **Exception:** If plet copies a file wholesale from an external source (e.g., Claude config dir transcripts), preserve the source's original format and extension. We don't rename files we didn't create.
 - **Why:** Two names for the same format (NDJSON vs JSONL) is a consistency problem. NDJSON is the more formal spec (ndjson.org), already 2.5x more usage in the repo, and more descriptive (Newline Delimited JSON). JSONL was a historical artifact from copying transcripts.
 - **Scope:** ~51 JSONL references across 16 files. Sweep-level pass — transcript paths in util_io, plet_invoke, state-schema, tests, specs. Deferred to a dedicated pass (not blocking orchestrator spec).
+
+#### Phase naming taxonomy — three intentional systems (2026-03-29)
+
+Audited all phase name usage across the repo. Three naming systems, each intentional:
+
+| System | Values | Used for | Example |
+|--------|--------|----------|---------|
+| **Command phases** | `implement`, `verify` | CLI flags, orchestration, trace filenames, plet IDs | `--phase implement`, `ID_001-implement-1-events.ndjson` |
+| **Criterion status phases** | `implementation`, `verification` | State file criterion sub-objects | `update-criterion --phase implementation` |
+| **Lifecycle states** | `implementing`, `verifying` | Iteration lifecycle enum | `lifecycle: "implementing"` |
+
+Also: `plan` and `refine` are session phases used in runtime artifact entries and plet IDs.
+
+**Do NOT unify these.** The distinction is semantic: command phases are short verbs (CLI), criterion phases are nouns (data model), lifecycle states are gerunds (activity). Unifying creates ambiguity.
+
+**Bug fixed (FB_59):** `util_cli._log_script_invocation` used the raw `--phase` arg from criterion commands, creating trace files named `implementation-1` instead of `implement-1`. Fixed: logger now normalizes criterion phases → command phases for trace file naming.

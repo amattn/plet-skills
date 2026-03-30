@@ -304,6 +304,23 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
         plet_dir = _extract_plet_dir(args)
         iter_id = _extract_from_args(args, "iter_id") or "proj"
         phase = _extract_from_args(args, "phase") or "implement"
+        # Normalize all phase forms to command phases for trace file naming
+        # Criterion phases: "implementation"/"verification" → "implement"/"verify"
+        # Lifecycle states: "implementing"/"verifying" → "implement"/"verify"
+        phase_map = {
+            "implementation": "implement",
+            "implementing": "implement",
+            "verification": "verify",
+            "verifying": "verify",
+            "planning": "plan",
+            "refining": "refine",
+        }
+        phase = phase_map.get(phase, phase)
+        # After normalization, phase must be a valid command phase.
+        # If not, don't create a garbage trace file — skip logging.
+        # The calling script's own validation should have caught this.
+        if phase not in ("implement", "verify", "plan", "refine"):
+            return
         attempt = _extract_from_args(args, "attempt") or "1"
 
         # Only log if plet_dir exists and has state.json (actual plet project)
