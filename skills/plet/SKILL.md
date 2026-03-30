@@ -234,13 +234,9 @@ If the orchestrator is not available or fails to start, tell the user — do NOT
 
 The orchestrator streams NDJSON events (session_start, iteration_start, heartbeat, iteration_complete, result). Read events and communicate status to the user. The final `result` event has a `reason` field explaining why the loop stopped.
 
-**What the orchestrator does (conceptual understanding):**
+**What the orchestrator handles (you don't need to do any of this):**
 
-1. **Pre-check:** Calls `plet_schedule.py eligible` before starting a session. If nothing to do, returns immediately without creating a session.
-2. **Session setup:** Starts a loop session (`plet_session.py start-session`), creates the workstream branch, checks fingerprints (blocks if stale unless `--allow-stale`), writes an ACTIVE canary to progress.md.
-3. **Iteration loop:** For each eligible iteration: create worktree → spawn implement subagent (`plet_invoke.py run`) → check lifecycle handoff → spawn verify subagent → read `lastVerdict` → merge-squash or retry/block → remove worktree → check breakpoints → re-evaluate eligible.
-4. **Verdict processing:** `passed` → merge to workstream, lifecycle → `complete`. `rejected` → check retry policy (3 default, 6 if improving), lifecycle → `queued` or `blocked`. `blocked` → lifecycle → `blocked`.
-5. **Session end:** Runs postflight (`plet_gate_session.py postflight`), ends session, writes COMPLETE canary.
+The orchestrator manages the full loop lifecycle internally — session setup, dependency graph evaluation, worktree creation, subagent spawning via `plet_invoke.py`, lifecycle transitions, verdict processing (retry vs block vs merge), breakpoint enforcement, and session teardown. It calls the enforcement scripts (plet_schedule, plet_session, plet_state, plet_gate_phase, plet_git_iteration, plet_git_ops, plet_entries, plet_trace) as needed. You don't call any of these during the loop — the orchestrator does.
 
 **Lifecycle ownership:** The implement subagent sets lifecycle → `verifying` (handoff signal). The verify subagent sets `lastVerdict` only — does NOT touch lifecycle. The orchestrator owns all post-verify transitions (complete, queued, blocked). Gate scripts enforce this. See IMP_8, state-schema.md § Lifecycle Ownership.
 
