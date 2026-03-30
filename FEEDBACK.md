@@ -500,6 +500,6 @@ All plet scripts take `[<plet_dir>]` as an optional positional arg (default: `pl
 
 2. **Subplets break the default:** A subplet's plet directory is a nested path (e.g., `plet/subplets/AUTH/plet/`). Defaulting to `plet/` makes no sense in that context. Every call must be explicit about which plet context it operates in.
 
-**Proposed fix:** Replace `[<plet_dir>]` with `--plet-dir <path>` as a required named flag across all scripts. Named flags have no ordering ambiguity and force explicit context in every call.
+**Proposed fix:** Make `<plet_dir>` a required positional arg (no default). Less invasive than a `--plet-dir` named flag — keep the positional convention, just remove the fallback. `get_plet_dir` errors if missing instead of defaulting to `plet/`. Agents already pass it every time.
 
-**Impact:** Breaking change across all 14+ scripts, all tests, all reference files, SKILL.md. Plan as a dedicated sweep (like the NDJSON rename) when subplet work begins (PLAN_10).
+**Impact:** Update `get_plet_dir` in util_cli + tests that rely on the default. Much smaller sweep than a named flag change. Plan with PLAN_10 (subplets).

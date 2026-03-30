@@ -59,7 +59,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 34 | Implement ORC-emergent script updates | 3 scripts need code changes from ORC spec review: (1) plet_gate_phase.py — lifecycle-handoff check, lifecycle-unchanged check, audit-tag existence check (GPH_PST_BHV_11-13, FB_55). (2) plet_gate_session.py — new postflight command (FB_56). (3) plet_schedule.py — stuck iteration detection in eligible (SCH_ELG_BHV_5). Red/green for each. |
 | 35 | Cascade lifecycle ownership model | Sweep: update implement.md, verify.md, SKILL.md, state-schema.md, prd.md, PLET.md, plet_state.md with handoffs-vs-decisions model. Must complete before ORC implementation — subagents read these during work. |
 | 36 | Implement `plet_orchestrator.py` | Build from spec. |
-| 37 | Replace positional plet_dir with --plet-dir flag (FB_57) | Sweep: all scripts, tests, references, SKILL.md. Required named flag eliminates ordering ambiguity and supports subplet nested paths. Plan with PLAN_10 (subplets). |
+| 37 | Make plet_dir required positional (FB_57) | Less invasive than --plet-dir flag: keep positional, remove default. `get_plet_dir` errors if missing instead of falling back to `plet/`. Update tests that rely on default. Eliminates ordering confusion + supports subplet nested paths. Plan with PLAN_10 (subplets). |
 
 ## Status
 
@@ -103,4 +103,4 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 34 | Implement ORC-emergent script updates | ✓ complete |
 | 35 | Cascade lifecycle ownership model | ✓ complete |
 | 36 | `plet_orchestrator.py` implementation | ✓ complete |
-| 37 | Replace positional plet_dir with --plet-dir flag | not started |
+| 37 | Make plet_dir required positional | not started |
