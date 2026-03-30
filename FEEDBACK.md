@@ -83,6 +83,8 @@ Source: LOGA R_7
 
 `[resolved, unverified]` → execute.md checkpoint rule added (`e25e952`). LIBT showed dramatic improvement (11 learnings, 6 emergent vs LOGA's 3/1) — possibly due to this fix, but project size may also be a factor (see FB_21).
 
+`[resolved]` — plet_gate_phase.py post enforces mandatory progress entry (GPH_PST_BHV_3, FAIL if missing). Learnings/emergent are WARN.
+
 ### FB_11: Trace file generation incomplete and schema inconsistent [artifacts] [state]
 
 LOGA: traces for 1 of 13 iterations. LIBT: 4 of 5 iterations (improved but still incomplete). When traces exist, event schemas are inconsistent — `timestamp` vs `ts`, `iterationId` vs `iteration`, varying event type names. ID_005 had fabricated placeholder timestamps. Either make traces a real feature with a defined schema, or remove them from the spec.
@@ -90,6 +92,8 @@ LOGA: traces for 1 of 13 iterations. LIBT: 4 of 5 iterations (improved but still
 Source: LOGA R_8, LIBT S_4
 
 `[resolved, unverified]` → Decided: traces on by default, configurable. Schema standardization deferred → PLAN_8 (`plet_trace.py`).
+
+`[resolved]` — plet_trace.py enforces schema (VALID_PHASES, VALID_EVENT_TYPES, required fields per event type). validate command checks files.
 
 ### FB_12: State file schema drift across iterations [state] [artifacts]
 
@@ -229,6 +233,8 @@ Source: SPARK SP_1
 
 `[deferred → PLAN_8]` — `plet_gate_phase.py post` blocks without entries.
 
+`[resolved]` — same as FB_10. Gate phase post enforces.
+
 ### FB_30: Agents used 42 git stashes despite ban [git] [autonomy]
 
 FB_9 explicitly banned `git stash` in agents. SPARK run produced 42 stashes — agents use stashing heavily during parallel branch work. The ban is ineffective because stashing is fundamental to how agents handle branch switching in parallel execution. Worktree isolation (FB_13) may make stashes unnecessary rather than just banning them.
@@ -237,6 +243,8 @@ Source: SPARK SP_2
 
 `[deferred → PLAN_8]` — `plet_git.py` worktrees eliminate the need to stash.
 
+`[resolved]` — worktrees (plet_git_iteration.py) eliminate stashing. Git stash not used in any script.
+
 ### FB_31: Final loop commit required human prompting [git] [autonomy]
 
 The loop completed (all 23 iterations verified) but the final commit consolidating trace/state/runtime artifacts didn't happen automatically. The orchestrator should auto-commit all outstanding artifacts when the loop completes. Same class of issue as FB_8.
@@ -244,6 +252,8 @@ The loop completed (all 23 iterations verified) but the final commit consolidati
 Source: SPARK SP_3
 
 `[deferred → PLAN_8]` — `plet_orchestrator.py end-session` auto-commits.
+
+`[resolved]` — plet_orchestrator.py handles session lifecycle and merge-squash deterministically.
 
 ### FB_32: Orphaned worktree after retry [git] [state]
 
@@ -337,6 +347,8 @@ Went with A for expediency. But B is the more rigorous choice — future runs sh
 Source: SPARK case study, discovered during refine session
 
 `[deferred → PLAN_8]` — `plet_orchestrator.py` transitions lifecycle deterministically after verify passes.
+
+`[resolved]` — orchestrator owns all post-verify lifecycle transitions (lifecycle ownership model, IMP_8).
 
 ### FB_41: Refine session jumped to re-decomposition before finishing review [refine] [sequencing]
 
@@ -478,6 +490,8 @@ The fix (already applied to CLAUDE.md § Red/Green Development Discipline): stub
 
 **PRD impact:** `[resolved]` — IMP_4 in prd.md updated with meaningful-red requirement. implement.md Red Step updated with stub-first rule. The requirement is now formal: stubs before tests, behavioral failures only.
 
+`[resolved]` — IMP_4 updated with meaningful-red requirement. implement.md Red Step updated with stub-first rule.
+
 ### FB_55: plet_gate_phase.py post should verify audit tag exists [artifacts] [git]
 
 The post gate checks entries, state, trace — but not whether the subagent created the audit tag via `plet_git_ops.py audit-tag`. If the subagent skips it, the tag is silently missing. The orchestrator relies on the tag for pre-squash history preservation.
@@ -488,9 +502,13 @@ Discovered during ORC spec review — audit-tag was initially duplicated between
 
 Expanded during lifecycle ownership analysis: post gate now also enforces lifecycle handoff (post implement: lifecycle must be `verifying`) and lifecycle unchanged (post verify: lifecycle must still be `verifying` — verify subagent must not touch it). Added as GPH_PST_BHV_11, BHV_12, BHV_13 in plet_gate_phase.md spec.
 
+`[resolved]` — GPH_PST_BHV_13 implemented. Post-gate checks audit tag existence for both phases.
+
 ### FB_56: plet_gate_session.py needs postflight command [artifacts] [symmetry]
 
 Add `postflight` to `plet_gate_session.py` — symmetric with `preflight`. Internally calls preflight for shared checks, adds end-of-session checks (transient lifecycle detection: iterations stuck in `implementing`/`verifying`). Warnings only — never blocks end-session. Called by orchestrator before `end-session`. Separate command for discoverability; may diverge from preflight over time. Added to GSS command summary in spec.
+
+`[resolved]` — postflight command implemented in plet_gate_session.py. Reuses preflight checks + transient lifecycle detection.
 
 ### FB_57: Replace optional positional plet_dir with required --plet-dir flag [dx] [subplets]
 
@@ -505,6 +523,8 @@ All plet scripts take `<plet_dir>` as an optional positional arg (default: `plet
 **Impact:** Update `get_plet_dir` in util_cli + tests that rely on the default. Much smaller sweep than a named flag change. Plan with PLAN_10 (subplets).
 
 `[resolved]` — implemented in seq 37. `get_plet_dir` now returns None if missing.
+
+`[resolved]` — plet_dir is now required positional arg. get_plet_dir returns None if missing. seq 37 complete.
 
 ### FB_58: LOGA run 2 — live observations (2026-03-29) [prompting] [testing]
 
@@ -536,11 +556,15 @@ LOGA Run 2 trace files show both `implement-1` and `implementation-1` filenames 
 
 Fix: ensure trace file naming always uses "implement"/"verify" regardless of what the criterion phase is called. Or unify: rename criterion phases from "implementation"/"verification" to "implement"/"verify" everywhere.
 
+`[resolved]` — util_cli._log_script_invocation normalizes criterion phases to command phases for trace file naming. Validation drops invalid phases silently.
+
 ### FB_60: Runtime artifacts not committed during implement/verify [git] [prompting]
 
 LOGA Run 2: `plet/progress.md`, `plet/learnings.md`, `plet/emergent.md`, `plet/state/`, and `plet/trace/` were all modified/created but never committed. Only source code was committed.
 
 implement.md says "commit after every red/green step" but agents interpret this as committing source code only. Need explicit `git add plet/ && git commit` guidance or have the orchestrator handle it (the orchestrator already does `git add -A && git commit` before merge-squash).
+
+`[resolved]` — implement.md and verify.md now say `git add [files] plet/` — always include plet/ in commits.
 
 ### FB_61: Implement attempt counter never incremented [state] [prompting]
 
