@@ -12,7 +12,7 @@
 | 6 | PLAN_6 | Extractable Skills | ✓ COMPLETE |
 | 7 | PLAN_7 | Feedback Triage | ✓ COMPLETE |
 | 8 | PLAN_8 | Python Tooling | ✓ COMPLETE |
-| 9 | PLAN_9 | PRD + ORC + SKILL.md + Reference Files Rewrite | 9a-9e done, cleanup remaining |
+| 9 | PLAN_9 | PRD + ORC + SKILL.md + Reference Files Rewrite | ✓ COMPLETE |
 | 10 | PLAN_10 | Subplets | |
 | 11 | PLAN_11 | Eval System + Comparison Runs | |
 | 12 | PLAN_12 | Examples | deferred |
@@ -221,7 +221,7 @@ The scripts are built. Prose caught up. Orchestrator built and tested. Remaining
 - **PLAN_9c:** ✓ Reference files rewrite (`456f929`)
 - **PLAN_9d:** ✓ ORC spec — toolkit + run model, NDJSON streaming, lifecycle ownership (handoffs vs decisions), 12 CRT areas
 - **PLAN_9e:** ✓ ORC implementation done (58 integration tests, real scripts + mock claude).
-- **PLAN_9f:** SKILL.md + artifact updates for ORC integration. Remaining:
+- **PLAN_9f:** ✓ SKILL.md + artifact updates for ORC integration. Done:
   - SKILL.md Loop Phase: thin but informed — delegates execution to ORC but understands the model. Needs to interpret NDJSON pause reasons (breakpoint → ask user, blocked → recommend refine, error → surface details). Conceptual understanding stays, step-by-step prose removed.
   - SKILL.md allowed-tools: add plet_orchestrator.py, plet_schedule.py, plet_session.py, util_git.py
   - plet_prompt.py: may need updates for orchestrator's prompt assembly needs
