@@ -33,6 +33,7 @@ from util_io import (
     load_json,
     state_json_path,
     iter_state_path,
+    worktree_plet_dir,
 )
 from util_state import load_and_validate_iter_state
 
@@ -358,8 +359,9 @@ def cmd_run(args):
             head_result = subprocess.run(["git", "log", "--oneline", "-1"],
                 capture_output=True, text=True, cwd=worktree_path)
 
-            # Read state to check lifecycle handoff
-            iter_state = load_and_validate_iter_state(plet_dir, iter_id)
+            # Read state from WORKTREE (subagent writes there, not main repo)
+            wt_plet = worktree_plet_dir(worktree_path, plet_dir)
+            iter_state = load_and_validate_iter_state(wt_plet, iter_id)
             if iter_state is None or iter_state.get("lifecycle") != "verifying":
                 _emit_text("  Implement did not complete handoff", output_ndjson)
                 _run_script("plet_state.py", ["update-field", plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
@@ -381,8 +383,8 @@ def cmd_run(args):
             _emit_event({"type": "iteration_phase_complete", "iterationId": iter_id,
                          "phase": "verify"}, output_ndjson)
 
-            # Read verdict
-            iter_state = load_and_validate_iter_state(plet_dir, iter_id)
+            # Read verdict from WORKTREE (verify subagent writes there)
+            iter_state = load_and_validate_iter_state(wt_plet, iter_id)
             verdict = iter_state.get("lastVerdict") if iter_state else None
 
             if verdict is None:

@@ -123,6 +123,41 @@ def transcript_path(plet_dir, iter_id, phase, attempt):
                         "{}-{}-{}-transcript.ndjson".format(iter_id, phase, attempt))
 
 
+DEFAULT_WORKTREE_DIR = ".plet/worktrees"
+
+
+def derive_worktree_path(state, iter_id, worktree_dir=None):
+    """Derive the worktree root path for an iteration.
+
+    Args:
+        state: dict with projectId
+        iter_id: iteration ID (e.g., "ID_001")
+        worktree_dir: base directory for worktrees (default: .plet/worktrees)
+
+    Returns: path like ".plet/worktrees/{projectId}/{iter_id}"
+    """
+    if worktree_dir is None:
+        worktree_dir = DEFAULT_WORKTREE_DIR
+    return os.path.join(worktree_dir, state["projectId"], iter_id)
+
+
+def worktree_plet_dir(worktree_path, plet_dir):
+    """Derive the plet directory path inside a worktree.
+
+    Subagents run in worktrees and write state files relative to their cwd.
+    The orchestrator needs to read those files from the worktree, not the
+    main repo. This function maps the main repo's plet_dir to the equivalent
+    path inside the worktree.
+
+    Args:
+        worktree_path: absolute path to the worktree root
+        plet_dir: plet directory name/path (e.g., "plet" or "plet/")
+
+    Returns: path like "{worktree_path}/plet"
+    """
+    return os.path.join(worktree_path, os.path.basename(plet_dir.rstrip("/\\")))
+
+
 # ---------------------------------------------------------------------------
 # Plet dir validation
 # ---------------------------------------------------------------------------

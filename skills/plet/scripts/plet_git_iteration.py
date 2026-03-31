@@ -42,7 +42,7 @@ from util_cli import (
     emit_json,
     emit_json_error,
 )
-from util_io import validate_plet_dir
+from util_io import validate_plet_dir, derive_worktree_path, DEFAULT_WORKTREE_DIR
 from util_state import load_and_validate_global_state
 
 
@@ -51,7 +51,7 @@ from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_TYPES = ["iteration", "workstream", "plan", "refine"]
 ITER_ID_RE = re.compile(r"^ID_\d+$")
-DEFAULT_WORKTREE_DIR = ".plet/worktrees"
+# DEFAULT_WORKTREE_DIR imported from util_io
 
 
 # ---------------------------------------------------------------------------
@@ -88,12 +88,7 @@ def branch_exists(branch_name, cwd=None):
 from util_git import derive_branch_name  # noqa: E402 — shared naming logic
 
 
-def derive_worktree_path(state, iter_id, worktree_dir):
-    """Derive the worktree path from state, iter_id, and worktree_dir.
-
-    Returns the worktree path: {worktree_dir}/{projectId}/{iter_id}/
-    """
-    return os.path.join(worktree_dir, state["projectId"], iter_id)
+# derive_worktree_path imported from util_io
 
 
 # ---------------------------------------------------------------------------
