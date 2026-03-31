@@ -594,6 +594,21 @@ def run_preflight_checks(plet_dir, session_type):
             checks.append({"name": "fingerprints-consistent", "status": "pass",
                             "detail": "no plet directory or fingerprint script (fresh project)"})
 
+    # 8. merge-driver — check plet-append merge driver is configured
+    if session_type in ("loop", "refine"):
+        r = run_git("config", "merge.plet-append.driver")
+        if r.returncode == 0 and r.stdout.strip():
+            checks.append({"name": "merge-driver", "status": "pass",
+                            "detail": "plet-append merge driver configured"})
+        else:
+            checks.append({"name": "merge-driver", "status": "warn",
+                            "detail": "plet-append merge driver not configured — "
+                            "runtime artifact conflicts during merge-squash may not auto-resolve. "
+                            "start-session configures this automatically."})
+    else:
+        checks.append({"name": "merge-driver", "status": "skipped",
+                        "detail": "plan session, merge driver not needed"})
+
     return checks
 
 

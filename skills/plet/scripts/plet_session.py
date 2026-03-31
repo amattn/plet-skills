@@ -15,6 +15,7 @@ Commands:
 """
 
 import os
+import subprocess
 import sys
 
 # Add scripts dir to path for sibling imports
@@ -82,6 +83,53 @@ def _find_active_sessions(history):
 # ---------------------------------------------------------------------------
 # start-session
 # ---------------------------------------------------------------------------
+
+def _ensure_merge_driver(plet_dir):
+    """Ensure the plet-append merge driver is configured.
+
+    Sets up .gitattributes entries and git config for the append-only
+    merge driver. Idempotent — safe to call on every start-session.
+    """
+    # 1. .gitattributes — ensure plet-append entries exist
+    project_root = os.path.dirname(os.path.abspath(plet_dir)) if os.path.isabs(plet_dir) else os.getcwd()
+    gitattr_path = os.path.join(project_root, ".gitattributes")
+
+    plet_name = os.path.basename(os.path.normpath(plet_dir))
+    needed_patterns = [
+        "{}/progress.md merge=plet-append".format(plet_name),
+        "{}/learnings.md merge=plet-append".format(plet_name),
+        "{}/emergent.md merge=plet-append".format(plet_name),
+        "{}/trace/*.ndjson merge=plet-append".format(plet_name),
+    ]
+
+    existing = ""
+    if os.path.isfile(gitattr_path):
+        with open(gitattr_path, "r") as f:
+            existing = f.read()
+
+    missing = [p for p in needed_patterns if p not in existing]
+    if missing:
+        with open(gitattr_path, "a") as f:
+            if existing and not existing.endswith("\n"):
+                f.write("\n")
+            for p in missing:
+                f.write(p + "\n")
+
+    # 2. git config — ensure merge driver is registered
+    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    driver_path = os.path.join(scripts_dir, "plet_merge_driver.py")
+
+    if os.path.isfile(driver_path):
+        driver_cmd = "{} {} %O %A %B".format(sys.executable, driver_path)
+        subprocess.run(
+            ["git", "config", "merge.plet-append.driver", driver_cmd],
+            capture_output=True, cwd=project_root,
+        )
+        subprocess.run(
+            ["git", "config", "merge.plet-append.name", "plet append-only merge"],
+            capture_output=True, cwd=project_root,
+        )
+
 
 def cmd_start_session(args):
     """Start a loop or refine session.
@@ -215,6 +263,7 @@ def cmd_start_session(args):
 
     if not dry_run:
         atomic_write_json(gs_path, state)
+        _ensure_merge_driver(plet_dir)
 
     if output_json:
         data = {

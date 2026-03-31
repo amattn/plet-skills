@@ -580,6 +580,71 @@ with tempfile.TemporaryDirectory() as tmp:
 
 
 # ===========================================================================
+# start-session — merge driver setup
+# ===========================================================================
+
+print("\n## start-session — configures merge driver")
+
+with tempfile.TemporaryDirectory() as tmp:
+    # Init a git repo so git config works
+    subprocess.run(["git", "init", tmp], capture_output=True)
+    subprocess.run(["git", "-C", tmp, "config", "user.email", "t@t.com"], capture_output=True)
+    subprocess.run(["git", "-C", tmp, "config", "user.name", "T"], capture_output=True)
+
+    plet_dir = os.path.join(tmp, "plet")
+    make_global_state(plet_dir, project_id="MDRV", loop_count=0)
+
+    # Commit so git config has a repo context
+    subprocess.run(["git", "-C", tmp, "add", "-A"], capture_output=True)
+    subprocess.run(["git", "-C", tmp, "commit", "-m", "init"], capture_output=True)
+
+    run(["start-session", plet_dir, "--type", "loop"])
+
+    # Check .gitattributes created with plet-append entries
+    gitattr = os.path.join(tmp, ".gitattributes")
+    check("gitattributes exists", os.path.isfile(gitattr))
+    if os.path.isfile(gitattr):
+        with open(gitattr) as f:
+            content = f.read()
+        check("has progress entry", "plet/progress.md merge=plet-append" in content)
+        check("has learnings entry", "plet/learnings.md merge=plet-append" in content)
+        check("has emergent entry", "plet/emergent.md merge=plet-append" in content)
+        check("has trace entry", "plet/trace/*.ndjson merge=plet-append" in content)
+
+    # Check git config has merge driver
+    result = subprocess.run(["git", "-C", tmp, "config", "merge.plet-append.driver"],
+                            capture_output=True, text=True)
+    check("git config has driver", result.returncode == 0)
+    check("driver mentions merge_driver", "plet_merge_driver" in result.stdout)
+
+
+print("\n## start-session — merge driver idempotent")
+
+with tempfile.TemporaryDirectory() as tmp:
+    subprocess.run(["git", "init", tmp], capture_output=True)
+    subprocess.run(["git", "-C", tmp, "config", "user.email", "t@t.com"], capture_output=True)
+    subprocess.run(["git", "-C", tmp, "config", "user.name", "T"], capture_output=True)
+
+    plet_dir = os.path.join(tmp, "plet")
+    make_global_state(plet_dir, project_id="MDRV", loop_count=0)
+    subprocess.run(["git", "-C", tmp, "add", "-A"], capture_output=True)
+    subprocess.run(["git", "-C", tmp, "commit", "-m", "init"], capture_output=True)
+
+    # Pre-existing .gitattributes with other content
+    gitattr = os.path.join(tmp, ".gitattributes")
+    with open(gitattr, "w") as f:
+        f.write("*.bin binary\nplet/progress.md merge=plet-append\n")
+
+    run(["start-session", plet_dir, "--type", "loop"])
+
+    with open(gitattr) as f:
+        content = f.read()
+    check("existing content preserved", "*.bin binary" in content)
+    check("no duplicate progress entry", content.count("plet/progress.md merge=plet-append") == 1)
+    check("missing entries added", "plet/learnings.md merge=plet-append" in content)
+
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 
