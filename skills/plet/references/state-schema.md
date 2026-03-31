@@ -368,17 +368,22 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `blocked` | Agent encountered an unresolvable issue |
 | `withdrawn` | Deliberately retired during refine — superseded, descoped, or user changed direction. Terminal state. |
 
-**Lifecycle Ownership (IMP_8):** Transitions are split into handoffs and decisions:
+**Lifecycle Ownership (IMP_8, SF_26):** Transitions are split into handoffs and decisions:
 
-| Transition | Owner | Type |
-|-----------|-------|------|
-| `queued` → `implementing` | Orchestrator | Reservation (prevents double-spawn) |
-| `implementing` → `verifying` | Implement subagent | Handoff (signals completion) |
-| `verifying` → `complete` | Orchestrator | Decision (after merge-squash succeeds) |
-| `verifying` → `queued` | Orchestrator | Decision (retry — lastVerdict was rejected) |
-| `verifying` → `blocked` | Orchestrator | Decision (retry exhausted or lastVerdict was blocked) |
+| Transition | Owner | Where written | Type |
+|-----------|-------|--------------|------|
+| `queued` → `implementing` | Implement subagent | Worktree | First action on start |
+| `implementing` → `verifying` | Implement subagent | Worktree | Handoff (signals completion) |
+| `verifying` → `verifying` | Verify subagent | Worktree | Confirms on start (symmetric, no-op in happy path) |
+| `verifying` → `complete` | Orchestrator | Global | Decision (after merge-squash succeeds) |
+| `verifying` → `queued` | Orchestrator | Global | Decision (retry — lastVerdict was rejected) |
+| `verifying` → `blocked` | Orchestrator | Global | Decision (retry exhausted or lastVerdict was blocked) |
 
-The verify subagent sets `lastVerdict` only — it does NOT touch `lifecycle`. Gate scripts enforce this.
+**Symmetric pattern:** Both subagents set their lifecycle as their first action (implementing/verifying). Both are sole writers to the worktree. The orchestrator writes ZERO per-iteration state during the iteration (SF_26) and writes final lifecycle to the global copy only after the iteration is done (SF_27).
+
+The verify subagent sets `lastVerdict` and confirms `lifecycle: "verifying"` — it does NOT change lifecycle to any other value. Gate scripts enforce this (GPH_PST_BHV_12).
+
+**Two-copy model during iteration:** Per-iteration state files exist in both the global copy (`global_plet_dir`, on workstream branch) and the worktree copy (`worktree_plet_dir`, on iteration branch). The worktree copy is authoritative during the iteration. The global copy is stale. See NOTES.md § Plet Directory Variables for naming taxonomy.
 
 ### Agent Activity Values (SF_4)
 

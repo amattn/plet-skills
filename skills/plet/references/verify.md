@@ -17,6 +17,8 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in the same worktree the implement agent used. Do NOT create a new branch. Your commits go on this branch alongside the implement agent's commits. Audit tags distinguish phases.
 
+**State file context (SF_26):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked). The orchestrator reads your `lastVerdict` from the worktree after you exit.
+
 ---
 
 ## Before You Start
@@ -488,11 +490,14 @@ After documenting across all four artifacts and writing the verification report:
 
 Why: lifecycle transitions after verification are **decisions** that require multiple inputs (verdict + merge success + retry policy). Only the orchestrator has all three. If you set lifecycle → `"complete"` but the merge fails, lifecycle lies. If you set lifecycle → `"implementing"` for a cycle-back, the orchestrator can't manage the retry queue.
 
-| What you own | What the orchestrator owns |
-|-------------|--------------------------|
-| `lastVerdict` (passed/rejected/blocked) | `lifecycle` → complete (after merge) |
-| `verificationReports` (append report) | `lifecycle` → queued (retry) |
-| `agentActivity`, `agentId` (idle on exit) | `lifecycle` → blocked (retry exhausted or blocked verdict) |
+| What you own (write to worktree) | What the orchestrator owns (writes to global after you exit) |
+|----------------------------------|--------------------------------------------------------------|
+| `lifecycle: "verifying"` (confirm on start — symmetric with implement) | `lifecycle` → complete (after merge) |
+| `lastVerdict` (passed/rejected/blocked) | `lifecycle` → queued (retry) |
+| `verificationReports` (append report) | `lifecycle` → blocked (retry exhausted or blocked verdict) |
+| `agentActivity`, `agentId` (idle on exit) | |
+
+You write to the **worktree's** plet directory (your cwd). The orchestrator reads your verdict from the worktree, then writes the final lifecycle to the **global** plet directory (SF_26, SF_27). Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked).
 
 The post-verify gate (GPH_PST_BHV_12) enforces this: if lifecycle changed from `"verifying"`, the gate FAILs and you must revert it.
 

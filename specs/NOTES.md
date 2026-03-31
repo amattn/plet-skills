@@ -1113,13 +1113,13 @@ Retrofitting all specs first, then implementations.
 
 #### Lifecycle transition ownership — handoffs vs decisions (2026-03-29)
 
-- **Model:** Lifecycle transitions split into handoffs (subagent signals "I'm done") and decisions (orchestrator chooses next state based on multiple inputs).
-- **Implement subagent:** owns `implementing → verifying` (handoff — sender signals completion). If crash, stays `implementing` — clean signal.
-- **Verify subagent:** does NOT touch lifecycle. Only sets `lastVerdict` + verification report. Lifecycle stays `verifying` until orchestrator acts.
-- **Orchestrator:** owns `queued → implementing` (reservation), `verifying → complete` (after merge), `verifying → queued` (retry), `verifying → blocked` (exhausted/blocked verdict).
-- **Why asymmetric:** `implementing → verifying` is a handoff (subagent knows it's done). `verifying → ???` is a decision requiring verdict + merge success + retry policy — three inputs only the orchestrator has. Letting verify subagent set `complete` makes lifecycle lie when merge fails.
-- **State window after verify exits:** lifecycle `verifying` + lastVerdict `passed/rejected/blocked` = truthful at every moment. `complete` only after code is on workstream.
-- **Impact:** verify.md needs updating — remove lifecycle transitions from verify subagent. implement.md stays as-is. Gate scripts enforce the model (see below).
+- **Model:** Lifecycle transitions split into handoffs and decisions. Subagents write to worktree, orchestrator writes to global (SF_26).
+- **Implement subagent:** owns `queued → implementing` (first action on start) and `implementing → verifying` (handoff on completion). Both in worktree.
+- **Verify subagent:** confirms `verifying` on start (symmetric). Sets `lastVerdict` only. Does NOT change lifecycle to any other value.
+- **Orchestrator:** writes ZERO per-iteration state during iteration. Owns post-verdict transitions: `verifying → complete` (after merge, to global), `verifying → queued` (retry, to global), `verifying → blocked` (exhausted, to global).
+- **Symmetric pattern:** Both subagents set their lifecycle as first action. Both are sole writers to worktree. Orchestrator only touches global copy after verdict.
+- **State window after verify exits:** lifecycle `verifying` + lastVerdict `passed/rejected/blocked` = truthful. `complete` only after code is on workstream.
+- **Impact:** ✓ Done — verify.md, implement.md, state-schema.md, SKILL.md, PRD all updated.
 
 #### plet_orchestrator.py spec (ORC) — complete (2026-03-29)
 
@@ -1166,7 +1166,7 @@ During an iteration, two copies of per-iteration state files exist: the main rep
 
 1. **During an iteration, the worktree copy is the single source of truth for per-iteration state.** The main repo's copy is stale and frozen.
 
-2. **The orchestrator writes per-iteration state to the worktree only during the iteration.** Reservation (`lifecycle → implementing`) goes to the worktree. Post-subagent reads come from the worktree.
+2. **The orchestrator writes ZERO per-iteration state during the iteration.** The subagent is the sole writer (to the worktree). Post-subagent reads come from the worktree.
 
 3. **The orchestrator writes lifecycle to the main repo ONLY after the iteration is done — the "verdict handoff."** Passed: after merge-squash. Rejected: explicit `lifecycle → queued`. Blocked: explicit `lifecycle → blocked`.
 

@@ -238,7 +238,7 @@ The orchestrator streams NDJSON events (session_start, iteration_start, heartbea
 
 The orchestrator manages the full loop lifecycle internally — session setup, dependency graph evaluation, worktree creation, subagent spawning via `plet_invoke.py`, lifecycle transitions, verdict processing (retry vs block vs merge), breakpoint enforcement, and session teardown. It calls the enforcement scripts (plet_schedule, plet_session, plet_state, plet_gate_phase, plet_git_iteration, plet_git_ops, plet_entries, plet_trace) as needed. You don't call any of these during the loop — the orchestrator does.
 
-**Lifecycle ownership:** The implement subagent sets lifecycle → `verifying` (handoff signal). The verify subagent sets `lastVerdict` only — does NOT touch lifecycle. The orchestrator owns all post-verify transitions (complete, queued, blocked). Gate scripts enforce this. See IMP_8, state-schema.md § Lifecycle Ownership.
+**Lifecycle ownership (IMP_8, SF_26):** The implement subagent sets lifecycle → `implementing` on start and `verifying` on completion (both in the worktree). The verify subagent sets `lastVerdict` only. The orchestrator writes ZERO per-iteration state during the iteration — it writes final lifecycle (complete/queued/blocked) to the global copy only after the verdict. Gate scripts enforce this.
 
 **Handling the result:**
 

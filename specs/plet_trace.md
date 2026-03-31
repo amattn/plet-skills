@@ -23,7 +23,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 |----|--------|---------|---------------|
 | TRC_AGT_1 | implement subagent | during implementation work | `append-event` (decisions, criterion updates, activity changes, errors) |
 | TRC_AGT_2 | verify subagent | during verification work | `append-event` (decisions, criterion updates, activity changes, errors), `query` (review implement trace for decisions and errors) |
-| TRC_AGT_3 | orchestrator / invoke scripts | before/after subagent launch | `append-event` (lifecycle_change: queued → implementing/verifying, invocation: subagent launch metadata) |
+| TRC_AGT_3 | orchestrator / invoke scripts | before/after subagent launch | `append-event` (invocation: subagent launch metadata, verdict handoff: lifecycle decisions). Note: subagents own lifecycle_change events (queued→implementing, implementing→verifying) — they write to worktree trace. Orchestrator writes verdict handoff events to global trace. |
 | TRC_AGT_4 | gate scripts | post-phase validation | `validate` (check trace file schema compliance) |
 | TRC_AGT_5 | human | debugging / post-run analysis | `validate`, `query` |
 | TRC_AGT_6 | external GUI / monitoring tool | real-time event display, historical analysis | reads NDJSON files directly for live-tail, may also use `query` for filtered views and `validate` for integrity checks |

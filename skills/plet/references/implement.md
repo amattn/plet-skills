@@ -16,6 +16,10 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (IMP_17).
 
+**Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in a worktree. Do NOT create a new branch.
+
+**State file context (SF_26):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. You own `queued → implementing` on start and `implementing → verifying` on completion. All other lifecycle transitions are the orchestrator's job (after you exit).
+
 ---
 
 ## Before You Start
@@ -287,7 +291,7 @@ The audit tag and merge-squash handle tag naming (`plet/{projectId}/loop{N}/audi
 
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
 2. Update per-iteration state via `plet_state.py update-field`:
-   - `lifecycle`: `"verifying"` (**handoff signal** — tells the orchestrator you're done and a verification agent should be spawned. This is the one lifecycle transition you own. The post-implement gate (GPH_PST_BHV_11) verifies this was set.)
+   - `lifecycle`: `"verifying"` (**handoff signal** — tells the orchestrator you're done and a verification agent should be spawned. You own two lifecycle transitions: `queued → implementing` on start and `implementing → verifying` on completion. The orchestrator writes ZERO per-iteration state during your work (SF_26) — you are the sole writer to the worktree's state files. The post-implement gate (GPH_PST_BHV_11) verifies this was set.)
    - `agentActivity`: `"idle"`, `activityDetail`: `null`, `agentId`: `null`
 3. Write a `COMPLETE` progress entry via `plet_entries.py add-progress`
 4. Write any remaining learnings and emergent items
