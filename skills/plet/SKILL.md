@@ -213,7 +213,8 @@ Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`
 2. Follow its instructions for clarifying questions, requirements generation, iteration decomposition, and review
 3. Each approved section is written to disk immediately — the file on disk is the source of truth
 4. After all iterations are approved, initialize state:
-   - `plet_state.py init` for each iteration
+   - `plet_iter_state.py init` for each iteration (creates per-iteration state file without lifecycle)
+   - `plet_global_state.py update-lifecycle --iter-id {id} --lifecycle queued` for each iteration (sets lifecycle in state.json)
    - Embed fingerprints via `plet_fingerprint.py embed`
 
 ### Loop Phase
@@ -236,9 +237,9 @@ The orchestrator streams NDJSON events (session_start, iteration_start, heartbea
 
 **What the orchestrator handles (you don't need to do any of this):**
 
-The orchestrator manages the full loop lifecycle internally — session setup, dependency graph evaluation, worktree creation, subagent spawning via `plet_invoke.py`, lifecycle transitions, verdict processing (retry vs block vs merge), breakpoint enforcement, and session teardown. It calls the enforcement scripts (plet_schedule, plet_session, plet_state, plet_gate_phase, plet_git_iteration, plet_git_ops, plet_entries, plet_trace) as needed. You don't call any of these during the loop — the orchestrator does.
+The orchestrator manages the full loop lifecycle internally — session setup, dependency graph evaluation, worktree creation, subagent spawning via `plet_invoke.py`, lifecycle transitions (via `plet_global_state.py`), verdict processing (retry vs block vs merge), breakpoint enforcement, and session teardown. It calls the enforcement scripts (plet_schedule, plet_session, plet_global_state, plet_iter_state, plet_gate_phase, plet_git_iteration, plet_git_ops, plet_entries, plet_trace) as needed. You don't call any of these during the loop — the orchestrator does.
 
-**Lifecycle ownership (IMP_8, SF_26):** The implement subagent sets lifecycle → `implementing` on start and `verifying` on completion (both in the worktree). The verify subagent sets `lastVerdict` only. The orchestrator writes ZERO per-iteration state during the iteration — it writes final lifecycle (complete/queued/blocked) to the global copy only after the verdict. Gate scripts enforce this.
+**Lifecycle ownership (SF_26, SF_28):** The orchestrator manages ALL lifecycle transitions in `state.json` via `plet_global_state.py update-lifecycle`. The implement subagent sets `implementVerdict` (handoff signal). The verify subagent sets `verifyVerdict`. Neither subagent touches lifecycle. The orchestrator writes ZERO per-iteration state during the iteration — it writes lifecycle to `state.json` only (separate file, no conflict). Gate scripts enforce verdict fields.
 
 **Handling the result:**
 
@@ -409,7 +410,7 @@ plet_git_iteration.py worktree-create plet/ --iter-id ID_xxx
 plet_git_ops.py merge-squash plet/ --iter-id ID_xxx
 
 # State + artifacts
-plet_state.py validate plet/ --iter-id ID_xxx
+plet_iter_state.py validate plet/ --iter-id ID_xxx
 plet_entries.py check plet/ --iter-id ID_xxx
 plet_fingerprint.py check plet/ --output json
 ```

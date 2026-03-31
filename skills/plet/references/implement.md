@@ -8,7 +8,7 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Critical:** You are running autonomously. Never ask for user confirmation. Never prompt "should I proceed?" or wait for human input. If you encounter ambiguity, make your best judgment and document it in `plet/emergent.md`. The only way to pause execution is the Blocker Protocol — and that is a last resort.
 
-**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py` for all state file operations. This tool enforces the schema defined in `references/state-schema.md` and prevents schema drift. Do not write state file JSON by hand — use the tool's `update-field`, `update-criterion`, and `validate` commands. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py --help` for full usage.
+**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) for all per-iteration state operations. Commands: `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Run `plet_iter_state.py --help` for full usage.
 
 **Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
 
@@ -18,7 +18,7 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in a worktree. Do NOT create a new branch.
 
-**State file context (SF_26):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. You own `queued → implementing` on start and `implementing → verifying` on completion. All other lifecycle transitions are the orchestrator's job (after you exit).
+**State file context (SF_26, SF_28):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. You set `implementVerdict` when done (via `plet_iter_state.py set-verdict`). **You do NOT set lifecycle** — the orchestrator manages all lifecycle transitions in `state.json` (SF_28).
 
 ---
 
@@ -29,17 +29,11 @@ You are an implementation subagent. Your job is to implement one iteration — w
 Update the per-iteration state file immediately — this announces your presence to external consumers:
 
 ```bash
-STATE=plet/state/{iteration_id}.json
-TOOL="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
+IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
 
-# Read current attempts.implement to determine N
-$TOOL update-field "$STATE" \
-    lifecycle implementing \
-    agentId "{your_agent_id}" \
-    agentActivity reading_context \
-    activityDetail "reading requirements.md, learnings.md, iteration definition" \
-    attempts.implement {N} \
-    phaseTimestamps.implement_{N}_start "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+# Set up state for this phase — the orchestrator already set lifecycle → implementing
+$IST start-phase plet/ --iter-id {iteration_id} --phase implement \
+    --agent-id "{your_agent_id}"
     lastHeartbeat "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 
@@ -143,24 +137,26 @@ git commit -m "wip: [ID_xxx] AC_N - [short description]"
 
 ## State Updates During Work
 
-Use `plet_state.py` for all state file modifications:
+Use `plet_iter_state.py` (IST) for all per-iteration state modifications:
 
 ```bash
-STATE="plet_state.py"
+IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
 
-# Update activity, heartbeat, summary, files changed
-$STATE update-field plet/ --iter-id ID_001 --data '{"agentActivity":"implementing","activityDetail":"red: writing failing test for AC_3"}'
+# Update activity (IST update-activity)
+$IST update-activity plet/ --iter-id ID_001 --agent-id {your_agent_id} \
+    --activity implementing --detail "red: writing failing test for AC_3"
 
 # Update criterion status in real time (IMP_6)
-$STATE update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase implementation --status pass --evidence "All 12 tests pass (3.2s)"
+$IST update-criterion plet/ --iter-id ID_001 --criterion AC_1 \
+    --phase implementation --status pass --evidence "All 12 tests pass (3.2s)"
 
 # Heartbeat — update at regular intervals (IMP_23)
-$STATE update-field plet/ --iter-id ID_001 --data '{"lastHeartbeat":"2026-03-28T10:00:00Z"}'
+$IST heartbeat plet/ --iter-id ID_001 --agent-id {your_agent_id}
 ```
 
 ### Activity Updates (IMP_7)
 
-Update `agentActivity` and `activityDetail` as you transition between activities:
+Update `phaseActivity` and `activityDetail` as you transition between activities:
 
 | Activity | When |
 |----------|------|
@@ -187,11 +183,11 @@ Update `elapsedSeconds` opportunistically — on heartbeat writes, on any state 
 
 ### Criterion Status Updates (IMP_6)
 
-Update criterion statuses in real time — as soon as a criterion passes or fails, call `plet_state.py update-criterion`. Don't wait until the end.
+Update criterion statuses in real time — as soon as a criterion passes or fails, call `plet_iter_state.py update-criterion`. Don't wait until the end.
 
 ### Files Changed and Summary
 
-Update `filesChanged` and `summary` via `plet_state.py update-field` as you create or modify files.
+Update activity and detail via `plet_iter_state.py update-activity` as you transition between phases.
 
 ---
 
@@ -252,7 +248,7 @@ Trace capture is split into two files per phase:
 Write semantic event entries (via `plet_trace.py append-event`) for:
 - Decisions made and their rationale (`--event-type decision`)
 - Criterion status changes (`--event-type criterion_update`)
-- Lifecycle transitions (`--event-type lifecycle_change`)
+- Verdict decisions (`--event-type verdict_set`)
 - Activity changes (`--event-type activity_change`)
 - Errors encountered and recovery actions (`--event-type error`)
 
@@ -290,9 +286,8 @@ The audit tag and merge-squash handle tag naming (`plet/{projectId}/loop{N}/audi
 ### Update State and Run Post-Gate
 
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
-2. Update per-iteration state via `plet_state.py update-field`:
-   - `lifecycle`: `"verifying"` (**handoff signal** — tells the orchestrator you're done and a verification agent should be spawned. You own two lifecycle transitions: `queued → implementing` on start and `implementing → verifying` on completion. The orchestrator writes ZERO per-iteration state during your work (SF_26) — you are the sole writer to the worktree's state files. The post-implement gate (GPH_PST_BHV_11) verifies this was set.)
-   - `agentActivity`: `"idle"`, `activityDetail`: `null`, `agentId`: `null`
+2. Set `implementVerdict` via `plet_iter_state.py set-verdict --phase implement --verdict readyForVerification`. This is the **handoff signal** — tells the orchestrator you're done. The post-implement gate (GPH_PST_BHV_11) verifies this was set. **Do NOT set lifecycle** — the orchestrator manages all lifecycle transitions (SF_28).
+3. Set `phaseActivity`: `"idle"`, `activityDetail`: `null`, `agentId`: `null`
 3. Write a `COMPLETE` progress entry via `plet_entries.py add-progress`
 4. Write any remaining learnings and emergent items
 5. Write final trace entries via `plet_trace.py append-event`
@@ -344,10 +339,9 @@ Append a diagnostic entry:
 ### State Update
 
 After documenting across all four artifacts:
-- `lifecycle`: `"blocked"`
-- `agentActivity`: `"idle"`
-- `agentId`: `null`
-- `lastUpdated`: current timestamp
+- Set `implementVerdict` to `"blocked"` via `plet_iter_state.py set-verdict --phase implement --verdict blocked`
+- `phaseActivity`: `"idle"`, `agentId`: `null`
+- **Do NOT set lifecycle** — the orchestrator reads `implementVerdict` and transitions lifecycle (SF_28)
 - Commit any work in progress
 
 ---
@@ -380,11 +374,9 @@ A failed attempt is different from a blocker. You're not saying "I need human he
 
 ### State Update
 
-- `lifecycle`: `"queued"` (returns to the queue for retry)
-- `agentActivity`: `"idle"`
-- `agentId`: `null`
-- `phaseTimestamps.implement_{N}_end`: current timestamp
-- `lastUpdated`: current timestamp
+- Set `implementVerdict` to `"retry"` via `plet_iter_state.py set-verdict --phase implement --verdict retry`
+- `phaseActivity`: `"idle"`, `agentId`: `null`
+- **Do NOT set lifecycle** — the orchestrator reads the verdict and manages retry/queue (SF_28)
 
 The orchestrator evaluates retry limits (IMP_14) and decides whether to spawn another attempt.
 
@@ -397,7 +389,7 @@ If you discover that prerequisite work does not exist (a dependency was missed d
 1. **Do not block.** This is a DAG correction, not a blocker.
 2. Add the missing dependency to `plet/state.json` `dependencyMap`
 3. Add the missing dependency to your per-iteration state file `dependencies` array
-4. Set your lifecycle to `"ineligible"`
+4. Set `implementVerdict` to `"ineligible"` via `plet_iter_state.py set-verdict --phase implement --verdict ineligible`
 5. Document across all four runtime artifacts:
    - **trace:** what was missing and how you discovered it
    - **progress.md:** `MIGRATED` status entry explaining the dependency correction
@@ -480,4 +472,4 @@ The gate checks everything you need to verify:
 - [ ] Trace events file valid
 - [ ] All changes committed
 
-**Atomic writes are handled by the scripts** — `plet_state.py`, `plet_entries.py`, and `plet_trace.py` all use atomic I/O internally. You don't need to manage temp files or rename patterns.
+**Atomic writes are handled by the scripts** — `plet_iter_state.py`, `plet_entries.py`, and `plet_trace.py` all use atomic I/O internally. You don't need to manage temp files or rename patterns.

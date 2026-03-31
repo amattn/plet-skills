@@ -11,13 +11,13 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (IMP_17).
 
-**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py` for all state file operations. This tool enforces the schema defined in `references/state-schema.md` and prevents schema drift. Do not write state file JSON by hand — use the tool's `update-field`, `update-criterion`, and `validate` commands. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py --help` for full usage.
+**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) for all per-iteration state operations. Commands: `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Run `plet_iter_state.py --help` for full usage.
 
 **Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
 
 **Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in the same worktree the implement agent used. Do NOT create a new branch. Your commits go on this branch alongside the implement agent's commits. Audit tags distinguish phases.
 
-**State file context (SF_26):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked). The orchestrator reads your `lastVerdict` from the worktree after you exit.
+**State file context (SF_26, SF_28):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked). You set `verifyVerdict` via `plet_iter_state.py set-verdict --phase verify`. **You do NOT set lifecycle** — the orchestrator manages all lifecycle transitions in `state.json` (SF_28).
 
 ---
 
@@ -25,15 +25,13 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 ### Set Up State (VF_3)
 
-Update the per-iteration state file immediately — this announces your presence to external consumers:
-- `lifecycle`: `"verifying"`
-- `agentId`: a unique identifier for this agent session. Prefer the Claude Code session ID if accessible (e.g., from environment or transcript metadata). If unavailable, generate a random ID (e.g., `agent_` + 12 random hex chars).
-- `agentActivity`: `"reading_context"`
-- `activityDetail`: `"reading iteration state, requirements, learnings"`
-- `attempts.verify`: increment by 1
-- `phaseTimestamps.verify_{N}_start`: current timestamp
-- `lastUpdated`: current timestamp
-- `lastHeartbeat`: current timestamp
+Set up state for this phase — the orchestrator already set lifecycle → `verifying`:
+
+```bash
+IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
+$IST start-phase plet/ --iter-id {iteration_id} --phase verify \
+    --agent-id "{your_agent_id}"
+```
 
 ### Read Context (VF_3, RT_6, RT_7)
 
@@ -172,10 +170,10 @@ If your remaining findings are all cosmetic, the iteration has converged — app
 After verifying each criterion, update the `verification` object using the state tool:
 
 ```bash
-STATE=plet/state/{iteration_id}.json
-TOOL="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
+IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
 
-$TOOL update-criterion "$STATE" AC_1 verification pass \
+$IST update-criterion plet/ --iter-id {iteration_id} --criterion AC_1 \
+    --phase verification --status pass --evidence \
     "Independently ran test_FR_1_valid_request — passes, correctly asserts 200 status and JSON body structure. Read the handler code: validates input, queries DB, returns correct shape. Spec says 'return user profile on valid request' — implementation matches. No tautological tests found." \
     --elapsed 30
 ```
@@ -206,21 +204,26 @@ Update criterion statuses in real time — as soon as you've verified a criterio
 
 ## State Updates During Work
 
-Use `plet_state.py` for all state file modifications:
+Use `plet_iter_state.py` (IST) for all per-iteration state modifications:
 
 ```bash
-STATE="plet_state.py"
+IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
 
 # Update activity and heartbeat
-$STATE update-field plet/ --iter-id ID_001 --data '{"agentActivity":"running_checks","activityDetail":"verifying AC_1: API returns 200 for valid requests"}'
+$IST update-activity plet/ --iter-id ID_001 --agent-id {your_agent_id} \
+    --activity running_checks --detail "verifying AC_1: API returns 200 for valid requests"
 
 # Update criterion verification status (VF_6)
-$STATE update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase verification --status pass --evidence "All API endpoints return correct status codes"
+$IST update-criterion plet/ --iter-id ID_001 --criterion AC_1 \
+    --phase verification --status pass --evidence "All API endpoints return correct status codes"
+
+# Heartbeat
+$IST heartbeat plet/ --iter-id ID_001 --agent-id {your_agent_id}
 ```
 
 ### Activity Updates
 
-Update `agentActivity` and `activityDetail` as you transition between activities:
+Update `phaseActivity` and `activityDetail` as you transition between activities:
 
 | Activity | When |
 |----------|------|
@@ -283,13 +286,10 @@ If issues cannot be fixed in this context — wrong abstractions, missing functi
    - **learnings.md** — entry explaining what the next implementation agent should do differently. For issues without red tests, include enough detail for the implement agent to understand the structural concern.
    - **progress.md** — `COMPLETE (rejected, cycle back)` entry listing what passed and what failed
 4. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
-5. Update state:
-   - `lastVerdict`: `"rejected"` (the orchestrator reads this and decides whether to retry or block)
-   - `agentActivity`: `"idle"`
-   - `agentId`: `null`
-   - `phaseTimestamps.verify_{N}_end`: current timestamp
-   - `lastUpdated`: current timestamp
-   - **Do NOT set `lifecycle`.** Lifecycle stays `"verifying"`. The orchestrator owns the post-verify transition — it will set lifecycle to `"queued"` (retry) or `"blocked"` (retry exhausted) based on `lastVerdict` + retry policy. See § Lifecycle Ownership below.
+5. Set verdict: `plet_iter_state.py set-verdict plet/ --iter-id {iter_id} --phase verify --verdict rejected`
+   - The orchestrator reads `verifyVerdict` and decides whether to retry or block.
+   - Set `phaseActivity`: `"idle"`, `agentId`: `null`
+   - **Do NOT set lifecycle.** The orchestrator owns all lifecycle transitions (SF_28).
 6. Write final trace entries
 7. Commit the failing tests, state updates, and runtime artifacts:
    ```
@@ -357,7 +357,7 @@ Trace capture is split into two files per phase:
 Write semantic event entries (via `plet_trace.py append-event`) for:
 - Verification decisions and their rationale (`--event-type decision`)
 - Criterion status changes (each `verification` object update) (`--event-type criterion_update`)
-- Verdict decisions (lastVerdict set to passed, rejected, or blocked) (`--event-type verdict_set`)
+- Verdict decisions (verifyVerdict set to passed, rejected, or blocked) (`--event-type verdict_set`)
 - Activity changes (`--event-type activity_change`)
 - Issues found and severity assessment (minor fix-in-place vs substantial cycle-back) (`--event-type decision`)
 - Errors encountered and recovery actions (`--event-type error`)
@@ -366,7 +366,7 @@ Write semantic event entries (via `plet_trace.py append-event`) for:
 
 ## Verification Report (VF_21, VF_22, VF_23, VF_24)
 
-Before finishing (all paths — complete, cycle-back, and blocked), append a verification report to the `verificationReports` array in the per-iteration state file and set `lastVerdict` to the verdict value. Each verification attempt gets its own report — reports are never overwritten. `lastVerdict` is a top-level convenience field for quick access; the canonical source is the report array. Field-level schema is in `references/state-schema.md`.
+Before finishing (all paths — complete, cycle-back, and blocked), append a verification report to the `verificationReports` array via `plet_iter_state.py add-report` and set `verifyVerdict` via `plet_iter_state.py set-verdict --phase verify --verdict <value>`. Each verification attempt gets its own report — reports are never overwritten. `verifyVerdict` is a top-level convenience field for quick access; the canonical source is the report array. Field-level schema is in `references/state-schema.md`.
 
 The report captures:
 
@@ -423,18 +423,17 @@ This handles: rebase onto workstream, squash into one commit (`plet: [ID_xxx] - 
 2. Write a `COMPLETE (passed, frozen)` progress entry via `plet_entries.py add-progress`
 3. Write any remaining learnings and emergent items
 4. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
-5. Set `lastVerdict` in the per-iteration state file
-6. Update via `plet_state.py update-field`:
-   - `lastVerdict`: `"passed"`, `agentActivity`: `"idle"`, `agentId`: `null`
-   - **Do NOT set `lifecycle`.** Lifecycle stays `"verifying"`. The orchestrator sets lifecycle → `"complete"` after successful merge-squash to workstream. An iteration isn't truly complete until its code is merged.
-7. Write final trace entries via `plet_trace.py append-event`
-8. **Run post-gate and self-correct until it passes:**
+5. Set verdict: `plet_iter_state.py set-verdict plet/ --iter-id {iter_id} --phase verify --verdict passed`
+   - Set `phaseActivity`: `"idle"`, `agentId`: `null`
+   - **Do NOT set lifecycle.** The orchestrator sets lifecycle → `"complete"` after successful merge-squash (SF_28). An iteration isn't truly complete until its code is merged.
+6. Write final trace entries via `plet_trace.py append-event`
+7. **Run post-gate and self-correct until it passes:**
 
 ```bash
 plet_gate_phase.py post plet/ --iter-id ID_001 --phase verify --output json
 ```
 
-The verify post-gate checks everything the implement post-gate checks PLUS: `lastVerdict` must not be null (FAIL), `verificationReports` must have an entry with `verdict` and `criteriaResults` (FAIL). Your exit signals "I passed my own gate."
+The verify post-gate checks everything the implement post-gate checks PLUS: `verifyVerdict` must not be null (FAIL), `verificationReports` must have an entry with `verdict` and `criteriaResults` (FAIL), `verifyVerdict` must match last report verdict (WARN). Your exit signals "I passed my own gate."
 
 ---
 
@@ -476,30 +475,27 @@ Append a verification report to `verificationReports` with `verdict: "blocked"`.
 ### State Update
 
 After documenting across all four artifacts and writing the verification report:
-- `lastVerdict`: `"blocked"`
-- `agentActivity`: `"idle"`
-- `agentId`: `null`
-- `lastUpdated`: current timestamp
-- **Do NOT set `lifecycle`.** The orchestrator reads `lastVerdict: "blocked"` and transitions lifecycle → `"blocked"`. See § Lifecycle Ownership below.
+- Set verdict: `plet_iter_state.py set-verdict plet/ --iter-id {iter_id} --phase verify --verdict blocked`
+- `phaseActivity`: `"idle"`, `agentId`: `null`
+- **Do NOT set lifecycle.** The orchestrator reads `verifyVerdict: "blocked"` and transitions lifecycle → `"blocked"` (SF_28).
 
 ---
 
-## Lifecycle Ownership
+## Lifecycle Ownership (SF_28)
 
-**You do NOT set lifecycle.** This is a critical rule. You set `lastVerdict` only. The lifecycle stays `"verifying"` throughout your work and after you exit.
+**You do NOT set lifecycle.** This is a critical rule. You set `verifyVerdict` only. The orchestrator manages all lifecycle transitions in `state.json`.
 
 Why: lifecycle transitions after verification are **decisions** that require multiple inputs (verdict + merge success + retry policy). Only the orchestrator has all three. If you set lifecycle → `"complete"` but the merge fails, lifecycle lies. If you set lifecycle → `"implementing"` for a cycle-back, the orchestrator can't manage the retry queue.
 
-| What you own (write to worktree) | What the orchestrator owns (writes to global after you exit) |
-|----------------------------------|--------------------------------------------------------------|
-| `lifecycle: "verifying"` (confirm on start — symmetric with implement) | `lifecycle` → complete (after merge) |
-| `lastVerdict` (passed/rejected/blocked) | `lifecycle` → queued (retry) |
-| `verificationReports` (append report) | `lifecycle` → blocked (retry exhausted or blocked verdict) |
-| `agentActivity`, `agentId` (idle on exit) | |
+| What you own (write to worktree) | What the orchestrator owns (state.json, SF_28) |
+|----------------------------------|------------------------------------------------|
+| `verifyVerdict` (passed/rejected/blocked) | lifecycle → complete (after merge) |
+| `verificationReports` (append report) | lifecycle → queued (retry) |
+| `phaseActivity`, `agentId` (idle on exit) | lifecycle → blocked (retry exhausted or blocked verdict) |
 
-You write to the **worktree's** plet directory (your cwd). The orchestrator reads your verdict from the worktree, then writes the final lifecycle to the **global** plet directory (SF_26, SF_27). Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked).
+You write to the **worktree's** plet directory (your cwd). The orchestrator reads your verdict from the worktree, then writes the final lifecycle to `state.json` in the **global** plet directory (SF_26, SF_27, SF_28). Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked).
 
-The post-verify gate (GPH_PST_BHV_12) enforces this: if lifecycle changed from `"verifying"`, the gate FAILs and you must revert it.
+The post-verify gate enforces verdict consistency: `verifyVerdict` must not be null (GPH_PST_BHV_7), must match last report verdict (GPH_PST_BHV_12).
 
 ---
 
@@ -543,8 +539,9 @@ The gate checks everything:
 - [ ] `plet/learnings.md` has an entry (WARN if missing)
 - [ ] `plet/emergent.md` has an entry (WARN if missing)
 - [ ] Trace events file valid
-- [ ] `lastVerdict` set (FAIL if null)
+- [ ] `verifyVerdict` set (FAIL if null)
 - [ ] `verificationReports` has entry with verdict + criteriaResults (FAIL if missing)
+- [ ] `verifyVerdict` matches last report verdict (WARN if mismatched)
 - [ ] All changes committed
 
-**Atomic writes are handled by the scripts** — `plet_state.py`, `plet_entries.py`, and `plet_trace.py` all use atomic I/O internally.
+**Atomic writes are handled by the scripts** — `plet_iter_state.py`, `plet_entries.py`, and `plet_trace.py` all use atomic I/O internally.
