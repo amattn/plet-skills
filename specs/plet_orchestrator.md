@@ -19,12 +19,12 @@ The capstone script — the main implement→verify loop as deterministic code. 
 >       - Prompt assembled by `plet_prompt.py assemble` (includes implement.md, iteration definition, formats.md, state-schema.md sections, requirements.md, learnings.md, per-iteration state)
 >       - Invocation logged to trace event + progress entry. Transcript captured line-by-line.
 >    d. Subagent runs post-gate before exiting: `plet_gate_phase.py post --phase implement`
-> 4. After implementation completes (lifecycle → `verifying`), spawn verification subagent in fresh context on same branch. One verify per iteration — never batch.
+> 4. After implementation completes (implementVerdict set), spawn verification subagent in fresh context on same branch. One verify per iteration — never batch.
 >    a. Pre-gate: `plet_gate_phase.py pre --phase verify`
 >    b. Launch: `plet_invoke.py run --phase verify --cwd <worktree>`
 >       - Verify prompt: same sections but verify.md instead of implement.md
 >       - Verify agent verifies the **result**, not the **process**
->    c. Subagent runs post-gate: `plet_gate_phase.py post --phase verify` (also checks lastVerdict + verificationReports)
+>    c. Subagent runs post-gate: `plet_gate_phase.py post --phase verify` (also checks verifyVerdict + verificationReports)
 > 5. After verification: pass → audit tag + merge-squash; issues → cycle back
 > 6. Clean up worktree
 > 7. Re-evaluate dependency graph, spawn next eligible
@@ -115,8 +115,8 @@ Each line is a self-contained JSON object with a `type` field. Events stream in 
 ```
 {"type":"session_start","sessionType":"loop","sessionNumber":2,"branch":"plet/TEST/loop2/workstream","timestamp":"..."}
 {"type":"iteration_start","iterationId":"ID_001","phase":"implement","timestamp":"..."}
-{"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"2026-03-29T12:01:00Z","subagentActivity":"implementing","timestamp":"..."}
-{"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":120,"subagentHeartbeat":"2026-03-29T12:02:00Z","subagentActivity":"running_checks","timestamp":"..."}
+{"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"2026-03-29T12:01:00Z","subagentPhaseActivity":"implementing","timestamp":"..."}
+{"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":120,"subagentHeartbeat":"2026-03-29T12:02:00Z","subagentPhaseActivity":"running_checks","timestamp":"..."}
 {"type":"iteration_phase_complete","iterationId":"ID_001","phase":"implement","timestamp":"..."}
 {"type":"iteration_start","iterationId":"ID_001","phase":"verify","timestamp":"..."}
 {"type":"iteration_phase_complete","iterationId":"ID_001","phase":"verify","verdict":"passed","timestamp":"..."}
@@ -134,7 +134,7 @@ Each line is a self-contained JSON object with a `type` field. Events stream in 
 | `iteration_phase_complete` | After subagent returns | `iterationId`, `phase`, `verdict` (verify only) |
 | `iteration_merged` | After merge-squash | `iterationId` |
 | `iteration_complete` | After lifecycle transition | `iterationId`, `lifecycle` (`complete`, `blocked`, `queued` for retry) |
-| `heartbeat` | Every 60s during subagent execution | `iterationId`, `phase`, `elapsedSeconds`, `subagentHeartbeat`, `subagentActivity` |
+| `heartbeat` | Every 60s during subagent execution | `iterationId`, `phase`, `elapsedSeconds`, `subagentHeartbeat`, `subagentPhaseActivity` |
 | `stale_subagent` | Subagent heartbeat >5min old | `iterationId`, `phase`, `lastHeartbeat`, `staleDuration` |
 | `breakpoint_hit` | Breakpoint detected | `iterationId`, `position` |
 | `error` | Script failure or unexpected state | `iterationId` (if applicable), `error` |
@@ -223,27 +223,27 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 | ORC_RUN_BHV_7 | **Parallel spawn (default):** The parallel window is: breakpoint-before check → worktree-create → implement → verify. All eligible iterations run this window concurrently. The sequential boundary is after verify completes — each iteration joins a queue for verdict processing, merge-squash, worktree removal, breakpoint-after, and progress entry. Merge-squash must be serial (shared runtime artifacts). `--sequential` forces the entire per-iteration flow to be one-at-a-time. **Round-based:** all eligible iterations spawn as one round. Wait for all to finish their parallel window, then process all sequentially, then re-evaluate eligible for the next round. Streaming re-evaluation (dynamically adding to the parallel pool mid-round) is a future consideration (ORC_FUT_2). | P0 |
 | ORC_RUN_BHV_8 | **Breakpoint check (before):** Call `plet_schedule.py check-breakpoints --iter-id {id} --position before --output json`. If `hit`, do not start this iteration. In parallel mode, let all other in-flight iterations in the current round finish their parallel window and sequential processing before returning. Then return with `reason: "breakpoint_before"` and `pauseContext.iterationId`. This ensures no work is abandoned mid-phase. | P0 |
 | ORC_RUN_BHV_9 | **Worktree creation:** Call `plet_git_iteration.py worktree-create --iter-id {id} --output json`. Read `worktreePath` from response. | P0 |
-| ORC_RUN_BHV_10 | **Implement phase:** Call `plet_invoke.py run --iter-id {id} --phase implement --cwd {worktreePath}`. The orchestrator does NOT write lifecycle → implementing (SF_26 — subagent is sole writer). The subagent sets lifecycle → implementing as its first action, then works, then sets lifecycle → verifying (handoff). The subagent handles audit-tag and post-gate self-correction before exiting. | P0 |
-| ORC_RUN_BHV_11 | **Verify phase:** Read lifecycle from `worktree_plet_dir` (not `global_plet_dir`) — expect `verifying` (implement subagent's handoff). If not `verifying`, the implement subagent didn't complete cleanly — handle per ORC_EDG_3. Then call `plet_invoke.py run --iter-id {id} --phase verify --cwd {worktreePath}`. The verify subagent does NOT touch lifecycle — it only sets `lastVerdict`. | P0 |
-| ORC_RUN_BHV_12 | **Verdict processing:** Read `lastVerdict` from `worktree_plet_dir` (not `global_plet_dir` — the subagent wrote there per SF_26). If `lastVerdict` is missing or null, treat as error, write lifecycle → `blocked` to `global_plet_dir` (verdict handoff per SF_27). Otherwise, three verdict paths — all lifecycle writes go to `global_plet_dir`: | P0 |
+| ORC_RUN_BHV_10 | **Implement phase:** Orchestrator sets lifecycle → `implementing` via `plet_global_state.py update-lifecycle` on `global_plet_dir` (SF_28 — orchestrator owns lifecycle). Then calls `plet_invoke.py run --iter-id {id} --phase implement --cwd {worktreePath}`. The subagent works and sets `implementVerdict` via `plet_iter_state.py set-verdict --phase implement` before exiting. The subagent handles audit-tag and post-gate self-correction before exiting. | P0 |
+| ORC_RUN_BHV_11 | **Verify phase:** **Guard assertion:** verify `worktree_plet_dir != global_plet_dir` before reading (prevents Run 3 class of bug). Read `implementVerdict` from `worktree_plet_dir` (not `global_plet_dir`) — expect not null (implement subagent's handoff). If null, the implement subagent didn't complete cleanly — handle per ORC_EDG_3. Then set lifecycle → `verifying` via `plet_global_state.py update-lifecycle` on `global_plet_dir`. Then call `plet_invoke.py run --iter-id {id} --phase verify --cwd {worktreePath}`. The verify subagent sets `verifyVerdict` via `plet_iter_state.py set-verdict --phase verify`. | P0 |
+| ORC_RUN_BHV_12 | **Verdict processing:** **Guard assertion:** verify `worktree_plet_dir != global_plet_dir` before reading. Read `verifyVerdict` from `worktree_plet_dir` (not `global_plet_dir` — the subagent wrote there per SF_26). If `verifyVerdict` is missing or null, treat as error, write lifecycle → `blocked` to `global_plet_dir` via `plet_global_state.py update-lifecycle` (verdict handoff per SF_27). Otherwise, three verdict paths — all lifecycle writes via `plet_global_state.py update-lifecycle` on `global_plet_dir`: | P0 |
 
 **Verdict: `passed`**
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_RUN_BHV_13 | Merge iteration to workstream: orchestrator runs `plet_git_ops.py merge-squash --iter-id {id} --output json` from the workstream branch (not the worktree). merge-squash squashes the iteration branch into the workstream as a single commit. Worktree still exists at this point — removed in BHV_16 after merge. Orchestrator sets lifecycle → `complete`. (No-commits case is blocked earlier — see ORC_EDG_1.) | P0 |
+| ORC_RUN_BHV_13 | Merge iteration to workstream: orchestrator runs `plet_git_ops.py merge-squash --iter-id {id} --output json` from the workstream branch (not the worktree). merge-squash squashes the iteration branch into the workstream as a single commit. Worktree still exists at this point — removed in BHV_16 after merge. Orchestrator sets lifecycle → `complete` via `plet_global_state.py update-lifecycle`. (No-commits case is blocked earlier — see ORC_EDG_1.) | P0 |
 
 **Verdict: `rejected`**
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_RUN_BHV_14 | Call `plet_schedule.py check-retry --iter-id {id} --output json`. If `continue`: set lifecycle back to `queued` (re-enters the eligible pool). If `abort`: set lifecycle to `blocked`, write a BLOCKED progress entry and `blocker` emergent entry explaining retry exhaustion. | P0 |
+| ORC_RUN_BHV_14 | Call `plet_schedule.py check-retry --iter-id {id} --output json`. If `continue`: set lifecycle back to `queued` via `plet_global_state.py update-lifecycle` (re-enters the eligible pool). If `abort`: set lifecycle to `blocked` via `plet_global_state.py update-lifecycle`, write a BLOCKED progress entry and `blocker` emergent entry explaining retry exhaustion. | P0 |
 
 **Verdict: `blocked`**
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_RUN_BHV_15 | Set lifecycle to `blocked`. Write a BLOCKED progress entry. The verify agent already set `lastVerdict: "blocked"` — the orchestrator just transitions lifecycle and logs. No retry evaluation. | P0 |
+| ORC_RUN_BHV_15 | Set lifecycle to `blocked` via `plet_global_state.py update-lifecycle`. Write a BLOCKED progress entry. The verify agent already set `verifyVerdict: "blocked"` — the orchestrator just transitions lifecycle and logs. No retry evaluation. | P0 |
 
 **Post-iteration cleanup:**
 
@@ -270,7 +270,7 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 |----|-------------|----------|
 | ORC_RUN_BHV_24 | **Logging responsibility:** The orchestrator logs merge-squash results and verdict decisions to trace via `plet_trace.py append-event`. The per-iteration progress entry (BHV_18) covers the human-readable record — includes verdict, merge result, and retry decision in one entry. Git scripts (GTO, GTI) are pure tools — return data, don't log. Audit-tag is the subagent's responsibility (not orchestrator). | P0 |
 | ORC_RUN_BHV_25 | **Trace events:** The orchestrator writes semantic events for its own decisions via `plet_trace.py append-event`. Event type prefix: `orchestrator_*`. Events: session start/end, eligible round snapshot (which iterations were eligible + counts at each re-evaluation), iteration spawn, verdict received, retry decision, breakpoint hit, merge result, fingerprint check result (stale? allow-stale override?). Round snapshots and fingerprint decisions are orchestrator-specific insights not derivable from other sources. | P1 |
-| ORC_RUN_BHV_26 | **Heartbeat with subagent status:** During subagent execution, the orchestrator emits a `heartbeat` NDJSON event every 60 seconds. Each heartbeat reads `lastHeartbeat` and `agentActivity` from the per-iteration state file (written by the subagent). If the subagent's `lastHeartbeat` is >5 minutes old, emit a `stale_subagent` event instead — the subagent may have crashed or hung. This gives SKILL.md and the GUI a complete liveness picture from one stream. | P0 |
+| ORC_RUN_BHV_26 | **Heartbeat with subagent status:** During subagent execution, the orchestrator emits a `heartbeat` NDJSON event every 60 seconds. Each heartbeat reads `lastHeartbeat` and `phaseActivity` (was `agentActivity`, SF_28) from the per-iteration state file (written by the subagent). If the subagent's `lastHeartbeat` is >5 minutes old, emit a `stale_subagent` event instead — the subagent may have crashed or hung. This gives SKILL.md and the GUI a complete liveness picture from one stream. | P0 |
 
 ## 4. Edge Cases (EDG)
 
@@ -280,7 +280,7 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 | ORC_EDG_2 | **Merge conflict:** If `plet_git_ops.py merge-squash` fails with a conflict, set the iteration to `blocked`, write a progress entry and emergent entry describing the conflict. Do NOT attempt automatic resolution — merge conflicts indicate an unexpected file overlap between iterations, likely a dependency graph gap. | P0 |
 | ORC_EDG_3 | **Subagent crash (non-zero exit from plet_invoke):** The transcript is captured regardless (plet_invoke handles this). Log the failure, then check criteria status in the per-iteration state file. If all criteria have implementation status `pass`, the crash was during wrap-up (audit tag, post gate) — proceed to verify. If any criteria are incomplete, block the iteration. This same heuristic applies to EDG_5 (resume after crash). | P0 |
 | ORC_EDG_4 | **All eligible iterations hit breakpoints:** If every eligible iteration has a `before` breakpoint, the orchestrator pauses immediately with the first one. SKILL.md presents the breakpoint to the user, who can remove it and re-run. | P0 |
-| ORC_EDG_5 | **Interrupted resume:** The orchestrator is re-invoked after a crash. `start-session` resumes (idempotent). `eligible` returns the current state. Iterations left in `implementing` or `verifying` (agent crashed mid-work) need cleanup: check if the worktree still exists, then apply the same heuristic as EDG_3 — read criteria status from per-iteration state file. All criteria pass → proceed to next phase (verify or merge). Incomplete criteria → re-queue (`queued`) for fresh attempt. | P0 |
+| ORC_EDG_5 | **Interrupted resume:** The orchestrator is re-invoked after a crash. `start-session` resumes (idempotent). `eligible` returns the current state. Iterations left in `implementing` or `verifying` in `state.json.lifecycles` (SF_28) with no active worktree need cleanup: reset lifecycle → `queued` via `plet_global_state.py update-lifecycle`. If worktree still exists, apply EDG_3 heuristic — read criteria status from per-iteration state file. All criteria pass → proceed to next phase. Incomplete criteria → re-queue. | P0 |
 | ORC_EDG_6 | **Stale fingerprints:** `plet_fingerprint.py check` reports staleness. The orchestrator warns but continues — implementing against a slightly stale spec is better than blocking the entire loop. Staleness is triaged during refine. | P0 |
 | ORC_EDG_7 | **Concurrent plet_orchestrator.py instances:** Not supported. If two orchestrators run on the same project, state corruption is likely. Detection: check for an ACTIVE canary in progress.md with a recent timestamp (< 5 minutes). If found, warn and refuse to start. | P1 |
 
@@ -299,7 +299,7 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ORC_FMT_1 | Reads: `state.json` from `global_plet_dir` (via plet_schedule, plet_session). Per-iteration state from `worktree_plet_dir` after subagent returns (via util_state). | P0 |
-| ORC_FMT_2 | Writes (via other scripts): `state.json` in `global_plet_dir` (session lifecycle). Per-iteration lifecycle in `global_plet_dir` (verdict handoff only, per SF_27). `progress.md` (session events). Trace events (orchestrator decisions). Does NOT write per-iteration state during the iteration (SF_26). | P0 |
+| ORC_FMT_2 | Writes (via other scripts): `state.json` in `global_plet_dir` — session lifecycle via `plet_session.py`, iteration lifecycle via `plet_global_state.py update-lifecycle` (SF_28). `progress.md` (session events). Trace events (orchestrator decisions). Does NOT write per-iteration state during the iteration (SF_26). | P0 |
 | ORC_FMT_3 | Does not read or write files directly — all I/O goes through plet scripts via subprocess. Exception: util_* modules imported directly. Uses `util_state.load_and_validate_iter_state(worktree_plet_dir, iter_id)` to read post-subagent state from the worktree. | P0 |
 
 ## 7. Agent Flows (AFL)
@@ -339,12 +339,12 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 ### ORC_AFL_4: Crash recovery
 
 1. Orchestrator crashes mid-implement for ID_002
-2. State: ID_001 complete, ID_002 lifecycle `implementing` with stale heartbeat
+2. State: ID_001 complete in `state.json.lifecycles`, ID_002 `implementing` in `state.json.lifecycles` (SF_28)
 3. SKILL.md re-invokes orchestrator
 4. start-session → resumed (idempotent)
 5. eligible → ID_002 not eligible (lifecycle `implementing`, not `queued`)
-6. Orchestrator detects stale in-progress: check worktree exists, read criteria status from per-iteration state (EDG_3/EDG_5 heuristic)
-7. All criteria pass → proceed to verify (crash was during wrap-up). Incomplete criteria → set lifecycle → `queued` to retry with fresh attempt.
+6. Orchestrator detects stale in-progress from `state.json.lifecycles`: check if worktree exists. No worktree → reset lifecycle → `queued` via GST. Worktree exists → apply EDG_3 heuristic (read criteria from per-iteration state)
+7. All criteria pass → proceed to verify. Incomplete criteria → set lifecycle → `queued` via `plet_global_state.py update-lifecycle`
 8. Continues loop normally
 
 ### ORC_AFL_5: Mixed complete + blocked outcome
@@ -384,7 +384,7 @@ plet_orchestrator.py run plet/
 plet_orchestrator.py run plet/ --output ndjson
 # {"type":"session_start","sessionType":"loop","sessionNumber":2,"branch":"plet/TEST/loop2/workstream","timestamp":"..."}
 # {"type":"iteration_start","iterationId":"ID_001","phase":"implement","timestamp":"..."}
-# {"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"...","subagentActivity":"implementing","timestamp":"..."}
+# {"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"...","subagentPhaseActivity":"implementing","timestamp":"..."}
 # {"type":"iteration_phase_complete","iterationId":"ID_001","phase":"implement","timestamp":"..."}
 # {"type":"iteration_start","iterationId":"ID_001","phase":"verify","timestamp":"..."}
 # {"type":"iteration_phase_complete","iterationId":"ID_001","phase":"verify","verdict":"passed","timestamp":"..."}
@@ -413,13 +413,13 @@ plet_orchestrator.py run plet/ --max-iterations 1 --sequential
 | ORC_DEP_4 | calls | `plet_git_iteration.py` | `branch-name`, `worktree-create`, `worktree-remove` — git setup/cleanup |
 | ORC_DEP_5 | calls | `plet_git_ops.py` | `audit-tag`, `merge-squash` — phase boundaries and integration |
 | ORC_DEP_6 | calls | `plet_invoke.py` | `run` — subagent launch with transcript capture |
-| ORC_DEP_7 | calls | `plet_state.py` | `update-field` — lifecycle transitions |
+| ORC_DEP_7 | calls | `plet_global_state.py` | `update-lifecycle` — lifecycle transitions (SF_28) |
 | ORC_DEP_8 | calls | `plet_entries.py` | `add-progress` — session and iteration events |
 | ORC_DEP_9 | calls | `plet_trace.py` | `append-event` — orchestrator decisions |
 | ORC_DEP_10 | calls | `plet_fingerprint.py` | `check` — staleness detection |
 | ORC_DEP_11 | imports | `util_cli` | `parse_kwargs`, `validate_known_flags`, `dispatch`, `get_plet_dir`, `now_iso`, `UNIVERSAL_FLAGS_READ` |
 | ORC_DEP_12 | imports | `util_io` | `state_json_path`, `iter_state_path` — path derivation |
-| ORC_DEP_14 | imports | `util_state` | `load_and_validate_iter_state` — read per-iteration state for lastVerdict/lifecycle with structural validation |
+| ORC_DEP_14 | imports | `util_state` | `load_and_validate_iter_state` — read per-iteration state for implementVerdict/verifyVerdict with structural validation |
 | ORC_DEP_13 | called by | SKILL.md | Primary caller — routes loop phase to orchestrator |
 
 ## 10. Non-Functional Requirements (NFR)
@@ -440,15 +440,15 @@ During an iteration, per-iteration state files exist in two copies: the global c
 | ID | Invariant | Priority |
 |----|-----------|----------|
 | ORC_WSI_1 | **Worktree authoritative during iteration.** The worktree copy is the source of truth while a subagent is running. The global copy is stale and frozen. | P0 |
-| ORC_WSI_2 | **Orchestrator writes zero per-iteration state during iteration.** No `plet_state.py update-field` calls targeting `global_plet_dir` for the active iteration. The subagent is the sole writer (to `worktree_plet_dir`). | P0 |
-| ORC_WSI_3 | **Verdict handoff: lifecycle to global only after iteration done.** Passed: after merge-squash, write `lifecycle: "complete"` to `global_plet_dir`. Rejected: write `lifecycle: "queued"`. Blocked: write `lifecycle: "blocked"`. Commit immediately. | P0 |
+| ORC_WSI_2 | **Orchestrator writes zero per-iteration state during iteration.** No per-iteration state writes targeting `global_plet_dir` for the active iteration. The subagent is the sole writer (to `worktree_plet_dir`). Orchestrator writes lifecycle to `state.json` via `plet_global_state.py update-lifecycle` (different file, no conflict). | P0 |
+| ORC_WSI_3 | **Verdict handoff: lifecycle to global only after iteration done.** Via `plet_global_state.py update-lifecycle` on `global_plet_dir`. Passed: after merge-squash, set `complete`. Rejected: set `queued`. Blocked: set `blocked`. Commit immediately. | P0 |
 | ORC_WSI_4 | **Global state (state.json) in global_plet_dir only.** Session history, dependency map, counters — never modified in worktree. | P0 |
 | ORC_WSI_5 | **No concurrent writes to the same state file.** Worktree written during iteration, global written between iterations. Eliminates merge conflicts. | P0 |
 | ORC_WSI_6 | **Lifecycle synced before next eligible().** The verdict handoff must be committed before the next scheduling evaluation. | P0 |
 
 **Variable naming:** `global_plet_dir` = workstream copy. `worktree_plet_dir` = iteration copy. Generic functions accept `plet_dir` (either copy). See NOTES.md § Plet Directory Variables.
 
-**Post-subagent reads:** The orchestrator reads lifecycle handoff and verdict from `worktree_plet_dir` (where the subagent wrote them), NOT from `global_plet_dir` (which is stale).
+**Post-subagent reads:** The orchestrator reads `implementVerdict` and `verifyVerdict` from `worktree_plet_dir` (where the subagent wrote them), NOT from `global_plet_dir` (which is stale). **Guard assertion:** `worktree_plet_dir != global_plet_dir` before every post-subagent read — prevents the Run 3 class of bug where the orchestrator accidentally reads from the wrong copy.
 
 ## 11. Developer Experience (DXP)
 
@@ -470,7 +470,7 @@ During an iteration, per-iteration state files exist in two copies: the global c
 | ORC_CRT_6 | Retry logic | Infinite retry, premature block, wrong trend evaluation | Mock decreasing/increasing failure trends, verify continue/abort |
 | ORC_CRT_7 | Crash resume + criteria heuristic | Duplicate session entries, lost progress, wrong resume decision | Kill mid-loop, re-run. Test both paths: all criteria pass → proceeds to verify; incomplete criteria → re-queued. Verify start-session resumes idempotently. |
 | ORC_CRT_8 | Error propagation | Script failure silently ignored | Mock script failures, verify every failure handled — no silent skipping |
-| ORC_CRT_9 | Lifecycle ownership | Orchestrator sets wrong lifecycle, or sets one it shouldn't | Verify: complete only after merge, queued on retry, blocked on exhaustion. Verify orchestrator does NOT set verifying (implement subagent's handoff). |
+| ORC_CRT_9 | Lifecycle ownership | Orchestrator sets wrong lifecycle, or sets one it shouldn't | Verify: implementing before spawn, verifying before verify spawn, complete only after merge, queued on retry, blocked on exhaustion. All via `plet_global_state.py update-lifecycle`. |
 | ORC_CRT_10 | NDJSON streaming output | SKILL.md can't parse events, stall detection broken | Verify event types, correct order, result always last line, heartbeat every 60s during subagent execution, stale_subagent emitted when heartbeat >5min old |
 | ORC_CRT_11 | Stuck iteration reporting | Stuck iterations silently ignored, user not informed | Test: blocked dep → stuck reported. Withdrawn dep → stuck reported. Circular chain → all cycle members stuck. Verify orchestrator includes stuckIterations in result. |
 | ORC_CRT_12 | No-commits blocking (EDG_1) | Zero-commit implement silently proceeds to verify | Mock implement that produces no commits, verify iteration blocked immediately — not passed to verify |
