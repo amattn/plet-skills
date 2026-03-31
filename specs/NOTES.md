@@ -1485,3 +1485,37 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 **evaluate-verdict as future concern (SCH_FUT_4).** Consolidate verdict reading + retry decision into one command. Currently the orchestrator reads verifyVerdict then conditionally calls check-retry. A single `evaluate-verdict --phase verify` could return "merge", "retry", "block", or "crash". Deferred — current 4-line routing logic is clear and check-retry is independently testable.
 
 **check-retry reads from worktree_plet_dir.** Orchestrator passes worktree path because verificationReports are in the worktree copy (subagent wrote them there). Worktree still exists at verdict-decision time, cleaned up after.
+
+#### plet_gate_phase.py migration design (40b) (2026-03-31)
+
+**Key insight: pre vs post have different plet_dir contexts.**
+- Pre-gate: called by orchestrator with global_plet_dir. Has state.json → can read lifecycle.
+- Post-gate: called by subagent with worktree_plet_dir. No state.json → no lifecycle check. Checks verdicts from per-iteration file instead.
+
+**Phase differences table (updated for SF_28):**
+
+| Check | impl pre | impl post | verify pre | verify post |
+|-------|:---:|:---:|:---:|:---:|
+| git-check (GTC) | ✓ | ✓ | ✓ | ✓ |
+| state-valid (IST validate) | ✓ | ✓ | ✓ | ✓ |
+| lifecycle-check (state.json) | ✓ (queued/implementing) | — | ✓ (verifying) | — |
+| spec-artifacts | ✓ | — | — | — |
+| fingerprints (FPR) | ✓ | — | — | — |
+| progress-entry (ENT) | — | ✓ FAIL | — | ✓ FAIL |
+| learnings-entry (ENT) | — | ✓ WARN | — | ✓ WARN |
+| emergent-entry (ENT) | — | ✓ WARN | — | ✓ WARN |
+| trace-events (TRC) | — | ✓ WARN | — | ✓ WARN |
+| **implement-verdict** | — | **✓ FAIL** | — | — |
+| **verify-verdict** | — | — | — | **✓ FAIL** |
+| verification-report | — | — | — | ✓ FAIL |
+| **verdict-consistency** | — | — | — | **✓ WARN** |
+| audit-tag | — | ✓ | — | ✓ |
+
+**Changes from old spec:**
+1. **lifecycle-check (pre):** reads from `state.json.lifecycles` instead of per-iteration state. Same valid values.
+2. **lifecycle-handoff (BHV_11) → implement-verdict:** post-implement checks `implementVerdict` not null (was: check lifecycle = verifying). Reads from per-iteration file in worktree.
+3. **lifecycle-unchanged (BHV_12) → removed:** orchestrator owns lifecycle, verify subagent doesn't touch it. Nothing to check in per-iteration file.
+4. **last-verdict (BHV_7) → verify-verdict:** post-verify checks `verifyVerdict` not null (was: check `lastVerdict` not null). Same purpose, new field name.
+5. **NEW verdict-consistency:** post-verify WARN if `verifyVerdict` doesn't match last verificationReport's verdict. Catches the "report says X, verdict says Y" inconsistency.
+6. **state-valid:** validates per-iteration file via `util_state.validate_iter_state()`. No change to mechanism, but the schema now accepts the new fields.
+7. **agentActivity references → phaseActivity** in check output/detail strings.

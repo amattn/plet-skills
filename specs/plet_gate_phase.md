@@ -1,6 +1,6 @@
 # plet_gate_phase.py (GPH)
 
-> Status: draft
+> Status: complete (updated for SF_28 lifecycle extraction)
 
 > Merged from `plet_gate_impl.py` (GIM) and `plet_gate_verify.py` (GVR). One script, `--phase` controls behavior differences.
 
@@ -19,16 +19,18 @@ Case study evidence: SPARK produced 0.09 learnings and 0.04 emergent entries per
 | Check | implement pre | implement post | verify pre | verify post |
 |-------|:---:|:---:|:---:|:---:|
 | git-check (GTC) | ✓ | ✓ | ✓ | ✓ |
-| state-valid (STA) | ✓ | ✓ | ✓ | ✓ |
-| lifecycle-check | ✓ (queued/implementing) | — | ✓ (verifying) | — |
+| state-valid (IST validate) | ✓ | ✓ | ✓ | ✓ |
+| lifecycle-check (state.json) | ✓ (queued/implementing) | — | ✓ (verifying) | — |
 | spec-artifacts | ✓ | — | — | — |
 | fingerprints (FPR) | ✓ | — | — | — |
 | progress-entry (ENT) | — | ✓ FAIL | — | ✓ FAIL |
 | learnings-entry (ENT) | — | ✓ WARN | — | ✓ WARN |
 | emergent-entry (ENT) | — | ✓ WARN | — | ✓ WARN |
 | trace-events (TRC) | — | ✓ WARN | — | ✓ WARN |
-| last-verdict | — | — | — | ✓ FAIL |
+| implement-verdict | — | ✓ FAIL | — | — |
+| verify-verdict | — | — | — | ✓ FAIL |
 | verification-report | — | — | — | ✓ FAIL |
+| verdict-consistency | — | — | — | ✓ WARN |
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -95,7 +97,7 @@ Both commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PRE_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. | P0 |
+| GPH_PRE_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
 | GPH_PRE_INP_2 | `--iter-id` — iteration ID. Required. | P0 |
 | GPH_PRE_INP_3 | `--phase` — `implement` or `verify`. Required. Controls which checks run. | P0 |
 
@@ -148,8 +150,8 @@ All pre-gates run git-check and state-valid. Additional checks depend on `--phas
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GPH_PRE_BHV_1 | **git-check**: Calls GTC `check-iteration --phase {phase}`. Each check prefixed with `git:`. Both phases. | P0 |
-| GPH_PRE_BHV_2 | **state-valid**: Calls STA `validate`. Both phases. | P0 |
-| GPH_PRE_BHV_3 | **lifecycle-check**: Reads lifecycle from iter state. **implement**: WARN if not `queued`/`implementing`. **verify**: WARN if not `verifying`. Both phases. | P0 |
+| GPH_PRE_BHV_2 | **state-valid**: Validates per-iteration state via `util_state.validate_iter_state()`. Both phases. | P0 |
+| GPH_PRE_BHV_3 | **lifecycle-check**: Reads lifecycle from `state.json.lifecycles` (SF_28). **implement**: WARN if not `queued`/`implementing`. **verify**: WARN if not `verifying`. Pre is called by orchestrator with global_plet_dir — state.json is available. Both phases. | P0 |
 | GPH_PRE_BHV_4 | **spec-artifacts**: Checks `requirements.md` and `iterations.md` exist. FAIL if missing. **implement only** — spec artifacts can't disappear mid-session. | P0 |
 | GPH_PRE_BHV_5 | **fingerprints-consistent**: Calls FPR `check`. WARN if stale. **implement only** — verify can't change requirements. | P0 |
 | GPH_PRE_BHV_6 | Check order: git-check → state-valid → lifecycle-check → spec-artifacts (impl only) → fingerprints (impl only). | P0 |
@@ -180,7 +182,7 @@ All pre-gates run git-check and state-valid. Additional checks depend on `--phas
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PST_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. | P0 |
+| GPH_PST_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
 | GPH_PST_INP_2 | `--iter-id` — iteration ID. Required. | P0 |
 | GPH_PST_INP_3 | `--phase` — `implement` or `verify`. Required. Controls which checks run. | P0 |
 
@@ -233,17 +235,17 @@ Post-gate re-verifies git and state, then checks artifacts. Verify adds verdict 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GPH_PST_BHV_1 | **git-check**: Calls GTC `check-iteration --phase {phase}`. Both phases. | P0 |
-| GPH_PST_BHV_2 | **state-valid**: Re-validates iter state. Both phases. | P0 |
+| GPH_PST_BHV_2 | **state-valid**: Re-validates per-iteration state via `util_state.validate_iter_state()`. Both phases. Post is called by subagent with worktree_plet_dir — no state.json available. | P0 |
 | GPH_PST_BHV_3 | **progress-entry**: ENT check. FAIL if 0. Both phases. | P0 |
 | GPH_PST_BHV_4 | **learnings-entry**: ENT check. WARN if 0. Both phases. | P0 |
 | GPH_PST_BHV_5 | **emergent-entry**: ENT check. WARN if 0 with actionable guidance. Both phases. | P0 |
-| GPH_PST_BHV_6 | **trace-events**: Checks `plet/trace/{iter_id}-{phase}-{attempt}-events.ndjson` exists + TRC validate. WARN if missing/empty/invalid. Both phases. | P0 |
-| GPH_PST_BHV_7 | **last-verdict**: Reads `lastVerdict` from iter state. FAIL if null. **verify only** — implement doesn't produce verdicts. | P0 |
+| GPH_PST_BHV_6 | **trace-events**: Checks `{plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson` exists + TRC validate. WARN if missing/empty/invalid. Both phases. | P0 |
+| GPH_PST_BHV_7 | **verify-verdict**: Reads `verifyVerdict` from per-iteration state. FAIL if null. **verify only**. Post-gate safety net — turns "forgot to set verdict" (LOGA Run 3) into recoverable failure. | P0 |
 | GPH_PST_BHV_8 | **verification-report**: Reads `verificationReports` from iter state. FAIL if empty or last entry missing `verdict`/`criteriaResults`. **verify only**. | P0 |
 | GPH_PST_BHV_9 | ENT check called once, three check results extracted. Both phases. | P0 |
-| GPH_PST_BHV_10 | Check order: git-check → state-valid → lifecycle-handoff → audit-tag → progress → learnings → emergent → trace → last-verdict (verify only) → verification-report (verify only) → lifecycle-unchanged (verify only). | P0 |
-| GPH_PST_BHV_11 | **lifecycle-handoff**: Reads lifecycle from iter state. **implement post**: FAIL if not `verifying` — the implement subagent must set lifecycle → `verifying` as its handoff signal before exiting. Self-correction: subagent sets it and re-runs post gate. | P0 |
-| GPH_PST_BHV_12 | **lifecycle-unchanged**: Reads lifecycle from iter state. **verify post only**: FAIL if not `verifying` — the verify subagent must NOT touch lifecycle. If it changed to `complete`, `implementing`, or `blocked`, that violates the ownership model (orchestrator owns post-verify transitions). Self-correction: subagent reverts lifecycle to `verifying` and re-runs post gate. | P0 |
+| GPH_PST_BHV_10 | Check order: git-check → state-valid → implement-verdict (impl only) → audit-tag → progress → learnings → emergent → trace → verify-verdict (verify only) → verification-report (verify only) → verdict-consistency (verify only). | P0 |
+| GPH_PST_BHV_11 | **implement-verdict**: Reads `implementVerdict` from per-iteration state. **implement post only**: FAIL if null — the implement subagent must call `set-verdict --phase implement` before exiting. Self-correction: subagent sets verdict and re-runs post gate. | P0 |
+| GPH_PST_BHV_12 | **verdict-consistency**: **verify post only**: WARN if `verifyVerdict` doesn't match the last entry in `verificationReports[].verdict`. Catches "report says X, verdict field says Y" inconsistency. Not FAIL — the subagent can fix it, but the data is technically present either way. | P0 |
 | GPH_PST_BHV_13 | **audit-tag**: Checks git tag exists for current phase: `plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`. FAIL if missing — the subagent must create the audit tag before exiting (FB_55). Both phases. | P0 |
 
 ---
@@ -364,9 +366,10 @@ plet_gate_phase.py post plet/ --iter-id ID_001 --phase verify
 # WARN: learnings-entry — 0 learnings entries for ID_001
 # WARN: emergent-entry — 0 emergent entries for ID_001
 # WARN: trace-events — no trace events file for ID_001 verify-1
-# FAIL: last-verdict — lastVerdict is null
+# FAIL: verify-verdict — verifyVerdict is null
 # FAIL: verification-report — verificationReports is empty
-# 13 checks: 7 passed, 3 failed, 3 warnings
+# WARN: verdict-consistency — skipped (no verdict set)
+# 14 checks: 7 passed, 3 failed, 4 warnings
 ```
 
 ### GPH_EXM_4: Implement post-gate — JSON output
@@ -391,20 +394,21 @@ plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement --output json -
 # }
 ```
 
-Note: implement post has no `last-verdict` or `verification-report` checks. Verify post would include those two additional checks.
+Note: implement post includes `implement-verdict` but not `verify-verdict`, `verification-report`, or `verdict-consistency`. Verify post includes those three but not `implement-verdict`.
 
 ## 9. Dependencies on Other Scripts (GPH_DEP)
 
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | GPH_DEP_1 | imports | `util_cli` | shared CLI helpers |
-| GPH_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
-| GPH_DEP_3 | calls (subprocess) | `plet_git_check.py` | `check-iteration --phase {phase}` |
-| GPH_DEP_4 | calls (subprocess) | `plet_state.py` | `validate` |
-| GPH_DEP_5 | calls (subprocess) | `plet_entries.py` | `check` (post only) |
-| GPH_DEP_6 | calls (subprocess) | `plet_trace.py` | `validate` (post only) |
-| GPH_DEP_7 | calls (subprocess) | `plet_fingerprint.py` | `check` (implement pre only) |
-| GPH_DEP_8 | called by | `plet_orchestrator.py` | pre/post both phases |
+| GPH_DEP_2 | imports | `util_state` | `validate_iter_state`, `load_and_validate_global_state`, `VALID_LIFECYCLES` |
+| GPH_DEP_3 | imports | `util_io` | `load_json`, `state_json_path`, `iter_state_path` |
+| GPH_DEP_4 | calls (subprocess) | `plet_git_check.py` | `check-iteration --phase {phase}` |
+| GPH_DEP_5 | reads | `state.json` | `lifecycles` field for lifecycle-check (pre only, SF_28) |
+| GPH_DEP_6 | calls (subprocess) | `plet_entries.py` | `check` (post only) |
+| GPH_DEP_7 | calls (subprocess) | `plet_trace.py` | `validate` (post only) |
+| GPH_DEP_8 | calls (subprocess) | `plet_fingerprint.py` | `check` (implement pre only) |
+| GPH_DEP_9 | called by | `plet_orchestrator.py` | pre/post both phases |
 
 ## 10. Non-Functional Requirements (GPH_NFR)
 
@@ -419,8 +423,8 @@ Note: implement post has no `last-verdict` or `verification-report` checks. Veri
 |----|-------------|----------|
 | GPH_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure | P0 |
 | GPH_DXP_2 | IMPORTANT: both commands are read-only — safe to run anytime | P0 |
-| GPH_DXP_3 | PITFALLS: --iter-id and --phase both required. Defaults to plet/ in cwd. | P0 |
-| GPH_DXP_4 | Check names are stable identifiers: `git:*`, `state-valid`, `lifecycle-check`, `spec-artifacts`, `fingerprints-consistent`, `progress-entry`, `learnings-entry`, `emergent-entry`, `trace-events`, `last-verdict`, `verification-report` | P0 |
+| GPH_DXP_3 | PITFALLS: plet_dir, --iter-id, and --phase all required. | P0 |
+| GPH_DXP_4 | Check names are stable identifiers: `git:*`, `state-valid`, `lifecycle-check`, `spec-artifacts`, `fingerprints-consistent`, `progress-entry`, `learnings-entry`, `emergent-entry`, `trace-events`, `implement-verdict`, `verify-verdict`, `verification-report`, `verdict-consistency`, `audit-tag` | P0 |
 
 ## 12. Critical Test Areas (GPH_CRT)
 
@@ -436,10 +440,12 @@ Note: implement post has no `last-verdict` or `verification-report` checks. Veri
 | GPH_CRT_8 | Exit code correctness | Wrong signal | Verify 0/1/2 |
 | GPH_CRT_9 | JSON output parseable | Can't parse | Verify valid JSON |
 | GPH_CRT_10 | Implement pre has spec-artifacts+fingerprints | Missing phase-specific checks | Verify present for impl, absent for verify |
-| GPH_CRT_11 | Verify post has verdict+report | Missing verify-specific checks | Verify present for verify, absent for impl |
+| GPH_CRT_11 | Verify post has verify-verdict+report+consistency | Missing verify-specific checks | Verify present for verify, absent for impl |
 | GPH_CRT_12 | Trace events validated | Corrupt traces not surfaced | Invalid trace, verify WARN |
-| GPH_CRT_13 | Lifecycle check phase-specific | Wrong valid states | impl=queued/implementing, verify=verifying |
-| GPH_CRT_14 | Invalid --phase | Bad phase not caught | --phase bogus, verify error |
+| GPH_CRT_13 | Lifecycle check reads state.json | Wrong source for lifecycle | Pre reads state.json.lifecycles, post has no lifecycle check |
+| GPH_CRT_14 | Implement-verdict check (post-implement) | Forgot-to-set-verdict not caught | implementVerdict null → FAIL |
+| GPH_CRT_15 | Verdict-consistency check (post-verify) | Report/verdict mismatch undetected | verifyVerdict != last report verdict → WARN |
+| GPH_CRT_16 | Invalid --phase | Bad phase not caught | --phase bogus, verify error |
 
 ## 13. Testing & Verification (GPH_TST)
 
@@ -461,6 +467,11 @@ Note: implement post has no `last-verdict` or `verification-report` checks. Veri
 | 4 | Verification report check? | FAIL if verificationReports empty or missing fields. verify only. |
 | 5 | Trace validation? | Existence + TRC validate. WARN if invalid. Both phases. |
 | 6 | Stable label prefix? | GPH (Gate PHase). Replaces GIM + GVR. |
+| 7 | Lifecycle source for pre-gate? | `state.json.lifecycles` (SF_28). Pre is called by orchestrator which has global_plet_dir. Post has no lifecycle check — subagent only has worktree_plet_dir (no state.json). |
+| 8 | What replaces lifecycle-handoff check? | `implement-verdict` check — reads `implementVerdict` from per-iteration state. FAIL if null. Same enforcement, new field. |
+| 9 | What replaces lifecycle-unchanged check? | Removed. Orchestrator owns lifecycle, verify subagent never touches it. Nothing in per-iteration state to check. |
+| 10 | What replaces last-verdict check? | `verify-verdict` check — reads `verifyVerdict`. Same purpose, new field name. |
+| 11 | Should we check verdict-report consistency? | Yes, WARN. `verifyVerdict` should match last `verificationReports[].verdict`. Catches inconsistency without blocking. |
 
 ## 15. Future Considerations (GPH_FUT)
 
