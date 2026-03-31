@@ -150,4 +150,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 39e | GST spec | ✓ complete |
 | 39f | GST implementation | ✓ complete |
 | 39g | IST spec | ✓ complete |
+| 39h | IST implementation | ✓ complete |
 | -- | all other steps not yet started |
