@@ -12,7 +12,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(__file__))
-from util_test_fixtures import make_global_state, read_global_state
+from util_fixture import make_global_state, read_global_state
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from util_io import state_json_path

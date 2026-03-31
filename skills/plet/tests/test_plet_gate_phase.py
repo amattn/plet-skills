@@ -16,15 +16,18 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from util_io import (state_json_path, state_dir_path, iter_state_path,
-                     requirements_path, iterations_path, trace_dir_path,
-                     events_path, progress_path as progress_path_fn)
-from util_test_fixtures import (
+                     requirements_path, iterations_path,
+                     progress_path as progress_path_fn)
+from util_fixture import (
     make_global_state as _shared_make_global_state,
     make_iter_state as _shared_make_iter_state,
     make_git_repo,
     create_workstream_branch,
     create_iteration_branch,
     make_spec_artifacts as _shared_make_spec_artifacts,
+    make_trace_file,
+    make_verification_report,
+    make_audit_tag,
 )
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_gate_phase.py")
@@ -132,25 +135,6 @@ def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement",
             raise RuntimeError("add-emergent failed: {}".format(result.stderr))
 
 
-def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1):
-    os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
-    filename = "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt)
-    event = {
-        "pletId": "tev_test0001", "timestamp": "2026-03-27T00:00:00Z",
-        "type": "activity_change", "iterationId": iter_id,
-        "phase": phase, "attempt": attempt,
-        "data": {"activity": "implementing"},
-    }
-    with open(events_path(plet_dir, iter_id, phase, attempt), "w") as f:
-        f.write(json.dumps(event) + "\n")
-
-
-def make_verification_report():
-    return [{"verdict": "complete", "criteriaResults": [
-        {"criterionId": "AC_1", "status": "pass", "evidence": "All tests pass"}
-    ]}]
-
-
 def setup_impl_pre(tmpdir, lifecycle="implementing"):
     repo = setup_git_repo(tmpdir)
     plet_dir = os.path.join(tmpdir, "plet")
@@ -174,9 +158,7 @@ def setup_impl_post(tmpdir, progress=True, learnings=True, emergent=True, trace=
         make_trace_file(plet_dir, phase="implement")
     setup_iteration_branch(repo)
     if audit_tag:
-        # Create audit tag: plet/TEST/loop1/audit/ID_001/implement-1
-        subprocess.run(["git", "tag", "-f", "plet/TEST/loop1/audit/ID_001/implement-1"],
-                       cwd=tmpdir, capture_output=True)
+        make_audit_tag(tmpdir, phase="implement")
     return plet_dir
 
 
@@ -194,7 +176,7 @@ def setup_verify_post(tmpdir, progress=True, learnings=True, emergent=True,
                       trace=True, verify_verdict="complete", verification_reports=None,
                       lifecycle="verifying", audit_tag=True):
     if verification_reports is None:
-        verification_reports = make_verification_report()
+        verification_reports = [make_verification_report()]
     repo = setup_git_repo(tmpdir)
     plet_dir = os.path.join(tmpdir, "plet")
     make_global_state(plet_dir, lifecycles={"ID_001": lifecycle})
@@ -206,8 +188,7 @@ def setup_verify_post(tmpdir, progress=True, learnings=True, emergent=True,
         make_trace_file(plet_dir, phase="verify")
     setup_iteration_branch(repo)
     if audit_tag:
-        subprocess.run(["git", "tag", "-f", "plet/TEST/loop1/audit/ID_001/verify-1"],
-                       cwd=tmpdir, capture_output=True)
+        make_audit_tag(tmpdir, phase="verify")
     return plet_dir
 
 

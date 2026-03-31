@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for util_test_fixtures.py — shared test fixture builders.
+"""Tests for util_fixture.py — shared test fixture builders.
 
 Validates that the fixture builders produce correct, schema-compliant output.
 Run with:
-    ./skills/plet/tests/test_util_test_fixtures.py
+    ./skills/plet/tests/test_util_fixture.py
 """
 
 import json
@@ -12,12 +12,12 @@ import subprocess
 import sys
 import tempfile
 
-# Add tests dir to path for util_test_fixtures import
+# Add tests dir to path for util_fixture import
 sys.path.insert(0, os.path.dirname(__file__))
 # Add scripts dir for util_io/util_state imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-from util_test_fixtures import (
+from util_fixture import (
     make_plet_dir,
     make_global_state,
     make_iter_state,
@@ -29,6 +29,10 @@ from util_test_fixtures import (
     git_run,
     make_spec_artifacts,
     make_runtime_artifacts,
+    make_trace_file,
+    make_verification_report,
+    write_raw_state,
+    make_audit_tag,
     make_check,
     VALID_GLOBAL_STATE,
 )
@@ -258,6 +262,85 @@ def test_valid_global_state_constant():
 
 
 # ---------------------------------------------------------------------------
+# Trace files
+# ---------------------------------------------------------------------------
+
+def test_make_trace_file():
+    print("\n## make_trace_file")
+    with tempfile.TemporaryDirectory() as d:
+        path = make_trace_file(d, "ID_001", "implement", 1)
+        check("trace file exists", os.path.isfile(path))
+        with open(path) as f:
+            line = f.readline()
+            event = json.loads(line)
+        check("has type", event["type"] == "activity_change")
+        check("has iterationId", event["iterationId"] == "ID_001")
+        check("has phase", event["phase"] == "implement")
+
+    # Custom events
+    with tempfile.TemporaryDirectory() as d:
+        custom = [{"type": "decision", "data": {"decision": "test"}}]
+        path = make_trace_file(d, events=custom)
+        with open(path) as f:
+            event = json.loads(f.readline())
+        check("custom event type", event["type"] == "decision")
+
+
+# ---------------------------------------------------------------------------
+# Verification reports
+# ---------------------------------------------------------------------------
+
+def test_make_verification_report():
+    print("\n## make_verification_report")
+    report = make_verification_report()
+    check("default verdict", report["verdict"] == "complete")
+    check("has criteriaResults", len(report["criteriaResults"]) == 1)
+    check("default criterion", report["criteriaResults"][0]["criterionId"] == "AC_1")
+
+    custom = make_verification_report(verdict="rejected", criteria_results=[
+        {"criterionId": "AC_2", "status": "fail", "evidence": "broken"}
+    ])
+    check("custom verdict", custom["verdict"] == "rejected")
+    check("custom criteria", custom["criteriaResults"][0]["criterionId"] == "AC_2")
+
+
+# ---------------------------------------------------------------------------
+# Raw state writing
+# ---------------------------------------------------------------------------
+
+def test_write_raw_state():
+    print("\n## write_raw_state")
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "state", "ID_001.json")
+        write_raw_state(path, {"bad": "data"})
+        check("file exists", os.path.isfile(path))
+        with open(path) as f:
+            data = json.loads(f.read())
+        check("data written", data["bad"] == "data")
+
+    # Raw string mode
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "corrupt.json")
+        write_raw_state(path, "not json")
+        with open(path) as f:
+            check("raw string written", f.read() == "not json")
+
+
+# ---------------------------------------------------------------------------
+# Audit tags
+# ---------------------------------------------------------------------------
+
+def test_make_audit_tag():
+    print("\n## make_audit_tag")
+    with tempfile.TemporaryDirectory() as d:
+        make_git_repo(d)
+        tag = make_audit_tag(d, "PROJ", "ID_001", "implement", 1, loop_session=2)
+        check("tag name format", tag == "plet/PROJ/loop2/audit/ID_001/implement-1")
+        out, _, rc = git_run(d, ["tag", "-l", tag])
+        check("tag exists in repo", rc == 0 and tag in out)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -276,6 +359,10 @@ def main():
     test_runtime_artifacts()
     test_make_check()
     test_valid_global_state_constant()
+    test_make_trace_file()
+    test_make_verification_report()
+    test_write_raw_state()
+    test_make_audit_tag()
 
     p, f = get_results()
     print("\n{} passed, {} failed".format(p, f))

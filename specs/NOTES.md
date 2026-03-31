@@ -1520,7 +1520,7 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 6. **state-valid:** validates per-iteration file via `util_state.validate_iter_state()`. No change to mechanism, but the schema now accepts the new fields.
 7. **agentActivity references → phaseActivity** in check output/detail strings.
 
-**Implementation complete (2026-03-31).** 83 tests (was 78). Test fixtures retrofitted to shared `util_test_fixtures.py`. Additional decisions made during implementation:
+**Implementation complete (2026-03-31).** 83 tests (was 78). Test fixtures retrofitted to shared `util_fixture.py`. Additional decisions made during implementation:
 - **run_sta_validate switched to plet_iter_state.py:** Old `plet_state.py validate` requires `lifecycle` field which no longer exists in per-iteration files. IST `validate` uses the dual-schema-aware `util_state.validate_iter_state()`.
 - **plet_state.py + spec deprecated:** Added deprecation warnings to both script docstring and spec header. Will be removed in seq 41c.
 - **Spec fixes during review:** GPH_CRT_14 duplicate → GPH_CRT_16, plet_dir "optional/default" → "required positional" (3 locations), DEP_2a renumbered to DEP_3 (no letter suffixes), DEP_2 gained `load_and_validate_global_state`, EXM_4 note rewritten for bidirectional phase differences, BHV_6 trace path `plet/` → `{plet_dir}/`.
@@ -1538,3 +1538,20 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 **Test change:** `test_detect_corrupt_state_file` → `test_detect_corrupt_iter_file_ignored`. Corrupt per-iteration files no longer affect detection (lifecycles come from state.json). Test verifies the new behavior: detect works correctly even with corrupt per-iteration files.
 
 **Performance improvement:** detect now reads 1 file (state.json) instead of N+1 files (state.json + all per-iteration files). Status still scans per-iteration files for non-lifecycle data (titles, agentId, phaseActivity).
+
+#### Shared test fixtures — rename + audit (2026-03-31)
+
+**Renamed** `util_test_fixtures.py` → `util_fixture.py`. Added shebang — agents can import directly for experimentation.
+
+**Audit findings (5 migrated, 7 not yet):**
+- 5 test files on correct SF_28 schema (gate_phase, gate_session, schedule, global_state, iter_state)
+- 5 test files still on old schema with `lifecycle` in per-iteration state (git_check, git_ops, prompt, orchestrator, state) — these get fixed as we do 40d–40f
+- 1 file needs no state (entries), 1 partially correct (git_iteration)
+
+**4 fixtures added** based on gap analysis:
+- `make_trace_file()` — NDJSON trace event files (was local in gate_phase)
+- `make_verification_report()` — sample report dicts (was local in gate_phase)
+- `write_raw_state()` — arbitrary JSON for invalid-state testing (was local in global_state, iter_state)
+- `make_audit_tag()` — plet audit tags (was inline subprocess in gate_phase)
+
+**Retrofit:** gate_phase test removed 3 local fixtures and inline audit tag calls, now uses shared versions. 1750 tests total.

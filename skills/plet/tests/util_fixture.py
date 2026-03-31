@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 """Shared test fixture builders for plet script tests.
 
-Internal module — imported by test_*.py files, never run directly.
+Imported by test_*.py files. Can also be imported or executed directly 
+by agents or humans for manual testing or experimentation 
+(e.g., setting up a plet directory to test against).
 
 Provides canonical fixture creation functions so tests don't each
 independently define their own make_global_state, make_iter_state, etc.
@@ -11,7 +14,7 @@ All fixtures follow the current schema (SF_28 lifecycle extraction):
 - per-iteration files do NOT have lifecycle, summary, or filesChanged fields
 
 Usage:
-    from util_test_fixtures import make_plet_dir, make_global_state, make_iter_state
+    from util_fixture import make_plet_dir, make_global_state, make_iter_state
 """
 
 import json
@@ -24,7 +27,7 @@ import tempfile
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 sys.path.insert(0, SCRIPTS_DIR)
 
-from util_io import state_json_path, iter_state_path, state_dir_path
+from util_io import state_json_path, iter_state_path, state_dir_path, trace_dir_path, events_path
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +288,100 @@ def make_runtime_artifacts(plet_dir):
         with open(path, "w") as f:
             f.write("# {}\n\n".format(name.replace(".md", "").title()))
     return plet_dir
+
+
+# ---------------------------------------------------------------------------
+# Trace files
+# ---------------------------------------------------------------------------
+
+def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1,
+                    events=None):
+    """Create an NDJSON trace events file.
+
+    Args:
+        plet_dir: path to plet directory
+        iter_id: iteration ID
+        phase: implement or verify
+        attempt: attempt number
+        events: list of event dicts. Default: one activity_change event.
+
+    Returns the path to the trace file.
+    """
+    if events is None:
+        events = [{
+            "pletId": "tev_test0001",
+            "timestamp": "2026-03-07T14:00:00Z",
+            "type": "activity_change",
+            "iterationId": iter_id,
+            "phase": phase,
+            "attempt": attempt,
+            "data": {"activity": "implementing"},
+        }]
+    os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
+    path = events_path(plet_dir, iter_id, phase, attempt)
+    with open(path, "w") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Verification reports
+# ---------------------------------------------------------------------------
+
+def make_verification_report(verdict="complete", criteria_results=None):
+    """Create a verification report dict.
+
+    Args:
+        verdict: report verdict string. Default: "complete".
+        criteria_results: list of criteria result dicts. Default: one passing AC_1.
+
+    Returns a single report dict (not a list).
+    """
+    if criteria_results is None:
+        criteria_results = [
+            {"criterionId": "AC_1", "status": "pass", "evidence": "All tests pass"}
+        ]
+    return {"verdict": verdict, "criteriaResults": criteria_results}
+
+
+# ---------------------------------------------------------------------------
+# Raw state writing (for invalid-state testing)
+# ---------------------------------------------------------------------------
+
+def write_raw_state(path, data):
+    """Write arbitrary JSON to a file. For testing invalid/edge-case states.
+
+    Args:
+        path: absolute path to write to
+        data: any JSON-serializable value (or a raw string)
+    """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        if isinstance(data, str):
+            f.write(data)
+        else:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+
+
+# ---------------------------------------------------------------------------
+# Git tags
+# ---------------------------------------------------------------------------
+
+def make_audit_tag(repo, project_id="TEST", iter_id="ID_001",
+                   phase="implement", attempt=1, loop_session=1):
+    """Create a plet audit tag in the repo.
+
+    Tag format: plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}
+
+    Returns the tag name.
+    """
+    tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(
+        project_id, loop_session, iter_id, phase, attempt)
+    subprocess.run(["git", "-C", repo, "tag", "-f", tag_name],
+                   capture_output=True, check=True)
+    return tag_name
 
 
 # ---------------------------------------------------------------------------
