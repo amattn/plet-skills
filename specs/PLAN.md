@@ -115,7 +115,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 37 | Make plet_dir required positional | ✓ complete |
 | 38 | Worktree state invariants | not started |
 | 38a | Rename global_plet_dir / worktree_plet_dir | not started |
-| 38b | prd.md — invariant requirements | not started |
+| 38b | prd.md — invariant requirements | ✓ complete |
 | 38c | ORC spec — invariants section | not started |
 | 38d | state-schema.md — two-copy model | not started |
 | 38e | implement.md + verify.md — sole writer note | not started |
