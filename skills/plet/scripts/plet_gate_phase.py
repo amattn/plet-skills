@@ -109,17 +109,17 @@ def run_gtc_checks(plet_dir, iter_id, phase):
 
 
 def run_sta_validate(plet_dir, iter_id):
-    """Call STA validate. Returns a check dict."""
+    """Call IST validate. Returns a check dict."""
     is_path = iter_state_path(plet_dir, iter_id)
-    data, result = run_tool("plet_state.py", [
+    data, result = run_tool("plet_iter_state.py", [
         "validate", plet_dir, "--iter-id", iter_id, "--output", "json",
     ])
     if data is None and result is None:
         return {"name": "state-valid", "status": "fail",
-                "detail": "plet_state.py not found"}
+                "detail": "plet_iter_state.py not found"}
     if data is None:
         return {"name": "state-valid", "status": "fail",
-                "detail": "could not parse plet_state.py output"}
+                "detail": "could not parse plet_iter_state.py output"}
     if result.returncode == 0:
         return {"name": "state-valid", "status": "pass",
                 "detail": "{} valid".format(os.path.basename(is_path))}
@@ -128,10 +128,11 @@ def run_sta_validate(plet_dir, iter_id):
     return {"name": "state-valid", "status": "fail", "detail": detail}
 
 
-def check_lifecycle(iter_state, phase):
-    """Check lifecycle is appropriate for the phase."""
+def check_lifecycle(global_state, iter_id, phase):
+    """Check lifecycle is appropriate for the phase. Reads from state.json.lifecycles (SF_28)."""
     valid_states = LIFECYCLE_BY_PHASE[phase]
-    lifecycle = iter_state.get("lifecycle", "unknown")
+    lifecycles = global_state.get("lifecycles", {})
+    lifecycle = lifecycles.get(iter_id, "unknown")
     if lifecycle in valid_states:
         return {"name": "lifecycle-check", "status": "pass",
                 "detail": "lifecycle is {}".format(lifecycle)}
@@ -140,24 +141,14 @@ def check_lifecycle(iter_state, phase):
             "detail": "lifecycle is {} (expected {})".format(lifecycle, expected)}
 
 
-def check_lifecycle_handoff(iter_state):
-    """Post-implement check: lifecycle must be 'verifying' (handoff signal)."""
-    lifecycle = iter_state.get("lifecycle", "unknown")
-    if lifecycle == "verifying":
-        return {"name": "lifecycle-handoff", "status": "pass",
-                "detail": "lifecycle is verifying (handoff complete)"}
-    return {"name": "lifecycle-handoff", "status": "fail",
-            "detail": "lifecycle is {} (expected verifying — implement subagent must set lifecycle to verifying before exiting)".format(lifecycle)}
-
-
-def check_lifecycle_unchanged(iter_state):
-    """Post-verify check: lifecycle must still be 'verifying' (verify must NOT change it)."""
-    lifecycle = iter_state.get("lifecycle", "unknown")
-    if lifecycle == "verifying":
-        return {"name": "lifecycle-unchanged", "status": "pass",
-                "detail": "lifecycle is verifying (unchanged — correct, orchestrator owns post-verify transitions)"}
-    return {"name": "lifecycle-unchanged", "status": "fail",
-            "detail": "lifecycle is {} (expected verifying — verify subagent must NOT touch lifecycle, orchestrator owns post-verify transitions)".format(lifecycle)}
+def check_implement_verdict(iter_state):
+    """Post-implement check: implementVerdict must be set (GPH_PST_BHV_11)."""
+    verdict = iter_state.get("implementVerdict")
+    if verdict is not None:
+        return {"name": "implement-verdict", "status": "pass",
+                "detail": "implementVerdict is '{}'".format(verdict)}
+    return {"name": "implement-verdict", "status": "fail",
+            "detail": "implementVerdict is null — implement subagent must call set-verdict --phase implement before exiting"}
 
 
 def check_audit_tag(global_state, iter_state, phase, cwd=None):
@@ -294,14 +285,36 @@ def run_fpr_check(plet_dir):
 # Verify-only checks (post)
 # ---------------------------------------------------------------------------
 
-def check_last_verdict(iter_state):
-    """Check lastVerdict is set. Verify post only."""
-    verdict = iter_state.get("lastVerdict")
+def check_verify_verdict(iter_state):
+    """Check verifyVerdict is set. Verify post only (GPH_PST_BHV_7)."""
+    verdict = iter_state.get("verifyVerdict")
     if verdict is not None:
-        return {"name": "last-verdict", "status": "pass",
-                "detail": "lastVerdict is '{}'".format(verdict)}
-    return {"name": "last-verdict", "status": "fail",
-            "detail": "lastVerdict is null"}
+        return {"name": "verify-verdict", "status": "pass",
+                "detail": "verifyVerdict is '{}'".format(verdict)}
+    return {"name": "verify-verdict", "status": "fail",
+            "detail": "verifyVerdict is null — verify subagent must call set-verdict --phase verify before exiting"}
+
+
+def check_verdict_consistency(iter_state):
+    """Check verifyVerdict matches last verificationReport verdict. WARN only (GPH_PST_BHV_12)."""
+    verify_verdict = iter_state.get("verifyVerdict")
+    reports = iter_state.get("verificationReports", [])
+    if verify_verdict is None:
+        return {"name": "verdict-consistency", "status": "warn",
+                "detail": "skipped (no verifyVerdict set)"}
+    if not reports:
+        return {"name": "verdict-consistency", "status": "warn",
+                "detail": "skipped (no verificationReports)"}
+    last_report_verdict = reports[-1].get("verdict")
+    if last_report_verdict is None:
+        return {"name": "verdict-consistency", "status": "warn",
+                "detail": "skipped (last report has no verdict field)"}
+    if verify_verdict == last_report_verdict:
+        return {"name": "verdict-consistency", "status": "pass",
+                "detail": "verifyVerdict '{}' matches last report verdict".format(verify_verdict)}
+    return {"name": "verdict-consistency", "status": "warn",
+            "detail": "verifyVerdict '{}' differs from last report verdict '{}'".format(
+                verify_verdict, last_report_verdict)}
 
 
 def check_verification_report(iter_state):
@@ -404,7 +417,8 @@ PITFALLS:
     - --iter-id and --phase are REQUIRED
     - Progress missing = FAIL (blocks next phase)
     - Learnings/emergent missing = WARN
-    - verify post also requires lastVerdict + verificationReports
+    - implement post requires implementVerdict
+    - verify post requires verifyVerdict + verificationReports
 
 USAGE:
     plet_gate_phase.py post <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
@@ -474,7 +488,7 @@ Examples:
 
     # Phase-specific checks
     if cmd == "pre":
-        phase_specific_pre_fn(checks, plet_dir, iter_id, phase, iter_state)
+        phase_specific_pre_fn(checks, plet_dir, iter_id, phase, iter_state, global_state)
     else:
         phase_specific_post_fn(checks, plet_dir, iter_id, phase, iter_state, global_state)
 
@@ -518,21 +532,19 @@ Examples:
     return exit_code
 
 
-def pre_phase_checks(checks, plet_dir, iter_id, phase, iter_state):
+def pre_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state):
     """Phase-specific pre checks."""
-    checks.append(check_lifecycle(iter_state, phase))
+    checks.append(check_lifecycle(global_state, iter_id, phase))
     if phase == "implement":
         checks.append(check_spec_artifacts(plet_dir))
         checks.append(run_fpr_check(plet_dir))
 
 
 def post_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state):
-    """Phase-specific post checks."""
-    # Lifecycle ownership checks
+    """Phase-specific post checks. Order per GPH_PST_BHV_10."""
+    # Implement-verdict (implement only)
     if phase == "implement":
-        checks.append(check_lifecycle_handoff(iter_state))
-    elif phase == "verify":
-        checks.append(check_lifecycle_unchanged(iter_state))
+        checks.append(check_implement_verdict(iter_state))
 
     # Audit tag check
     checks.append(check_audit_tag(global_state, iter_state, phase))
@@ -544,8 +556,9 @@ def post_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state
 
     # Verify-only checks
     if phase == "verify":
-        checks.append(check_last_verdict(iter_state))
+        checks.append(check_verify_verdict(iter_state))
         checks.append(check_verification_report(iter_state))
+        checks.append(check_verdict_consistency(iter_state))
 
 
 # ---------------------------------------------------------------------------

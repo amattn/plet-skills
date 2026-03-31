@@ -1519,3 +1519,9 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 5. **NEW verdict-consistency:** post-verify WARN if `verifyVerdict` doesn't match last verificationReport's verdict. Catches the "report says X, verdict says Y" inconsistency.
 6. **state-valid:** validates per-iteration file via `util_state.validate_iter_state()`. No change to mechanism, but the schema now accepts the new fields.
 7. **agentActivity references → phaseActivity** in check output/detail strings.
+
+**Implementation complete (2026-03-31).** 83 tests (was 78). Test fixtures retrofitted to shared `util_test_fixtures.py`. Additional decisions made during implementation:
+- **run_sta_validate switched to plet_iter_state.py:** Old `plet_state.py validate` requires `lifecycle` field which no longer exists in per-iteration files. IST `validate` uses the dual-schema-aware `util_state.validate_iter_state()`.
+- **plet_state.py + spec deprecated:** Added deprecation warnings to both script docstring and spec header. Will be removed in seq 41c.
+- **Spec fixes during review:** GPH_CRT_14 duplicate → GPH_CRT_16, plet_dir "optional/default" → "required positional" (3 locations), DEP_2a renumbered to DEP_3 (no letter suffixes), DEP_2 gained `load_and_validate_global_state`, EXM_4 note rewritten for bidirectional phase differences, BHV_6 trace path `plet/` → `{plet_dir}/`.
+- **Deferred:** sweep-level "default plet/" fix across ~14 active spec files (~50+ occurrences).

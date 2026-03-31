@@ -152,4 +152,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 39g | IST spec | ✓ complete |
 | 39h | IST implementation | ✓ complete |
 | 40a | plet_schedule.py — lifecycle from state.json | ✓ complete |
+| 40b | plet_gate_phase.py — lifecycle from state.json + verdict checks | ✓ complete |
 | -- | all other steps not yet started |

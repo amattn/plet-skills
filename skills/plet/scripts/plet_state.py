@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""plet state file tool — validates and updates per-iteration state files.
+"""DEPRECATED — use plet_global_state.py (GST) and plet_iter_state.py (IST) instead.
 
-Enforces the schema defined in references/state-schema.md. Agents call this
-instead of writing JSON freehand, eliminating schema drift across iterations.
+This script is superseded by the GST/IST split (seq 39d). It will be removed
+in Phase 3 of the lifecycle extraction (seq 41c). Do not add new features here.
+
+Original purpose: validates and updates per-iteration state files.
+Enforces the schema defined in references/state-schema.md.
 
 Usage:
     plet_state.py <command> <plet_dir> --iter-id ID_xxx [args]

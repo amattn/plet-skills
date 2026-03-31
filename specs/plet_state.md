@@ -1,6 +1,8 @@
 # plet_state.py (STA)
 
-> Status: complete
+> **DEPRECATED** — superseded by `plet_global_state.py` (GST) and `plet_iter_state.py` (IST) as of seq 39d. This spec is kept as historical reference. Will be removed in seq 41c. Do not add new requirements here.
+
+> Status: deprecated
 
 ## 1. Purpose (STA_PUR)
 
