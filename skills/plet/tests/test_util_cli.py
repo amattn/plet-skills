@@ -582,7 +582,7 @@ import tempfile
 import shutil
 
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
-STATE_TOOL = os.path.join(SCRIPTS_DIR, "plet_state.py")
+STATE_TOOL = os.path.join(SCRIPTS_DIR, "plet_iter_state.py")
 
 
 def make_test_plet_dir():
@@ -604,8 +604,10 @@ def make_test_plet_dir():
         json.dump({
             "schemaVersion": "0.2.0", "iterationId": "ID_001",
             "title": "Test", "lastUpdated": "2026-03-29T00:00:00Z",
-            "lifecycle": "implementing", "dependencies": [],
-            "agentId": None, "attempts": {"implement": 1, "verify": 0},
+            "dependencies": [], "agentId": None,
+            "phaseActivity": "idle", "implementVerdict": None,
+            "verifyVerdict": None,
+            "attempts": {"implement": 1, "verify": 0},
             "criteria": [],
         }, f)
         f.write("\n")

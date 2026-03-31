@@ -462,9 +462,10 @@ def run_preflight_checks(plet_dir, session_type):
 
     # 1. scripts-installed
     required_scripts = [
-        "plet_state.py", "plet_entries.py", "plet_fingerprint.py",
+        "plet_global_state.py", "plet_iter_state.py",
+        "plet_entries.py", "plet_fingerprint.py",
         "plet_trace.py", "plet_git_iteration.py", "plet_git_ops.py",
-        "plet_git_check.py", "plet_invoke.py",
+        "plet_git_check.py", "plet_invoke.py", "plet_merge_driver.py",
     ]
     missing_scripts = [s for s in required_scripts if not os.path.isfile(os.path.join(scripts_dir, s))]
     if missing_scripts:

@@ -147,7 +147,8 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 
 | Script | Purpose | Commands |
 |--------|---------|----------|
-| `plet_state.py` | State file schema enforcement | `validate`, `update-criterion`, `update-field`, `init` |
+| `plet_global_state.py` | Global state management (state.json) | `init`, `update-lifecycle`, `get-lifecycle`, `validate` |
+| `plet_iter_state.py` | Per-iteration state management | `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate` |
 | `plet_entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
 | `plet_fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` |
 | `plet_trace.py` | Trace NDJSON schema enforcement | `append-event`, `validate`, `query` |
