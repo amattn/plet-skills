@@ -449,17 +449,20 @@ def main():
     test_iter_missing_required_fields()
     test_iter_wrong_types()
     test_iter_invalid_iteration_id()
-    test_iter_invalid_lifecycle()
+    test_iter_lifecycle_field_rejected()
     test_iter_attempts_validation()
     test_iter_optional_defaults()
     test_iter_validate_function()
 
     # --- dual-schema migration tests (seq 39d) ---
-    test_iter_lifecycle_optional()
+    test_iter_no_lifecycle_validates()
+    test_iter_lifecycle_rejected()
+    test_iter_agentActivity_rejected()
+    test_iter_lastVerdict_rejected()
     test_iter_phaseActivity_accepted()
-    test_iter_both_activity_names_accepted()
+    # test_iter_both_activity_names removed (agentActivity rejected in 41a)
     test_iter_verdicts_accepted()
-    test_iter_lastVerdict_still_accepted()
+    # test_iter_lastVerdict_still_accepted removed (lastVerdict rejected in 41a)
     test_global_lifecycles_optional()
     test_global_lifecycles_validated()
     test_global_lifecycles_invalid_value()
@@ -477,9 +480,11 @@ VALID_ITER_STATE = {
     "iterationId": "ID_001",
     "title": "Project scaffolding",
     "lastUpdated": "2026-03-07T14:00:00Z",
-    "lifecycle": "implementing",
     "dependencies": [],
     "agentId": "agent_abc123",
+    "phaseActivity": "idle",
+    "implementVerdict": None,
+    "verifyVerdict": None,
     "attempts": {"implement": 1, "verify": 0},
     "criteria": [
         {"id": "AC_1", "description": "Tests pass", "status": "not_started"},
@@ -502,7 +507,7 @@ def test_iter_valid():
         check("returns dict", isinstance(result, dict))
         check("iterationId", result["iterationId"] == "ID_001")
         check("title", result["title"] == "Project scaffolding")
-        check("lifecycle", result["lifecycle"] == "implementing")
+        check("no lifecycle field", "lifecycle" not in result)
         check("attempts.implement", result["attempts"]["implement"] == 1)
         check("attempts.verify", result["attempts"]["verify"] == 0)
         check("criteria present", len(result["criteria"]) == 1)
@@ -517,7 +522,6 @@ def test_iter_minimal():
         "iterationId": "ID_002",
         "title": "Core feature",
         "lastUpdated": "2026-03-07T14:00:00Z",
-        "lifecycle": "queued",
         "dependencies": ["ID_001"],
         "agentId": None,
         "attempts": {"implement": 0, "verify": 0},
@@ -530,17 +534,16 @@ def test_iter_minimal():
 
         check("returns dict", isinstance(result, dict))
         check("agentId null ok", result["agentId"] is None)
-        # Optional defaults injected
-        check("agentActivity default", result["agentActivity"] == "idle")
+        # Optional defaults injected (SF_28 field names only)
+        check("phaseActivity default", result["phaseActivity"] == "idle")
         check("activityDetail default", result["activityDetail"] is None)
         check("phaseTimestamps default", result["phaseTimestamps"] == {})
         check("elapsedSeconds default", result["elapsedSeconds"] == {"total": 0})
-        check("summary default", result["summary"] is None)
-        check("filesChanged default", result["filesChanged"] == [])
         check("cleanupTagsAutomatically default", result["cleanupTagsAutomatically"] is False)
         check("cleanupBranchesAutomatically default", result["cleanupBranchesAutomatically"] is False)
         check("verificationReports default", result["verificationReports"] == [])
-        check("lastVerdict default", result["lastVerdict"] is None)
+        check("implementVerdict default", result["implementVerdict"] is None)
+        check("verifyVerdict default", result["verifyVerdict"] is None)
         check("lastHeartbeat default", result["lastHeartbeat"] is None)
 
 
@@ -625,16 +628,16 @@ def test_iter_invalid_iteration_id():
             check("rejects '{}'".format(iid), result is None)
 
 
-def test_iter_invalid_lifecycle():
-    print("\n## iter: invalid lifecycle value")
+def test_iter_lifecycle_field_rejected():
+    print("\n## iter: lifecycle field rejected (SF_28 — field deprecated)")
     import util_state
 
     state = dict(VALID_ITER_STATE)
-    state["lifecycle"] = "running"
+    state["lifecycle"] = "implementing"  # valid value, but field itself is deprecated
     with tempfile.TemporaryDirectory() as d:
         write_iter_state(d, state, "ID_001")
         result = util_state.load_and_validate_iter_state(d, "ID_001")
-        check("invalid lifecycle rejected", result is None)
+        check("lifecycle field rejected", result is None)
 
 
 def test_iter_attempts_validation():
@@ -684,10 +687,10 @@ def test_iter_optional_defaults():
 
     state = dict(VALID_ITER_STATE)
     # Remove all optional fields that might be present
-    for key in ["agentActivity", "activityDetail", "phaseTimestamps",
-                "elapsedSeconds", "summary", "filesChanged",
-                "cleanupTagsAutomatically", "cleanupBranchesAutomatically",
-                "verificationReports", "lastVerdict", "lastHeartbeat"]:
+    for key in ["phaseActivity", "activityDetail", "phaseTimestamps",
+                "elapsedSeconds", "cleanupTagsAutomatically",
+                "cleanupBranchesAutomatically", "verificationReports",
+                "implementVerdict", "verifyVerdict", "lastHeartbeat"]:
         state.pop(key, None)
 
     with tempfile.TemporaryDirectory() as d:
@@ -695,7 +698,7 @@ def test_iter_optional_defaults():
         result = util_state.load_and_validate_iter_state(d, "ID_001")
 
         check("returns dict", result is not None)
-        check("agentActivity injected", result["agentActivity"] == "idle")
+        check("phaseActivity injected", result["phaseActivity"] == "idle")
         check("cleanupBranchesAutomatically injected",
               result["cleanupBranchesAutomatically"] is False)
         check("verificationReports injected", result["verificationReports"] == [])
@@ -713,13 +716,11 @@ def test_iter_validate_function():
 
 
 # ---------------------------------------------------------------------------
-# Dual-schema migration tests (seq 39d)
+# SF_28 field enforcement tests (seq 41a — dual-schema removed)
 # ---------------------------------------------------------------------------
 
-# New-schema iter state: no lifecycle, phaseActivity instead of agentActivity,
-# implementVerdict/verifyVerdict instead of lastVerdict
-NEW_SCHEMA_ITER_STATE = {
-    "schemaVersion": "0.3.0",
+SF28_ITER_STATE = {
+    "schemaVersion": "0.2.0",
     "iterationId": "ID_001",
     "title": "Project scaffolding",
     "lastUpdated": "2026-03-07T14:00:00Z",
@@ -736,78 +737,86 @@ NEW_SCHEMA_ITER_STATE = {
 }
 
 
-def test_iter_lifecycle_optional():
-    print("\n## dual-schema: lifecycle is optional in per-iteration files")
+def test_iter_no_lifecycle_validates():
+    print("\n## SF_28: per-iteration without lifecycle validates")
     import util_state
 
-    # New-schema file without lifecycle should validate
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, NEW_SCHEMA_ITER_STATE, "ID_001")
+        write_iter_state(d, SF28_ITER_STATE, "ID_001")
         result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("no lifecycle validates", result is not None)
 
-    # Old-schema file with lifecycle should still validate
+
+def test_iter_lifecycle_rejected():
+    print("\n## SF_28: lifecycle field rejected in per-iteration state")
+    import util_state
+
+    state = dict(SF28_ITER_STATE)
+    state["lifecycle"] = "implementing"
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, VALID_ITER_STATE, "ID_001")
+        write_iter_state(d, state, "ID_001")
         result = util_state.load_and_validate_iter_state(d, "ID_001")
-        check("with lifecycle still validates", result is not None)
+        check("lifecycle rejected", result is None)
+
+
+def test_iter_agentActivity_rejected():
+    print("\n## SF_28: agentActivity rejected (use phaseActivity)")
+    import util_state
+
+    state = dict(SF28_ITER_STATE)
+    state["agentActivity"] = "idle"
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("agentActivity rejected", result is None)
+
+
+def test_iter_lastVerdict_rejected():
+    print("\n## SF_28: lastVerdict rejected (use implementVerdict/verifyVerdict)")
+    import util_state
+
+    state = dict(SF28_ITER_STATE)
+    state["lastVerdict"] = "passed"
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("lastVerdict rejected", result is None)
 
 
 def test_iter_phaseActivity_accepted():
-    print("\n## dual-schema: phaseActivity accepted as activity field")
+    print("\n## SF_28: phaseActivity accepted")
     import util_state
 
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, NEW_SCHEMA_ITER_STATE, "ID_001")
+        write_iter_state(d, SF28_ITER_STATE, "ID_001")
         result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("returns dict", result is not None)
         check("phaseActivity present", result.get("phaseActivity") == "setup")
 
 
-def test_iter_both_activity_names_accepted():
-    print("\n## dual-schema: both agentActivity and phaseActivity accepted")
-    import util_state
-
-    # Old name
-    old = dict(VALID_ITER_STATE)
-    old["agentActivity"] = "idle"
-    with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, old, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
-        check("agentActivity accepted", result is not None)
-        check("agentActivity value", result.get("agentActivity") == "idle")
-
-    # New name
-    with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, NEW_SCHEMA_ITER_STATE, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
-        check("phaseActivity accepted", result is not None)
-        check("phaseActivity value", result.get("phaseActivity") == "setup")
-
-
 def test_iter_verdicts_accepted():
-    print("\n## dual-schema: implementVerdict/verifyVerdict accepted")
+    print("\n## SF_28: implementVerdict/verifyVerdict accepted")
     import util_state
 
-    state = dict(NEW_SCHEMA_ITER_STATE)
-    state["implementVerdict"] = "completed"
+    state = dict(SF28_ITER_STATE)
+    state["implementVerdict"] = "readyForVerification"
     state["verifyVerdict"] = "passed"
     with tempfile.TemporaryDirectory() as d:
         write_iter_state(d, state, "ID_001")
         result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("returns dict", result is not None)
-        check("implementVerdict", result.get("implementVerdict") == "completed")
+        check("implementVerdict", result.get("implementVerdict") == "readyForVerification")
         check("verifyVerdict", result.get("verifyVerdict") == "passed")
 
     # Null verdicts (initial state)
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, NEW_SCHEMA_ITER_STATE, "ID_001")
+        write_iter_state(d, SF28_ITER_STATE, "ID_001")
         result = util_state.load_and_validate_iter_state(d, "ID_001")
         check("null implementVerdict ok", result.get("implementVerdict") is None)
         check("null verifyVerdict ok", result.get("verifyVerdict") is None)
 
     # Defaults injected when absent
-    state2 = dict(NEW_SCHEMA_ITER_STATE)
+    state2 = dict(SF28_ITER_STATE)
     del state2["implementVerdict"]
     del state2["verifyVerdict"]
     with tempfile.TemporaryDirectory() as d:
@@ -817,19 +826,6 @@ def test_iter_verdicts_accepted():
               result.get("implementVerdict") is None)
         check("absent verifyVerdict defaults to None",
               result.get("verifyVerdict") is None)
-
-
-def test_iter_lastVerdict_still_accepted():
-    print("\n## dual-schema: lastVerdict still accepted (backward compat)")
-    import util_state
-
-    state = dict(VALID_ITER_STATE)
-    state["lastVerdict"] = "passed"
-    with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
-        check("lastVerdict still works", result is not None)
-        check("lastVerdict value", result.get("lastVerdict") == "passed")
 
 
 def test_global_lifecycles_optional():

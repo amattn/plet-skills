@@ -182,8 +182,7 @@ ITER_REQUIRED_FIELDS = {
     "iterationId": str,
     "title": str,
     "lastUpdated": str,
-    # "lifecycle" removed — now in state.json.lifecycles (SF_28)
-    # Still accepted if present (dual-schema migration)
+    # lifecycle is in state.json.lifecycles (SF_28) — NOT in per-iteration files
     "dependencies": list,
     "attempts": dict,
     "criteria": list,
@@ -191,24 +190,15 @@ ITER_REQUIRED_FIELDS = {
 
 # agentId is required but may be null — handled separately
 
-# Dual-schema migration (SF_28): accept both old and new field names.
-# Old: agentActivity, lastVerdict, lifecycle
-# New: phaseActivity, implementVerdict, verifyVerdict (no lifecycle)
-# Defaults are injected only for fields NOT already present.
-# After migration (39m), old names will be removed.
+# SF_28 field names only — dual-schema migration complete (seq 41a)
 ITER_OPTIONAL_DEFAULTS = {
-    # Activity — old name (agentActivity) or new name (phaseActivity)
-    # Default only injected if NEITHER is present
+    "phaseActivity": "idle",
     "activityDetail": None,
     "phaseTimestamps": {},
     "elapsedSeconds": {"total": 0},
-    "summary": None,
-    "filesChanged": [],
     "cleanupTagsAutomatically": False,
     "cleanupBranchesAutomatically": False,
     "verificationReports": [],
-    # Verdicts — old (lastVerdict) and new (implementVerdict, verifyVerdict)
-    "lastVerdict": None,
     "implementVerdict": None,
     "verifyVerdict": None,
     "lastHeartbeat": None,
@@ -249,13 +239,18 @@ def validate_iter_state(data):
                 "iterationId '{}' does not match pattern ID_N+ "
                 "(e.g., ID_001)".format(data["iterationId"]))
 
-    # Validate lifecycle enum — optional in dual-schema mode (SF_28)
-    # lifecycle may be absent (new schema) or present (old schema)
-    if "lifecycle" in data and isinstance(data["lifecycle"], str):
-        if data["lifecycle"] not in VALID_LIFECYCLES:
-            errors.append(
-                "invalid lifecycle '{}' (valid: {})".format(
-                    data["lifecycle"], ", ".join(VALID_LIFECYCLES)))
+    # Reject deprecated fields (SF_28 — lifecycle extraction complete, seq 41a)
+    if "lifecycle" in data:
+        errors.append(
+            "field 'lifecycle' is deprecated in per-iteration state — "
+            "lifecycle is now in state.json.lifecycles (SF_28)")
+    if "agentActivity" in data:
+        errors.append(
+            "field 'agentActivity' is deprecated — use 'phaseActivity' (SF_28)")
+    if "lastVerdict" in data:
+        errors.append(
+            "field 'lastVerdict' is deprecated — use 'implementVerdict' "
+            "and 'verifyVerdict' (SF_28)")
 
     # Validate attempts object
     if "attempts" in data and isinstance(data["attempts"], dict):
@@ -298,9 +293,5 @@ def load_and_validate_iter_state(plet_dir, iter_id):
     for field, default in ITER_OPTIONAL_DEFAULTS.items():
         if field not in data:
             data[field] = default
-
-    # Dual-schema: inject activity default only if NEITHER name is present
-    if "agentActivity" not in data and "phaseActivity" not in data:
-        data["agentActivity"] = "idle"
 
     return data

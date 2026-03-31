@@ -98,6 +98,7 @@ GLOBAL_STATE = {
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer"},
     "dependencyMap": {},
+    "lifecycles": {},
     "milestones": {},
     "loopSessionCount": 1,
     "refineSessionCount": 0,
@@ -109,9 +110,11 @@ ITER_STATE = {
     "iterationId": "ID_001",
     "title": "Project scaffolding",
     "lastUpdated": "2026-03-07T14:00:00Z",
-    "lifecycle": "implementing",
     "dependencies": [],
     "agentId": "agent_abc123",
+    "phaseActivity": "idle",
+    "implementVerdict": None,
+    "verifyVerdict": None,
     "attempts": {"implement": 1, "verify": 0},
     "criteria": [
         {"id": "AC_1", "description": "Tests pass", "status": "not_started"},
@@ -389,7 +392,7 @@ def setup_for_merge_squash(d, cleanup_tags=False, cleanup_branches=False):
 
     # Write state files AFTER checkout (so they exist on workstream working tree)
     iter_state = dict(ITER_STATE)
-    iter_state["lifecycle"] = "complete"
+    # lifecycle is in state.json.lifecycles (SF_28), not per-iteration state
     iter_state["attempts"] = {"implement": 1, "verify": 1}
     iter_state["cleanupTagsAutomatically"] = cleanup_tags
     iter_state["cleanupBranchesAutomatically"] = cleanup_branches
@@ -479,7 +482,7 @@ def test_merge_squash_not_on_workstream():
 
         # Write state files
         iter_state = dict(ITER_STATE)
-        iter_state["lifecycle"] = "complete"
+        # lifecycle is in state.json.lifecycles (SF_28), not per-iteration state
         iter_state["attempts"] = {"implement": 1, "verify": 1}
         plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
@@ -498,7 +501,7 @@ def test_merge_squash_nothing_to_merge():
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
         iter_state = dict(ITER_STATE)
-        iter_state["lifecycle"] = "complete"
+        # lifecycle is in state.json.lifecycles (SF_28), not per-iteration state
         iter_state["attempts"] = {"implement": 1, "verify": 1}
         plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
@@ -561,7 +564,7 @@ def test_merge_squash_iteration_branch_missing():
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
         iter_state = dict(ITER_STATE)
-        iter_state["lifecycle"] = "complete"
+        # lifecycle is in state.json.lifecycles (SF_28), not per-iteration state
         plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
         # Create workstream but NOT the iteration branch

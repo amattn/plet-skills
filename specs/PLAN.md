@@ -158,4 +158,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 40e | plet_prompt.py — lifecycle from state.json | ✓ complete |
 | 40f | plet_orchestrator.py + util_mock_claude — lifecycle extraction | ✓ complete |
 | 40g | implement.md + verify.md + SKILL.md plan phase | ✓ complete |
+| 41a | Tighten util_state.py — remove dual-schema | ✓ complete |
 | -- | all other steps not yet started |
