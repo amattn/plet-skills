@@ -147,4 +147,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 39a | Detailed design in specs/NOTES.md | ✓ complete |
 | 39b | PRD — SF_28 lifecycle extraction | ✓ complete |
 | 39c | state-schema.md — lifecycles field | ✓ complete |
+| 39d | util_state.py — dual-schema migration | ✓ complete |
 | -- | all other steps not yet started |

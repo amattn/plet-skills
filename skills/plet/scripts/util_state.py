@@ -58,6 +58,7 @@ OPTIONAL_FIELDS = {
     "breakpoints": dict,
     "cleanupTagsAutomatically": bool,
     "parallelGroups": list,
+    "lifecycles": dict,
 }
 
 
@@ -100,6 +101,14 @@ def validate_global_state(data):
             errors.append("field '{}' must be {}, got {}".format(
                 field, expected_type.__name__, type(data[field]).__name__))
 
+    # Validate lifecycles values when present (SF_28 dual-schema migration)
+    if "lifecycles" in data and isinstance(data["lifecycles"], dict):
+        for iter_id, lc in data["lifecycles"].items():
+            if not isinstance(lc, str) or lc not in VALID_LIFECYCLES:
+                errors.append(
+                    "lifecycles.{}: invalid lifecycle '{}' (valid: {})".format(
+                        iter_id, lc, ", ".join(VALID_LIFECYCLES)))
+
     # Validate session counts are non-negative integers when present
     for field in ("loopSessionCount", "refineSessionCount"):
         if field in data:
@@ -130,6 +139,7 @@ OPTIONAL_DEFAULTS = {
     "breakpoints": {"before": [], "after": []},
     "cleanupTagsAutomatically": False,
     "parallelGroups": [],
+    "lifecycles": {},
 }
 
 
@@ -174,7 +184,8 @@ ITER_REQUIRED_FIELDS = {
     "iterationId": str,
     "title": str,
     "lastUpdated": str,
-    "lifecycle": str,
+    # "lifecycle" removed — now in state.json.lifecycles (SF_28)
+    # Still accepted if present (dual-schema migration)
     "dependencies": list,
     "attempts": dict,
     "criteria": list,
@@ -182,8 +193,14 @@ ITER_REQUIRED_FIELDS = {
 
 # agentId is required but may be null — handled separately
 
+# Dual-schema migration (SF_28): accept both old and new field names.
+# Old: agentActivity, lastVerdict, lifecycle
+# New: phaseActivity, implementVerdict, verifyVerdict (no lifecycle)
+# Defaults are injected only for fields NOT already present.
+# After migration (39m), old names will be removed.
 ITER_OPTIONAL_DEFAULTS = {
-    "agentActivity": "idle",
+    # Activity — old name (agentActivity) or new name (phaseActivity)
+    # Default only injected if NEITHER is present
     "activityDetail": None,
     "phaseTimestamps": {},
     "elapsedSeconds": {"total": 0},
@@ -192,7 +209,10 @@ ITER_OPTIONAL_DEFAULTS = {
     "cleanupTagsAutomatically": False,
     "cleanupBranchesAutomatically": False,
     "verificationReports": [],
+    # Verdicts — old (lastVerdict) and new (implementVerdict, verifyVerdict)
     "lastVerdict": None,
+    "implementVerdict": None,
+    "verifyVerdict": None,
     "lastHeartbeat": None,
 }
 
@@ -231,7 +251,8 @@ def validate_iter_state(data):
                 "iterationId '{}' does not match pattern ID_N+ "
                 "(e.g., ID_001)".format(data["iterationId"]))
 
-    # Validate lifecycle enum
+    # Validate lifecycle enum — optional in dual-schema mode (SF_28)
+    # lifecycle may be absent (new schema) or present (old schema)
     if "lifecycle" in data and isinstance(data["lifecycle"], str):
         if data["lifecycle"] not in VALID_LIFECYCLES:
             errors.append(
@@ -281,5 +302,9 @@ def load_and_validate_iter_state(plet_dir, iter_id):
     for field, default in ITER_OPTIONAL_DEFAULTS.items():
         if field not in data:
             data[field] = default
+
+    # Dual-schema: inject activity default only if NEITHER name is present
+    if "agentActivity" not in data and "phaseActivity" not in data:
+        data["agentActivity"] = "idle"
 
     return data

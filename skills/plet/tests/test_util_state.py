@@ -454,6 +454,16 @@ def main():
     test_iter_optional_defaults()
     test_iter_validate_function()
 
+    # --- dual-schema migration tests (seq 39d) ---
+    test_iter_lifecycle_optional()
+    test_iter_phaseActivity_accepted()
+    test_iter_both_activity_names_accepted()
+    test_iter_verdicts_accepted()
+    test_iter_lastVerdict_still_accepted()
+    test_global_lifecycles_optional()
+    test_global_lifecycles_validated()
+    test_global_lifecycles_invalid_value()
+
     print("\n{} passed, {} failed".format(passed, failed))
     return 0 if failed == 0 else 1
 
@@ -563,8 +573,9 @@ def test_iter_missing_required_fields():
     print("\n## iter: missing required fields")
     import util_state
 
+    # lifecycle removed from required — now optional (SF_28 dual-schema)
     required = ["schemaVersion", "iterationId", "title", "lastUpdated",
-                "lifecycle", "dependencies", "agentId", "attempts", "criteria"]
+                "dependencies", "agentId", "attempts", "criteria"]
 
     for field in required:
         state = dict(VALID_ITER_STATE)
@@ -579,12 +590,12 @@ def test_iter_wrong_types():
     print("\n## iter: wrong field types")
     import util_state
 
+    # lifecycle removed — optional in dual-schema mode (SF_28)
     type_checks = [
         ("schemaVersion", 123),
         ("iterationId", 123),
         ("title", 123),
         ("lastUpdated", 123),
-        ("lifecycle", 123),
         ("dependencies", "not_array"),
         ("attempts", "not_object"),
         ("criteria", "not_array"),
@@ -699,6 +710,173 @@ def test_iter_validate_function():
 
     ok = util_state.validate_iter_state({"not": "valid"})
     check("invalid returns False", ok is False)
+
+
+# ---------------------------------------------------------------------------
+# Dual-schema migration tests (seq 39d)
+# ---------------------------------------------------------------------------
+
+# New-schema iter state: no lifecycle, phaseActivity instead of agentActivity,
+# implementVerdict/verifyVerdict instead of lastVerdict
+NEW_SCHEMA_ITER_STATE = {
+    "schemaVersion": "0.3.0",
+    "iterationId": "ID_001",
+    "title": "Project scaffolding",
+    "lastUpdated": "2026-03-07T14:00:00Z",
+    "dependencies": [],
+    "agentId": "agent_abc123",
+    "phaseActivity": "setup",
+    "activityDetail": "reading requirements",
+    "implementVerdict": None,
+    "verifyVerdict": None,
+    "attempts": {"implement": 1, "verify": 0},
+    "criteria": [
+        {"id": "AC_1", "description": "Tests pass", "status": "not_started"},
+    ],
+}
+
+
+def test_iter_lifecycle_optional():
+    print("\n## dual-schema: lifecycle is optional in per-iteration files")
+    import util_state
+
+    # New-schema file without lifecycle should validate
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, NEW_SCHEMA_ITER_STATE, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("no lifecycle validates", result is not None)
+
+    # Old-schema file with lifecycle should still validate
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, VALID_ITER_STATE, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("with lifecycle still validates", result is not None)
+
+
+def test_iter_phaseActivity_accepted():
+    print("\n## dual-schema: phaseActivity accepted as activity field")
+    import util_state
+
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, NEW_SCHEMA_ITER_STATE, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("returns dict", result is not None)
+        check("phaseActivity present", result.get("phaseActivity") == "setup")
+
+
+def test_iter_both_activity_names_accepted():
+    print("\n## dual-schema: both agentActivity and phaseActivity accepted")
+    import util_state
+
+    # Old name
+    old = dict(VALID_ITER_STATE)
+    old["agentActivity"] = "idle"
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, old, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("agentActivity accepted", result is not None)
+        check("agentActivity value", result.get("agentActivity") == "idle")
+
+    # New name
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, NEW_SCHEMA_ITER_STATE, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("phaseActivity accepted", result is not None)
+        check("phaseActivity value", result.get("phaseActivity") == "setup")
+
+
+def test_iter_verdicts_accepted():
+    print("\n## dual-schema: implementVerdict/verifyVerdict accepted")
+    import util_state
+
+    state = dict(NEW_SCHEMA_ITER_STATE)
+    state["implementVerdict"] = "completed"
+    state["verifyVerdict"] = "passed"
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("returns dict", result is not None)
+        check("implementVerdict", result.get("implementVerdict") == "completed")
+        check("verifyVerdict", result.get("verifyVerdict") == "passed")
+
+    # Null verdicts (initial state)
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, NEW_SCHEMA_ITER_STATE, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("null implementVerdict ok", result.get("implementVerdict") is None)
+        check("null verifyVerdict ok", result.get("verifyVerdict") is None)
+
+    # Defaults injected when absent
+    state2 = dict(NEW_SCHEMA_ITER_STATE)
+    del state2["implementVerdict"]
+    del state2["verifyVerdict"]
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, state2, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("absent implementVerdict defaults to None",
+              result.get("implementVerdict") is None)
+        check("absent verifyVerdict defaults to None",
+              result.get("verifyVerdict") is None)
+
+
+def test_iter_lastVerdict_still_accepted():
+    print("\n## dual-schema: lastVerdict still accepted (backward compat)")
+    import util_state
+
+    state = dict(VALID_ITER_STATE)
+    state["lastVerdict"] = "passed"
+    with tempfile.TemporaryDirectory() as d:
+        write_iter_state(d, state, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        check("lastVerdict still works", result is not None)
+        check("lastVerdict value", result.get("lastVerdict") == "passed")
+
+
+def test_global_lifecycles_optional():
+    print("\n## dual-schema: state.json lifecycles field optional with default")
+    import util_state
+
+    # Without lifecycles — should validate and inject default
+    with tempfile.TemporaryDirectory() as d:
+        write_state(d, VALID_STATE)
+        result = util_state.load_and_validate_global_state(d)
+        check("validates without lifecycles", result is not None)
+        check("lifecycles default injected",
+              result is not None and result.get("lifecycles") == {})
+
+    # With lifecycles
+    state = dict(VALID_STATE)
+    state["lifecycles"] = {"ID_001": "complete", "ID_002": "queued"}
+    with tempfile.TemporaryDirectory() as d:
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
+        check("validates with lifecycles", result is not None)
+        check("lifecycles preserved",
+              result is not None and result["lifecycles"]["ID_001"] == "complete")
+
+
+def test_global_lifecycles_validated():
+    print("\n## dual-schema: state.json lifecycles must be dict")
+    import util_state
+
+    state = dict(VALID_STATE)
+    state["lifecycles"] = "not_a_dict"
+    with tempfile.TemporaryDirectory() as d:
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
+        check("non-dict lifecycles rejected", result is None)
+
+
+def test_global_lifecycles_invalid_value():
+    print("\n## dual-schema: state.json lifecycles with invalid lifecycle value")
+    import util_state
+
+    state = dict(VALID_STATE)
+    state["lifecycles"] = {"ID_001": "complete", "ID_002": "running"}
+    with tempfile.TemporaryDirectory() as d:
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
+        check("invalid lifecycle value in lifecycles rejected", result is None)
 
 
 if __name__ == "__main__":
