@@ -39,6 +39,9 @@ This was validated across three case studies: state schema drift (the most persi
 | ~~GIM~~ | ~~`plet_gate_impl.py`~~ | Merged into GPH |
 | ~~GVR~~ | ~~`plet_gate_verify.py`~~ | Merged into GPH |
 | INV | `plet_invoke.py` | INVoke |
+| GST | `plet_global_state.py` | Global STate (state.json — lifecycles, session) |
+| IST | `plet_iter_state.py` | Iteration STate (per-iteration files) |
+| ~~STA~~ | ~~`plet_state.py`~~ | Split into GST + IST (seq 39d) |
 
 ### Section abbreviations
 
@@ -1197,3 +1200,157 @@ During an iteration, two copies of per-iteration state files exist: the main rep
 - `git add -A && git commit` before merge-squash still needed for global state + prior verdict handoffs
 
 **Discovered during:** LOGA Run 3. Orchestrator set `lifecycle → implementing` in main repo, subagent wrote to worktree → merge conflict on merge-squash. Reservation write was the root cause.
+
+**Assessment (post-implementation):** The 38g/38h implementation works (all tests pass) but is fragile. It relies on uncommitted dirty files for scheduling reads, targeted per-iteration git checkout reversions before merge-squash, and split truth between git index and working tree. These are symptoms of a structural problem: lifecycle exists in per-iteration state files, which exist on both branches. The seq 39 lifecycle extraction eliminates this at the source.
+
+#### Lifecycle extraction — detailed design (seq 39) (2026-03-30)
+
+**Problem:** Lifecycle lives in per-iteration state files. During an iteration, two copies exist (workstream + worktree). Every approach to managing two copies is fragile — merge conflicts, stale reads, uncommitted dirty files, targeted git reverts.
+
+**Solution:** Move lifecycle OUT of per-iteration state files into `state.json.lifecycles`. Clean ownership split: orchestrator owns lifecycle (state.json), subagent owns criteria/reports (per-iteration files). Zero overlap = zero conflicts.
+
+**Schema changes:**
+
+state.json gains a `lifecycles` field:
+```json
+{
+  "schemaVersion": "0.3.0",
+  "projectId": "LOGA",
+  "lifecycles": {
+    "ID_001": "complete",
+    "ID_002": "implementing",
+    "ID_003": "queued"
+  },
+  "dependencyMap": { ... },
+  ...
+}
+```
+
+Per-iteration state files LOSE `lifecycle` and `lastVerdict`, GAIN `implementVerdict`, `verifyVerdict`, and rename `agentActivity` → `phaseActivity`:
+```json
+{
+  "schemaVersion": "0.3.0",
+  "iterationId": "ID_001",
+  "title": "Project scaffolding",
+  "attempts": { "implement": 1, "verify": 1 },
+  "criteria": [ ... ],
+  "implementVerdict": "completed",
+  "verifyVerdict": "passed",
+  "verificationReports": [ ... ],
+  "phaseActivity": "idle",
+  "activityDetail": null,
+  "agentId": null,
+  ...
+}
+```
+
+**Who writes what:**
+
+| Field | Location | Writer | When |
+|-------|----------|--------|------|
+| `lifecycles.ID_xxx` | state.json (global) | Orchestrator only | Spawn (implementing), post-implement (verifying), post-verdict (complete/queued/blocked) |
+| `criteria`, `attempts`, `verificationReports` | per-iteration file (worktree) | Subagent only | During iteration |
+| `implementVerdict` | per-iteration file (worktree) | Implement subagent | Final act before exit |
+| `verifyVerdict` | per-iteration file (worktree) | Verify subagent | Final act before exit |
+| `phaseActivity`, `activityDetail`, `agentId`, `lastHeartbeat` | per-iteration file (worktree) | Subagent only | During iteration |
+| `dependencyMap`, `sessionHistory`, etc. | state.json (global) | Orchestrator only | Session start/end |
+
+**Two-level status model:** Loop lifecycle (state.json, orchestrator) and phase activity (per-iteration file, subagent) are independent. See NOTES.md § Two-Level Status Model for full taxonomy.
+
+**Rename:** `agentActivity` → `phaseActivity`. Values are phase-specific: implement uses `setup`, `red`, `green`, `running_checks`, `committing`, `wrapping_up`. Verify uses `setup`, `verifying`, `fixing`, `writing_report`, `running_checks`, `committing`, `wrapping_up`. Both end with `idle`. `activityDetail` stays (human-readable string, overwritten on every transition).
+
+**Handoff via phase verdicts (replaces lifecycle handoff):**
+
+Each phase has an explicit verdict field. The subagent writes it as its final act. The orchestrator reads it and decides the next lifecycle transition. No inference needed.
+
+| Field | Phase | Values | Replaces |
+|-------|-------|--------|----------|
+| `implementVerdict` | implement | `completed`, `blocked` | lifecycle → verifying handoff |
+| `verifyVerdict` | verify | `passed`, `rejected`, `blocked` | `lastVerdict` (removed) |
+
+Subagent setup:
+- Implement on start: clear both verdicts to null (`implementVerdict: null`, `verifyVerdict: null`). On retry, the worktree has stale verdicts from the previous attempt — clearing prevents the orchestrator from reading old values.
+- Verify on start: clear `verifyVerdict` to null only. `implementVerdict: "completed"` stays (it's the implement phase's final answer for this attempt).
+
+Orchestrator post-phase logic:
+- After implement: read `implementVerdict` from worktree. `completed` → lifecycle `verifying`. `blocked` → lifecycle `blocked`. null → crash, check criteria (EDG_3).
+- After verify: read `verifyVerdict` from worktree. `passed` → merge, lifecycle `complete`. `rejected` → check-retry. `blocked` → lifecycle `blocked`. null → crash.
+- Crash detection: subagent exits non-zero or verdict is null → orchestrator checks criteria to decide retry vs block.
+
+`lastVerdict` is removed — replaced by `verifyVerdict`. `verificationReports` stays (detailed per-attempt history). The report's `verdict` field aligns with `verifyVerdict` values.
+
+**Subagents don't write lifecycle at all.** The orchestrator manages it entirely:
+- Spawned for implement → orchestrator writes `lifecycles.ID_xxx = "implementing"` to state.json
+- Implement returns → orchestrator reads `implementVerdict` from worktree. `"completed"` → writes `"verifying"`. `"blocked"` → writes `"blocked"`.
+- Spawned for verify → lifecycle already `"verifying"`
+- Verify returns → orchestrator reads `verifyVerdict` from worktree. `"passed"` → merge, writes `"complete"`. `"rejected"` → check-retry. `"blocked"` → writes `"blocked"`.
+
+**What this eliminates:**
+- Per-iteration git checkout revert before merge-squash (gone — no lifecycle in per-iteration files)
+- Uncommitted dirty files for scheduling (gone — lifecycle in state.json, committed normally)
+- Split truth between git index and working tree (gone — one source of truth)
+- The entire "sole writer" workaround for per-iteration files (gone — orchestrator never touches them)
+
+**What this preserves:**
+- SF_26 invariants (subagent sole writer of per-iteration files) — still true, just simpler
+- Worktree reads for verdict/reports — still needed, `implementVerdict`/`verifyVerdict` and criteria stay in per-iteration files
+- Gate script lifecycle checks — still work, just read from state.json
+
+**Affected scripts:**
+
+| Script | Change |
+|--------|--------|
+| `plet_state.py` | **Split into two scripts** (seq 39d). `plet_global_state.py` (GLO): state.json — `init`, `update-lifecycle`, `get-lifecycle`, `validate`. `plet_iter_state.py` (ITS): per-iteration files with high-level commands — `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `validate`. Old `plet_state.py` removed. |
+| `plet_schedule.py` | `eligible()` reads `state.json.lifecycles` instead of N per-iteration files. Simpler AND faster. `check-retry` still reads per-iteration file (for reports). |
+| `plet_gate_phase.py` | Pre/post gates read lifecycle from state.json, not per-iteration file. |
+| `plet_gate_session.py` | 4 locations read lifecycle from per-iteration files → switch to `state.json.lifecycles`: (1) `detect` — lifecycle counts for session type detection, (2) `status` — lifecycle counts, blockers, milestone status, (3) `status` — `agentActivity` → `phaseActivity` rename, (4) `postflight` — transient lifecycle detection (implementing/verifying). |
+| `plet_orchestrator.py` | Major simplification. Writes lifecycle to state.json. No per-iteration state writes. No git checkout workarounds. |
+| `implement.md` | Remove lifecycle write guidance. Subagent doesn't set implementing or verifying. |
+| `verify.md` | Remove lifecycle ownership section (simplified — subagent doesn't touch lifecycle). |
+| `state-schema.md` | Add `lifecycles` to state.json schema. Remove `lifecycle` from per-iteration schema. |
+| `util_state.py` | Validation: per-iteration files no longer require lifecycle. state.json requires lifecycles. |
+
+**Migration path:**
+- `SCHEMA_VERSION` bumps to `0.3.0` (additive + subtractive = minor, but lifecycle removal could be considered breaking)
+- `plet_state.py` auto-migrate: if per-iteration file has `lifecycle`, ignore it (backward compatible read). If state.json lacks `lifecycles`, initialize from per-iteration files.
+- Existing projects: first run after update initializes `state.json.lifecycles` from per-iteration files.
+
+**eligible() optimization:**
+Before: read state.json (dependency map) + read N per-iteration files (lifecycle). O(N) file reads.
+After: read state.json (dependency map + lifecycles). O(1) file read.
+For 13 iterations, this is 14 file reads → 1 file read.
+
+**Open questions:**
+1. Should `lifecycles` be part of the dependency map structure (e.g., `{"ID_001": {"deps": [], "lifecycle": "queued"}}`) or a flat parallel object? Flat is simpler and doesn't change the existing dependency map.
+2. Plan session `plet_state.py init` creates per-iteration files. Should it also initialize `lifecycles.ID_xxx = "queued"` in state.json? Yes — init should update both.
+3. Refine session changes lifecycle (withdraw, re-queue). These write to state.json — no per-iteration file involvement. Clean.
+
+**Runtime artifact merge conflicts (separate concern):**
+Option C doesn't help with progress.md/learnings.md/emergent.md merge conflicts. These are append-only markdown files with entry fencing (SF_25). In practice, conflicts haven't been observed there. If they emerge, the same ownership principle applies: separate orchestrator entries from subagent entries by file or mechanism. Deferred — monitor in next run.
+
+#### Script split: plet_state.py → plet_global_state.py + plet_iter_state.py (2026-03-30)
+
+**Decision:** Split `plet_state.py` into two scripts along the ownership boundary. The lifecycle extraction (seq 39) makes this split natural — state.json and per-iteration files have different owners, different schemas, and different access patterns.
+
+**Rationale:** The old `plet_state.py` mixed global concerns (state.json, lifecycles, session info) and per-iteration concerns (criteria, verdicts, activity) in one script. After lifecycle extraction, these are cleanly separable. Two scripts = clearer ownership, simpler commands, smaller blast radius per change.
+
+**plet_global_state.py (GST)** — manages `state.json`:
+- `init` — create state.json (project setup)
+- `update-lifecycle` — set lifecycle for an iteration in `state.json.lifecycles`
+- `get-lifecycle` — read lifecycle for one or all iterations
+- `validate` — schema check for state.json
+
+**plet_iter_state.py (IST)** — manages per-iteration state files with high-level agent-friendly commands:
+- `init` — create per-iteration state file from iteration metadata
+- `start-phase` — composite command replacing ~5 manual update-field calls. Sets phaseActivity (to `setup`), agentId, increments attempts counter, clears stale verdicts (implement clears both to null, verify clears only verifyVerdict), sets timestamps. One command = one subprocess call from the orchestrator.
+- `update-activity` — set phaseActivity + activityDetail with auto-heartbeat (lastHeartbeat updated automatically)
+- `update-criterion` — update criterion implementation/verification status (unchanged from old update-field, but with auto-heartbeat)
+- `set-verdict` — set implementVerdict or verifyVerdict. Auto-sets phaseActivity to `idle` and updates completedAt timestamp. Subagent's final act.
+- `heartbeat` — just alive signal (lastHeartbeat). Lightweight, no other side effects.
+- `validate` — schema check for per-iteration state file
+
+**Design principle:** Commands match agent workflow, not JSON structure. The old `update-field` required the caller to know which fields to set and in what order. The new commands encode the workflow — `start-phase` does everything needed to begin a phase in one call, `set-verdict` does everything needed to end one. This reduces the surface area for orchestrator bugs and makes the subagent prompts simpler.
+
+**Alternatives rejected:**
+- Keep one script with subcommand groups (e.g., `plet_state.py global init` / `plet_state.py iter init`): Adds a nesting level to every command. The two halves have no shared logic after lifecycle extraction.
+- Keep `update-field` as the primary interface: Forces callers to compose multi-field updates correctly. Error-prone (LOGA Run 3: multiple observations of missing or mismatched field updates).

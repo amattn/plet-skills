@@ -69,6 +69,22 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 38f | `NOTES.md` (root) — add worktree state invariants to Important Concepts | Cross-ref specs/NOTES.md for details. |
 | 38g | `plet_orchestrator.py` — remove reservation write, apply invariants | Remove all per-iteration state writes during iteration body. All post-subagent reads from worktree_plet_dir. Verdict handoff: write final lifecycle to global_plet_dir + immediate git commit. |
 | 38h | `mock_claude_helper.py` + tests — worktree writes, fix tests | Mock writes to worktree plet/ (cwd). Mock sets lifecycle → implementing as first action. Fix all orchestrator integration tests. |
+| 39 | Lifecycle extraction — move lifecycle to state.json | Move lifecycle out of per-iteration state files into `state.json.lifecycles`. Eliminates the two-copy problem at the source. Orchestrator owns lifecycle (state.json), subagent owns criteria/reports (per-iteration files). Zero overlap = zero merge conflicts = no fragile git workarounds. |
+| 39a | Detailed design in specs/NOTES.md | Schema changes, migration path, affected scripts, eligible() optimization, gate script changes, subagent prompt changes. |
+| 39b | PRD — SF_28 lifecycle extraction requirement | New requirement: lifecycle in state.json.lifecycles, not per-iteration files. Update SF_26/27 to reference. |
+| 39c | state-schema.md — add lifecycles field, remove lifecycle from per-iteration schema | Additive (state.json) + subtractive (per-iteration). Migration notes. |
+| 39d | Spec + implement plet_global_state.py (GST) + plet_iter_state.py (IST) | **plet_global_state.py** (GST): manages state.json — `init`, `update-lifecycle`, `get-lifecycle`, `validate`. Lifecycles field in state.json replaces per-iteration lifecycle. **plet_iter_state.py** (IST): manages per-iteration files with high-level agent-friendly commands — `init` (create file), `start-phase` (set phaseActivity + agentId + increment attempts + clear stale verdicts + timestamps — replaces ~5 manual update-field calls), `update-activity` (phaseActivity + activityDetail + auto-heartbeat), `update-criterion` (unchanged but auto-heartbeat), `set-verdict` (implementVerdict or verifyVerdict + auto-idle + auto-timestamp), `heartbeat` (alive signal), `validate` (schema check). Old plet_state.py kept as reference until 39o. |
+| 39e | util_state.py — update per-iteration validation schema | Remove `lifecycle` from ITER_REQUIRED_FIELDS. Remove `lastVerdict` from ITER_OPTIONAL_DEFAULTS. Rename `agentActivity` → `phaseActivity`. Add `implementVerdict` and `verifyVerdict` (nullable). Update lifecycle enum validation (moves to global state validation). |
+| 39f | plet_schedule.py — eligible() reads state.json.lifecycles | One file read instead of N. Simpler, faster. |
+| 39g | plet_gate_phase.py — lifecycle checks read from state.json | Pre/post gates read lifecycle from global state, not per-iteration file. |
+| 39h | plet_gate_session.py — lifecycle reads from state.json | 4 locations read lifecycle from per-iteration files: `detect` (lifecycle counts), `status` (lifecycle counts + blockers + milestones), `status` (agentActivity → phaseActivity), `postflight` (transient lifecycle detection). All switch to `state.json.lifecycles`. |
+| 39i | plet_git_check.py — lifecycle reads from state.json | `check-session` reads lifecycle from per-iteration files (lines 518-628): active lifecycles set, complete iterations filter. Switch to `state.json.lifecycles`. |
+| 39j | plet_prompt.py — lifecycle from state.json | `assemble` (line 114) includes `Lifecycle: {lifecycle}` from per-iteration state. Read from state.json instead. |
+| 39k | plet_orchestrator.py — simplify: lifecycle writes to state.json only | Remove all per-iteration git checkout workarounds. Verdict handoff = one field update in state.json. |
+| 39l | implement.md + verify.md — subagents don't write lifecycle | Remove lifecycle from subagent responsibilities. Orchestrator manages it entirely. |
+| 39m | Rename agentActivity → phaseActivity + phase verdicts | **phaseActivity** replaces agentActivity with phase-specific values. Implement: setup, red, green, running_checks, committing, wrapping_up, idle. Verify: setup, verifying, fixing, writing_report, running_checks, committing, wrapping_up, idle. **Phase verdicts:** `implementVerdict` (completed/blocked, null initially) + `verifyVerdict` (passed/rejected/blocked, null initially). Replace old `lastVerdict`. `start-phase implement` clears both verdicts to null. Rename in state-schema, scripts, reference files, specs. |
+| 39n | Tests — update all fixtures and assertions for new schema | Per-iteration fixtures lose lifecycle field, gain phaseActivity. state.json fixtures gain lifecycles field. All phase-specific activity values updated. |
+| 39o | Remove plet_state.py + deprecate spec | Delete `plet_state.py` script and `test_plet_state.py` tests. Mark `specs/plet_state.md` as deprecated at the top (keep as historical reference). Remove from SKILL.md allowed-tools, scripts CLAUDE.md inventory, and any remaining imports/references. |
 
 ## Status
 
@@ -122,3 +138,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 38f | Root NOTES.md — invariants | ✓ complete |
 | 38g | Orchestrator — apply invariants | ✓ complete |
 | 38h | Mock + tests — fix for worktree writes | ✓ complete |
+| 39a | Detailed design in specs/NOTES.md | ✓ complete |
+| -- | all other steps not yet started |

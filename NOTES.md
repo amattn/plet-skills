@@ -179,6 +179,63 @@ During the loop phase, two copies of per-iteration state files exist. Variable n
 
 **Where the distinction matters:** Only the orchestrator needs both copies simultaneously. All other scripts receive one `plet_dir` and operate on it without knowing which copy it is. The orchestrator is the boundary where `plet_dir` (from CLI) becomes `global_plet_dir`, and where `derive_worktree_plet_dir()` produces `worktree_plet_dir`.
 
+### Two-Level Status Model
+
+Iteration status is tracked at two levels with distinct ownership:
+
+| Level | Field | Location | Owner | Purpose |
+|-------|-------|----------|-------|---------|
+| **Loop lifecycle** | `lifecycles.ID_xxx` | state.json (global) | Orchestrator | Which phase the iteration is in |
+| **Phase activity** | `phaseActivity` | per-iteration file (worktree) | Subagent | What the agent is doing right now |
+
+**Loop lifecycle values** (orchestrator writes these):
+`queued` → `implementing` → `verifying` → `complete` / `blocked` / `queued` (retry) / `withdrawn`
+
+**Phase activity values** differ by phase:
+
+| Activity | Implement | Verify | Shared? |
+|----------|:---------:|:------:|:-------:|
+| `setup` | ✓ | ✓ | read context, pre-flight |
+| `red` | ✓ | | writing failing test |
+| `green` | ✓ | | implementing to pass test |
+| `verifying` | | ✓ | checking criteria against code |
+| `fixing` | | ✓ | fix-in-place (VF_15) |
+| `writing_report` | | ✓ | composing verification report |
+| `running_checks` | ✓ | ✓ | test suite, lint, format |
+| `committing` | ✓ | ✓ | git operations |
+| `wrapping_up` | ✓ | ✓ | artifacts, trace, gate check |
+| `idle` | ✓ | ✓ | done |
+
+The `activityDetail` string is a human-readable description overwritten on every transition (e.g., `"red: writing failing test for AC_3"`). Combined with `lastHeartbeat`, external consumers see what the agent is doing and whether it's alive.
+
+**Phase activity is NOT a log** — it's a "current status" window. The log lives in progress.md (append-only) and trace events (append-only NDJSON).
+
+**Rename:** `agentActivity` → `phaseActivity` to make the two-level system explicit. `agentId` stays (identifies which agent session).
+
+### Phase Verdicts
+
+Each phase has an explicit verdict field written by the subagent as its final act. The orchestrator reads it and decides the next lifecycle transition. Replaces the old model where subagents wrote lifecycle directly (source of merge conflicts).
+
+| Field | Phase | Values | Replaces |
+|-------|-------|--------|----------|
+| `implementVerdict` | implement | `completed`, `blocked` (null initially) | lifecycle → verifying handoff |
+| `verifyVerdict` | verify | `passed`, `rejected`, `blocked` (null initially) | `lastVerdict` (removed) |
+
+**Verdict clearing on phase start:**
+- Implement start: clear both `implementVerdict` and `verifyVerdict` to null (worktree may have stale values from previous attempt)
+- Verify start: clear only `verifyVerdict` to null (`implementVerdict: "completed"` stays — it's the implement phase's answer)
+
+**Orchestrator reads verdicts from worktree after subagent exits.** `null` verdict = crash (subagent never set it). Orchestrator checks criteria to decide retry vs block.
+
+### Script Split: plet_state.py → plet_global_state.py + plet_iter_state.py
+
+The lifecycle extraction (seq 39) splits `plet_state.py` along the ownership boundary:
+
+- **plet_global_state.py** (GST) — state.json: `init`, `update-lifecycle`, `get-lifecycle`, `validate`
+- **plet_iter_state.py** (IST) — per-iteration files with high-level agent-friendly commands: `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `validate`
+
+Design principle: commands match agent workflow, not JSON structure. `start-phase` replaces ~5 manual `update-field` calls. `set-verdict` auto-sets `phaseActivity` to `idle`. See specs/NOTES.md for full command design and rationale.
+
 ### ID Conventions
 
 - All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`) — underscores over dashes so a double-click selects the entire ID for copy-paste. Slightly less aesthetic but worth the ergonomic trade. Longer prefixes (3-4 chars) are acceptable when they improve readability (e.g., `PLAN_1`).
