@@ -1268,33 +1268,49 @@ Each phase has an explicit verdict field. The subagent writes it as its final ac
 | `implementVerdict` | implement | `completed`, `blocked` | lifecycle → verifying handoff |
 | `verifyVerdict` | verify | `passed`, `rejected`, `blocked` | `lastVerdict` (removed) |
 
-Subagent setup:
-- Implement on start: clear both verdicts to null (`implementVerdict: null`, `verifyVerdict: null`). On retry, the worktree has stale verdicts from the previous attempt — clearing prevents the orchestrator from reading old values.
-- Verify on start: clear `verifyVerdict` to null only. `implementVerdict: "completed"` stays (it's the implement phase's final answer for this attempt).
+**Orchestrator calls `start-phase` before spawning subagent (not subagent's job).**
+
+Why: If the subagent crashes before calling start-phase, stale verdicts from the previous attempt remain. The orchestrator reads stale `implementVerdict: "completed"` and advances to verify on broken code. By having the orchestrator call start-phase on worktree_plet_dir *before* spawning the subagent, verdicts are guaranteed null at spawn time.
+
+Pre-spawn setup:
+- Implement: orchestrator calls IST `start-phase --phase implement` on worktree_plet_dir. Clears both `implementVerdict` and `verifyVerdict` to null. Sets phaseActivity=setup, increments implement attempts, sets agentId, sets timestamps.
+- Verify: orchestrator calls IST `start-phase --phase verify` on worktree_plet_dir. Clears only `verifyVerdict` to null. `implementVerdict: "completed"` stays. Sets phaseActivity=setup, increments verify attempts, sets agentId, sets timestamps.
+
+This refines SF_26: "During the subagent's execution, only the subagent writes to worktree per-iteration state. Pre-spawn setup by the orchestrator is allowed." The invariant protects against concurrent writes, not pre-spawn initialization.
 
 Orchestrator post-phase logic:
 - After implement: read `implementVerdict` from worktree. `completed` → lifecycle `verifying`. `blocked` → lifecycle `blocked`. null → crash, check criteria (EDG_3).
 - After verify: read `verifyVerdict` from worktree. `passed` → merge, lifecycle `complete`. `rejected` → check-retry. `blocked` → lifecycle `blocked`. null → crash.
 - Crash detection: subagent exits non-zero or verdict is null → orchestrator checks criteria to decide retry vs block.
+- **Guard assertion:** before reading verdicts, assert `worktree_plet_dir != global_plet_dir`. Prevents the LOGA Run 3 class of bug (reading from wrong copy). Verdicts live in per-iteration files in the worktree — reading from global_plet_dir would see pre-spawn nulls, not subagent's actual verdict.
 
 `lastVerdict` is removed — replaced by `verifyVerdict`. `verificationReports` stays (detailed per-attempt history). The report's `verdict` field aligns with `verifyVerdict` values.
 
+**Post-gate safety net for forgotten verdicts.** The post-implement gate (running inside the subagent, before exit) checks that `implementVerdict` is not null. If null, gate fails → subagent gets a chance to set the verdict before exiting. Same for post-verify checking `verifyVerdict`. Turns a crash-like failure (null verdict → orchestrator guesses) into a recoverable one (gate catches → subagent fixes → clean exit). This is the LOGA Run 3 fix: the subagent "did the work but forgot to set the signal." With gate enforcement, it can't forget.
+
 **Subagents don't write lifecycle at all.** The orchestrator manages it entirely:
-- Spawned for implement → orchestrator writes `lifecycles.ID_xxx = "implementing"` to state.json
-- Implement returns → orchestrator reads `implementVerdict` from worktree. `"completed"` → writes `"verifying"`. `"blocked"` → writes `"blocked"`.
-- Spawned for verify → lifecycle already `"verifying"`
-- Verify returns → orchestrator reads `verifyVerdict` from worktree. `"passed"` → merge, writes `"complete"`. `"rejected"` → check-retry. `"blocked"` → writes `"blocked"`.
+- Create worktree → call IST start-phase on worktree_plet_dir → write `lifecycles.ID_xxx = "implementing"` to state.json → spawn implement subagent
+- Implement returns → read `implementVerdict` from worktree. `"completed"` → writes `"verifying"`. `"blocked"` → writes `"blocked"`.
+- Call IST start-phase (verify) on worktree_plet_dir → spawn verify subagent
+- Verify returns → read `verifyVerdict` from worktree. `"passed"` → merge, writes `"complete"`. `"rejected"` → check-retry. `"blocked"` → writes `"blocked"`.
+
+**Orchestrator crash recovery.** If orchestrator crashes after writing `implementing` to state.json but before spawning the subagent: state.json says "implementing" but no worktree exists, no subagent running. On restart, `schedule.eligible` or orchestrator startup must detect "implementing/verifying with no active worktree" and reset to queued. Review SCH_ELG_BHV_5 against lifecycle-in-state.json model.
+
+**phaseActivity is cosmetic, verdicts are load-bearing.** Only verdicts drive lifecycle transitions. phaseActivity is for monitoring/display only. The orchestrator must NEVER make transition decisions based on phaseActivity — only `implementVerdict` and `verifyVerdict`. This prevents the "soft signal" fragility that made the old lifecycle handoff unreliable.
 
 **What this eliminates:**
 - Per-iteration git checkout revert before merge-squash (gone — no lifecycle in per-iteration files)
 - Uncommitted dirty files for scheduling (gone — lifecycle in state.json, committed normally)
 - Split truth between git index and working tree (gone — one source of truth)
 - The entire "sole writer" workaround for per-iteration files (gone — orchestrator never touches them)
+- "Forgot to set signal" bug class (gone — post-gate enforces verdict is set, start-phase clears stale values)
 
 **What this preserves:**
-- SF_26 invariants (subagent sole writer of per-iteration files) — still true, just simpler
+- SF_26 invariants (subagent sole writer during execution) — refined: pre-spawn setup by orchestrator allowed
 - Worktree reads for verdict/reports — still needed, `implementVerdict`/`verifyVerdict` and criteria stay in per-iteration files
 - Gate script lifecycle checks — still work, just read from state.json
+
+**Remaining code-level invariant:** Verdict reads MUST come from worktree_plet_dir, not global_plet_dir. Seq 39 gives lifecycle structural defense (only one copy in state.json). Verdicts don't get that — they're in per-iteration files with two copies. The guard assertion makes this invariant self-enforcing.
 
 **Affected scripts:**
 
@@ -1342,7 +1358,7 @@ Option C doesn't help with progress.md/learnings.md/emergent.md merge conflicts.
 
 **plet_iter_state.py (IST)** — manages per-iteration state files with high-level agent-friendly commands:
 - `init` — create per-iteration state file from iteration metadata
-- `start-phase` — composite command replacing ~5 manual update-field calls. Sets phaseActivity (to `setup`), agentId, increments attempts counter, clears stale verdicts (implement clears both to null, verify clears only verifyVerdict), sets timestamps. One command = one subprocess call from the orchestrator.
+- `start-phase` — composite command replacing ~5 manual update-field calls. Sets phaseActivity (to `setup`), agentId, increments attempts counter, clears stale verdicts (implement clears both to null, verify clears only verifyVerdict), sets timestamps. **Called by the orchestrator on worktree_plet_dir before spawning the subagent** — not the subagent's job. Prevents stale verdict reads on crash-before-start (LOGA Run 3 fix).
 - `update-activity` — set phaseActivity + activityDetail with auto-heartbeat (lastHeartbeat updated automatically)
 - `update-criterion` — update criterion implementation/verification status (unchanged from old update-field, but with auto-heartbeat)
 - `set-verdict` — set implementVerdict or verifyVerdict. Auto-sets phaseActivity to `idle` and updates completedAt timestamp. Subagent's final act.
@@ -1354,3 +1370,37 @@ Option C doesn't help with progress.md/learnings.md/emergent.md merge conflicts.
 **Alternatives rejected:**
 - Keep one script with subcommand groups (e.g., `plet_state.py global init` / `plet_state.py iter init`): Adds a nesting level to every command. The two halves have no shared logic after lifecycle extraction.
 - Keep `update-field` as the primary interface: Forces callers to compose multi-field updates correctly. Error-prone (LOGA Run 3: multiple observations of missing or mismatched field updates).
+
+#### Design hardening decisions — LOGA Run 3 analysis (2026-03-30)
+
+Five decisions to prevent the LOGA Run 3 failure class ("subagent did the work but forgot to set the signal" + "orchestrator read from wrong copy"):
+
+1. **Orchestrator calls start-phase, not subagent.** If subagent crashes before calling start-phase, stale verdicts from previous attempt remain → orchestrator misreads. Orchestrator calls IST start-phase on worktree_plet_dir before spawning subagent. Verdicts guaranteed null at spawn time. Refines SF_26: "sole writer during execution" not "sole writer ever."
+
+2. **Guard assertion on verdict reads.** `assert worktree_plet_dir != global_plet_dir` before reading implementVerdict/verifyVerdict. Verdicts live in worktree per-iteration files — reading from global_plet_dir sees pre-spawn nulls. Structural defense for lifecycle (one copy in state.json). Code-level defense for verdicts (assertion).
+
+3. **Post-gate enforces verdict is set.** Post-implement gate checks implementVerdict not null. Post-verify gate checks verifyVerdict not null. Turns crash-like failure into recoverable one — gate catches, subagent fixes, clean exit. Directly prevents the Run 3 scenario.
+
+4. **phaseActivity is cosmetic, verdicts are load-bearing.** Only verdicts drive lifecycle transitions. Orchestrator must NEVER make decisions based on phaseActivity. Documented as an explicit invariant — prevents drift back to "soft signal" fragility.
+
+5. **Orchestrator crash recovery.** Detect "implementing/verifying in state.json with no active worktree" and reset to queued. New failure mode created by lifecycle-in-state.json: orchestrator writes lifecycle then crashes before spawning subagent. Review SCH_ELG_BHV_5 against new model.
+
+#### Seq 39 plan rework — three-phase migration strategy (2026-03-30)
+
+**Problem with original plan:** Cross-cutting rename (agentActivity → phaseActivity, lastVerdict → implementVerdict/verifyVerdict) was a separate step (39m) at the end, causing double-touching of every file. util_state.py validation update (39e) was after new script implementation (39d) but new scripts depend on it. Tests were all deferred to 39n, leaving 8+ steps with a broken test suite.
+
+**Decision: Three-phase structure.**
+
+Phase 1 — Additive (nothing breaks): 39a–39e. Schema docs, dual-schema util_state.py, new scripts. Existing code keeps working. Natural checkpoint for test run.
+
+Phase 2 — Migrate consumers (39f–39l): Each script migration includes the field renames AND test fixture updates for that script. No separate rename sweep — it's folded in. mock_claude_helper.py explicitly included with orchestrator (39k). SKILL.md plan phase added to reference file updates (39l).
+
+Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_state.py, consistency grep for stale names, final test sweep, remove plet_state.py.
+
+**Key decisions:**
+1. **Dual-schema migration in util_state.py (39d):** Accept both old and new field names during transition. Prevents broken intermediate state. Tightened in 39m after all consumers migrated.
+2. **Fold 39m (rename) into 39f–39k:** Each script step does lifecycle source change + field renames together. 39m becomes tighten + grep, not implementation.
+3. **Tests alongside each script (39f–39k):** Each migration step updates that script's test fixtures. 39n is final sweep, not primary update.
+4. **Swapped 39d/39e:** util_state.py dual-schema (39d) before new scripts (39e) — new scripts depend on updated validation.
+5. **mock_claude_helper.py in 39k:** Writes implementVerdict/verifyVerdict instead of lifecycle/lastVerdict.
+6. **SKILL.md plan phase in 39l:** Plan session calls GST + IST (was only implement.md + verify.md).

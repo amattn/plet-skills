@@ -395,7 +395,7 @@ Examples:
 plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson
 ```
 
-Written by the subagent during work via `plet_trace.py append-event`. Contains high-level semantic events: decisions, criterion status changes, lifecycle transitions, activity changes, errors and recovery actions. Each line is a valid JSON object following the schema in `references/state-schema.md`.
+Written by the subagent during work via `plet_trace.py append-event`. Contains high-level semantic events: decisions, criterion status changes, lifecycle transitions (orchestrator-driven per SF_28), phase activity changes, verdict signals, errors and recovery actions. Each line is a valid JSON object following the schema in `references/state-schema.md`.
 
 Examples:
 - `ID_001-implement-1-events.ndjson`

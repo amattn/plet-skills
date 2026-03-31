@@ -221,11 +221,17 @@ Each phase has an explicit verdict field written by the subagent as its final ac
 | `implementVerdict` | implement | `completed`, `blocked` (null initially) | lifecycle → verifying handoff |
 | `verifyVerdict` | verify | `passed`, `rejected`, `blocked` (null initially) | `lastVerdict` (removed) |
 
-**Verdict clearing on phase start:**
-- Implement start: clear both `implementVerdict` and `verifyVerdict` to null (worktree may have stale values from previous attempt)
-- Verify start: clear only `verifyVerdict` to null (`implementVerdict: "completed"` stays — it's the implement phase's answer)
+**Orchestrator calls `start-phase` before spawning subagent** (not the subagent's job). Prevents stale verdict reads on crash-before-start. Verdict clearing:
+- Implement: clear both `implementVerdict` and `verifyVerdict` to null
+- Verify: clear only `verifyVerdict` to null (`implementVerdict: "completed"` stays)
 
-**Orchestrator reads verdicts from worktree after subagent exits.** `null` verdict = crash (subagent never set it). Orchestrator checks criteria to decide retry vs block.
+This refines SF_26: "During the subagent's execution, only the subagent writes to worktree per-iteration state. Pre-spawn setup by the orchestrator is allowed."
+
+**Orchestrator reads verdicts from worktree after subagent exits.** `null` verdict = crash (subagent never set it). Guard assertion: `worktree_plet_dir != global_plet_dir` before verdict reads (prevents LOGA Run 3 class of bug).
+
+**Post-gate enforces verdict is set.** Post-implement gate checks `implementVerdict` not null. Post-verify gate checks `verifyVerdict` not null. Turns "forgot to set signal" into a recoverable failure (gate catches → subagent fixes → clean exit).
+
+**phaseActivity is cosmetic, verdicts are load-bearing.** Only verdicts drive lifecycle transitions. Orchestrator must NEVER make decisions based on phaseActivity.
 
 ### Script Split: plet_state.py → plet_global_state.py + plet_iter_state.py
 

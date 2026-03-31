@@ -2,7 +2,7 @@
 
 This document defines the JSON schemas for state files and trace NDJSON lines. All subagent prompts reference this file.
 
-**Schema stability contract (SF_13):** State file format changes are additive only — never remove or rename fields. Breaking changes require a major version bump of `schemaVersion`.
+**Schema stability contract (SF_13):** State file format changes are additive only — never remove or rename fields. Breaking changes require a major version bump of `schemaVersion`. **Exception during 0.x development:** while schemaVersion major is 0, breaking changes (field removal, renames) are allowed with a minor version bump per semver convention.
 
 **All state files are valid JSON (SF_14)** parseable by any language or external tool without special libraries.
 
@@ -30,10 +30,12 @@ Rename to: plet/state/ID_001.json
 **State updates MUST be written in real time as the agent works, not batched at the end.** This is what makes plet observable. External consumers (GUI tools, other agents, the orchestrator) rely on state files reflecting current reality — not a summary written after the fact. If an agent crashes mid-work, real-time updates ensure the state file reflects how far it got.
 
 Update the per-iteration state file immediately when:
-- Lifecycle changes (e.g., `queued` → `implementing`)
-- Agent activity changes (e.g., `reading_context` → `implementing`)
+- Phase activity changes (e.g., `setup` → `red` → `green`)
 - A criterion status changes (e.g., `not_started` → `fail` → `pass`)
+- A verdict is set (e.g., `implementVerdict: "completed"`)
 - Heartbeat interval elapses
+
+Note: Lifecycle transitions are written to `state.json` by the orchestrator (SF_28), not to per-iteration files.
 
 ---
 
@@ -45,7 +47,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 
 ```json
 {
-  "schemaVersion": "0.2.0",
+  "schemaVersion": "0.3.0",
   "lastUpdated": "2026-03-07T14:00:00Z",
 
   "projectId": "MYPR",
@@ -59,6 +61,13 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
     "ID_002": ["ID_001"],
     "ID_003": ["ID_001"],
     "ID_004": ["ID_002", "ID_003"]
+  },
+
+  "lifecycles": {
+    "ID_001": "complete",
+    "ID_002": "implementing",
+    "ID_003": "queued",
+    "ID_004": "ineligible"
   },
 
   "milestones": {
@@ -120,6 +129,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `project.name` | string | yes | Project name |
 | `project.description` | string | no | Short project description |
 | `dependencyMap` | object | yes | `{iteration_id: [dependency_ids]}` — lightweight graph (SF_23) |
+| `lifecycles` | object | yes | `{iteration_id: lifecycle_value}` — iteration lifecycle phases (SF_28). Sole source of lifecycle truth. Written only by the orchestrator. Values: see Lifecycle Values below. |
 | `milestones` | object | yes | `{milestone_id: {name, iterations[]}}` |
 | `parallelGroups` | array of arrays | no | Groups of iterations that can execute concurrently (SF_19) |
 | `breakpoints.before` | array of strings | no | Iteration IDs — orchestrator pauses before these (SF_21) |
@@ -135,7 +145,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 
 ## Per-Iteration State: `plet/state/{iteration_id}.json` (SF_2)
 
-Runtime state for a single iteration. Written by the implementation and verification subagents. Read by the orchestrator, verification agents, and external GUI consumers.
+Runtime state for a single iteration. Written by the subagent (sole writer during execution per SF_26). Read by the orchestrator (from worktree after subagent exits), verification agents, and external GUI consumers. Lifecycle is NOT stored here — see `state.json.lifecycles` (SF_28).
 
 Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 
@@ -143,18 +153,20 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 
 ```json
 {
-  "schemaVersion": "0.2.0",
+  "schemaVersion": "0.3.0",
   "iterationId": "ID_001",
   "title": "Project scaffolding",
   "lastUpdated": "2026-03-07T15:30:00Z",
   "lastHeartbeat": "2026-03-07T15:30:00Z",
 
-  "lifecycle": "implementing",
   "dependencies": [],
 
   "agentId": "agent_abc123",
-  "agentActivity": "running_checks",
+  "phaseActivity": "running_checks",
   "activityDetail": "green: all tests passing",
+
+  "implementVerdict": null,
+  "verifyVerdict": null,
 
   "attempts": {
     "implement": 1,
@@ -228,21 +240,20 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
 
 ### Example: Multi-Attempt Lifecycle (implement → verify → implement → verify)
 
-Shows state after two full cycles: first verification rejected, second passed. Reports elided — see the standalone Verification Report example below for full report structure. Note: criteria objects reflect the latest attempt only — previous attempt evidence is overwritten. Per-attempt history is preserved in `verificationReports` and progress.md entries.
+Shows state after two full cycles: first verification rejected, second passed. Reports elided — see the standalone Verification Report example below for full report structure. Note: criteria objects reflect the latest attempt only — previous attempt evidence is overwritten. Per-attempt history is preserved in `verificationReports` and progress.md entries. Lifecycle (`complete`) is in `state.json.lifecycles`, not here.
 
 ```json
 {
-  "schemaVersion": "0.2.0",
+  "schemaVersion": "0.3.0",
   "iterationId": "ID_002",
   "title": "User authentication endpoint",
   "lastUpdated": "2026-03-07T19:30:00Z",
   "lastHeartbeat": "2026-03-07T19:30:00Z",
 
-  "lifecycle": "complete",
   "dependencies": ["ID_001"],
 
   "agentId": null,
-  "agentActivity": "idle",
+  "phaseActivity": "idle",
   "activityDetail": null,
 
   "attempts": {
@@ -278,7 +289,9 @@ Shows state after two full cycles: first verification rejected, second passed. R
 
   "cleanupTagsAutomatically": false,
   "cleanupBranchesAutomatically": false,
-  "lastVerdict": "passed",
+
+  "implementVerdict": "completed",
+  "verifyVerdict": "passed",
 
   "criteria": [
     {
@@ -339,11 +352,12 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `title` | string | yes | Human-readable iteration title |
 | `lastUpdated` | string (ISO 8601) | yes | Timestamp of last write (SF_11) |
 | `lastHeartbeat` | string (ISO 8601) | no | Agent heartbeat for stale detection; > 5 min = potentially crashed (SF_20) |
-| `lifecycle` | string (enum) | yes | Current lifecycle phase (SF_3) |
 | `dependencies` | array of strings | yes | Iteration IDs that must be `complete` first (SF_9) |
 | `agentId` | string \| null | yes | Agent session ID, null if idle (SF_5) |
-| `agentActivity` | string (enum) | no | Current agent activity state (SF_4) |
-| `activityDetail` | string | no | Human-readable activity description (SF_4) |
+| `phaseActivity` | string (enum) | no | Current phase activity state — phase-specific values (SF_4). Cosmetic only — does NOT drive lifecycle transitions. |
+| `activityDetail` | string | no | Human-readable activity description (SF_4). Cosmetic only — same as phaseActivity. |
+| `implementVerdict` | string \| null | no | Implement phase verdict: `completed`, `blocked`, or null (not yet set). Written by implement subagent as final act. (SF_28) |
+| `verifyVerdict` | string \| null | no | Verify phase verdict: `passed`, `rejected`, `blocked`, or null (not yet set). Written by verify subagent as final act. (SF_28) |
 | `attempts.implement` | number | yes | Implementation attempt count (SF_22) |
 | `attempts.verify` | number | yes | Verification attempt count (SF_22) |
 | `phaseTimestamps` | object | no | Start/end timestamps per phase per attempt (SF_22) |
@@ -353,10 +367,12 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after merge-squash (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. (IMP_17) |
 | `cleanupBranchesAutomatically` | boolean | no | When `true`, iteration branch is deleted after merge-squash to workstream. Inherited from global `state.json` at initialization. Default `false` — branch kept. Independent of `cleanupTagsAutomatically`. |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
-| `lastVerdict` | string | no | Most recent verification verdict (`passed`, `rejected`, `blocked`). Absent until the first verification attempt completes. Updated by the verify agent at the same time as appending to `verificationReports`. Convenience field — canonical source is `verificationReports`. |
+| ~~`lastVerdict`~~ | | | **Removed.** Replaced by `verifyVerdict` (SF_28). |
 | `verificationReports` | array | no | One verification report per verify attempt, ordered by attempt number. See Verification Report below. |
 
-### Lifecycle Values (SF_3)
+### Lifecycle Values (SF_3, SF_28)
+
+Lifecycle is stored in `state.json.lifecycles`, NOT in per-iteration files. The orchestrator is the sole writer.
 
 | Value | Meaning |
 |-------|---------|
@@ -368,39 +384,78 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `blocked` | Agent encountered an unresolvable issue |
 | `withdrawn` | Deliberately retired during refine — superseded, descoped, or user changed direction. Terminal state. |
 
-**Lifecycle Ownership (IMP_8, SF_26):** Transitions are split into handoffs and decisions:
+**Lifecycle Ownership (IMP_8, SF_28):** The orchestrator is the sole lifecycle writer. Subagents signal completion via verdict fields.
 
-| Transition | Owner | Where written | Type |
-|-----------|-------|--------------|------|
-| `queued` → `implementing` | Implement subagent | Worktree | First action on start |
-| `implementing` → `verifying` | Implement subagent | Worktree | Handoff (signals completion) |
-| `verifying` → `verifying` | Verify subagent | Worktree | Confirms on start (symmetric, no-op in happy path) |
-| `verifying` → `complete` | Orchestrator | Global | Decision (after merge-squash succeeds) |
-| `verifying` → `queued` | Orchestrator | Global | Decision (retry — lastVerdict was rejected) |
-| `verifying` → `blocked` | Orchestrator | Global | Decision (retry exhausted or lastVerdict was blocked) |
+| Transition | Trigger | Where lifecycle written |
+|-----------|---------|------------------------|
+| `queued` → `implementing` | Orchestrator spawns implement subagent | `state.json` (orchestrator) |
+| `implementing` → `verifying` | Orchestrator reads `implementVerdict: "completed"` from worktree | `state.json` (orchestrator) |
+| `verifying` → `complete` | Orchestrator reads `verifyVerdict: "passed"`, merge-squash succeeds | `state.json` (orchestrator) |
+| `verifying` → `queued` | Orchestrator reads `verifyVerdict: "rejected"`, retry allowed | `state.json` (orchestrator) |
+| `verifying` → `blocked` | Orchestrator reads `blocked` verdict or retry exhausted | `state.json` (orchestrator) |
+| `implementing` → `blocked` | Orchestrator reads `implementVerdict: "blocked"` or crash | `state.json` (orchestrator) |
 
-**Symmetric pattern:** Both subagents set their lifecycle as their first action (implementing/verifying). Both are sole writers to the worktree. The orchestrator writes ZERO per-iteration state during the iteration (SF_26) and writes final lifecycle to the global copy only after the iteration is done (SF_27).
+**Pre-spawn setup:** The orchestrator calls IST `start-phase` on `worktree_plet_dir` before spawning the subagent. This clears stale verdicts (implement: both to null, verify: verifyVerdict to null), sets `phaseActivity: "setup"`, increments attempts, and sets timestamps. This prevents stale verdict reads on crash-before-start.
 
-The verify subagent sets `lastVerdict` and confirms `lifecycle: "verifying"` — it does NOT change lifecycle to any other value. Gate scripts enforce this (GPH_PST_BHV_12).
+**Post-gate safety net:** Post-implement gate checks `implementVerdict` not null. Post-verify gate checks `verifyVerdict` not null. If a subagent "does the work but forgets to set the verdict," the gate catches it before exit.
 
-**Two-copy model during iteration:** Per-iteration state files exist in both the global copy (`global_plet_dir`, on workstream branch) and the worktree copy (`worktree_plet_dir`, on iteration branch). The worktree copy is authoritative during the iteration. The global copy is stale. See NOTES.md § Plet Directory Variables for naming taxonomy.
+**Two-copy model during iteration:** Per-iteration state files exist in both the global copy (`global_plet_dir`, on workstream branch) and the worktree copy (`worktree_plet_dir`, on iteration branch). The worktree copy is authoritative during the subagent's execution. Lifecycle is NOT in per-iteration files, so the two-copy problem only affects per-iteration data (criteria, verdicts, activity). See NOTES.md § Plet Directory Variables for naming taxonomy.
 
-### Agent Activity Values (SF_4)
+### Phase Activity Values (SF_4)
+
+**phaseActivity is cosmetic — monitoring/display only. Only verdicts drive lifecycle transitions.** The orchestrator must NEVER make decisions based on phaseActivity.
+
+Values are phase-specific:
+
+**Implement phase:**
 
 | Value | Meaning |
 |-------|---------|
-| `idle` | No agent currently working |
-| `reading_context` | Agent is reading requirements, learnings, prior state |
-| `implementing` | Agent is writing code or tests |
-| `running_checks` | Agent is running test suite, linter, formatter, type checker |
-| `committing` | Agent is committing changes |
-| `wrapping_up` | Agent is writing final state updates, artifacts, trace entries |
+| `setup` | Reading requirements, learnings, prior state |
+| `red` | Writing a failing test |
+| `green` | Implementing to make the test pass |
+| `running_checks` | Running test suite, linter, formatter, type checker |
+| `committing` | Committing changes |
+| `wrapping_up` | Writing final state updates, artifacts, trace entries |
+| `idle` | Done — verdict set |
+
+**Verify phase:**
+
+| Value | Meaning |
+|-------|---------|
+| `setup` | Reading requirements, implementation, prior state |
+| `verifying` | Checking criteria against the implementation |
+| `fixing` | Fix-in-place for minor issues (VF_15) |
+| `writing_report` | Composing the verification report |
+| `running_checks` | Running test suite after fixes |
+| `committing` | Committing changes |
+| `wrapping_up` | Writing final state updates, artifacts, trace entries |
+| `idle` | Done — verdict set |
 
 The `activityDetail` string provides human-readable context, e.g.:
 - `"red: writing failing test for AC_3"`
 - `"green: all tests passing"`
 - `"running linter — 2 warnings found, fixing"`
 - `"committing: plet: [ID_001] implement-1 - Project scaffolding"`
+
+### Verdict Values (SF_28)
+
+**Implement verdicts** (`implementVerdict` field):
+
+| Value | Meaning | Orchestrator action |
+|-------|---------|---------------------|
+| `completed` | All criteria implemented | Write lifecycle → `verifying` |
+| `blocked` | Cannot proceed without human input | Write lifecycle → `blocked` |
+| `null` | Not yet set (or subagent crashed) | Check criteria, retry or block |
+
+**Verify verdicts** (`verifyVerdict` field):
+
+| Value | Meaning | Orchestrator action |
+|-------|---------|---------------------|
+| `passed` | All criteria pass verification | Merge-squash, write lifecycle → `complete` |
+| `rejected` | Issues found, cycle back | Check retry limits, write lifecycle → `queued` or `blocked` |
+| `blocked` | Cannot verify without human input | Write lifecycle → `blocked` |
+| `null` | Not yet set (or subagent crashed) | Check criteria, retry or block |
 
 ### Criterion Two-State Model (SF_7)
 
@@ -488,17 +543,19 @@ Each verification attempt appends one report to the `verificationReports` array.
 | `criteriaResults[].relatedEntries` | array of strings | Plet IDs for entries specific to this criterion (e.g., a learnings entry about a test quality issue, an emergent entry about a spec gap for this AC) |
 | `relatedEntries` | array of strings | Plet IDs for iteration-spanning entries (e.g., the progress entry for this verification phase, learnings about cross-cutting patterns) |
 
-### Verdict Values
+### Verification Report Verdicts
 
-| Value | Meaning | Lifecycle transition | Progress.md title |
+The report's `verdict` field aligns with `verifyVerdict` values:
+
+| Value | Meaning | Orchestrator action | Progress.md title |
 |-------|---------|---------------------|-------------------|
-| `passed` | All criteria pass verification. Iteration is frozen. No further work needed. | `verifying` → `complete` | `COMPLETE (passed, frozen)` |
-| `rejected` | Substantial issues found. New criteria and/or failing tests added. Iteration returns to implementation unless retry limit is exhausted — see note below. | `verifying` → `implementing` | `COMPLETE (rejected, cycle back)` |
-| `blocked` | Verification cannot proceed without human input. Spec ambiguity or environmental issue. | `verifying` → `blocked` | `BLOCKED` |
+| `passed` | All criteria pass verification. Iteration is frozen. No further work needed. | Write lifecycle → `complete` | `COMPLETE (passed, frozen)` |
+| `rejected` | Substantial issues found. New criteria and/or failing tests added. Iteration returns to implementation unless retry limit is exhausted — see note below. | Write lifecycle → `queued` or `blocked` | `COMPLETE (rejected, cycle back)` |
+| `blocked` | Verification cannot proceed without human input. Spec ambiguity or environmental issue. | Write lifecycle → `blocked` | `BLOCKED` |
 
 The progress.md status reflects the *phase attempt* outcome (did the verify agent finish its work?), while the parenthetical echoes the verdict for scannability. `BLOCKED` needs no parenthetical — the status is the verdict.
 
-**Retry exhaustion:** A `rejected` verdict normally cycles back to implementation, but the orchestrator enforces retry limits (IMP_14). If the limit is exhausted, the orchestrator transitions the iteration to `lifecycle: "blocked"` instead of allowing another implementation attempt, and writes a `BLOCKED` progress entry and `blocker` emergent entry explaining retry exhaustion. The verify agent is unaware of retry limits — it always reports its verdict; the orchestrator decides whether to act on it or stop.
+**Retry exhaustion:** A `rejected` verdict normally cycles back to implementation, but the orchestrator enforces retry limits (IMP_14). If the limit is exhausted, the orchestrator writes `lifecycle: "blocked"` to state.json instead of allowing another implementation attempt, and writes a `BLOCKED` progress entry and `blocker` emergent entry explaining retry exhaustion. The verify agent is unaware of retry limits — it always reports its verdict; the orchestrator decides whether to act on it or stop.
 
 The `criteriaResults` array is a compact index — the full evidence stays in each criterion's `verification` object. `relatedEntries` exists at both levels: report-level for iteration-spanning concerns, criterion-level for findings specific to a single AC. This avoids duplication while giving readers a scannable overview with direct links to detailed artifacts.
 
@@ -535,14 +592,14 @@ Each line in a `-events.ndjson` file is a JSON object capturing one semantic eve
 | `decision` | `{"description": "...", "rationale": "...", "alternatives": [...]}` | Decision made by the agent |
 | `criterion_update` | `{"criterionId": "AC_1", "phase": "implementation", "status": "pass", "evidence": "..."}` | Criterion status change |
 | `lifecycle_change` | `{"from": "queued", "to": "implementing"}` | Iteration lifecycle transition |
-| `activity_change` | `{"activity": "running_checks", "detail": "green: all tests passing"}` | Agent activity state change |
+| `activity_change` | `{"activity": "running_checks", "detail": "green: all tests passing"}` | Phase activity state change |
 | `error` | `{"message": "...", "code": "...", "context": "...", "recovery": "..."}` | Error encountered and recovery action |
 
 ### Example Semantic Event Lines
 
 ```ndjson
 {"timestamp":"2026-03-07T15:00:00Z","type":"lifecycle_change","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"from":"queued","to":"implementing"}}
-{"timestamp":"2026-03-07T15:00:01Z","type":"activity_change","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"activity":"reading_context","detail":"reading requirements.md and learnings.md"}}
+{"timestamp":"2026-03-07T15:00:01Z","type":"activity_change","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"activity":"setup","detail":"reading requirements.md and learnings.md"}}
 {"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"description":"Using pytest over unittest for testing","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}}
 {"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}}
 ```
@@ -580,3 +637,5 @@ When plet reads a state file with a `schemaVersion` newer than plet supports:
 - **Patch** (1.4.2 → 1.4.3): New optional fields with defaults — fully backward compatible
 - **Minor** (1.4.3 → 1.5.0): New required fields or structural additions — auto-migratable
 - **Major** (2.3.4 → 3.0.0): Removed or renamed fields — breaking change, requires manual migration
+
+**Exception during 0.x development:** While schemaVersion major is 0, breaking changes (field removal, renames) are allowed with a minor version bump per semver convention. Example: 0.2.0 → 0.3.0 for the lifecycle extraction (SF_28), which removes `lifecycle` and `lastVerdict` from per-iteration files and renames `agentActivity` → `phaseActivity`.
