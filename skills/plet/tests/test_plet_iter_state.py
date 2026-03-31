@@ -11,6 +11,12 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(__file__))
+from util_test_fixtures import make_plet_dir as _make_plet_dir, read_iter_state
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import iter_state_path
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_iter_state.py")
 
 passed = 0
@@ -41,24 +47,19 @@ def check(name, condition, detail=""):
 
 
 def make_plet_dir():
-    """Create a temp dir with state/ subdirectory."""
-    d = tempfile.mkdtemp()
-    os.makedirs(os.path.join(d, "state"), exist_ok=True)
-    return d
+    """Create a temp dir with state/ subdirectory. Returns path only."""
+    plet_dir, _ = _make_plet_dir()
+    return plet_dir
 
 
 def write_iter_state(plet_dir, data, iter_id="ID_001"):
-    path = os.path.join(plet_dir, "state", "{}.json".format(iter_id))
+    """Write arbitrary data to an iter state file (for invalid-state tests)."""
+    path = iter_state_path(plet_dir, iter_id)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
     return path
-
-
-def read_iter_state(plet_dir, iter_id="ID_001"):
-    path = os.path.join(plet_dir, "state", "{}.json".format(iter_id))
-    with open(path) as f:
-        return json.load(f)
 
 
 def init_iter(plet_dir, iter_id="ID_001", title="Test iteration",

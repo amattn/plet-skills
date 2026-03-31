@@ -11,6 +11,12 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(__file__))
+from util_test_fixtures import make_global_state, read_global_state
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from util_io import state_json_path
+
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_global_state.py")
 
 passed = 0
@@ -41,9 +47,10 @@ def check(name, condition, detail=""):
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
 
 
-def write_state(tmpdir, data):
-    """Write a state.json file into tmpdir."""
-    path = os.path.join(tmpdir, "state.json")
+def write_raw_state(tmpdir, data):
+    """Write arbitrary data to state.json (for invalid-state tests)."""
+    path = state_json_path(tmpdir)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
@@ -99,7 +106,7 @@ def test_help():
 def test_validate_valid():
     print("\n## validate — valid state.json")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, err, _ = run(["validate", d])
         check("exits 0", True)
         check("OK in output", "OK" in out)
@@ -108,7 +115,7 @@ def test_validate_valid():
 def test_validate_valid_json():
     print("\n## validate — valid state.json (JSON output)")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["validate", d, "--output", "json"])
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
@@ -119,7 +126,7 @@ def test_validate_valid_json():
 def test_validate_invalid():
     print("\n## validate — invalid state.json")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, {"not": "valid"})
+        write_raw_state(d, {"not": "valid"})
         out, err, _ = run(["validate", d], expect_exit=1)
         check("exits 1", True)
         check("INVALID in output", "INVALID" in out or "error" in err.lower())
@@ -128,7 +135,7 @@ def test_validate_invalid():
 def test_validate_invalid_json_output():
     print("\n## validate — invalid state.json (JSON output)")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, {"not": "valid"})
+        write_raw_state(d, {"not": "valid"})
         out, _, _ = run(["validate", d, "--output", "json"], expect_exit=1)
         data = json.loads(out)
         check("status error", data["status"] == "error")
@@ -148,7 +155,7 @@ def test_validate_invalid_lifecycle_in_lifecycles():
     with tempfile.TemporaryDirectory() as d:
         state = dict(VALID_STATE)
         state["lifecycles"] = {"ID_001": "running"}
-        write_state(d, state)
+        write_raw_state(d, state)
         _, err, _ = run(["validate", d], expect_exit=1)
         check("rejects invalid lifecycle", "running" in err or "invalid" in err.lower())
 
@@ -246,7 +253,7 @@ def test_init_defaults():
 def test_init_exists_error():
     print("\n## init — errors if state.json already exists")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         _, err, _ = run([
             "init", d,
             "--project-id", "TEST",
@@ -325,7 +332,7 @@ def test_init_plet_dir_missing():
 def test_update_lifecycle_basic():
     print("\n## update-lifecycle — basic transition")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "implementing"])
         check("exits 0", True)
         check("transition in output", "queued" in out and "implementing" in out)
@@ -338,7 +345,7 @@ def test_update_lifecycle_basic():
 def test_update_lifecycle_same_value():
     print("\n## update-lifecycle — same value (no-op)")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued"])
         check("exits 0", True)
         check("already in output", "already" in out.lower())
@@ -347,7 +354,7 @@ def test_update_lifecycle_same_value():
 def test_update_lifecycle_new_iter():
     print("\n## update-lifecycle — new iteration ID (not in lifecycles)")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_099", "--lifecycle", "queued"])
         check("exits 0", True)
 
@@ -359,7 +366,7 @@ def test_update_lifecycle_new_iter():
 def test_update_lifecycle_invalid_value():
     print("\n## update-lifecycle — invalid lifecycle value")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         _, err, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "running"], expect_exit=1)
         check("rejects invalid", "running" in err or "invalid" in err.lower())
 
@@ -367,7 +374,7 @@ def test_update_lifecycle_invalid_value():
 def test_update_lifecycle_json_output():
     print("\n## update-lifecycle — JSON output")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "implementing", "--output", "json"])
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
@@ -379,7 +386,7 @@ def test_update_lifecycle_json_output():
 def test_update_lifecycle_json_noop():
     print("\n## update-lifecycle — JSON output no-op")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued", "--output", "json"])
         data = json.loads(out)
         check("changed false", data["changed"] is False)
@@ -388,7 +395,7 @@ def test_update_lifecycle_json_noop():
 def test_update_lifecycle_new_iter_json():
     print("\n## update-lifecycle — new iter JSON (from null)")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_099", "--lifecycle", "queued", "--output", "json"])
         data = json.loads(out)
         check("from null", data["from"] is None)
@@ -406,7 +413,7 @@ def test_update_lifecycle_missing_state():
 def test_update_lifecycle_updates_timestamp():
     print("\n## update-lifecycle — updates lastUpdated")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         old_ts = VALID_STATE["lastUpdated"]
         run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "implementing"])
         with open(os.path.join(d, "state.json")) as f:
@@ -421,7 +428,7 @@ def test_update_lifecycle_updates_timestamp():
 def test_get_lifecycle_all():
     print("\n## get-lifecycle — all iterations")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["get-lifecycle", d])
         check("exits 0", True)
         check("ID_001 in output", "ID_001" in out)
@@ -432,7 +439,7 @@ def test_get_lifecycle_all():
 def test_get_lifecycle_single():
     print("\n## get-lifecycle — single iteration")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["get-lifecycle", d, "--iter-id", "ID_001"])
         check("exits 0", True)
         check("ID_001 in output", "ID_001" in out)
@@ -442,7 +449,7 @@ def test_get_lifecycle_single():
 def test_get_lifecycle_not_found():
     print("\n## get-lifecycle — iteration not found")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         _, err, _ = run(["get-lifecycle", d, "--iter-id", "ID_099"], expect_exit=1)
         check("error mentions ID_099", "ID_099" in err)
 
@@ -450,7 +457,7 @@ def test_get_lifecycle_not_found():
 def test_get_lifecycle_json_all():
     print("\n## get-lifecycle — JSON all iterations")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["get-lifecycle", d, "--output", "json"])
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
@@ -466,7 +473,7 @@ def test_get_lifecycle_json_all():
 def test_get_lifecycle_json_single():
     print("\n## get-lifecycle — JSON single iteration (same shape)")
     with tempfile.TemporaryDirectory() as d:
-        write_state(d, VALID_STATE)
+        write_raw_state(d, VALID_STATE)
         out, _, _ = run(["get-lifecycle", d, "--iter-id", "ID_001", "--output", "json"])
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
@@ -481,7 +488,7 @@ def test_get_lifecycle_sorted():
     with tempfile.TemporaryDirectory() as d:
         state = dict(VALID_STATE)
         state["lifecycles"] = {"ID_003": "queued", "ID_001": "complete", "ID_002": "implementing"}
-        write_state(d, state)
+        write_raw_state(d, state)
         out, _, _ = run(["get-lifecycle", d])
         lines = [l for l in out.strip().split("\n") if l.startswith("ID_")]
         ids = [l.split(":")[0].strip() for l in lines]
@@ -493,7 +500,7 @@ def test_get_lifecycle_empty():
     with tempfile.TemporaryDirectory() as d:
         state = dict(VALID_STATE)
         state["lifecycles"] = {}
-        write_state(d, state)
+        write_raw_state(d, state)
         out, _, _ = run(["get-lifecycle", d, "--output", "json"])
         data = json.loads(out)
         check("lifecycles empty", data["lifecycles"] == {})

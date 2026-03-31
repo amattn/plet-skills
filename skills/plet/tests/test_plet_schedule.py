@@ -13,6 +13,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(__file__))
+from util_test_fixtures import make_global_state as _make_global_state, make_iter_state as _make_iter_state
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from util_io import state_json_path, state_dir_path, iter_state_path
 
@@ -49,52 +52,19 @@ def check(name, condition, detail=""):
 
 
 def make_global_state(plet_dir, dep_map=None, breakpoints=None, lifecycles=None):
-    """Create a minimal global state.json with dependency map and lifecycles."""
-    state = {
-        "schemaVersion": "0.2.0",
-        "projectId": "TEST",
-        "project": {"name": "Test Project"},
-        "loopSessionCount": 1,
-        "refineSessionCount": 0,
-        "dependencyMap": dep_map or {},
-        "lifecycles": lifecycles or {},
-        "milestones": [],
-        "parallelGroups": [],
-        "sessionHistory": [],
-    }
-    if breakpoints is not None:
-        state["breakpoints"] = breakpoints
-    path = state_json_path(plet_dir)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(state, f)
-    return path
+    """Create a minimal global state.json — delegates to shared fixture."""
+    return _make_global_state(plet_dir, dep_map=dep_map,
+                              lifecycles=lifecycles, loop_session=1,
+                              breakpoints=breakpoints)
 
 
 def make_iter_state(plet_dir, iter_id, attempts=None,
                     verification_reports=None, verify_verdict=None):
-    """Create a minimal per-iteration state file (no lifecycle — SF_28)."""
-    state = {
-        "schemaVersion": "0.2.0",
-        "iterationId": iter_id,
-        "title": "Test iteration {}".format(iter_id),
-        "attempts": attempts or {"implement": 0, "verify": 0},
-        "criteria": [],
-        "phaseTimestamps": {},
-        "phaseActivity": "idle",
-        "agentId": None,
-        "lastUpdated": "2026-03-29T00:00:00Z",
-        "dependencies": [],
-    }
-    if verification_reports is not None:
-        state["verificationReports"] = verification_reports
-    if verify_verdict is not None:
-        state["verifyVerdict"] = verify_verdict
-    path = iter_state_path(plet_dir, iter_id)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(state, f)
-    return path
+    """Create a minimal per-iteration state file — delegates to shared fixture."""
+    return _make_iter_state(plet_dir, iter_id=iter_id,
+                            attempts=attempts,
+                            verification_reports=verification_reports,
+                            verify_verdict=verify_verdict)
 
 
 # ===========================================================================
