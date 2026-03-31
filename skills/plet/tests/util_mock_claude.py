@@ -63,8 +63,8 @@ def main(argv):
 
     if phase == "implement":
         state["attempts"]["implement"] = state["attempts"].get("implement", 0) + 1
-        state["lifecycle"] = "verifying"  # handoff
-        state["agentActivity"] = "idle"
+        state["implementVerdict"] = "readyForVerification"  # handoff (SF_28)
+        state["phaseActivity"] = "idle"
         for c in state.get("criteria", []):
             if "implementation" in c:
                 c["implementation"]["status"] = "pass"
@@ -87,9 +87,8 @@ def main(argv):
         if behavior == "reject_then_pass" and attempt == 1:
             verdict = "rejected"
 
-        state["lastVerdict"] = verdict
-        state["agentActivity"] = "idle"
-        # Do NOT set lifecycle — verify doesn't own it
+        state["verifyVerdict"] = verdict  # SF_28 (was lastVerdict)
+        state["phaseActivity"] = "idle"
 
         if "verificationReports" not in state:
             state["verificationReports"] = []

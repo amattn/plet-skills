@@ -35,7 +35,7 @@ from util_io import (
     iter_state_path,
     derive_worktree_plet_dir,
 )
-from util_state import load_and_validate_iter_state
+from util_state import load_and_validate_iter_state, load_and_validate_global_state
 
 SCRIPT_VERSION = "0.1.0"
 from util_constants import SKILL_VERSION  # noqa: E402
@@ -66,6 +66,14 @@ def _run_script_json(script_name, args, cwd=None):
         return json.loads(stdout), stderr, rc
     except json.JSONDecodeError:
         return None, "Failed to parse JSON: " + stdout[:200], rc
+
+
+def _update_lifecycle(global_plet_dir, iter_id, lifecycle):
+    """Update lifecycle in state.json via plet_global_state.py (SF_28)."""
+    _run_script("plet_global_state.py", [
+        "update-lifecycle", global_plet_dir,
+        "--iter-id", iter_id, "--lifecycle", lifecycle,
+    ])
 
 
 def _emit_event(event, output_ndjson):
@@ -326,20 +334,22 @@ def cmd_run(args):
             _emit_text("[{}] {}: implementing...".format(
                 completed_this_run + 1, iter_id), output_ndjson)
 
-            # Create worktree — NO reservation write (SF_26: subagent is sole writer)
+            # Create worktree
             wt_data, wt_err, wt_rc = _run_script_json("plet_git_iteration.py",
                 ["worktree-create", global_plet_dir, "--iter-id", iter_id])
 
             if wt_rc != 0 or wt_data is None:
                 _emit_text("  Error creating worktree: {}".format(wt_err), output_ndjson)
-                _run_script("plet_state.py", ["update-field", global_plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
+                _update_lifecycle(global_plet_dir, iter_id, "blocked")
                 failed_this_round.add(iter_id)
                 continue
 
             worktree_path = os.path.abspath(wt_data.get("worktreePath", ""))
             worktree_plet_dir = derive_worktree_plet_dir(worktree_path, global_plet_dir)
 
-            # IMPLEMENT — subagent sets lifecycle → implementing as first action
+            # IMPLEMENT — orchestrator owns lifecycle (SF_28)
+            _update_lifecycle(global_plet_dir, iter_id, "implementing")
+
             impl_out, impl_err, impl_rc = _run_script("plet_invoke.py", ["run", global_plet_dir,
                 "--iter-id", iter_id, "--phase", "implement",
                 "--cwd", worktree_path])
@@ -353,21 +363,24 @@ def cmd_run(args):
             _emit_event({"type": "iteration_phase_complete", "iterationId": iter_id,
                          "phase": "implement"}, output_ndjson)
 
-            # Check: did implement produce commits?
-            head_result = subprocess.run(["git", "log", "--oneline", "-1"],
-                capture_output=True, text=True, cwd=worktree_path)
+            # Guard assertion: worktree_plet_dir != global_plet_dir (prevents Run 3 bug)
+            assert worktree_plet_dir != global_plet_dir, \
+                "worktree_plet_dir must differ from global_plet_dir"
 
-            # Read state from WORKTREE to check lifecycle handoff (SF_26)
+            # Check implementVerdict from WORKTREE (SF_28 — subagent sets it)
             iter_state = load_and_validate_iter_state(worktree_plet_dir, iter_id)
-            if iter_state is None or iter_state.get("lifecycle") != "verifying":
-                _emit_text("  Implement did not complete handoff", output_ndjson)
-                _run_script("plet_state.py", ["update-field", global_plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
+            implement_verdict = iter_state.get("implementVerdict") if iter_state else None
+            if implement_verdict is None:
+                _emit_text("  Implement did not set implementVerdict — blocking", output_ndjson)
+                _update_lifecycle(global_plet_dir, iter_id, "blocked")
                 _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir,
                     "--iter-id", iter_id])
                 failed_this_round.add(iter_id)
                 continue
 
-            # VERIFY
+            # VERIFY — orchestrator sets verifying before spawn (SF_28)
+            _update_lifecycle(global_plet_dir, iter_id, "verifying")
+
             _emit_event({"type": "iteration_start", "iterationId": iter_id,
                          "phase": "verify"}, output_ndjson)
             _emit_text("[{}] {}: verifying...".format(
@@ -380,24 +393,22 @@ def cmd_run(args):
             _emit_event({"type": "iteration_phase_complete", "iterationId": iter_id,
                          "phase": "verify"}, output_ndjson)
 
-            # Read verdict from WORKTREE (SF_26 — subagent wrote there)
+            # Guard assertion (repeated before verify verdict read)
+            assert worktree_plet_dir != global_plet_dir, \
+                "worktree_plet_dir must differ from global_plet_dir"
+
+            # Read verifyVerdict from WORKTREE (SF_28 — was lastVerdict)
             iter_state = load_and_validate_iter_state(worktree_plet_dir, iter_id)
-            verdict = iter_state.get("lastVerdict") if iter_state else None
+            verdict = iter_state.get("verifyVerdict") if iter_state else None
 
             if verdict is None:
-                _emit_text("  Verify did not set lastVerdict — blocking", output_ndjson)
-                _run_script("plet_state.py", ["update-field", global_plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
+                _emit_text("  Verify did not set verifyVerdict — blocking", output_ndjson)
+                _update_lifecycle(global_plet_dir, iter_id, "blocked")
             elif verdict == "passed":
                 # Merge-squash to workstream
-                # Before merge-squash: commit global state, revert per-iteration state
-                # Per-iteration state on workstream may be dirty from verdict handoffs
-                # (rejected/blocked writes for scheduling). Revert to committed version
-                # so merge-squash doesn't conflict. Merge brings iteration branch's state.
-                # Revert only THIS iteration's state file (not other iterations' verdict handoffs)
-                iter_state_file = os.path.join(global_plet_dir, "state", "{}.json".format(iter_id))
-                if os.path.isfile(iter_state_file):
-                    subprocess.run(["git", "checkout", "--", iter_state_file],
-                        capture_output=True)
+                # SF_28 simplification: no per-iteration state file revert needed.
+                # Orchestrator never writes to per-iteration files on workstream.
+                # Commit pending state.json changes before merge-squash.
                 subprocess.run(["git", "add", "-A"], capture_output=True)
                 subprocess.run(["git", "commit", "-m",
                     "plet: state before merge-squash {}".format(iter_id),
@@ -409,14 +420,12 @@ def cmd_run(args):
                     _emit_event({"type": "error", "iterationId": iter_id,
                                  "error": "merge-squash failed: " + ms_err[:200]}, output_ndjson)
                     _emit_text("  merge-squash failed — blocking: {}".format(ms_err[:200]), output_ndjson)
-                    _run_script("plet_state.py", ["update-field", global_plet_dir, "--iter-id", iter_id,
-                        "--data", json.dumps({"lifecycle": "blocked"})])
+                    _update_lifecycle(global_plet_dir, iter_id, "blocked")
                     _emit_event({"type": "iteration_complete", "iterationId": iter_id,
                                  "lifecycle": "blocked"}, output_ndjson)
                     failed_this_round.add(iter_id)
                 else:
-                    _run_script("plet_state.py", ["update-field", global_plet_dir, "--iter-id", iter_id,
-                        "--data", json.dumps({"lifecycle": "complete"})])
+                    _update_lifecycle(global_plet_dir, iter_id, "complete")
                     completed_this_run += 1
                     _emit_event({"type": "iteration_merged", "iterationId": iter_id}, output_ndjson)
                     _emit_event({"type": "iteration_complete", "iterationId": iter_id,
@@ -429,27 +438,21 @@ def cmd_run(args):
                     ["check-retry", worktree_plet_dir, "--iter-id", iter_id])
                 decision = retry_data.get("decision", "abort") if retry_data else "abort"
                 if decision == "continue" or decision == "first":
-                    _run_script("plet_state.py", ["update-field", global_plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "queued"})])
+                    _update_lifecycle(global_plet_dir, iter_id, "queued")
                     _emit_event({"type": "iteration_complete", "iterationId": iter_id,
                                  "lifecycle": "queued"}, output_ndjson)
                     _emit_text("[{}] {}: rejected, retry queued".format(
                         completed_this_run + 1, iter_id), output_ndjson)
                 else:
-                    _run_script("plet_state.py", ["update-field", global_plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
+                    _update_lifecycle(global_plet_dir, iter_id, "blocked")
                     _emit_event({"type": "iteration_complete", "iterationId": iter_id,
                                  "lifecycle": "blocked"}, output_ndjson)
                     _emit_text("[{}] {}: rejected, retry exhausted — blocked".format(
                         completed_this_run + 1, iter_id), output_ndjson)
             elif verdict == "blocked":
-                _run_script("plet_state.py", ["update-field", global_plet_dir, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "blocked"})])
+                _update_lifecycle(global_plet_dir, iter_id, "blocked")
                 _emit_event({"type": "iteration_complete", "iterationId": iter_id,
                              "lifecycle": "blocked"}, output_ndjson)
-
-            # NO per-iteration state writes to workstream (SF_26).
-            # Verdict handoff is tracked in-memory via completed_this_run/failed_this_round.
-            # Per-iteration state reaches workstream ONLY via merge-squash (passed) or
-            # stays on iteration branch (rejected/blocked).
-            # Global state (state.json, progress.md) committed before merge-squash.
 
             # Cleanup worktree
             _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir,

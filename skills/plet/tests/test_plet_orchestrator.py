@@ -83,7 +83,8 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
     if dep_map is None:
         dep_map = {it["id"]: it["deps"] for it in iterations}
 
-    # state.json
+    # state.json — lifecycles in global state (SF_28)
+    lifecycles = {it["id"]: "queued" for it in iterations}
     state = {
         "schemaVersion": "0.2.0",
         "projectId": "TEST",
@@ -91,21 +92,22 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
         "loopSessionCount": 0,
         "refineSessionCount": 0,
         "dependencyMap": dep_map,
+        "lifecycles": lifecycles,
         "milestones": {},
         "parallelGroups": [],
         "sessionHistory": [],
         "iterationsFingerprint": {},
+        "breakpoints": {"before": [], "after": []},
     }
     with open(state_json_path(plet_dir), "w") as f:
         json.dump(state, f)
 
-    # Per-iteration state files
+    # Per-iteration state files — NO lifecycle field (SF_28)
     for it in iterations:
         iter_state = {
             "schemaVersion": "0.2.0",
             "iterationId": it["id"],
             "title": it["title"],
-            "lifecycle": "queued",
             "attempts": {"implement": 0, "verify": 0},
             "dependencies": it["deps"],
             "criteria": [
@@ -114,9 +116,17 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
                  "verification": {"status": "not_started"}}
             ],
             "phaseTimestamps": {},
-            "agentActivity": "idle",
+            "phaseActivity": "idle",
             "agentId": None,
             "lastUpdated": "2026-03-29T00:00:00Z",
+            "lastHeartbeat": "2026-03-29T00:00:00Z",
+            "implementVerdict": None,
+            "verifyVerdict": None,
+            "verificationReports": [],
+            "activityDetail": None,
+            "elapsedSeconds": {"total": 0},
+            "cleanupTagsAutomatically": False,
+            "cleanupBranchesAutomatically": False,
         }
         with open(iter_state_path(plet_dir, it["id"]), "w") as f:
             json.dump(iter_state, f)
@@ -207,19 +217,6 @@ with tempfile.TemporaryDirectory() as tmp:
     check("missing state.json exits 1", True)
 
 # ===========================================================================
-# TEMPORARILY SKIPPED — orchestrator fixtures need lifecycle extraction (40f)
-# All tests below require state.json.lifecycles which setup_project doesn't
-# create yet. Uncomment when 40f is implemented.
-# ===========================================================================
-
-print("\n## SKIPPED — {} orchestrator tests pending lifecycle extraction (40f)".format(
-    "remaining"))
-
-if True:  # skip block — remove when 40f is done
-    print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
-    sys.exit(1 if failed else 0)
-
-# ===========================================================================
 # run — nothing eligible (all complete, no session started)
 # ===========================================================================
 
@@ -229,13 +226,11 @@ with tempfile.TemporaryDirectory() as tmp:
     plet_dir = setup_project(tmp, iterations=[
         {"id": "ID_001", "title": "Done", "deps": []},
     ])
-    # Set iteration to complete
-    isp = iter_state_path(plet_dir, "ID_001")
-    with open(isp) as f:
-        ist = json.load(f)
-    ist["lifecycle"] = "complete"
-    with open(isp, "w") as f:
-        json.dump(ist, f)
+    # Set iteration to complete in state.json.lifecycles (SF_28)
+    gs = load_json(state_json_path(plet_dir))
+    gs["lifecycles"]["ID_001"] = "complete"
+    with open(state_json_path(plet_dir), "w") as f:
+        json.dump(gs, f)
 
     out, err, _ = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"])
     # Should return immediately with all_complete, no session started
@@ -291,10 +286,11 @@ with tempfile.TemporaryDirectory() as tmp:
     check("result iterationsCompleted 1", result.get("iterationsCompleted") == 1,
           "got: " + str(result.get("iterationsCompleted")))
 
-    # Verify state on disk
-    ist = load_json(iter_state_path(plet_dir, "ID_001"))
-    check("state lifecycle complete", ist and ist.get("lifecycle") == "complete",
-          "got: " + str(ist.get("lifecycle") if ist else "None"))
+    # Verify lifecycle in state.json (SF_28)
+    gs_after = load_json(state_json_path(plet_dir))
+    lc = gs_after.get("lifecycles", {}).get("ID_001") if gs_after else None
+    check("lifecycle complete in state.json", lc == "complete",
+          "got: " + str(lc))
 
     # Verify session history closed
     gs = load_json(state_json_path(plet_dir))
@@ -341,9 +337,10 @@ with tempfile.TemporaryDirectory() as tmp:
           "got: " + str(result.get("reason")))
     check("iterationsCompleted 1", result.get("iterationsCompleted") == 1)
 
-    ist = load_json(iter_state_path(plet_dir, "ID_001"))
-    check("final lifecycle complete", ist and ist.get("lifecycle") == "complete",
-          "got: " + str(ist.get("lifecycle") if ist else "None"))
+    gs_after = load_json(state_json_path(plet_dir))
+    lc = gs_after.get("lifecycles", {}).get("ID_001") if gs_after else None
+    check("final lifecycle complete", lc == "complete",
+          "got: " + str(lc))
 
 
 # ===========================================================================
@@ -384,10 +381,10 @@ with tempfile.TemporaryDirectory() as tmp:
     if len(complete_ids) >= 2:
         check("ID_001 before ID_002", complete_ids.index("ID_001") < complete_ids.index("ID_002"))
 
-    ist1 = load_json(iter_state_path(plet_dir, "ID_001"))
-    ist2 = load_json(iter_state_path(plet_dir, "ID_002"))
-    check("ID_001 lifecycle complete", ist1 and ist1.get("lifecycle") == "complete")
-    check("ID_002 lifecycle complete", ist2 and ist2.get("lifecycle") == "complete")
+    gs_after = load_json(state_json_path(plet_dir))
+    lcs = gs_after.get("lifecycles", {}) if gs_after else {}
+    check("ID_001 lifecycle complete", lcs.get("ID_001") == "complete")
+    check("ID_002 lifecycle complete", lcs.get("ID_002") == "complete")
 
 
 # ===========================================================================
@@ -467,11 +464,11 @@ with tempfile.TemporaryDirectory() as tmp:
     # Let's test the mixed outcome differently: make ID_002 pass but ID_003
     # stuck because we manually set ID_002 to blocked before running.
 
-    # Actually, simplest approach: pre-block ID_002 so ID_003 is stuck
-    ist2 = load_json(iter_state_path(plet_dir, "ID_002"))
-    ist2["lifecycle"] = "blocked"
-    with open(iter_state_path(plet_dir, "ID_002"), "w") as f:
-        json.dump(ist2, f)
+    # Pre-block ID_002 in state.json.lifecycles so ID_003 is stuck (SF_28)
+    gs = load_json(state_json_path(plet_dir))
+    gs["lifecycles"]["ID_002"] = "blocked"
+    with open(state_json_path(plet_dir), "w") as f:
+        json.dump(gs, f)
     subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
     subprocess.run(["git", "commit", "-m", "block ID_002"], cwd=tmp, capture_output=True)
 
@@ -504,11 +501,11 @@ with tempfile.TemporaryDirectory() as tmp:
     check("ID_003 is stuck", "ID_003" in stuck_ids,
           "stuckIterations: " + str(stuck_ids))
 
-    ist1 = load_json(iter_state_path(plet_dir, "ID_001"))
-    check("ID_001 complete", ist1 and ist1.get("lifecycle") == "complete")
-    ist3 = load_json(iter_state_path(plet_dir, "ID_003"))
-    check("ID_003 still queued (stuck)", ist3 and ist3.get("lifecycle") == "queued",
-          "got: " + str(ist3.get("lifecycle") if ist3 else "None"))
+    gs_after = load_json(state_json_path(plet_dir))
+    lcs = gs_after.get("lifecycles", {}) if gs_after else {}
+    check("ID_001 complete", lcs.get("ID_001") == "complete")
+    check("ID_003 still queued (stuck)", lcs.get("ID_003") == "queued",
+          "got: " + str(lcs.get("ID_003")))
 
 
 # ===========================================================================
@@ -543,13 +540,11 @@ with tempfile.TemporaryDirectory() as tmp:
     check("iterationsCompleted 1", result.get("iterationsCompleted") == 1,
           "got: " + str(result.get("iterationsCompleted")))
 
-    # One iteration complete, one still queued
-    ist1 = load_json(iter_state_path(plet_dir, "ID_001"))
-    ist2 = load_json(iter_state_path(plet_dir, "ID_002"))
-    completed = sum(1 for ist in [ist1, ist2]
-                    if ist and ist.get("lifecycle") == "complete")
-    queued = sum(1 for ist in [ist1, ist2]
-                 if ist and ist.get("lifecycle") == "queued")
+    # One iteration complete, one still queued (check state.json.lifecycles)
+    gs_after = load_json(state_json_path(plet_dir))
+    lcs = gs_after.get("lifecycles", {}) if gs_after else {}
+    completed = sum(1 for lc in lcs.values() if lc == "complete")
+    queued = sum(1 for lc in lcs.values() if lc == "queued")
     check("one complete one queued", completed == 1 and queued == 1,
           "complete={} queued={}".format(completed, queued))
 
@@ -581,10 +576,11 @@ with tempfile.TemporaryDirectory() as tmp:
     check("iterationsCompleted 0", result.get("iterationsCompleted") == 0,
           "got: " + str(result.get("iterationsCompleted")))
 
-    # Iteration should be blocked (no commits = handoff didn't happen)
-    ist = load_json(iter_state_path(plet_dir, "ID_001"))
-    check("lifecycle blocked", ist and ist.get("lifecycle") == "blocked",
-          "got: " + str(ist.get("lifecycle") if ist else "None"))
+    # Iteration should be blocked in state.json (no commits = handoff didn't happen)
+    gs_after = load_json(state_json_path(plet_dir))
+    lc = gs_after.get("lifecycles", {}).get("ID_001") if gs_after else None
+    check("lifecycle blocked", lc == "blocked",
+          "got: " + str(lc))
 
 
 # ===========================================================================
@@ -600,14 +596,9 @@ with tempfile.TemporaryDirectory() as tmp:
     ])
 
     # Simulate a crashed session: ID_001 already complete, session active
-    ist1 = load_json(iter_state_path(plet_dir, "ID_001"))
-    ist1["lifecycle"] = "complete"
-    ist1["lastVerdict"] = "passed"
-    with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
-        json.dump(ist1, f)
-
-    # Start a session manually (so it's active with endedAt=null)
+    # Set lifecycle in state.json (SF_28)
     gs = load_json(state_json_path(plet_dir))
+    gs["lifecycles"]["ID_001"] = "complete"
     gs["loopSessionCount"] = 1
     gs["sessionHistory"] = [{
         "type": "loop", "session": 1,
@@ -649,9 +640,10 @@ with tempfile.TemporaryDirectory() as tmp:
           "got: " + str(result.get("reason")))
 
     # ID_001 was already complete, ID_002 should now be complete
-    ist2 = load_json(iter_state_path(plet_dir, "ID_002"))
-    check("ID_002 complete", ist2 and ist2.get("lifecycle") == "complete",
-          "got: " + str(ist2.get("lifecycle") if ist2 else "None"))
+    gs_after = load_json(state_json_path(plet_dir))
+    lc2 = gs_after.get("lifecycles", {}).get("ID_002") if gs_after else None
+    check("ID_002 complete", lc2 == "complete",
+          "got: " + str(lc2))
 
     # Session should be ended now
     gs = load_json(state_json_path(plet_dir))
