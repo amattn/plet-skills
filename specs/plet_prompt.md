@@ -151,7 +151,7 @@ The prompt is assembled from sections in a specific order. The order matters —
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PRM_ASM_BHV_15 | **iteration-definition extraction:** Reads `iterations.md` and extracts the block for the specified `--iter-id`. The block includes the iteration's title, acceptance criteria, dependencies, and any notes. Extraction uses the iteration ID as a heading or marker to find the relevant section. | P0 |
-| PRM_ASM_BHV_16 | **iteration-state formatting:** Reads the per-iteration state JSON and formats it as human-readable context: iteration ID, title, lifecycle, attempt counts, criteria with statuses. Not raw JSON — structured for agent comprehension. | P0 |
+| PRM_ASM_BHV_16 | **iteration-state formatting:** Reads the per-iteration state JSON and formats it as human-readable context: iteration ID, title, lifecycle (from `state.json.lifecycles`, SF_28), attempt counts, criteria with statuses. Not raw JSON — structured for agent comprehension. | P0 |
 | PRM_ASM_BHV_17 | **missing optional files:** If `learnings.md` doesn't exist or is empty, include the section header with a note: "No learnings from prior iterations." Never skip the section — its presence reminds the agent that learnings exist as a concept. | P0 |
 | PRM_ASM_BHV_18 | **reference file location:** Reference files are located relative to the script's own directory (`${CLAUDE_SKILL_DIR}/references/`), not relative to plet_dir. They're part of the skill package, not the project. | P0 |
 | PRM_ASM_BHV_19 | **section headers in text mode:** Each section is preceded by a markdown header: `# {Section Name}` followed by a blank line, then the content. This makes the prompt scannable and allows agents to reference sections by name. | P0 |
@@ -195,7 +195,7 @@ The prompt is assembled from sections in a specific order. The order matters —
 |----|-------------|----------|
 | PRM_FMT_1 | Reads skill reference files: `implement.md`, `verify.md`, `formats.md`, `state-schema.md` | P0 |
 | PRM_FMT_2 | Reads plet project files: `requirements.md`, `iterations.md`, `learnings.md` | P0 |
-| PRM_FMT_3 | Reads per-iteration state: `{plet_dir}/state/{iter_id}.json` | P0 |
+| PRM_FMT_3 | Reads per-iteration state: `{plet_dir}/state/{iter_id}.json`. Reads lifecycle from `{plet_dir}/state.json` → `lifecycles` (SF_28). | P0 |
 | PRM_FMT_4 | Writes nothing — read-only. | P0 |
 | PRM_FMT_5 | Output: plain text (sections with markdown headers) or JSON (sections array). | P0 |
 
@@ -249,7 +249,7 @@ plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement
 # # Iteration State
 #
 # Iteration: ID_001 — Project scaffolding
-# Lifecycle: implementing
+# Lifecycle: implementing  (from state.json.lifecycles)
 # Attempt: implement-1, verify-0
 # Criteria: 3 total, 0 passed, 0 failed
 # ...
@@ -284,7 +284,7 @@ plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement --output json -
 |----|-----------|--------|-------------|
 | PRM_DEP_1 | imports | `util_cli` | shared CLI helpers |
 | PRM_DEP_2 | imports | `util_io` | path derivation, load functions |
-| PRM_DEP_3 | imports | `util_state` | `load_and_validate_iter_state` for state formatting |
+| PRM_DEP_3 | imports | `util_state` | `load_and_validate_iter_state`, `load_and_validate_global_state` for state formatting + lifecycle |
 | PRM_DEP_4 | called by | `plet_invoke.py` | assembles prompt before subprocess launch |
 
 No subprocess calls to other plet scripts — PRM is a leaf that reads files directly.
