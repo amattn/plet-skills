@@ -60,6 +60,15 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 35 | Cascade lifecycle ownership model | Sweep: update implement.md, verify.md, SKILL.md, state-schema.md, prd.md, PLET.md, plet_state.md with handoffs-vs-decisions model. Must complete before ORC implementation — subagents read these during work. |
 | 36 | Implement `plet_orchestrator.py` | Build from spec. |
 | 37 | Make plet_dir required positional (FB_57) | Less invasive than --plet-dir flag: keep positional, remove default. `get_plet_dir` errors if missing instead of falling back to `plet/`. Update tests that rely on default. Eliminates ordering confusion + supports subplet nested paths. Plan with PLAN_10 (subplets). |
+| 38 | Worktree state invariants | Orchestrator writes ZERO per-iteration state during iteration. Subagent is sole writer (worktree). Orchestrator writes final lifecycle to global_plet_dir ONLY after verdict. Reservation write eliminated. Spec before implementation. |
+| 38a | Rename plet_dir → global_plet_dir / worktree_plet_dir across scripts + skills | Establishes vocabulary first. Consistency sweep: orchestrator, util_io, SKILL.md, reference files, specs. No "root" prefix — breaks for subplets. |
+| 38b | `prd.md` — add worktree state invariants as requirements | New requirement(s) under SF or IMP: two-copy model, sole writer rule, verdict handoff. Reference from IMP_8 (lifecycle ownership). |
+| 38c | `specs/plet_orchestrator.md` — add Worktree State Invariants section | Remove reservation from BHV_10. Update BHV_12-15 for verdict handoff. Uses global_plet_dir / worktree_plet_dir terms. |
+| 38d | `skills/plet/references/state-schema.md` — document two-copy model | Per-iteration state has two copies during iteration (worktree authoritative, global stale). |
+| 38e | `skills/plet/references/implement.md` + `verify.md` — sole writer note | Subagents are sole writers of per-iteration state. Writes go to worktree plet/ (their cwd). Global copy is stale during iteration. |
+| 38f | `NOTES.md` (root) — add worktree state invariants to Important Concepts | Cross-ref specs/NOTES.md for details. |
+| 38g | `plet_orchestrator.py` — remove reservation write, apply invariants | Remove all per-iteration state writes during iteration body. All post-subagent reads from worktree_plet_dir. Verdict handoff: write final lifecycle to global_plet_dir + immediate git commit. |
+| 38h | `mock_claude_helper.py` + tests — worktree writes, fix tests | Mock writes to worktree plet/ (cwd). Mock sets lifecycle → implementing as first action. Fix all orchestrator integration tests. |
 
 ## Status
 
@@ -104,3 +113,12 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 35 | Cascade lifecycle ownership model | ✓ complete |
 | 36 | `plet_orchestrator.py` implementation | ✓ complete |
 | 37 | Make plet_dir required positional | ✓ complete |
+| 38 | Worktree state invariants | not started |
+| 38a | Rename global_plet_dir / worktree_plet_dir | not started |
+| 38b | prd.md — invariant requirements | not started |
+| 38c | ORC spec — invariants section | not started |
+| 38d | state-schema.md — two-copy model | not started |
+| 38e | implement.md + verify.md — sole writer note | not started |
+| 38f | Root NOTES.md — invariants | not started |
+| 38g | Orchestrator — apply invariants | not started |
+| 38h | Mock + tests — fix for worktree writes | not started |

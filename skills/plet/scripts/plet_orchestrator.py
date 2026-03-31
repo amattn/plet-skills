@@ -341,6 +341,13 @@ def cmd_run(args):
 
             worktree_path = os.path.abspath(wt_data.get("worktreePath", ""))
 
+            # Reserve: set lifecycle → implementing IN THE WORKTREE
+            # Writing to the worktree avoids merge conflicts — the subagent
+            # will also write to the worktree, and merge-squash brings it all
+            # to the workstream in one squashed commit.
+            wt_plet = worktree_plet_dir(worktree_path, plet_dir)
+            _run_script("plet_state.py", ["update-field", wt_plet, "--iter-id", iter_id, "--data", json.dumps({"lifecycle": "implementing"})])
+
             # IMPLEMENT
             impl_out, impl_err, impl_rc = _run_script("plet_invoke.py", ["run", plet_dir,
                 "--iter-id", iter_id, "--phase", "implement",

@@ -1157,3 +1157,43 @@ Also: `plan` and `refine` are session phases used in runtime artifact entries an
 **Do NOT unify these.** The distinction is semantic: command phases are short verbs (CLI), criterion phases are nouns (data model), lifecycle states are gerunds (activity). Unifying creates ambiguity.
 
 **Bug fixed (FB_59):** `util_cli._log_script_invocation` used the raw `--phase` arg from criterion commands, creating trace files named `implementation-1` instead of `implement-1`. Fixed: logger now normalizes criterion phases → command phases for trace file naming.
+
+#### Worktree state file invariants (2026-03-30)
+
+During an iteration, two copies of per-iteration state files exist: the main repo's copy (on the workstream branch) and the worktree's copy (on the iteration branch). LOGA Run 3 revealed merge conflicts and stale reads from confusion about which copy is authoritative.
+
+**Six invariants:**
+
+1. **During an iteration, the worktree copy is the single source of truth for per-iteration state.** The main repo's copy is stale and frozen.
+
+2. **The orchestrator writes per-iteration state to the worktree only during the iteration.** Reservation (`lifecycle → implementing`) goes to the worktree. Post-subagent reads come from the worktree.
+
+3. **The orchestrator writes lifecycle to the main repo ONLY after the iteration is done — the "verdict handoff."** Passed: after merge-squash. Rejected: explicit `lifecycle → queued`. Blocked: explicit `lifecycle → blocked`.
+
+4. **Global state (state.json) lives in the main repo only.** Session history, dependency map, counters. Subagents may read the worktree's stale copy but never modify it.
+
+5. **No concurrent writes to the same state file.** During iteration: only worktree written. Between iterations: only main repo written. Eliminates merge conflicts entirely.
+
+6. **Lifecycle synced to main repo before the next `eligible()` call.** Otherwise scheduling reads stale lifecycle.
+
+**Simplified rule (revised after deeper analysis):** The orchestrator writes ZERO per-iteration state during the iteration. Only the subagent writes per-iteration state (to the worktree). The orchestrator writes the final lifecycle to root plet_dir ONLY after the verdict is processed.
+
+| When | Who writes | Where | What |
+|------|-----------|-------|------|
+| During iteration | Subagent only | Worktree only | Everything (lifecycle, criteria, attempts, reports) |
+| After verdict | Orchestrator only | Root only | Final lifecycle (complete/queued/blocked) |
+| Always | Orchestrator | Root only | Global state.json (session history, counters) |
+
+**The reservation write (`lifecycle → implementing`) is eliminated.** It was the source of merge conflicts — orchestrator modified root, subagent modified worktree, merge-squash conflicted. Without it: subagent is the sole writer, merge-squash is clean.
+
+**Accepted trade-offs:**
+- Worktree starts with lifecycle "queued" — subagent's first action sets "implementing" (per implement.md § Set Up State)
+- External consumers see "queued" in root during iteration — NDJSON `iteration_start` event and worktree existence signal "in flight"
+- Verification reports for rejected iterations only on iteration branch — worktree recreated on retry, reports preserved
+
+**Gotchas addressed:**
+- Post-verdict writes need immediate git commit (crash recovery)
+- check-retry must read from wt_plet (root has no reports)
+- `git add -A && git commit` before merge-squash still needed for global state + prior verdict handoffs
+
+**Discovered during:** LOGA Run 3. Orchestrator set `lifecycle → implementing` in main repo, subagent wrote to worktree → merge conflict on merge-squash. Reservation write was the root cause.

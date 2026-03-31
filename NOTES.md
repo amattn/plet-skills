@@ -165,6 +165,18 @@ project (LOGA)
 - Modify planner, refiner, implement agent, verify agent behavior
 - *(No files defined yet — shape TBD, see Open Questions)*
 
+### Plet Directory Variables
+
+During the loop phase, two copies of per-iteration state files exist. Variable names distinguish which copy:
+
+| Variable | Meaning | Who writes | Used for |
+|----------|---------|-----------|----------|
+| `global_plet_dir` | Workstream copy (main working tree) | Orchestrator (verdict handoff only) | Scheduling (eligible), global state (state.json), final lifecycle |
+| `worktree_plet_dir` | Iteration copy (git worktree) | Subagent only | Criteria, attempts, lifecycle during iteration, reports |
+| `plet_dir` | Raw input arg | — | Before orchestrator renames to `global_plet_dir` |
+
+**No "root" prefix** — breaks for subplets where the "root" plet dir isn't the project root. "Global" means "the scheduling/workstream copy" regardless of nesting level.
+
 ### ID Conventions
 
 - All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`) — underscores over dashes so a double-click selects the entire ID for copy-paste. Slightly less aesthetic but worth the ergonomic trade. Longer prefixes (3-4 chars) are acceptable when they improve readability (e.g., `PLAN_1`).
