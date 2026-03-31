@@ -40,7 +40,7 @@ The `/plet` entry point needs to know which phase the project is in, what the cu
 - **`detect`** (DET) — Determine which session type to enter (plan, loop, refine, or status). Read-only routing primitive. Called by SKILL.md at every `/plet` invocation.
 - **`status`** (STA) — Project status dashboard: iteration counts, blockers, active agents. Read-only. Called by SKILL.md for `/plet status` and by humans for inspection. (Note: STA abbreviation is different from plet_state.py's STA prefix.)
 - **`preflight`** (PRE) — Pre-session environment checks (scripts installed, git health, fingerprints consistent). Read-only. Returns go/no-go verdict. Called before every session.
-- **`postflight`** (PSF) — Post-session health checks. Internally calls preflight for shared checks, then adds end-of-session checks (transient lifecycle detection — iterations stuck in `implementing`/`verifying`). Read-only. Warnings only, never blocks end-session. Called by orchestrator before closing the session. Separate command for discoverability and symmetry with preflight; may diverge in the future.
+- **`postflight`** (PSF) — Post-session health checks. Internally calls preflight for shared checks, then adds end-of-session checks (transient lifecycle detection — iterations stuck in `implementing`/`verifying` per `state.json.lifecycles`, SF_28). Read-only. Warnings only, never blocks end-session. Called by orchestrator before closing the session. Separate command for discoverability and symmetry with preflight; may diverge in the future.
 
 ### Universal Flags
 
@@ -129,7 +129,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 | GSS_DET_BHV_3 | If state exists with any iterations in `queued`, `implementing`, or `verifying` → `loop` (OR_4). `ineligible` alone does NOT trigger loop. | P0 |
 | GSS_DET_BHV_4 | If state exists and all iterations are `complete` → `refine` (OR_5) | P0 |
 | GSS_DET_BHV_5 | If state exists with `blocked` iterations and none `queued`/`implementing`/`verifying` → `refine` (OR_6) | P0 |
-| GSS_DET_BHV_6 | Scans `plet/state/*.json` to determine iteration lifecycles. Uses `util_state.load_and_validate_iter_state()` for each. Invalid state files are skipped with warning. | P0 |
+| GSS_DET_BHV_6 | Reads lifecycles from `state.json.lifecycles` (SF_28). No per-iteration file scanning needed for lifecycle detection — O(1) file read. Invalid or missing lifecycles dict treated as empty (→ plan or refine). | P0 |
 | GSS_DET_BHV_7 | `reason` field in JSON explains why this session type was chosen (e.g., "3 queued iterations found" or "no plet directory"). | P0 |
 
 ---
@@ -195,7 +195,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
     {"iterationId": "...", "title": "..."}
   ],
   "activeAgents": [
-    {"iterationId": "...", "agentId": "...", "activity": "..."}
+    {"iterationId": "...", "agentId": "...", "phaseActivity": "..."}
   ],
   "fingerprints": {"consistent": true|false|null},
   "warnings": ["..."],
@@ -222,10 +222,10 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_STS_BHV_1 | Scans all `*.json` files in `state_dir` (excluding `state.json`). Loads each via `util_state.load_and_validate_iter_state()`. | P0 |
-| GSS_STS_BHV_2 | Counts iterations by lifecycle: ineligible, queued, implementing, verifying, complete, blocked, withdrawn. | P0 |
-| GSS_STS_BHV_3 | Lists blocked iterations with their IDs and titles. | P0 |
-| GSS_STS_BHV_4 | Lists active agents (iterations where `agentId` is not null) with iteration ID and activity. | P0 |
+| GSS_STS_BHV_1 | Reads lifecycle counts from `state.json.lifecycles` (SF_28). Also scans per-iteration files in `state_dir` for non-lifecycle data (titles, agentId, phaseActivity, blockers, milestones). | P0 |
+| GSS_STS_BHV_2 | Counts iterations by lifecycle from `state.json.lifecycles`: ineligible, queued, implementing, verifying, complete, blocked, withdrawn. | P0 |
+| GSS_STS_BHV_3 | Lists blocked iterations with their IDs and titles. Blocked status from `state.json.lifecycles`, title from per-iteration file. | P0 |
+| GSS_STS_BHV_4 | Lists active agents (iterations where `agentId` is not null) with iteration ID and `phaseActivity` (was `agentActivity`). | P0 |
 | GSS_STS_BHV_5 | Calls `detect` logic internally to include `sessionType` in output. | P0 |
 | GSS_STS_BHV_6 | Checks fingerprint consistency by calling `plet_fingerprint.py check` via subprocess. Reports `consistent: true/false`. If fingerprint check fails (missing files or script not found), reports `consistent: null` with detail. Graceful degradation — status always produces a result. | P1 |
 | GSS_STS_BHV_7 | Invalid state files are counted and reported as warnings. | P0 |
@@ -355,7 +355,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GSS_FMT_1 | Reads `plet/state.json` via `util_state` for project context. | P0 |
-| GSS_FMT_2 | Reads `plet/state/*.json` via `util_state` for iteration lifecycles. | P0 |
+| GSS_FMT_2 | Reads lifecycles from `state.json.lifecycles` (SF_28). Reads per-iteration `state/*.json` for non-lifecycle data (titles, agentId, phaseActivity, reports). | P0 |
 | GSS_FMT_3 | Reads `plet/requirements.md`, `plet/iterations.md` for existence checks. | P0 |
 | GSS_FMT_4 | Reads `CLAUDE.md`, `.gitignore` for preflight. Calls `plet_git_check.py` and `plet_fingerprint.py` via subprocess. | P0 |
 | GSS_FMT_5 | Writes nothing — all commands are read-only. | P0 |
@@ -430,7 +430,7 @@ plet_gate_session.py status plet/
 #   complete: 5 | implementing: 1 | verifying: 0 | queued: 3
 #   ineligible: 3 | blocked: 1 | withdrawn: 0
 # Blockers: ID_008 — OAuth provider sandbox returning 500
-# Active agents: ID_004 (implementing, running_checks)
+# Active agents: ID_004 (phaseActivity: running_checks)
 # Fingerprints: consistent
 # Milestones:
 #   MS_1 (Scaffolding & Core): 3/3 complete
