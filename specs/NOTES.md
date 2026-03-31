@@ -1587,3 +1587,19 @@ Manual-only test (not in test_all.py) that validates `plet_invoke.py → claude 
 #### Test counts at Phase 2 completion
 
 1868 tests across 23 files (~29s). Up from 1750 at Phase 2 start (gained 118 — un-skipped orchestrator, merge driver, session integration).
+
+#### Phase 3 — tighten + cleanup (2026-03-31)
+
+**41a (tighten util_state.py):** Removed dual-schema support. Per-iteration validation now rejects `lifecycle`, `agentActivity`, `lastVerdict` with descriptive error messages. Removed `summary` and `filesChanged` from optional defaults. Tests updated: dual-schema "still accepted" tests → SF_28 enforcement "rejected" tests.
+
+**41b (final test sweep):** 1863 passed, 0 failed. Clean.
+
+**41c (remove plet_state.py):** Deleted script (deprecated since 40b) + test file (129 tests, -2183 lines). Updated: SKILL.md allowed-tools, scripts/CLAUDE.md inventory (now lists GST + IST), preflight scripts-installed (added plet_merge_driver.py), test_util_cli.py logging tests (switched to plet_iter_state.py).
+
+**Lifecycle extraction COMPLETE.** Three phases, 16 steps (39a–41c). Net result: lifecycle lives in state.json.lifecycles, per-iteration state files have no lifecycle field, orchestrator owns all lifecycle transitions via GST, subagents signal via implementVerdict/verifyVerdict.
+
+#### Version bump — 0.4.0 (2026-03-31)
+
+- SCHEMA_VERSION: 0.2.0 → 0.3.0 (additive: lifecycles in state.json, per-iteration fields renamed)
+- SKILL_VERSION: 0.3.2 → 0.4.0 (lifecycle extraction, merge driver, GST/IST split, plet_state.py removed)
+- 1739 tests across 22 files (~24s)

@@ -86,7 +86,7 @@ def test_valid_state():
         check("projectId present", result["projectId"] == "LOGA")
         check("loopSessionCount present", result["loopSessionCount"] == 1)
         check("refineSessionCount present", result["refineSessionCount"] == 0)
-        check("schemaVersion present", result["schemaVersion"] == "0.2.0")
+        check("schemaVersion present", isinstance(result["schemaVersion"], str))
         check("dependencyMap present", "dependencyMap" in result)
         check("milestones present", "milestones" in result)
         check("iterationsFingerprint present", "iterationsFingerprint" in result)
