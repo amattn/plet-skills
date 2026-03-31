@@ -1555,3 +1555,35 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 - `make_audit_tag()` — plet audit tags (was inline subprocess in gate_phase)
 
 **Retrofit:** gate_phase test removed 3 local fixtures and inline audit tag calls, now uses shared versions. 1750 tests total.
+
+#### Phase 2 completion — all consumers migrated (2026-03-31)
+
+**40d (plet_git_check.py):** check-session reads lifecycles from state.json for orphaned-worktrees, unmerged-complete, and workstream-exists. Behavior fix: queued is now non-ineligible for workstream-exists check (was incorrectly treated as inactive).
+
+**40e (plet_prompt.py):** Simplest migration — one line. `format_iteration_state()` now takes lifecycle as a parameter from global state instead of reading from per-iteration file.
+
+**40f (plet_orchestrator.py):** Biggest migration. All `plet_state.py update-field {"lifecycle":...}` calls replaced with `_update_lifecycle()` → `plet_global_state.py update-lifecycle`. Orchestrator sets implementing/verifying before spawning subagents. Handoff check: `implementVerdict != null` (was `lifecycle == "verifying"`). Verdict: `verifyVerdict` (was `lastVerdict`). Guard assertions: `worktree_plet_dir != global_plet_dir` before verdict reads. Per-iteration state revert before merge-squash removed (SF_28 eliminates the conflict). 55 integration tests un-skipped.
+
+**40f mock (util_mock_claude.py):** Writes `implementVerdict = "readyForVerification"` (was `lifecycle = "verifying"`), `verifyVerdict` (was `lastVerdict`), `phaseActivity` (was `agentActivity`).
+
+**40g (reference files + SKILL.md):** implement.md and verify.md rewritten for IST commands, `implementVerdict`/`verifyVerdict` handoff, `phaseActivity`. Lifecycle ownership sections updated — subagents never touch lifecycle (SF_28). SKILL.md plan phase updated to use IST init + GST update-lifecycle.
+
+**implementVerdict convention:** `"readyForVerification"` — descriptive, not routed on (orchestrator checks not-null only). Blocker/retry/ineligible verdicts also possible for future routing.
+
+#### Merge driver — plet_merge_driver.py (2026-03-31)
+
+**Problem:** Worktree isolation (SF_26) means both workstream and iteration branches append to runtime artifacts (progress.md, learnings.md, emergent.md) and trace NDJSON. Merge-squash may conflict.
+
+**Solution:** Custom git merge driver for append-only files. Registered as `plet-append` in `.gitattributes` + `git config`. Logic: verify theirs starts with base (append-only invariant), extract new lines, append to ours. 53 tests including git integration test (real `merge --squash`).
+
+**Integration:** `plet_session.py start-session` creates `.gitattributes` entries and configures `git config` (idempotent). `plet_gate_session.py preflight` WARNs if driver not configured.
+
+**Future:** MGD_FUT_1 — chronological resorting of entries after merge (currently ours-first, theirs-second).
+
+#### Smoke test — smoke_plet_invoke.py (2026-03-31)
+
+Manual-only test (not in test_all.py) that validates `plet_invoke.py → claude -p` with real Claude. Small prompt, no tool use — isolates invoke plumbing from Claude's ability to do work. Motivated by LOGA Run 3 (obs #6-8, #10). First run: ALL PASS — transcript captured (59K, 66 lines).
+
+#### Test counts at Phase 2 completion
+
+1868 tests across 23 files (~29s). Up from 1750 at Phase 2 start (gained 118 — un-skipped orchestrator, merge driver, session integration).
