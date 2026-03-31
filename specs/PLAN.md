@@ -149,4 +149,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 39c | state-schema.md — lifecycles field | ✓ complete |
 | 39d | util_state.py — dual-schema migration | ✓ complete |
 | 39e1 | plet_global_state.py spec (GST) | ✓ complete |
+| 39e2 | plet_global_state.py implementation | ✓ complete |
 | -- | all other steps not yet started |
