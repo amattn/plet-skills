@@ -14,6 +14,16 @@ This was validated across three case studies: state schema drift (the most persi
 
 **The dividing line:** If an agent keeps getting something wrong despite clear instructions, that's a signal to escalate from prose to tooling. If the task requires adapting to novel situations, it stays as a skill.
 
+### Critical Insight: Prefer Required Arguments Over Optional
+
+**Agents forget optional arguments.** When a CLI flag is optional, subagents will omit it — not maliciously, but because optional means "I can skip this" and agents optimize for fewer flags. This leads to missing data that should have been present.
+
+**Design rule for agent-facing CLIs:** If the data is always available to the caller and always useful in the state file, make the argument required. The cost of passing one extra flag is trivial. The cost of missing data (null agentId, no heartbeat, stale values) causes downstream bugs that are hard to diagnose.
+
+Example: `--agent-id` on IST subagent commands. The subagent always has its session ID. Making it optional led to a null gap between `start-phase` (resets to null) and whenever the subagent remembers to pass it. Making it required on every mutating command means every state write identifies who wrote it — no gaps, no guessing.
+
+**When to use optional:** Only when the data genuinely isn't available to some callers, or when the default value is always correct. If you're tempted to make something optional "for convenience," that's a signal to make it required.
+
 ---
 
 ## Stable Label Prefixes
@@ -1257,7 +1267,7 @@ Per-iteration state files LOSE `lifecycle` and `lastVerdict`, GAIN `implementVer
 
 **Two-level status model:** Loop lifecycle (state.json, orchestrator) and phase activity (per-iteration file, subagent) are independent. See NOTES.md § Two-Level Status Model for full taxonomy.
 
-**Rename:** `agentActivity` → `phaseActivity`. Values are phase-specific: implement uses `setup`, `red`, `green`, `running_checks`, `committing`, `wrapping_up`. Verify uses `setup`, `verifying`, `fixing`, `writing_report`, `running_checks`, `committing`, `wrapping_up`. Both end with `idle`. `activityDetail` stays (human-readable string, overwritten on every transition).
+**Rename:** `agentActivity` → `phaseActivity`. Values are phase-specific: implement uses `setup`, `writing_tests`, `implementing`, `running_checks`, `committing`, `wrapping_up`. Verify uses `setup`, `verifying`, `fixing`, `writing_report`, `running_checks`, `committing`, `wrapping_up`. Both end with `idle`. `activityDetail` stays (human-readable string, overwritten on every transition).
 
 **Handoff via phase verdicts (replaces lifecycle handoff):**
 
@@ -1404,3 +1414,60 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 4. **Swapped 39d/39e:** util_state.py dual-schema (39d) before new scripts (39e) — new scripts depend on updated validation.
 5. **mock_claude_helper.py in 39k:** Writes implementVerdict/verifyVerdict instead of lifecycle/lastVerdict.
 6. **SKILL.md plan phase in 39l:** Plan session calls GST + IST (was only implement.md + verify.md).
+
+#### IST spec decisions (2026-03-30)
+
+**Commands finalized (8 → 8, but different 8):**
+- `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`
+- `update-field` removed — all fields now have dedicated commands or are removed
+- `add-report` replaces the verificationReports portion of update-field
+
+**Fields removed from per-iteration state:**
+- `filesChanged` — git history (`git diff --name-only`) is the source of truth. Manually maintained field drifts. Removed from state-schema.md.
+- `summary` — progress.md entries serve the same purpose. `activityDetail` (now required on update-activity) is the living version — always current, not a stale snapshot set once during wrapping_up.
+
+**phaseActivity enum rename:**
+- `red` → `writing_tests` — GUI-friendly label. "red" is TDD jargon; "Writing Tests" is self-descriptive as a badge/label.
+- `green` → `implementing` — same reasoning. The red/green concept lives in activityDetail strings and reference docs, not the enum values.
+
+**`--agent-id` required on all subagent commands:**
+- update-activity, update-criterion, set-verdict, heartbeat, add-report all require `--agent-id`
+- Agents forget optional arguments. If the data is always available to the caller and always useful, make it required. The cost of one extra flag is trivial. The cost of null agentId is hard-to-diagnose downstream bugs.
+- start-phase does NOT take --agent-id — orchestrator doesn't have it pre-spawn. Resets agentId to null (clean slate). Subagent sets it on first update-activity.
+
+**`--activity-detail` required on update-activity:**
+- Same principle — always available, always useful. Every activity change should explain what the agent is doing. Also fills the role that `summary` used to play, but better (always current, not stale).
+
+**`--dependencies-file` and `--cleanup-tags`/`--cleanup-branches` on IST init:**
+- `--dependencies-file` for consistency with GST's `load_json_arg` pattern
+- Cleanup flags: plan session agent reads from state.json (just created by GST init) and passes to IST init. IST doesn't read state.json itself.
+
+**`--phase` instead of `--verdict-type` on set-verdict:**
+- Consistent with start-phase. Same concept, same flag name.
+
+**GST init: plet_dir must exist (not auto-created):**
+- Requirements and iterations files already live there. The caller creates the directory structure.
+
+**GST init: auto-initializes lifecycles from dependency map:**
+- Empty deps → queued, non-empty → ineligible. One less thing for the caller.
+
+**GST init: creates state/ subdirectory (no error if exists):**
+- Prepares for IST init to create per-iteration files.
+
+**GST update-lifecycle: no transition validation:**
+- Validates enum value only. Orchestrator and gate scripts own transition logic. Single-responsibility.
+
+**GST update-lifecycle: full validation before writing:**
+- Not hot-loop (iterations take minutes). Worth the safety — don't make corruption worse.
+
+**GST get-lifecycle: consistent JSON shape:**
+- `{status, lifecycles:{...}, counts:{...}, total:N}` for both single and all. Same shape — callers don't branch.
+
+**GST get-lifecycle: sorted by iteration ID:**
+- Predictable output for agents and humans. JSON consumers can re-sort.
+
+**validate functions return error list (not bool + stderr):**
+- `validate_global_state()` and `validate_iter_state()` return `[]` on success, list of error strings on failure. Callers own error presentation. No more stderr capture hacks.
+
+**`load_json_arg` extracted to util_io:**
+- Handles `--name` (JSON string) or `--name-file` (path) pattern. Reusable across GST and IST.

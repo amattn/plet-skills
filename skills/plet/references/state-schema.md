@@ -186,12 +186,6 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
     "total": null
   },
 
-  "summary": "Initializing project structure with pyproject.toml, ruff, pytest",
-  "filesChanged": [
-    "pyproject.toml",
-    "src/__init__.py",
-    "src/main.py"
-  ],
 
   "cleanupTagsAutomatically": false,
   "cleanupBranchesAutomatically": false,
@@ -280,12 +274,6 @@ Shows state after two full cycles: first verification rejected, second passed. R
     "total": 14400
   },
 
-  "summary": "All criteria pass verification. Iteration frozen.",
-  "filesChanged": [
-    "src/auth.py",
-    "src/middleware.py",
-    "tests/test_auth.py"
-  ],
 
   "cleanupTagsAutomatically": false,
   "cleanupBranchesAutomatically": false,
@@ -362,8 +350,8 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `attempts.verify` | number | yes | Verification attempt count (SF_22) |
 | `phaseTimestamps` | object | no | Start/end timestamps per phase per attempt (SF_22) |
 | `elapsedSeconds` | object | no | Time elapsed in seconds per phase attempt (`implement_1`, `verify_1`, etc.) and `total` across all attempts. Updated opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. |
-| `summary` | string | no | Current work summary (SF_22) |
-| `filesChanged` | array of strings | no | Files modified in current/last phase (SF_22) |
+| ~~`summary`~~ | | | **Removed.** Progress.md entries serve the same purpose. |
+| ~~`filesChanged`~~ | | | **Removed.** Git history (`git diff --name-only`) is the source of truth for changed files. |
 | `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after merge-squash (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. (IMP_17) |
 | `cleanupBranchesAutomatically` | boolean | no | When `true`, iteration branch is deleted after merge-squash to workstream. Inherited from global `state.json` at initialization. Default `false` — branch kept. Independent of `cleanupTagsAutomatically`. |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
@@ -412,8 +400,8 @@ Values are phase-specific:
 | Value | Meaning |
 |-------|---------|
 | `setup` | Reading requirements, learnings, prior state |
-| `red` | Writing a failing test |
-| `green` | Implementing to make the test pass |
+| `writing_tests` | Writing a failing test (red step) |
+| `implementing` | Implementing to make the test pass (green step) |
 | `running_checks` | Running test suite, linter, formatter, type checker |
 | `committing` | Committing changes |
 | `wrapping_up` | Writing final state updates, artifacts, trace entries |
@@ -538,9 +526,9 @@ Each verification attempt appends one report to the `verificationReports` array.
 | `criteriaResults[].id` | string | Criterion ID |
 | `criteriaResults[].status` | string | Verification status (`pass`, `fail`, `skipped`, `error`) |
 | `criteriaResults[].oneLiner` | string | One-sentence summary of the finding |
-| `criteriaResults[].redTest` | string or null | Test name if a failing test was written (cycle-back only). `null` if no test written. |
-| `criteriaResults[].noTestRationale` | string | Why no red test was written (present only when `redTest` is `null` and `status` is `fail`) |
-| `criteriaResults[].relatedEntries` | array of strings | Plet IDs for entries specific to this criterion (e.g., a learnings entry about a test quality issue, an emergent entry about a spec gap for this AC) |
+| `criteriaResults[].redTest` | string | Test name if a failing test was written, or `"none"` if no test written. Required. |
+| `criteriaResults[].noTestRationale` | string | Why no red test was written. Required when `redTest` is `"none"`. |
+| `criteriaResults[].relatedEntries` | array of strings | Plet IDs for entries specific to this criterion. Required (empty array `[]` if none). |
 | `relatedEntries` | array of strings | Plet IDs for iteration-spanning entries (e.g., the progress entry for this verification phase, learnings about cross-cutting patterns) |
 
 ### Verification Report Verdicts

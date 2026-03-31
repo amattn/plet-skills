@@ -196,8 +196,8 @@ Iteration status is tracked at two levels with distinct ownership:
 | Activity | Implement | Verify | Shared? |
 |----------|:---------:|:------:|:-------:|
 | `setup` | ✓ | ✓ | read context, pre-flight |
-| `red` | ✓ | | writing failing test |
-| `green` | ✓ | | implementing to pass test |
+| `writing_tests` | ✓ | | writing failing test (red step) |
+| `implementing` | ✓ | | implementing to pass test (green step) |
 | `verifying` | | ✓ | checking criteria against code |
 | `fixing` | | ✓ | fix-in-place (VF_15) |
 | `writing_report` | | ✓ | composing verification report |
