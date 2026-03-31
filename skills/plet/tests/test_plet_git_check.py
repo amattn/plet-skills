@@ -15,7 +15,15 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+sys.path.insert(0, os.path.dirname(__file__))
+
 from util_io import (state_json_path, state_dir_path, iter_state_path)
+from util_fixture import (
+    make_global_state as _shared_make_global_state,
+    make_iter_state as _shared_make_iter_state,
+    make_git_repo as _shared_make_git_repo,
+    git_run as _shared_git_run,
+)
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_git_check.py")
 
@@ -58,69 +66,33 @@ def check(name, condition, detail=""):
 # ---------------------------------------------------------------------------
 
 def make_git_repo(tmpdir):
-    """Initialize a git repo with an initial commit."""
-    sp.run(["git", "init", tmpdir], capture_output=True, check=True)
-    sp.run(["git", "-C", tmpdir, "config", "user.email", "test@test.com"],
-           capture_output=True, check=True)
-    sp.run(["git", "-C", tmpdir, "config", "user.name", "Test"],
-           capture_output=True, check=True)
-    readme = os.path.join(tmpdir, "README.md")
-    with open(readme, "w") as f:
-        f.write("# Test\n")
-    sp.run(["git", "-C", tmpdir, "add", "."], capture_output=True, check=True)
-    sp.run(["git", "-C", tmpdir, "commit", "-m", "init"],
-           capture_output=True, check=True)
-    return tmpdir
+    return _shared_make_git_repo(tmpdir)
 
 
 def git_run(repo, args):
-    """Run git command in repo."""
-    result = sp.run(["git", "-C", repo] + args, capture_output=True, text=True)
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
+    out, err, rc = _shared_git_run(repo, args)
+    return out, err, rc
 
 
-def write_global_state(plet_dir, data=None):
-    """Write state.json inside plet_dir and return its path."""
-    if data is None:
-        data = {
-            "schemaVersion": "0.2.0",
-            "lastUpdated": "2026-03-07T14:00:00Z",
-            "projectId": "LOGA",
-            "project": {"name": "Log Analyzer"},
-            "dependencyMap": {},
-            "milestones": {},
-            "loopSessionCount": 1,
-            "refineSessionCount": 0,
-            "iterationsFingerprint": {},
-        }
-    os.makedirs(plet_dir, exist_ok=True)
-    path = state_json_path(plet_dir)
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
-    return path
+def write_global_state(plet_dir, lifecycles=None, project_id="LOGA"):
+    """Write state.json with SF_28 lifecycles."""
+    _shared_make_global_state(
+        plet_dir, project_id=project_id, loop_session=1,
+        lifecycles=lifecycles if lifecycles is not None else {},
+    )
+    return state_json_path(plet_dir)
 
 
-def write_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing", **overrides):
-    """Write state/{iter_id}.json inside plet_dir and return its path."""
-    data = {
-        "schemaVersion": "0.2.0",
-        "iterationId": iter_id,
-        "title": "Test iteration",
-        "lastUpdated": "2026-03-07T14:00:00Z",
-        "lifecycle": lifecycle,
-        "dependencies": [],
-        "agentId": "agent_abc123",
-        "attempts": {"implement": 1, "verify": 0},
-        "criteria": [{"id": "AC_1", "description": "Tests pass", "status": "not_started"}],
-    }
-    data.update(overrides)
-    os.makedirs(state_dir_path(plet_dir), exist_ok=True)
-    path = iter_state_path(plet_dir, iter_id)
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
-    return path
+def write_iter_state(plet_dir, iter_id="ID_001", **overrides):
+    """Write per-iteration state file — NO lifecycle field (SF_28)."""
+    _shared_make_iter_state(
+        plet_dir, iter_id=iter_id,
+        agent_id="agent_abc123",
+        attempts={"implement": 1, "verify": 0},
+        criteria=[{"id": "AC_1", "description": "Tests pass", "status": "not_started"}],
+        **overrides,
+    )
+    return iter_state_path(plet_dir, iter_id)
 
 
 def setup_clean_iteration(d):
@@ -129,7 +101,7 @@ def setup_clean_iteration(d):
     Leaves HEAD on the iteration branch."""
     repo = make_git_repo(d)
     plet_dir = os.path.join(repo, "plet")
-    write_global_state(plet_dir)
+    write_global_state(plet_dir, lifecycles={"ID_001": "implementing"})
     write_iter_state(plet_dir)
 
     # Commit state files
@@ -445,13 +417,21 @@ def main():
 def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
     """Set up a repo with workstream, iteration branches, and state files.
     complete_ids: list of iter IDs to mark as complete.
+    Lifecycles go in state.json.lifecycles (SF_28).
     Returns (repo, plet_dir)."""
     if complete_ids is None:
         complete_ids = []
 
     repo = make_git_repo(d)
     plet_dir = os.path.join(repo, "plet")
-    write_global_state(plet_dir)
+
+    # Build lifecycles dict
+    lifecycles = {}
+    for i in range(1, num_iters + 1):
+        iter_id = "ID_{:03d}".format(i)
+        lifecycles[iter_id] = "complete" if iter_id in complete_ids else "implementing"
+
+    write_global_state(plet_dir, lifecycles=lifecycles)
     os.makedirs(state_dir_path(plet_dir), exist_ok=True)
 
     # Commit state dir
@@ -463,8 +443,7 @@ def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
 
     for i in range(1, num_iters + 1):
         iter_id = "ID_{:03d}".format(i)
-        lifecycle = "complete" if iter_id in complete_ids else "implementing"
-        write_iter_state(plet_dir, iter_id=iter_id, lifecycle=lifecycle)
+        write_iter_state(plet_dir, iter_id=iter_id)
 
         # Create iteration branch with a commit
         ws_ref = "plet/LOGA/loop1/workstream" if create_workstream else "main"
@@ -524,8 +503,8 @@ def test_cks_orphaned_worktree():
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
         # Write a withdrawn iteration (non-active, no merge needed)
-        write_global_state(plet_dir)
-        write_iter_state(plet_dir, iter_id="ID_001", lifecycle="withdrawn")
+        write_global_state(plet_dir, lifecycles={"ID_001": "withdrawn"})
+        write_iter_state(plet_dir, iter_id="ID_001")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
         git_run(repo, ["branch", "plet/LOGA/loop1/workstream"])
@@ -574,11 +553,11 @@ def test_cks_unmerged_complete():
 
 
 def test_cks_no_state_files():
-    print("\n## check-session — empty state dir")
+    print("\n## check-session — empty state dir, no lifecycles")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
-        write_global_state(plet_dir)
+        write_global_state(plet_dir, lifecycles={})
         os.makedirs(state_dir_path(plet_dir), exist_ok=True)
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
@@ -589,14 +568,14 @@ def test_cks_no_state_files():
 
 
 def test_cks_workstream_missing_no_active():
-    print("\n## check-session — workstream missing, no active iterations (PASS)")
+    print("\n## check-session — workstream missing, all ineligible (PASS)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
-        write_global_state(plet_dir)
+        # All ineligible — loop hasn't started, no workstream needed
+        write_global_state(plet_dir, lifecycles={"ID_001": "ineligible"})
         os.makedirs(state_dir_path(plet_dir), exist_ok=True)
-        # Write queued iterations
-        write_iter_state(plet_dir, iter_id="ID_001", lifecycle="queued")
+        write_iter_state(plet_dir, iter_id="ID_001")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
         # No workstream branch
@@ -606,13 +585,14 @@ def test_cks_workstream_missing_no_active():
 
 
 def test_cks_workstream_missing_with_active():
-    print("\n## check-session — workstream missing, active iterations (FAIL)")
+    print("\n## check-session — workstream missing, non-ineligible iterations (FAIL)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
-        write_global_state(plet_dir)
+        # Queued is non-ineligible — workstream should exist
+        write_global_state(plet_dir, lifecycles={"ID_001": "queued"})
         os.makedirs(state_dir_path(plet_dir), exist_ok=True)
-        write_iter_state(plet_dir, iter_id="ID_001", lifecycle="implementing")
+        write_iter_state(plet_dir, iter_id="ID_001")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])
         # No workstream branch
@@ -664,7 +644,7 @@ def test_cks_state_dir_not_exists():
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
-        write_global_state(plet_dir)
+        write_global_state(plet_dir, lifecycles={})
         # Don't create state/ dir
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet"])

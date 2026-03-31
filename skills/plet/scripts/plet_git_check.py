@@ -513,22 +513,21 @@ Examples:
     # 1. in-progress-operation
     checks.append(check_in_progress_operation())
 
-    # 2. workstream-exists
+    # 2. workstream-exists — lifecycle from state.json.lifecycles (SF_28)
     ws_exists = branch_exists(ws_branch)
-    active_lifecycles = {"implementing", "verifying", "blocked"}
-    has_active = any(
-        ist.get("_valid") and ist.get("lifecycle") in active_lifecycles
-        for ist in iter_states
+    lifecycles = global_state.get("lifecycles", {})
+    has_non_ineligible = any(
+        lc != "ineligible" for lc in lifecycles.values()
     )
     if ws_exists:
         checks.append(make_check("workstream-exists", "pass",
                                  "{} exists".format(ws_branch)))
-    elif has_active:
+    elif has_non_ineligible:
         checks.append(make_check("workstream-exists", "fail",
-                                 "{} not found but active iterations exist".format(ws_branch)))
+                                 "{} not found but non-ineligible iterations exist".format(ws_branch)))
     else:
         checks.append(make_check("workstream-exists", "pass",
-                                 "{} not found — no active iterations (loop not started)".format(ws_branch)))
+                                 "{} not found — all iterations ineligible (loop not started)".format(ws_branch)))
 
     # 3. orphaned-worktrees
     wt_output = run_git("worktree", "list", "--porcelain").stdout
@@ -550,13 +549,10 @@ Examples:
                 if branch.startswith(branch_prefix) and branch != ws_branch:
                     # Extract iter_id from branch
                     suffix = branch[len(branch_prefix):]
-                    # Check if this iteration is active
-                    is_active = any(
-                        ist.get("_valid") and ist.get("iterationId") == suffix
-                        and ist.get("lifecycle") in active_lifecycles
-                        for ist in iter_states
-                    )
-                    if not is_active:
+                    # Orphaned if lifecycle is complete, withdrawn, or missing (SF_28)
+                    iter_lc = lifecycles.get(suffix)
+                    is_orphaned = iter_lc in (None, "complete", "withdrawn")
+                    if is_orphaned:
                         orphaned_wts.append({
                             "path": current_wt.get("path", "?"),
                             "branch": branch
@@ -567,12 +563,9 @@ Examples:
             branch = current_wt.get("branch", "")
             if branch.startswith(branch_prefix) and branch != ws_branch:
                 suffix = branch[len(branch_prefix):]
-                is_active = any(
-                    ist.get("_valid") and ist.get("iterationId") == suffix
-                    and ist.get("lifecycle") in active_lifecycles
-                    for ist in iter_states
-                )
-                if not is_active:
+                iter_lc = lifecycles.get(suffix)
+                is_orphaned = iter_lc in (None, "complete", "withdrawn")
+                if is_orphaned:
                     orphaned_wts.append({
                         "path": current_wt.get("path", "?"),
                         "branch": branch
@@ -623,12 +616,10 @@ Examples:
     # 5. no-stashes
     checks.append(check_no_stashes())
 
-    # 6. unmerged-complete
-    complete_iters = [ist for ist in iter_states
-                      if ist.get("_valid") and ist.get("lifecycle") == "complete"]
+    # 6. unmerged-complete — lifecycle from state.json.lifecycles (SF_28)
+    complete_iter_ids = [iid for iid, lc in lifecycles.items() if lc == "complete"]
     unmerged = []
-    for ist in complete_iters:
-        iter_id = ist["iterationId"]
+    for iter_id in complete_iter_ids:
         iter_branch = "plet/{}/loop{}/{}".format(project_id, loop_n, iter_id)
         if not branch_exists(iter_branch):
             # Branch deleted — treat as already handled
@@ -648,10 +639,10 @@ Examples:
                                      "s" if len(unmerged) != 1 else "",
                                      ", ".join(unmerged))))
     else:
-        if complete_iters:
+        if complete_iter_ids:
             checks.append(make_check("unmerged-complete", "pass",
                                      "all {} complete iterations merged to workstream".format(
-                                         len(complete_iters))))
+                                         len(complete_iter_ids))))
         else:
             checks.append(make_check("unmerged-complete", "pass",
                                      "no complete iterations to check"))

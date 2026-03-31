@@ -154,4 +154,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 40a | plet_schedule.py — lifecycle from state.json | ✓ complete |
 | 40b | plet_gate_phase.py — lifecycle from state.json + verdict checks | ✓ complete |
 | 40c | plet_gate_session.py — lifecycle from state.json + field renames | ✓ complete |
+| 40d | plet_git_check.py — lifecycle from state.json | ✓ complete |
 | -- | all other steps not yet started |
