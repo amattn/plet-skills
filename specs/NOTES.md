@@ -1471,3 +1471,17 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 
 **`load_json_arg` extracted to util_io:**
 - Handles `--name` (JSON string) or `--name-file` (path) pattern. Reusable across GST and IST.
+
+#### Phase 1 completion + Phase 2 start (2026-03-31)
+
+**Phase 1 (seq 39) complete.** 8 steps: design, PRD, state-schema, dual-schema util_state, GST spec+impl (90 tests), IST spec+impl (103 tests). 1721 total tests across 21 files.
+
+**Schema version bump deferred.** `SCHEMA_VERSION` stays at 0.2.0 during dual-schema migration. GST `init` creates state.json with 0.2.0 that has `lifecycles` (technically new for 0.2.0). Bump to 0.3.0 happens in Phase 3 (41a) when dual-schema support is removed.
+
+**Phase 2 (seq 40) — plet_schedule.py migrated (40a).** `eligible` now reads lifecycle from `state.json.lifecycles` — O(1) file reads instead of O(N). All 90 schedule tests pass. One expected orchestrator test failure (fixtures don't have lifecycles yet — 40f will fix).
+
+**Test fixture inventory (2026-03-31).** 8 test files need lifecycle migration. Each independently defines its own `make_global_state`, `make_iter_state`, `make_git_repo` etc. — at least 6 different versions. Opportunity: shared `test_fixtures.py` module with canonical fixture builders. Would make remaining 7 migrations mechanical.
+
+**evaluate-verdict as future concern (SCH_FUT_4).** Consolidate verdict reading + retry decision into one command. Currently the orchestrator reads verifyVerdict then conditionally calls check-retry. A single `evaluate-verdict --phase verify` could return "merge", "retry", "block", or "crash". Deferred — current 4-line routing logic is clear and check-retry is independently testable.
+
+**check-retry reads from worktree_plet_dir.** Orchestrator passes worktree path because verificationReports are in the worktree copy (subagent wrote them there). Worktree still exists at verdict-decision time, cleaned up after.

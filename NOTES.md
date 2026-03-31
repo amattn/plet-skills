@@ -212,6 +212,8 @@ The `activityDetail` string is a human-readable description overwritten on every
 
 **Rename:** `agentActivity` → `phaseActivity` to make the two-level system explicit. `agentId` stays (identifies which agent session).
 
+**Enum rename:** `red` → `writing_tests`, `green` → `implementing`. GUI consumers display phaseActivity as badges/labels — "red" and "green" are TDD jargon that doesn't communicate well as a UI element. "Writing Tests" and "Implementing" are self-descriptive. The red/green concept lives in activityDetail strings (e.g., "red: writing failing test for AC_3") and reference docs.
+
 ### Phase Verdicts
 
 Each phase has an explicit verdict field written by the subagent as its final act. The orchestrator reads it and decides the next lifecycle transition. Replaces the old model where subagents wrote lifecycle directly (source of merge conflicts).
