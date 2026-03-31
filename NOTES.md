@@ -283,6 +283,18 @@ State transitions in a multi-agent system fall into two categories, and confusin
 
 This principle applies beyond plet — any system where multiple agents modify shared state needs clear ownership of each transition.
 
+### Worktree state invariants — sole writer rule
+
+During an iteration, per-iteration state files exist in two copies: the global copy (`global_plet_dir`, on the workstream branch) and the worktree copy (`worktree_plet_dir`, on the iteration branch). The worktree copy is authoritative during the iteration. The global copy is stale.
+
+**The sole writer rule (SF_26):** The orchestrator writes ZERO per-iteration state during the iteration. The subagent is the sole writer to the worktree. The orchestrator writes final lifecycle to the global copy only after the iteration is done (verdict handoff, SF_27). This eliminates merge conflicts entirely — no concurrent writes to the same file.
+
+**Why this matters:** LOGA Run 3 exposed a merge conflict when the orchestrator wrote `lifecycle → implementing` to the global copy (reservation) while the subagent wrote to the worktree copy. On merge-squash, both copies were modified → conflict. Eliminating the reservation write and making the subagent the sole writer resolved it.
+
+**Symmetric pattern:** Both implement and verify subagents set their lifecycle as their first action (`implementing`/`verifying`). Both are sole writers to the worktree during their phase. The orchestrator only touches the global copy after the verdict.
+
+See specs/NOTES.md § Worktree state file invariants for the full 6-invariant list and implementation details. See NOTES.md § Plet Directory Variables for the naming taxonomy.
+
 ### Defense in depth for load-bearing checks
 
 Checking the same critical invariant in multiple places is acceptable and intentional — not redundancy. Each layer catches failures at a different point in the pipeline with different recovery options.
