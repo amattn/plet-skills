@@ -46,6 +46,7 @@ from util_cli import (
 from util_io import (
     atomic_write_json,
     load_json,
+    load_json_arg,
     state_json_path,
 )
 from util_state import (
@@ -65,37 +66,6 @@ UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run"}
 
 def _help_hint(cmd):
     return "Run: plet_global_state.py {} --help".format(cmd)
-
-
-def _load_json_arg(kwargs, name, file_name):
-    """Load a JSON value from --name (string) or --name-file (path).
-
-    Returns (parsed_value, error_message). error_message is None on success.
-    """
-    raw = kwargs.pop(name, None)
-    file_path = kwargs.pop(file_name, None)
-
-    if raw is not None and file_path is not None:
-        return None, "Error: --{} and --{} are mutually exclusive".format(
-            name.replace("_", "-"), file_name.replace("_", "-"))
-
-    if file_path is not None:
-        if not os.path.isfile(file_path):
-            return None, "Error: file not found: {}".format(file_path)
-        try:
-            with open(file_path) as f:
-                return json.load(f), None
-        except (json.JSONDecodeError, OSError) as e:
-            return None, "Error: invalid JSON in {}: {}".format(file_path, e)
-
-    if raw is None:
-        return None, "Error: --{} is required".format(name.replace("_", "-"))
-
-    try:
-        return json.loads(raw), None
-    except json.JSONDecodeError as e:
-        return None, "Error: invalid JSON for --{}: {}".format(
-            name.replace("_", "-"), e)
 
 
 # ---------------------------------------------------------------------------
@@ -148,15 +118,8 @@ Exit 0 if valid, exit 1 if invalid or error.
                        SCRIPT_VERSION, pretty, fields)
         return 1
 
-    # Capture stderr from validate_global_state
-    import io
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
-    valid = validate_global_state(data)
-    captured = sys.stderr.getvalue()
-    sys.stderr = old_stderr
-
-    errors = [line.strip() for line in captured.strip().split("\n") if line.strip()]
+    errors = validate_global_state(data)
+    valid = len(errors) == 0
 
     if output_json:
         emit_json({
@@ -260,19 +223,19 @@ Examples:
         return 1
 
     # Load JSON args (with --*-file alternatives)
-    dep_map, err = _load_json_arg(kwargs, "dependency_map", "dependency_map_file")
+    dep_map, err = load_json_arg(kwargs,"dependency_map", "dependency_map_file")
     if err:
         print(err, file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
-    milestones, err = _load_json_arg(kwargs, "milestones", "milestones_file")
+    milestones, err = load_json_arg(kwargs,"milestones", "milestones_file")
     if err:
         print(err, file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
-    iter_fp, err = _load_json_arg(kwargs, "iterations_fingerprint", "iterations_fingerprint_file")
+    iter_fp, err = load_json_arg(kwargs,"iterations_fingerprint", "iterations_fingerprint_file")
     if err:
         print(err, file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
@@ -395,7 +358,10 @@ Examples:
         return 1
 
     # Full validation before writing (GST_ULC_BHV_6)
-    if not validate_global_state(state):
+    errors = validate_global_state(state)
+    if errors:
+        for err in errors:
+            print("Error: state.json: {}".format(err), file=sys.stderr)
         print(_help_hint("update-lifecycle"), file=sys.stderr)
         return 1
 

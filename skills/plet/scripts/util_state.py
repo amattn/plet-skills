@@ -69,8 +69,8 @@ OPTIONAL_FIELDS = {
 def validate_global_state(data):
     """Validate all fields in a parsed state.json dict.
 
-    Returns True if valid, False if any errors.
-    Prints each error to stderr.
+    Returns a list of error strings. Empty list = valid.
+    Callers own error presentation (print to stderr, JSON output, etc.).
     """
     errors = []
 
@@ -122,12 +122,7 @@ def validate_global_state(data):
             elif isinstance(val, float):
                 errors.append("field '{}' must be int, got float".format(field))
 
-    if errors:
-        for err in errors:
-            print("Error: state.json: {}".format(err), file=sys.stderr)
-        return False
-
-    return True
+    return errors
 
 
 # Defaults for optional fields — injected into the returned dict so
@@ -157,7 +152,10 @@ def load_and_validate_global_state(plet_dir):
     if data is None:
         return None
 
-    if not validate_global_state(data):
+    errors = validate_global_state(data)
+    if errors:
+        for err in errors:
+            print("Error: state.json: {}".format(err), file=sys.stderr)
         return None
 
     # Inject defaults for absent optional fields
@@ -224,8 +222,8 @@ ITER_OPTIONAL_DEFAULTS = {
 def validate_iter_state(data):
     """Validate all fields in a parsed per-iteration state dict.
 
-    Returns True if valid, False if any errors.
-    Prints each error to stderr.
+    Returns a list of error strings. Empty list = valid.
+    Callers own error presentation (print to stderr, JSON output, etc.).
     """
     errors = []
 
@@ -275,12 +273,7 @@ def validate_iter_state(data):
                     errors.append("attempts.{} must be non-negative, got {}".format(
                         phase_key, val))
 
-    if errors:
-        for err in errors:
-            print("Error: iter state: {}".format(err), file=sys.stderr)
-        return False
-
-    return True
+    return errors
 
 
 def load_and_validate_iter_state(plet_dir, iter_id):
@@ -295,7 +288,10 @@ def load_and_validate_iter_state(plet_dir, iter_id):
     if data is None:
         return None
 
-    if not validate_iter_state(data):
+    errors = validate_iter_state(data)
+    if errors:
+        for err in errors:
+            print("Error: iter state: {}".format(err), file=sys.stderr)
         return None
 
     # Inject defaults for absent optional fields

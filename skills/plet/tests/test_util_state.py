@@ -354,16 +354,16 @@ def test_validate_global_state_valid():
     print("\n## validate_global_state — valid data")
     import util_state
 
-    ok = util_state.validate_global_state(VALID_STATE)
-    check("returns True", ok is True)
+    errors = util_state.validate_global_state(VALID_STATE)
+    check("returns empty list", errors == [])
 
 
 def test_validate_global_state_invalid():
     print("\n## validate_global_state — invalid data")
     import util_state
 
-    ok = util_state.validate_global_state({"not": "valid"})
-    check("returns False", ok is False)
+    errors = util_state.validate_global_state({"not": "valid"})
+    check("returns non-empty list", len(errors) > 0)
 
 
 # ---------------------------------------------------------------------------
@@ -705,11 +705,11 @@ def test_iter_validate_function():
     print("\n## iter: validate_iter_state — valid and invalid")
     import util_state
 
-    ok = util_state.validate_iter_state(VALID_ITER_STATE)
-    check("valid returns True", ok is True)
+    errors = util_state.validate_iter_state(VALID_ITER_STATE)
+    check("valid returns empty list", errors == [])
 
-    ok = util_state.validate_iter_state({"not": "valid"})
-    check("invalid returns False", ok is False)
+    errors = util_state.validate_iter_state({"not": "valid"})
+    check("invalid returns non-empty list", len(errors) > 0)
 
 
 # ---------------------------------------------------------------------------

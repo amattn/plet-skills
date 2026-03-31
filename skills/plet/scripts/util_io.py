@@ -201,6 +201,50 @@ def load_json(path):
         return None
 
 
+def load_json_arg(kwargs, name, file_name=None):
+    """Load a JSON value from a --name kwarg (string) or --name-file kwarg (path).
+
+    Supports the common pattern where a CLI arg accepts either an inline JSON
+    string or a path to a JSON file. If file_name is None, defaults to
+    "{name}_file".
+
+    Args:
+        kwargs: mutable dict from parse_kwargs. Consumed keys are popped.
+        name: kwarg key for the JSON string (e.g., "dependency_map")
+        file_name: kwarg key for the file path alternative (e.g., "dependency_map_file")
+
+    Returns (parsed_value, error_message). error_message is None on success.
+    Returns (None, error) if both are missing, both are provided, or parsing fails.
+    """
+    if file_name is None:
+        file_name = "{}_file".format(name)
+
+    raw = kwargs.pop(name, None)
+    file_path = kwargs.pop(file_name, None)
+
+    if raw is not None and file_path is not None:
+        return None, "Error: --{} and --{} are mutually exclusive".format(
+            name.replace("_", "-"), file_name.replace("_", "-"))
+
+    if file_path is not None:
+        if not os.path.isfile(file_path):
+            return None, "Error: file not found: {}".format(file_path)
+        try:
+            with open(file_path) as f:
+                return json.load(f), None
+        except (json.JSONDecodeError, OSError) as e:
+            return None, "Error: invalid JSON in {}: {}".format(file_path, e)
+
+    if raw is None:
+        return None, "Error: --{} is required".format(name.replace("_", "-"))
+
+    try:
+        return json.loads(raw), None
+    except json.JSONDecodeError as e:
+        return None, "Error: invalid JSON for --{}: {}".format(
+            name.replace("_", "-"), e)
+
+
 def atomic_write_json(path, data, update_timestamp=True):
     """Write a dict as JSON to path atomically.
 
