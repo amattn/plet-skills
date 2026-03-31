@@ -30,7 +30,14 @@ def _parse_name(argv):
 
 def main(argv):
     behavior = os.environ.get("MOCK_BEHAVIOR", "pass")
-    plet_dir = os.environ.get("MOCK_PLET_DIR", "plet")
+    # Write to worktree plet/ (cwd) — matches real subagent behavior (SF_26).
+    # The subagent's cwd is the worktree, so plet/ relative to cwd is the
+    # worktree's copy. Fall back to MOCK_PLET_DIR for tests without worktrees.
+    cwd_plet = os.path.join(os.getcwd(), "plet")
+    if os.path.isdir(cwd_plet) and os.path.isdir(os.path.join(cwd_plet, "state")):
+        plet_dir = cwd_plet
+    else:
+        plet_dir = os.environ.get("MOCK_PLET_DIR", "plet")
 
     if behavior == "crash":
         print('{"type":"error","message":"crash"}', flush=True)
