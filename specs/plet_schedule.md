@@ -64,7 +64,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_ELG_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. Reads `state.json` via `util_io.state_json_path()` and per-iteration state files via `util_io.iter_state_path()`. | P0 |
+| SCH_ELG_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. Reads `state.json` via `util_io.state_json_path()` — lifecycles and dependency map are both in state.json (SF_28). No per-iteration file reads needed for eligible. | P0 |
 
 #### Outputs (OUT)
 
@@ -100,8 +100,8 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_ELG_PRE_1 | `state.json` exists at `plet_dir` and is valid JSON with `dependencyMap` field. | P0 |
-| SCH_ELG_PRE_2 | Per-iteration state files exist for all iterations referenced in `dependencyMap`. Missing state file is a hard error — names the missing file, exit 1. A missing file means `plet_state.py init` wasn't called or a file was deleted; the project is in a bad state. | P0 |
+| SCH_ELG_PRE_1 | `state.json` exists at `plet_dir` and is valid JSON with `dependencyMap` and `lifecycles` fields. | P0 |
+| SCH_ELG_PRE_2 | All iterations in `dependencyMap` have an entry in `lifecycles`. Missing lifecycle entry is a hard error — names the missing iteration, exit 1. Means GST `init` or `update-lifecycle` wasn't called. | P0 |
 
 #### Postconditions (PST)
 
@@ -113,13 +113,13 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 #### Behaviors (BHV)
 
-An iteration is **eligible** when: its lifecycle is `queued` AND every iteration ID in its dependency list has lifecycle `complete`. This implements IMP_5 and IMP_21.
+An iteration is **eligible** when: its lifecycle is `queued` AND every iteration ID in its dependency list has lifecycle `complete`. Lifecycles are read from `state.json.lifecycles` (SF_28), not per-iteration files. This implements IMP_5 and IMP_21.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_ELG_BHV_1 | Eligible = lifecycle `queued` AND all dependencies have lifecycle `complete`. Iterations with lifecycle `ineligible`, `implementing`, `verifying`, `complete`, `blocked`, or `withdrawn` are never eligible. | P0 |
+| SCH_ELG_BHV_1 | Eligible = `lifecycles.{id}` is `queued` AND all dependencies have `lifecycles.{dep}` == `complete`. Iterations with lifecycle `ineligible`, `implementing`, `verifying`, `complete`, `blocked`, or `withdrawn` are never eligible. All lifecycle reads from `state.json.lifecycles` (SF_28). | P0 |
 | SCH_ELG_BHV_2 | Iterations with empty dependency lists (`[]`) are eligible if their lifecycle is `queued` — they have no prerequisites. | P0 |
-| SCH_ELG_BHV_3 | The `counts` object in JSON output provides a full lifecycle census across all iterations in `dependencyMap`. This enables the orchestrator to detect loop completion (all `complete` or `blocked`) without reading every state file separately. | P1 |
+| SCH_ELG_BHV_3 | The `counts` object in JSON output provides a full lifecycle census from `state.json.lifecycles`. One file read instead of N — the core optimization of lifecycle extraction. | P1 |
 | SCH_ELG_BHV_4 | Output order: sorted by iteration ID ascending (e.g., `ID_001` before `ID_002`). | P0 |
 | SCH_ELG_BHV_5 | **Stuck iteration detection:** After evaluating eligibility, check for `queued` iterations whose dependencies can never be satisfied — any dep with lifecycle `blocked`, `withdrawn`, or `ineligible` (not `complete` and not `queued`). These are stuck. Report them in the `stuckIterations` array in JSON output. Each entry: `{"iterationId": "ID_004", "unsatisfiableDeps": ["ID_002"]}`. Circular dependencies are a special case: all iterations in the cycle are stuck because none can reach `complete` first. Text mode: print `stuck: ID_004 (blocked dep: ID_002)` after the eligible list. | P0 |
 
@@ -217,7 +217,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_RTY_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. Reads per-iteration state file via `util_io.iter_state_path()`. | P0 |
+| SCH_RTY_INP_1 | `plet_dir` — required path to plet directory. The orchestrator passes `worktree_plet_dir` here — the worktree has the subagent's verificationReports. Reads per-iteration state file via `util_io.iter_state_path()`. | P0 |
 | SCH_RTY_INP_2 | `--iter-id` — iteration ID to evaluate (required). | P0 |
 
 #### Outputs (OUT)
@@ -282,19 +282,19 @@ Retry policy implements IMP_14. The decision tree:
 | SCH_RTY_BHV_3 | Failure count per report = count of entries in `criteriaResults` where `status == "fail"`. Criteria with status `error` or `skipped` are not counted as failures for trend purposes. | P0 |
 | SCH_RTY_BHV_4 | The `reason` field in JSON output explains the decision in human-readable terms, including the failure trend and the applicable limit. The orchestrator logs this to progress.md when it acts on the decision. | P1 |
 | SCH_RTY_BHV_5 | If `verificationReports` is present but empty, decision is `first` — same as absent. | P0 |
-| SCH_RTY_BHV_6 | `check-retry` only evaluates `rejected` verdicts. If `lastVerdict` is `blocked`, the orchestrator must NOT call `check-retry` — blocked means the verify agent hit an unresolvable issue (spec ambiguity, environment problem) where retrying won't help. The orchestrator reads `lastVerdict` directly and transitions to `lifecycle: "blocked"` without consulting retry logic. | P0 |
+| SCH_RTY_BHV_6 | `check-retry` only evaluates `rejected` verdicts. If `verifyVerdict` is `blocked`, the orchestrator must NOT call `check-retry` — blocked means the verify agent hit an unresolvable issue (spec ambiguity, environment problem) where retrying won't help. The orchestrator reads `verifyVerdict` from the worktree and writes `lifecycles.{id} = "blocked"` to state.json without consulting retry logic. | P0 |
 
 ## 4. Edge Cases (EDG)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_EDG_1 | `eligible`: iteration references a dependency ID that has no state file. Hard error — exit 1, name the missing file. The dependency map references an iteration that doesn't exist on disk; the project needs manual repair. | P0 |
+| SCH_EDG_1 | `eligible`: iteration in `dependencyMap` has no entry in `state.json.lifecycles`. Hard error — exit 1, name the missing iteration. Means GST `init` didn't populate lifecycles correctly. | P0 |
 | SCH_EDG_2 | `eligible`: `dependencyMap` is empty (`{}`). Return empty list, `counts` all zero. Exit 0. | P0 |
 | SCH_EDG_3 | `eligible`: stuck iterations — `queued` but dependencies can never be satisfied (dep is `blocked`, `withdrawn`, or part of a circular chain). Detected by `eligible`: if an iteration is `queued` and any dep has lifecycle other than `complete` or `queued`, it is stuck. Reported in `stuckIterations` array in JSON output with the unsatisfiable dep IDs. Circular deps are a special case — all iterations in the cycle are stuck (none can reach `complete` first). | P0 |
 | SCH_EDG_4 | `check-breakpoints`: `--iter-id` not in `dependencyMap`. Still check the breakpoints arrays — breakpoints reference iteration IDs directly, independent of the dependency map. Return `hit` or `miss` normally. | P0 |
 | SCH_EDG_5 | `check-retry`: per-iteration state has `verificationReports` with reports that have no `criteriaResults`. Treat as 0 failures for that report. | P1 |
 | SCH_EDG_6 | `check-retry`: only one verification report exists. Cannot determine trend from a single point. If verify attempts < 3, decision is `continue`. | P0 |
-| SCH_EDG_7 | `eligible`: iteration has lifecycle `implementing` or `verifying` but no agent is active (stale heartbeat). This script does NOT detect stale agents — it reports lifecycle as-is. The orchestrator or a separate health check detects stuck iterations. | P1 |
+| SCH_EDG_7 | `eligible`: iteration has lifecycle `implementing` or `verifying` in `state.json.lifecycles` but no agent is active (stale heartbeat). This script does NOT detect stale agents — it reports lifecycle as-is from state.json. The orchestrator or a separate health check detects stuck iterations. | P1 |
 
 ## 5. Error Handling (ERR)
 
@@ -314,7 +314,7 @@ Retry policy implements IMP_14. The decision tree:
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SCH_FMT_1 | Reads: `state.json` (global state — `dependencyMap`, `breakpoints`). Path derived via `util_io.state_json_path()`. | P0 |
-| SCH_FMT_2 | Reads: `state/{iter_id}.json` (per-iteration state — `lifecycle`, `attempts`, `verificationReports`). Path derived via `util_io.iter_state_path()`. | P0 |
+| SCH_FMT_2 | Reads: `state/{iter_id}.json` (per-iteration state — `attempts`, `verificationReports`). Path derived via `util_io.iter_state_path()`. Only `check-retry` reads per-iteration files. `eligible` reads only `state.json` (SF_28). | P0 |
 | SCH_FMT_3 | Writes: nothing. All commands are read-only. | P0 |
 
 ## 7. Agent Flows (AFL)
@@ -327,9 +327,9 @@ Retry policy implements IMP_14. The decision tree:
 4. For each eligible ID:
    a. `plet_schedule.py check-breakpoints plet/ --iter-id ID_xxx --position before` → if `hit`, pause and return to SKILL.md
    b. Spawn implement + verify subagents (via plet_invoke.py)
-   c. Read `lastVerdict` from per-iteration state
-   d. If `rejected`: `plet_schedule.py check-retry plet/ --iter-id ID_xxx` → if `abort`, mark blocked; if `continue`, set lifecycle to `queued`
-   e. If `passed`: merge-squash, set lifecycle to `complete`
+   c. Read `implementVerdict`/`verifyVerdict` from worktree per-iteration state
+   d. If `verifyVerdict == "rejected"`: `plet_schedule.py check-retry plet/ --iter-id ID_xxx` → if `abort`, mark blocked; if `continue`, set lifecycle to `queued` via GST
+   e. If `verifyVerdict == "passed"`: merge-squash, set lifecycle to `complete` via GST
    f. `plet_schedule.py check-breakpoints plet/ --iter-id ID_xxx --position after` → if `hit`, pause
 5. Loop back to step 1 (re-evaluate eligible)
 
@@ -412,7 +412,7 @@ plet_schedule.py check-retry plet/ --iter-id ID_002 --output json --pretty
 |----|-----------|--------|-------------|
 | SCH_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `now_iso`, `dispatch`, `emit_json`, `emit_json_error`, `get_plet_dir`, `extract_output_flags`, `filter_fields` |
 | SCH_DEP_2 | imports | `util_io` | `load_json`, `state_json_path`, `iter_state_path`, `state_dir_path` |
-| SCH_DEP_5 | imports | `util_state` | `load_and_validate_iter_state` — structural validation when loading per-iteration state files |
+| SCH_DEP_5 | imports | `util_state` | `VALID_LIFECYCLES` — lifecycle enum validation for `eligible`. `load_and_validate_iter_state` no longer needed for `eligible` (reads state.json only). `check-retry` reads per-iteration files directly via `util_io.load_json`. |
 | SCH_DEP_3 | called by | `plet_orchestrator.py` | All three commands — core scheduling decisions in the main loop |
 | SCH_DEP_4 | called by | SKILL.md | `eligible` and `check-breakpoints` for manual loop management |
 
@@ -422,8 +422,8 @@ See `specs/conventions.md` for requirements common to all scripts.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_NFR_1 | `eligible` must read all per-iteration state files in one pass. For a project with N iterations, this is N+1 file reads (state.json + N state files). No additional file reads per iteration. | P1 |
-| SCH_NFR_2 | Imports: stdlib + util_cli + util_io + util_state. Uses `util_state.load_and_validate_iter_state` for loading per-iteration state files (structural validation catches corrupted/truncated files). Additionally validates lifecycle enum membership explicitly — lifecycle is the field `eligible` makes decisions on, so a typo (e.g., `"complet"`) must be caught here rather than silently treated as non-complete. | P0 |
+| SCH_NFR_1 | `eligible` reads one file: `state.json` (dependency map + lifecycles). O(1) file reads regardless of iteration count — the core optimization of lifecycle extraction (SF_28). Was N+1 reads before. | P1 |
+| SCH_NFR_2 | Imports: stdlib + util_cli + util_io + util_state. `eligible` validates lifecycle enum membership from `state.json.lifecycles` — a typo (e.g., `"complet"`) must be caught here rather than silently treated as non-complete. `check-retry` uses `util_io.load_json` for per-iteration state files (verificationReports). | P0 |
 
 ## 11. Developer Experience (DXP)
 
@@ -477,6 +477,7 @@ See `specs/conventions.md` for requirements common to all scripts.
 | SCH_FUT_1 | Configurable retry limits | Per-project or per-iteration retry limits beyond the IMP_14 defaults. `check-retry` would read config from state.json or a config file. |
 | SCH_FUT_2 | Priority scheduling | `eligible` could return iterations ordered by priority (critical path, milestone urgency) rather than simple ID order. |
 | SCH_FUT_3 | Parallel group awareness | `eligible` could group results by `parallelGroups` membership to help the orchestrator batch spawns. |
+| SCH_FUT_4 | evaluate-verdict command | Consolidate verdict reading + retry decision into one command: `evaluate-verdict --phase verify` returns "merge", "retry", "block", or "crash". Orchestrator makes one call instead of reading verdict + conditionally calling check-retry. Same for implement phase. Reduces orchestrator routing logic to a single subprocess call per phase. |
 
 ## 16. FB Items Addressed
 
