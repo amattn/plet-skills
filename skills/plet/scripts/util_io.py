@@ -66,9 +66,9 @@ from util_cli import now_iso
 DEFAULT_PLET_DIR = "plet/"
 
 
-def state_json_path(plet_dir):
+def state_json_path(global_plet_dir):
     """Derive path to global state.json."""
-    return os.path.join(plet_dir, "state.json")
+    return os.path.join(global_plet_dir, "state.json")
 
 
 def state_dir_path(plet_dir):
@@ -141,13 +141,13 @@ def derive_worktree_path(state, iter_id, worktree_dir=None):
     return os.path.join(worktree_dir, state["projectId"], iter_id)
 
 
-def worktree_plet_dir(worktree_path, plet_dir):
+def derive_worktree_plet_dir(worktree_path, global_plet_dir):
     """Derive the plet directory path inside a worktree.
 
     Subagents run in worktrees and write state files relative to their cwd.
     The orchestrator needs to read those files from the worktree, not the
-    main repo. This function maps the main repo's plet_dir to the equivalent
-    path inside the worktree.
+    main repo. This function maps the main repo's plet_dir to the
+    equivalent path inside the worktree.
 
     Args:
         worktree_path: absolute path to the worktree root
@@ -155,7 +155,7 @@ def worktree_plet_dir(worktree_path, plet_dir):
 
     Returns: path like "{worktree_path}/plet"
     """
-    return os.path.join(worktree_path, os.path.basename(plet_dir.rstrip("/\\")))
+    return os.path.join(worktree_path, os.path.basename(global_plet_dir.rstrip("/\\")))
 
 
 # ---------------------------------------------------------------------------
@@ -270,9 +270,9 @@ def atomic_append(path, content):
 # Convenience loaders — combine path derivation + load
 # ---------------------------------------------------------------------------
 
-def load_global_state_json(plet_dir):
+def load_global_state_json(global_plet_dir):
     """Load plet/state.json as raw dict (no validation)."""
-    return load_json(state_json_path(plet_dir))
+    return load_json(state_json_path(global_plet_dir))
 
 
 def load_iter_state_json(plet_dir, iter_id):

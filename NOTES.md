@@ -173,9 +173,11 @@ During the loop phase, two copies of per-iteration state files exist. Variable n
 |----------|---------|-----------|----------|
 | `global_plet_dir` | Workstream copy (main working tree) | Orchestrator (verdict handoff only) | Scheduling (eligible), global state (state.json), final lifecycle |
 | `worktree_plet_dir` | Iteration copy (git worktree) | Subagent only | Criteria, attempts, lifecycle during iteration, reports |
-| `plet_dir` | Raw input arg | — | Before orchestrator renames to `global_plet_dir` |
+| `plet_dir` | Unspecified — could be either copy | Depends on caller | Generic functions (path derivation, validation, most scripts). The caller decides which copy to pass. Scripts like plet_state.py, plet_entries.py, etc. accept `plet_dir` and are agnostic — they work with whichever copy they're given. |
 
 **No "root" prefix** — breaks for subplets where the "root" plet dir isn't the project root. "Global" means "the scheduling/workstream copy" regardless of nesting level.
+
+**Where the distinction matters:** Only the orchestrator needs both copies simultaneously. All other scripts receive one `plet_dir` and operate on it without knowing which copy it is. The orchestrator is the boundary where `plet_dir` (from CLI) becomes `global_plet_dir`, and where `derive_worktree_plet_dir()` produces `worktree_plet_dir`.
 
 ### ID Conventions
 
