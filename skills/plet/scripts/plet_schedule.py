@@ -45,7 +45,7 @@ from util_io import (
     iter_state_path,
 )
 
-SCRIPT_VERSION = "0.2.0"
+SCRIPT_VERSION = "0.3.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_LIFECYCLES = {
@@ -115,17 +115,16 @@ def cmd_eligible(args):
         print(_help_hint("eligible"), file=sys.stderr)
         return 1
 
-    # Load all per-iteration lifecycles
+    # Read lifecycles from state.json (SF_28 — O(1) file reads, not O(N))
+    lifecycles_map = global_state.get("lifecycles", {})
     lifecycles = {}
     for iter_id in dep_map:
-        ip = iter_state_path(plet_dir, iter_id)
-        iter_state = load_json(ip)
-        if iter_state is None:
-            print("Error: state file not found for {} at {}".format(iter_id, ip),
+        if iter_id not in lifecycles_map:
+            print("Error: iteration {} in dependencyMap but not in lifecycles".format(iter_id),
                   file=sys.stderr)
             print(_help_hint("eligible"), file=sys.stderr)
             return 1
-        lc = iter_state.get("lifecycle", "")
+        lc = lifecycles_map[iter_id]
         if lc not in VALID_LIFECYCLES:
             print("Error: invalid lifecycle '{}' for {} (valid: {})".format(
                 lc, iter_id, ", ".join(sorted(VALID_LIFECYCLES))),
@@ -279,7 +278,7 @@ def cmd_check_breakpoints(args):
 def cmd_check_retry(args):
     """Evaluate whether a failed iteration should retry.
 
-    IMPORTANT: Only evaluates "rejected" verdicts. If lastVerdict is "blocked",
+    IMPORTANT: Only evaluates "rejected" verdicts. If verifyVerdict is "blocked",
     the orchestrator must NOT call check-retry — blocked means retrying won't help.
 
     Retry policy (IMP_14): default 3 verify attempts. If failure count is

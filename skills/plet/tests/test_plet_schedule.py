@@ -48,8 +48,8 @@ def check(name, condition, detail=""):
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
 
 
-def make_global_state(plet_dir, dep_map=None, breakpoints=None):
-    """Create a minimal global state.json with dependency map."""
+def make_global_state(plet_dir, dep_map=None, breakpoints=None, lifecycles=None):
+    """Create a minimal global state.json with dependency map and lifecycles."""
     state = {
         "schemaVersion": "0.2.0",
         "projectId": "TEST",
@@ -57,6 +57,7 @@ def make_global_state(plet_dir, dep_map=None, breakpoints=None):
         "loopSessionCount": 1,
         "refineSessionCount": 0,
         "dependencyMap": dep_map or {},
+        "lifecycles": lifecycles or {},
         "milestones": [],
         "parallelGroups": [],
         "sessionHistory": [],
@@ -70,25 +71,25 @@ def make_global_state(plet_dir, dep_map=None, breakpoints=None):
     return path
 
 
-def make_iter_state(plet_dir, iter_id, lifecycle="queued", attempts=None,
-                    verification_reports=None, last_verdict=None):
-    """Create a minimal per-iteration state file."""
+def make_iter_state(plet_dir, iter_id, attempts=None,
+                    verification_reports=None, verify_verdict=None):
+    """Create a minimal per-iteration state file (no lifecycle — SF_28)."""
     state = {
         "schemaVersion": "0.2.0",
         "iterationId": iter_id,
         "title": "Test iteration {}".format(iter_id),
-        "lifecycle": lifecycle,
         "attempts": attempts or {"implement": 0, "verify": 0},
         "criteria": [],
         "phaseTimestamps": {},
-        "agentActivity": "idle",
+        "phaseActivity": "idle",
         "agentId": None,
         "lastUpdated": "2026-03-29T00:00:00Z",
+        "dependencies": [],
     }
     if verification_reports is not None:
         state["verificationReports"] = verification_reports
-    if last_verdict is not None:
-        state["lastVerdict"] = last_verdict
+    if verify_verdict is not None:
+        state["verifyVerdict"] = verify_verdict
     path = iter_state_path(plet_dir, iter_id)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
@@ -148,8 +149,8 @@ print("\n## eligible — single queued iteration, no deps")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, dep_map={"ID_001": []})
-    make_iter_state(plet_dir, "ID_001", lifecycle="queued")
+    make_global_state(plet_dir, dep_map={"ID_001": []},
+                      lifecycles={"ID_001": "queued"})
 
     out, err, _ = run(["eligible", plet_dir])
     check("single queued returns ID_001", out == "ID_001", "got: " + out)
@@ -169,8 +170,8 @@ print("\n## eligible — single iteration, implementing (not eligible)")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, dep_map={"ID_001": []})
-    make_iter_state(plet_dir, "ID_001", lifecycle="implementing")
+    make_global_state(plet_dir, dep_map={"ID_001": []},
+                      lifecycles={"ID_001": "implementing"})
 
     out, err, _ = run(["eligible", plet_dir])
     check("implementing not eligible", out == "none", "got: " + out)
@@ -191,11 +192,11 @@ with tempfile.TemporaryDirectory() as tmp:
         "ID_001": [],
         "ID_002": ["ID_001"],
         "ID_003": ["ID_002"],
+    }, lifecycles={
+        "ID_001": "complete",
+        "ID_002": "queued",
+        "ID_003": "queued",
     })
-    # A complete, B queued, C queued
-    make_iter_state(plet_dir, "ID_001", lifecycle="complete")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_003", lifecycle="queued")
 
     out, err, _ = run(["eligible", plet_dir])
     check("chain: only B eligible", out == "ID_002", "got: " + out)
@@ -208,17 +209,19 @@ print("\n## eligible — diamond dependency graph")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, dep_map={
+    dep_map = {
         "ID_001": [],
         "ID_002": ["ID_001"],
         "ID_003": ["ID_001"],
         "ID_004": ["ID_002", "ID_003"],
-    })
+    }
     # A complete, B+C queued, D queued
-    make_iter_state(plet_dir, "ID_001", lifecycle="complete")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_003", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_004", lifecycle="queued")
+    make_global_state(plet_dir, dep_map=dep_map, lifecycles={
+        "ID_001": "complete",
+        "ID_002": "queued",
+        "ID_003": "queued",
+        "ID_004": "queued",
+    })
 
     out, err, _ = run(["eligible", plet_dir])
     lines = out.strip().split("\n")
@@ -227,14 +230,24 @@ with tempfile.TemporaryDirectory() as tmp:
     check("diamond: D not eligible (deps not complete)", "ID_004" not in lines)
 
     # Now complete B, C still queued — D still not eligible
-    make_iter_state(plet_dir, "ID_002", lifecycle="complete")
+    make_global_state(plet_dir, dep_map=dep_map, lifecycles={
+        "ID_001": "complete",
+        "ID_002": "complete",
+        "ID_003": "queued",
+        "ID_004": "queued",
+    })
     out, err, _ = run(["eligible", plet_dir])
     lines = out.strip().split("\n")
     check("diamond partial: C eligible", "ID_003" in lines)
     check("diamond partial: D not yet (C not complete)", "ID_004" not in lines)
 
     # Complete C too — now D is eligible
-    make_iter_state(plet_dir, "ID_003", lifecycle="complete")
+    make_global_state(plet_dir, dep_map=dep_map, lifecycles={
+        "ID_001": "complete",
+        "ID_002": "complete",
+        "ID_003": "complete",
+        "ID_004": "queued",
+    })
     out, err, _ = run(["eligible", plet_dir])
     check("diamond resolved: D eligible", out.strip() == "ID_004", "got: " + out)
 
@@ -250,10 +263,11 @@ with tempfile.TemporaryDirectory() as tmp:
         "ID_001": [],
         "ID_002": [],
         "ID_003": [],
+    }, lifecycles={
+        "ID_001": "queued",
+        "ID_002": "queued",
+        "ID_003": "queued",
     })
-    make_iter_state(plet_dir, "ID_001", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_003", lifecycle="queued")
 
     out, err, _ = run(["eligible", plet_dir])
     lines = out.strip().split("\n")
@@ -276,14 +290,15 @@ with tempfile.TemporaryDirectory() as tmp:
         "ID_005": [],
         "ID_006": [],
         "ID_007": [],
+    }, lifecycles={
+        "ID_001": "queued",
+        "ID_002": "ineligible",
+        "ID_003": "implementing",
+        "ID_004": "verifying",
+        "ID_005": "complete",
+        "ID_006": "blocked",
+        "ID_007": "withdrawn",
     })
-    make_iter_state(plet_dir, "ID_001", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_002", lifecycle="ineligible")
-    make_iter_state(plet_dir, "ID_003", lifecycle="implementing")
-    make_iter_state(plet_dir, "ID_004", lifecycle="verifying")
-    make_iter_state(plet_dir, "ID_005", lifecycle="complete")
-    make_iter_state(plet_dir, "ID_006", lifecycle="blocked")
-    make_iter_state(plet_dir, "ID_007", lifecycle="withdrawn")
 
     out, err, _ = run(["eligible", plet_dir])
     check("only queued is eligible", out == "ID_001", "got: " + out)
@@ -306,9 +321,9 @@ print("\n## eligible — missing state file for iteration in dep map")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, dep_map={"ID_001": [], "ID_002": ["ID_001"]})
-    make_iter_state(plet_dir, "ID_001", lifecycle="complete")
-    # ID_002 state file intentionally missing
+    make_global_state(plet_dir, dep_map={"ID_001": [], "ID_002": ["ID_001"]},
+                      lifecycles={"ID_001": "complete"})
+    # ID_002 lifecycle intentionally missing
 
     out, err, _ = run(["eligible", plet_dir], expect_exit=1)
     check("missing state file exits 1", True)
@@ -323,8 +338,8 @@ print("\n## eligible — invalid lifecycle value")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, dep_map={"ID_001": []})
-    make_iter_state(plet_dir, "ID_001", lifecycle="complet")  # typo
+    make_global_state(plet_dir, dep_map={"ID_001": []},
+                      lifecycles={"ID_001": "complet"})  # typo
 
     out, err, _ = run(["eligible", plet_dir], expect_exit=1)
     check("invalid lifecycle exits 1", True)
@@ -343,10 +358,11 @@ with tempfile.TemporaryDirectory() as tmp:
         "ID_003": [],
         "ID_001": [],
         "ID_002": [],
+    }, lifecycles={
+        "ID_001": "queued",
+        "ID_002": "queued",
+        "ID_003": "queued",
     })
-    make_iter_state(plet_dir, "ID_001", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_003", lifecycle="queued")
 
     out, err, _ = run(["eligible", plet_dir])
     lines = out.strip().split("\n")
@@ -366,10 +382,11 @@ with tempfile.TemporaryDirectory() as tmp:
         "ID_001": [],
         "ID_002": ["ID_001"],
         "ID_003": ["ID_002"],
+    }, lifecycles={
+        "ID_001": "blocked",
+        "ID_002": "queued",
+        "ID_003": "queued",
     })
-    make_iter_state(plet_dir, "ID_001", lifecycle="blocked")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_003", lifecycle="queued")
 
     out, err, _ = run(["eligible", plet_dir, "--output", "json"])
     data = json.loads(out)
@@ -401,9 +418,10 @@ with tempfile.TemporaryDirectory() as tmp:
     make_global_state(plet_dir, dep_map={
         "ID_001": [],
         "ID_002": ["ID_001"],
+    }, lifecycles={
+        "ID_001": "withdrawn",
+        "ID_002": "queued",
     })
-    make_iter_state(plet_dir, "ID_001", lifecycle="withdrawn")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
 
     out, err, _ = run(["eligible", plet_dir, "--output", "json"])
     data = json.loads(out)
@@ -422,9 +440,10 @@ with tempfile.TemporaryDirectory() as tmp:
     make_global_state(plet_dir, dep_map={
         "ID_001": [],
         "ID_002": ["ID_001"],
+    }, lifecycles={
+        "ID_001": "blocked",
+        "ID_002": "queued",
     })
-    make_iter_state(plet_dir, "ID_001", lifecycle="blocked")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
 
     out, err, _ = run(["eligible", plet_dir])
     check("text mentions stuck", "stuck" in out.lower(), "got: " + out)
@@ -441,9 +460,10 @@ with tempfile.TemporaryDirectory() as tmp:
     make_global_state(plet_dir, dep_map={
         "ID_001": [],
         "ID_002": ["ID_001"],
+    }, lifecycles={
+        "ID_001": "queued",
+        "ID_002": "queued",
     })
-    make_iter_state(plet_dir, "ID_001", lifecycle="queued")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
 
     out, err, _ = run(["eligible", plet_dir, "--output", "json"])
     data = json.loads(out)
@@ -462,9 +482,10 @@ with tempfile.TemporaryDirectory() as tmp:
     make_global_state(plet_dir, dep_map={
         "ID_001": [],
         "ID_002": ["ID_001"],
+    }, lifecycles={
+        "ID_001": "implementing",
+        "ID_002": "queued",
     })
-    make_iter_state(plet_dir, "ID_001", lifecycle="implementing")
-    make_iter_state(plet_dir, "ID_002", lifecycle="queued")
 
     out, err, _ = run(["eligible", plet_dir, "--output", "json"])
     data = json.loads(out)
