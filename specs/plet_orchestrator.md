@@ -223,9 +223,9 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 | ORC_RUN_BHV_7 | **Parallel spawn (default):** The parallel window is: breakpoint-before check → worktree-create → implement → verify. All eligible iterations run this window concurrently. The sequential boundary is after verify completes — each iteration joins a queue for verdict processing, merge-squash, worktree removal, breakpoint-after, and progress entry. Merge-squash must be serial (shared runtime artifacts). `--sequential` forces the entire per-iteration flow to be one-at-a-time. **Round-based:** all eligible iterations spawn as one round. Wait for all to finish their parallel window, then process all sequentially, then re-evaluate eligible for the next round. Streaming re-evaluation (dynamically adding to the parallel pool mid-round) is a future consideration (ORC_FUT_2). | P0 |
 | ORC_RUN_BHV_8 | **Breakpoint check (before):** Call `plet_schedule.py check-breakpoints --iter-id {id} --position before --output json`. If `hit`, do not start this iteration. In parallel mode, let all other in-flight iterations in the current round finish their parallel window and sequential processing before returning. Then return with `reason: "breakpoint_before"` and `pauseContext.iterationId`. This ensures no work is abandoned mid-phase. | P0 |
 | ORC_RUN_BHV_9 | **Worktree creation:** Call `plet_git_iteration.py worktree-create --iter-id {id} --output json`. Read `worktreePath` from response. | P0 |
-| ORC_RUN_BHV_10 | **Implement phase:** Update lifecycle to `implementing` via `plet_state.py update-field --data '{"lifecycle":"implementing"}'`. Then call `plet_invoke.py run --iter-id {id} --phase implement --cwd {worktreePath} --output json`. The subagent handles audit-tag and post-gate self-correction before exiting — the orchestrator does not call audit-tag. | P0 |
-| ORC_RUN_BHV_11 | **Verify phase:** Read lifecycle from iter state — expect `verifying` (implement subagent's handoff). If not `verifying`, the implement subagent didn't complete cleanly — handle per ORC_EDG_3. Then call `plet_invoke.py run --iter-id {id} --phase verify --cwd {worktreePath} --output json`. The subagent handles audit-tag and post-gate self-correction before exiting. The verify subagent does NOT touch lifecycle — it only sets `lastVerdict`. | P0 |
-| ORC_RUN_BHV_12 | **Verdict processing:** Read `lastVerdict` from per-iteration state file. If `lastVerdict` is missing or null after verify returns, the verify subagent didn't complete properly despite post-gate (GPH_PST_BHV_7 should have caught this) — treat as error, set lifecycle → `blocked`, write progress + emergent entries. Defensive check, not expected in normal operation. Otherwise, three paths: | P0 |
+| ORC_RUN_BHV_10 | **Implement phase:** Call `plet_invoke.py run --iter-id {id} --phase implement --cwd {worktreePath}`. The orchestrator does NOT write lifecycle → implementing (SF_26 — subagent is sole writer). The subagent sets lifecycle → implementing as its first action, then works, then sets lifecycle → verifying (handoff). The subagent handles audit-tag and post-gate self-correction before exiting. | P0 |
+| ORC_RUN_BHV_11 | **Verify phase:** Read lifecycle from `worktree_plet_dir` (not `global_plet_dir`) — expect `verifying` (implement subagent's handoff). If not `verifying`, the implement subagent didn't complete cleanly — handle per ORC_EDG_3. Then call `plet_invoke.py run --iter-id {id} --phase verify --cwd {worktreePath}`. The verify subagent does NOT touch lifecycle — it only sets `lastVerdict`. | P0 |
+| ORC_RUN_BHV_12 | **Verdict processing:** Read `lastVerdict` from `worktree_plet_dir` (not `global_plet_dir` — the subagent wrote there per SF_26). If `lastVerdict` is missing or null, treat as error, write lifecycle → `blocked` to `global_plet_dir` (verdict handoff per SF_27). Otherwise, three verdict paths — all lifecycle writes go to `global_plet_dir`: | P0 |
 
 **Verdict: `passed`**
 
@@ -298,9 +298,9 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_FMT_1 | Reads: `state.json` (via plet_schedule, plet_session), per-iteration state files (via plet_schedule, plet_state). | P0 |
-| ORC_FMT_2 | Writes (via other scripts): `state.json` (session lifecycle), per-iteration state (lifecycle transitions), `progress.md` (session events), trace events (orchestrator decisions). | P0 |
-| ORC_FMT_3 | Does not read or write files directly — all I/O goes through plet scripts via subprocess. Exception: util_* modules imported directly (they are libraries). Uses `util_state.load_and_validate_iter_state` to read per-iteration state for `lastVerdict` and `lifecycle` checks — structural validation included, consistent with plet_schedule.py (SCH_NFR_2). | P0 |
+| ORC_FMT_1 | Reads: `state.json` from `global_plet_dir` (via plet_schedule, plet_session). Per-iteration state from `worktree_plet_dir` after subagent returns (via util_state). | P0 |
+| ORC_FMT_2 | Writes (via other scripts): `state.json` in `global_plet_dir` (session lifecycle). Per-iteration lifecycle in `global_plet_dir` (verdict handoff only, per SF_27). `progress.md` (session events). Trace events (orchestrator decisions). Does NOT write per-iteration state during the iteration (SF_26). | P0 |
+| ORC_FMT_3 | Does not read or write files directly — all I/O goes through plet scripts via subprocess. Exception: util_* modules imported directly. Uses `util_state.load_and_validate_iter_state(worktree_plet_dir, iter_id)` to read post-subagent state from the worktree. | P0 |
 
 ## 7. Agent Flows (AFL)
 
@@ -432,6 +432,23 @@ See `specs/conventions.md` for requirements common to all scripts.
 | ORC_NFR_2 | **Subprocess error handling:** Every subprocess call checks exit code. Non-zero exit is logged with script name, command, args, and stderr. Every script call is critical — no silent skipping. Evaluate impact per ERR_3 and EDG rules. | P0 |
 | ORC_NFR_3 | **Progress visibility:** Human-readable progress output to stdout during execution (iteration count, phase, verdict). JSON mode suppresses this, producing only the final result JSON. | P1 |
 | ORC_NFR_4 | **No context window.** The orchestrator is a Python script, not a Claude session. It has no context window, no compaction, no drift. This is the core architectural advantage over the prose-based orchestrator in SKILL.md. | P0 |
+
+### Worktree State Invariants (SF_26, SF_27)
+
+During an iteration, per-iteration state files exist in two copies: the global copy (`global_plet_dir`, on the workstream branch) and the worktree copy (`worktree_plet_dir`, on the iteration branch). These invariants prevent merge conflicts and stale reads.
+
+| ID | Invariant | Priority |
+|----|-----------|----------|
+| ORC_WSI_1 | **Worktree authoritative during iteration.** The worktree copy is the source of truth while a subagent is running. The global copy is stale and frozen. | P0 |
+| ORC_WSI_2 | **Orchestrator writes zero per-iteration state during iteration.** No `plet_state.py update-field` calls targeting `global_plet_dir` for the active iteration. The subagent is the sole writer (to `worktree_plet_dir`). | P0 |
+| ORC_WSI_3 | **Verdict handoff: lifecycle to global only after iteration done.** Passed: after merge-squash, write `lifecycle: "complete"` to `global_plet_dir`. Rejected: write `lifecycle: "queued"`. Blocked: write `lifecycle: "blocked"`. Commit immediately. | P0 |
+| ORC_WSI_4 | **Global state (state.json) in global_plet_dir only.** Session history, dependency map, counters — never modified in worktree. | P0 |
+| ORC_WSI_5 | **No concurrent writes to the same state file.** Worktree written during iteration, global written between iterations. Eliminates merge conflicts. | P0 |
+| ORC_WSI_6 | **Lifecycle synced before next eligible().** The verdict handoff must be committed before the next scheduling evaluation. | P0 |
+
+**Variable naming:** `global_plet_dir` = workstream copy. `worktree_plet_dir` = iteration copy. Generic functions accept `plet_dir` (either copy). See NOTES.md § Plet Directory Variables.
+
+**Post-subagent reads:** The orchestrator reads lifecycle handoff and verdict from `worktree_plet_dir` (where the subagent wrote them), NOT from `global_plet_dir` (which is stale).
 
 ## 11. Developer Experience (DXP)
 
