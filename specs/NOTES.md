@@ -1525,3 +1525,16 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 - **plet_state.py + spec deprecated:** Added deprecation warnings to both script docstring and spec header. Will be removed in seq 41c.
 - **Spec fixes during review:** GPH_CRT_14 duplicate → GPH_CRT_16, plet_dir "optional/default" → "required positional" (3 locations), DEP_2a renumbered to DEP_3 (no letter suffixes), DEP_2 gained `load_and_validate_global_state`, EXM_4 note rewritten for bidirectional phase differences, BHV_6 trace path `plet/` → `{plet_dir}/`.
 - **Deferred:** sweep-level "default plet/" fix across ~14 active spec files (~50+ occurrences).
+
+#### plet_gate_session.py migration (40c) (2026-03-31)
+
+**5 locations migrated:**
+1. **detect_session_type():** reads `state.json.lifecycles` directly — no more `scan_iter_states()` for lifecycle detection. O(1) file read.
+2. **cmd_status() lifecycle counts:** from `state.json.lifecycles` instead of per-iteration scan.
+3. **cmd_status() blockers:** lifecycle from `state.json.lifecycles`, title from per-iteration file.
+4. **cmd_status() active agents:** `agentActivity` → `phaseActivity`.
+5. **cmd_postflight() transient detection:** reads `state.json.lifecycles` instead of per-iteration files.
+
+**Test change:** `test_detect_corrupt_state_file` → `test_detect_corrupt_iter_file_ignored`. Corrupt per-iteration files no longer affect detection (lifecycles come from state.json). Test verifies the new behavior: detect works correctly even with corrupt per-iteration files.
+
+**Performance improvement:** detect now reads 1 file (state.json) instead of N+1 files (state.json + all per-iteration files). Status still scans per-iteration files for non-lifecycle data (titles, agentId, phaseActivity).

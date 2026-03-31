@@ -127,18 +127,18 @@ def detect_session_type(plet_dir):
             missing.append("state/")
         return "plan", "missing: {}".format(", ".join(missing)), artifacts
 
-    # Load iteration states
-    states, warnings = scan_iter_states(plet_dir)
-    for w in warnings:
-        print("Warning: {}".format(w), file=sys.stderr)
+    # Read lifecycles from state.json (SF_28)
+    global_state = load_and_validate_global_state(plet_dir)
+    if global_state is None:
+        return "plan", "invalid state.json", artifacts
 
-    if not states:
-        return "plan", "no iteration state files", artifacts
+    lifecycles = global_state.get("lifecycles", {})
+    if not lifecycles:
+        return "plan", "no iteration lifecycles in state.json", artifacts
 
     # Count lifecycles
     counts = {}
-    for s in states:
-        lc = s.get("lifecycle", "unknown")
+    for iter_id, lc in lifecycles.items():
         counts[lc] = counts.get(lc, 0) + 1
 
     # OR_4: any queued/implementing/verifying → loop
@@ -308,29 +308,35 @@ Examples:
 
     iter_states, warnings = scan_iter_states(plet_dir)
 
-    # Count lifecycles
+    # Count lifecycles from state.json (SF_28)
+    lifecycles = global_state.get("lifecycles", {})
     lifecycle_counts = {
         "ineligible": 0, "queued": 0, "implementing": 0,
         "verifying": 0, "complete": 0, "blocked": 0, "withdrawn": 0,
     }
-    for s in iter_states:
-        lc = s.get("lifecycle", "unknown")
+    for iter_id, lc in lifecycles.items():
         if lc in lifecycle_counts:
             lifecycle_counts[lc] += 1
 
-    total = len(iter_states)
+    total = len(lifecycles)
     complete_count = lifecycle_counts["complete"]
 
-    # Blockers
+    # Blockers — lifecycle from state.json, title from per-iteration files
     blockers = []
-    for s in iter_states:
-        if s.get("lifecycle") == "blocked":
+    for iter_id, lc in lifecycles.items():
+        if lc == "blocked":
+            # Find title from per-iteration state
+            title = ""
+            for s in iter_states:
+                if s["iterationId"] == iter_id:
+                    title = s.get("title", "")
+                    break
             blockers.append({
-                "iterationId": s["iterationId"],
-                "title": s.get("title", ""),
+                "iterationId": iter_id,
+                "title": title,
             })
 
-    # Active agents
+    # Active agents — phaseActivity (was agentActivity, SF_28)
     active_agents = []
     for s in iter_states:
         agent_id = s.get("agentId")
@@ -338,7 +344,7 @@ Examples:
             active_agents.append({
                 "iterationId": s["iterationId"],
                 "agentId": agent_id,
-                "activity": s.get("agentActivity", "unknown"),
+                "phaseActivity": s.get("phaseActivity", "unknown"),
             })
 
     # Session type via detect logic
@@ -357,12 +363,7 @@ Examples:
         ms_iter_status = {}
         ms_complete = 0
         for iid in ms_iters:
-            # Find lifecycle for this iteration
-            lc = "unknown"
-            for s in iter_states:
-                if s["iterationId"] == iid:
-                    lc = s.get("lifecycle", "unknown")
-                    break
+            lc = lifecycles.get(iid, "unknown")
             ms_iter_status[iid] = lc
             if lc == "complete":
                 ms_complete += 1
@@ -425,8 +426,8 @@ Examples:
             lines.append("Blocker: {} — {}".format(b["iterationId"], b["title"]))
 
         for a in active_agents:
-            lines.append("Active: {} ({}, {})".format(
-                a["iterationId"], a["activity"], a["agentId"]))
+            lines.append("Active: {} (phaseActivity: {}, {})".format(
+                a["iterationId"], a["phaseActivity"], a["agentId"]))
 
         if fingerprints["consistent"] is True:
             lines.append("Fingerprints: consistent")
@@ -780,20 +781,15 @@ def cmd_postflight(args):
     # Run preflight checks (reuse)
     checks = run_preflight_checks(plet_dir, session_type)
 
-    # End-of-session check: transient lifecycle detection
+    # End-of-session check: transient lifecycle detection from state.json (SF_28)
     sjp = state_json_path(plet_dir)
     if os.path.isfile(sjp):
         gs = load_json(sjp)
-        if gs and "dependencyMap" in gs:
+        if gs and "lifecycles" in gs:
             transient = []
-            for iter_id in gs["dependencyMap"]:
-                isp = iter_state_path(plet_dir, iter_id)
-                if os.path.isfile(isp):
-                    ist = load_json(isp)
-                    if ist:
-                        lc = ist.get("lifecycle", "")
-                        if lc in ("implementing", "verifying"):
-                            transient.append(iter_id)
+            for iter_id, lc in gs.get("lifecycles", {}).items():
+                if lc in ("implementing", "verifying"):
+                    transient.append(iter_id)
             if transient:
                 checks.append({
                     "name": "transient-lifecycle",
