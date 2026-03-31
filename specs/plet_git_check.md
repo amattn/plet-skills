@@ -174,7 +174,7 @@ At session boundaries (start and end), the orchestrator needs a global health ch
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTC_CKS_INP_1 | `plet_dir` — optional positional arg, defaults to `plet/`. Script derives `{plet_dir}/state.json` and loads via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
-| GTC_CKS_INP_2 | Script derives `{plet_dir}/state/` as the per-iteration state directory. Used to scan all iteration state files and cross-reference their lifecycles against git state. | P0 |
+| GTC_CKS_INP_2 | Script derives `{plet_dir}/state/` as the per-iteration state directory. Scans for non-lifecycle data (titles, state file existence). Lifecycles come from `state.json.lifecycles` (SF_28). | P0 |
 
 #### Outputs (GTC_CKS_OUT)
 
@@ -224,18 +224,18 @@ Same output model as check-iteration: a list of checks with pass/fail/warn statu
 
 #### Behaviors (GTC_CKS_BHV)
 
-Session-level checks scan across all iterations and git state for the current loop session. The `{plet_dir}/state/` directory is scanned for `*.json` files to enumerate known iterations.
+Session-level checks scan across all iterations and git state for the current loop session. Lifecycles are read from `state.json.lifecycles` (SF_28). Per-iteration files in `{plet_dir}/state/` are scanned for non-lifecycle data (titles, state file existence for orphaned-branches check).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_BHV_1 | **orphaned-worktrees**: Lists git worktrees (`git worktree list --porcelain`), identifies any under the plet namespace that don't correspond to an active (non-complete, non-withdrawn) iteration. WARN for each orphaned worktree found. Detail includes worktree path and branch. Addresses FB_32. | P0 |
+| GTC_CKS_BHV_1 | **orphaned-worktrees**: Lists git worktrees (`git worktree list --porcelain`), identifies any under the plet namespace that don't correspond to a non-complete, non-withdrawn iteration per `state.json.lifecycles` (SF_28). A worktree is orphaned if its iteration's lifecycle is `complete`, `withdrawn`, or missing from lifecycles entirely. WARN for each orphaned worktree found. Detail includes worktree path and branch. Addresses FB_32. | P0 |
 | GTC_CKS_BHV_2 | **no-stashes**: Checks `git stash list` is empty. WARN if stashes exist. Same as the per-iteration check but at session scope — stashes may have been created outside any iteration context. Detail includes stash count. Addresses FB_30. | P0 |
-| GTC_CKS_BHV_3 | **unmerged-complete**: Scans state files in `{plet_dir}/state/` for iterations with `lifecycle: "complete"`. For each, checks if its iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) is an ancestor of the workstream branch. FAIL for any complete iteration whose branch is not merged (work was declared done but never integrated). Detail lists the unmerged iteration IDs. | P0 |
-| GTC_CKS_BHV_4 | **workstream-exists**: Verifies the workstream branch `plet/{projectId}/loop{N}/workstream` exists. FAIL if it doesn't exist and there are iterations in non-ineligible states (work has started but no workstream). PASS if it doesn't exist and all iterations are ineligible/queued (loop hasn't started yet). | P0 |
+| GTC_CKS_BHV_3 | **unmerged-complete**: Reads `state.json.lifecycles` (SF_28) to find iterations with lifecycle `"complete"`. For each, checks if its iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) is an ancestor of the workstream branch. FAIL for any complete iteration whose branch is not merged (work was declared done but never integrated). Detail lists the unmerged iteration IDs. | P0 |
+| GTC_CKS_BHV_4 | **workstream-exists**: Verifies the workstream branch `plet/{projectId}/loop{N}/workstream` exists. FAIL if it doesn't exist and there are iterations in non-ineligible states per `state.json.lifecycles` (SF_28) — any lifecycle other than `ineligible` means work has started or is planned. PASS if it doesn't exist and all iterations are ineligible (loop hasn't started yet). Queued counts as non-ineligible (work is planned). | P0 |
 | GTC_CKS_BHV_5 | Check order: in-progress-operation → workstream-exists → orphaned-worktrees → orphaned-branches → no-stashes → unmerged-complete. Broken repo first, then workstream (structural), cleanup checks next, merge verification last. | P0 |
 | GTC_CKS_BHV_9 | **orphaned-branches**: Lists plet-namespaced branches (`plet/{projectId}/loop{N}/*`), identifies any that don't have a corresponding state file in `{plet_dir}/state/`. WARN for each. Detail includes branch name. Reverse of unmerged-complete (branch without state, vs state without merge). | P0 |
 | GTC_CKS_BHV_8 | **in-progress-operation**: Same check as CKI_BHV_8 — detects interrupted rebase, merge, cherry-pick, bisect. FAIL if any detected. Catches broken repo state at session preflight before any iterations are spawned. | P0 |
-| GTC_CKS_BHV_6 | Scans `{plet_dir}/state/` for `*.json` files. Each file is loaded via `util_state.load_and_validate_iter_state()`. Files that fail validation are reported as WARN (corrupt state file) and skipped for subsequent checks. | P0 |
+| GTC_CKS_BHV_6 | Scans `{plet_dir}/state/` for `*.json` files for non-lifecycle data. Each file is loaded via `util_state.load_and_validate_iter_state()`. Files that fail validation are reported as WARN (corrupt state file) and skipped for subsequent checks. Lifecycle data comes from `state.json.lifecycles` (SF_28), not per-iteration files. | P0 |
 | GTC_CKS_BHV_7 | For unmerged-complete check: an iteration branch is "merged" if it is an ancestor of the workstream HEAD. Uses `git merge-base --is-ancestor {iter_branch} {workstream}`. If the iteration branch no longer exists (already cleaned up), treat as PASS (branch deleted = already handled). | P0 |
 
 ---
@@ -285,8 +285,8 @@ Errors are distinct from check failures. Errors are structural problems that pre
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_FMT_1 | Reads `{plet_dir}/state.json` via `util_state` for `projectId`, `loopSessionCount`. | P0 |
-| GTC_FMT_2 | Reads `{plet_dir}/state/{id}.json` via `util_state` for `iterationId`, `lifecycle`. | P0 |
+| GTC_FMT_1 | Reads `{plet_dir}/state.json` via `util_state` for `projectId`, `loopSessionCount`, `lifecycles` (SF_28). | P0 |
+| GTC_FMT_2 | Reads `{plet_dir}/state/{id}.json` via `util_state` for `iterationId` and non-lifecycle data. Lifecycle comes from `state.json.lifecycles`. | P0 |
 | GTC_FMT_3 | Branch name convention: `plet/{projectId}/loop{N}/{iter_id}` (iteration), `plet/{projectId}/loop{N}/workstream` (workstream). Derived from state files, not constructed from flags. | P0 |
 | GTC_FMT_4 | Writes nothing — read-only. | P0 |
 
