@@ -1403,7 +1403,7 @@ Five decisions to prevent the LOGA Run 3 failure class ("subagent did the work b
 
 Phase 1 — Additive (nothing breaks): 39a–39e. Schema docs, dual-schema util_state.py, new scripts. Existing code keeps working. Natural checkpoint for test run.
 
-Phase 2 — Migrate consumers (39f–39l): Each script migration includes the field renames AND test fixture updates for that script. No separate rename sweep — it's folded in. mock_claude_helper.py explicitly included with orchestrator (39k). SKILL.md plan phase added to reference file updates (39l).
+Phase 2 — Migrate consumers (39f–39l): Each script migration includes the field renames AND test fixture updates for that script. No separate rename sweep — it's folded in. util_mock_claude.py explicitly included with orchestrator (39k). SKILL.md plan phase added to reference file updates (39l).
 
 Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_state.py, consistency grep for stale names, final test sweep, remove plet_state.py.
 
@@ -1412,7 +1412,7 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 2. **Fold 39m (rename) into 39f–39k:** Each script step does lifecycle source change + field renames together. 39m becomes tighten + grep, not implementation.
 3. **Tests alongside each script (39f–39k):** Each migration step updates that script's test fixtures. 39n is final sweep, not primary update.
 4. **Swapped 39d/39e:** util_state.py dual-schema (39d) before new scripts (39e) — new scripts depend on updated validation.
-5. **mock_claude_helper.py in 39k:** Writes implementVerdict/verifyVerdict instead of lifecycle/lastVerdict.
+5. **util_mock_claude.py in 39k:** Writes implementVerdict/verifyVerdict instead of lifecycle/lastVerdict.
 6. **SKILL.md plan phase in 39l:** Plan session calls GST + IST (was only implement.md + verify.md).
 
 #### IST spec decisions (2026-03-30)

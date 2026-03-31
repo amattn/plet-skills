@@ -1,11 +1,14 @@
-"""Mock claude helper — minimal simulation of implement/verify behavior.
+"""Mock claude — minimal simulation of implement/verify subagent behavior.
+
+Used by test_plet_orchestrator.py as a mock `claude` binary. Placed on PATH
+so plet_invoke.py finds it instead of the real Claude.
 
 Parses --name plet/{iter_id}/{phase}-{attempt} from argv.
 Reads MOCK_PLET_DIR and MOCK_BEHAVIOR from env.
 
 Does the minimum needed for the orchestrator to proceed:
-- implement: set lifecycle → verifying, create a commit
-- verify: set lastVerdict, create a commit
+- implement: set implementVerdict, create a commit
+- verify: set verifyVerdict, create a commit
 
 Skips entries, trace, audit tags — those are tested separately.
 The orchestrator handles missing artifacts gracefully.

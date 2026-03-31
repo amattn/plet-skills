@@ -168,8 +168,8 @@ def create_mock_claude(tmpdir, behavior="pass"):
     os.makedirs(mock_dir, exist_ok=True)
 
     # Copy the mock helper module
-    helper_src = os.path.join(os.path.dirname(__file__), "mock_claude_helper.py")
-    helper_dst = os.path.join(mock_dir, "mock_claude_helper.py")
+    helper_src = os.path.join(os.path.dirname(__file__), "util_mock_claude.py")
+    helper_dst = os.path.join(mock_dir, "util_mock_claude.py")
     shutil.copy2(helper_src, helper_dst)
 
     # Create the mock claude script that imports the helper
@@ -178,8 +178,8 @@ def create_mock_claude(tmpdir, behavior="pass"):
         f.write("#!/usr/bin/env python3\n")
         f.write("import sys, os\n")
         f.write("sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))\n")
-        f.write("import mock_claude_helper\n")
-        f.write("sys.exit(mock_claude_helper.main(sys.argv))\n")
+        f.write("import util_mock_claude\n")
+        f.write("sys.exit(util_mock_claude.main(sys.argv))\n")
     os.chmod(mock_script, 0o755)
     return mock_dir
 
