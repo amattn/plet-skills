@@ -13,8 +13,14 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+sys.path.insert(0, os.path.dirname(__file__))
+
 from util_io import (state_json_path, state_dir_path, iter_state_path,
                      requirements_path, iterations_path, learnings_path)
+from util_fixture import (
+    make_global_state as _shared_make_global_state,
+    make_iter_state as _shared_make_iter_state,
+)
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_prompt.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
@@ -57,28 +63,20 @@ def make_plet_dir(tmpdir):
     plet_dir = os.path.join(tmpdir, "plet")
     os.makedirs(state_dir_path(plet_dir), exist_ok=True)
 
-    # Global state
-    with open(state_json_path(plet_dir), "w") as f:
-        json.dump({
-            "schemaVersion": "0.2.0", "projectId": "TEST",
-            "project": {"name": "Test Project"},
-            "loopSessionCount": 1, "refineSessionCount": 0,
-            "dependencyMap": {}, "milestones": {}, "iterationsFingerprint": {},
-        }, f)
-        f.write("\n")
+    # Global state with lifecycle in state.json.lifecycles (SF_28)
+    _shared_make_global_state(
+        plet_dir, project_id="TEST", loop_session=1,
+        lifecycles={"ID_001": "implementing"},
+    )
 
-    # Iter state
-    with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
-        json.dump({
-            "schemaVersion": "0.2.0", "iterationId": "ID_001",
-            "title": "Project scaffolding", "lastUpdated": "2026-03-27T00:00:00Z",
-            "lifecycle": "implementing", "dependencies": [], "agentId": None,
-            "attempts": {"implement": 1, "verify": 0},
-            "criteria": [
-                {"id": "AC_1", "description": "pytest runs with exit 0", "status": "pending"}
-            ],
-        }, f)
-        f.write("\n")
+    # Iter state — NO lifecycle field (SF_28)
+    _shared_make_iter_state(
+        plet_dir, iter_id="ID_001", title="Project scaffolding",
+        attempts={"implement": 1, "verify": 0},
+        criteria=[
+            {"id": "AC_1", "description": "pytest runs with exit 0", "status": "pending"}
+        ],
+    )
 
     # Requirements
     with open(requirements_path(plet_dir), "w") as f:

@@ -39,6 +39,7 @@ from util_io import (
     learnings_path,
     iter_state_path,
     load_iter_state_json,
+    load_global_state_json,
 )
 
 
@@ -105,13 +106,16 @@ def extract_iteration_block(iterations_content, iter_id):
     return "\n".join(lines[start:end]).strip()
 
 
-def format_iteration_state(state_data):
-    """Format per-iteration state as human-readable text."""
+def format_iteration_state(state_data, lifecycle="?"):
+    """Format per-iteration state as human-readable text.
+
+    lifecycle comes from state.json.lifecycles (SF_28), not from per-iteration state.
+    """
     lines = []
     lines.append("Iteration: {} — {}".format(
         state_data.get("iterationId", "?"),
         state_data.get("title", "?")))
-    lines.append("Lifecycle: {}".format(state_data.get("lifecycle", "?")))
+    lines.append("Lifecycle: {}".format(lifecycle))
 
     attempts = state_data.get("attempts", {})
     lines.append("Attempts: implement-{}, verify-{}".format(
@@ -300,7 +304,12 @@ Examples:
         else:
             print(msg, file=sys.stderr)
         return 1
-    state_text = format_iteration_state(state_data)
+    # Lifecycle from state.json.lifecycles (SF_28)
+    global_state = load_global_state_json(plet_dir)
+    lifecycle = "?"
+    if global_state:
+        lifecycle = global_state.get("lifecycles", {}).get(iter_id, "?")
+    state_text = format_iteration_state(state_data, lifecycle=lifecycle)
     sections.append({"name": "iteration-state", "source": "derived",
                       "content": state_text})
 
