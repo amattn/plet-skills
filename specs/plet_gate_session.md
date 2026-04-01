@@ -80,7 +80,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_DET_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. | P0 |
+| GSS_DET_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
 
 #### Outputs (GSS_DET_OUT)
 
@@ -158,7 +158,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_STS_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Derives `state.json` and `state/` paths internally. Same input pattern as detect and preflight. | P0 |
+| GSS_STS_INP_1 | `plet_dir` — required positional. Path to plet directory. Derives `state.json` and `state/` paths internally. Same input pattern as detect and preflight. | P0 |
 
 #### Outputs (GSS_STS_OUT)
 
@@ -258,7 +258,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PRF_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Used to locate state files and spec artifacts. | P0 |
+| GSS_PRF_INP_1 | `plet_dir` — required positional. Path to plet directory. Used to locate state files and spec artifacts. | P0 |
 | GSS_PRF_INP_2 | `--session-type` — required. `detect` (auto-detect via detect logic), `plan`, `loop`, or `refine`. Controls session-type-dependent checks (fingerprint severity). `detect` runs auto-detection internally. `plan`/`loop`/`refine` override — allows forcing a session type (e.g., "I'm about to loop" even if detect says "refine"). | P0 |
 
 #### Outputs (GSS_PRF_OUT)
@@ -505,7 +505,7 @@ See `specs/conventions.md` for universal requirements.
 | GSS_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | GSS_DXP_2 | IMPORTANT: all commands are read-only — safe to run anytime | P0 |
 | GSS_DXP_3 | `detect` text output is bare session type for shell capture (exception to UNV_CMD_15, same pattern as GTI_DXP_3) | P0 |
-| GSS_DXP_4 | PITFALLS: all commands default to `plet/` in cwd — run from project root. All three commands use the same input pattern (optional plet_dir). | P0 |
+| GSS_DXP_4 | PITFALLS: plet_dir is required — pass the path explicitly. All three commands use the same input pattern (required plet_dir positional). | P0 |
 | GSS_DXP_5 | Check names in preflight are stable identifiers: scripts-installed, git:* (CKS checks prefixed), claude-md-exists, gitignore-plet, spec-artifacts, state-valid, fingerprints-consistent | P0 |
 
 ## 12. Critical Test Areas (GSS_CRT)

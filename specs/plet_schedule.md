@@ -64,7 +64,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_ELG_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. Reads `state.json` via `util_io.state_json_path()` — lifecycles and dependency map are both in state.json (SF_28). No per-iteration file reads needed for eligible. | P0 |
+| SCH_ELG_INP_1 | `plet_dir` — required positional. Path to plet directory. Reads `state.json` via `util_io.state_json_path()` — lifecycles and dependency map are both in state.json (SF_28). No per-iteration file reads needed for eligible. | P0 |
 
 #### Outputs (OUT)
 
@@ -147,7 +147,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_BKP_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. Reads `state.json` via `util_io.state_json_path()`. | P0 |
+| SCH_BKP_INP_1 | `plet_dir` — required positional. Path to plet directory. Reads `state.json` via `util_io.state_json_path()`. | P0 |
 | SCH_BKP_INP_2 | `--iter-id` — iteration ID to check (required). | P0 |
 | SCH_BKP_INP_3 | `--position` — `before` or `after` (required). Determines which breakpoint array to check. | P0 |
 

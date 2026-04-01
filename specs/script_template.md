@@ -62,7 +62,7 @@ Why this command exists, when it's used, and under what conditions it might beco
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRE_XXX_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. All paths derived via `util_io` functions (`state_json_path`, `iter_state_path`, etc.). | P0 |
+| PRE_XXX_INP_1 | `plet_dir` — required positional. Path to plet directory. All paths derived via `util_io` functions (`state_json_path`, `iter_state_path`, etc.). | P0 |
 | PRE_XXX_INP_2 | `--iter-id` — iteration ID (required for per-iteration commands) | P0 |
 | PRE_XXX_INP_3 | `--flag` — description (default: X) | P0 |
 

@@ -67,7 +67,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| INV_RUN_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. Used by PRM to assemble prompt. | P0 |
+| INV_RUN_INP_1 | `plet_dir` — required positional. Path to plet directory. Used by PRM to assemble prompt. | P0 |
 | INV_RUN_INP_2 | `--iter-id` — iteration ID. Required. | P0 |
 | INV_RUN_INP_3 | `--phase` — `implement` or `verify`. Required. | P0 |
 | INV_RUN_INP_4 | `--cwd` — working directory for the subprocess. Required. Typically the worktree path from GTI. The subprocess runs in this directory. | P0 |

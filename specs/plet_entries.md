@@ -77,7 +77,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_INP_1 | `plet_dir` — path to plet directory. Optional, defaults to `plet/` via `util_io.DEFAULT_PLET_DIR`. Path derivation via `util_io` functions. | P0 |
+| ENT_APR_INP_1 | `plet_dir` — required positional. Path to plet directory. Path derivation via `util_io` functions. | P0 |
 | ENT_APR_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) or `proj` for project-level | P0 |
 | ENT_APR_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_APR_INP_4 | `--phase` — `plan`, `implement`, `verify`, or `refine` | P0 |
@@ -173,7 +173,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_INP_1 | `plet_dir` — path to plet directory. Optional, defaults to `plet/` via `util_io.DEFAULT_PLET_DIR`. Path derivation via `util_io` functions. | P0 |
+| ENT_ALR_INP_1 | `plet_dir` — required positional. Path to plet directory. Path derivation via `util_io` functions. | P0 |
 | ENT_ALR_INP_2 | `--iter-id` — iteration ID or `proj` | P0 |
 | ENT_ALR_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_ALR_INP_4 | `--category` — `pattern`, `gotcha`, `technique`, `tool`, `debug`, or `context` | P0 |
@@ -265,7 +265,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_INP_1 | `plet_dir` — path to plet directory. Optional, defaults to `plet/` via `util_io.DEFAULT_PLET_DIR`. Path derivation via `util_io` functions. | P0 |
+| ENT_AEM_INP_1 | `plet_dir` — required positional. Path to plet directory. Path derivation via `util_io` functions. | P0 |
 | ENT_AEM_INP_2 | `--iter-id` — iteration ID or `proj` | P0 |
 | ENT_AEM_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_AEM_INP_4 | `--title` — short title for the emergent item | P0 |
@@ -360,7 +360,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_INP_1 | `plet_dir` — path to plet directory. Optional, defaults to `plet/` via `util_io.DEFAULT_PLET_DIR`. Path derivation via `util_io` functions. | P0 |
+| ENT_CHK_INP_1 | `plet_dir` — required positional. Path to plet directory. Path derivation via `util_io` functions. | P0 |
 | ENT_CHK_INP_2 | `--iter-id` — iteration ID to check | P0 |
 
 #### Outputs (ENT_CHK_OUT)

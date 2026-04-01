@@ -91,7 +91,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_ATG_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Derives `{plet_dir}/state.json` (global state) and `{plet_dir}/state/{iter_id}.json` (iter state) internally. Global state provides `projectId`, `loopSessionCount`. | P0 |
+| GTO_ATG_INP_1 | `plet_dir` — required positional. Path to plet directory. Derives `{plet_dir}/state.json` (global state) and `{plet_dir}/state/{iter_id}.json` (iter state) internally. Global state provides `projectId`, `loopSessionCount`. | P0 |
 | GTO_ATG_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to locate `{plet_dir}/state/{iter_id}.json`. Iter state provides `iterationId`, `attempts`. | P0 |
 | GTO_ATG_INP_3 | `--phase` — `implement` or `verify`. Required because lifecycle may be mid-transition when this is called. Attempt number derived from iter state's `attempts[phase]`. | P0 |
 
@@ -174,7 +174,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_MSQ_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Derives `{plet_dir}/state.json` (global state) and `{plet_dir}/state/{iter_id}.json` (iter state) internally. Global state provides `projectId`, `loopSessionCount`. | P0 |
+| GTO_MSQ_INP_1 | `plet_dir` — required positional. Path to plet directory. Derives `{plet_dir}/state.json` (global state) and `{plet_dir}/state/{iter_id}.json` (iter state) internally. Global state provides `projectId`, `loopSessionCount`. | P0 |
 | GTO_MSQ_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to locate `{plet_dir}/state/{iter_id}.json`. Iter state provides `iterationId`, `title`, `cleanupTagsAutomatically`, `cleanupBranchesAutomatically`. | P0 |
 
 #### Outputs (GTO_MSQ_OUT)

@@ -92,7 +92,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_BRN_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Derives `state.json` path internally as `{plet_dir}/state.json`. Loaded and fully validated via `util_state.load_and_validate_global_state()`. Returns validated fields including `projectId`, `loopSessionCount`, `refineSessionCount`. | P0 |
+| GTI_BRN_INP_1 | `plet_dir` — required positional. Path to plet directory. Derives `state.json` path internally as `{plet_dir}/state.json`. Loaded and fully validated via `util_state.load_and_validate_global_state()`. Returns validated fields including `projectId`, `loopSessionCount`, `refineSessionCount`. | P0 |
 | GTI_BRN_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required for `--type iteration`. | P0 |
 | GTI_BRN_INP_3 | `--type` — branch type: `iteration` (default), `workstream`, `plan`, or `refine`. Determines the pattern and which session counter to read. | P0 |
 
@@ -121,7 +121,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTI_BRN_PRE_1 | All required args present: `--iter-id` (when type is iteration) | P0 |
-| GTI_BRN_PRE_2 | `plet_dir` exists and is a directory (or default `plet/` exists) | P0 |
+| GTI_BRN_PRE_2 | `plet_dir` exists and is a directory | P0 |
 | GTI_BRN_PRE_3 | `{plet_dir}/state.json` passes `util_state.load_and_validate_global_state()` (full global state validation) | P0 |
 | GTI_BRN_PRE_4 | `{plet_dir}/state.json` contains `projectId` (string, matches `[A-Z][A-Z0-9]{2,5}`) | P0 |
 | GTI_BRN_PRE_5 | `{plet_dir}/state.json` contains the session counter for the requested type: `loopSessionCount` for iteration/workstream, `refineSessionCount` for refine. Plan always uses 1 (no counter in state.json). | P0 |
@@ -172,7 +172,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTC_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Derives `state.json` path internally as `{plet_dir}/state.json`. | P0 |
+| GTI_WTC_INP_1 | `plet_dir` — required positional. Path to plet directory. Derives `state.json` path internally as `{plet_dir}/state.json`. | P0 |
 | GTI_WTC_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) | P0 |
 | GTI_WTC_INP_3 | `--base` — (optional) base branch to branch from. Default: the loop workstream branch (derived from state.json). | P1 |
 | GTI_WTC_INP_4 | `--worktree-dir` — (optional) parent directory for worktrees. Default: `.plet/worktrees/`. The iteration worktree is created at `{worktree-dir}/{projectId}/{iter_id}/` — namespaced by projectId to prevent collisions when subplets share the same iteration IDs. | P1 |
@@ -204,7 +204,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTI_WTC_PRE_1 | All required args present: `--iter-id` | P0 |
-| GTI_WTC_PRE_2 | `plet_dir` exists and is a directory (or default `plet/` exists). `{plet_dir}/state.json` passes `util_state.load_and_validate_global_state()` (full global state validation). | P0 |
+| GTI_WTC_PRE_2 | `plet_dir` exists and is a directory. `{plet_dir}/state.json` passes `util_state.load_and_validate_global_state()` (full global state validation). | P0 |
 | GTI_WTC_PRE_3 | `--iter-id` matches pattern `ID_N+` | P0 |
 | GTI_WTC_PRE_4 | Worktree path does not already exist (error if it does — no silent overwrite) | P0 |
 | GTI_WTC_PRE_5 | If branch already exists, auto-resume: create worktree on existing branch (no `-b`). This handles blocked→unblocked iterations where partial work is committed on the branch. If branch does NOT exist, create fresh (`-b`). | P0 |
@@ -256,7 +256,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTR_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/` in current working directory. Derives `state.json` path internally as `{plet_dir}/state.json`. | P0 |
+| GTI_WTR_INP_1 | `plet_dir` — required positional. Path to plet directory. Derives `state.json` path internally as `{plet_dir}/state.json`. | P0 |
 | GTI_WTR_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) | P0 |
 | GTI_WTR_INP_3 | `--delete-branch` — (optional flag) also delete the iteration branch after removing the worktree. Default: keep the branch (it may be needed for rebase/merge). | P1 |
 | GTI_WTR_INP_4 | `--worktree-dir` — (optional) parent directory for worktrees. Default: `.plet/worktrees/`. | P1 |
@@ -286,7 +286,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTI_WTR_PRE_1 | All required args present: `--iter-id` | P0 |
-| GTI_WTR_PRE_2 | `plet_dir` exists and is a directory (or default `plet/` exists). `{plet_dir}/state.json` passes `util_state.load_and_validate_global_state()` (full global state validation). | P0 |
+| GTI_WTR_PRE_2 | `plet_dir` exists and is a directory. `{plet_dir}/state.json` passes `util_state.load_and_validate_global_state()` (full global state validation). | P0 |
 | GTI_WTR_PRE_3 | `--iter-id` matches pattern `ID_N+` | P0 |
 | GTI_WTR_PRE_4 | Worktree exists at the derived path | P0 |
 | GTI_WTR_PRE_5 | Current directory is inside a git repository | P0 |
@@ -395,32 +395,32 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 ### GTI_EXM_1: Generate branch names
 
 ```bash
-# Iteration branch (uses default plet/ directory)
-plet_git_iteration.py branch-name --iter-id ID_001
+# Iteration branch
+plet_git_iteration.py branch-name plet/ --iter-id ID_001
 # plet/LOGA/loop1/ID_001
 
 # Workstream branch
-plet_git_iteration.py branch-name --type workstream
+plet_git_iteration.py branch-name plet/ --type workstream
 # plet/LOGA/loop1/workstream
 
 # Plan branch
-plet_git_iteration.py branch-name --type plan
+plet_git_iteration.py branch-name plet/ --type plan
 # plet/LOGA/plan1/workstream
 
 # Refine branch
-plet_git_iteration.py branch-name --type refine
+plet_git_iteration.py branch-name plet/ --type refine
 # plet/LOGA/refine1/workstream
 
 # JSON output for scripting
-plet_git_iteration.py branch-name --iter-id ID_003 --output json
+plet_git_iteration.py branch-name plet/ --iter-id ID_003 --output json
 # {"status":"ok","command":"branch-name","branchName":"plet/LOGA/loop1/ID_003","type":"iteration","projectId":"LOGA","sessionNum":1,...}
 ```
 
 ### GTI_EXM_2: Create and remove a worktree
 
 ```bash
-# Create (uses default plet/ directory)
-plet_git_iteration.py worktree-create --iter-id ID_001
+# Create
+plet_git_iteration.py worktree-create plet/ --iter-id ID_001
 # OK — created worktree at .plet/worktrees/LOGA/ID_001/ on branch plet/LOGA/loop1/ID_001
 
 # Create with explicit plet directory

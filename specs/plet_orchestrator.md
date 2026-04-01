@@ -102,7 +102,7 @@ NDJSON errors: `{"status":"error", ...}` line to stdout + text to stderr (per UN
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_RUN_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. | P0 |
+| ORC_RUN_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
 | ORC_RUN_INP_2 | `--max-iterations N` — (optional) stop after N iterations reach `complete`. Useful for testing and incremental runs. Default: no limit (run until all complete or blocked). | P1 |
 | ORC_RUN_INP_3 | `--sequential` — (optional) force sequential execution even when multiple iterations are eligible. Default: parallel spawn with sequential merge. | P1 |
 | ORC_RUN_INP_4 | `--allow-stale` — (optional) downgrade stale fingerprints from blocking error to warning. Default: stale fingerprints block the loop. Use when you know the spec changed trivially and don't want to run a full refine/fingerprint update cycle. | P1 |

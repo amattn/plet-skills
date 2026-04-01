@@ -79,7 +79,7 @@ Gate scripts (GIM, GVR) need to verify git state is correct before and after eac
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKI_INP_1 | `plet_dir` — optional positional arg, defaults to `plet/`. Script derives `{plet_dir}/state.json` and loads via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
+| GTC_CKI_INP_1 | `plet_dir` — required positional. Script derives `{plet_dir}/state.json` and loads via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
 | GTC_CKI_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Script derives `{plet_dir}/state/{iter_id}.json` and loads via `util_state.load_and_validate_iter_state()`. Provides `iterationId`. | P0 |
 | GTC_CKI_INP_3 | `--phase` — `implement` or `verify`. Determines the expected branch context. | P0 |
 
@@ -173,7 +173,7 @@ At session boundaries (start and end), the orchestrator needs a global health ch
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_INP_1 | `plet_dir` — optional positional arg, defaults to `plet/`. Script derives `{plet_dir}/state.json` and loads via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
+| GTC_CKS_INP_1 | `plet_dir` — required positional. Script derives `{plet_dir}/state.json` and loads via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
 | GTC_CKS_INP_2 | Script derives `{plet_dir}/state/` as the per-iteration state directory. Scans for non-lifecycle data (titles, state file existence). Lifecycles come from `state.json.lifecycles` (SF_28). | P0 |
 
 #### Outputs (GTC_CKS_OUT)
@@ -209,7 +209,7 @@ Same output model as check-iteration: a list of checks with pass/fail/warn statu
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_PRE_1 | `plet_dir` resolves to an existing directory (default `plet/`) | P0 |
+| GTC_CKS_PRE_1 | `plet_dir` resolves to an existing directory | P0 |
 | GTC_CKS_PRE_2 | `{plet_dir}/state.json` passes `util_state.load_and_validate_global_state()` | P0 |
 | GTC_CKS_PRE_3 | `{plet_dir}/state/` is an existing directory | P0 |
 | GTC_CKS_PRE_4 | Current directory is inside a git repository | P0 |
@@ -432,7 +432,7 @@ See `specs/conventions.md` for universal requirements.
 |----|-------------|----------|
 | GTC_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | GTC_DXP_2 | IMPORTANT: both commands are read-only — no `--dry-run` needed, safe to run anytime | P0 |
-| GTC_DXP_3 | PITFALLS: check-iteration requires being in a git repo (will fail if run from wrong directory); `plet_dir` must point to the plet directory (default `plet/`), not a state file — the script derives `state.json` and `state/` paths internally | P0 |
+| GTC_DXP_3 | PITFALLS: check-iteration requires being in a git repo (will fail if run from wrong directory); `plet_dir` is required and must point to the plet directory, not a state file — the script derives `state.json` and `state/` paths internally | P0 |
 | GTC_DXP_4 | Help text documents flag dependencies: `--pretty` and `--fields` require `--output json` | P0 |
 | GTC_DXP_5 | Error messages include git's stderr when a git command fails | P0 |
 | GTC_DXP_6 | Check names are stable identifiers (in-progress-operation, branch-exists, correct-branch, clean-worktree, linear-history, no-stashes, workstream-exists, orphaned-worktrees, orphaned-branches, unmerged-complete) — gate scripts and orchestrator can match on them. in-progress-operation is shared by both commands. | P0 |

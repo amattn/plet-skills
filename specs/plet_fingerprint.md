@@ -68,7 +68,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EXT_INP_1 | `plet_dir` — (optional, default `plet/`) path to plet directory. File paths derived via `util_io` functions: `requirements.md` or `iterations.md` within this directory based on `--type`. Same convention as `embed` and `check`. | P0 |
+| FPR_EXT_INP_1 | `plet_dir` — required positional. Path to plet directory. File paths derived via `util_io` functions: `requirements.md` or `iterations.md` within this directory based on `--type`. Same convention as `embed` and `check`. | P0 |
 | FPR_EXT_INP_2 | `--type` — `requirements` or `iterations`. Determines the scanning strategy and output structure. | P0 |
 
 #### Outputs (FPR_EXT_OUT)
@@ -142,7 +142,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EMB_INP_1 | `plet_dir` — (optional, default `plet/`) path to plet directory. File paths derived via `util_io` functions: `requirements.md`, `iterations.md`, `state.json` within this directory. Same convention as `check`. | P0 |
+| FPR_EMB_INP_1 | `plet_dir` — required positional. Path to plet directory. File paths derived via `util_io` functions: `requirements.md`, `iterations.md`, `state.json` within this directory. Same convention as `check`. | P0 |
 | FPR_EMB_INP_2 | `--type` — `requirements`, `iterations`, or `state`. Determines which file to update and which fingerprint operation to perform. | P0 |
 | FPR_EMB_INP_3 | `--bump` — (optional) force-bump `lastNonTrivialUpdate` to current UTC time even when ID arrays haven't changed. Used when prose changed meaningfully but IDs didn't (e.g., requirement wording changes that don't add/remove IDs). When ID arrays *have* changed vs the previously embedded fingerprint, `lastNonTrivialUpdate` is auto-bumped regardless of `--bump`. | P0 |
 
@@ -229,7 +229,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_INP_1 | `plet_dir` — (optional, default `plet/`) path to plet directory. Path derivation via `util_io` functions. Must contain the plan artifacts required by the selected `--level` (see FPR_CHK_PRE_2, FPR_CHK_PRE_3). | P0 |
+| FPR_CHK_INP_1 | `plet_dir` — required positional. Path to plet directory. Path derivation via `util_io` functions. Must contain the plan artifacts required by the selected `--level` (see FPR_CHK_PRE_2, FPR_CHK_PRE_3). | P0 |
 | FPR_CHK_INP_2 | `--level` — (optional, default `all`) which staleness checks to run: `requirements` (SY_4 only), `iterations` (SY_5 only), or `all` (both SY_4 and SY_5). | P1 |
 
 #### Outputs (FPR_CHK_OUT)

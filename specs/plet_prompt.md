@@ -70,7 +70,7 @@ Assemble is read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRM_ASM_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. | P0 |
+| PRM_ASM_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
 | PRM_ASM_INP_2 | `--iter-id` — iteration ID. Required. Used to locate iteration state and filter relevant entries. | P0 |
 | PRM_ASM_INP_3 | `--phase` — `implement` or `verify`. Required. Controls which reference file is primary and what sections are included. | P0 |
 

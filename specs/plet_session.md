@@ -62,7 +62,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_STA_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. | P0 |
+| SES_STA_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
 | SES_STA_INP_2 | `--type` — session type: `loop` or `refine` (required). | P0 |
 
 #### Outputs (OUT)
@@ -141,7 +141,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_END_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. | P0 |
+| SES_END_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
 
 No `--type` required — end-session finds the active session automatically.
 

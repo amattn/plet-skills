@@ -63,7 +63,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event <plet_dir> --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event <plet_dir> --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** mutating (appends to file), not idempotent (each call adds a new line), atomic append
 
@@ -73,7 +73,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_INP_1 | `plet_dir` — (optional) path to plet directory (default: `plet/` via `util_io.DEFAULT_PLET_DIR`). The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
+| TRC_APE_INP_1 | `plet_dir` — required positional. Path to plet directory. The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
 | TRC_APE_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Used in the filename and the event's `iterationId` field. | P0 |
 | TRC_APE_INP_3 | `--phase` — `implement` or `verify`. Used in the filename and the event's `phase` field. | P0 |
 | TRC_APE_INP_4 | `--attempt` — positive integer. Used in the filename and the event's `attempt` field. | P0 |
@@ -106,7 +106,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_PRE_1 | `plet_dir` exists and is a directory (default: `plet/`) | P0 |
+| TRC_APE_PRE_1 | `plet_dir` exists and is a directory | P0 |
 | TRC_APE_PRE_2 | `--iter-id` matches pattern `ID_\d+` | P0 |
 | TRC_APE_PRE_3 | `--phase` is `implement` or `verify` | P0 |
 | TRC_APE_PRE_4 | `--attempt` is a positive integer | P0 |
@@ -154,7 +154,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_CMD_1 | Usage: `plet_trace.py validate <plet_dir> [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_VAL_CMD_1 | Usage: `plet_trace.py validate <plet_dir> [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -164,7 +164,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_INP_1 | `plet_dir` — (optional) path to plet directory (default: `plet/` via `util_io.DEFAULT_PLET_DIR`). The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
+| TRC_VAL_INP_1 | `plet_dir` — required positional. Path to plet directory. The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
 
 #### Outputs (TRC_VAL_OUT)
 
@@ -198,7 +198,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_PRE_1 | `plet_dir` exists and is a directory (default: `plet/`) | P0 |
+| TRC_VAL_PRE_1 | `plet_dir` exists and is a directory | P0 |
 | TRC_VAL_PRE_2 | Derived trace file (`{plet_dir}/trace.ndjson`) exists and is readable | P0 |
 
 #### Postconditions (TRC_VAL_PST)
@@ -239,7 +239,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_CMD_1 | Usage: `plet_trace.py query <plet_dir> [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: optional plet_dir, default `plet/`, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_QRY_CMD_1 | Usage: `plet_trace.py query <plet_dir> [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -249,7 +249,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_INP_1 | `plet_dir` — (optional) path to plet directory (default: `plet/` via `util_io.DEFAULT_PLET_DIR`). The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
+| TRC_QRY_INP_1 | `plet_dir` — required positional. Path to plet directory. The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
 | TRC_QRY_INP_2 | `--event-type` — (optional) filter to events of this type only | P1 |
 | TRC_QRY_INP_3 | `--criterion` — (optional) filter to `criterion_update` events for this criterion ID only. Implies `--event-type criterion_update`. | P1 |
 | TRC_QRY_INP_4 | `--last N` — (optional) return only the last N matching events. Default: all. | P1 |
@@ -279,7 +279,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_PRE_1 | `plet_dir` exists and is a directory (default: `plet/`) | P0 |
+| TRC_QRY_PRE_1 | `plet_dir` exists and is a directory | P0 |
 | TRC_QRY_PRE_2 | Derived trace file (`{plet_dir}/trace.ndjson`) exists and is readable | P0 |
 | TRC_QRY_PRE_4 | If `--event-type` provided, must be a valid event type | P0 |
 | TRC_QRY_PRE_5 | If `--last` provided, must be a positive integer | P0 |
