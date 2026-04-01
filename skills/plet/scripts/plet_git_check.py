@@ -66,17 +66,22 @@ def is_git_repo(cwd=None):
     return run_git("rev-parse", "--git-dir", cwd=cwd).returncode == 0
 
 
+from util_git import active_loop_number  # noqa: E402
+
+
 def derive_iteration_branch(global_state, iter_state):
+    loop_n = active_loop_number(global_state)
     return "plet/{}/loop{}/{}".format(
         global_state["projectId"],
-        global_state["loopSessionCount"],
+        loop_n,
         iter_state["iterationId"],
     )
 
 
 def derive_workstream_branch(global_state):
+    loop_n = active_loop_number(global_state)
     return "plet/{}/loop{}/workstream".format(
-        global_state["projectId"], global_state["loopSessionCount"]
+        global_state["projectId"], loop_n
     )
 
 
@@ -503,7 +508,7 @@ Examples:
 
     ws_branch = derive_workstream_branch(global_state)
     project_id = global_state["projectId"]
-    loop_n = global_state["loopSessionCount"]
+    loop_n = active_loop_number(global_state)
     branch_prefix = "plet/{}/loop{}/".format(project_id, loop_n)
 
     # Run checks in order (BHV_5):

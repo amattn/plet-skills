@@ -8,6 +8,43 @@ the same naming logic without duplicating it.
 """
 
 
+def active_session_branch(state):
+    """Get the branch name from the current active session in sessionHistory.
+
+    Returns the branch string, or None if no active session.
+    More robust than deriving from loopSessionCount — uses the actual
+    branch name that was created, not a re-derivation that can mismatch
+    after failed/recovered sessions.
+    """
+    history = state.get("sessionHistory", [])
+    for entry in reversed(history):
+        if entry.get("endedAt") is None:
+            return entry.get("branch")
+    # No active session — fall back to last session if any
+    if history:
+        return history[-1].get("branch")
+    return None
+
+
+def active_loop_number(state):
+    """Get the loop number from the current active session.
+
+    Returns the integer loop number, or loopSessionCount as fallback.
+    Parses from the branch name (e.g., "plet/PROJ/loop3/workstream" → 3).
+    """
+    branch = active_session_branch(state)
+    if branch:
+        # Parse loop number from branch: plet/{proj}/loop{N}/...
+        parts = branch.split("/")
+        for p in parts:
+            if p.startswith("loop"):
+                try:
+                    return int(p[4:])
+                except (ValueError, IndexError):
+                    pass
+    return state.get("loopSessionCount", 0)
+
+
 def derive_branch_name(state, branch_type, iter_id=None):
     """Derive the branch name from state and type.
 

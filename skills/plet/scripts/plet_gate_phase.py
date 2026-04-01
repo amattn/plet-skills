@@ -44,6 +44,7 @@ from util_state import (
     load_and_validate_iter_state,
 )
 from util_subprocess import run, run_git
+from util_git import active_loop_number
 
 
 SCRIPT_VERSION = "0.2.0"
@@ -154,7 +155,7 @@ def check_implement_verdict(iter_state):
 def check_audit_tag(global_state, iter_state, phase, cwd=None):
     """Check that the audit tag exists for this phase."""
     project_id = global_state.get("projectId", "UNKNOWN")
-    loop_n = global_state.get("loopSessionCount", 0)
+    loop_n = active_loop_number(global_state)
     iter_id = iter_state.get("iterationId", "UNKNOWN")
     attempt = iter_state.get("attempts", {}).get(phase, 0)
     tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(

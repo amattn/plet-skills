@@ -54,6 +54,7 @@ from util_state import (
     load_and_validate_iter_state,
 )
 from util_subprocess import run, run_git
+from util_git import active_loop_number
 
 
 SCRIPT_VERSION = "0.2.0"
@@ -390,7 +391,7 @@ Examples:
         pass  # Graceful degradation
 
     project_id = global_state.get("projectId", "UNKNOWN")
-    loop_session = global_state.get("loopSessionCount", 0)
+    loop_session = active_loop_number(global_state)
 
     if output_json:
         emit_json({

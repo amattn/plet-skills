@@ -173,4 +173,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 42b | plet_bootstrap.py implementation | ✓ complete |
 | 43 | Audit optional flags + stale defaults | ✓ complete |
 | 44 | Script discovery — PLET_SCRIPTS_DIR in prompt | ✓ complete |
+| 45 | loopSessionCount / branch name mismatch | ✓ complete |
 | -- | all other steps not yet started |
