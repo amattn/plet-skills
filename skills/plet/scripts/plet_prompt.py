@@ -159,7 +159,7 @@ PITFALLS:
 USAGE:
     plet_prompt.py assemble <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir    Path to plet directory (default: plet/)
+    plet_dir    Path to plet directory (required)
     --iter-id   Iteration ID (required)
     --phase     implement or verify (required)
 

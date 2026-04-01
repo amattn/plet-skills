@@ -280,7 +280,7 @@ PITFALLS:
 USAGE:
     plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir             Path to plet directory (default: plet/)
+    plet_dir             Path to plet directory (required)
     --iter-id            Iteration ID (e.g., ID_001)
     --phase              implement or verify
 
@@ -403,7 +403,7 @@ PITFALLS:
 USAGE:
     plet_git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir             Path to plet directory (default: plet/)
+    plet_dir             Path to plet directory (required)
 
 PURPOSE:
     Session-level git health check. Catches orphaned worktrees, unmerged

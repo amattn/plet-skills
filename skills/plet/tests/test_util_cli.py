@@ -627,11 +627,13 @@ def test_invocation_logging_enabled():
         )
         check("validate exits 0", result.returncode == 0,
               "stderr: {}".format(result.stderr[:200]))
-        # Check progress entry was written
+        # Check compact progress entry was written
         from util_io import progress_path
         with open(progress_path(plet_dir)) as f:
             progress = f.read()
-        check("progress has logging entry", len(progress) > 0)
+        check("progress has logging entry", len(progress.strip()) > 0)
+        check("entry has fencing", "plet-" in progress)
+        check("entry has trace ref", "trace:" in progress or "tev_" in progress)
         # Check trace event was written
         from util_io import trace_dir_path
         tdir = trace_dir_path(plet_dir)

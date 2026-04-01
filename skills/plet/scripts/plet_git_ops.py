@@ -115,7 +115,7 @@ PITFALLS:
 USAGE:
     plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir             Path to plet directory (default: plet/)
+    plet_dir             Path to plet directory (required)
     --iter-id            Iteration ID (e.g., ID_001)
     --phase              implement or verify
 
@@ -284,7 +284,7 @@ PITFALLS:
 USAGE:
     plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir             Path to plet directory (default: plet/)
+    plet_dir             Path to plet directory (required)
     --iter-id            Iteration ID (e.g., ID_001)
 
 PURPOSE:

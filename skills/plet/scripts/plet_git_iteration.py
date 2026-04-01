@@ -109,7 +109,7 @@ PITFALLS:
 USAGE:
     plet_git_iteration.py branch-name <plet_dir> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir         Path to plet directory (default: plet/)
+    plet_dir         Path to plet directory (required)
     --iter-id     Iteration ID (required for --type iteration)
     --type        iteration (default), workstream, plan, or refine
 
@@ -227,7 +227,7 @@ PITFALLS:
 USAGE:
     plet_git_iteration.py worktree-create <plet_dir> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir         Path to plet directory (default: plet/)
+    plet_dir         Path to plet directory (required)
     --iter-id       Iteration ID (e.g., ID_001)
     --base          Base branch (default: loop workstream)
     --worktree-dir  Parent directory for worktrees (default: .plet/worktrees/)
@@ -404,7 +404,7 @@ PITFALLS:
 USAGE:
     plet_git_iteration.py worktree-remove <plet_dir> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir         Path to plet directory (default: plet/)
+    plet_dir         Path to plet directory (required)
     --iter-id        Iteration ID (e.g., ID_001)
     --delete-branch  Also delete the iteration branch (default: keep)
     --worktree-dir   Parent directory for worktrees (default: .plet/worktrees/)

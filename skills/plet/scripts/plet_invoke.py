@@ -106,7 +106,7 @@ PITFALLS:
 USAGE:
     plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--permission-mode MODE] [--model MODEL] [--max-budget N] [--verbose] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir           Path to plet directory (default: plet/)
+    plet_dir           Path to plet directory (required)
     --iter-id          Iteration ID (required)
     --phase            implement or verify (required)
     --cwd              Working directory for subprocess (required)

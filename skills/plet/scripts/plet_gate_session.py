@@ -169,14 +169,14 @@ def cmd_detect(args):
     SESSION=$(plet_gate_session.py detect)
 
 PITFALLS:
-    - Defaults to plet/ in current directory — run from project root
+    - Required — path to the plet directory
     - Only three possible outputs: plan, loop, refine
     - ineligible-only iterations return refine (not loop)
 
 USAGE:
     plet_gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir    Path to plet directory (default: plet/)
+    plet_dir    Path to plet directory (required)
 
 PURPOSE:
     Determines which session type to enter based on project state on disk.
@@ -238,14 +238,14 @@ def cmd_status(args):
     Safe to run anytime. No modifications.
 
 PITFALLS:
-    - Defaults to plet/ in current directory — run from project root
+    - Required — path to the plet directory
     - Requires plet directory to exist (unlike detect which works on fresh projects)
     - Fingerprint check may be slow — it calls plet_fingerprint.py via subprocess
 
 USAGE:
     plet_gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir    Path to plet directory (default: plet/)
+    plet_dir    Path to plet directory (required)
 
 PURPOSE:
     Produces a machine-readable snapshot of project state: iteration counts
@@ -625,12 +625,12 @@ def cmd_preflight(args):
 PITFALLS:
     - --session-type is REQUIRED (detect, plan, loop, or refine)
     - Fingerprint severity depends on session type: loop=FAIL, refine=WARN, plan=SKIPPED
-    - Defaults to plet/ in current directory — run from project root
+    - Required — path to the plet directory
 
 USAGE:
     plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
 
-    plet_dir          Path to plet directory (default: plet/)
+    plet_dir          Path to plet directory (required)
     --session-type    Required. Controls session-specific checks.
 
 PURPOSE:

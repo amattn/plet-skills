@@ -13,7 +13,7 @@ Commands:
     validate      Check a trace events file against the schema.
     query         Filter and extract events by type, criterion, or count.
 
-All commands take a plet_dir positional (defaults to ./plet/) and require
+All commands take a plet_dir positional (required) and require
 --iter-id, --phase, --attempt to derive the trace file path:
     {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
 

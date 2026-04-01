@@ -14,15 +14,19 @@ This was validated across three case studies: state schema drift (the most persi
 
 **The dividing line:** If an agent keeps getting something wrong despite clear instructions, that's a signal to escalate from prose to tooling. If the task requires adapting to novel situations, it stays as a skill.
 
-### Critical Insight: Prefer Required Arguments Over Optional
+### Critical Insight: Require Arguments, Never Default
 
-**Agents forget optional arguments.** When a CLI flag is optional, subagents will omit it — not maliciously, but because optional means "I can skip this" and agents optimize for fewer flags. This leads to missing data that should have been present.
+**Three rules for agent-facing CLI arguments:**
 
-**Design rule for agent-facing CLIs:** If the data is always available to the caller and always useful in the state file, make the argument required. The cost of passing one extra flag is trivial. The cost of missing data (null agentId, no heartbeat, stale values) causes downstream bugs that are hard to diagnose.
+1. **Almost everything should be required.** Agents forget optional arguments. The cost of one extra flag is trivial. The cost of missing data is hard-to-diagnose downstream bugs.
 
-Example: `--agent-id` on IST subagent commands. The subagent always has its session ID. Making it optional led to a null gap between `start-phase` (resets to null) and whenever the subagent remembers to pass it. Making it required on every mutating command means every state write identifies who wrote it — no gaps, no guessing.
+2. **Very rarely, and only when it genuinely makes sense, use optional flags.** The bar: the data is truly unavailable to some callers, not just "it would be convenient to omit." If you're tempted to make something optional for convenience, that's a signal to make it required.
 
-**When to use optional:** Only when the data genuinely isn't available to some callers, or when the default value is always correct. If you're tempted to make something optional "for convenience," that's a signal to make it required.
+3. **Never have default values.** A default means the script silently accepts incomplete input and produces output that looks correct but has wrong metadata. LOGA Run 4: the auto-logger defaulted `--phase` to "implement" for plan-session commands — every plan entry was mislabeled. Defaults hide bugs.
+
+**Example:** `--agent-id` on IST subagent commands. The subagent always has its session ID. Making it optional led to a null gap between `start-phase` (resets to null) and whenever the subagent remembers to pass it. Making it required on every mutating command means every state write identifies who wrote it — no gaps, no guessing.
+
+**Example:** Auto-logger phase default. `_extract_from_args(args, "phase") or "implement"` silently tagged every plan-session command as "implement." The fix: use "unknown" instead of a plausible-looking wrong answer. Wrong data that looks right is worse than obviously wrong data.
 
 ---
 

@@ -303,7 +303,7 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
 
         plet_dir = _extract_plet_dir(args)
         iter_id = _extract_from_args(args, "iter_id") or "proj"
-        phase = _extract_from_args(args, "phase") or "implement"
+        phase = _extract_from_args(args, "phase") or "unknown"
         # Normalize all phase forms to command phases for trace file naming
         # Criterion phases: "implementation"/"verification" → "implement"/"verify"
         # Lifecycle states: "implementing"/"verifying" → "implement"/"verify"
@@ -316,10 +316,9 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
             "refining": "refine",
         }
         phase = phase_map.get(phase, phase)
-        # After normalization, phase must be a valid command phase.
-        # If not, don't create a garbage trace file — skip logging.
-        # The calling script's own validation should have caught this.
-        if phase not in ("implement", "verify", "plan", "refine"):
+        # After normalization, phase must be a valid command phase or "unknown".
+        # If it's something else entirely, skip logging.
+        if phase not in ("implement", "verify", "plan", "refine", "unknown"):
             return
         attempt = _extract_from_args(args, "attempt") or "1"
 
@@ -356,18 +355,20 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
         }) + "\n"
         atomic_append(trace_file, trace_line)
 
-        # Progress entry — canonical format via util_format
-        from util_format import build_progress_entry
+        # Progress entry — compact one-liner with trace ID for details
         prog_path = _progress_path(plet_dir)
         if not _os.path.isfile(prog_path):
             with open(prog_path, "w") as _f:
                 _f.write("")
         epr_id = generate_plet_id("epr", iter_id, phase, int(attempt))
-        status = "COMPLETE" if exit_code == 0 else "IN_PROGRESS"
-        iter_title = iter_id if iter_id != "proj" else script_name
-        entry = build_progress_entry(
-            epr_id, iter_id, iter_title, phase, int(attempt),
-            status, full_cmd, [],
+        status_str = "exit 0" if exit_code == 0 else "exit {}".format(exit_code)
+        entry = (
+            '<div id="plet-{epr}"></div>\n'
+            '{script} {cmd} {iter} — {status} (trace: {tev})\n'
+            '<div id="END-plet-{epr}"></div>\n'
+        ).format(
+            epr=epr_id, script=script_name, cmd=command,
+            iter=iter_id, status=status_str, tev=tev_id,
         )
         atomic_append(prog_path, entry)
     except Exception:

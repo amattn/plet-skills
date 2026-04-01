@@ -395,7 +395,7 @@ def run_gate(cmd, args, phase_specific_pre_fn, phase_specific_post_fn):
 
 PITFALLS:
     - --iter-id and --phase are REQUIRED
-    - Defaults to plet/ in current directory — run from project root
+    - Required — path to the plet directory
     - implement pre includes fingerprint + spec-artifact checks
     - verify pre is simpler (git + state + lifecycle only)
 
