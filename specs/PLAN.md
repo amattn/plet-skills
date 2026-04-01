@@ -174,4 +174,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 43 | Audit optional flags + stale defaults | ✓ complete |
 | 44 | Script discovery — PLET_SCRIPTS_DIR in prompt | ✓ complete |
 | 45 | loopSessionCount / branch name mismatch | ✓ complete |
+| 46 | Flag naming (--phase-activity) | ✓ no change — name is explicit, env header solves discovery |
 | -- | all other steps not yet started |
