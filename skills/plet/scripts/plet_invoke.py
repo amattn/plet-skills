@@ -41,7 +41,7 @@ from util_io import (
 from util_subprocess import run
 
 
-SCRIPT_VERSION = "0.1.3"
+SCRIPT_VERSION = "0.2.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -213,6 +213,38 @@ Examples:
             print(msg, file=sys.stderr)
         return 1
 
+    # Build plet env vars (used for both prompt header and subprocess env)
+    plet_env = {
+        "PLET_SCRIPTS_DIR": scripts_dir(),
+        "PLET_DIR": os.path.abspath(plet_dir) if plet_dir else "",
+        "PLET_PROJECT_DIR": os.path.abspath(cwd),
+        "PLET_WORKTREE_BASE": os.path.abspath(
+            os.path.join(os.path.dirname(plet_dir), ".plet", "worktrees")),
+        "PLET_ITER_ID": iter_id,
+        "PLET_PHASE": phase,
+        "PLET_ATTEMPT": str(attempt),
+    }
+    # Pass through Claude env vars if available
+    for passthrough in ("CLAUDE_SKILL_DIR", "CLAUDE_CONFIG_DIR"):
+        if passthrough in os.environ:
+            plet_env[passthrough] = os.environ[passthrough]
+
+    # Prepend environment section — built dynamically from plet_env
+    env_lines = [
+        "# Environment",
+        "",
+        "**IMPORTANT: Read your environment variables (`env | grep -E 'PLET|CLAUDE'`) for paths and context.**",
+        "The key variables are listed below for reference, but always check the live env for the full set.",
+        "Do NOT search the filesystem for plet scripts — use `$PLET_SCRIPTS_DIR`.",
+        "",
+    ]
+    for key, val in sorted(plet_env.items()):
+        env_lines.append("- `{}={}`".format(key, val))
+    env_lines.append("")
+    env_lines.append("Call scripts as: `$PLET_SCRIPTS_DIR/plet_iter_state.py ...`")
+    env_lines.append("")
+    prompt_text = "\n".join(env_lines) + "\n" + prompt_text
+
     # Build claude command
     claude_cmd = build_claude_command(
         prompt_text, phase, iter_id, attempt,
@@ -317,12 +349,17 @@ Examples:
         with open(t_path, "a") as f:
             f.write("--- retry ---\n")
 
+    # Build subprocess environment from plet_env (built earlier for prompt header)
+    sub_env = os.environ.copy()
+    sub_env.update(plet_env)
+
     proc = sp.Popen(
         claude_cmd,
         stdout=sp.PIPE,
         stderr=sys.stderr,  # stderr passes through to orchestrator
         text=True,
         cwd=cwd,
+        env=sub_env,
     )
 
     with open(t_path, "a") as transcript:
