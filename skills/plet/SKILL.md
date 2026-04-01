@@ -205,16 +205,40 @@ plet_fingerprint.py embed plet/ --type requirements
 
 Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`, and initializes `plet/state.json`.
 
-**Before entering:** Read `plet/requirements.md` if it exists (offer to update). Read `plet/emergent.md` for pending items and `plet/learnings.md` for patterns — triage and incorporate before planning.
+**Step 0 — Bootstrap:**
+Run `plet_bootstrap.py setup .` to configure the project. This sets up git merge driver, .gitattributes, .gitignore, .claude/settings.json, and CLAUDE.md stub. Idempotent — safe to re-run.
+
+**Step 1 — Detect project state:**
+Check if `plet/state.json` exists. This determines the path:
+
+**Path A — Fresh project (no state.json):**
+1. Ask: "What would you like to build?" — get a short description
+2. Ask for a project ID: 3-6 uppercase chars (e.g., LOGA, SPARK, TODO). Must match `[A-Z][A-Z0-9]{2,5}`.
+3. Create or resume plan branch: `plet/{projectId}/plan1/workstream`. If branch exists, check it out (resume). If not, create it.
+4. Proceed to clarifying questions, requirements, iterations (see `references/plan.md`)
+
+**Path B — Existing project (state.json exists):**
+1. Read state.json → project ID already known
+2. Create or resume plan branch: `plet/{projectId}/plan{N}/workstream`. If branch exists, check it out (resume). If not, create it.
+3. Read existing `plet/requirements.md`, `plet/iterations.md`, `plet/emergent.md`, `plet/learnings.md`
+4. Show what was found: "Found N iterations across M milestones. Review or proceed?"
+5. Do NOT silently re-initialize. Ask before making changes.
+
+**Both paths:** Read `plet/emergent.md` for pending items and `plet/learnings.md` for patterns — triage and incorporate before planning.
 
 **Orchestrator actions:**
 1. Read `references/plan.md` for the full plan session workflow
 2. Follow its instructions for clarifying questions, requirements generation, iteration decomposition, and review
 3. Each approved section is written to disk immediately — the file on disk is the source of truth
 4. After all iterations are approved, initialize state:
+   - `plet_global_state.py init` to create state.json (auto-initializes lifecycles from dependency map)
    - `plet_iter_state.py init` for each iteration (creates per-iteration state file without lifecycle)
-   - `plet_global_state.py update-lifecycle --iter-id {id} --lifecycle queued` for each iteration (sets lifecycle in state.json)
    - Embed fingerprints via `plet_fingerprint.py embed`
+5. Commit all plan artifacts on the plan branch
+6. **STOP.** Do NOT auto-launch the loop. Tell the user:
+   - "Plan complete on branch `plet/{projectId}/plan1/workstream`."
+   - "Run `/plet loop` to start implementation. The loop will branch from here."
+   - "Merge to main when you're ready — that's your decision (may trigger CI/CD)."
 
 ### Loop Phase
 

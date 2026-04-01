@@ -175,4 +175,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 44 | Script discovery — PLET_SCRIPTS_DIR in prompt | ✓ complete |
 | 45 | loopSessionCount / branch name mismatch | ✓ complete |
 | 46 | Flag naming (--phase-activity) | ✓ no change — name is explicit, env header solves discovery |
+| 47 | Plan phase UX (FB_64-68) | ✓ complete |
 | -- | all other steps not yet started |
