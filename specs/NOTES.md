@@ -1626,3 +1626,29 @@ Lifecycle extraction works end-to-end. IST scripts (start-phase, update-activity
 3. **Empirical runtime detection.** Bootstrap `check` should detect sandbox mode (`TMPDIR=/tmp/claude`), permission mode, and git config — not just read config files.
 4. **FB_64–68 filed for plan phase UX.** Confirm before init, create branch, don't auto-launch loop, create CLAUDE.md/.gitignore, fix .gitignore check.
 5. **Seq 42–47 added to plan.** Bootstrap, optional flags audit, script discovery, loopSessionCount fix, flag naming, plan UX.
+
+#### Seq 42–47 implementation (2026-04-01)
+
+All six items from LOGA Run 4 implemented in one session:
+
+**Seq 42b — plet_bootstrap.py (46 tests).** Two commands: `setup` (idempotent project config) and `check` (read-only verification). Sets up: .plet/ dir, .gitignore (.plet/, settings.local.json, CLAUDE.local.md), .gitattributes (merge driver), git config (plet-append), CLAUDE.md stub (script discovery), .claude/settings.json (merge allow entries + permissions warning). Empirical sandbox detection via TMPDIR.
+
+**Seq 43 — optional flags audit.** Auto-logger: phase defaults to "unknown" (was "implement"), progress entries now compact one-liner with fencing + trace ID reference. Help text swept across 8 scripts: "default: plet/" → "required". Critical insight updated: three rules (require args, rarely optional, never default).
+
+**Seq 44 — env vars for subagents.** `plet_invoke.py` injects 8 env vars into subprocess (PLET_SCRIPTS_DIR, PLET_DIR, PLET_PROJECT_DIR, PLET_WORKTREE_BASE, PLET_ITER_ID, PLET_PHASE, PLET_ATTEMPT + CLAUDE_* pass-through). Dynamic prompt header built from plet_env dict — tells subagent to `env | grep -E 'PLET|CLAUDE'`. Fixes 8-min script search from Run 4.
+
+**Seq 45 — loop number from session history.** New helpers `active_session_branch()` and `active_loop_number()` in util_git.py. Parse actual loop N from session history branch name instead of reading loopSessionCount (which can be stale after failed sessions). Updated 3 scripts: plet_gate_phase, plet_gate_session, plet_git_check.
+
+**Seq 46 — no change.** `--phase-activity` flag name kept as-is. Explicit and correct; env header solves discovery.
+
+**Seq 47 — plan phase UX (FB_64–68).** SKILL.md plan phase rewritten with two paths:
+- Fresh project: "What do you want to build?" → project ID → plan branch → clarifying questions
+- Existing project: read state.json → show findings → confirm before changes
+- Bootstrap runs first in both paths
+- Plan branch (not main) — create or resume `plet/{projectId}/plan1/workstream`
+- STOP after plan — tell user to run `/plet loop`, loop branches from plan
+- Merge to main is always user's decision (CI/CD concern)
+
+**Shared fixtures:** `make_temp_git_repo()` added to util_fixture.py. Scripts CLAUDE.md updated with shared fixture directive.
+
+**Test count:** 1787 across 23 files.

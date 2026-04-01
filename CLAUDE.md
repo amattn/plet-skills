@@ -115,9 +115,13 @@ This repo has multiple NOTES.md files. When writing notes, route to the correct 
 - Per-script `SCRIPT_VERSION` — in each script file, independently versioned
 
 **Distribution versions (human-directed only):**
-- `.claude-plugin/plugin.json` and `marketplace.json` — bump ONLY when the human explicitly directs a publish/release. These are distribution artifacts, not development versions. Bumping them signals "ready to publish" — a human decision, not an automatic consequence of code changes.
+- `.claude-plugin/plugin.json` `version` — the plugin version. Bump when human directs.
+- `.claude-plugin/marketplace.json` has TWO version fields:
+  - `metadata.version` — the marketplace listing version. This is the marketplace's own version, NOT the plugin version. Bump rarely and only when the human directs.
+  - `plugins[0].version` — the plugin entry version. This should match `plugin.json` version when bumped.
+- Bump these ONLY when the human explicitly directs a publish/release. These are distribution artifacts, not development versions.
 
-**Don't forget:** When bumping `SKILL_VERSION`, update util_constants.py + SKILL.md frontmatter (2 locations). Do NOT bump plugin.json or marketplace.json unless the human asks. When bumping `SCRIPT_VERSION`, check if tests assert the version string.
+**Don't forget:** When bumping `SKILL_VERSION`, update util_constants.py + SKILL.md frontmatter (2 locations). Do NOT bump plugin.json or marketplace.json unless the human asks. When the human asks to bump plugin version, update both `plugin.json` and `marketplace.json plugins[0].version` to match. When bumping `SCRIPT_VERSION`, check if tests assert the version string.
 
 ## NOTES.md Discipline
 
