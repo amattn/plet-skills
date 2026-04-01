@@ -122,9 +122,32 @@ def check(name, condition, detail=""):
     ...
 ```
 
+**Shared test fixtures (`skills/plet/tests/util_fixture.py`):**
+
+Always use shared fixture builders instead of defining your own. Import what you need:
+
+```python
+sys.path.insert(0, os.path.dirname(__file__))
+from util_fixture import (
+    make_plet_dir,          # temp plet dir with state/ subdir
+    make_global_state,      # state.json with lifecycles
+    make_iter_state,        # per-iteration state (no lifecycle, SF_28)
+    make_temp_git_repo,     # temp dir + git init (caller cleans up)
+    make_git_repo,          # git init in existing dir
+    make_spec_artifacts,    # requirements.md + iterations.md
+    make_runtime_artifacts, # progress.md + learnings.md + emergent.md
+    read_iter_state,        # read + parse per-iteration state
+    read_global_state,      # read + parse state.json
+)
+```
+
+All fixtures produce schema-compliant output aligned with SF_28 (no lifecycle in per-iteration state, phaseActivity not agentActivity, implementVerdict/verifyVerdict not lastVerdict). Do NOT define local fixture helpers that duplicate these — use the shared ones.
+
+For writing intentionally invalid data (testing error paths), use inline `json.dump` — shared builders always produce valid data.
+
 **Key principles:**
 - **Test the CLI interface**, not internal functions. Every test calls the script via `subprocess.run()` — this tests what agents actually experience
-- **Temp fixtures:** each test creates temp files/directories, runs commands against them, validates output + file contents, then cleans up. Use `tempfile.mkdtemp()` for directories, `tempfile.NamedTemporaryFile()` for files
+- **Temp fixtures:** use shared builders from `util_fixture.py`. For temp directories, use `tempfile.mkdtemp()` or `make_temp_git_repo()`.
 - **Tests must clean up after themselves** — no leftover temp files
 - **Test both success and failure paths** — valid input returns 0 with expected output, invalid input returns 1 with a helpful error message
 - **Test `--help` on every command** — verify it exits 0 and produces output (agents rely on help text)

@@ -170,5 +170,6 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 41b | Final test sweep — test_all.py clean | ✓ complete |
 | 41c | Remove plet_state.py + deprecate spec | ✓ complete |
 | 42a | plet_bootstrap.py spec (BST) | ✓ complete |
+| 42b | plet_bootstrap.py implementation | ✓ complete |
 | 44 | Script discovery — PLET_SCRIPTS_DIR in prompt | ✓ complete |
 | -- | all other steps not yet started |

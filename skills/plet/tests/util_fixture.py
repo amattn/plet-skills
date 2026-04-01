@@ -222,6 +222,18 @@ def make_git_repo(tmpdir):
     return tmpdir
 
 
+def make_temp_git_repo():
+    """Create a temp directory with initialized git repo.
+
+    Convenience wrapper: creates tmpdir + initializes git repo.
+    Caller is responsible for cleanup (shutil.rmtree).
+    Returns tmpdir path.
+    """
+    d = tempfile.mkdtemp()
+    make_git_repo(d)
+    return d
+
+
 def create_workstream_branch(repo, project_id="TEST", loop_session=1):
     """Create a workstream branch in the repo.
 
