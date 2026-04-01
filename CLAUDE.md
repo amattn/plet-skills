@@ -105,17 +105,19 @@ This repo has multiple NOTES.md files. When writing notes, route to the correct 
 |-------------|-------------|---------|
 | Bug fix in a script | Script's `SCRIPT_VERSION` patch | 0.1.1 → 0.1.2 |
 | New feature/command in a script | Script's `SCRIPT_VERSION` minor | 0.1.2 → 0.2.0 |
-| Any skill behavior change | `SKILL_VERSION` in `util_constants.py` + SKILL.md frontmatter + plugin.json + marketplace.json | 0.3.0 → 0.3.1 |
+| Any skill behavior change | `SKILL_VERSION` in `util_constants.py` + SKILL.md frontmatter | 0.3.0 → 0.3.1 |
 | State file format change (additive) | `SCHEMA_VERSION` in `util_constants.py` | 0.2.0 → 0.3.0 |
 | State file format change (breaking) | `SCHEMA_VERSION` major | 0.3.0 → 1.0.0 |
 
 **Where versions live (single source of truth):**
 - `SKILL_VERSION` and `SCHEMA_VERSION`: `skills/plet/scripts/util_constants.py` — all scripts import from here
 - SKILL.md frontmatter `version:` — must match `SKILL_VERSION`
-- `.claude-plugin/plugin.json` and `marketplace.json` — must match `SKILL_VERSION`
 - Per-script `SCRIPT_VERSION` — in each script file, independently versioned
 
-**Don't forget:** When bumping `SKILL_VERSION`, update all four locations (util_constants, SKILL.md, plugin.json, marketplace.json). When bumping `SCRIPT_VERSION`, check if tests assert the version string.
+**Distribution versions (human-directed only):**
+- `.claude-plugin/plugin.json` and `marketplace.json` — bump ONLY when the human explicitly directs a publish/release. These are distribution artifacts, not development versions. Bumping them signals "ready to publish" — a human decision, not an automatic consequence of code changes.
+
+**Don't forget:** When bumping `SKILL_VERSION`, update util_constants.py + SKILL.md frontmatter (2 locations). Do NOT bump plugin.json or marketplace.json unless the human asks. When bumping `SCRIPT_VERSION`, check if tests assert the version string.
 
 ## NOTES.md Discipline
 
