@@ -1603,3 +1603,22 @@ Manual-only test (not in test_all.py) that validates `plet_invoke.py → claude 
 - SCHEMA_VERSION: 0.2.0 → 0.3.0 (additive: lifecycles in state.json, per-iteration fields renamed)
 - SKILL_VERSION: 0.3.2 → 0.4.0 (lifecycle extraction, merge driver, GST/IST split, plet_state.py removed)
 - 1739 tests across 22 files (~24s)
+
+#### LOGA Run 4 — first lifecycle extraction run (2026-03-31 / 2026-04-01)
+
+**Result: 1/13 iterations completed. Run 3 bug (worktree merge conflict) CONFIRMED FIXED.**
+
+Lifecycle extraction works end-to-end. IST scripts (start-phase, update-activity, update-criterion, set-verdict, add-report) called correctly by subagents. Merge-squash clean. Dependency graph evaluation correct (ID_002 queued after ID_001 complete).
+
+**Environment issues dominated the run, not script bugs:**
+- Sandbox mode insufficient for subagents (Bash only, not Write/Edit/Glob)
+- Auto mode unavailable (platform change between days)
+- CLAUDE_SKILL_DIR not passed to subagents (14 commands searching before finding scripts)
+- Shell escaping in sandbox hostile to Go code generation (`!=` → `\!=`)
+
+**Key decisions from Run 4:**
+1. **Script discovery via prompt, not file copying.** `plet_prompt.py` includes absolute script path in subagent prompt. Fallback chain: `CLAUDE_SKILL_DIR` → `CLAUDE_CONFIG_DIR` + plugin cache → `~/.claude` + plugin cache. Simpler than copying scripts to `.plet/scripts/` (which wouldn't be visible in worktrees anyway — gitignored).
+2. **Bootstrap spec revised.** No longer copies scripts. Focuses on project infrastructure: git merge driver, .gitignore (`.plet/`, `.claude/settings.local.json`, `CLAUDE.local.md`), .claude/settings.json (merge allow entries), CLAUDE.md stub (with script discovery instructions), empirical sandbox/permissions detection.
+3. **Empirical runtime detection.** Bootstrap `check` should detect sandbox mode (`TMPDIR=/tmp/claude`), permission mode, and git config — not just read config files.
+4. **FB_64–68 filed for plan phase UX.** Confirm before init, create branch, don't auto-launch loop, create CLAUDE.md/.gitignore, fix .gitignore check.
+5. **Seq 42–47 added to plan.** Bootstrap, optional flags audit, script discovery, loopSessionCount fix, flag naming, plan UX.

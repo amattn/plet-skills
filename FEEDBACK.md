@@ -577,3 +577,49 @@ LOGA Run 2: ID_001 has `lifecycle: "complete"` but `lastVerdict: null`. The veri
 ### FB_63: Verification report schema drift — "decision" vs "verdict" [state]
 
 LOGA Run 2: Verification report uses `"decision": "pass"` instead of `"verdict": "passed"`. The state-schema.md defines `verdict` as the field name with values `passed`/`rejected`/`blocked`. Agent used wrong field name and wrong value format.
+
+---
+
+## LOGA Run 3 + Run 4 (2026-03-30 / 2026-03-31)
+
+### FB_64: Plan phase should confirm before initializing [plan] [ux]
+
+Source: LOGA Run 4 #1, #6
+
+Plan phase detected existing requirements.md + iterations.md and silently bootstrapped state from them. User expected an interactive confirmation ("Found 13 iterations across 3 milestones. Proceed?"). Even on the resume path, plan should show what it found and ask before writing state files. The auto-initialization was surprising.
+
+### FB_65: Plan phase should create a branch [plan] [git]
+
+Source: LOGA Run 3 #2, LOGA Run 4 #2, #7
+
+All plan work commits directly to main. Many repos tie main to CI/CD and automations. Plan should create `plet/{projectId}/plan{N}/workstream` before making any commits, same as loop does. Keeps main clean until the plan is approved.
+
+### FB_66: Plan should not auto-launch loop [plan] [ux]
+
+Source: LOGA Run 3 #3
+
+After plan completed, the agent immediately tried to launch the orchestrator without being asked. Plan and loop should be separate invocations. The agent should either stop and tell the user "Ready — run `/plet loop` to start" or ask "Ready to start the loop?" before launching.
+
+### FB_67: Plan/bootstrap should create CLAUDE.md and .gitignore [plan] [bootstrap]
+
+Source: LOGA Run 4 #8
+
+Preflight detects CLAUDE.md and .gitignore are missing but only warns. Plan phase or bootstrap should offer to create them: a CLAUDE.md stub with plet project instructions, and .gitignore with `.plet/` exclusion. The agent shouldn't wait until ID_001 to create project infrastructure. Specced in plet_bootstrap.py (seq 42).
+
+### FB_68: .gitignore preflight check is wrong — should ignore .plet/ not plet/ [preflight] [git]
+
+Source: LOGA Run 4 #18
+
+Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be committed (state files, progress.md, requirements.md, etc. are project state tracked in git). What should be gitignored is `.plet/` (worktrees, copied scripts — infrastructure, not artifacts). The preflight check needs to be fixed to check for `.plet/` instead. Specced in plet_bootstrap.py (seq 42).
+
+---
+
+### Noted (not yet FB items)
+
+**Theme 1 — Permissions/Sandbox (8 observations):** R3#4,6,7 + R4#13,19,21,22,23,27. Sandbox mode insufficient, auto mode disappeared, no preflight permission check, no fast-fail on permission errors. Partially addressed by bootstrap spec (42a) permissions check. The rest depend on Claude Code platform features.
+
+**Theme 3 — Script Discovery (3 observations):** R4#25,26,28. CLAUDE_SKILL_DIR not available to subagents. Addressed by bootstrap spec (42a) — copies scripts to `.plet/scripts/`.
+
+**Theme 4 — Progress.md Auto-Logger (4 observations):** R4#9,10,11,12. Phase defaults wrong, failed invocations logged as COMPLETE, files changed empty. Covered by seq 43 (argument defaults audit).
+
+**Theme 7 — Subagent Behavior (4 observations):** R3#5,11,12 + R4#20. Agent behavioral issues — directory escape (R3#11) is a security concern. Rest are prompting issues.

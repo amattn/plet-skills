@@ -90,6 +90,14 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 41a | Tighten util_state.py + consistency grep | Remove dual-schema support: `lifecycle` no longer accepted in per-iteration files, `agentActivity` no longer accepted (only `phaseActivity`), `lastVerdict` no longer accepted (only `implementVerdict`/`verifyVerdict`). Consistency grep for stale field names across entire repo. |
 | 41b | Final test sweep — test_all.py clean | Verify all test files pass. Catch any stragglers missed during per-script updates. Full `test_all.py` run. |
 | 41c | Remove plet_state.py + deprecate spec | Delete `plet_state.py` script and `test_plet_state.py` tests. Mark `specs/plet_state.md` as deprecated at the top (keep as historical reference). Remove from SKILL.md allowed-tools, scripts CLAUDE.md inventory, and any remaining imports/references. |
+| 42 | plet_bootstrap.py — project setup script | Configures git (merge driver, .gitattributes), creates .gitignore (.plet/, settings.local.json, CLAUDE.local.md), merges allow entries into .claude/settings.json, creates CLAUDE.md stub with script discovery. Two commands: `setup` (mutating, idempotent) and `check` (read-only, empirical sandbox/permissions detection). Called by plan phase or when preflight detects missing artifacts. |
+| 42a | plet_bootstrap.py spec (BST) | Spec written. 2 commands, permissions check in `check`. |
+| 42b | plet_bootstrap.py implementation | Red/green per command. |
+| 43 | Audit + eliminate optional flags across all scripts | Agents forget optional arguments — if data is available to the caller, make the flag required. Audit ALL scripts (not just auto-logger) for flags that silently default when absent. For each: (a) if the caller always has the value → make required, (b) if the default is always correct → keep but document, (c) if the default is sometimes wrong → make required. Key examples: auto-logger defaults `--phase` to "implement" (wrong for plan-session), `--agent-id` was optional before IST fix. Same principle as specs/NOTES.md § Critical Insight: Prefer Required Arguments Over Optional. |
+| 44 | Script discovery — include PLET_SCRIPTS_DIR in subagent prompt | `plet_prompt.py` assembles subagent prompt with absolute path to scripts. Fallback chain: `CLAUDE_SKILL_DIR` → `CLAUDE_CONFIG_DIR` + plugin cache path → `~/.claude` + plugin cache path. Fixes LOGA Run 4 8-minute script search. One-line fix in prompt assembly. |
+| 45 | Fix loopSessionCount / branch name mismatch | Gate checks expect `loop{N}` from `loopSessionCount` but branch was created with a different N (stale from failed sessions). Either: (a) gate uses the branch name from session history (not loopSessionCount), or (b) loopSessionCount is always correct. LOGA Run 4: loopSessionCount=0 but branch was loop3. |
+| 46 | Flag name discoverability — rename --phase-activity | `--phase-activity` confused the verify subagent (tried `--activity` first). Consider renaming to `--activity` for simplicity, or ensure help text is prominent. Related to seq 43 audit. |
+| 47 | Plan phase UX improvements (FB_64–FB_68) | Confirm before initializing (FB_64). Create planning branch (FB_65). Don't auto-launch loop (FB_66). Create CLAUDE.md + .gitignore via bootstrap (FB_67). Fix .gitignore preflight check (FB_68). |
 
 ## Status
 
@@ -161,3 +169,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 41a | Tighten util_state.py — remove dual-schema | ✓ complete |
 | 41b | Final test sweep — test_all.py clean | ✓ complete |
 | 41c | Remove plet_state.py + deprecate spec | ✓ complete |
+| 42a | plet_bootstrap.py spec (BST) | ✓ complete |
+| -- | all other steps not yet started |
