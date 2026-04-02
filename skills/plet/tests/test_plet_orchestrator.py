@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import state_json_path, iter_state_path, requirements_path, iterations_path, progress_path, load_json
+from util_io import iter_state_path, iterations_path, load_json, progress_path, requirements_path, state_json_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_orchestrator.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")

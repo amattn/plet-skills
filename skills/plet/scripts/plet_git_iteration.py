@@ -25,28 +25,28 @@ TYPE is iteration (default), workstream, plan, or refine.
 
 import os
 import re
-from util_subprocess import run_git
 import sys
+
+from util_subprocess import run_git
 
 # Add scripts dir to path for sibling imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
+    UNIVERSAL_FLAGS_READ,
+    UNIVERSAL_FLAGS_WRITE,
+    dispatch,
+    emit_json,
+    emit_json_error,
+    extract_output_flags,
+    get_plet_dir,
     parse_kwargs,
     require_kwargs,
     validate_enum,
     validate_known_flags,
-    UNIVERSAL_FLAGS_READ,
-    UNIVERSAL_FLAGS_WRITE,
-    dispatch,
-    get_plet_dir,
-    extract_output_flags,
-    emit_json,
-    emit_json_error,
 )
-from util_io import validate_plet_dir, derive_worktree_path, DEFAULT_WORKTREE_DIR
+from util_io import DEFAULT_WORKTREE_DIR, derive_worktree_path, validate_plet_dir
 from util_state import load_and_validate_global_state
-
 
 SCRIPT_VERSION = "0.1.1"
 from util_constants import SKILL_VERSION  # noqa: E402
@@ -89,7 +89,6 @@ def branch_exists(branch_name, cwd=None):
 
 
 from util_git import derive_branch_name  # noqa: E402 — shared naming logic
-
 
 # derive_worktree_path imported from util_io
 

@@ -18,9 +18,13 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from util_io import (
-    progress_path as progress_path_fn,
-    learnings_path as learnings_path_fn,
     emergent_path as emergent_path_fn,
+)
+from util_io import (
+    learnings_path as learnings_path_fn,
+)
+from util_io import (
+    progress_path as progress_path_fn,
 )
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_entries.py")

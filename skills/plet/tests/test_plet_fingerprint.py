@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import state_json_path, requirements_path, iterations_path
+from util_io import iterations_path, requirements_path, state_json_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_fingerprint.py")
 

@@ -17,23 +17,23 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 from util_fixture import (
-    make_plet_dir,
-    make_global_state,
-    make_iter_state,
-    read_iter_state,
-    read_global_state,
-    make_git_repo,
-    create_workstream_branch,
+    VALID_GLOBAL_STATE,
     create_iteration_branch,
+    create_workstream_branch,
     git_run,
-    make_spec_artifacts,
-    make_runtime_artifacts,
-    make_trace_file,
-    make_verification_report,
-    write_raw_state,
     make_audit_tag,
     make_check,
-    VALID_GLOBAL_STATE,
+    make_git_repo,
+    make_global_state,
+    make_iter_state,
+    make_plet_dir,
+    make_runtime_artifacts,
+    make_spec_artifacts,
+    make_trace_file,
+    make_verification_report,
+    read_global_state,
+    read_iter_state,
+    write_raw_state,
 )
 from util_state import validate_global_state, validate_iter_state
 

@@ -15,18 +15,24 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from util_io import progress_path as progress_path_fn
 from util_fixture import (
-    make_global_state as _shared_make_global_state,
-    make_iter_state as _shared_make_iter_state,
-    make_git_repo,
-    create_workstream_branch,
     create_iteration_branch,
-    make_spec_artifacts as _shared_make_spec_artifacts,
+    create_workstream_branch,
+    make_audit_tag,
+    make_git_repo,
     make_trace_file,
     make_verification_report,
-    make_audit_tag,
 )
+from util_fixture import (
+    make_global_state as _shared_make_global_state,
+)
+from util_fixture import (
+    make_iter_state as _shared_make_iter_state,
+)
+from util_fixture import (
+    make_spec_artifacts as _shared_make_spec_artifacts,
+)
+from util_io import progress_path as progress_path_fn
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_gate_phase.py")
 ENT_TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_entries.py")

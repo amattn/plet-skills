@@ -46,6 +46,7 @@ from util_cli import (
     validate_enum,
     validate_known_flags,
 )
+from util_constants import SCHEMA_VERSION, SKILL_VERSION
 from util_io import (
     atomic_write_json,
     iter_state_path,
@@ -55,7 +56,6 @@ from util_io import (
 from util_state import (
     validate_iter_state,
 )
-from util_constants import SCHEMA_VERSION, SKILL_VERSION
 
 SCRIPT_NAME = "plet_iter_state"
 SCRIPT_VERSION = "0.1.0"

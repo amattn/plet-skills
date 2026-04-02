@@ -622,7 +622,7 @@ def make_test_plet_dir():
     tmpdir = tempfile.mkdtemp()
     plet_dir = os.path.join(tmpdir, "plet")
     sys.path.insert(0, SCRIPTS_DIR)
-    from util_io import state_json_path, state_dir_path, iter_state_path
+    from util_io import iter_state_path, state_dir_path, state_json_path
 
     os.makedirs(state_dir_path(plet_dir), exist_ok=True)
     with open(state_json_path(plet_dir), "w") as f:

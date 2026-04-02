@@ -34,19 +34,18 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
+    dispatch,
+    filter_fields,
+    now_iso,
     parse_kwargs,
     require_kwargs,
     validate_enum,
     validate_int,
-    now_iso,
-    dispatch,
-    filter_fields,
     validate_known_flags,
 )
-from util_format import build_progress_entry, build_learning_entry, build_emergent_entry
+from util_format import build_emergent_entry, build_learning_entry, build_progress_entry
 from util_id import generate_plet_id, normalize_iteration
-from util_io import atomic_append, load_text, emergent_path, learnings_path, progress_path
-
+from util_io import atomic_append, emergent_path, learnings_path, load_text, progress_path
 
 SCRIPT_VERSION = "0.2.0"
 from util_constants import SKILL_VERSION  # noqa: E402

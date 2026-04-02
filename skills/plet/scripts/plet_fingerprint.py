@@ -29,16 +29,15 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
+    dispatch,
+    filter_fields,
+    now_iso,
     parse_kwargs,
     require_kwargs,
     validate_enum,
     validate_known_flags,
-    now_iso,
-    dispatch,
-    filter_fields,
 )
-from util_io import load_json, atomic_write_json, load_text, requirements_path, iterations_path, state_json_path
-
+from util_io import atomic_write_json, iterations_path, load_json, load_text, requirements_path, state_json_path
 
 SCRIPT_VERSION = "0.1.1"
 from util_constants import SKILL_VERSION  # noqa: E402
@@ -250,7 +249,7 @@ def parse_fingerprint_block(text):
     try:
         fingerprint = json.loads(json_text)
     except json.JSONDecodeError as e:
-        raise ValueError("malformed fingerprint: {}".format(e))
+        raise ValueError("malformed fingerprint: {}".format(e)) from e
 
     # end_pos includes the closing marker
     end_pos = second + len(marker)

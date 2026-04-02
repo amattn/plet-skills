@@ -25,6 +25,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
+    UNIVERSAL_FLAGS_READ,
     dispatch,
     emit_json,
     extract_output_flags,
@@ -33,12 +34,11 @@ from util_cli import (
     require_kwargs,
     validate_enum,
     validate_known_flags,
-    UNIVERSAL_FLAGS_READ,
 )
 from util_io import (
+    iter_state_path,
     load_json,
     state_json_path,
-    iter_state_path,
 )
 
 SCRIPT_VERSION = "0.3.0"

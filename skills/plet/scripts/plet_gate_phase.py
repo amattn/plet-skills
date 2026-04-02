@@ -23,31 +23,30 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
+    UNIVERSAL_FLAGS_READ,
+    dispatch,
+    emit_json,
+    emit_json_error,
+    extract_output_flags,
+    get_plet_dir,
     parse_kwargs,
     require_kwargs,
     validate_enum,
     validate_known_flags,
-    UNIVERSAL_FLAGS_READ,
-    dispatch,
-    get_plet_dir,
-    extract_output_flags,
-    emit_json,
-    emit_json_error,
 )
+from util_git import active_loop_number
 from util_io import (
-    validate_plet_dir,
-    iter_state_path,
-    requirements_path,
-    iterations_path,
     events_path,
+    iter_state_path,
+    iterations_path,
+    requirements_path,
+    validate_plet_dir,
 )
 from util_state import (
     load_and_validate_global_state,
     load_and_validate_iter_state,
 )
 from util_subprocess import run, run_git
-from util_git import active_loop_number
-
 
 SCRIPT_VERSION = "0.2.0"
 from util_constants import SKILL_VERSION  # noqa: E402

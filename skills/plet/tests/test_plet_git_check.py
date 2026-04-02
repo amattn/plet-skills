@@ -17,13 +17,19 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from util_io import state_json_path, state_dir_path, iter_state_path
 from util_fixture import (
-    make_global_state as _shared_make_global_state,
-    make_iter_state as _shared_make_iter_state,
-    make_git_repo as _shared_make_git_repo,
     git_run as _shared_git_run,
 )
+from util_fixture import (
+    make_git_repo as _shared_make_git_repo,
+)
+from util_fixture import (
+    make_global_state as _shared_make_global_state,
+)
+from util_fixture import (
+    make_iter_state as _shared_make_iter_state,
+)
+from util_io import iter_state_path, state_dir_path, state_json_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_git_check.py")
 

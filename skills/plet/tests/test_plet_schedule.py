@@ -14,7 +14,8 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(__file__))
-from util_fixture import make_global_state as _make_global_state, make_iter_state as _make_iter_state
+from util_fixture import make_global_state as _make_global_state
+from util_fixture import make_iter_state as _make_iter_state
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 

@@ -17,11 +17,13 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from util_io import state_json_path, state_dir_path, iter_state_path, requirements_path, iterations_path
 from util_fixture import (
     make_global_state as _shared_make_global_state,
+)
+from util_fixture import (
     make_iter_state as _shared_make_iter_state,
 )
+from util_io import iter_state_path, iterations_path, requirements_path, state_dir_path, state_json_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_gate_session.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
@@ -412,7 +414,7 @@ def make_full_project(tmpdir, iterations, milestones=None):
         dep_map=dep_map,
         milestones=milestones,
     )
-    for iter_id, lifecycle, title in iterations:
+    for iter_id, _lifecycle, title in iterations:
         make_iter_state(plet_dir, iter_id, title=title)
     return plet_dir
 

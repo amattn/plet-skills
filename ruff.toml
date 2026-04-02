@@ -2,4 +2,4 @@ line-length = 120
 target-version = "py38"
 
 [lint]
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "I", "B"]

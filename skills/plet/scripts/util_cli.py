@@ -255,6 +255,7 @@ def _extract_from_args(args, flag_name):
 def _extract_plet_dir(args):
     """Extract plet_dir from args (first non-flag arg that is a directory)."""
     import os as _os
+
     from util_io import DEFAULT_PLET_DIR
 
     for a in args:
@@ -281,14 +282,19 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
     """
     try:
         import os as _os
+
+        from util_id import generate_plet_id
         from util_io import (
             atomic_append,
             events_path,
             trace_dir_path,
+        )
+        from util_io import (
             progress_path as _progress_path,
+        )
+        from util_io import (
             state_json_path as _state_json_path,
         )
-        from util_id import generate_plet_id
 
         plet_dir = _extract_plet_dir(args)
         iter_id = _extract_from_args(args, "iter_id") or "proj"

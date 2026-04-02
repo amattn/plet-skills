@@ -49,15 +49,15 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from util_io import (
-    trace_dir_path,
-)
 from util_fixture import (
+    create_iteration_branch,
+    create_workstream_branch,
+    make_git_repo,
     make_global_state,
     make_iter_state,
-    make_git_repo,
-    create_workstream_branch,
-    create_iteration_branch,
+)
+from util_io import (
+    trace_dir_path,
 )
 
 INVOKE_TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_invoke.py")

@@ -35,7 +35,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_io import load_global_state_json, load_iter_state_json
 
-
 # projectId pattern: 3-6 chars, starts with letter, uppercase alphanumeric
 PROJECT_ID_RE = re.compile(r"^[A-Z][A-Z0-9]{2,5}$")
 

@@ -352,8 +352,6 @@ Examples:
     if not ok:
         return 1
 
-    kwargs.get("force") is not None
-
     # Preconditions
     if not os.path.isdir(project_dir):
         print("Error: directory does not exist: {}".format(project_dir), file=sys.stderr)

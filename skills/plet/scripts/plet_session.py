@@ -22,6 +22,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
+    UNIVERSAL_FLAGS_WRITE,
     dispatch,
     emit_json,
     extract_output_flags,
@@ -31,14 +32,13 @@ from util_cli import (
     require_kwargs,
     validate_enum,
     validate_known_flags,
-    UNIVERSAL_FLAGS_WRITE,
 )
+from util_git import derive_branch_name
 from util_io import (
     atomic_write_json,
     load_json,
     state_json_path,
 )
-from util_git import derive_branch_name
 
 SCRIPT_VERSION = "0.1.0"
 from util_constants import SKILL_VERSION  # noqa: E402

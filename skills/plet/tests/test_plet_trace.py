@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import trace_dir_path, events_path
+from util_io import events_path, trace_dir_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_trace.py")
 

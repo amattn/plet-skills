@@ -27,8 +27,7 @@ import tempfile
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 sys.path.insert(0, SCRIPTS_DIR)
 
-from util_io import state_json_path, iter_state_path, trace_dir_path, events_path  # noqa: E402
-
+from util_io import events_path, iter_state_path, state_json_path, trace_dir_path  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Directory creation

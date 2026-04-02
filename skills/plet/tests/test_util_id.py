@@ -141,7 +141,7 @@ def test_generate_plet_id_uniqueness():
     import util_id
 
     ids = set()
-    for i in range(5):
+    for _i in range(5):
         pid = util_id.generate_plet_id("epr", "ID_001", "implement", 1)
         ids.add(pid)
         time.sleep(0.002)  # 2ms gap for timestamp uniqueness
