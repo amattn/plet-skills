@@ -33,6 +33,7 @@ from util_cli import (
     dispatch,
     filter_fields,
     now_iso,
+    parse_command,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -1139,40 +1140,21 @@ Examples:
     plet_fingerprint.py check plet/ --level requirements
     plet_fingerprint.py check plet/ --output json --pretty
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-    if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return 1
-
     cmd_name = "check"
     hint = help_hint(cmd_name)
-    artifact_dir = args[0]
-
-    try:
-        kwargs = parse_kwargs(args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"level", "bump"},
+        required=[],
+        allow_dry_run=False,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"level", "bump"}, hint):
-        return 1
-
-    # --dry-run not valid on check (read-only)
-    if dry_run:
-        msg = "Error: --dry-run is not available on the check command (read-only)"
-        if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+    artifact_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     # --bump not valid on check
     if "bump" in kwargs:

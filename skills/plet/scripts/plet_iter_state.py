@@ -41,6 +41,7 @@ from util_cli import (
     extract_output_flags,
     get_plet_dir,
     now_iso,
+    parse_command,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -198,17 +199,11 @@ Examples:
     --dependencies '[]' \\
     --criteria '[{"id":"AC_1","description":"Tests pass"}]'
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
-        return 1
-    kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(
-        kwargs,
-        {
+    hint = _help_hint("init")
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={
             "iter_id",
             "title",
             "dependencies",
@@ -218,18 +213,16 @@ Examples:
             "cleanup_tags",
             "cleanup_branches",
             "no_verify_deps",
-        }
-        | UNIVERSAL_FLAGS_WRITE,
-        _help_hint("init"),
-    ):
+        },
+        required=["iter_id", "title"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
-
-    output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id", "title"], help_text):
-        return 1
+    plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
     title = kwargs["title"]

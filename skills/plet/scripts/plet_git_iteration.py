@@ -40,6 +40,7 @@ from util_cli import (
     emit_json_error,
     extract_output_flags,
     get_plet_dir,
+    parse_command,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -255,33 +256,22 @@ Examples:
     plet_git_iteration.py worktree-create plet/ --iter-id ID_001 --dry-run
     plet_git_iteration.py worktree-create plet/ --iter-id ID_001 --base main
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
+    hint = help_hint("worktree-create")
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id", "base", "worktree_dir"},
+        required=["iter_id"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if result == "help":
         return 0
+    if result is None:
+        return 1
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     cmd_name = "worktree-create"
-    hint = help_hint(cmd_name)
-    plet_dir, args = get_plet_dir(args)
-    if plet_dir is None:
-        return 1
-
-    try:
-        kwargs = parse_kwargs(args)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"iter_id", "base", "worktree_dir"} | UNIVERSAL_FLAGS_WRITE, hint):
-        return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return 1
-
     iter_id = kwargs["iter_id"]
     if not validate_iter_id(iter_id, cmd_name, output_json, pretty):
         print(hint, file=sys.stderr)

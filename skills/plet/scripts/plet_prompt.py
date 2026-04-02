@@ -21,16 +21,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
-    UNIVERSAL_FLAGS_READ,
     dispatch,
     emit_json,
     emit_json_error,
-    extract_output_flags,
-    get_plet_dir,
-    parse_kwargs,
-    require_kwargs,
+    parse_command,
     validate_enum,
-    validate_known_flags,
 )
 from util_io import (
     iter_state_path,
@@ -170,32 +165,22 @@ Examples:
     plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement
     plet_prompt.py assemble --iter-id ID_001 --phase verify --output json --pretty
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     cmd_name = "assemble"
     hint = help_hint(cmd_name)
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id", "phase"},
+        required=["iter_id", "phase"],
+        allow_dry_run=False,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_READ, hint):
-        return 1
-
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
-        return 1
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):

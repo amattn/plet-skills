@@ -423,6 +423,150 @@ Examples:
 # ---------------------------------------------------------------------------
 
 
+def _check_claude_settings(project_dir):
+    """Check .claude/settings.json configuration. Returns list of check dicts."""
+    checks = []
+    settings_path = os.path.join(project_dir, ".claude", "settings.json")
+    if not os.path.isfile(settings_path):
+        checks.append({"name": "claude-settings", "status": "warn", "detail": ".claude/settings.json missing"})
+        return checks
+
+    try:
+        with open(settings_path) as f:
+            settings = json.load(f)
+    except json.JSONDecodeError:
+        checks.append({"name": "claude-settings", "status": "warn", "detail": "invalid JSON in .claude/settings.json"})
+        return checks
+
+    allow = settings.get("permissions", {}).get("allow", [])
+    has_plet = any(e in allow for e in PLET_ALLOW_ENTRIES)
+    if has_plet:
+        checks.append({"name": "claude-settings", "status": "pass", "detail": "plet allow entries present"})
+    else:
+        checks.append({"name": "claude-settings", "status": "warn", "detail": "plet allow entries missing"})
+
+    # permissions check
+    default_mode = settings.get("permissions", {}).get("defaultMode")
+    has_bypass = "bypassPermissions" in settings.get("permissions", {})
+    if default_mode == "auto" or has_bypass:
+        checks.append({"name": "permissions", "status": "pass", "detail": "autonomous mode configured"})
+    else:
+        sandbox = settings.get("sandbox", {})
+        sandbox_on = sandbox.get("enabled", False) if isinstance(sandbox, dict) else False
+        tmpdir = os.environ.get("TMPDIR", "")
+        if sandbox_on or tmpdir.startswith("/tmp/claude"):
+            checks.append(
+                {
+                    "name": "permissions",
+                    "status": "warn",
+                    "detail": "sandbox mode but no auto/bypass — subagents need autonomous access. "
+                    'Add: "defaultMode": "auto" to permissions',
+                }
+            )
+        else:
+            checks.append(
+                {
+                    "name": "permissions",
+                    "status": "warn",
+                    "detail": "no defaultMode or bypassPermissions set"
+                    " — subagents may need approval for every tool call",
+                }
+            )
+    return checks
+
+
+def _check_file_contains(filepath, marker, name, present_detail, missing_detail, no_file_detail):
+    """Check if a file exists and contains a marker. Returns a check dict."""
+    if os.path.isfile(filepath):
+        with open(filepath) as f:
+            content = f.read()
+        if marker in content:
+            return {"name": name, "status": "pass", "detail": present_detail}
+        else:
+            return {"name": name, "status": "warn", "detail": missing_detail}
+    return {"name": name, "status": "warn", "detail": no_file_detail}
+
+
+def _gather_checks(project_dir):
+    """Run all bootstrap checks. Returns list of check dicts."""
+    checks = []
+
+    # git-repo
+    if _is_git_repo(project_dir):
+        checks.append({"name": "git-repo", "status": "pass", "detail": "git repository found"})
+    else:
+        checks.append({"name": "git-repo", "status": "warn", "detail": "not a git repository — run git init"})
+
+    # plet-dir
+    if os.path.isdir(os.path.join(project_dir, ".plet")):
+        checks.append({"name": "plet-dir", "status": "pass", "detail": ".plet/ exists"})
+    else:
+        checks.append({"name": "plet-dir", "status": "warn", "detail": ".plet/ missing — run setup"})
+
+    # gitignore
+    checks.append(
+        _check_file_contains(
+            os.path.join(project_dir, ".gitignore"),
+            ".plet/",
+            "gitignore",
+            ".plet/ entry present",
+            ".plet/ entry missing",
+            ".gitignore missing",
+        )
+    )
+
+    # merge-driver
+    if _is_git_repo(project_dir):
+        driver = _git_config_get(project_dir, "merge.plet-append.driver")
+        if driver:
+            checks.append({"name": "merge-driver", "status": "pass", "detail": "plet-append configured"})
+        else:
+            checks.append({"name": "merge-driver", "status": "warn", "detail": "plet-append not configured"})
+
+    # gitattributes
+    checks.append(
+        _check_file_contains(
+            os.path.join(project_dir, ".gitattributes"),
+            "plet-append",
+            "gitattributes",
+            "merge driver entries present",
+            "merge driver entries missing",
+            ".gitattributes missing",
+        )
+    )
+
+    # claude-md
+    if os.path.isfile(os.path.join(project_dir, "CLAUDE.md")):
+        checks.append({"name": "claude-md", "status": "pass", "detail": "CLAUDE.md exists"})
+    else:
+        checks.append({"name": "claude-md", "status": "warn", "detail": "CLAUDE.md missing"})
+
+    # claude-settings + permissions
+    checks.extend(_check_claude_settings(project_dir))
+
+    # git-config (user.email + user.name)
+    if _is_git_repo(project_dir):
+        email = _git_config_get(project_dir, "user.email")
+        name = _git_config_get(project_dir, "user.name")
+        if email and name:
+            checks.append({"name": "git-config", "status": "pass", "detail": "user.email and user.name configured"})
+        else:
+            missing = []
+            if not email:
+                missing.append("user.email")
+            if not name:
+                missing.append("user.name")
+            checks.append(
+                {
+                    "name": "git-config",
+                    "status": "warn",
+                    "detail": "{} not configured — git commits will fail".format(" and ".join(missing)),
+                }
+            )
+
+    return checks
+
+
 def cmd_check(args):
     """Verify bootstrap state without modifying anything."""
     help_text = """Usage: plet_bootstrap.py check <project_dir>
@@ -455,124 +599,7 @@ Examples:
         print(f"Error: directory does not exist: {project_dir}", file=sys.stderr)
         return 1
 
-    checks = []
-
-    # git-repo
-    if _is_git_repo(project_dir):
-        checks.append({"name": "git-repo", "status": "pass", "detail": "git repository found"})
-    else:
-        checks.append({"name": "git-repo", "status": "warn", "detail": "not a git repository — run git init"})
-
-    # plet-dir
-    if os.path.isdir(os.path.join(project_dir, ".plet")):
-        checks.append({"name": "plet-dir", "status": "pass", "detail": ".plet/ exists"})
-    else:
-        checks.append({"name": "plet-dir", "status": "warn", "detail": ".plet/ missing — run setup"})
-
-    # gitignore
-    gitignore_path = os.path.join(project_dir, ".gitignore")
-    if os.path.isfile(gitignore_path):
-        with open(gitignore_path) as f:
-            content = f.read()
-        if ".plet/" in content:
-            checks.append({"name": "gitignore", "status": "pass", "detail": ".plet/ entry present"})
-        else:
-            checks.append({"name": "gitignore", "status": "warn", "detail": ".plet/ entry missing"})
-    else:
-        checks.append({"name": "gitignore", "status": "warn", "detail": ".gitignore missing"})
-
-    # merge-driver
-    if _is_git_repo(project_dir):
-        driver = _git_config_get(project_dir, "merge.plet-append.driver")
-        if driver:
-            checks.append({"name": "merge-driver", "status": "pass", "detail": "plet-append configured"})
-        else:
-            checks.append({"name": "merge-driver", "status": "warn", "detail": "plet-append not configured"})
-
-    # gitattributes
-    gitattr_path = os.path.join(project_dir, ".gitattributes")
-    if os.path.isfile(gitattr_path):
-        with open(gitattr_path) as f:
-            content = f.read()
-        if "plet-append" in content:
-            checks.append({"name": "gitattributes", "status": "pass", "detail": "merge driver entries present"})
-        else:
-            checks.append({"name": "gitattributes", "status": "warn", "detail": "merge driver entries missing"})
-    else:
-        checks.append({"name": "gitattributes", "status": "warn", "detail": ".gitattributes missing"})
-
-    # claude-md
-    if os.path.isfile(os.path.join(project_dir, "CLAUDE.md")):
-        checks.append({"name": "claude-md", "status": "pass", "detail": "CLAUDE.md exists"})
-    else:
-        checks.append({"name": "claude-md", "status": "warn", "detail": "CLAUDE.md missing"})
-
-    # claude-settings
-    settings_path = os.path.join(project_dir, ".claude", "settings.json")
-    if os.path.isfile(settings_path):
-        try:
-            with open(settings_path) as f:
-                settings = json.load(f)
-            allow = settings.get("permissions", {}).get("allow", [])
-            has_plet = any(e in allow for e in PLET_ALLOW_ENTRIES)
-            if has_plet:
-                checks.append({"name": "claude-settings", "status": "pass", "detail": "plet allow entries present"})
-            else:
-                checks.append({"name": "claude-settings", "status": "warn", "detail": "plet allow entries missing"})
-
-            # permissions check
-            default_mode = settings.get("permissions", {}).get("defaultMode")
-            has_bypass = "bypassPermissions" in settings.get("permissions", {})
-            if default_mode == "auto" or has_bypass:
-                checks.append({"name": "permissions", "status": "pass", "detail": "autonomous mode configured"})
-            else:
-                sandbox = settings.get("sandbox", {})
-                sandbox_on = sandbox.get("enabled", False) if isinstance(sandbox, dict) else False
-                tmpdir = os.environ.get("TMPDIR", "")
-                if sandbox_on or tmpdir.startswith("/tmp/claude"):
-                    checks.append(
-                        {
-                            "name": "permissions",
-                            "status": "warn",
-                            "detail": "sandbox mode but no auto/bypass — subagents need autonomous access. "
-                            'Add: "defaultMode": "auto" to permissions',
-                        }
-                    )
-                else:
-                    checks.append(
-                        {
-                            "name": "permissions",
-                            "status": "warn",
-                            "detail": "no defaultMode or bypassPermissions set"
-                            " — subagents may need approval for every tool call",
-                        }
-                    )
-        except json.JSONDecodeError:
-            checks.append(
-                {"name": "claude-settings", "status": "warn", "detail": "invalid JSON in .claude/settings.json"}
-            )
-    else:
-        checks.append({"name": "claude-settings", "status": "warn", "detail": ".claude/settings.json missing"})
-
-    # git-config (user.email + user.name)
-    if _is_git_repo(project_dir):
-        email = _git_config_get(project_dir, "user.email")
-        name = _git_config_get(project_dir, "user.name")
-        if email and name:
-            checks.append({"name": "git-config", "status": "pass", "detail": "user.email and user.name configured"})
-        else:
-            missing = []
-            if not email:
-                missing.append("user.email")
-            if not name:
-                missing.append("user.name")
-            checks.append(
-                {
-                    "name": "git-config",
-                    "status": "warn",
-                    "detail": "{} not configured — git commits will fail".format(" and ".join(missing)),
-                }
-            )
+    checks = _gather_checks(project_dir)
 
     # Summarize
     passed = sum(1 for c in checks if c["status"] == "pass")

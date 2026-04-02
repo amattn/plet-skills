@@ -308,6 +308,86 @@ def validate_event(event, line_num):
 # ---------------------------------------------------------------------------
 
 
+def _validate_trace_context(kwargs, hint):
+    """Validate iter_id, phase, attempt from kwargs. Returns (iter_id, phase, attempt) or None."""
+    iter_id = kwargs["iter_id"]
+    if not ITERATION_ID_PATTERN.match(iter_id):
+        print(
+            f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)",
+            file=sys.stderr,
+        )
+        print(hint, file=sys.stderr)
+        return None
+
+    phase = kwargs["phase"]
+    if not validate_enum(phase, VALID_PHASES, "--phase"):
+        print(hint, file=sys.stderr)
+        return None
+
+    attempt, ok = validate_int(kwargs["attempt"], "--attempt")
+    if not ok:
+        print(hint, file=sys.stderr)
+        return None
+    if attempt < 1:
+        print(
+            "Error: --attempt must be a positive integer, got '{}'".format(kwargs["attempt"]),
+            file=sys.stderr,
+        )
+        print(hint, file=sys.stderr)
+        return None
+
+    return iter_id, phase, attempt
+
+
+def _parse_trace_args(args, help_text, command, known_flags, required, is_mutating, supports_raw):
+    """Parse args for trace commands (shared boilerplate).
+
+    Returns "help" | None | (plet_dir, kwargs, flags) on success.
+    """
+    if "-h" in args or "--help" in args:
+        print(help_text)
+        return "help"
+
+    hint = help_hint(command)
+    clean_args, flags = parse_universal_flags(args)
+    if not is_mutating:
+        flags["dry_run"] = False
+
+    err = check_flag_dependencies(flags, command_is_mutating=is_mutating, supports_raw=supports_raw)
+    if err:
+        print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+
+    plet_dir, remaining = get_plet_dir(clean_args)
+    if plet_dir is None:
+        return None
+
+    # Check plet_dir exists and is a directory
+    if not os.path.exists(plet_dir):
+        print(f"Error: {plet_dir} does not exist", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+    if not os.path.isdir(plet_dir):
+        print(f"Error: {plet_dir} is not a directory", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+
+    try:
+        kwargs = parse_kwargs(remaining)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+    if not validate_known_flags(kwargs, known_flags, hint):
+        return None
+
+    if not require_kwargs(kwargs, required, help_text):
+        return None
+
+    return plet_dir, kwargs, flags
+
+
 def cmd_append_event(args):
     help_text = """append-event — append a semantic event to a trace NDJSON file.
 
@@ -350,74 +430,26 @@ Examples:
         --attempt 1 --event-type criterion_update \\
         --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}'
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     hint = help_hint("append-event")
-    clean_args, flags = parse_universal_flags(args)
+    result = _parse_trace_args(
+        args,
+        help_text,
+        "append-event",
+        known_flags={"iter_id", "phase", "attempt", "event_type", "data", "data_file"},
+        required=["iter_id", "phase", "attempt", "event_type"],
+        is_mutating=True,
+        supports_raw=False,
+    )
+    if result == "help":
+        return 0
+    if result is None:
+        return 1
+    plet_dir, kwargs, flags = result
 
-    err = check_flag_dependencies(flags, command_is_mutating=True, supports_raw=False)
-    if err:
-        print(err, file=sys.stderr)
-        print(hint, file=sys.stderr)
+    ctx = _validate_trace_context(kwargs, hint)
+    if ctx is None:
         return 1
-
-    plet_dir, remaining = get_plet_dir(clean_args)
-    if plet_dir is None:
-        return 1
-
-    # Check plet_dir exists and is a directory
-    if not os.path.exists(plet_dir):
-        print(f"Error: {plet_dir} does not exist", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not os.path.isdir(plet_dir):
-        print(f"Error: {plet_dir} is not a directory", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Parse named args
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt", "event_type", "data", "data_file"}, hint):
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt", "event_type"], help_text):
-        return 1
-
-    # Validate iter-id
-    iter_id = kwargs["iter_id"]
-    if not ITERATION_ID_PATTERN.match(iter_id):
-        print(
-            f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)",
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate phase
-    phase = kwargs["phase"]
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate attempt
-    attempt, ok = validate_int(kwargs["attempt"], "--attempt")
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if attempt < 1:
-        print(
-            "Error: --attempt must be a positive integer, got '{}'".format(kwargs["attempt"]),
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
+    iter_id, phase, attempt = ctx
 
     # Validate event type
     event_type = kwargs["event_type"]
@@ -715,65 +747,26 @@ Examples:
     plet_trace.py query plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type error --last 3
     plet_trace.py query --iter-id ID_001 --phase implement --attempt 1 --event-type decision --raw
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     hint = help_hint("query")
-    clean_args, flags = parse_universal_flags(args)
-    flags["dry_run"] = False
+    result = _parse_trace_args(
+        args,
+        help_text,
+        "query",
+        known_flags={"iter_id", "phase", "attempt", "event_type", "criterion", "last"},
+        required=["iter_id", "phase", "attempt"],
+        is_mutating=False,
+        supports_raw=True,
+    )
+    if result == "help":
+        return 0
+    if result is None:
+        return 1
+    plet_dir, kwargs, flags = result
 
-    err = check_flag_dependencies(flags, command_is_mutating=False, supports_raw=True)
-    if err:
-        print(err, file=sys.stderr)
-        print(hint, file=sys.stderr)
+    ctx = _validate_trace_context(kwargs, hint)
+    if ctx is None:
         return 1
-
-    plet_dir, remaining = get_plet_dir(clean_args)
-    if plet_dir is None:
-        return 1
-
-    # Parse named args
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt", "event_type", "criterion", "last"}, hint):
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], help_text):
-        return 1
-
-    # Validate iter-id
-    iter_id = kwargs["iter_id"]
-    if not ITERATION_ID_PATTERN.match(iter_id):
-        print(
-            f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)",
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate phase
-    phase = kwargs["phase"]
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate attempt
-    attempt, ok = validate_int(kwargs["attempt"], "--attempt")
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if attempt < 1:
-        print(
-            "Error: --attempt must be a positive integer, got '{}'".format(kwargs["attempt"]),
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
+    iter_id, phase, attempt = ctx
 
     path = derive_events_path(plet_dir, iter_id, phase, attempt)
 

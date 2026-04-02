@@ -373,6 +373,49 @@ def _end_session(global_plet_dir, session_number, completed_this_run, counts, st
 # ---------------------------------------------------------------------------
 
 
+def _parse_run_args(args):
+    """Parse and validate args for cmd_run.
+
+    Returns (plet_dir, output_ndjson, allow_stale, max_iterations) on success,
+    or None on error (messages already printed).
+    """
+    help_text = cmd_run.__doc__
+    if "-h" in args or "--help" in args:
+        print(help_text)
+        return "help"
+
+    plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return None
+
+    try:
+        kwargs = parse_kwargs(remaining)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(_help_hint("run"), file=sys.stderr)
+        return None
+
+    # Custom flag set — output is "ndjson" not "json", no pretty, no fields
+    known = {"max_iterations", "sequential", "allow_stale", "output"}
+    if not validate_known_flags(kwargs, known, _help_hint("run")):
+        return None
+
+    output_ndjson = kwargs.get("output") == "ndjson"
+    allow_stale = "allow_stale" in kwargs
+    max_iterations = None
+    if "max_iterations" in kwargs:
+        try:
+            max_iterations = int(kwargs["max_iterations"])
+            if max_iterations < 1:
+                raise ValueError()
+        except (ValueError, TypeError):
+            print("Error: --max-iterations must be a positive integer", file=sys.stderr)
+            print(_help_hint("run"), file=sys.stderr)
+            return None
+
+    return plet_dir, output_ndjson, allow_stale, max_iterations
+
+
 def cmd_run(args):
     """Execute the main implement→verify loop.
 
@@ -393,33 +436,12 @@ def cmd_run(args):
         spawns subagents, processes verdicts, handles retry and merge.
         Returns structured output so SKILL.md knows why it stopped.
     """
-    help_text = cmd_run.__doc__
-    if "-h" in args or "--help" in args:
-        print(help_text)
+    parsed = _parse_run_args(args)
+    if parsed == "help":
         return 0
-
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
+    if parsed is None:
         return 1
-    kwargs = parse_kwargs(remaining)
-
-    # Custom flag set — output is "ndjson" not "json", no pretty, no fields
-    known = {"max_iterations", "sequential", "allow_stale", "output"}
-    if not validate_known_flags(kwargs, known, _help_hint("run")):
-        return 1
-
-    output_ndjson = kwargs.get("output") == "ndjson"
-    allow_stale = "allow_stale" in kwargs
-    max_iterations = None
-    if "max_iterations" in kwargs:
-        try:
-            max_iterations = int(kwargs["max_iterations"])
-            if max_iterations < 1:
-                raise ValueError()
-        except (ValueError, TypeError):
-            print("Error: --max-iterations must be a positive integer", file=sys.stderr)
-            print(_help_hint("run"), file=sys.stderr)
-            return 1
+    plet_dir, output_ndjson, allow_stale, max_iterations = parsed
 
     # -------------------------------------------------------------------
     # Phase 0: Load state and pre-check

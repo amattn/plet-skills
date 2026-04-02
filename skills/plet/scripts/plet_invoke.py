@@ -24,16 +24,11 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
-    UNIVERSAL_FLAGS_WRITE,
     dispatch,
     emit_json,
     emit_json_error,
-    extract_output_flags,
-    get_plet_dir,
-    parse_kwargs,
-    require_kwargs,
+    parse_command,
     validate_enum,
-    validate_known_flags,
 )
 from util_io import (
     load_iter_state_json,
@@ -309,45 +304,21 @@ Examples:
     plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd /tmp/wt --dry-run
     plet_invoke.py run --iter-id ID_001 --phase verify --cwd /tmp/wt --output json
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     cmd_name = "run"
     hint = help_hint(cmd_name)
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id", "phase", "cwd", "permission_mode", "model", "max_budget", "verbose"},
+        required=["iter_id", "phase", "cwd"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
-
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(
-        kwargs,
-        {
-            "iter_id",
-            "phase",
-            "cwd",
-            "permission_mode",
-            "model",
-            "max_budget",
-            "verbose",
-        }
-        | UNIVERSAL_FLAGS_WRITE,
-        hint,
-    ):
-        return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id", "phase", "cwd"], help_text):
-        return 1
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
