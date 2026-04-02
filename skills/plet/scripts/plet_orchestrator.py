@@ -181,9 +181,9 @@ def cmd_run(args):
         spawns subagents, processes verdicts, handles retry and merge.
         Returns structured output so SKILL.md knows why it stopped.
     """
-    HELP = cmd_run.__doc__
+    help_text = cmd_run.__doc__
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)

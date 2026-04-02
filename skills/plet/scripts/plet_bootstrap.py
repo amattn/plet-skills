@@ -325,7 +325,7 @@ def _ensure_claude_settings(project_dir):
 
 def cmd_setup(args):
     """Configure the project for plet operation."""
-    HELP = """Usage: plet_bootstrap.py setup <project_dir> [--force]
+    help_text = """Usage: plet_bootstrap.py setup <project_dir> [--force]
   [--output json [--pretty] [--fields f1,f2]]
 
 Configures a project for plet: git merge driver, .gitignore,
@@ -337,7 +337,7 @@ Examples:
   plet_bootstrap.py setup . --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     project_dir, remaining = _get_project_dir(args)
@@ -425,7 +425,7 @@ Examples:
 
 def cmd_check(args):
     """Verify bootstrap state without modifying anything."""
-    HELP = """Usage: plet_bootstrap.py check <project_dir>
+    help_text = """Usage: plet_bootstrap.py check <project_dir>
   [--output json [--pretty] [--fields f1,f2]]
 
 Checks if the project is properly configured for plet.
@@ -436,7 +436,7 @@ Examples:
   plet_bootstrap.py check /path/to/project --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     project_dir, remaining = _get_project_dir(args)

@@ -105,7 +105,7 @@ def _load_state(plet_dir, iter_id, hint):
 
 def cmd_validate(args):
     """Check a per-iteration state file against the schema."""
-    HELP = """Usage: plet_iter_state.py validate <plet_dir> --iter-id ID_xxx
+    help_text = """Usage: plet_iter_state.py validate <plet_dir> --iter-id ID_xxx
   [--output json [--pretty] [--fields f1,f2]]
 
 Validates a per-iteration state file against the schema.
@@ -114,7 +114,7 @@ Accumulates all errors before reporting.
 Exit 0 if valid, exit 1 if invalid or error.
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -123,7 +123,7 @@ Exit 0 if valid, exit 1 if invalid or error.
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("validate")):
         return 1
-    if not require_kwargs(kwargs, ["iter_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id"], help_text):
         return 1
 
     output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
@@ -183,7 +183,7 @@ Exit 0 if valid, exit 1 if invalid or error.
 
 def cmd_init(args):
     """Create a new per-iteration state file."""
-    HELP = """Usage: plet_iter_state.py init <plet_dir> --iter-id ID_xxx
+    help_text = """Usage: plet_iter_state.py init <plet_dir> --iter-id ID_xxx
   --title "..." --dependencies '["ID_001"]'
   --criteria '[{"id":"AC_1","description":"..."}]'
   [--dependencies-file path] [--criteria-file path]
@@ -199,7 +199,7 @@ Examples:
     --criteria '[{"id":"AC_1","description":"Tests pass"}]'
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -228,7 +228,7 @@ Examples:
     if not ok:
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "title"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "title"], help_text):
         return 1
 
     iter_id = kwargs["iter_id"]
@@ -395,7 +395,7 @@ Examples:
 
 def cmd_start_phase(args):
     """Initialize a phase (orchestrator pre-spawn)."""
-    HELP = """Usage: plet_iter_state.py start-phase <plet_dir>
+    help_text = """Usage: plet_iter_state.py start-phase <plet_dir>
   --iter-id ID_xxx --phase implement|verify
   [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
@@ -410,7 +410,7 @@ Examples:
   plet_iter_state.py start-phase plet --iter-id ID_001 --phase verify
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -419,7 +419,7 @@ Examples:
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-phase")):
         return 1
-    if not require_kwargs(kwargs, ["iter_id", "phase"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
         return 1
 
     output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
@@ -496,7 +496,7 @@ Examples:
 
 def cmd_update_activity(args):
     """Set phaseActivity + activityDetail + heartbeat."""
-    HELP = """Usage: plet_iter_state.py update-activity <plet_dir>
+    help_text = """Usage: plet_iter_state.py update-activity <plet_dir>
   --iter-id ID_xxx --phase-activity setup|writing_tests|implementing|...
   --activity-detail "..." --agent-id <id>
   [--dry-run] [--output json [--pretty] [--fields f1,f2]]
@@ -511,7 +511,7 @@ Examples:
     --agent-id agent_abc123
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -530,7 +530,7 @@ Examples:
         _help_hint("update-activity"),
     ):
         return 1
-    if not require_kwargs(kwargs, ["iter_id", "phase_activity", "activity_detail", "agent_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase_activity", "activity_detail", "agent_id"], help_text):
         return 1
 
     output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
@@ -589,7 +589,7 @@ Examples:
 
 def cmd_update_criterion(args):
     """Update a criterion's implementation or verification status."""
-    HELP = """Usage: plet_iter_state.py update-criterion <plet_dir>
+    help_text = """Usage: plet_iter_state.py update-criterion <plet_dir>
   --iter-id ID_xxx --criterion AC_1
   --phase implementation|verification
   --status pass --evidence "..."
@@ -604,7 +604,7 @@ Examples:
     --evidence "pytest exits 0" --agent-id agent_abc123
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -617,7 +617,7 @@ Examples:
         _help_hint("update-criterion"),
     ):
         return 1
-    if not require_kwargs(kwargs, ["iter_id", "criterion", "phase", "status", "evidence", "agent_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "criterion", "phase", "status", "evidence", "agent_id"], help_text):
         return 1
 
     output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
@@ -723,7 +723,7 @@ Examples:
 
 def cmd_set_verdict(args):
     """Set implementVerdict or verifyVerdict."""
-    HELP = """Usage: plet_iter_state.py set-verdict <plet_dir>
+    help_text = """Usage: plet_iter_state.py set-verdict <plet_dir>
   --iter-id ID_xxx --phase implement|verify
   --verdict completed|blocked|passed|rejected
   --agent-id <id>
@@ -741,7 +741,7 @@ Examples:
     --phase verify --verdict passed --agent-id agent_def456
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -752,7 +752,7 @@ Examples:
         kwargs, {"iter_id", "phase", "verdict", "agent_id"} | UNIVERSAL_FLAGS_WRITE, _help_hint("set-verdict")
     ):
         return 1
-    if not require_kwargs(kwargs, ["iter_id", "phase", "verdict", "agent_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase", "verdict", "agent_id"], help_text):
         return 1
 
     output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
@@ -844,7 +844,7 @@ Examples:
 
 def cmd_heartbeat(args):
     """Lightweight alive signal."""
-    HELP = """Usage: plet_iter_state.py heartbeat <plet_dir>
+    help_text = """Usage: plet_iter_state.py heartbeat <plet_dir>
   --iter-id ID_xxx --agent-id <id>
   [--output json [--pretty] [--fields f1,f2]]
 
@@ -854,7 +854,7 @@ Examples:
   plet_iter_state.py heartbeat plet --iter-id ID_001 --agent-id agent_abc123
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -863,7 +863,7 @@ Examples:
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"iter_id", "agent_id"} | UNIVERSAL_FLAGS_READ, _help_hint("heartbeat")):
         return 1
-    if not require_kwargs(kwargs, ["iter_id", "agent_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "agent_id"], help_text):
         return 1
 
     output_json, pretty, fields_filter, _, ok = extract_output_flags(kwargs)
@@ -903,7 +903,7 @@ Examples:
 
 def cmd_add_report(args):
     """Append a verification report."""
-    HELP = """Usage: plet_iter_state.py add-report <plet_dir>
+    help_text = """Usage: plet_iter_state.py add-report <plet_dir>
   --iter-id ID_xxx --verdict passed|rejected|blocked
   --summary "..." --criteria-results '[...]'
   --findings '[...]' --related-entries '[...]'
@@ -924,7 +924,7 @@ Examples:
     --findings '[]' --related-entries '[]' --agent-id agent_def456
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -947,7 +947,7 @@ Examples:
         _help_hint("add-report"),
     ):
         return 1
-    if not require_kwargs(kwargs, ["iter_id", "verdict", "summary", "agent_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "verdict", "summary", "agent_id"], help_text):
         return 1
 
     output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
@@ -999,21 +999,21 @@ Examples:
         print("Error: --criteria-results must be a JSON array", file=sys.stderr)
         return 1
 
-    REQUIRED_CR_FIELDS = {"id", "status", "oneLiner", "redTest", "relatedEntries"}
-    ALLOWED_CR_FIELDS = REQUIRED_CR_FIELDS | {"noTestRationale"}
-    VALID_CR_STATUSES = ["pass", "fail", "skipped", "error"]
+    required_cr_fields = {"id", "status", "oneLiner", "redTest", "relatedEntries"}
+    allowed_cr_fields = required_cr_fields | {"noTestRationale"}
+    valid_cr_statuses = ["pass", "fail", "skipped", "error"]
 
     for i, cr in enumerate(criteria_results):
         if not isinstance(cr, dict):
             print(f"Error: criteriaResults[{i}] must be an object", file=sys.stderr)
             return 1
         # Check required fields
-        for rf in REQUIRED_CR_FIELDS:
+        for rf in required_cr_fields:
             if rf not in cr:
                 print(f"Error: criteriaResults[{i}] missing required field '{rf}'", file=sys.stderr)
                 return 1
         # Check no unknown fields
-        unknown = set(cr.keys()) - ALLOWED_CR_FIELDS
+        unknown = set(cr.keys()) - allowed_cr_fields
         if unknown:
             print(
                 "Error: criteriaResults[{}] has unknown field(s): {}".format(i, ", ".join(sorted(unknown))),
@@ -1021,10 +1021,10 @@ Examples:
             )
             return 1
         # Validate status
-        if cr["status"] not in VALID_CR_STATUSES:
+        if cr["status"] not in valid_cr_statuses:
             print(
                 "Error: criteriaResults[{}].status '{}' invalid (valid: {})".format(
-                    i, cr["status"], ", ".join(VALID_CR_STATUSES)
+                    i, cr["status"], ", ".join(valid_cr_statuses)
                 ),
                 file=sys.stderr,
             )

@@ -12,6 +12,5 @@ select = [
     "C90",           # Complexity checks (McCabe)
 ]
 ignore = [
-    "N806",   # non-lowercase variable in function — HELP, CMD, VALID_* constants in functions are intentional
     "C901",   # complex-structure — many commands are inherently complex, refactor later
 ]

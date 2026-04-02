@@ -251,7 +251,7 @@ def emit_json_error(command, message, pretty=False, extra=None):
 
 
 def cmd_add_progress(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     Use --dry-run to preview before writing. Status is REQUIRED — use
     IN_PROGRESS for interim checkpoints, COMPLETE/BLOCKED/FAILED for terminal.
 
@@ -285,14 +285,14 @@ Examples:
         --content "Initialized project with pytest, ruff. All checks pass."
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
     if len(args) < 1:
-        print(HELP, file=sys.stderr)
+        print(help_text, file=sys.stderr)
         return 1
 
-    CMD = "add-progress"
-    hint = help_hint(CMD)
+    cmd_name = "add-progress"
+    hint = help_hint(cmd_name)
     artifact_dir = args[0]
     try:
         kwargs = parse_kwargs(args[1:])
@@ -322,7 +322,7 @@ Examples:
         return 1
 
     required = ["iter_id", "iter_title", "phase", "attempt", "status"]
-    if not require_kwargs(kwargs, required, HELP):
+    if not require_kwargs(kwargs, required, help_text):
         return 1
 
     # Validate iter-id
@@ -333,14 +333,14 @@ Examples:
     # Validate phase
     if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
         if output_json:
-            emit_json_error(CMD, "invalid --phase '{}'".format(kwargs["phase"]), pretty)
+            emit_json_error(cmd_name, "invalid --phase '{}'".format(kwargs["phase"]), pretty)
         print(hint, file=sys.stderr)
         return 1
 
     # Validate status
     if not validate_enum(kwargs["status"], VALID_PROGRESS_STATUSES, "--status"):
         if output_json:
-            emit_json_error(CMD, "invalid --status '{}'".format(kwargs["status"]), pretty)
+            emit_json_error(cmd_name, "invalid --status '{}'".format(kwargs["status"]), pretty)
         print(hint, file=sys.stderr)
         return 1
 
@@ -419,7 +419,7 @@ Examples:
 
 
 def cmd_add_learning(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     Use --dry-run to preview before writing. At least one learning per
     iteration is mandatory (R_7 rule).
 
@@ -455,14 +455,14 @@ Examples:
         --phase implement --attempt 1
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
     if len(args) < 1:
-        print(HELP, file=sys.stderr)
+        print(help_text, file=sys.stderr)
         return 1
 
-    CMD = "add-learning"
-    hint = help_hint(CMD)
+    cmd_name = "add-learning"
+    hint = help_hint(cmd_name)
     artifact_dir = args[0]
     try:
         kwargs = parse_kwargs(args[1:])
@@ -493,7 +493,7 @@ Examples:
         return 1
 
     required = ["iter_id", "iter_title", "category", "title", "phase", "attempt"]
-    if not require_kwargs(kwargs, required, HELP):
+    if not require_kwargs(kwargs, required, help_text):
         return 1
 
     if not validate_iter_id(kwargs["iter_id"]):
@@ -575,7 +575,7 @@ Examples:
 
 
 def cmd_add_emergent(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     Use --dry-run to preview before writing. EM_N number is auto-assigned.
     Outcome is always set to "pending" (triaged during refine).
 
@@ -612,14 +612,14 @@ Examples:
         --attempt 1
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
     if len(args) < 1:
-        print(HELP, file=sys.stderr)
+        print(help_text, file=sys.stderr)
         return 1
 
-    CMD = "add-emergent"
-    hint = help_hint(CMD)
+    cmd_name = "add-emergent"
+    hint = help_hint(cmd_name)
     artifact_dir = args[0]
     try:
         kwargs = parse_kwargs(args[1:])
@@ -650,7 +650,7 @@ Examples:
         return 1
 
     required = ["iter_id", "iter_title", "title", "phase", "category", "attempt"]
-    if not require_kwargs(kwargs, required, HELP):
+    if not require_kwargs(kwargs, required, help_text):
         return 1
 
     if not validate_iter_id(kwargs["iter_id"]):
@@ -737,7 +737,7 @@ Examples:
 
 
 def cmd_check(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     Exit code 0 = all three artifacts have entries, 1 = any missing.
     Use as a pre-verify gate to enforce the R_7 mandatory entry rule.
 
@@ -760,14 +760,14 @@ Examples:
     plet_entries.py check plet/ --iter-id ID_002 --output json
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
     if len(args) < 1:
-        print(HELP, file=sys.stderr)
+        print(help_text, file=sys.stderr)
         return 1
 
-    CMD = "check"
-    hint = help_hint(CMD)
+    cmd_name = "check"
+    hint = help_hint(cmd_name)
     artifact_dir = args[0]
     try:
         kwargs = parse_kwargs(args[1:])
@@ -789,7 +789,7 @@ Examples:
     if not validate_known_flags(kwargs, {"iter_id"}, hint):
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id"], help_text):
         return 1
 
     iteration = kwargs["iter_id"]
@@ -798,7 +798,7 @@ Examples:
     if iteration.lower() == "proj":
         msg = "Error: --iter-id 'proj' is not accepted by check — R_7 is per-iteration only"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(cmd_name, msg, pretty)
         else:
             print(msg, file=sys.stderr)
         print(hint, file=sys.stderr)
@@ -807,7 +807,7 @@ Examples:
     if not ITER_ID_PATTERN.match(iteration):
         msg = f"Error: --iter-id '{iteration}' does not match expected pattern ID_N+"
         if output_json:
-            emit_json_error(CMD, msg, pretty)
+            emit_json_error(cmd_name, msg, pretty)
         else:
             print(msg, file=sys.stderr)
         print(hint, file=sys.stderr)

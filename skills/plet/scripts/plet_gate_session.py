@@ -164,7 +164,7 @@ def detect_session_type(plet_dir):
 
 
 def cmd_detect(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     detect is read-only — it checks project state and prints the session type.
     Text output is bare (plan, loop, or refine) for shell capture:
     SESSION=$(plet_gate_session.py detect)
@@ -189,11 +189,11 @@ Examples:
     plet_gate_session.py detect /path/to/project/plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "detect"
-    hint = help_hint(CMD)
+    cmd_name = "detect"
+    hint = help_hint(cmd_name)
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
         return 1
@@ -218,7 +218,7 @@ Examples:
         emit_json(
             {
                 "status": "ok",
-                "command": CMD,
+                "command": cmd_name,
                 "sessionType": session_type,
                 "reason": reason,
                 "artifacts": artifacts,
@@ -240,7 +240,7 @@ Examples:
 
 
 def cmd_status(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     status is read-only — it reads project state and prints a summary.
     Safe to run anytime. No modifications.
 
@@ -265,11 +265,11 @@ Examples:
     plet_gate_session.py status plet/ --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "status"
-    hint = help_hint(CMD)
+    cmd_name = "status"
+    hint = help_hint(cmd_name)
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
         return 1
@@ -292,7 +292,7 @@ Examples:
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(CMD, err_msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, err_msg, SCRIPT_VERSION, pretty)
         else:
             print(err_msg, file=sys.stderr)
         return 1
@@ -308,7 +308,7 @@ Examples:
     if not os.path.isdir(sd):
         msg = f"Error: state directory not found: {sd}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -412,7 +412,7 @@ Examples:
         emit_json(
             {
                 "status": "ok",
-                "command": CMD,
+                "command": cmd_name,
                 "projectId": project_id,
                 "sessionType": session_type,
                 "loopSession": loop_session,
@@ -664,7 +664,7 @@ def run_preflight_checks(plet_dir, session_type):
 
 
 def cmd_preflight(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     preflight is read-only — it checks the environment, never modifies it.
     Run before starting any session. Includes GTC check-session for git health.
 
@@ -692,11 +692,11 @@ Examples:
     plet_gate_session.py preflight plet/ --session-type plan --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "preflight"
-    hint = help_hint(CMD)
+    cmd_name = "preflight"
+    hint = help_hint(cmd_name)
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
         return 1
@@ -761,7 +761,7 @@ Examples:
         emit_json(
             {
                 "status": overall,
-                "command": CMD,
+                "command": cmd_name,
                 "sessionType": session_type,
                 "checks": checks,
                 "summary": counts,
@@ -826,9 +826,9 @@ def cmd_postflight(args):
         Symmetric with preflight. Called by the orchestrator before end-session.
         May diverge from preflight in the future.
     """
-    HELP = cmd_postflight.__doc__
+    help_text = cmd_postflight.__doc__
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -838,7 +838,7 @@ def cmd_postflight(args):
     if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ, help_hint("postflight")):
         return 1
 
-    if not require_kwargs(kwargs, ["session_type"], HELP):
+    if not require_kwargs(kwargs, ["session_type"], help_text):
         return 1
     session_type = kwargs["session_type"]
     if not validate_enum(session_type, ["detect", "plan", "loop", "refine"], "session-type"):

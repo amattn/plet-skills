@@ -88,9 +88,9 @@ def cmd_eligible(args):
         Core scheduling function for the loop orchestrator. Called at loop start
         and after each iteration completes to determine what to spawn next.
     """
-    HELP = cmd_eligible.__doc__
+    help_text = cmd_eligible.__doc__
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -149,14 +149,14 @@ def cmd_eligible(args):
     # Detect stuck iterations: queued but deps can never be satisfied
     # A dep is unsatisfiable if its lifecycle is blocked, withdrawn, or ineligible
     # (not complete and not queued/implementing/verifying — those could still finish)
-    UNSATISFIABLE = {"blocked", "withdrawn", "ineligible"}
+    unsatisfiable = {"blocked", "withdrawn", "ineligible"}
     stuck_iterations = []
     for iter_id, deps in sorted(dep_map.items()):
         if lifecycles[iter_id] != "queued":
             continue
         if iter_id in eligible:
             continue
-        unsatisfiable = [dep_id for dep_id in deps if lifecycles.get(dep_id) in UNSATISFIABLE]
+        unsatisfiable = [dep_id for dep_id in deps if lifecycles.get(dep_id) in unsatisfiable]
         if unsatisfiable:
             stuck_iterations.append(
                 {
@@ -219,9 +219,9 @@ def cmd_check_breakpoints(args):
         once before spawning (position "before") and once after completion
         (position "after"). Implements SF_21 and IMP_22.
     """
-    HELP = cmd_check_breakpoints.__doc__
+    help_text = cmd_check_breakpoints.__doc__
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -234,7 +234,7 @@ def cmd_check_breakpoints(args):
         return 1
 
     # Require --iter-id and --position
-    if not require_kwargs(kwargs, ["iter_id", "position"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "position"], help_text):
         return 1
 
     iter_id = kwargs["iter_id"]
@@ -301,9 +301,9 @@ def cmd_check_retry(args):
         Retry policy enforcement for the loop orchestrator. Called after a verify
         phase produces a "rejected" verdict. Implements IMP_14.
     """
-    HELP = cmd_check_retry.__doc__
+    help_text = cmd_check_retry.__doc__
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -313,7 +313,7 @@ def cmd_check_retry(args):
     if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("check-retry")):
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id"], help_text):
         return 1
 
     iter_id = kwargs["iter_id"]

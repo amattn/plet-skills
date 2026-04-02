@@ -143,7 +143,7 @@ def format_iteration_state(state_data, lifecycle="?"):
 
 
 def cmd_assemble(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     assemble is read-only — it reads files and outputs a prompt.
     Safe to run anytime. Great for debugging "what would the agent see?"
 
@@ -171,11 +171,11 @@ Examples:
     plet_prompt.py assemble --iter-id ID_001 --phase verify --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "assemble"
-    hint = help_hint(CMD)
+    cmd_name = "assemble"
+    hint = help_hint(cmd_name)
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
         return 1
@@ -194,7 +194,7 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "phase"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
         return 1
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
@@ -206,7 +206,7 @@ Examples:
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
         else:
             print(err, file=sys.stderr)
         return 1
@@ -220,7 +220,7 @@ Examples:
     if ref_content is None:
         msg = f"Error: reference file not found: {ref_path}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -232,7 +232,7 @@ Examples:
     if iter_content is None:
         msg = f"Error: iterations.md not found: {iter_file}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -240,7 +240,7 @@ Examples:
     if iter_block is None:
         msg = f"Error: iteration {iter_id} not found in iterations.md"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -251,7 +251,7 @@ Examples:
     if fmt_content is None:
         msg = f"Error: reference file not found: {fmt_path}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -262,7 +262,7 @@ Examples:
     if schema_content is None:
         msg = f"Error: reference file not found: {schema_path}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -274,7 +274,7 @@ Examples:
     if req_content is None:
         msg = f"Error: requirements.md not found: {req_file}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -293,7 +293,7 @@ Examples:
     if state_data is None:
         msg = f"Error: iteration state file not found: {state_file}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -312,7 +312,7 @@ Examples:
         emit_json(
             {
                 "status": "ok",
-                "command": CMD,
+                "command": cmd_name,
                 "iterationId": iter_id,
                 "phase": phase,
                 "sections": sections,

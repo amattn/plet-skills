@@ -162,9 +162,9 @@ def cmd_start_session(args):
         Session setup for the loop orchestrator. Called once at the beginning
         of every loop or refine session.
     """
-    HELP = cmd_start_session.__doc__
+    help_text = cmd_start_session.__doc__
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -174,7 +174,7 @@ def cmd_start_session(args):
     if not validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-session")):
         return 1
 
-    if not require_kwargs(kwargs, ["type"], HELP):
+    if not require_kwargs(kwargs, ["type"], help_text):
         return 1
 
     session_type = kwargs["type"]
@@ -322,9 +322,9 @@ def cmd_end_session(args):
         Clean session close for the orchestrator. Sets endedAt timestamp
         and enables the next session to chain from this one.
     """
-    HELP = cmd_end_session.__doc__
+    help_text = cmd_end_session.__doc__
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)

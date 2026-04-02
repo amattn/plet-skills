@@ -309,7 +309,7 @@ def validate_event(event, line_num):
 
 
 def cmd_append_event(args):
-    HELP = """append-event — append a semantic event to a trace NDJSON file.
+    help_text = """append-event — append a semantic event to a trace NDJSON file.
 
 IMPORTANT: Use --dry-run to preview events before appending. Timestamp is
 set automatically — cannot be overridden.
@@ -351,7 +351,7 @@ Examples:
         --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}'
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     hint = help_hint("append-event")
@@ -387,7 +387,7 @@ Examples:
     if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt", "event_type", "data", "data_file"}, hint):
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt", "event_type"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt", "event_type"], help_text):
         return 1
 
     # Validate iter-id
@@ -539,7 +539,7 @@ Examples:
 
 
 def cmd_validate(args):
-    HELP = """validate — check a trace events file against the schema.
+    help_text = """validate — check a trace events file against the schema.
 
 IMPORTANT: Read-only. Safe to run freely. Accumulates ALL errors before
 reporting so you can fix everything in one pass.
@@ -565,7 +565,7 @@ Examples:
     plet_trace.py validate --iter-id ID_001 --phase implement --attempt 1 --output json
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     hint = help_hint("validate")
@@ -592,7 +592,7 @@ Examples:
     if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt"}, hint):
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], help_text):
         return 1
 
     # Validate iter-id
@@ -688,7 +688,7 @@ Examples:
 
 
 def cmd_query(args):
-    HELP = """query — filter and extract events from a trace file.
+    help_text = """query — filter and extract events from a trace file.
 
 IMPORTANT: Read-only. Returns exit 0 even with no matches (no matches is
 not an error). Use --raw for pipe-friendly output.
@@ -716,7 +716,7 @@ Examples:
     plet_trace.py query --iter-id ID_001 --phase implement --attempt 1 --event-type decision --raw
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     hint = help_hint("query")
@@ -743,7 +743,7 @@ Examples:
     if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt", "event_type", "criterion", "last"}, hint):
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], help_text):
         return 1
 
     # Validate iter-id

@@ -104,7 +104,7 @@ def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model
 
 
 def cmd_run(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     run launches a Claude Code subprocess. Use --dry-run to preview the
     command without launching. Transcript is captured line by line.
 
@@ -142,11 +142,11 @@ Examples:
     plet_invoke.py run --iter-id ID_001 --phase verify --cwd /tmp/wt --output json
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "run"
-    hint = help_hint(CMD)
+    cmd_name = "run"
+    hint = help_hint(cmd_name)
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
         return 1
@@ -178,7 +178,7 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "phase", "cwd"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase", "cwd"], help_text):
         return 1
 
     iter_id = kwargs["iter_id"]
@@ -228,7 +228,7 @@ Examples:
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
         else:
             print(err, file=sys.stderr)
         return 1
@@ -237,7 +237,7 @@ Examples:
     if not os.path.isdir(cwd):
         msg = f"Error: working directory not found: {cwd}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -247,7 +247,7 @@ Examples:
     if state_data is None:
         msg = f"Error: iteration state not found for {iter_id}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -261,7 +261,7 @@ Examples:
     if prompt_text is None:
         msg = f"Error: {prm_err}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -316,7 +316,7 @@ Examples:
             emit_json(
                 {
                     "status": "ok",
-                    "command": CMD,
+                    "command": cmd_name,
                     "iterationId": iter_id,
                     "phase": phase,
                     "attempt": attempt,
@@ -338,7 +338,7 @@ Examples:
     if find_claude() is None:
         msg = "Error: claude not found on PATH"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -467,7 +467,7 @@ Examples:
         emit_json(
             {
                 "status": status,
-                "command": CMD,
+                "command": cmd_name,
                 "iterationId": iter_id,
                 "phase": phase,
                 "attempt": attempt,

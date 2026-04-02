@@ -73,7 +73,7 @@ def _help_hint(cmd):
 
 def cmd_validate(args):
     """Check state.json against the global state schema."""
-    HELP = """Usage: plet_global_state.py validate <global_plet_dir>
+    help_text = """Usage: plet_global_state.py validate <global_plet_dir>
   [--output json [--pretty] [--fields f1,f2]]
 
 Validates state.json against the global state schema.
@@ -82,7 +82,7 @@ Accumulates all errors before reporting.
 Exit 0 if valid, exit 1 if invalid or error.
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -158,7 +158,7 @@ Exit 0 if valid, exit 1 if invalid or error.
 
 def cmd_init(args):
     """Create a new state.json with correct structure."""
-    HELP = """Usage: plet_global_state.py init <global_plet_dir>
+    help_text = """Usage: plet_global_state.py init <global_plet_dir>
   --project-id PROJ --project-name "Name"
   --dependency-map '{"ID_001":[],...}'
   --milestones '{"MS_1":{"name":"MVP","iterations":[...]}}'
@@ -183,7 +183,7 @@ Examples:
     --iterations-fingerprint '{}'
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -213,7 +213,7 @@ Examples:
         return 1
 
     # Required: project-id, project-name
-    if not require_kwargs(kwargs, ["project_id", "project_name"], HELP):
+    if not require_kwargs(kwargs, ["project_id", "project_name"], help_text):
         return 1
 
     project_id = kwargs.pop("project_id")
@@ -343,7 +343,7 @@ Examples:
 
 def cmd_update_lifecycle(args):
     """Set lifecycle for one iteration in state.json.lifecycles."""
-    HELP = """Usage: plet_global_state.py update-lifecycle <global_plet_dir>
+    help_text = """Usage: plet_global_state.py update-lifecycle <global_plet_dir>
   --iter-id ID_xxx --lifecycle implementing
   [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
@@ -358,7 +358,7 @@ Examples:
   plet_global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle verifying --output json
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)
@@ -370,7 +370,7 @@ Examples:
     ):
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "lifecycle"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "lifecycle"], help_text):
         return 1
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
@@ -461,7 +461,7 @@ Examples:
 
 def cmd_get_lifecycle(args):
     """Read lifecycle for one or all iterations."""
-    HELP = """Usage: plet_global_state.py get-lifecycle <global_plet_dir>
+    help_text = """Usage: plet_global_state.py get-lifecycle <global_plet_dir>
   [--iter-id ID_xxx]
   [--output json [--pretty] [--fields f1,f2]]
 
@@ -477,7 +477,7 @@ Examples:
   plet_global_state.py get-lifecycle plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     plet_dir, remaining = get_plet_dir(args)

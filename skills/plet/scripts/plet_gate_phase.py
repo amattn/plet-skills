@@ -471,7 +471,7 @@ def format_text_output(command, checks, overall, counts):
 
 def run_gate(cmd, args, phase_specific_pre_fn, phase_specific_post_fn):
     """Shared logic for pre and post commands."""
-    HELP_PRE = """IMPORTANT:
+    help_pre = """IMPORTANT:
     pre is read-only — safe to run anytime. No --dry-run needed.
 
 PITFALLS:
@@ -491,7 +491,7 @@ Examples:
     plet_gate_phase.py pre plet/ --iter-id ID_001 --phase implement
     plet_gate_phase.py pre --iter-id ID_001 --phase verify --output json
 """
-    HELP_POST = """IMPORTANT:
+    help_post = """IMPORTANT:
     post is read-only. The subagent runs this before exiting and
     self-corrects until it passes. Safe to run multiple times.
 
@@ -513,10 +513,10 @@ Examples:
     plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement
     plet_gate_phase.py post --iter-id ID_001 --phase verify --output json
 """
-    HELP = HELP_PRE if cmd == "pre" else HELP_POST
+    help_text = help_pre if cmd == "pre" else help_post
 
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
     hint = help_hint(cmd)
@@ -538,7 +538,7 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "phase"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
         return 1
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]

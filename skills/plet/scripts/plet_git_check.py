@@ -265,7 +265,7 @@ def check_no_stashes(cwd=None):
 
 
 def cmd_check_iteration(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     check-iteration is read-only — safe to run anytime. No --dry-run needed.
     Reports all violations (no short-circuit on first failure).
 
@@ -292,11 +292,11 @@ Examples:
     plet_git_check.py check-iteration /path/to/plet --iter-id ID_001 --phase verify --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "check-iteration"
-    hint = help_hint(CMD)
+    cmd_name = "check-iteration"
+    hint = help_hint(cmd_name)
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
@@ -316,7 +316,7 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "phase"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
         return 1
 
     iter_id = kwargs["iter_id"]
@@ -329,7 +329,7 @@ Examples:
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(CMD, err_msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, err_msg, SCRIPT_VERSION, pretty)
         else:
             print(err_msg, file=sys.stderr)
         print(hint, file=sys.stderr)
@@ -350,7 +350,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -375,7 +375,7 @@ Examples:
         emit_json(
             {
                 "status": status,
-                "command": CMD,
+                "command": cmd_name,
                 "iterationId": iter_state["iterationId"],
                 "phase": phase,
                 "checks": checks,
@@ -386,7 +386,7 @@ Examples:
             fields,
         )
     else:
-        print(format_text_output(CMD, checks, status, summary))
+        print(format_text_output(cmd_name, checks, status, summary))
 
     return exit_code
 
@@ -397,7 +397,7 @@ Examples:
 
 
 def cmd_check_session(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     check-session is read-only — safe to run anytime. No --dry-run needed.
     Scans all iteration state files and cross-references against git state.
 
@@ -418,11 +418,11 @@ Examples:
     plet_git_check.py check-session /path/to/plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "check-session"
-    hint = help_hint(CMD)
+    cmd_name = "check-session"
+    hint = help_hint(cmd_name)
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
@@ -446,7 +446,7 @@ Examples:
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(CMD, err_msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, err_msg, SCRIPT_VERSION, pretty)
         else:
             print(err_msg, file=sys.stderr)
         print(hint, file=sys.stderr)
@@ -465,7 +465,7 @@ Examples:
     if not os.path.exists(sd_path):
         msg = f"Error: directory not found: {sd_path}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -473,7 +473,7 @@ Examples:
     if not os.path.isdir(sd_path):
         msg = f"Error: expected a directory, got file: {sd_path}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -482,7 +482,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -668,7 +668,7 @@ Examples:
         emit_json(
             {
                 "status": status,
-                "command": CMD,
+                "command": cmd_name,
                 "projectId": project_id,
                 "loopSession": loop_n,
                 "checks": checks,
@@ -679,7 +679,7 @@ Examples:
             fields,
         )
     else:
-        print(format_text_output(CMD, checks, status, summary))
+        print(format_text_output(cmd_name, checks, status, summary))
 
     return exit_code
 

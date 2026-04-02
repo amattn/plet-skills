@@ -101,7 +101,7 @@ def derive_iteration_branch(global_state, iter_state):
 
 
 def cmd_audit_tag(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     audit-tag creates a git tag marking a phase boundary. Use --dry-run first.
     Tags are idempotent — re-running updates the tag (git tag -f).
 
@@ -128,11 +128,11 @@ Examples:
     plet_git_ops.py audit-tag --iter-id ID_001 --phase verify --dry-run
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "audit-tag"
-    hint = help_hint(CMD)
+    cmd_name = "audit-tag"
+    hint = help_hint(cmd_name)
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
@@ -152,7 +152,7 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id", "phase"], HELP):
+    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
         return 1
 
     iter_id = kwargs["iter_id"]
@@ -165,7 +165,7 @@ Examples:
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
         else:
             print(err, file=sys.stderr)
         print(hint, file=sys.stderr)
@@ -187,7 +187,7 @@ Examples:
     if attempt < 1:
         msg = f"Error: attempts.{phase} is {attempt} — phase has not been attempted"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -196,7 +196,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -214,7 +214,7 @@ Examples:
             emit_json(
                 {
                     "status": "ok",
-                    "command": CMD,
+                    "command": cmd_name,
                     "tagName": tag_name,
                     "commitHash": commit_hash,
                     "iterationId": iter_state["iterationId"],
@@ -238,7 +238,7 @@ Examples:
     if r.returncode != 0:
         msg = f"Error: git command failed: {r.stderr}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -256,7 +256,7 @@ Examples:
         emit_json(
             {
                 "status": "ok",
-                "command": CMD,
+                "command": cmd_name,
                 "tagName": tag_name,
                 "commitHash": commit_hash,
                 "iterationId": iter_state["iterationId"],
@@ -281,7 +281,7 @@ Examples:
 
 
 def cmd_merge_squash(args):
-    HELP = """IMPORTANT:
+    help_text = """IMPORTANT:
     merge-squash creates one commit per iteration on the workstream.
     Must be run FROM the workstream branch. Use --dry-run first.
 
@@ -305,11 +305,11 @@ Examples:
     plet_git_ops.py merge-squash --iter-id ID_001 --dry-run
 """
     if "-h" in args or "--help" in args:
-        print(HELP)
+        print(help_text)
         return 0
 
-    CMD = "merge-squash"
-    hint = help_hint(CMD)
+    cmd_name = "merge-squash"
+    hint = help_hint(cmd_name)
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
@@ -329,7 +329,7 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["iter_id"], HELP):
+    if not require_kwargs(kwargs, ["iter_id"], help_text):
         return 1
 
     iter_id = kwargs["iter_id"]
@@ -338,7 +338,7 @@ Examples:
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(CMD, err, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
         else:
             print(err, file=sys.stderr)
         print(hint, file=sys.stderr)
@@ -359,7 +359,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -373,7 +373,7 @@ Examples:
     if current_branch != ws_branch:
         msg = f"Error: must be on workstream branch {ws_branch}, currently on {current_branch}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -383,7 +383,7 @@ Examples:
     if r.returncode != 0:
         msg = "Error: HEAD is detached — merge-squash requires a named branch"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -393,7 +393,7 @@ Examples:
     if r.returncode != 0:
         msg = f"Error: iteration branch not found: {iter_branch}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -405,7 +405,7 @@ Examples:
             f"Error: iteration branch {iter_branch} has no changes ahead of workstream — already merged or no work done"
         )
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -415,7 +415,7 @@ Examples:
     if porcelain:
         msg = "Error: working tree is dirty (git status --porcelain non-empty) — commit changes before merge-squash"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -457,7 +457,7 @@ Examples:
             emit_json(
                 {
                     "status": "ok",
-                    "command": CMD,
+                    "command": cmd_name,
                     "commitMessage": commit_title,
                     "iterationBranch": iter_branch,
                     "workstreamBranch": ws_branch,
@@ -480,13 +480,13 @@ Examples:
             run_git("merge", "--abort")
             msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
             if output_json:
-                emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+                emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
             else:
                 print(msg, file=sys.stderr)
             return 1
         msg = f"Error: git command failed: {r.stderr}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -496,7 +496,7 @@ Examples:
     if r.returncode != 0:
         msg = f"Error: git commit failed: {r.stderr}"
         if output_json:
-            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
@@ -542,7 +542,7 @@ Examples:
         emit_json(
             {
                 "status": "ok",
-                "command": CMD,
+                "command": cmd_name,
                 "commitMessage": commit_title,
                 "commitHash": commit_hash,
                 "iterationBranch": iter_branch,
