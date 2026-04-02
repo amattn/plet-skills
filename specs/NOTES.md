@@ -1707,3 +1707,40 @@ Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree co
 - Run: `uv run pytest --cov` — subprocess tracking activates automatically
 
 **Tradeoff:** 116s runtime (was 57s without subprocess tracking), 557 `.coverage` files to combine. Acceptable — coverage runs are periodic, not every commit.
+
+**Fix (2026-04-02):** `COVERAGE_PROCESS_START` must be an absolute path. Subprocesses change cwd (git tests), so relative paths break. Updated conftest.py to always set absolute path. Changed `coverage_all.sh` to use `coverage run -m pytest` + `coverage combine` instead of `pytest --cov` (more reliable for subprocess tracking).
+
+#### Coverage test campaign (2026-04-02)
+
+**Strategy: three approaches combined.**
+1. **Subprocess tracking** — `.pth` file + `COVERAGE_PROCESS_START` makes existing 1786 subprocess tests generate coverage data. Free coverage, no new tests. Got 57% baseline.
+2. **Test file conversion** — Extracted inline tests from `main()` into `def test_*()` functions so pytest discovers them (schedule, session, orchestrator). Gained 8% (57→65%).
+3. **Import-based `test_coverage_*` tests** — Call internal functions + `cmd_*` wrappers directly for paths subprocess tracking misses. Two categories:
+   - **Pure function tests** — dict-in/dict-out check functions, format helpers, merge driver. Easy, high coverage per test.
+   - **`cmd_*` wrapper tests** — Call command entry points with real state/git repos. Covers arg parsing, validation, output formatting. ~55 tests per script, ~35% coverage gain each.
+
+**Naming convention:** `test_coverage_*.py` prefix for all coverage-specific test files. Distinguishes from `test_plet_*.py` (subprocess integration tests).
+
+**Results by script:**
+
+| Script | Start | End | Method |
+|--------|-------|-----|--------|
+| plet_merge_driver | 0% | 100% | pure function |
+| plet_prompt | 0% | 90% | pure + cmd_* |
+| plet_schedule | 0% | 94% | main→test_* conversion |
+| plet_session | 0% | 92% | main→test_* conversion |
+| plet_git_ops | 19% | 93% | pure + cmd_* |
+| plet_git_iteration | 23% | 95% | pure + cmd_* |
+| plet_git_check | 14% | 89% | pure + cmd_* |
+| plet_gate_phase | 20% | 88% | pure + cmd_* |
+| plet_gate_session | 45% | 83% | cmd_* |
+| plet_iter_state | 77% | 80% | cmd_* |
+| plet_orchestrator | 0% | 30% | main→test_* conversion |
+| util_git | 31% | 100% | pure function |
+| **TOTAL** | **57%** | **84%** | |
+
+**Key insight: `cmd_*` wrappers are not hard to test.** They're regular functions taking an args list and returning an exit code. The initial assumption that they were "hard" was wrong — the difficulty was subprocess coverage tracking, not the functions themselves. Once we started calling them via import, each script gained 20-40% from ~55 tests in ~30 minutes.
+
+**Remaining gap:** plet_orchestrator at 30% is the only major outlier. Its `cmd_run` orchestrates the entire loop via subprocess calls to 10 scripts + mock claude. The 12 existing test scenarios cover 30% but the remaining 70% is error handling, retry paths, and session management branches.
+
+**Test counts:** 2127 harness (test_all.py), 940 pytest. `coverage_all.sh` for periodic measurement (~160s).
