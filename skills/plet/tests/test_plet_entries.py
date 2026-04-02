@@ -42,13 +42,8 @@ def run(args, expect_exit=0):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
-                expect_exit,
-                result.returncode,
-                args,
-                result.stdout,
-                result.stderr,
-            )
+            f"Expected exit {expect_exit}, got {result.returncode}\n"
+            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -58,10 +53,10 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
-        print("  FAIL  {}: {}".format(name, detail) if detail else "  FAIL  {}".format(name))
+        print(f"  FAIL  {name}: {detail}" if detail else f"  FAIL  {name}")
 
 
 def make_artifacts(tmpdir):
@@ -96,12 +91,12 @@ def test_help_all_commands():
 
     for cmd in ["add-progress", "add-learning", "add-emergent", "check"]:
         stdout, _, _ = run([cmd, "--help"])
-        check("{} --help exits 0".format(cmd), True)
-        check("{} help has content".format(cmd), len(stdout) > 50, "got {} chars".format(len(stdout)))
+        check(f"{cmd} --help exits 0", True)
+        check(f"{cmd} help has content", len(stdout) > 50, f"got {len(stdout)} chars")
         # UNV_DXP_5: help has IMPORTANT/PITFALLS/USAGE/PURPOSE structure
         stdout_lower = stdout.lower()
-        check("{} help has IMPORTANT section".format(cmd), "important" in stdout_lower, stdout[:200])
-        check("{} help has PITFALLS section".format(cmd), "pitfall" in stdout_lower, stdout[:200])
+        check(f"{cmd} help has IMPORTANT section", "important" in stdout_lower, stdout[:200])
+        check(f"{cmd} help has PITFALLS section", "pitfall" in stdout_lower, stdout[:200])
 
 
 # ---------------------------------------------------------------------------
@@ -136,16 +131,16 @@ def test_plet_id_format():
         plet_id = parse_ok_id(stdout)
 
         parts = plet_id.split("_")
-        check("has 4 segments", len(parts) == 4, "got {}: {}".format(len(parts), parts))
+        check("has 4 segments", len(parts) == 4, f"got {len(parts)}: {parts}")
         check("type prefix is epr", parts[0] == "epr")
-        check("timestamp is 10 chars", len(parts[1]) == 10, "got {}".format(len(parts[1])))
+        check("timestamp is 10 chars", len(parts[1]) == 10, f"got {len(parts[1])}")
         check("iteration normalized (id001)", parts[2] == "id001")
         check("phase segment is i1", parts[3] == "i1")
 
         # Crockford Base32: no I, L, O, U
         ts = parts[1]
         bad_chars = set(ts) & set("IiLlOoUu")
-        check("timestamp uses Crockford alphabet", len(bad_chars) == 0, "found: {}".format(bad_chars))
+        check("timestamp uses Crockford alphabet", len(bad_chars) == 0, f"found: {bad_chars}")
 
 
 def test_plet_id_phases():
@@ -182,7 +177,7 @@ def test_plet_id_phases():
             )
             plet_id = parse_ok_id(stdout)
             seg = plet_id.split("_")[-1]
-            check("{}-{} -> {}".format(phase, attempt, expected), seg == expected, "got {}".format(seg))
+            check(f"{phase}-{attempt} -> {expected}", seg == expected, f"got {seg}")
 
 
 def test_plet_id_project_level():
@@ -246,10 +241,10 @@ def test_progress_entry_format():
             content = f.read()
 
         check("starts with header", content.startswith("# Progress"))
-        check("has start fence", '<div id="plet-{}"></div>'.format(plet_id) in content)
-        check("has end fence", '<div id="END-plet-{}"></div>'.format(plet_id) in content)
+        check("has start fence", f'<div id="plet-{plet_id}"></div>' in content)
+        check("has end fence", f'<div id="END-plet-{plet_id}"></div>' in content)
         check("has heading with status", "### [ID_003] implement-2 — BLOCKED" in content)
-        check("has PletId field", "**PletId:** `{}`".format(plet_id) in content)
+        check("has PletId field", f"**PletId:** `{plet_id}`" in content)
         check("has Timestamp field", "**Timestamp:** 20" in content)
         check("has Iteration field", "**Iteration:** [ID_003] OAuth integration" in content)
         check("has Phase field", "**Phase:** implement" in content)
@@ -347,7 +342,7 @@ def test_progress_status_validation():
                     "test",
                 ]
             )
-            check("accepts {}".format(status), True)
+            check(f"accepts {status}", True)
 
         _, stderr, _ = run(
             [
@@ -406,10 +401,10 @@ def test_learning_entry_format():
             content = f.read()
 
         check("type prefix is eln", plet_id.startswith("eln_"))
-        check("has start fence", '<div id="plet-{}"></div>'.format(plet_id) in content)
-        check("has end fence", '<div id="END-plet-{}"></div>'.format(plet_id) in content)
+        check("has start fence", f'<div id="plet-{plet_id}"></div>' in content)
+        check("has end fence", f'<div id="END-plet-{plet_id}"></div>' in content)
         check("has category heading", "### [gotcha] WAL mode required" in content)
-        check("has PletId", "**PletId:** `{}`".format(plet_id) in content)
+        check("has PletId", f"**PletId:** `{plet_id}`" in content)
         check("has Timestamp", "**Timestamp:** 20" in content)
         check("has Iteration field with title", "**Iteration:** [ID_002] Core data model" in content)
         check("has Phase field", "**Phase:** implement" in content)
@@ -444,7 +439,7 @@ def test_learning_category_validation():
                     "1",
                 ]
             )
-            check("accepts {}".format(cat), True)
+            check(f"accepts {cat}", True)
 
         _, stderr, _ = run(
             [
@@ -513,7 +508,7 @@ def test_emergent_entry_format():
         check("type prefix is eem", plet_id.startswith("eem_"))
         check("EM_1 assigned", em_id == "EM_1")
         check("has EM heading", "### EM_1: Chose SQLite" in content)
-        check("has PletId", "**PletId:** `{}`".format(plet_id) in content)
+        check("has PletId", f"**PletId:** `{plet_id}`" in content)
         check("has Timestamp", "**Timestamp:** 20" in content)
         # Unified format: Iteration field (replaces Source)
         check("has Iteration field", "**Iteration:** [ID_002] Core data model" in content)
@@ -592,7 +587,7 @@ def test_emergent_category_validation():
                     "1",
                 ]
             )
-            check("accepts '{}'".format(cat), True)
+            check(f"accepts '{cat}'", True)
 
         _, stderr, _ = run(
             [
@@ -887,7 +882,7 @@ def test_phase_validation():
                     "test",
                 ]
             )
-            check("accepts phase {}".format(phase), True)
+            check(f"accepts phase {phase}", True)
 
         _, stderr, _ = run(
             [
@@ -1488,7 +1483,7 @@ def test_dry_run():
 
         # No .tmp residue
         tmp_files = [f for f in os.listdir(d) if f.endswith(".tmp")]
-        check("no tmp residue", len(tmp_files) == 0, "found: {}".format(tmp_files))
+        check("no tmp residue", len(tmp_files) == 0, f"found: {tmp_files}")
 
 
 def test_dry_run_on_check():
@@ -1747,15 +1742,15 @@ def test_multiple_appends():
                     "add-learning",
                     d,
                     "--iter-id",
-                    "ID_00{}".format(i + 1),
+                    f"ID_00{i + 1}",
                     "--iter-title",
-                    "Test {}".format(i + 1),
+                    f"Test {i + 1}",
                     "--category",
                     "pattern",
                     "--title",
-                    "Learning {}".format(i + 1),
+                    f"Learning {i + 1}",
                     "--content",
-                    "Content {}.".format(i + 1),
+                    f"Content {i + 1}.",
                     "--phase",
                     "implement",
                     "--attempt",
@@ -1769,12 +1764,12 @@ def test_multiple_appends():
 
         check("header preserved", content.startswith("# Learnings"))
         for i, plet_id in enumerate(ids):
-            check("entry {} present".format(i + 1), plet_id in content)
+            check(f"entry {i + 1} present", plet_id in content)
 
         starts = content.count('<div id="plet-eln_')
         ends = content.count('<div id="END-plet-eln_')
-        check("3 start fences", starts == 3, "got {}".format(starts))
-        check("3 end fences", ends == 3, "got {}".format(ends))
+        check("3 start fences", starts == 3, f"got {starts}")
+        check("3 end fences", ends == 3, f"got {ends}")
 
 
 # ---------------------------------------------------------------------------
@@ -1809,9 +1804,9 @@ def test_fencing_structure():
         with open(progress_path_fn(d)) as f:
             content = f.read()
 
-        start_pos = content.index('<div id="plet-{}"></div>'.format(plet_id))
+        start_pos = content.index(f'<div id="plet-{plet_id}"></div>')
         sep_pos = content.index("---", start_pos)
-        end_pos = content.index('<div id="END-plet-{}"></div>'.format(plet_id))
+        end_pos = content.index(f'<div id="END-plet-{plet_id}"></div>')
         check("start fence before separator", start_pos < sep_pos)
         check("separator before end fence", sep_pos < end_pos)
 
@@ -1833,7 +1828,7 @@ def test_version():
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    print("Testing: {}\n".format(TOOL))
+    print(f"Testing: {TOOL}\n")
 
     test_help_all_commands()
     test_plet_id_format()
@@ -1886,6 +1881,6 @@ if __name__ == "__main__":
     test_version()
 
     print("\n" + "=" * 40)
-    print("  {} passed, {} failed".format(passed, failed))
+    print(f"  {passed} passed, {failed} failed")
     print("=" * 40)
     sys.exit(1 if failed else 0)

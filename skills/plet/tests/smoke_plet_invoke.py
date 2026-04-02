@@ -78,7 +78,7 @@ def check_claude_installed():
         if result.returncode == 0:
             version = result.stdout.strip().split("\n")[0]
             return True, version
-        return False, "claude --version exited {}".format(result.returncode)
+        return False, f"claude --version exited {result.returncode}"
     except FileNotFoundError:
         return False, "claude not found on PATH"
     except subprocess.TimeoutExpired:
@@ -97,7 +97,7 @@ def check_invoke(plet_dir, cwd):
     elapsed = time.time() - start
 
     if result.returncode != 0:
-        detail = "exit {}: stderr={}".format(result.returncode, result.stderr[:300])
+        detail = f"exit {result.returncode}: stderr={result.stderr[:300]}"
         return False, detail, elapsed, result.stdout
 
     # Count NDJSON lines in stdout
@@ -110,7 +110,7 @@ def check_invoke(plet_dir, cwd):
         except (json.JSONDecodeError, ValueError):
             pass
 
-    return True, "{} output lines ({} NDJSON), {:.1f}s".format(len(lines), json_lines, elapsed), elapsed, result.stdout
+    return True, f"{len(lines)} output lines ({json_lines} NDJSON), {elapsed:.1f}s", elapsed, result.stdout
 
 
 def check_transcript(plet_dir, iter_id="ID_001", phase="implement"):
@@ -121,15 +121,15 @@ def check_transcript(plet_dir, iter_id="ID_001", phase="implement"):
     files = os.listdir(trace_dir)
     transcripts = [f for f in files if "transcript" in f and iter_id in f]
     if not transcripts:
-        return False, "no transcript files in {}".format(trace_dir)
+        return False, f"no transcript files in {trace_dir}"
     # Use the largest one
     best = max(transcripts, key=lambda f: os.path.getsize(os.path.join(trace_dir, f)))
     size = os.path.getsize(os.path.join(trace_dir, best))
     if size == 0:
-        return False, "transcript {} is empty".format(best)
+        return False, f"transcript {best} is empty"
     with open(os.path.join(trace_dir, best)) as f:
         line_count = sum(1 for _ in f)
-    return True, "{}: {} bytes, {} lines".format(best, size, line_count)
+    return True, f"{best}: {size} bytes, {line_count} lines"
 
 
 def check_events(plet_dir, iter_id="ID_001"):
@@ -142,7 +142,7 @@ def check_events(plet_dir, iter_id="ID_001"):
     if not events:
         return False, "no events files"
     total_size = sum(os.path.getsize(os.path.join(trace_dir, f)) for f in events)
-    return True, "{} file(s), {} bytes total".format(len(events), total_size)
+    return True, f"{len(events)} file(s), {total_size} bytes total"
 
 
 # ---------------------------------------------------------------------------
@@ -165,11 +165,11 @@ def setup_project(tmpdir):
     # Minimal spec artifacts
     os.makedirs(plet_dir, exist_ok=True)
     with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
-        f.write("# Requirements\n\n## FR_1: Smoke Test\n\n{}\n".format(SMOKE_PROMPT))
+        f.write(f"# Requirements\n\n## FR_1: Smoke Test\n\n{SMOKE_PROMPT}\n")
     with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
         f.write(
             "# Iterations\n\n## ID_001 — Smoke test iteration\n\n"
-            "{}\n\n### Acceptance Criteria\n\nNone — this is a smoke test.\n".format(SMOKE_PROMPT)
+            f"{SMOKE_PROMPT}\n\n### Acceptance Criteria\n\nNone — this is a smoke test.\n"
         )
     with open(os.path.join(plet_dir, "learnings.md"), "w") as f:
         f.write("# Learnings\n\nNo learnings — smoke test.\n")
@@ -191,7 +191,7 @@ def setup_project(tmpdir):
 
 def report(name, ok, detail):
     status = "PASS" if ok else "FAIL"
-    print("  {}  {} — {}".format(status, name, detail))
+    print(f"  {status}  {name} — {detail}")
     return ok
 
 
@@ -210,12 +210,12 @@ def main():
             print(__doc__)
             return 0
         else:
-            print("Unknown argument: {}".format(arg), file=sys.stderr)
+            print(f"Unknown argument: {arg}", file=sys.stderr)
             print("Usage: smoke_plet_invoke.py [--skip-cleanup] [--dry-run]")
             return 1
 
     print("\n== smoke_plet_invoke.py ==")
-    print("Prompt: '{}'".format(SMOKE_PROMPT))
+    print(f"Prompt: '{SMOKE_PROMPT}'")
     print()
 
     # 1. Prerequisites
@@ -228,7 +228,7 @@ def main():
     # 2. Set up project
     print("\n## Setup")
     tmpdir = tempfile.mkdtemp(prefix="plet_smoke_", dir="/tmp")
-    print("  Working directory: {}".format(tmpdir))
+    print(f"  Working directory: {tmpdir}")
 
     repo, plet_dir = setup_project(tmpdir)
     report("project-created", True, "repo + state + branches")
@@ -236,12 +236,12 @@ def main():
     if dry_run:
         print("\n## Dry Run — skipping invoke")
         print("  To invoke manually:")
-        print("  python3 {} run {} --iter-id ID_001 --phase implement --cwd {}".format(INVOKE_TOOL, plet_dir, repo))
+        print(f"  python3 {INVOKE_TOOL} run {plet_dir} --iter-id ID_001 --phase implement --cwd {repo}")
         if not skip_cleanup:
             shutil.rmtree(tmpdir, ignore_errors=True)
             print("  Cleaned up.")
         else:
-            print("  Directory preserved: {}".format(tmpdir))
+            print(f"  Directory preserved: {tmpdir}")
         return 0
 
     # 3. Invoke with real Claude
@@ -253,7 +253,7 @@ def main():
         lines = stdout.strip().split("\n")[:5]
         print("  First output lines:")
         for line in lines:
-            print("    {}".format(line[:120]))
+            print(f"    {line[:120]}")
 
     # 4. Post-invoke checks
     print("\n## Post-Invoke Checks")
@@ -265,10 +265,10 @@ def main():
 
     # 5. Summary
     print("\n## Summary")
-    print("  Elapsed: {:.1f}s".format(elapsed))
+    print(f"  Elapsed: {elapsed:.1f}s")
     all_pass = invoke_ok and ok_t
     print("  Result: {}".format("ALL PASS" if all_pass else "ISSUES FOUND"))
-    print("  Working directory: {}".format(tmpdir))
+    print(f"  Working directory: {tmpdir}")
 
     if skip_cleanup:
         print("  --skip-cleanup: directory preserved for inspection")

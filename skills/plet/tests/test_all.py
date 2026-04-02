@@ -83,11 +83,7 @@ def _run_parallel(test_files, quiet):
                     failures.append(name)
 
                 if not quiet:
-                    sys.stdout.write(
-                        "  [{}/{}] {:40s} {:>4d} passed  [{:>5.1f}s] [{}]\n".format(
-                            completed, n, name, p, elapsed, status
-                        )
-                    )
+                    sys.stdout.write(f"  [{completed}/{n}] {name:40s} {p:>4d} passed  [{elapsed:>5.1f}s] [{status}]\n")
                     sys.stdout.flush()
                 break
         else:
@@ -101,10 +97,10 @@ def _run_parallel(test_files, quiet):
         print("--- sorted by name ---")
         for name in sorted(results.keys()):
             p, f, _, status = results[name]
-            line = "  {:40s} {:>4d} passed".format(name, p)
+            line = f"  {name:40s} {p:>4d} passed"
             if f > 0:
-                line += ", {:>2d} failed".format(f)
-            line += "  [{}]".format(status)
+                line += f", {f:>2d} failed"
+            line += f"  [{status}]"
             print(line)
 
     return total_passed, total_failed, failures, elapsed
@@ -123,7 +119,7 @@ def _run_sequential(test_files, verbose, quiet):
         name = os.path.basename(path)
 
         if progress:
-            sys.stdout.write("\r  [{}/{}] running {}...".format(idx, n, name).ljust(70))
+            sys.stdout.write(f"\r  [{idx}/{n}] running {name}...".ljust(70))
             sys.stdout.flush()
 
         result = subprocess.run(
@@ -143,13 +139,11 @@ def _run_sequential(test_files, verbose, quiet):
         if progress:
             elapsed = time.monotonic() - t0
             status = "FAIL" if (f > 0 or result.returncode != 0) else "ok"
-            sys.stdout.write(
-                "\r  [{}/{}] {:40s} {:>4d} passed  [{:>5.1f}s] [{}]\n".format(idx, n, name, p, elapsed, status)
-            )
+            sys.stdout.write(f"\r  [{idx}/{n}] {name:40s} {p:>4d} passed  [{elapsed:>5.1f}s] [{status}]\n")
             sys.stdout.flush()
         elif verbose:
             status = "FAIL" if (f > 0 or result.returncode != 0) else "ok"
-            print("  {:40s} {:>4d} passed, {:>2d} failed  [{}]".format(name, p, f, status))
+            print(f"  {name:40s} {p:>4d} passed, {f:>2d} failed  [{status}]")
 
     elapsed = time.monotonic() - t0
     return total_passed, total_failed, failures, elapsed
@@ -169,12 +163,12 @@ def main():
     test_files = [f for f in test_files if os.path.basename(f) != "test_all.py"]
 
     if not test_files:
-        print("\nNo test files found in {}".format(TESTS_DIR))
+        print(f"\nNo test files found in {TESTS_DIR}")
         return 1
 
     if not quiet:
         mode = "sequential" if sequential else "parallel"
-        print("\rMode: {} | {} test files".format(mode, len(test_files)).ljust(60))
+        print(f"\rMode: {mode} | {len(test_files)} test files".ljust(60))
         print()
 
     # Run ruff lint + format checks first
@@ -230,14 +224,14 @@ def main():
 
     print()
     print("=" * 50)
-    print("  {} files, {} passed, {} failed  ({:.1f}s)".format(len(test_files), total_passed, total_failed, elapsed))
+    print(f"  {len(test_files)} files, {total_passed} passed, {total_failed} failed  ({elapsed:.1f}s)")
     print("=" * 50)
 
     if failures:
         print()
         print("FAILURES:")
         for name in sorted(failures):
-            print("  - {}".format(name))
+            print(f"  - {name}")
         return 1
 
     return 0

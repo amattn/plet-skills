@@ -84,7 +84,7 @@ def normalize_iteration(iteration_id):
 def phase_attempt_segment(phase, attempt):
     """Encode phase and attempt: implement-1 -> i1, verify-2 -> v2, plan-1 -> p1."""
     prefix = PHASE_PREFIXES.get(phase, phase[0])
-    return "{}{}".format(prefix, attempt)
+    return f"{prefix}{attempt}"
 
 
 def generate_plet_id(prefix, iteration_id, phase, attempt):
@@ -101,4 +101,4 @@ def generate_plet_id(prefix, iteration_id, phase, attempt):
     ts = crockford_timestamp()
     iter_seg = normalize_iteration(iteration_id)
     phase_seg = phase_attempt_segment(phase, attempt)
-    return "{}_{}_{}_{}".format(prefix, ts, iter_seg, phase_seg)
+    return f"{prefix}_{ts}_{iter_seg}_{phase_seg}"

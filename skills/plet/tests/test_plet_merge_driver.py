@@ -48,7 +48,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -435,12 +435,8 @@ def test_large_merge():
     ours_entries = ""
     theirs_entries = ""
     for i in range(20):
-        ours_entries += ("### [2026-03-31 10:{:02d}:00 UTC] ID_{:03d} — ORC\n\nOrchestrator entry {}\n\n").format(
-            i, i + 1, i
-        )
-        theirs_entries += ("### [2026-03-31 10:{:02d}:30 UTC] ID_{:03d} — SUB\n\nSubagent entry {}\n\n").format(
-            i, i + 1, i
-        )
+        ours_entries += f"### [2026-03-31 10:{i:02d}:00 UTC] ID_{i + 1:03d} — ORC\n\nOrchestrator entry {i}\n\n"
+        theirs_entries += f"### [2026-03-31 10:{i:02d}:30 UTC] ID_{i + 1:03d} — SUB\n\nSubagent entry {i}\n\n"
 
     ours = base + ours_entries
     theirs = base + theirs_entries
@@ -486,7 +482,7 @@ def test_git_merge_integration():
                 d,
                 "config",
                 "merge.plet-append.driver",
-                "{} {} %O %A %B".format(sys.executable, driver_path),
+                f"{sys.executable} {driver_path} %O %A %B",
             ],
             capture_output=True,
             check=True,
@@ -571,5 +567,5 @@ if __name__ == "__main__":
     # Integration
     test_git_merge_integration()
 
-    print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
+    print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     sys.exit(1 if failed > 0 else 0)

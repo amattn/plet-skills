@@ -32,13 +32,8 @@ def run(args, expect_exit=0):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
-                expect_exit,
-                result.returncode,
-                args,
-                result.stdout,
-                result.stderr,
-            )
+            f"Expected exit {expect_exit}, got {result.returncode}\n"
+            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -48,7 +43,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -326,7 +321,7 @@ def test_append_multiple_events():
                     "--event-type",
                     "decision",
                     "--data",
-                    '{{"description":"decision {}","rationale":"reason {}"}}'.format(i, i),
+                    f'{{"description":"decision {i}","rationale":"reason {i}"}}',
                 ]
             )
 
@@ -1321,7 +1316,7 @@ def test_query_last_n():
         events = []
         for i in range(5):
             ev = make_event("decision")
-            ev["data"]["description"] = "decision_{}".format(i)
+            ev["data"]["description"] = f"decision_{i}"
             events.append(ev)
         make_trace_file(tmpdir, events)
         out, _, _ = run(
@@ -1545,7 +1540,7 @@ def test_query_file_not_found():
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    print("Testing: {}\n".format(TOOL))
+    print(f"Testing: {TOOL}\n")
 
     test_help()
     test_version()
@@ -1607,7 +1602,7 @@ if __name__ == "__main__":
     test_query_file_not_found()
 
     print("\n{}".format("=" * 40))
-    print("  {} passed, {} failed".format(passed, failed))
+    print(f"  {passed} passed, {failed} failed")
     print("{}".format("=" * 40))
 
     sys.exit(1 if failed else 0)

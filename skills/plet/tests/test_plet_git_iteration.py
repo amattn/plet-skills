@@ -34,13 +34,8 @@ def run(args, expect_exit=0, cwd=None):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
-                expect_exit,
-                result.returncode,
-                args,
-                result.stdout,
-                result.stderr,
-            )
+            f"Expected exit {expect_exit}, got {result.returncode}\n"
+            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -50,7 +45,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -122,8 +117,8 @@ def test_help_all_commands():
 
     for cmd in ["branch-name", "worktree-create", "worktree-remove"]:
         stdout, _, _ = run([cmd, "--help"])
-        check("{} --help exits 0".format(cmd), True)
-        check("{} help has content".format(cmd), len(stdout) > 50)
+        check(f"{cmd} --help exits 0", True)
+        check(f"{cmd} help has content", len(stdout) > 50)
 
 
 def test_version():
@@ -559,7 +554,7 @@ def main():
     test_worktree_remove_dirty()
     test_worktree_remove_json()
 
-    print("\n{} passed, {} failed".format(passed, failed))
+    print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
 
 

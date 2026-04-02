@@ -38,26 +38,26 @@ def build_progress_entry(plet_id, iteration, title, phase, attempt, status, cont
     """Build a progress.md entry string per formats.md RT_1."""
     # ENT_APR_BHV_8: suppress IN_PROGRESS from header
     if status == "IN_PROGRESS":
-        header = "### [{}] {}-{}".format(iteration, phase, attempt)
+        header = f"### [{iteration}] {phase}-{attempt}"
     else:
-        header = "### [{}] {}-{} — {}".format(iteration, phase, attempt, status)
+        header = f"### [{iteration}] {phase}-{attempt} — {status}"
 
     lines = [
-        '<div id="plet-{}"></div>'.format(plet_id),
+        f'<div id="plet-{plet_id}"></div>',
         "",
         "---",
         "",
         header,
-        "**PletId:** `{}`".format(plet_id),
-        "**Timestamp:** {}".format(now_iso()),
-        "**Iteration:** [{}] {}".format(iteration, title),
-        "**Phase:** {}".format(phase),
-        "**Attempt:** {}".format(attempt),
+        f"**PletId:** `{plet_id}`",
+        f"**Timestamp:** {now_iso()}",
+        f"**Iteration:** [{iteration}] {title}",
+        f"**Phase:** {phase}",
+        f"**Attempt:** {attempt}",
         "",
         "**Content:**",
         content_text,
         "",
-        '<div id="END-plet-{}"></div>'.format(plet_id),
+        f'<div id="END-plet-{plet_id}"></div>',
         "",
     ]
     return "\n".join(lines)
@@ -66,20 +66,20 @@ def build_progress_entry(plet_id, iteration, title, phase, attempt, status, cont
 def build_learning_entry(plet_id, iteration, title, category, entry_title, content_text, phase):
     """Build a learnings.md entry string per formats.md RT_2."""
     lines = [
-        '<div id="plet-{}"></div>'.format(plet_id),
+        f'<div id="plet-{plet_id}"></div>',
         "",
         "---",
         "",
-        "### [{}] {}".format(category, entry_title),
-        "**PletId:** `{}`".format(plet_id),
-        "**Timestamp:** {}".format(now_iso()),
-        "**Iteration:** [{}] {}".format(iteration, title),
-        "**Phase:** {}".format(phase),
+        f"### [{category}] {entry_title}",
+        f"**PletId:** `{plet_id}`",
+        f"**Timestamp:** {now_iso()}",
+        f"**Iteration:** [{iteration}] {title}",
+        f"**Phase:** {phase}",
         "",
         "**Content:**",
         content_text,
         "",
-        '<div id="END-plet-{}"></div>'.format(plet_id),
+        f'<div id="END-plet-{plet_id}"></div>',
         "",
     ]
     return "\n".join(lines)
@@ -88,22 +88,22 @@ def build_learning_entry(plet_id, iteration, title, category, entry_title, conte
 def build_emergent_entry(plet_id, em_number, iteration, title, entry_title, phase, category, content_text):
     """Build an emergent.md entry string per formats.md RT_3."""
     lines = [
-        '<div id="plet-{}"></div>'.format(plet_id),
+        f'<div id="plet-{plet_id}"></div>',
         "",
         "---",
         "",
-        "### EM_{}: {}".format(em_number, entry_title),
-        "**PletId:** `{}`".format(plet_id),
-        "**Timestamp:** {}".format(now_iso()),
-        "**Iteration:** [{}] {}".format(iteration, title),
-        "**Phase:** {}".format(phase),
-        "**Category:** {}".format(category),
+        f"### EM_{em_number}: {entry_title}",
+        f"**PletId:** `{plet_id}`",
+        f"**Timestamp:** {now_iso()}",
+        f"**Iteration:** [{iteration}] {title}",
+        f"**Phase:** {phase}",
+        f"**Category:** {category}",
         "**Outcome:** pending",
         "",
         "**Content:**",
         content_text,
         "",
-        '<div id="END-plet-{}"></div>'.format(plet_id),
+        f'<div id="END-plet-{plet_id}"></div>',
         "",
     ]
     return "\n".join(lines)

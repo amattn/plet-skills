@@ -31,13 +31,8 @@ def run(args, expect_exit=0):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
-                expect_exit,
-                result.returncode,
-                args,
-                result.stdout,
-                result.stderr,
-            )
+            f"Expected exit {expect_exit}, got {result.returncode}\n"
+            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -47,12 +42,12 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
-        msg = "  FAIL  {}".format(name)
+        msg = f"  FAIL  {name}"
         if detail:
-            msg += ": {}".format(detail)
+            msg += f": {detail}"
         print(msg)
 
 
@@ -172,11 +167,11 @@ def test_help_all_commands():
 
     for cmd in ["extract", "embed", "check"]:
         stdout, _, _ = run([cmd, "--help"])
-        check("{} --help exits 0".format(cmd), True)
-        check("{} help has content".format(cmd), len(stdout) > 50)
-        check("{} help has IMPORTANT".format(cmd), "IMPORTANT" in stdout)
-        check("{} help has PITFALLS".format(cmd), "PITFALLS" in stdout)
-        check("{} help has PURPOSE".format(cmd), "PURPOSE" in stdout)
+        check(f"{cmd} --help exits 0", True)
+        check(f"{cmd} help has content", len(stdout) > 50)
+        check(f"{cmd} help has IMPORTANT", "IMPORTANT" in stdout)
+        check(f"{cmd} help has PITFALLS", "PITFALLS" in stdout)
+        check(f"{cmd} help has PURPOSE", "PURPOSE" in stdout)
 
 
 def test_version():
@@ -494,7 +489,7 @@ def test_lenient_read_strict_write():
                 # Missing milestones, lastNonTrivialUpdate
             }
         )
-        content += "\n<!-- plet:fingerprint -->\n{}\n<!-- plet:fingerprint -->\n".format(malformed_fp)
+        content += f"\n<!-- plet:fingerprint -->\n{malformed_fp}\n<!-- plet:fingerprint -->\n"
         with open(req_path, "w") as f:
             f.write(content)
 
@@ -623,7 +618,7 @@ def main():
     test_error_missing_file()
     test_withdrawn_section_exclusion()
 
-    print("\n{} passed, {} failed".format(passed, failed))
+    print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
 
 

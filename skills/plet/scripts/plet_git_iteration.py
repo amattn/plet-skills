@@ -63,13 +63,13 @@ ITER_ID_RE = re.compile(r"^ID_\d+$")
 
 def help_hint(command):
     """One-line stderr hint pointing agents to --help."""
-    return "Run: plet_git_iteration.py {} --help".format(command)
+    return f"Run: plet_git_iteration.py {command} --help"
 
 
 def validate_iter_id(value, command, output_json, pretty):
     """Validate --iter-id format. Returns True if valid."""
     if not ITER_ID_RE.match(value):
-        msg = "Error: --iter-id '{}' does not match expected pattern ID_N+".format(value)
+        msg = f"Error: --iter-id '{value}' does not match expected pattern ID_N+"
         if output_json:
             emit_json_error(command, msg, SCRIPT_VERSION, pretty)
         else:
@@ -320,7 +320,7 @@ Examples:
 
     # Check worktree path doesn't already exist
     if os.path.exists(wt_path):
-        msg = "Error: worktree path already exists: {}. Remove with worktree-remove first.".format(wt_path)
+        msg = f"Error: worktree path already exists: {wt_path}. Remove with worktree-remove first."
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -330,21 +330,20 @@ Examples:
     # Check if branch already exists (auto-resume)
     resumed = branch_exists(branch)
 
-    if not resumed:
+    if not resumed and not branch_exists(base):
         # Fresh: check base branch exists
-        if not branch_exists(base):
-            msg = "Error: base branch not found: {}. Create the workstream branch first.".format(base)
-            if output_json:
-                emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
-            else:
-                print(msg, file=sys.stderr)
-            return 1
+        msg = f"Error: base branch not found: {base}. Create the workstream branch first."
+        if output_json:
+            emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return 1
 
     if dry_run:
         if resumed:
-            msg = "DRY RUN — would resume worktree at {} on existing branch {}".format(wt_path, branch)
+            msg = f"DRY RUN — would resume worktree at {wt_path} on existing branch {branch}"
         else:
-            msg = "DRY RUN — would create worktree at {} on branch {} from {}".format(wt_path, branch, base)
+            msg = f"DRY RUN — would create worktree at {wt_path} on branch {branch} from {base}"
         if output_json:
             emit_json(
                 {
@@ -379,7 +378,7 @@ Examples:
         r = run_git("worktree", "add", "-b", branch, wt_path, base)
 
     if r.returncode != 0:
-        msg = "Error: git command failed: {}".format(r.stderr)
+        msg = f"Error: git command failed: {r.stderr}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -387,9 +386,9 @@ Examples:
         return 1
 
     if resumed:
-        msg = "OK — resumed worktree at {} on existing branch {}".format(wt_path, branch)
+        msg = f"OK — resumed worktree at {wt_path} on existing branch {branch}"
     else:
-        msg = "OK — created worktree at {} on branch {}".format(wt_path, branch)
+        msg = f"OK — created worktree at {wt_path} on branch {branch}"
 
     if output_json:
         emit_json(
@@ -509,7 +508,7 @@ Examples:
 
     # Check worktree exists
     if not os.path.exists(wt_path):
-        msg = "Error: no worktree at {}".format(wt_path)
+        msg = f"Error: no worktree at {wt_path}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -517,9 +516,9 @@ Examples:
         return 1
 
     if dry_run:
-        msg = "DRY RUN — would remove worktree at {}".format(wt_path)
+        msg = f"DRY RUN — would remove worktree at {wt_path}"
         if delete_branch:
-            msg += " and branch {}".format(branch)
+            msg += f" and branch {branch}"
         if output_json:
             emit_json(
                 {
@@ -542,7 +541,7 @@ Examples:
     # Remove worktree (--force for untracked files / build artifacts)
     r = run_git("worktree", "remove", "--force", wt_path)
     if r.returncode != 0:
-        msg = "Error: git command failed: {}".format(r.stderr)
+        msg = f"Error: git command failed: {r.stderr}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -557,7 +556,7 @@ Examples:
     if delete_branch:
         r = run_git("branch", "-D", branch)
         if r.returncode != 0:
-            msg = "Error: git command failed while deleting branch: {}".format(r.stderr)
+            msg = f"Error: git command failed while deleting branch: {r.stderr}"
             if output_json:
                 emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
             else:
@@ -565,9 +564,9 @@ Examples:
             return 1
         branch_deleted = True
 
-    msg = "OK — removed worktree at {}".format(wt_path)
+    msg = f"OK — removed worktree at {wt_path}"
     if branch_deleted:
-        msg += " and branch {}".format(branch)
+        msg += f" and branch {branch}"
 
     if output_json:
         emit_json(

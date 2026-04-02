@@ -33,13 +33,8 @@ def run(args, expect_exit=0, cwd=None):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
-                expect_exit,
-                result.returncode,
-                args,
-                result.stdout,
-                result.stderr,
-            )
+            f"Expected exit {expect_exit}, got {result.returncode}\n"
+            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -49,7 +44,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -143,11 +138,11 @@ def create_iteration_branch_with_commits(repo, num_commits=3):
     branch = "plet/LOGA/loop1/ID_001"
     git_run(repo, ["checkout", "-b", branch, ws])
     for i in range(num_commits):
-        fpath = os.path.join(repo, "file_{}.txt".format(i))
+        fpath = os.path.join(repo, f"file_{i}.txt")
         with open(fpath, "w") as f:
-            f.write("content {}\n".format(i))
-        git_run(repo, ["add", "file_{}.txt".format(i)])
-        git_run(repo, ["commit", "-m", "commit {}".format(i)])
+            f.write(f"content {i}\n")
+        git_run(repo, ["add", f"file_{i}.txt"])
+        git_run(repo, ["commit", "-m", f"commit {i}"])
     return branch, ws
 
 
@@ -188,8 +183,8 @@ def test_help():
 
     for cmd in ["audit-tag", "merge-squash"]:
         stdout, _, _ = run([cmd, "--help"])
-        check("{} --help exits 0".format(cmd), True)
-        check("{} help has content".format(cmd), len(stdout) > 50)
+        check(f"{cmd} --help exits 0", True)
+        check(f"{cmd} help has content", len(stdout) > 50)
 
 
 def test_version():
@@ -356,7 +351,7 @@ def main():
     test_merge_squash_dirty_working_tree()
     test_merge_squash_iteration_branch_missing()
 
-    print("\n{} passed, {} failed".format(passed, failed))
+    print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
 
 

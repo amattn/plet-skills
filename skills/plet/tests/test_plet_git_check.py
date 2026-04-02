@@ -47,13 +47,8 @@ def run(args, expect_exit=0, cwd=None):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
-                expect_exit,
-                result.returncode,
-                args,
-                result.stdout,
-                result.stderr,
-            )
+            f"Expected exit {expect_exit}, got {result.returncode}\n"
+            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -63,7 +58,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -147,8 +142,8 @@ def test_help():
 
     for cmd in ["check-iteration", "check-session"]:
         stdout, _, _ = run([cmd, "--help"])
-        check("{} --help exits 0".format(cmd), True)
-        check("{} help has content".format(cmd), len(stdout) > 50)
+        check(f"{cmd} --help exits 0", True)
+        check(f"{cmd} help has content", len(stdout) > 50)
 
 
 def test_version():
@@ -431,7 +426,7 @@ def main():
     test_cks_in_progress_operation()
     test_cks_state_dir_not_exists()
 
-    print("\n{} passed, {} failed".format(passed, failed))
+    print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
 
 
@@ -454,7 +449,7 @@ def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
     # Build lifecycles dict
     lifecycles = {}
     for i in range(1, num_iters + 1):
-        iter_id = "ID_{:03d}".format(i)
+        iter_id = f"ID_{i:03d}"
         lifecycles[iter_id] = "complete" if iter_id in complete_ids else "implementing"
 
     write_global_state(plet_dir, lifecycles=lifecycles)
@@ -468,16 +463,16 @@ def setup_session(d, num_iters=2, complete_ids=None, create_workstream=True):
         git_run(repo, ["branch", "plet/LOGA/loop1/workstream"])
 
     for i in range(1, num_iters + 1):
-        iter_id = "ID_{:03d}".format(i)
+        iter_id = f"ID_{i:03d}"
         write_iter_state(plet_dir, iter_id=iter_id)
 
         # Create iteration branch with a commit
         ws_ref = "plet/LOGA/loop1/workstream" if create_workstream else "main"
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/{}".format(iter_id), ws_ref])
-        with open(os.path.join(repo, "{}.txt".format(iter_id)), "w") as f:
-            f.write("work for {}\n".format(iter_id))
-        git_run(repo, ["add", "{}.txt".format(iter_id)])
-        git_run(repo, ["commit", "-m", "work on {}".format(iter_id)])
+        git_run(repo, ["checkout", "-b", f"plet/LOGA/loop1/{iter_id}", ws_ref])
+        with open(os.path.join(repo, f"{iter_id}.txt"), "w") as f:
+            f.write(f"work for {iter_id}\n")
+        git_run(repo, ["add", f"{iter_id}.txt"])
+        git_run(repo, ["commit", "-m", f"work on {iter_id}"])
 
     # Return to main
     git_run(repo, ["checkout", "main"])

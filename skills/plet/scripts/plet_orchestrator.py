@@ -41,7 +41,7 @@ SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def _help_hint(command):
-    return "Run: plet_orchestrator.py {} --help".format(command)
+    return f"Run: plet_orchestrator.py {command} --help"
 
 
 def _run_script(script_name, args, cwd=None):
@@ -216,7 +216,7 @@ def cmd_run(args):
     gs_path = state_json_path(plet_dir)
     global_state = load_json(gs_path)
     if global_state is None:
-        print("Error: state.json not found at {}".format(gs_path), file=sys.stderr)
+        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
         print(_help_hint("run"), file=sys.stderr)
         return 1
 
@@ -231,7 +231,7 @@ def cmd_run(args):
     # Pre-check: anything to do? (before starting session)
     eligible_data, err, rc = _run_script_json("plet_schedule.py", ["eligible", global_plet_dir])
     if rc != 0 or eligible_data is None:
-        print("Error: eligible check failed: {}".format(err), file=sys.stderr)
+        print(f"Error: eligible check failed: {err}", file=sys.stderr)
         return 1
 
     counts = eligible_data.get("counts", {})
@@ -264,7 +264,7 @@ def cmd_run(args):
     _emit_text("Running preflight...", output_ndjson)
     _, pf_err, pf_rc = _run_script("plet_gate_session.py", ["preflight", global_plet_dir, "--session-type", "loop"])
     if pf_rc == 1:
-        print("Error: preflight failed: {}".format(pf_err), file=sys.stderr)
+        print(f"Error: preflight failed: {pf_err}", file=sys.stderr)
         result = _make_result("error", counts, error="preflight failed")
         _emit_event(result, output_ndjson)
         return 1
@@ -277,7 +277,7 @@ def cmd_run(args):
             if fp_data:
                 fp_data.get("levels", {})
             msg = "Fingerprints stale. Use --allow-stale to override."
-            print("Error: {}".format(msg), file=sys.stderr)
+            print(f"Error: {msg}", file=sys.stderr)
             result = _make_result("error", counts, error=msg)
             _emit_event(result, output_ndjson)
             return 1
@@ -288,7 +288,7 @@ def cmd_run(args):
         "plet_session.py", ["start-session", global_plet_dir, "--type", "loop"]
     )
     if ss_rc != 0 or session_data is None:
-        print("Error: start-session failed: {}".format(ss_err), file=sys.stderr)
+        print(f"Error: start-session failed: {ss_err}", file=sys.stderr)
         return 1
 
     session_number = session_data.get("sessionNumber", 0)
@@ -330,7 +330,7 @@ def cmd_run(args):
             "--status",
             "IN_PROGRESS",
             "--content",
-            "Loop {} active. Branch: {}.".format(session_number, branch),
+            f"Loop {session_number} active. Branch: {branch}.",
         ],
     )
 
@@ -399,7 +399,7 @@ def cmd_run(args):
                 return 0
 
             _emit_event({"type": "iteration_start", "iterationId": iter_id, "phase": "implement"}, output_ndjson)
-            _emit_text("[{}] {}: implementing...".format(completed_this_run + 1, iter_id), output_ndjson)
+            _emit_text(f"[{completed_this_run + 1}] {iter_id}: implementing...", output_ndjson)
 
             # Create worktree
             wt_data, wt_err, wt_rc = _run_script_json(
@@ -407,7 +407,7 @@ def cmd_run(args):
             )
 
             if wt_rc != 0 or wt_data is None:
-                _emit_text("  Error creating worktree: {}".format(wt_err), output_ndjson)
+                _emit_text(f"  Error creating worktree: {wt_err}", output_ndjson)
                 _update_lifecycle(global_plet_dir, iter_id, "blocked")
                 failed_this_round.add(iter_id)
                 continue
@@ -424,7 +424,7 @@ def cmd_run(args):
             )
 
             if impl_rc != 0:
-                _emit_text("  Invoke implement failed (rc={}): {}".format(impl_rc, impl_err[:200]), output_ndjson)
+                _emit_text(f"  Invoke implement failed (rc={impl_rc}): {impl_err[:200]}", output_ndjson)
                 _emit_event(
                     {"type": "error", "iterationId": iter_id, "phase": "implement", "error": impl_err[:200]},
                     output_ndjson,
@@ -451,7 +451,7 @@ def cmd_run(args):
             _update_lifecycle(global_plet_dir, iter_id, "verifying")
 
             _emit_event({"type": "iteration_start", "iterationId": iter_id, "phase": "verify"}, output_ndjson)
-            _emit_text("[{}] {}: verifying...".format(completed_this_run + 1, iter_id), output_ndjson)
+            _emit_text(f"[{completed_this_run + 1}] {iter_id}: verifying...", output_ndjson)
 
             _run_script(
                 "plet_invoke.py",
@@ -486,7 +486,7 @@ def cmd_run(args):
                 # Commit pending changes on workstream before merge-squash
                 subprocess.run(["git", "add", "-A"], capture_output=True)
                 subprocess.run(
-                    ["git", "commit", "-m", "plet: state before merge-squash {}".format(iter_id), "--allow-empty"],
+                    ["git", "commit", "-m", f"plet: state before merge-squash {iter_id}", "--allow-empty"],
                     capture_output=True,
                 )
 
@@ -498,7 +498,7 @@ def cmd_run(args):
                         {"type": "error", "iterationId": iter_id, "error": "merge-squash failed: " + ms_err[:200]},
                         output_ndjson,
                     )
-                    _emit_text("  merge-squash failed — blocking: {}".format(ms_err[:200]), output_ndjson)
+                    _emit_text(f"  merge-squash failed — blocking: {ms_err[:200]}", output_ndjson)
                     _update_lifecycle(global_plet_dir, iter_id, "blocked")
                     _emit_event(
                         {"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"}, output_ndjson
@@ -511,7 +511,7 @@ def cmd_run(args):
                     _emit_event(
                         {"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"}, output_ndjson
                     )
-                    _emit_text("[{}] {}: passed, merged".format(completed_this_run, iter_id), output_ndjson)
+                    _emit_text(f"[{completed_this_run}] {iter_id}: passed, merged", output_ndjson)
             elif verdict == "rejected":
                 # Check retry — read from worktree (has verification reports)
                 retry_data, _, _ = _run_script_json(
@@ -523,14 +523,14 @@ def cmd_run(args):
                     _emit_event(
                         {"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "queued"}, output_ndjson
                     )
-                    _emit_text("[{}] {}: rejected, retry queued".format(completed_this_run + 1, iter_id), output_ndjson)
+                    _emit_text(f"[{completed_this_run + 1}] {iter_id}: rejected, retry queued", output_ndjson)
                 else:
                     _update_lifecycle(global_plet_dir, iter_id, "blocked")
                     _emit_event(
                         {"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"}, output_ndjson
                     )
                     _emit_text(
-                        "[{}] {}: rejected, retry exhausted — blocked".format(completed_this_run + 1, iter_id),
+                        f"[{completed_this_run + 1}] {iter_id}: rejected, retry exhausted — blocked",
                         output_ndjson,
                     )
             elif verdict == "blocked":
@@ -569,9 +569,7 @@ def cmd_run(args):
                     completed=completed_this_run,
                 )
                 _emit_event(result, output_ndjson)
-                _emit_text(
-                    "Paused: max iterations reached ({}/{})".format(completed_this_run, max_iterations), output_ndjson
-                )
+                _emit_text(f"Paused: max iterations reached ({completed_this_run}/{max_iterations})", output_ndjson)
                 return 0
 
     # -------------------------------------------------------------------

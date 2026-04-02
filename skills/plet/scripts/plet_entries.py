@@ -92,7 +92,7 @@ FENCE_PATTERN = re.compile(r'<div id="(plet-|END-plet-)')
 
 def help_hint(command):
     """One-line stderr hint pointing agents to --help."""
-    return "Run: plet_entries.py {} --help".format(command)
+    return f"Run: plet_entries.py {command} --help"
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +105,7 @@ def next_em_number(artifact_dir):
     em_path = emergent_path(artifact_dir)
     if not os.path.exists(em_path):
         return 1
-    with open(em_path, "r") as f:
+    with open(em_path) as f:
         content = f.read()
     numbers = [int(m) for m in re.findall(r"### EM_(\d+):", content)]
     return max(numbers) + 1 if numbers else 1
@@ -115,7 +115,7 @@ def validate_iter_id(value):
     """Validate --iter-id matches ID_N+ or 'proj'. Returns True/False."""
     if not ITER_ID_PATTERN.match(value):
         print(
-            "Error: --iter-id '{}' does not match expected pattern ID_N+ or 'proj'".format(value),
+            f"Error: --iter-id '{value}' does not match expected pattern ID_N+ or 'proj'",
             file=sys.stderr,
         )
         return False
@@ -129,7 +129,7 @@ def validate_positive_int(value, field_name):
         return None, False
     if parsed <= 0:
         print(
-            "Error: {} must be a positive integer, got '{}'".format(field_name, value),
+            f"Error: {field_name} must be a positive integer, got '{value}'",
             file=sys.stderr,
         )
         return None, False
@@ -379,7 +379,7 @@ Examples:
     )
 
     if dry_run:
-        msg = "DRY RUN — would append progress entry {} to {}".format(plet_id, prog_path)
+        msg = f"DRY RUN — would append progress entry {plet_id} to {prog_path}"
         if output_json:
             emit_json(
                 {
@@ -414,7 +414,7 @@ Examples:
             fields,
         )
     else:
-        print("OK — {}".format(plet_id))
+        print(f"OK — {plet_id}")
     return 0
 
 
@@ -536,7 +536,7 @@ Examples:
     )
 
     if dry_run:
-        msg = "DRY RUN — would append learning entry {} to {}".format(plet_id, learn_path)
+        msg = f"DRY RUN — would append learning entry {plet_id} to {learn_path}"
         if output_json:
             emit_json(
                 {
@@ -570,7 +570,7 @@ Examples:
             fields,
         )
     else:
-        print("OK — {}".format(plet_id))
+        print(f"OK — {plet_id}")
     return 0
 
 
@@ -696,14 +696,14 @@ Examples:
     )
 
     if dry_run:
-        msg = "DRY RUN — would append emergent entry {} EM_{} to {}".format(plet_id, em_number, em_path)
+        msg = f"DRY RUN — would append emergent entry {plet_id} EM_{em_number} to {em_path}"
         if output_json:
             emit_json(
                 {
                     "status": "ok",
                     "command": "add-emergent",
                     "pletId": plet_id,
-                    "referenceId": "EM_{}".format(em_number),
+                    "referenceId": f"EM_{em_number}",
                     "path": em_path,
                     "dryRun": True,
                     "message": msg,
@@ -723,7 +723,7 @@ Examples:
                 "status": "ok",
                 "command": "add-emergent",
                 "pletId": plet_id,
-                "referenceId": "EM_{}".format(em_number),
+                "referenceId": f"EM_{em_number}",
                 "path": em_path,
                 "category": kwargs["category"],
                 "iteration": kwargs["iter_id"],
@@ -732,7 +732,7 @@ Examples:
             fields,
         )
     else:
-        print("OK — {} EM_{}".format(plet_id, em_number))
+        print(f"OK — {plet_id} EM_{em_number}")
     return 0
 
 
@@ -805,7 +805,7 @@ Examples:
         return 1
 
     if not ITER_ID_PATTERN.match(iteration):
-        msg = "Error: --iter-id '{}' does not match expected pattern ID_N+".format(iteration)
+        msg = f"Error: --iter-id '{iteration}' does not match expected pattern ID_N+"
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -823,15 +823,13 @@ Examples:
         if not os.path.exists(path):
             results[artifact] = {"count": 0, "initialized": False}
             continue
-        with open(path, "r") as f:
+        with open(path) as f:
             content = f.read()
         # Count start fences whose plet ID contains the iteration segment.
         # One fence = one entry. Avoids false positives from [ID_xxx] in
         # freeform content.
         iter_seg = normalize_iteration(iteration)
-        fence_pattern = r'<div id="plet-(epr|eln|eem)_[0-9A-HJKMNP-TV-Z]{{10}}_{}_[ivpr]\d+"></div>'.format(
-            re.escape(iter_seg)
-        )
+        fence_pattern = rf'<div id="plet-(epr|eln|eem)_[0-9A-HJKMNP-TV-Z]{{10}}_{re.escape(iter_seg)}_[ivpr]\d+"></div>'
         count = len(re.findall(fence_pattern, content))
         results[artifact] = {"count": count, "initialized": True}
 
@@ -849,14 +847,14 @@ Examples:
     else:
         for artifact, info in results.items():
             if not info["initialized"]:
-                print("  NOT_INITIALIZED — {}: file does not exist".format(artifact))
+                print(f"  NOT_INITIALIZED — {artifact}: file does not exist")
             elif info["count"] == 0:
-                print("  MISSING — {}: 0 entry(ies) for {}".format(artifact, iteration))
+                print(f"  MISSING — {artifact}: 0 entry(ies) for {iteration}")
             else:
                 print("  OK — {}: {} entry(ies) for {}".format(artifact, info["count"], iteration))
 
         if all_present:
-            print("OK — all artifacts have entries for {}".format(iteration))
+            print(f"OK — all artifacts have entries for {iteration}")
         else:
             missing = [a for a, r in results.items() if r["count"] == 0]
             print(

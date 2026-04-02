@@ -77,7 +77,7 @@ def state_dir_path(plet_dir):
 
 def iter_state_path(plet_dir, iter_id):
     """Derive path to per-iteration state file."""
-    return os.path.join(plet_dir, "state", "{}.json".format(iter_id))
+    return os.path.join(plet_dir, "state", f"{iter_id}.json")
 
 
 def requirements_path(plet_dir):
@@ -112,12 +112,12 @@ def trace_dir_path(plet_dir):
 
 def events_path(plet_dir, iter_id, phase, attempt):
     """Derive path to semantic events NDJSON file."""
-    return os.path.join(plet_dir, "trace", "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt))
+    return os.path.join(plet_dir, "trace", f"{iter_id}-{phase}-{attempt}-events.ndjson")
 
 
 def transcript_path(plet_dir, iter_id, phase, attempt):
     """Derive path to raw I/O transcript file."""
-    return os.path.join(plet_dir, "trace", "{}-{}-{}-transcript.ndjson".format(iter_id, phase, attempt))
+    return os.path.join(plet_dir, "trace", f"{iter_id}-{phase}-{attempt}-transcript.ndjson")
 
 
 DEFAULT_WORKTREE_DIR = ".plet/worktrees"
@@ -166,11 +166,11 @@ def validate_plet_dir(path):
     Returns (True, None) on success, (False, error_message) on failure.
     """
     if not os.path.exists(path):
-        return False, "Error: directory not found: {}".format(path)
+        return False, f"Error: directory not found: {path}"
     if os.path.isfile(path):
-        return False, "Error: expected a directory, got file: {}".format(path)
+        return False, f"Error: expected a directory, got file: {path}"
     if not os.path.isdir(path):
-        return False, "Error: not a directory: {}".format(path)
+        return False, f"Error: not a directory: {path}"
     return True, None
 
 
@@ -187,14 +187,14 @@ def load_json(path):
     Callers should check for None and return exit code 1.
     """
     if not os.path.exists(path):
-        print("Error: file not found: {}".format(path), file=sys.stderr)
+        print(f"Error: file not found: {path}", file=sys.stderr)
         return None
     try:
-        with open(path, "r") as f:
+        with open(path) as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         print(
-            "Error: invalid JSON in {}: {}".format(path, e),
+            f"Error: invalid JSON in {path}: {e}",
             file=sys.stderr,
         )
         return None
@@ -216,7 +216,7 @@ def load_json_arg(kwargs, name, file_name=None):
     Returns (None, error) if both are missing, both are provided, or parsing fails.
     """
     if file_name is None:
-        file_name = "{}_file".format(name)
+        file_name = f"{name}_file"
 
     raw = kwargs.pop(name, None)
     file_path = kwargs.pop(file_name, None)
@@ -228,12 +228,12 @@ def load_json_arg(kwargs, name, file_name=None):
 
     if file_path is not None:
         if not os.path.isfile(file_path):
-            return None, "Error: file not found: {}".format(file_path)
+            return None, f"Error: file not found: {file_path}"
         try:
             with open(file_path) as f:
                 return json.load(f), None
         except (json.JSONDecodeError, OSError) as e:
-            return None, "Error: invalid JSON in {}: {}".format(file_path, e)
+            return None, f"Error: invalid JSON in {file_path}: {e}"
 
     if raw is None:
         return None, "Error: --{} is required".format(name.replace("_", "-"))
@@ -273,14 +273,14 @@ def load_text(path):
     Callers should check for None and return exit code 1.
     """
     if not os.path.exists(path):
-        print("Error: file not found: {}".format(path), file=sys.stderr)
+        print(f"Error: file not found: {path}", file=sys.stderr)
         return None
     try:
-        with open(path, "r") as f:
+        with open(path) as f:
             return f.read()
-    except (IOError, OSError) as e:
+    except OSError as e:
         print(
-            "Error: cannot read file: {}: {}".format(path, e),
+            f"Error: cannot read file: {path}: {e}",
             file=sys.stderr,
         )
         return None
@@ -303,9 +303,8 @@ def atomic_append(path, content):
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
         f.write(content)
-    with open(tmp, "r") as src:
-        with open(path, "a") as dst:
-            dst.write(src.read())
+    with open(tmp) as src, open(path, "a") as dst:
+        dst.write(src.read())
     os.remove(tmp)
 
 

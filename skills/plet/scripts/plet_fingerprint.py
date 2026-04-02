@@ -20,6 +20,7 @@ Commands:
     check      Detect staleness across the fingerprint chain
 """
 
+import contextlib
 import json
 import os
 import re
@@ -80,7 +81,7 @@ MILESTONE_METADATA_RE = re.compile(r"\*\*Milestone:\*\*\s*(MS_\d+)")
 
 def help_hint(command):
     """One-line stderr hint pointing agents to --help."""
-    return "Run: plet_fingerprint.py {} --help".format(command)
+    return f"Run: plet_fingerprint.py {command} --help"
 
 
 def extract_universal_flags(kwargs):
@@ -140,14 +141,14 @@ def emit_json_error(command, message, pretty=False, extra=None):
 def validate_artifact_dir(artifact_dir, command, output_json, pretty):
     """Validate artifact_dir exists and is a directory. Returns True if valid."""
     if not os.path.exists(artifact_dir):
-        msg = "Error: {} does not exist".format(artifact_dir)
+        msg = f"Error: {artifact_dir} does not exist"
         if output_json:
             emit_json_error(command, msg, pretty)
         else:
             print(msg, file=sys.stderr)
         return False
     if not os.path.isdir(artifact_dir):
-        msg = "Error: {} is not a directory".format(artifact_dir)
+        msg = f"Error: {artifact_dir} is not a directory"
         if output_json:
             emit_json_error(command, msg, pretty)
         else:
@@ -159,10 +160,7 @@ def validate_artifact_dir(artifact_dir, command, output_json, pretty):
 def validate_file_exists(path, command, output_json, pretty, context=""):
     """Validate a file exists. Returns True if it does."""
     if not os.path.exists(path):
-        if context:
-            msg = "Error: {} does not exist — needed to {}".format(path, context)
-        else:
-            msg = "Error: {} does not exist".format(path)
+        msg = f"Error: {path} does not exist — needed to {context}" if context else f"Error: {path} does not exist"
         if output_json:
             emit_json_error(command, msg, pretty)
         else:
@@ -249,7 +247,7 @@ def parse_fingerprint_block(text):
     try:
         fingerprint = json.loads(json_text)
     except json.JSONDecodeError as e:
-        raise ValueError("malformed fingerprint: {}".format(e)) from e
+        raise ValueError(f"malformed fingerprint: {e}") from e
 
     # end_pos includes the closing marker
     end_pos = second + len(marker)
@@ -266,11 +264,7 @@ def write_fingerprint_block(text, fingerprint):
     """
     fingerprint_json = json.dumps(fingerprint, indent=2)
 
-    block = "\n{}\n{}\n{}\n".format(
-        FINGERPRINT_START,
-        fingerprint_json,
-        FINGERPRINT_END,
-    )
+    block = f"\n{FINGERPRINT_START}\n{fingerprint_json}\n{FINGERPRINT_END}\n"
 
     try:
         _, start, end = parse_fingerprint_block(text)
@@ -320,7 +314,7 @@ def extract_requirements_fingerprint(text):
         pass
 
     # Scan for milestone IDs
-    milestones = sorted(set("MS_{}".format(m) for m in MILESTONE_ID_RE.findall(filtered)))
+    milestones = sorted(set(f"MS_{m}" for m in MILESTONE_ID_RE.findall(filtered)))
 
     # Scan for requirement IDs (exclude reserved prefixes)
     requirements = {}
@@ -328,7 +322,7 @@ def extract_requirements_fingerprint(text):
         prefix = match.group(1)
         if prefix in RESERVED_PREFIXES:
             continue
-        req_id = "{}_{}".format(prefix, match.group(2))
+        req_id = f"{prefix}_{match.group(2)}"
         if prefix not in requirements:
             requirements[prefix] = set()
         requirements[prefix].add(req_id)
@@ -380,7 +374,7 @@ def extract_iterations_fingerprint(text):
         # Check for iteration heading
         iter_heading = re.match(r"^###\s+ID_(\d+)", line)
         if iter_heading:
-            current_iter_id = "ID_{}".format(iter_heading.group(1))
+            current_iter_id = f"ID_{iter_heading.group(1)}"
             continue
 
         # Check for milestone metadata
@@ -577,10 +571,7 @@ Examples:
         return 1
 
     # Determine target file
-    if type_val == "requirements":
-        target_path = requirements_path(artifact_dir)
-    else:
-        target_path = iterations_path(artifact_dir)
+    target_path = requirements_path(artifact_dir) if type_val == "requirements" else iterations_path(artifact_dir)
 
     if not validate_file_exists(target_path, CMD, output_json, pretty):
         print(hint, file=sys.stderr)
@@ -597,7 +588,7 @@ Examples:
         else:
             fingerprint = extract_iterations_fingerprint(text)
     except ValueError as e:
-        msg = "Error: malformed fingerprint in {}: {}".format(target_path, e)
+        msg = f"Error: malformed fingerprint in {target_path}: {e}"
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -742,16 +733,14 @@ def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_j
 
     # Read previous fingerprint (lenient — tolerate missing/malformed)
     previous = None
-    try:
+    with contextlib.suppress(ValueError):
         previous, _, _ = parse_fingerprint_block(text)
-    except ValueError:
-        pass
 
     # Extract new fingerprint from content
     try:
         fingerprint = extract_requirements_fingerprint(text)
     except ValueError as e:
-        msg = "Error: {}".format(e)
+        msg = f"Error: {e}"
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -789,9 +778,9 @@ def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_j
     bump_desc = ", ".join(bump_parts)
 
     if dry_run:
-        msg = "DRY RUN — would embed requirements fingerprint in {}".format(target_path)
+        msg = f"DRY RUN — would embed requirements fingerprint in {target_path}"
         if bump_desc:
-            msg += " (timestamp would be {})".format(bump_desc)
+            msg += f" (timestamp would be {bump_desc})"
         if output_json:
             emit_json(
                 {
@@ -816,9 +805,9 @@ def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_j
     with open(target_path, "w") as f:
         f.write(updated_text)
 
-    msg = "OK — embedded requirements fingerprint in {}".format(target_path)
+    msg = f"OK — embedded requirements fingerprint in {target_path}"
     if bump_desc:
-        msg += " (timestamp {})".format(bump_desc)
+        msg += f" (timestamp {bump_desc})"
 
     if output_json:
         emit_json(
@@ -859,7 +848,7 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
         req_fingerprint = None
 
     if req_fingerprint is None:
-        msg = "Error: no valid fingerprint found in {} — run embed --type requirements first".format(req_path)
+        msg = f"Error: no valid fingerprint found in {req_path} — run embed --type requirements first"
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -868,16 +857,14 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
 
     # Read previous fingerprint (lenient)
     previous = None
-    try:
+    with contextlib.suppress(ValueError):
         previous, _, _ = parse_fingerprint_block(text)
-    except ValueError:
-        pass
 
     # Extract new fingerprint from content
     try:
         fingerprint = extract_iterations_fingerprint(text)
     except ValueError as e:
-        msg = "Error: {}".format(e)
+        msg = f"Error: {e}"
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -910,9 +897,9 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
     bump_desc = ", ".join(bump_parts)
 
     if dry_run:
-        msg = "DRY RUN — would embed iterations fingerprint in {}".format(target_path)
+        msg = f"DRY RUN — would embed iterations fingerprint in {target_path}"
         if bump_desc:
-            msg += " (timestamp would be {})".format(bump_desc)
+            msg += f" (timestamp would be {bump_desc})"
         if output_json:
             emit_json(
                 {
@@ -937,9 +924,9 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
     with open(target_path, "w") as f:
         f.write(updated_text)
 
-    msg = "OK — embedded iterations fingerprint in {}".format(target_path)
+    msg = f"OK — embedded iterations fingerprint in {target_path}"
     if bump_desc:
-        msg += " (timestamp {})".format(bump_desc)
+        msg += f" (timestamp {bump_desc})"
 
     if output_json:
         emit_json(
@@ -976,7 +963,7 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
         iter_fingerprint = None
 
     if iter_fingerprint is None:
-        msg = "Error: no valid fingerprint found in {} — run embed --type iterations first".format(iter_path)
+        msg = f"Error: no valid fingerprint found in {iter_path} — run embed --type iterations first"
         if output_json:
             emit_json_error(CMD, msg, pretty)
         else:
@@ -989,7 +976,7 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
         return 1
 
     if dry_run:
-        msg = "DRY RUN — would embed state fingerprint in {}".format(target_path)
+        msg = f"DRY RUN — would embed state fingerprint in {target_path}"
         if output_json:
             emit_json(
                 {
@@ -1013,7 +1000,7 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
     state["iterationsFingerprint"] = iter_fingerprint
     atomic_write_json(target_path, state, update_timestamp=True)
 
-    msg = "OK — embedded state fingerprint in {}".format(target_path)
+    msg = f"OK — embedded state fingerprint in {target_path}"
 
     if output_json:
         emit_json(
@@ -1152,7 +1139,7 @@ Examples:
         try:
             current_req_fp = extract_requirements_fingerprint(req_text)
         except ValueError as e:
-            msg = "Error: malformed fingerprint in {}: {}".format(req_path, e)
+            msg = f"Error: malformed fingerprint in {req_path}: {e}"
             if output_json:
                 emit_json_error(CMD, msg, pretty)
             else:
@@ -1171,7 +1158,7 @@ Examples:
         if stored_req_fp is None:
             levels_result["requirements"] = {
                 "consistent": False,
-                "details": "no fingerprint found in {}".format(iter_path),
+                "details": f"no fingerprint found in {iter_path}",
             }
             all_consistent = False
         else:
@@ -1190,7 +1177,7 @@ Examples:
         try:
             current_iter_fp = extract_iterations_fingerprint(iter_text)
         except ValueError as e:
-            msg = "Error: malformed fingerprint in {}: {}".format(iter_path, e)
+            msg = f"Error: malformed fingerprint in {iter_path}: {e}"
             if output_json:
                 emit_json_error(CMD, msg, pretty)
             else:
@@ -1206,7 +1193,7 @@ Examples:
         if stored_iter_fp is None:
             levels_result["iterations"] = {
                 "consistent": False,
-                "details": "no iterationsFingerprint field in {}".format(state_path),
+                "details": f"no iterationsFingerprint field in {state_path}",
             }
             all_consistent = False
         else:

@@ -56,7 +56,7 @@ VALID_LIFECYCLES = {
 
 
 def _help_hint(command):
-    return "Run: plet_schedule.py {} --help".format(command)
+    return f"Run: plet_schedule.py {command} --help"
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +107,7 @@ def cmd_eligible(args):
     gs_path = state_json_path(plet_dir)
     global_state = load_json(gs_path)
     if global_state is None:
-        print("Error: state.json not found at {}".format(gs_path), file=sys.stderr)
+        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
         print(_help_hint("eligible"), file=sys.stderr)
         return 1
 
@@ -122,7 +122,7 @@ def cmd_eligible(args):
     lifecycles = {}
     for iter_id in dep_map:
         if iter_id not in lifecycles_map:
-            print("Error: iteration {} in dependencyMap but not in lifecycles".format(iter_id), file=sys.stderr)
+            print(f"Error: iteration {iter_id} in dependencyMap but not in lifecycles", file=sys.stderr)
             print(_help_hint("eligible"), file=sys.stderr)
             return 1
         lc = lifecycles_map[iter_id]
@@ -252,7 +252,7 @@ def cmd_check_breakpoints(args):
     gs_path = state_json_path(plet_dir)
     global_state = load_json(gs_path)
     if global_state is None:
-        print("Error: state.json not found at {}".format(gs_path), file=sys.stderr)
+        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
         print(_help_hint("check-breakpoints"), file=sys.stderr)
         return 1
 
@@ -325,7 +325,7 @@ def cmd_check_retry(args):
     ip = iter_state_path(plet_dir, iter_id)
     iter_state = load_json(ip)
     if iter_state is None:
-        print("Error: state file not found for {} at {}".format(iter_id, ip), file=sys.stderr)
+        print(f"Error: state file not found for {iter_id} at {ip}", file=sys.stderr)
         print(_help_hint("check-retry"), file=sys.stderr)
         return 1
 
@@ -357,7 +357,7 @@ def cmd_check_retry(args):
 
         if verify_attempts >= max_attempts:
             decision = "abort"
-            reason = "Retry limit reached ({} attempts, max {}).".format(verify_attempts, max_attempts)
+            reason = f"Retry limit reached ({verify_attempts} attempts, max {max_attempts})."
             if not is_decreasing:
                 reason += " Failure count not strictly decreasing: {}.".format(
                     " \u2192 ".join(str(f) for f in failure_trend)
@@ -369,9 +369,9 @@ def cmd_check_retry(args):
                     " \u2192 ".join(str(f) for f in failure_trend), max_attempts
                 )
             elif verify_attempts < 3:
-                reason = "Under default limit ({}/3 attempts).".format(verify_attempts)
+                reason = f"Under default limit ({verify_attempts}/3 attempts)."
             else:
-                reason = "Attempt {}/{}.".format(verify_attempts, max_attempts)
+                reason = f"Attempt {verify_attempts}/{max_attempts}."
 
     if output_json:
         data = {

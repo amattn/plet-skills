@@ -32,9 +32,7 @@ def run(args, expect_exit=0):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}.\nstdout: {}\nstderr: {}".format(
-                expect_exit, result.returncode, result.stdout, result.stderr
-            )
+            f"Expected exit {expect_exit}, got {result.returncode}.\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -43,7 +41,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -113,7 +111,7 @@ def test_help():
         "validate",
     ]:
         run([cmd, "--help"])
-        check("{} --help exits 0".format(cmd), True)
+        check(f"{cmd} --help exits 0", True)
 
 
 # ---------------------------------------------------------------------------
@@ -1022,7 +1020,7 @@ def main():
     test_validate_json()
     test_validate_missing()
 
-    print("\n{} passed, {} failed".format(passed, failed))
+    print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
 
 

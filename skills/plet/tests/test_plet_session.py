@@ -31,9 +31,7 @@ def run(args, expect_exit=0):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Exit code {}, expected {}.\nstdout: {}\nstderr: {}".format(
-                result.returncode, expect_exit, result.stdout, result.stderr
-            )
+            f"Exit code {result.returncode}, expected {expect_exit}.\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -43,7 +41,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -733,5 +731,5 @@ with tempfile.TemporaryDirectory() as tmp:
 # Summary
 # ===========================================================================
 
-print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
+print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)

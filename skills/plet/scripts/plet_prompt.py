@@ -60,7 +60,7 @@ REFERENCE_FILES = {
 
 
 def help_hint(command):
-    return "Run: plet_prompt.py {} --help".format(command)
+    return f"Run: plet_prompt.py {command} --help"
 
 
 def refs_dir():
@@ -114,7 +114,7 @@ def format_iteration_state(state_data, lifecycle="?"):
     """
     lines = []
     lines.append("Iteration: {} — {}".format(state_data.get("iterationId", "?"), state_data.get("title", "?")))
-    lines.append("Lifecycle: {}".format(lifecycle))
+    lines.append(f"Lifecycle: {lifecycle}")
 
     attempts = state_data.get("attempts", {})
     lines.append("Attempts: implement-{}, verify-{}".format(attempts.get("implement", 0), attempts.get("verify", 0)))
@@ -129,7 +129,7 @@ def format_iteration_state(state_data, lifecycle="?"):
         passed = sum(1 for c in criteria if c.get("status") == "pass")
         failed = sum(1 for c in criteria if c.get("status") == "fail")
         pending = total - passed - failed
-        lines.append("Criteria: {} total — {} passed, {} failed, {} pending".format(total, passed, failed, pending))
+        lines.append(f"Criteria: {total} total — {passed} passed, {failed} failed, {pending} pending")
         for c in criteria:
             status = c.get("status", "pending")
             lines.append("  - {} [{}]: {}".format(c.get("id", "?"), status, c.get("description", "")))
@@ -218,19 +218,19 @@ Examples:
     ref_filename = REFERENCE_FILES[phase]
     ref_content, ref_path = load_reference(ref_filename)
     if ref_content is None:
-        msg = "Error: reference file not found: {}".format(ref_path)
+        msg = f"Error: reference file not found: {ref_path}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
-    sections.append({"name": "reference-file", "source": "references/{}".format(ref_filename), "content": ref_content})
+    sections.append({"name": "reference-file", "source": f"references/{ref_filename}", "content": ref_content})
 
     # 2. Iteration definition (extracted from iterations.md)
     iter_file = iterations_path(plet_dir)
     iter_content = load_text(iter_file)
     if iter_content is None:
-        msg = "Error: iterations.md not found: {}".format(iter_file)
+        msg = f"Error: iterations.md not found: {iter_file}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -238,7 +238,7 @@ Examples:
         return 1
     iter_block = extract_iteration_block(iter_content, iter_id)
     if iter_block is None:
-        msg = "Error: iteration {} not found in iterations.md".format(iter_id)
+        msg = f"Error: iteration {iter_id} not found in iterations.md"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -249,7 +249,7 @@ Examples:
     # 3. Formats guide
     fmt_content, fmt_path = load_reference("formats.md")
     if fmt_content is None:
-        msg = "Error: reference file not found: {}".format(fmt_path)
+        msg = f"Error: reference file not found: {fmt_path}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -260,7 +260,7 @@ Examples:
     # 4. State schema
     schema_content, schema_path = load_reference("state-schema.md")
     if schema_content is None:
-        msg = "Error: reference file not found: {}".format(schema_path)
+        msg = f"Error: reference file not found: {schema_path}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -272,7 +272,7 @@ Examples:
     req_file = requirements_path(plet_dir)
     req_content = load_text(req_file)
     if req_content is None:
-        msg = "Error: requirements.md not found: {}".format(req_file)
+        msg = f"Error: requirements.md not found: {req_file}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -291,7 +291,7 @@ Examples:
     state_file = iter_state_path(plet_dir, iter_id)
     state_data = load_iter_state_json(plet_dir, iter_id)
     if state_data is None:
-        msg = "Error: iteration state file not found: {}".format(state_file)
+        msg = f"Error: iteration state file not found: {state_file}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:

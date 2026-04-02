@@ -55,7 +55,7 @@ VALID_PHASES = ["implement", "verify"]
 
 
 def help_hint(command):
-    return "Run: plet_git_ops.py {} --help".format(command)
+    return f"Run: plet_git_ops.py {command} --help"
 
 
 def is_git_repo(cwd=None):
@@ -80,7 +80,7 @@ def derive_tag_name(global_state, iter_state, phase):
     loop_n = global_state["loopSessionCount"]
     iter_id = iter_state["iterationId"]
     attempt = iter_state["attempts"][phase]
-    return "plet/{}/loop{}/audit/{}/{}-{}".format(project_id, loop_n, iter_id, phase, attempt)
+    return f"plet/{project_id}/loop{loop_n}/audit/{iter_id}/{phase}-{attempt}"
 
 
 def derive_workstream_branch(global_state):
@@ -185,7 +185,7 @@ Examples:
     # Check attempt > 0
     attempt = iter_state["attempts"].get(phase, 0)
     if attempt < 1:
-        msg = "Error: attempts.{} is {} — phase has not been attempted".format(phase, attempt)
+        msg = f"Error: attempts.{phase} is {attempt} — phase has not been attempted"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -209,7 +209,7 @@ Examples:
     previous_hash = get_tag_hash(tag_name) if replaced else None
 
     if dry_run:
-        msg = "DRY RUN — would create audit tag {} at {}".format(tag_name, commit_hash)
+        msg = f"DRY RUN — would create audit tag {tag_name} at {commit_hash}"
         if output_json:
             emit_json(
                 {
@@ -233,13 +233,10 @@ Examples:
         return 0
 
     # Create tag (force if exists)
-    if replaced:
-        r = run_git("tag", "-f", tag_name)
-    else:
-        r = run_git("tag", tag_name)
+    r = run_git("tag", "-f", tag_name) if replaced else run_git("tag", tag_name)
 
     if r.returncode != 0:
-        msg = "Error: git command failed: {}".format(r.stderr)
+        msg = f"Error: git command failed: {r.stderr}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -247,13 +244,13 @@ Examples:
         return 1
 
     if replaced:
-        msg = "OK — updated audit tag {} at {} (was at {})".format(tag_name, commit_hash, previous_hash)
+        msg = f"OK — updated audit tag {tag_name} at {commit_hash} (was at {previous_hash})"
         print(
-            "Warning: tag {} already existed at {}, updated to {}".format(tag_name, previous_hash, commit_hash),
+            f"Warning: tag {tag_name} already existed at {previous_hash}, updated to {commit_hash}",
             file=sys.stderr,
         )
     else:
-        msg = "OK — created audit tag {} at {}".format(tag_name, commit_hash)
+        msg = f"OK — created audit tag {tag_name} at {commit_hash}"
 
     if output_json:
         emit_json(
@@ -374,7 +371,7 @@ Examples:
     # Must be on workstream
     current_branch = run_git("branch", "--show-current").stdout
     if current_branch != ws_branch:
-        msg = "Error: must be on workstream branch {}, currently on {}".format(ws_branch, current_branch)
+        msg = f"Error: must be on workstream branch {ws_branch}, currently on {current_branch}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -394,7 +391,7 @@ Examples:
     # Check iteration branch exists
     r = run_git("rev-parse", "--verify", "refs/heads/" + iter_branch)
     if r.returncode != 0:
-        msg = "Error: iteration branch not found: {}".format(iter_branch)
+        msg = f"Error: iteration branch not found: {iter_branch}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -404,8 +401,8 @@ Examples:
     # Check there's something to merge (iteration branch is not ancestor of workstream)
     r = run_git("merge-base", "--is-ancestor", iter_branch, "HEAD")
     if r.returncode == 0:
-        msg = ("Error: iteration branch {} has no changes ahead of workstream — already merged or no work done").format(
-            iter_branch
+        msg = (
+            f"Error: iteration branch {iter_branch} has no changes ahead of workstream — already merged or no work done"
         )
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
@@ -426,7 +423,7 @@ Examples:
     # Build commit message
     iter_id = iter_state["iterationId"]
     title = iter_state["title"]
-    commit_title = "plet: [{}] - {}".format(iter_id, title)
+    commit_title = f"plet: [{iter_id}] - {title}"
 
     # Build commit body from iter state
     attempts = iter_state["attempts"]
@@ -447,15 +444,15 @@ Examples:
             for c in criteria
             if c.get("status") == "pass" or (isinstance(c.get("status"), str) and c["status"] == "pass")
         )
-        body_lines.append("Criteria: {}/{} passed".format(passed_count, total))
+        body_lines.append(f"Criteria: {passed_count}/{total} passed")
 
     commit_body = "\n".join(body_lines) if body_lines else ""
     full_message = commit_title
     if commit_body:
-        full_message = "{}\n\n{}".format(commit_title, commit_body)
+        full_message = f"{commit_title}\n\n{commit_body}"
 
     if dry_run:
-        msg = "DRY RUN — would merge-squash {} to {}: {}".format(iter_branch, ws_branch, commit_title)
+        msg = f"DRY RUN — would merge-squash {iter_branch} to {ws_branch}: {commit_title}"
         if output_json:
             emit_json(
                 {
@@ -487,7 +484,7 @@ Examples:
             else:
                 print(msg, file=sys.stderr)
             return 1
-        msg = "Error: git command failed: {}".format(r.stderr)
+        msg = f"Error: git command failed: {r.stderr}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -497,7 +494,7 @@ Examples:
     # Commit
     r = run_git("commit", "-m", full_message)
     if r.returncode != 0:
-        msg = "Error: git commit failed: {}".format(r.stderr)
+        msg = f"Error: git commit failed: {r.stderr}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -534,12 +531,12 @@ Examples:
             branch_deleted = True
 
     # Output
-    msg = "OK — merged to workstream: {} ({})".format(commit_title, commit_hash)
+    msg = f"OK — merged to workstream: {commit_title} ({commit_hash})"
     if tags_cleaned:
         for tc in tags_cleaned:
             msg += "\n  Tag {} deleted (was at {})".format(tc["tag"], tc["hash"])
     if branch_deleted:
-        msg += "\n  Branch {} deleted".format(iter_branch)
+        msg += f"\n  Branch {iter_branch} deleted"
 
     if output_json:
         emit_json(

@@ -26,7 +26,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -242,5 +242,5 @@ if __name__ == "__main__":
     test_run_git_stdout_stripped()
     test_run_git_stderr_stripped()
 
-    print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
+    print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     sys.exit(1 if failed > 0 else 0)

@@ -26,7 +26,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -45,7 +45,7 @@ def write_iter_state(tmpdir, data, iter_id="ID_001"):
     """Write an iter state file into tmpdir/state/{iter_id}.json and return its path."""
     state_dir = os.path.join(tmpdir, "state")
     os.makedirs(state_dir, exist_ok=True)
-    path = os.path.join(state_dir, "{}.json".format(iter_id))
+    path = os.path.join(state_dir, f"{iter_id}.json")
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
@@ -203,7 +203,7 @@ def test_project_id_invalid_pattern():
         with tempfile.TemporaryDirectory() as d:
             write_state(d, state)
             result = util_state.load_and_validate_global_state(d)
-            check("rejects '{}'".format(pid), result is None)
+            check(f"rejects '{pid}'", result is None)
 
 
 def test_project_id_valid_patterns():
@@ -224,7 +224,7 @@ def test_project_id_valid_patterns():
         with tempfile.TemporaryDirectory() as d:
             write_state(d, state)
             result = util_state.load_and_validate_global_state(d)
-            check("accepts '{}'".format(pid), result is not None, "got None" if result is None else "")
+            check(f"accepts '{pid}'", result is not None, "got None" if result is None else "")
 
 
 # ---------------------------------------------------------------------------
@@ -242,13 +242,13 @@ def test_session_count_wrong_type():
         with tempfile.TemporaryDirectory() as d:
             write_state(d, state)
             result = util_state.load_and_validate_global_state(d)
-            check("{} string rejected".format(field), result is None)
+            check(f"{field} string rejected", result is None)
 
         state[field] = 1.5
         with tempfile.TemporaryDirectory() as d:
             write_state(d, state)
             result = util_state.load_and_validate_global_state(d)
-            check("{} float rejected".format(field), result is None)
+            check(f"{field} float rejected", result is None)
 
 
 def test_session_count_negative():
@@ -261,7 +261,7 @@ def test_session_count_negative():
         with tempfile.TemporaryDirectory() as d:
             write_state(d, state)
             result = util_state.load_and_validate_global_state(d)
-            check("{} negative rejected".format(field), result is None)
+            check(f"{field} negative rejected", result is None)
 
 
 def test_session_count_zero():
@@ -294,7 +294,7 @@ def test_missing_required_fields():
         with tempfile.TemporaryDirectory() as d:
             write_state(d, state)
             result = util_state.load_and_validate_global_state(d)
-            check("missing {} rejected".format(field), result is None)
+            check(f"missing {field} rejected", result is None)
 
 
 def test_required_field_wrong_types():
@@ -314,7 +314,7 @@ def test_required_field_wrong_types():
         with tempfile.TemporaryDirectory() as d:
             write_state(d, state)
             result = util_state.load_and_validate_global_state(d)
-            check("{} {} rejected".format(field, desc), result is None)
+            check(f"{field} {desc} rejected", result is None)
 
 
 # ---------------------------------------------------------------------------
@@ -470,7 +470,7 @@ def main():
     test_global_lifecycles_validated()
     test_global_lifecycles_invalid_value()
 
-    print("\n{} passed, {} failed".format(passed, failed))
+    print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
 
 
@@ -598,7 +598,7 @@ def test_iter_missing_required_fields():
         with tempfile.TemporaryDirectory() as d:
             write_iter_state(d, state, "ID_001")
             result = util_state.load_and_validate_iter_state(d, "ID_001")
-            check("missing {} rejected".format(field), result is None)
+            check(f"missing {field} rejected", result is None)
 
 
 def test_iter_wrong_types():
@@ -622,7 +622,7 @@ def test_iter_wrong_types():
         with tempfile.TemporaryDirectory() as d:
             write_iter_state(d, state, "ID_001")
             result = util_state.load_and_validate_iter_state(d, "ID_001")
-            check("{} wrong type rejected".format(field), result is None)
+            check(f"{field} wrong type rejected", result is None)
 
 
 def test_iter_invalid_iteration_id():
@@ -637,7 +637,7 @@ def test_iter_invalid_iteration_id():
         with tempfile.TemporaryDirectory() as d:
             write_iter_state(d, state, "ID_001")
             result = util_state.load_and_validate_iter_state(d, "ID_001")
-            check("rejects '{}'".format(iid), result is None)
+            check(f"rejects '{iid}'", result is None)
 
 
 def test_iter_lifecycle_field_rejected():
@@ -778,7 +778,7 @@ def test_iter_lifecycle_rejected():
         check("lifecycle rejected", result is None)
 
 
-def test_iter_agentActivity_rejected():
+def test_iter_agentActivity_rejected():  # noqa: N802
     print("\n## SF_28: agentActivity rejected (use phaseActivity)")
     import util_state
 
@@ -790,7 +790,7 @@ def test_iter_agentActivity_rejected():
         check("agentActivity rejected", result is None)
 
 
-def test_iter_lastVerdict_rejected():
+def test_iter_lastVerdict_rejected():  # noqa: N802
     print("\n## SF_28: lastVerdict rejected (use implementVerdict/verifyVerdict)")
     import util_state
 
@@ -802,7 +802,7 @@ def test_iter_lastVerdict_rejected():
         check("lastVerdict rejected", result is None)
 
 
-def test_iter_phaseActivity_accepted():
+def test_iter_phaseActivity_accepted():  # noqa: N802
     print("\n## SF_28: phaseActivity accepted")
     import util_state
 

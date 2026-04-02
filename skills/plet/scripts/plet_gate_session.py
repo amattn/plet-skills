@@ -68,7 +68,7 @@ LOOP_LIFECYCLES = {"queued", "implementing", "verifying"}
 
 
 def help_hint(command):
-    return "Run: plet_gate_session.py {} --help".format(command)
+    return f"Run: plet_gate_session.py {command} --help"
 
 
 def scan_iter_states(plet_dir):
@@ -89,7 +89,7 @@ def scan_iter_states(plet_dir):
         iter_id = os.path.splitext(basename)[0]
         data = load_and_validate_iter_state(plet_dir, iter_id)
         if data is None:
-            warnings.append("corrupt state file: {}".format(basename))
+            warnings.append(f"corrupt state file: {basename}")
         else:
             states.append(data)
     return states, warnings
@@ -147,14 +147,14 @@ def detect_session_type(plet_dir):
         parts = []
         for lc in ["queued", "implementing", "verifying"]:
             if counts.get(lc, 0) > 0:
-                parts.append("{} {}".format(counts[lc], lc))
+                parts.append(f"{counts[lc]} {lc}")
         return "loop", ", ".join(parts), artifacts
 
     # OR_5/OR_6: all complete, or blocked with no actionable → refine
     reason_parts = []
     for lc in ["complete", "blocked", "withdrawn", "ineligible"]:
         if counts.get(lc, 0) > 0:
-            reason_parts.append("{} {}".format(counts[lc], lc))
+            reason_parts.append(f"{counts[lc]} {lc}")
     return "refine", ", ".join(reason_parts) if reason_parts else "no actionable iterations", artifacts
 
 
@@ -306,7 +306,7 @@ Examples:
     # Scan iteration states
     sd = state_dir_path(plet_dir)
     if not os.path.isdir(sd):
-        msg = "Error: state directory not found: {}".format(sd)
+        msg = f"Error: state directory not found: {sd}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -431,15 +431,15 @@ Examples:
     else:
         # Formatted text output
         lines = []
-        lines.append("Project: {}".format(project_id))
-        lines.append("Session: {} (loop {})".format(session_type, loop_session))
-        lines.append("Progress: {}/{} ({}%)".format(complete_count, total, percent))
-        lines.append("Iterations: {} total".format(total))
+        lines.append(f"Project: {project_id}")
+        lines.append(f"Session: {session_type} (loop {loop_session})")
+        lines.append(f"Progress: {complete_count}/{total} ({percent}%)")
+        lines.append(f"Iterations: {total} total")
 
         lc_parts = []
         for lc in ["complete", "implementing", "verifying", "queued", "ineligible", "blocked", "withdrawn"]:
             if lifecycle_counts[lc] > 0:
-                lc_parts.append("{}: {}".format(lc, lifecycle_counts[lc]))
+                lc_parts.append(f"{lc}: {lifecycle_counts[lc]}")
         if lc_parts:
             lines.append("  " + " | ".join(lc_parts))
 
@@ -460,7 +460,7 @@ Examples:
 
         if warnings:
             for w in warnings:
-                lines.append("Warning: {}".format(w))
+                lines.append(f"Warning: {w}")
 
         if milestones_data:
             lines.append("Milestones:")
@@ -544,7 +544,7 @@ def run_preflight_checks(plet_dir, session_type):
     gitignore_ok = False
     if os.path.isfile(gitignore_path):
         try:
-            with open(gitignore_path, "r") as f:
+            with open(gitignore_path) as f:
                 content = f.read()
             gitignore_ok = ".plet/" in content or ".plet" in content.split("\n")
         except Exception:
@@ -621,7 +621,7 @@ def run_preflight_checks(plet_dir, session_type):
                         {
                             "name": "fingerprints-consistent",
                             "status": "warn",
-                            "detail": "fingerprint check returned: {}".format(fpr_status),
+                            "detail": f"fingerprint check returned: {fpr_status}",
                         }
                     )
             except (json.JSONDecodeError, Exception):
@@ -783,7 +783,7 @@ Examples:
             title_detail = ", ".join(parts)
         else:
             title_detail = "{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else "")
-        print("{}: preflight — {}".format(overall.upper(), title_detail))
+        print(f"{overall.upper()}: preflight — {title_detail}")
 
         # Per-check lines
         for c in checks:
@@ -906,7 +906,7 @@ def cmd_postflight(args):
         emit_json(data, SCRIPT_VERSION, pretty, fields)
     else:
         label = "OK" if overall == "ok" else "WARN"
-        print("{}: postflight — {} checks".format(label, total))
+        print(f"{label}: postflight — {total} checks")
         for c in checks:
             print("  {}: {:30s} {}".format(c["status"].upper(), c["name"], c.get("detail", "")))
         counts = {"total": total, "passed": passed_count, "warnings": warn_count, "skipped": skip_count}

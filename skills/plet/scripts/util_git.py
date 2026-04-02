@@ -59,12 +59,12 @@ def derive_branch_name(state, branch_type, iter_id=None):
 
     if branch_type == "iteration":
         n = state["loopSessionCount"]
-        return "plet/{}/loop{}/{}".format(project_id, n, iter_id)
+        return f"plet/{project_id}/loop{n}/{iter_id}"
     elif branch_type == "workstream":
         n = state["loopSessionCount"]
-        return "plet/{}/loop{}/workstream".format(project_id, n)
+        return f"plet/{project_id}/loop{n}/workstream"
     elif branch_type == "plan":
-        return "plet/{}/plan1/workstream".format(project_id)
+        return f"plet/{project_id}/plan1/workstream"
     elif branch_type == "refine":
         n = state["refineSessionCount"]
-        return "plet/{}/refine{}/workstream".format(project_id, n)
+        return f"plet/{project_id}/refine{n}/workstream"

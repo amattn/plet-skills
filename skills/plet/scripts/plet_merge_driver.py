@@ -41,11 +41,11 @@ def merge_append_only(base_path, ours_path, theirs_path):
 
     Returns 0 on success, 1 if files are not append-only (conflict).
     """
-    with open(base_path, "r") as f:
+    with open(base_path) as f:
         base_lines = f.readlines()
-    with open(ours_path, "r") as f:
+    with open(ours_path) as f:
         ours_lines = f.readlines()
-    with open(theirs_path, "r") as f:
+    with open(theirs_path) as f:
         theirs_lines = f.readlines()
 
     base_len = len(base_lines)

@@ -80,7 +80,7 @@ def test_make_global_state_defaults():
         check("loopSessionCount 0", data["loopSessionCount"] == 0)
         check("sessionHistory empty", data["sessionHistory"] == [])
         errors = validate_global_state(data)
-        check("validates", errors == [], "errors: {}".format(errors))
+        check("validates", errors == [], f"errors: {errors}")
 
 
 def test_make_global_state_custom():
@@ -133,7 +133,7 @@ def test_make_iter_state_defaults():
         check("criteria empty", data["criteria"] == [])
         check("verificationReports empty", data["verificationReports"] == [])
         errors = validate_iter_state(data)
-        check("validates", errors == [], "errors: {}".format(errors))
+        check("validates", errors == [], f"errors: {errors}")
 
 
 def test_make_iter_state_custom():
@@ -239,7 +239,7 @@ def test_runtime_artifacts():
     with tempfile.TemporaryDirectory() as d:
         make_runtime_artifacts(d)
         for name in ["progress.md", "learnings.md", "emergent.md"]:
-            check("{} exists".format(name), os.path.isfile(os.path.join(d, name)))
+            check(f"{name} exists", os.path.isfile(os.path.join(d, name)))
 
 
 # ---------------------------------------------------------------------------
@@ -265,7 +265,7 @@ def test_make_check():
 def test_valid_global_state_constant():
     print("\n## VALID_GLOBAL_STATE constant")
     errors = validate_global_state(VALID_GLOBAL_STATE)
-    check("constant validates", errors == [], "errors: {}".format(errors))
+    check("constant validates", errors == [], f"errors: {errors}")
     check("has lifecycles", "lifecycles" in VALID_GLOBAL_STATE)
     check("has dependencyMap", "dependencyMap" in VALID_GLOBAL_STATE)
 
@@ -379,7 +379,7 @@ def main():
     test_make_audit_tag()
 
     p, f = get_results()
-    print("\n{} passed, {} failed".format(p, f))
+    print(f"\n{p} passed, {f} failed")
     return 0 if f == 0 else 1
 
 

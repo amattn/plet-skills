@@ -63,7 +63,7 @@ UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run"}
 
 
 def _help_hint(cmd):
-    return "Run: plet_global_state.py {} --help".format(cmd)
+    return f"Run: plet_global_state.py {cmd} --help"
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +99,7 @@ Exit 0 if valid, exit 1 if invalid or error.
     # Load and validate
     sjp = state_json_path(plet_dir)
     if not os.path.isfile(sjp):
-        msg = "Error: state.json not found at {}".format(sjp)
+        msg = f"Error: state.json not found at {sjp}"
         print(msg, file=sys.stderr)
         if output_json:
             emit_json(
@@ -112,7 +112,7 @@ Exit 0 if valid, exit 1 if invalid or error.
 
     data = load_json(sjp)
     if data is None:
-        msg = "Error: invalid JSON in {}".format(sjp)
+        msg = f"Error: invalid JSON in {sjp}"
         print(msg, file=sys.stderr)
         if output_json:
             emit_json(
@@ -142,12 +142,12 @@ Exit 0 if valid, exit 1 if invalid or error.
         return 0 if valid else 1
 
     if valid:
-        print("OK — {} is valid".format(sjp))
+        print(f"OK — {sjp} is valid")
         return 0
     else:
-        print("INVALID — {} error(s) in {}:".format(len(errors), sjp))
+        print(f"INVALID — {len(errors)} error(s) in {sjp}:")
         for err in errors:
-            print("  {}".format(err), file=sys.stderr)
+            print(f"  {err}", file=sys.stderr)
         return 1
 
 
@@ -223,8 +223,8 @@ Examples:
     # Validate project ID
     if not PROJECT_ID_RE.match(project_id):
         print(
-            "Error: projectId '{}' does not match pattern [A-Z][A-Z0-9]{{2,5}} "
-            "(3-6 chars, starts with letter, uppercase alphanumeric)".format(project_id),
+            f"Error: projectId '{project_id}' does not match pattern [A-Z][A-Z0-9]{{2,5}} "
+            "(3-6 chars, starts with letter, uppercase alphanumeric)",
             file=sys.stderr,
         )
         print(_help_hint("init"), file=sys.stderr)
@@ -232,14 +232,14 @@ Examples:
 
     # Precondition: plet_dir must exist
     if not os.path.isdir(plet_dir):
-        print("Error: directory does not exist: {}".format(plet_dir), file=sys.stderr)
+        print(f"Error: directory does not exist: {plet_dir}", file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
     # Precondition: state.json must NOT exist
     sjp = state_json_path(plet_dir)
     if os.path.isfile(sjp):
-        print("Error: state.json already exists at {}".format(sjp), file=sys.stderr)
+        print(f"Error: state.json already exists at {sjp}", file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
@@ -308,7 +308,7 @@ Examples:
                 fields,
             )
         else:
-            print("DRY RUN — would create {} ({}, {} iterations)".format(sjp, project_id, iteration_count))
+            print(f"DRY RUN — would create {sjp} ({project_id}, {iteration_count} iterations)")
         return 0
 
     # Create state/ subdirectory (GST_INI_BHV_7)
@@ -332,7 +332,7 @@ Examples:
             fields,
         )
     else:
-        print("OK — created {} ({}, {} iterations)".format(sjp, project_id, iteration_count))
+        print(f"OK — created {sjp} ({project_id}, {iteration_count} iterations)")
     return 0
 
 
@@ -387,20 +387,20 @@ Examples:
     # Load state
     sjp = state_json_path(plet_dir)
     if not os.path.isfile(sjp):
-        print("Error: state.json not found at {}".format(sjp), file=sys.stderr)
+        print(f"Error: state.json not found at {sjp}", file=sys.stderr)
         print(_help_hint("update-lifecycle"), file=sys.stderr)
         return 1
 
     state = load_json(sjp)
     if state is None:
-        print("Error: invalid JSON in {}".format(sjp), file=sys.stderr)
+        print(f"Error: invalid JSON in {sjp}", file=sys.stderr)
         return 1
 
     # Full validation before writing (GST_ULC_BHV_6)
     errors = validate_global_state(state)
     if errors:
         for err in errors:
-            print("Error: state.json: {}".format(err), file=sys.stderr)
+            print(f"Error: state.json: {err}", file=sys.stderr)
         print(_help_hint("update-lifecycle"), file=sys.stderr)
         return 1
 
@@ -425,9 +425,9 @@ Examples:
             emit_json(result, SCRIPT_VERSION, pretty, fields)
         else:
             if changed:
-                print("DRY RUN — {}: {} → {}".format(iter_id, old_lifecycle, new_lifecycle))
+                print(f"DRY RUN — {iter_id}: {old_lifecycle} → {new_lifecycle}")
             else:
-                print("DRY RUN — {}: already {}".format(iter_id, new_lifecycle))
+                print(f"DRY RUN — {iter_id}: already {new_lifecycle}")
         return 0
 
     if changed:
@@ -448,9 +448,9 @@ Examples:
         emit_json(result, SCRIPT_VERSION, pretty, fields)
     else:
         if changed:
-            print("OK — {}: {} → {}".format(iter_id, old_lifecycle, new_lifecycle))
+            print(f"OK — {iter_id}: {old_lifecycle} → {new_lifecycle}")
         else:
-            print("OK — {}: already {}".format(iter_id, new_lifecycle))
+            print(f"OK — {iter_id}: already {new_lifecycle}")
     return 0
 
 
@@ -496,13 +496,13 @@ Examples:
     # Load state
     sjp = state_json_path(plet_dir)
     if not os.path.isfile(sjp):
-        print("Error: state.json not found at {}".format(sjp), file=sys.stderr)
+        print(f"Error: state.json not found at {sjp}", file=sys.stderr)
         print(_help_hint("get-lifecycle"), file=sys.stderr)
         return 1
 
     state = load_json(sjp)
     if state is None:
-        print("Error: invalid JSON in {}".format(sjp), file=sys.stderr)
+        print(f"Error: invalid JSON in {sjp}", file=sys.stderr)
         return 1
 
     lifecycles = state.get("lifecycles", {})
@@ -510,7 +510,7 @@ Examples:
     # Single iteration
     if iter_id is not None:
         if iter_id not in lifecycles:
-            msg = "Error: {} not found in lifecycles".format(iter_id)
+            msg = f"Error: {iter_id} not found in lifecycles"
             print(msg, file=sys.stderr)
             if output_json:
                 emit_json({"status": "error", "command": "get-lifecycle", "error": msg}, SCRIPT_VERSION, pretty, fields)
@@ -533,7 +533,7 @@ Examples:
                 fields,
             )
         else:
-            print("{}: {}".format(iter_id, lifecycles[iter_id]))
+            print(f"{iter_id}: {lifecycles[iter_id]}")
         return 0
 
     # All iterations — sorted by ID (GST_GLC_BHV_5)
@@ -556,12 +556,12 @@ Examples:
         )
     else:
         for iid in sorted(lifecycles.keys()):
-            print("{}: {}".format(iid, lifecycles[iid]))
+            print(f"{iid}: {lifecycles[iid]}")
         # Summary line
         parts = []
         for lc in VALID_LIFECYCLES:
             if counts[lc] > 0:
-                parts.append("{} {}".format(counts[lc], lc))
+                parts.append(f"{counts[lc]} {lc}")
         print("{} total: {}".format(total, ", ".join(parts) if parts else "none"))
     return 0
 

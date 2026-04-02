@@ -64,7 +64,7 @@ LIFECYCLE_BY_PHASE = {
 
 
 def help_hint(command):
-    return "Run: plet_gate_phase.py {} --help".format(command)
+    return f"Run: plet_gate_phase.py {command} --help"
 
 
 def scripts_dir():
@@ -140,7 +140,7 @@ def run_sta_validate(plet_dir, iter_id):
     if data is None:
         return {"name": "state-valid", "status": "fail", "detail": "could not parse plet_iter_state.py output"}
     if result.returncode == 0:
-        return {"name": "state-valid", "status": "pass", "detail": "{} valid".format(os.path.basename(is_path))}
+        return {"name": "state-valid", "status": "pass", "detail": f"{os.path.basename(is_path)} valid"}
     errors = data.get("errors", [])
     detail = "; ".join(errors[:3]) if errors else "validation failed"
     return {"name": "state-valid", "status": "fail", "detail": detail}
@@ -152,12 +152,12 @@ def check_lifecycle(global_state, iter_id, phase):
     lifecycles = global_state.get("lifecycles", {})
     lifecycle = lifecycles.get(iter_id, "unknown")
     if lifecycle in valid_states:
-        return {"name": "lifecycle-check", "status": "pass", "detail": "lifecycle is {}".format(lifecycle)}
+        return {"name": "lifecycle-check", "status": "pass", "detail": f"lifecycle is {lifecycle}"}
     expected = " or ".join(sorted(valid_states))
     return {
         "name": "lifecycle-check",
         "status": "warn",
-        "detail": "lifecycle is {} (expected {})".format(lifecycle, expected),
+        "detail": f"lifecycle is {lifecycle} (expected {expected})",
     }
 
 
@@ -165,7 +165,7 @@ def check_implement_verdict(iter_state):
     """Post-implement check: implementVerdict must be set (GPH_PST_BHV_11)."""
     verdict = iter_state.get("implementVerdict")
     if verdict is not None:
-        return {"name": "implement-verdict", "status": "pass", "detail": "implementVerdict is '{}'".format(verdict)}
+        return {"name": "implement-verdict", "status": "pass", "detail": f"implementVerdict is '{verdict}'"}
     return {
         "name": "implement-verdict",
         "status": "fail",
@@ -180,14 +180,14 @@ def check_audit_tag(global_state, iter_state, phase, cwd=None):
     loop_n = active_loop_number(global_state)
     iter_id = iter_state.get("iterationId", "UNKNOWN")
     attempt = iter_state.get("attempts", {}).get(phase, 0)
-    tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(project_id, loop_n, iter_id, phase, attempt)
+    tag_name = f"plet/{project_id}/loop{loop_n}/audit/{iter_id}/{phase}-{attempt}"
     result = run_git("rev-parse", "--verify", "refs/tags/" + tag_name, cwd=cwd)
     if result.returncode == 0:
-        return {"name": "audit-tag", "status": "pass", "detail": "tag {} exists".format(tag_name)}
+        return {"name": "audit-tag", "status": "pass", "detail": f"tag {tag_name} exists"}
     return {
         "name": "audit-tag",
         "status": "fail",
-        "detail": "tag {} not found — subagent must create audit tag before exiting".format(tag_name),
+        "detail": f"tag {tag_name} not found — subagent must create audit tag before exiting",
     }
 
 
@@ -211,7 +211,13 @@ def run_ent_check(plet_dir, iter_id):
         return checks
     if data is None:
         for name in ("progress-entry", "learnings-entry", "emergent-entry"):
-            checks.append({"name": name, "status": "fail", "detail": "could not parse plet_entries.py output"})
+            checks.append(
+                {
+                    "name": name,
+                    "status": "fail",
+                    "detail": "could not parse plet_entries.py output",
+                }
+            )
         return checks
 
     artifacts = data.get("artifacts", {})
@@ -222,13 +228,11 @@ def run_ent_check(plet_dir, iter_id):
             {
                 "name": "progress-entry",
                 "status": "pass",
-                "detail": "{} progress entries for {}".format(p_count, iter_id),
+                "detail": f"{p_count} progress entries for {iter_id}",
             }
         )
     else:
-        checks.append(
-            {"name": "progress-entry", "status": "fail", "detail": "0 progress entries for {}".format(iter_id)}
-        )
+        checks.append({"name": "progress-entry", "status": "fail", "detail": f"0 progress entries for {iter_id}"})
 
     l_count = artifacts.get("learnings", {}).get("count", 0)
     if l_count > 0:
@@ -236,13 +240,11 @@ def run_ent_check(plet_dir, iter_id):
             {
                 "name": "learnings-entry",
                 "status": "pass",
-                "detail": "{} learnings entries for {}".format(l_count, iter_id),
+                "detail": f"{l_count} learnings entries for {iter_id}",
             }
         )
     else:
-        checks.append(
-            {"name": "learnings-entry", "status": "warn", "detail": "0 learnings entries for {}".format(iter_id)}
-        )
+        checks.append({"name": "learnings-entry", "status": "warn", "detail": f"0 learnings entries for {iter_id}"})
 
     e_count = artifacts.get("emergent", {}).get("count", 0)
     if e_count > 0:
@@ -250,7 +252,7 @@ def run_ent_check(plet_dir, iter_id):
             {
                 "name": "emergent-entry",
                 "status": "pass",
-                "detail": "{} emergent entries for {}".format(e_count, iter_id),
+                "detail": f"{e_count} emergent entries for {iter_id}",
             }
         )
     else:
@@ -258,10 +260,10 @@ def run_ent_check(plet_dir, iter_id):
             {
                 "name": "emergent-entry",
                 "status": "warn",
-                "detail": "0 emergent entries for {} — verify no design decisions, "
+                "detail": f"0 emergent entries for {iter_id} — verify no design decisions, "
                 "requirement gaps, or assumptions were made. "
                 "If none, this is expected. If any were made, write them before "
-                "exiting.".format(iter_id),
+                "exiting.",
             }
         )
 
@@ -276,14 +278,14 @@ def check_trace_events(plet_dir, iter_id, phase, attempt):
         return {
             "name": "trace-events",
             "status": "warn",
-            "detail": "no trace events file for {} {}-{}".format(iter_id, phase, attempt),
+            "detail": f"no trace events file for {iter_id} {phase}-{attempt}",
         }
     size = os.path.getsize(trace_file)
     if size == 0:
         return {
             "name": "trace-events",
             "status": "warn",
-            "detail": "trace events file empty for {} {}-{}".format(iter_id, phase, attempt),
+            "detail": f"trace events file empty for {iter_id} {phase}-{attempt}",
         }
 
     data, result = run_tool(
@@ -293,10 +295,10 @@ def check_trace_events(plet_dir, iter_id, phase, attempt):
         return {
             "name": "trace-events",
             "status": "warn",
-            "detail": "trace events file invalid for {} {}-{}".format(iter_id, phase, attempt),
+            "detail": f"trace events file invalid for {iter_id} {phase}-{attempt}",
         }
 
-    return {"name": "trace-events", "status": "pass", "detail": "trace events file valid ({} bytes)".format(size)}
+    return {"name": "trace-events", "status": "pass", "detail": f"trace events file valid ({size} bytes)"}
 
 
 # ---------------------------------------------------------------------------
@@ -358,7 +360,7 @@ def check_verify_verdict(iter_state):
     """Check verifyVerdict is set. Verify post only (GPH_PST_BHV_7)."""
     verdict = iter_state.get("verifyVerdict")
     if verdict is not None:
-        return {"name": "verify-verdict", "status": "pass", "detail": "verifyVerdict is '{}'".format(verdict)}
+        return {"name": "verify-verdict", "status": "pass", "detail": f"verifyVerdict is '{verdict}'"}
     return {
         "name": "verify-verdict",
         "status": "fail",
@@ -381,14 +383,12 @@ def check_verdict_consistency(iter_state):
         return {
             "name": "verdict-consistency",
             "status": "pass",
-            "detail": "verifyVerdict '{}' matches last report verdict".format(verify_verdict),
+            "detail": f"verifyVerdict '{verify_verdict}' matches last report verdict",
         }
     return {
         "name": "verdict-consistency",
         "status": "warn",
-        "detail": "verifyVerdict '{}' differs from last report verdict '{}'".format(
-            verify_verdict, last_report_verdict
-        ),
+        "detail": f"verifyVerdict '{verify_verdict}' differs from last report verdict '{last_report_verdict}'",
     }
 
 
@@ -453,7 +453,7 @@ def format_text_output(command, checks, overall, counts):
         title_detail = ", ".join(parts)
     else:
         title_detail = "{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else "")
-    lines.append("{}: {} — {}".format(overall.upper(), command, title_detail))
+    lines.append(f"{overall.upper()}: {command} — {title_detail}")
 
     for c in checks:
         lines.append("{}: {} — {}".format(c["status"].upper(), c["name"], c["detail"]))

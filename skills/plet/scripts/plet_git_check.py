@@ -56,7 +56,7 @@ VALID_PHASES = ["implement", "verify"]
 
 
 def help_hint(command):
-    return "Run: plet_git_check.py {} --help".format(command)
+    return f"Run: plet_git_check.py {command} --help"
 
 
 def is_git_repo(cwd=None):
@@ -128,14 +128,12 @@ def format_text_output(command, checks, status, summary):
         compressed += ", {} failed".format(summary["failed"])
     if summary["warnings"] > 0:
         compressed += ", {} warning{}".format(summary["warnings"], "s" if summary["warnings"] != 1 else "")
-    lines.append("{}: {} — {}".format(severity, command, compressed))
+    lines.append(f"{severity}: {command} — {compressed}")
 
     # Per-check lines
     for c in checks:
         sev = c["status"].upper()
-        if sev == "PASS":
-            pass
-        elif sev == "WARN":
+        if sev == "PASS" or sev == "WARN":
             pass
         else:
             pass  # FAIL
@@ -196,18 +194,18 @@ def check_in_progress_operation(cwd=None):
 def check_branch_exists(expected_branch, cwd=None):
     """Check that the expected branch exists."""
     if branch_exists(expected_branch, cwd):
-        return make_check("branch-exists", "pass", "{} exists".format(expected_branch))
-    return make_check("branch-exists", "fail", "{} does not exist".format(expected_branch))
+        return make_check("branch-exists", "pass", f"{expected_branch} exists")
+    return make_check("branch-exists", "fail", f"{expected_branch} does not exist")
 
 
 def check_correct_branch(expected_branch, cwd=None):
     """Check that HEAD is on the expected branch."""
     current = run_git("branch", "--show-current", cwd=cwd).stdout.strip()
     if not current:
-        return make_check("correct-branch", "fail", "expected {}, HEAD is detached".format(expected_branch))
+        return make_check("correct-branch", "fail", f"expected {expected_branch}, HEAD is detached")
     if current == expected_branch:
-        return make_check("correct-branch", "pass", "on {}".format(expected_branch))
-    return make_check("correct-branch", "fail", "expected {}, on {}".format(expected_branch, current))
+        return make_check("correct-branch", "pass", f"on {expected_branch}")
+    return make_check("correct-branch", "fail", f"expected {expected_branch}, on {current}")
 
 
 def check_clean_worktree(cwd=None):
@@ -219,12 +217,12 @@ def check_clean_worktree(cwd=None):
     lines = [ln for ln in porcelain.split("\n") if ln.strip()]
     modified = sum(1 for ln in lines if ln.strip() and ln[0] in "MADRCU")
     untracked = sum(1 for ln in lines if ln.strip() and ln.startswith("?"))
-    detail = "{} uncommitted changes".format(len(lines))
+    detail = f"{len(lines)} uncommitted changes"
     parts = []
     if modified > 0:
-        parts.append("{} modified".format(modified))
+        parts.append(f"{modified} modified")
     if untracked > 0:
-        parts.append("{} untracked".format(untracked))
+        parts.append(f"{untracked} untracked")
     if parts:
         detail += " ({})".format(", ".join(parts))
     return make_check("clean-worktree", "fail", detail)
@@ -233,11 +231,9 @@ def check_clean_worktree(cwd=None):
 def check_linear_history(workstream_branch, cwd=None):
     """Check for merge commits on the iteration branch since diverging from workstream."""
     if not branch_exists(workstream_branch, cwd):
-        return make_check(
-            "linear-history", "warn", "workstream branch {} not found — cannot check".format(workstream_branch)
-        )
+        return make_check("linear-history", "warn", f"workstream branch {workstream_branch} not found — cannot check")
 
-    r = run_git("log", "--merges", "--oneline", "{}..HEAD".format(workstream_branch), cwd=cwd)
+    r = run_git("log", "--merges", "--oneline", f"{workstream_branch}..HEAD", cwd=cwd)
     merges = r.stdout.strip()
     if not merges:
         return make_check("linear-history", "pass", "no merge commits since workstream divergence")
@@ -467,7 +463,7 @@ Examples:
 
     # Validate state_dir
     if not os.path.exists(sd_path):
-        msg = "Error: directory not found: {}".format(sd_path)
+        msg = f"Error: directory not found: {sd_path}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -475,7 +471,7 @@ Examples:
         return 1
 
     if not os.path.isdir(sd_path):
-        msg = "Error: expected a directory, got file: {}".format(sd_path)
+        msg = f"Error: expected a directory, got file: {sd_path}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -512,7 +508,7 @@ Examples:
     ws_branch = derive_workstream_branch(global_state)
     project_id = global_state["projectId"]
     loop_n = active_loop_number(global_state)
-    branch_prefix = "plet/{}/loop{}/".format(project_id, loop_n)
+    branch_prefix = f"plet/{project_id}/loop{loop_n}/"
 
     # Run checks in order (BHV_5):
     # in-progress-operation → workstream-exists → orphaned-worktrees
@@ -527,19 +523,17 @@ Examples:
     lifecycles = global_state.get("lifecycles", {})
     has_non_ineligible = any(lc != "ineligible" for lc in lifecycles.values())
     if ws_exists:
-        checks.append(make_check("workstream-exists", "pass", "{} exists".format(ws_branch)))
+        checks.append(make_check("workstream-exists", "pass", f"{ws_branch} exists"))
     elif has_non_ineligible:
         checks.append(
-            make_check(
-                "workstream-exists", "fail", "{} not found but non-ineligible iterations exist".format(ws_branch)
-            )
+            make_check("workstream-exists", "fail", f"{ws_branch} not found but non-ineligible iterations exist")
         )
     else:
         checks.append(
             make_check(
                 "workstream-exists",
                 "pass",
-                "{} not found — all iterations ineligible (loop not started)".format(ws_branch),
+                f"{ws_branch} not found — all iterations ineligible (loop not started)",
             )
         )
 
@@ -634,7 +628,7 @@ Examples:
     complete_iter_ids = [iid for iid, lc in lifecycles.items() if lc == "complete"]
     unmerged = []
     for iter_id in complete_iter_ids:
-        iter_branch = "plet/{}/loop{}/{}".format(project_id, loop_n, iter_id)
+        iter_branch = f"plet/{project_id}/loop{loop_n}/{iter_id}"
         if not branch_exists(iter_branch):
             # Branch deleted — treat as already handled
             continue
@@ -662,7 +656,7 @@ Examples:
                 make_check(
                     "unmerged-complete",
                     "pass",
-                    "all {} complete iterations merged to workstream".format(len(complete_iter_ids)),
+                    f"all {len(complete_iter_ids)} complete iterations merged to workstream",
                 )
             )
         else:

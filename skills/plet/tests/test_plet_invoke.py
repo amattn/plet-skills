@@ -46,9 +46,8 @@ def run(args, expect_exit=0, cwd=None, env=None):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Exit code {}, expected {}.\nstdout: {}\nstderr: {}".format(
-                result.returncode, expect_exit, result.stdout[:500], result.stderr[:500]
-            )
+            f"Exit code {result.returncode}, expected {expect_exit}.\n"
+            f"stdout: {result.stdout[:500]}\nstderr: {result.stderr[:500]}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -57,7 +56,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -492,7 +491,7 @@ def test_invocation_progress_entry():
         prog_path = progress_path(plet_dir)
         with open(prog_path) as f:
             content = f.read()
-        check("progress has content", len(content) > 0, "len={}, stderr={}".format(len(content), stderr[:200]))
+        check("progress has content", len(content) > 0, f"len={len(content)}, stderr={stderr[:200]}")
         check("mentions launching", "launching" in content.lower() or "launch" in content.lower())
         check("has invocation details", "permission mode" in content.lower())
         check("has full prompt", "full prompt" in content.lower())
@@ -521,5 +520,5 @@ if __name__ == "__main__":
     test_invocation_trace_event()
     test_invocation_progress_entry()
 
-    print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
+    print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     sys.exit(1 if failed > 0 else 0)

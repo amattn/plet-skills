@@ -63,17 +63,17 @@ def _format_duration(start_iso, end_iso):
         hours = total_minutes // 60
         minutes = total_minutes % 60
         if hours > 0 and minutes > 0:
-            return "{}h {}m".format(hours, minutes)
+            return f"{hours}h {minutes}m"
         elif hours > 0:
-            return "{}h".format(hours)
+            return f"{hours}h"
         else:
-            return "{}m".format(minutes)
+            return f"{minutes}m"
     except (ValueError, TypeError):
         return "unknown"
 
 
 def _help_hint(command):
-    return "Run: plet_session.py {} --help".format(command)
+    return f"Run: plet_session.py {command} --help"
 
 
 def _find_active_sessions(history):
@@ -98,16 +98,16 @@ def _ensure_merge_driver(plet_dir):
 
     plet_name = os.path.basename(os.path.normpath(plet_dir))
     needed_patterns = [
-        "{}/state.json merge=ours".format(plet_name),
-        "{}/progress.md merge=plet-append".format(plet_name),
-        "{}/learnings.md merge=plet-append".format(plet_name),
-        "{}/emergent.md merge=plet-append".format(plet_name),
-        "{}/trace/*.ndjson merge=plet-append".format(plet_name),
+        f"{plet_name}/state.json merge=ours",
+        f"{plet_name}/progress.md merge=plet-append",
+        f"{plet_name}/learnings.md merge=plet-append",
+        f"{plet_name}/emergent.md merge=plet-append",
+        f"{plet_name}/trace/*.ndjson merge=plet-append",
     ]
 
     existing = ""
     if os.path.isfile(gitattr_path):
-        with open(gitattr_path, "r") as f:
+        with open(gitattr_path) as f:
             existing = f.read()
 
     missing = [p for p in needed_patterns if p not in existing]
@@ -123,7 +123,7 @@ def _ensure_merge_driver(plet_dir):
     driver_path = os.path.join(scripts_dir, "plet_merge_driver.py")
 
     if os.path.isfile(driver_path):
-        driver_cmd = "{} {} %O %A %B".format(sys.executable, driver_path)
+        driver_cmd = f"{sys.executable} {driver_path} %O %A %B"
         subprocess.run(
             ["git", "config", "merge.plet-append.driver", driver_cmd],
             capture_output=True,
@@ -190,7 +190,7 @@ def cmd_start_session(args):
     gs_path = state_json_path(plet_dir)
     state = load_json(gs_path)
     if state is None:
-        print("Error: state.json not found at {}".format(gs_path), file=sys.stderr)
+        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
         print(_help_hint("start-session"), file=sys.stderr)
         return 1
 
@@ -239,8 +239,8 @@ def cmd_start_session(args):
                 }
                 emit_json(data, SCRIPT_VERSION, pretty, fields)
             else:
-                print("Session: {} {}".format(session_type, session_number))
-                print("Branch: {}".format(branch))
+                print(f"Session: {session_type} {session_number}")
+                print(f"Branch: {branch}")
                 print("Resumed: yes")
             return 0
         else:
@@ -287,8 +287,8 @@ def cmd_start_session(args):
         }
         emit_json(data, SCRIPT_VERSION, pretty, fields)
     else:
-        print("Session: {} {}".format(session_type, session_number))
-        print("Branch: {}".format(branch))
+        print(f"Session: {session_type} {session_number}")
+        print(f"Branch: {branch}")
         print("Resumed: no")
 
     return 0
@@ -341,7 +341,7 @@ def cmd_end_session(args):
     gs_path = state_json_path(plet_dir)
     state = load_json(gs_path)
     if state is None:
-        print("Error: state.json not found at {}".format(gs_path), file=sys.stderr)
+        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
         print(_help_hint("end-session"), file=sys.stderr)
         return 1
 

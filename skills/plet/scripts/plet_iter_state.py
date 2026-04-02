@@ -81,14 +81,14 @@ PHASE_ACTIVITIES = [
 
 
 def _help_hint(cmd):
-    return "Run: plet_iter_state.py {} --help".format(cmd)
+    return f"Run: plet_iter_state.py {cmd} --help"
 
 
 def _load_state(plet_dir, iter_id, hint):
     """Load per-iteration state file. Returns (data, path) or (None, path) on error."""
     path = iter_state_path(plet_dir, iter_id)
     if not os.path.isfile(path):
-        print("Error: state file not found at {}".format(path), file=sys.stderr)
+        print(f"Error: state file not found at {path}", file=sys.stderr)
         print(hint, file=sys.stderr)
         return None, path
     data = load_json(path)
@@ -167,12 +167,12 @@ Exit 0 if valid, exit 1 if invalid or error.
         return 0 if valid else 1
 
     if valid:
-        print("OK — {} is valid".format(path))
+        print(f"OK — {path} is valid")
         return 0
     else:
-        print("INVALID — {} error(s) in {}:".format(len(errors), path))
+        print(f"INVALID — {len(errors)} error(s) in {path}:")
         for err in errors:
-            print("  {}".format(err), file=sys.stderr)
+            print(f"  {err}", file=sys.stderr)
         return 1
 
 
@@ -241,13 +241,13 @@ Examples:
     import re
 
     if not re.match(r"^ID_\d+$", iter_id):
-        print("Error: iterationId '{}' does not match pattern ID_N+ (e.g., ID_001)".format(iter_id), file=sys.stderr)
+        print(f"Error: iterationId '{iter_id}' does not match pattern ID_N+ (e.g., ID_001)", file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
     # Precondition: plet_dir exists
     if not os.path.isdir(plet_dir):
-        print("Error: directory does not exist: {}".format(plet_dir), file=sys.stderr)
+        print(f"Error: directory does not exist: {plet_dir}", file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
@@ -278,19 +278,19 @@ Examples:
 
     for i, c in enumerate(criteria_input):
         if not isinstance(c, dict):
-            print("Error: --criteria[{}] must be an object".format(i), file=sys.stderr)
+            print(f"Error: --criteria[{i}] must be an object", file=sys.stderr)
             print(_help_hint("init"), file=sys.stderr)
             return 1
         for req_field in ["id", "description"]:
             if req_field not in c:
-                print("Error: --criteria[{}] missing required field '{}'".format(i, req_field), file=sys.stderr)
+                print(f"Error: --criteria[{i}] missing required field '{req_field}'", file=sys.stderr)
                 print(_help_hint("init"), file=sys.stderr)
                 return 1
 
     # Check state file doesn't exist
     path = iter_state_path(plet_dir, iter_id)
     if os.path.isfile(path):
-        print("Error: state file already exists at {}".format(path), file=sys.stderr)
+        print(f"Error: state file already exists at {path}", file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
@@ -300,9 +300,7 @@ Examples:
             dep_path = iter_state_path(plet_dir, dep_id)
             if not os.path.exists(dep_path):
                 print(
-                    "Error: dependency '{}' not found — expected {}. Use --no-verify-deps to skip.".format(
-                        dep_id, dep_path
-                    ),
+                    f"Error: dependency '{dep_id}' not found — expected {dep_path}. Use --no-verify-deps to skip.",
                     file=sys.stderr,
                 )
                 print(_help_hint("init"), file=sys.stderr)
@@ -348,7 +346,7 @@ Examples:
     if errors:
         print("Error: generated state file is invalid:", file=sys.stderr)
         for e in errors:
-            print("  {}".format(e), file=sys.stderr)
+            print(f"  {e}", file=sys.stderr)
         return 1
 
     criteria_count = len(criteria)
@@ -369,7 +367,7 @@ Examples:
                 fields_filter,
             )
         else:
-            print("DRY RUN — would create {} ({}, {} criteria)".format(path, iter_id, criteria_count))
+            print(f"DRY RUN — would create {path} ({iter_id}, {criteria_count} criteria)")
         return 0
 
     # Create state/ dir if needed
@@ -386,7 +384,7 @@ Examples:
             fields_filter,
         )
     else:
-        print("OK — initialized {} ({}, {} criteria)".format(path, iter_id, criteria_count))
+        print(f"OK — initialized {path} ({iter_id}, {criteria_count} criteria)")
     return 0
 
 
@@ -463,7 +461,7 @@ Examples:
     # Set phase timestamp
     if "phaseTimestamps" not in data:
         data["phaseTimestamps"] = {}
-    ts_key = "{}_{}_start".format(phase, attempt)
+    ts_key = f"{phase}_{attempt}_start"
     data["phaseTimestamps"][ts_key] = ts
 
     result = {
@@ -479,7 +477,7 @@ Examples:
         if output_json:
             emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
         else:
-            print("DRY RUN — {} start-phase {} (attempt {})".format(iter_id, phase, attempt))
+            print(f"DRY RUN — {iter_id} start-phase {phase} (attempt {attempt})")
         return 0
 
     atomic_write_json(path, data, update_timestamp=False)
@@ -487,7 +485,7 @@ Examples:
     if output_json:
         emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
     else:
-        print("OK — {} start-phase {} (attempt {})".format(iter_id, phase, attempt))
+        print(f"OK — {iter_id} start-phase {phase} (attempt {attempt})")
     return 0
 
 
@@ -572,7 +570,7 @@ Examples:
         if output_json:
             emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
         else:
-            print("DRY RUN — {} activity: {}".format(iter_id, phase_activity))
+            print(f"DRY RUN — {iter_id} activity: {phase_activity}")
         return 0
 
     atomic_write_json(path, data, update_timestamp=False)
@@ -580,7 +578,7 @@ Examples:
     if output_json:
         emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
     else:
-        print("OK — {} activity: {}".format(iter_id, phase_activity))
+        print(f"OK — {iter_id} activity: {phase_activity}")
     return 0
 
 
@@ -645,7 +643,7 @@ Examples:
         try:
             elapsed = int(elapsed)
         except (ValueError, TypeError):
-            print("Error: --elapsed must be an integer, got '{}'".format(elapsed), file=sys.stderr)
+            print(f"Error: --elapsed must be an integer, got '{elapsed}'", file=sys.stderr)
             print(_help_hint("update-criterion"), file=sys.stderr)
             return 1
 
@@ -706,7 +704,7 @@ Examples:
         if output_json:
             emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
         else:
-            print("DRY RUN — {} {} {}: {}".format(iter_id, criterion_id, phase, status))
+            print(f"DRY RUN — {iter_id} {criterion_id} {phase}: {status}")
         return 0
 
     atomic_write_json(path, data, update_timestamp=False)
@@ -714,7 +712,7 @@ Examples:
     if output_json:
         emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
     else:
-        print("OK — {} {} {}: {}".format(iter_id, criterion_id, phase, status))
+        print(f"OK — {iter_id} {criterion_id} {phase}: {status}")
     return 0
 
 
@@ -800,10 +798,10 @@ Examples:
     attempt = data.get("attempts", {}).get(phase, 1)
     if "phaseTimestamps" not in data:
         data["phaseTimestamps"] = {}
-    end_key = "{}_{}_end".format(phase, attempt)
+    end_key = f"{phase}_{attempt}_end"
     data["phaseTimestamps"][end_key] = ts
 
-    start_key = "{}_{}_start".format(phase, attempt)
+    start_key = f"{phase}_{attempt}_start"
     start_ts = data["phaseTimestamps"].get(start_key)
     if start_ts and "elapsedSeconds" not in data:
         data["elapsedSeconds"] = {"total": 0}
@@ -814,7 +812,7 @@ Examples:
             start_dt = datetime.fromisoformat(start_ts.replace("Z", "+00:00"))
             end_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             elapsed = int((end_dt - start_dt).total_seconds())
-            elapsed_key = "{}_{}".format(phase, attempt)
+            elapsed_key = f"{phase}_{attempt}"
             data["elapsedSeconds"][elapsed_key] = elapsed
         except (ValueError, TypeError):
             pass  # Can't compute — skip
@@ -827,7 +825,7 @@ Examples:
         if output_json:
             emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
         else:
-            print("DRY RUN — {} {}: {}".format(iter_id, verdict_field, verdict))
+            print(f"DRY RUN — {iter_id} {verdict_field}: {verdict}")
         return 0
 
     atomic_write_json(path, data, update_timestamp=False)
@@ -835,7 +833,7 @@ Examples:
     if output_json:
         emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
     else:
-        print("OK — {} {}: {}".format(iter_id, verdict_field, verdict))
+        print(f"OK — {iter_id} {verdict_field}: {verdict}")
     return 0
 
 
@@ -894,7 +892,7 @@ Examples:
             fields_filter,
         )
     else:
-        print("OK — {} heartbeat".format(iter_id))
+        print(f"OK — {iter_id} heartbeat")
     return 0
 
 
@@ -980,7 +978,7 @@ Examples:
     try:
         findings = json.loads(findings_raw)
     except json.JSONDecodeError as e:
-        print("Error: invalid JSON for --findings: {}".format(e), file=sys.stderr)
+        print(f"Error: invalid JSON for --findings: {e}", file=sys.stderr)
         print(_help_hint("add-report"), file=sys.stderr)
         return 1
 
@@ -992,7 +990,7 @@ Examples:
     try:
         related_entries = json.loads(related_raw)
     except json.JSONDecodeError as e:
-        print("Error: invalid JSON for --related-entries: {}".format(e), file=sys.stderr)
+        print(f"Error: invalid JSON for --related-entries: {e}", file=sys.stderr)
         print(_help_hint("add-report"), file=sys.stderr)
         return 1
 
@@ -1007,12 +1005,12 @@ Examples:
 
     for i, cr in enumerate(criteria_results):
         if not isinstance(cr, dict):
-            print("Error: criteriaResults[{}] must be an object".format(i), file=sys.stderr)
+            print(f"Error: criteriaResults[{i}] must be an object", file=sys.stderr)
             return 1
         # Check required fields
         for rf in REQUIRED_CR_FIELDS:
             if rf not in cr:
-                print("Error: criteriaResults[{}] missing required field '{}'".format(i, rf), file=sys.stderr)
+                print(f"Error: criteriaResults[{i}] missing required field '{rf}'", file=sys.stderr)
                 return 1
         # Check no unknown fields
         unknown = set(cr.keys()) - ALLOWED_CR_FIELDS
@@ -1033,9 +1031,7 @@ Examples:
             return 1
         # noTestRationale required when redTest is "none"
         if cr["redTest"] == "none" and "noTestRationale" not in cr:
-            print(
-                "Error: criteriaResults[{}] redTest is 'none' but noTestRationale is missing".format(i), file=sys.stderr
-            )
+            print(f"Error: criteriaResults[{i}] redTest is 'none' but noTestRationale is missing", file=sys.stderr)
             return 1
 
     data, path = _load_state(plet_dir, iter_id, _help_hint("add-report"))
@@ -1082,7 +1078,7 @@ Examples:
         if output_json:
             emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
         else:
-            print("DRY RUN — {} report added (attempt {}, verdict: {})".format(iter_id, attempt, verdict))
+            print(f"DRY RUN — {iter_id} report added (attempt {attempt}, verdict: {verdict})")
         return 0
 
     atomic_write_json(path, data, update_timestamp=False)
@@ -1090,7 +1086,7 @@ Examples:
     if output_json:
         emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
     else:
-        print("OK — {} report added (attempt {}, verdict: {})".format(iter_id, attempt, verdict))
+        print(f"OK — {iter_id} report added (attempt {attempt}, verdict: {verdict})")
     return 0
 
 

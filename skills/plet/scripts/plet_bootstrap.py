@@ -94,7 +94,7 @@ Runtime state lives in `plet/` (committed to git):
 
 
 def _help_hint(cmd):
-    return "Run: plet_bootstrap.py {} --help".format(cmd)
+    return f"Run: plet_bootstrap.py {cmd} --help"
 
 
 def _get_project_dir(args):
@@ -132,7 +132,7 @@ def _ensure_gitignore(project_dir):
 
     existing = ""
     if os.path.isfile(path):
-        with open(path, "r") as f:
+        with open(path) as f:
             existing = f.read()
 
     missing = [e for e in GITIGNORE_ENTRIES if e not in existing]
@@ -148,13 +148,13 @@ def _ensure_gitignore(project_dir):
             f.write(entry + "\n")
 
     if not os.path.isfile(path):
-        actions.append({"action": "created", "target": ".gitignore", "detail": "{} entries".format(len(missing))})
+        actions.append({"action": "created", "target": ".gitignore", "detail": f"{len(missing)} entries"})
     else:
         actions.append(
             {
                 "action": "configured",
                 "target": ".gitignore",
-                "detail": "added {} entries".format(len(missing)),
+                "detail": f"added {len(missing)} entries",
             }
         )
     return actions
@@ -167,7 +167,7 @@ def _ensure_gitattributes(project_dir):
 
     existing = ""
     if os.path.isfile(path):
-        with open(path, "r") as f:
+        with open(path) as f:
             existing = f.read()
 
     missing = [p for p in GITATTR_PATTERNS if p not in existing]
@@ -181,7 +181,7 @@ def _ensure_gitattributes(project_dir):
         for p in missing:
             f.write(p + "\n")
 
-    actions.append({"action": "configured", "target": ".gitattributes", "detail": "{} entries".format(len(missing))})
+    actions.append({"action": "configured", "target": ".gitattributes", "detail": f"{len(missing)} entries"})
     return actions
 
 
@@ -202,12 +202,12 @@ def _ensure_merge_driver(project_dir):
             {
                 "action": "skipped",
                 "target": "merge driver",
-                "detail": "plet_merge_driver.py not found at {}".format(driver_path),
+                "detail": f"plet_merge_driver.py not found at {driver_path}",
             }
         )
         return actions
 
-    driver_cmd = "{} {} %O %A %B".format(sys.executable, driver_path)
+    driver_cmd = f"{sys.executable} {driver_path} %O %A %B"
     subprocess.run(
         ["git", "-C", project_dir, "config", "merge.plet-append.driver", driver_cmd],
         capture_output=True,
@@ -252,10 +252,10 @@ def _ensure_claude_settings(project_dir):
     # Load or create
     if os.path.isfile(settings_path):
         try:
-            with open(settings_path, "r") as f:
+            with open(settings_path) as f:
                 settings = json.load(f)
         except json.JSONDecodeError as e:
-            return [{"action": "error", "target": ".claude/settings.json", "detail": "invalid JSON: {}".format(e)}]
+            return [{"action": "error", "target": ".claude/settings.json", "detail": f"invalid JSON: {e}"}]
     else:
         os.makedirs(claude_dir, exist_ok=True)
         settings = {}
@@ -280,7 +280,7 @@ def _ensure_claude_settings(project_dir):
             {
                 "action": "configured",
                 "target": ".claude/settings.json",
-                "detail": "added {} allow entries".format(len(missing)),
+                "detail": f"added {len(missing)} allow entries",
             }
         )
 
@@ -310,8 +310,8 @@ def _ensure_claude_settings(project_dir):
                 {
                     "action": "warn",
                     "target": "permissions",
-                    "detail": "sandbox mode detected (TMPDIR={}) but no auto/bypass — "
-                    "subagents may not have autonomous tool access".format(tmpdir),
+                    "detail": f"sandbox mode detected (TMPDIR={tmpdir}) but no auto/bypass — "
+                    "subagents may not have autonomous tool access",
                 }
             )
 
@@ -354,11 +354,11 @@ Examples:
 
     # Preconditions
     if not os.path.isdir(project_dir):
-        print("Error: directory does not exist: {}".format(project_dir), file=sys.stderr)
+        print(f"Error: directory does not exist: {project_dir}", file=sys.stderr)
         return 1
 
     if not _is_git_repo(project_dir):
-        print("Error: not inside a git repository: {}".format(project_dir), file=sys.stderr)
+        print(f"Error: not inside a git repository: {project_dir}", file=sys.stderr)
         print("Run 'git init' first.", file=sys.stderr)
         return 1
 
@@ -371,7 +371,7 @@ Examples:
                 fields,
             )
         else:
-            print("DRY RUN — would configure project at {}".format(project_dir))
+            print(f"DRY RUN — would configure project at {project_dir}")
         return 0
 
     # Run all setup actions
@@ -411,9 +411,9 @@ Examples:
     else:
         for a in all_actions:
             print("{}: {} — {}".format(a["action"], a["target"], a["detail"]))
-        print("\nBootstrap complete: {} created, {} configured, {} skipped".format(created, configured, skipped))
+        print(f"\nBootstrap complete: {created} created, {configured} configured, {skipped} skipped")
         if warnings:
-            print("{} warning(s)".format(warnings))
+            print(f"{warnings} warning(s)")
 
     return 1 if errors else 0
 
@@ -452,7 +452,7 @@ Examples:
         return 1
 
     if not os.path.isdir(project_dir):
-        print("Error: directory does not exist: {}".format(project_dir), file=sys.stderr)
+        print(f"Error: directory does not exist: {project_dir}", file=sys.stderr)
         return 1
 
     checks = []
@@ -595,7 +595,7 @@ Examples:
     else:
         for c in checks:
             print("{}: {} — {}".format(c["status"], c["name"], c["detail"]))
-        print("\n{} passed, {} failed, {} warnings".format(passed, failed, warnings))
+        print(f"\n{passed} passed, {failed} failed, {warnings} warnings")
 
     if failed:
         return 1

@@ -171,7 +171,7 @@ def make_iter_state(
     Returns the path to the state file.
     """
     if title is None:
-        title = "Test iteration {}".format(iter_id)
+        title = f"Test iteration {iter_id}"
 
     state = {
         "schemaVersion": "0.2.0",
@@ -256,7 +256,7 @@ def create_workstream_branch(repo, project_id="TEST", loop_session=1):
 
     Returns the branch name.
     """
-    branch = "plet/{}/loop{}/workstream".format(project_id, loop_session)
+    branch = f"plet/{project_id}/loop{loop_session}/workstream"
     subprocess.run(["git", "-C", repo, "checkout", "-b", branch], capture_output=True, check=True)
     return branch
 
@@ -267,14 +267,14 @@ def create_iteration_branch(repo, project_id="TEST", iter_id="ID_001", loop_sess
     Optionally creates num_commits dummy commits on it.
     Returns the branch name.
     """
-    branch = "plet/{}/loop{}/{}".format(project_id, loop_session, iter_id)
+    branch = f"plet/{project_id}/loop{loop_session}/{iter_id}"
     subprocess.run(["git", "-C", repo, "checkout", "-b", branch], capture_output=True, check=True)
     for i in range(num_commits):
-        fname = os.path.join(repo, "impl_{}.txt".format(i))
+        fname = os.path.join(repo, f"impl_{i}.txt")
         with open(fname, "w") as f:
-            f.write("commit {}\n".format(i))
+            f.write(f"commit {i}\n")
         subprocess.run(["git", "-C", repo, "add", "-A"], capture_output=True)
-        subprocess.run(["git", "-C", repo, "commit", "-m", "impl commit {}".format(i)], capture_output=True)
+        subprocess.run(["git", "-C", repo, "commit", "-m", f"impl commit {i}"], capture_output=True)
     return branch
 
 
@@ -407,7 +407,7 @@ def make_audit_tag(repo, project_id="TEST", iter_id="ID_001", phase="implement",
 
     Returns the tag name.
     """
-    tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(project_id, loop_session, iter_id, phase, attempt)
+    tag_name = f"plet/{project_id}/loop{loop_session}/audit/{iter_id}/{phase}-{attempt}"
     subprocess.run(["git", "-C", repo, "tag", "-f", tag_name], capture_output=True, check=True)
     return tag_name
 
@@ -429,7 +429,7 @@ def make_check():
     def check(name, condition, detail=""):
         if condition:
             state["passed"] += 1
-            print("  PASS  {}".format(name))
+            print(f"  PASS  {name}")
         else:
             state["failed"] += 1
             print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))

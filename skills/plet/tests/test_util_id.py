@@ -25,7 +25,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     test_generate_plet_id_plan_phase()
 
     print("\n{}".format("=" * 40))
-    print("  {} passed, {} failed".format(passed, failed))
+    print(f"  {passed} passed, {failed} failed")
     print("{}".format("=" * 40))
 
     sys.exit(1 if failed else 0)

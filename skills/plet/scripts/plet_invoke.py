@@ -55,7 +55,7 @@ VALID_PERMISSION_MODES = ["auto", "bypassPermissions", "default"]
 
 
 def help_hint(command):
-    return "Run: plet_invoke.py {} --help".format(command)
+    return f"Run: plet_invoke.py {command} --help"
 
 
 def scripts_dir():
@@ -72,7 +72,7 @@ def assemble_prompt(plet_dir, iter_id, phase):
     prm_script = os.path.join(scripts_dir(), "plet_prompt.py")
     result = run([sys.executable, prm_script, "assemble", plet_dir, "--iter-id", iter_id, "--phase", phase])
     if result.returncode != 0:
-        return None, "prompt assembly failed: {}".format(result.stderr.strip())
+        return None, f"prompt assembly failed: {result.stderr.strip()}"
     return result.stdout, None
 
 
@@ -89,7 +89,7 @@ def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model
         permission_mode,
         "--no-session-persistence",
         "--name",
-        "plet/{}/{}-{}".format(iter_id, phase, attempt),
+        f"plet/{iter_id}/{phase}-{attempt}",
     ]
     if model:
         cmd.extend(["--model", model])
@@ -235,7 +235,7 @@ Examples:
 
     # Validate --cwd
     if not os.path.isdir(cwd):
-        msg = "Error: working directory not found: {}".format(cwd)
+        msg = f"Error: working directory not found: {cwd}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -245,7 +245,7 @@ Examples:
     # Read attempt number from iter state
     state_data = load_iter_state_json(plet_dir, iter_id)
     if state_data is None:
-        msg = "Error: iteration state not found for {}".format(iter_id)
+        msg = f"Error: iteration state not found for {iter_id}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -259,7 +259,7 @@ Examples:
     # Assemble prompt
     prompt_text, prm_err = assemble_prompt(plet_dir, iter_id, phase)
     if prompt_text is None:
-        msg = "Error: {}".format(prm_err)
+        msg = f"Error: {prm_err}"
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -291,7 +291,7 @@ Examples:
         "",
     ]
     for key, val in sorted(plet_env.items()):
-        env_lines.append("- `{}={}`".format(key, val))
+        env_lines.append(f"- `{key}={val}`")
     env_lines.append("")
     env_lines.append("Call scripts as: `$PLET_SCRIPTS_DIR/plet_iter_state.py ...`")
     env_lines.append("")
@@ -311,7 +311,7 @@ Examples:
 
     # Dry-run
     if dry_run:
-        cmd_str = " ".join('"{}"'.format(c) if " " in c or len(c) > 100 else c for c in claude_cmd)
+        cmd_str = " ".join(f'"{c}"' if " " in c or len(c) > 100 else c for c in claude_cmd)
         if output_json:
             emit_json(
                 {
@@ -331,7 +331,7 @@ Examples:
         else:
             print("DRY RUN — would execute:")
             print(cmd_str)
-            print("\nTranscript would be written to: {}".format(t_path))
+            print(f"\nTranscript would be written to: {t_path}")
         return 0
 
     # Check claude on PATH
@@ -425,7 +425,7 @@ Examples:
             ]
         )
         if ent_result.returncode != 0:
-            print("Warning: progress entry failed: {}".format(ent_result.stderr.strip()), file=sys.stderr)
+            print(f"Warning: progress entry failed: {ent_result.stderr.strip()}", file=sys.stderr)
         if os.path.isfile(content_tmp):
             os.unlink(content_tmp)
 
@@ -482,9 +482,9 @@ Examples:
         )
     else:
         if sub_exit == 0:
-            print("OK — {} subprocess exited 0".format(phase))
+            print(f"OK — {phase} subprocess exited 0")
         else:
-            print("ERROR — {} subprocess exited {}".format(phase, sub_exit), file=sys.stderr)
+            print(f"ERROR — {phase} subprocess exited {sub_exit}", file=sys.stderr)
 
     return sub_exit
 

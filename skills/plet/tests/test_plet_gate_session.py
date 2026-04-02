@@ -42,9 +42,7 @@ def run(args, expect_exit=0, cwd=None):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Exit code {}, expected {}.\nstdout: {}\nstderr: {}".format(
-                result.returncode, expect_exit, result.stdout, result.stderr
-            )
+            f"Exit code {result.returncode}, expected {expect_exit}.\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -54,7 +52,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -82,7 +80,7 @@ def make_iter_state(plet_dir, iter_id, lifecycle=None, title=None, **overrides):
     _shared_make_iter_state(
         plet_dir,
         iter_id=iter_id,
-        title=title or "Test iteration {}".format(iter_id),
+        title=title or f"Test iteration {iter_id}",
         **overrides,
     )
     return iter_state_path(plet_dir, iter_id)
@@ -993,5 +991,5 @@ if __name__ == "__main__":
     test_postflight_never_fails()
     test_postflight_json()
 
-    print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
+    print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     sys.exit(1 if failed > 0 else 0)

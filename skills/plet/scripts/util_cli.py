@@ -82,10 +82,10 @@ def parse_kwargs(args):
     while i < len(args):
         arg = args[i]
         if not arg.startswith("--"):
-            raise ValueError("Error: unexpected positional argument '{}' (expected --flag)".format(arg))
+            raise ValueError(f"Error: unexpected positional argument '{arg}' (expected --flag)")
         key = arg[2:].replace("-", "_")
         if key in result:
-            raise ValueError("Error: duplicate flag --{} (each flag can only be specified once)".format(arg[2:]))
+            raise ValueError(f"Error: duplicate flag --{arg[2:]} (each flag can only be specified once)")
         # Check if next arg is a value or another flag (or end of args)
         if i + 1 < len(args) and not args[i + 1].startswith("--"):
             result[key] = args[i + 1]
@@ -107,7 +107,7 @@ def require_kwargs(kwargs, required, command_help=""):
     for key in required:
         if key not in kwargs:
             flag = key.replace("_", "-")
-            print("Error: --{} is required".format(flag), file=sys.stderr)
+            print(f"Error: --{flag} is required", file=sys.stderr)
             if command_help:
                 print(command_help, file=sys.stderr)
             return False
@@ -137,7 +137,7 @@ def validate_known_flags(kwargs, known_flags, help_hint=""):
     for key in kwargs:
         if key not in known:
             flag = "--" + key.replace("_", "-")
-            print("Error: unknown flag {}. {}".format(flag, help_hint), file=sys.stderr)
+            print(f"Error: unknown flag {flag}. {help_hint}", file=sys.stderr)
             return False
     return True
 
@@ -167,7 +167,7 @@ def validate_int(value, field_name):
         return int(value), True
     except (ValueError, TypeError):
         print(
-            "Error: {} must be an integer, got '{}'".format(field_name, value),
+            f"Error: {field_name} must be an integer, got '{value}'",
             file=sys.stderr,
         )
         return None, False
@@ -223,11 +223,11 @@ def dispatch(commands, script_name, script_version, skill_version, doc, argv=Non
         return 0
 
     if cmd == "--version":
-        print("{} {} (built against plet skill {})".format(script_name, script_version, skill_version))
+        print(f"{script_name} {script_version} (built against plet skill {skill_version})")
         return 0
 
     if cmd not in commands:
-        print("Error: unknown command '{}'".format(cmd), file=sys.stderr)
+        print(f"Error: unknown command '{cmd}'", file=sys.stderr)
         print(
             "Valid commands: {}".format(", ".join(sorted(commands.keys()))),
             file=sys.stderr,
@@ -361,18 +361,11 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
             with open(prog_path, "w") as _f:
                 _f.write("")
         epr_id = generate_plet_id("epr", iter_id, phase, int(attempt))
-        status_str = "exit 0" if exit_code == 0 else "exit {}".format(exit_code)
+        status_str = "exit 0" if exit_code == 0 else f"exit {exit_code}"
         entry = (
-            '<div id="plet-{epr}"></div>\n'
-            "{script} {cmd} {iter} — {status} (trace: {tev})\n"
-            '<div id="END-plet-{epr}"></div>\n'
-        ).format(
-            epr=epr_id,
-            script=script_name,
-            cmd=command,
-            iter=iter_id,
-            status=status_str,
-            tev=tev_id,
+            f'<div id="plet-{epr_id}"></div>\n'
+            f"{script_name} {command} {iter_id} — {status_str} (trace: {tev_id})\n"
+            f'<div id="END-plet-{epr_id}"></div>\n'
         )
         atomic_append(prog_path, entry)
     except Exception:

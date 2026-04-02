@@ -72,7 +72,7 @@ def main(argv):
             json.dump(state, f)
 
         # Create a commit (orchestrator checks for commits)
-        with open("mock_impl_{}.txt".format(iter_id), "w") as f:
+        with open(f"mock_impl_{iter_id}.txt", "w") as f:
             f.write("implemented\n")
         subprocess.run(["git", "add", "-A"], capture_output=True)
         subprocess.run(["git", "commit", "-m", "implement " + iter_id], capture_output=True)
@@ -104,7 +104,7 @@ def main(argv):
         with open(state_path, "w") as f:
             json.dump(state, f)
 
-        with open("mock_verify_{}.txt".format(iter_id), "w") as f:
+        with open(f"mock_verify_{iter_id}.txt", "w") as f:
             f.write("verified\n")
         subprocess.run(["git", "add", "-A"], capture_output=True)
         subprocess.run(["git", "commit", "-m", "verify " + iter_id], capture_output=True)

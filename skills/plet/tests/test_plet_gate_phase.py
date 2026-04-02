@@ -50,9 +50,8 @@ def run(args, expect_exit=0, cwd=None):
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Exit code {}, expected {}.\nstdout: {}\nstderr: {}".format(
-                result.returncode, expect_exit, result.stdout[:500], result.stderr[:500]
-            )
+            f"Exit code {result.returncode}, expected {expect_exit}.\n"
+            f"stdout: {result.stdout[:500]}\nstderr: {result.stderr[:500]}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -61,7 +60,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -138,7 +137,7 @@ def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement", progre
             text=True,
         )
         if result.returncode != 0:
-            raise RuntimeError("add-progress failed: {}".format(result.stderr))
+            raise RuntimeError(f"add-progress failed: {result.stderr}")
 
     if learnings:
         result = subprocess.run(
@@ -166,7 +165,7 @@ def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement", progre
             text=True,
         )
         if result.returncode != 0:
-            raise RuntimeError("add-learning failed: {}".format(result.stderr))
+            raise RuntimeError(f"add-learning failed: {result.stderr}")
 
     if emergent:
         result = subprocess.run(
@@ -194,7 +193,7 @@ def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement", progre
             text=True,
         )
         if result.returncode != 0:
-            raise RuntimeError("add-emergent failed: {}".format(result.stderr))
+            raise RuntimeError(f"add-emergent failed: {result.stderr}")
 
 
 def setup_impl_pre(tmpdir, lifecycle="implementing"):
@@ -806,5 +805,5 @@ if __name__ == "__main__":
     test_impl_post_audit_tag_present()
     test_verify_post_audit_tag_missing()
 
-    print("\n{} tests: {} passed, {} failed".format(passed + failed, passed, failed))
+    print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     sys.exit(1 if failed > 0 else 0)

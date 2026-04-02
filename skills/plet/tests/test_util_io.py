@@ -28,7 +28,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -135,7 +135,8 @@ def test_atomic_write_json_no_timestamp():
         data = {"key": "value"}
         util_io.atomic_write_json(path, data, update_timestamp=False)
 
-        loaded = json.load(open(path))
+        with open(path) as f:
+            loaded = json.load(f)
         check("no lastUpdated when disabled", "lastUpdated" not in loaded)
 
 
@@ -146,7 +147,8 @@ def test_atomic_write_json_overwrites():
         util_io.atomic_write_json(path, {"v": 1}, update_timestamp=False)
         util_io.atomic_write_json(path, {"v": 2}, update_timestamp=False)
 
-        loaded = json.load(open(path))
+        with open(path) as f:
+            loaded = json.load(f)
         check("second write wins", loaded["v"] == 2)
 
 
@@ -182,7 +184,8 @@ def test_atomic_write_json_nested():
         }
         util_io.atomic_write_json(path, data, update_timestamp=False)
 
-        loaded = json.load(open(path))
+        with open(path) as f:
+            loaded = json.load(f)
         check("nested list preserved", loaded["criteria"][0]["id"] == "AC_1")
         check("nested dict preserved", loaded["attempts"]["implement"] == 2)
 
@@ -453,7 +456,7 @@ if __name__ == "__main__":
     test_convenience_loaders()
 
     print("\n{}".format("=" * 40))
-    print("  {} passed, {} failed".format(passed, failed))
+    print(f"  {passed} passed, {failed} failed")
     print("{}".format("=" * 40))
 
     sys.exit(1 if failed else 0)

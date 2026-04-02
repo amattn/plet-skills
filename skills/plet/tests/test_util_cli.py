@@ -31,7 +31,7 @@ def check(name, condition, detail=""):
     global passed, failed
     if condition:
         passed += 1
-        print("  PASS  {}".format(name))
+        print(f"  PASS  {name}")
     else:
         failed += 1
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
@@ -674,7 +674,7 @@ def test_invocation_logging_enabled():
             capture_output=True,
             text=True,
         )
-        check("validate exits 0", result.returncode == 0, "stderr: {}".format(result.stderr[:200]))
+        check("validate exits 0", result.returncode == 0, f"stderr: {result.stderr[:200]}")
         # Check compact progress entry was written
         from util_io import progress_path
 
@@ -687,10 +687,7 @@ def test_invocation_logging_enabled():
         from util_io import trace_dir_path
 
         tdir = trace_dir_path(plet_dir)
-        if os.path.isdir(tdir):
-            trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]
-        else:
-            trace_files = []
+        trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")] if os.path.isdir(tdir) else []
         check("trace event file created", len(trace_files) >= 1)
     finally:
         shutil.rmtree(tmpdir)
@@ -713,10 +710,7 @@ def test_invocation_logging_suppressed():
         from util_io import trace_dir_path
 
         tdir = trace_dir_path(plet_dir)
-        if os.path.isdir(tdir):
-            trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]
-        else:
-            trace_files = []
+        trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")] if os.path.isdir(tdir) else []
         check("no trace events", len(trace_files) == 0)
     finally:
         shutil.rmtree(tmpdir)
@@ -738,10 +732,7 @@ def test_nolog_cascades():
         from util_io import trace_dir_path
 
         tdir = trace_dir_path(plet_dir)
-        if os.path.isdir(tdir):
-            trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]
-        else:
-            trace_files = []
+        trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")] if os.path.isdir(tdir) else []
         check("no trace with env var", len(trace_files) == 0)
     finally:
         shutil.rmtree(tmpdir)
@@ -807,7 +798,7 @@ if __name__ == "__main__":
     test_nolog_cascades()
 
     print("\n{}".format("=" * 40))
-    print("  {} passed, {} failed".format(passed, failed))
+    print(f"  {passed} passed, {failed} failed")
     print("{}".format("=" * 40))
 
     sys.exit(1 if failed else 0)
