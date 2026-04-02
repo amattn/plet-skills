@@ -338,14 +338,13 @@ Examples:
         "- Working directory: {}\n"
         "- Prompt length: {} chars\n"
         "- Transcript: {}\n\n"
-        "**Full prompt:**\n\n"
-        "{}"
+        "Full prompt is in the trace event file, not repeated here."
     ).format(phase, attempt, permission_mode, model or "default",
-             max_budget or "none", cwd, len(prompt_text), t_path, prompt_text)
+             max_budget or "none", cwd, len(prompt_text), t_path)
     ent_script = os.path.join(scripts_dir(), "plet_entries.py")
     if os.path.isfile(ent_script):
-        # Use --content-file for large content (prompt can be 40KB+)
-        # --allow-fences because prompt legitimately contains fence pattern examples
+        # Use --content-file to avoid shell escaping issues with complex content
+        # --allow-fences in case content contains fence patterns
         content_tmp = os.path.join(trace_dir, ".progress_content.tmp")
         with open(content_tmp, "w") as f:
             f.write(progress_content)
