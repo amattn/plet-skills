@@ -21,7 +21,7 @@ All three runtime artifact entry types share the same structural pattern:
    3. `**Iteration:**` — `[ID_xxx] [iteration title]`
    4. `**Phase:**` — `plan | implement | verify | refine`
 
-   Remaining KV fields are type-specific (Files changed, Category, Outcome, etc.).
+   Remaining KV fields are type-specific (Category, Outcome, etc.).
 5. **Content marker** — `**Content:**`
 6. **Freeform content** — everything from the content marker to the end fence
 7. **End fence** — `<div id="END-plet-{pletId}"></div>`
@@ -88,9 +88,6 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 **Iteration:** [ID_xxx] [iteration title]
 **Phase:** plan | implement | verify | refine
 **Attempt:** N
-**Files changed:**
-- `path/to/file.py` — [what changed]
-- `path/to/test_file.py` — [what changed]
 
 **Content:**
 [Freeform content — what was accomplished, what happened, blockers encountered]
@@ -124,11 +121,6 @@ Any phase may append parenthetical metadata for clarity, e.g., `COMPLETE (passed
 **Iteration:** [ID_001] Project scaffolding
 **Phase:** implement
 **Attempt:** 1
-**Files changed:**
-- `pyproject.toml` — project metadata and dependencies
-- `src/__init__.py` — package init
-- `src/main.py` — entry point stub
-- `tests/test_sanity.py` — sanity check test (assert True)
 
 **Content:**
 Initialized project structure with pyproject.toml, ruff, and pytest. Created directory layout matching the architecture spec. All verification commands pass.
@@ -151,10 +143,6 @@ When an agent blocks, the progress entry must include what was completed and wha
 **Iteration:** [ID_003] OAuth integration
 **Phase:** implement
 **Attempt:** 2
-**Files changed:**
-- `src/auth/oauth.py` — redirect and token exchange
-- `src/auth/storage.py` — token persistence
-- `tests/auth/test_oauth.py` — tests for working flows
 
 **Content:**
 Implemented OAuth redirect flow and token exchange. Blocked on token refresh — the provider's sandbox environment returns 500 on all refresh requests. Attempted: direct API calls, SDK wrapper, different grant types. All fail with the same server error.

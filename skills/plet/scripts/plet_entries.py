@@ -6,7 +6,7 @@ Enforces the entry formats defined in references/formats.md. Agents call this
 instead of composing markdown freehand, eliminating format drift across iterations.
 
 Usage:
-    plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
+    plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
     plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
     plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
     plet_entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]
@@ -252,7 +252,6 @@ USAGE:
         --status STATUS           IN_PROGRESS, COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED
         --content "..."           Freeform content (mutually exclusive with --content-file)
         [--content-file path]     Read content from file (mutually exclusive with --content)
-        [--files '["p — d"]']     JSON array of "path — description" strings
         [--allow-fences]          Bypass fence pattern validation (for logging prompts)
         [--dry-run]               Preview without writing
         [--output json [--pretty]] [--fields f1,f2]
@@ -264,8 +263,7 @@ PURPOSE:
 Examples:
     plet_entries.py add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \\
         --phase implement --attempt 1 --status COMPLETE \\
-        --content "Initialized project with pytest, ruff. All checks pass." \\
-        --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
+        --content "Initialized project with pytest, ruff. All checks pass."
 """
     if "-h" in args or "--help" in args:
         print(HELP)
@@ -288,7 +286,7 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {"iter_id", "iter_title", "phase", "attempt", "status", "content", "content_file", "files", "allow_fences"}, hint):
+    if not validate_known_flags(kwargs, {"iter_id", "iter_title", "phase", "attempt", "status", "content", "content_file", "allow_fences"}, hint):
         return 1
 
     required = ["iter_id", "iter_title", "phase", "attempt", "status"]
@@ -334,29 +332,6 @@ Examples:
     phase = kwargs["phase"]
     status = kwargs["status"]
 
-    # Validate files
-    files_changed = []
-    if "files" in kwargs:
-        try:
-            parsed = json.loads(kwargs["files"])
-        except (json.JSONDecodeError, TypeError) as e:
-            print(
-                "Error: --files must be valid JSON array: {}".format(e),
-                file=sys.stderr,
-            )
-            print(hint, file=sys.stderr)
-            return 1
-        if not isinstance(parsed, list):
-            print(
-                "Error: --files must be a JSON array, got {}".format(
-                    type(parsed).__name__
-                ),
-                file=sys.stderr,
-            )
-            print(hint, file=sys.stderr)
-            return 1
-        files_changed = parsed
-
     # Auto-create artifact file if it doesn't exist
     prog_path = progress_path(artifact_dir)
     if not os.path.exists(prog_path):
@@ -367,7 +342,7 @@ Examples:
     plet_id = generate_plet_id(TYPE_PREFIXES["progress"], kwargs["iter_id"], phase, attempt)
     entry = build_progress_entry(
         plet_id, kwargs["iter_id"], kwargs["iter_title"],
-        phase, attempt, status, content_text, files_changed,
+        phase, attempt, status, content_text,
     )
 
     if dry_run:

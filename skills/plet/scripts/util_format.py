@@ -12,7 +12,7 @@ Functions:
         Returns the current UTC time as ISO 8601 string: YYYY-MM-DDTHH:MM:SSZ.
 
     build_progress_entry(plet_id, iteration, title, phase, attempt, status,
-                         content_text, files_changed)
+                         content_text)
         Build a progress.md entry string per formats.md RT_1.
 
     build_learning_entry(plet_id, iteration, title, category, entry_title,
@@ -34,7 +34,7 @@ def now_iso():
     return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def build_progress_entry(plet_id, iteration, title, phase, attempt, status, content_text, files_changed):
+def build_progress_entry(plet_id, iteration, title, phase, attempt, status, content_text):
     """Build a progress.md entry string per formats.md RT_1."""
     # ENT_APR_BHV_8: suppress IN_PROGRESS from header
     if status == "IN_PROGRESS":
@@ -53,21 +53,13 @@ def build_progress_entry(plet_id, iteration, title, phase, attempt, status, cont
         "**Iteration:** [{}] {}".format(iteration, title),
         "**Phase:** {}".format(phase),
         "**Attempt:** {}".format(attempt),
-        "**Files changed:**",
-    ]
-    if files_changed:
-        for f in files_changed:
-            lines.append("- {}".format(f))
-    else:
-        lines.append("- (none)")
-    lines.extend([
         "",
         "**Content:**",
         content_text,
         "",
         '<div id="END-plet-{}"></div>'.format(plet_id),
         "",
-    ])
+    ]
     return "\n".join(lines)
 
 

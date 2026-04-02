@@ -185,7 +185,6 @@ def test_progress_entry_format():
             "--iter-id", "ID_003", "--iter-title", "OAuth integration",
             "--phase", "implement", "--attempt", "2", "--status", "BLOCKED",
             "--content", "Blocked on OAuth provider sandbox.",
-            "--files", '["src/auth/oauth.py — redirect flow", "tests/test_oauth.py — tests"]',
         ])
         plet_id = parse_ok_id(stdout)
 
@@ -201,8 +200,7 @@ def test_progress_entry_format():
         check("has Iteration field", "**Iteration:** [ID_003] OAuth integration" in content)
         check("has Phase field", "**Phase:** implement" in content)
         check("has Attempt field", "**Attempt:** 2" in content)
-        check("has Files changed section", "**Files changed:**" in content)
-        check("has file entry", "src/auth/oauth.py" in content)
+        check("no Files changed section", "**Files changed:**" not in content)
         # Unified format: **Content:** marker
         check("has Content marker", "**Content:**" in content)
         check("has content text", "Blocked on OAuth provider sandbox." in content)
@@ -220,7 +218,7 @@ def test_progress_no_files():
         ])
         with open(progress_path_fn(d)) as f:
             content = f.read()
-        check("shows (none) for no files", "(none)" in content)
+        check("no Files changed section", "**Files changed:**" not in content)
 
 
 def test_progress_in_progress_header_suppression():
