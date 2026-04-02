@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 from util_fixture import make_global_state as _make_global_state, make_iter_state as _make_iter_state
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import state_json_path, state_dir_path, iter_state_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_schedule.py")
 

@@ -257,7 +257,10 @@ def test_branch_name_plet_dir_not_found():
     print("\n## branch-name — plet_dir not found")
     _, stderr, _ = run(["branch-name", "/nonexistent/plet",
                         "--iter-id", "ID_001"], expect_exit=1)
-    check("error mentions directory", "not found" in stderr.lower() or "does not exist" in stderr.lower() or "directory" in stderr.lower())
+    check("error mentions directory",
+          "not found" in stderr.lower()
+          or "does not exist" in stderr.lower()
+          or "directory" in stderr.lower())
 
 
 def test_branch_name_dry_run_rejected():

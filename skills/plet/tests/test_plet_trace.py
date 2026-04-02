@@ -284,7 +284,7 @@ def test_append_ndjson_format():
         with open(path) as f:
             content = f.read()
         check("ends with newline", content.endswith("\n"))
-        lines = [l for l in content.split("\n") if l.strip()]
+        lines = [ln for ln in content.split("\n") if ln.strip()]
         check("one non-empty line", len(lines) == 1)
         # Each line should parse independently
         json.loads(lines[0])
@@ -582,7 +582,8 @@ def test_append_extra_data_fields():
             "--phase", "implement",
             "--attempt", "1",
             "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test","alternatives":["option A","option B"],"custom":"field"}',
+            "--data", '{"description":"test","rationale":"test",'
+            '"alternatives":["option A","option B"],"custom":"field"}',
         ])
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
@@ -713,7 +714,10 @@ def test_validate_missing_fields():
     with tempfile.TemporaryDirectory() as tmpdir:
         bad_event = {"type": "decision", "data": {}}
         make_trace_file(tmpdir, [bad_event])
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("catches missing pletId", "pletId" in err)
         check("catches missing timestamp", "timestamp" in err)
 
@@ -724,7 +728,10 @@ def test_validate_bad_event_type():
         ev = make_event("decision")
         ev["type"] = "info"
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("catches invalid type", "info" in err)
 
 
@@ -734,7 +741,10 @@ def test_validate_bad_phase():
         ev = make_event("decision")
         ev["phase"] = "plan"
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("catches invalid phase", "plan" in err)
 
 
@@ -744,7 +754,10 @@ def test_validate_bad_plet_id_prefix():
         ev = make_event("decision")
         ev["pletId"] = "epr_01JD8X3K7M_id001_i1"
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("catches bad prefix", "tev_" in err)
 
 
@@ -754,7 +767,10 @@ def test_validate_bad_attempt():
         ev = make_event("decision")
         ev["attempt"] = 0
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("catches zero attempt", "positive" in err.lower())
 
 
@@ -764,7 +780,10 @@ def test_validate_missing_data_fields():
         ev = make_event("decision")
         ev["data"] = {"description": "test"}  # missing rationale
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("catches missing rationale", "rationale" in err)
 
 
@@ -774,7 +793,10 @@ def test_validate_enum_in_data():
         ev = make_event("lifecycle_change")
         ev["data"] = {"from": "queued", "to": "running"}
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("catches invalid lifecycle", "running" in err)
 
 
@@ -788,7 +810,10 @@ def test_validate_malformed_json_line():
             f.write(json.dumps(make_event("decision")) + "\n")
             f.write("{bad json\n")
             f.write(json.dumps(make_event("error")) + "\n")
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("reports line number", "Line 2" in err or "line 2" in err)
 
 
@@ -800,7 +825,11 @@ def test_validate_counts_by_type():
             make_event("decision"),
             make_event("error"),
         ])
-        out, _, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--output", "json"])
+        out, _, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+            "--output", "json",
+        ])
         data = json.loads(out)
         check("countsByType present", "countsByType" in data)
         check("2 decisions", data["countsByType"]["decision"] == 2)
@@ -810,7 +839,10 @@ def test_validate_counts_by_type():
 def test_validate_file_not_found():
     print("\n## Validate — trace file not found")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run(["validate", tmpdir, "--iter-id", "ID_999", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "validate", tmpdir, "--iter-id", "ID_999",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("clean error", "does not exist" in err.lower())
 
 
@@ -845,7 +877,11 @@ def test_query_by_type():
             make_event("error"),
             make_event("decision"),
         ])
-        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--event-type", "decision"])
+        out, _, _ = run([
+            "query", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+            "--event-type", "decision",
+        ])
         # Should have 2 decisions, no errors
         check("has decisions", "decision" in out)
         check("no errors in output", "test error" not in out)
@@ -859,7 +895,11 @@ def test_query_by_criterion():
         ev2 = make_event("criterion_update")
         ev2["data"]["criterionId"] = "AC_2"
         make_trace_file(tmpdir, [ev1, ev2])
-        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--criterion", "AC_1"])
+        out, _, _ = run([
+            "query", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+            "--criterion", "AC_1",
+        ])
         check("has AC_1", "AC_1" in out)
         check("no AC_2", "AC_2" not in out)
 
@@ -873,7 +913,11 @@ def test_query_last_n():
             ev["data"]["description"] = "decision_{}".format(i)
             events.append(ev)
         make_trace_file(tmpdir, events)
-        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--event-type", "decision", "--last", "2"])
+        out, _, _ = run([
+            "query", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+            "--event-type", "decision", "--last", "2",
+        ])
         check("has decision_3", "decision_3" in out)
         check("has decision_4", "decision_4" in out)
         check("no decision_0", "decision_0" not in out)
@@ -883,7 +927,11 @@ def test_query_no_matches():
     print("\n## Query — no matches returns exit 0")
     with tempfile.TemporaryDirectory() as tmpdir:
         make_trace_file(tmpdir, [make_event("decision")])
-        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--event-type", "error"])
+        out, _, _ = run([
+            "query", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+            "--event-type", "error",
+        ])
         # Should exit 0 even with no matches
         check("exit 0 with no matches", True)
 
@@ -910,12 +958,15 @@ def test_query_raw_output():
             make_event("decision"),
             make_event("error"),
         ])
-        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--raw"])
-        lines = [l for l in out.split("\n") if l.strip()]
+        out, _, _ = run([
+            "query", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1", "--raw",
+        ])
+        lines = [ln for ln in out.split("\n") if ln.strip()]
         check("two lines", len(lines) == 2)
         # Each line should be compact JSON (no indentation)
         for line in lines:
-            parsed = json.loads(line)
+            json.loads(line)
             check("compact (no newlines in line)", "\n" not in line)
 
 
@@ -927,8 +978,12 @@ def test_query_raw_with_filter():
             make_event("error"),
             make_event("decision"),
         ])
-        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--event-type", "decision", "--raw"])
-        lines = [l for l in out.split("\n") if l.strip()]
+        out, _, _ = run([
+            "query", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+            "--event-type", "decision", "--raw",
+        ])
+        lines = [ln for ln in out.split("\n") if ln.strip()]
         check("two decision lines", len(lines) == 2)
 
 
@@ -950,7 +1005,11 @@ def test_query_json_output():
             make_event("decision"),
             make_event("error"),
         ])
-        out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1", "--output", "json"])
+        out, _, _ = run([
+            "query", tmpdir, "--iter-id", "ID_001",
+            "--phase", "implement", "--attempt", "1",
+            "--output", "json",
+        ])
         data = json.loads(out)
         check("json status ok", data["status"] == "ok")
         check("json command", data["command"] == "query")
@@ -972,7 +1031,10 @@ def test_query_criterion_with_wrong_type():
 def test_query_file_not_found():
     print("\n## Query — trace file not found")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run(["query", tmpdir, "--iter-id", "ID_999", "--phase", "implement", "--attempt", "1"], expect_exit=1)
+        _, err, _ = run([
+            "query", tmpdir, "--iter-id", "ID_999",
+            "--phase", "implement", "--attempt", "1",
+        ], expect_exit=1)
         check("clean error", "does not exist" in err.lower())
 
 

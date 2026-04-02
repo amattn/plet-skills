@@ -6,9 +6,14 @@ for isolated iteration execution. Git history is never lost — worktree operati
 manage on-disk working directories only.
 
 Usage:
-    plet_git_iteration.py branch-name <plet_dir> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_iteration.py worktree-create <plet_dir> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_iteration.py worktree-remove <plet_dir> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py branch-name <plet_dir> [--iter-id ID_xxx]
+        [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-create <plet_dir> --iter-id ID_xxx
+        [--base BRANCH] [--worktree-dir DIR] [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-remove <plet_dir> --iter-id ID_xxx
+        [--delete-branch] [--worktree-dir DIR] [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     branch-name       Generate the correct branch name from project state
@@ -18,7 +23,6 @@ Commands:
 TYPE is iteration (default), workstream, plan, or refine.
 """
 
-import json
 import os
 import re
 from util_subprocess import run_git
@@ -34,9 +38,7 @@ from util_cli import (
     validate_known_flags,
     UNIVERSAL_FLAGS_READ,
     UNIVERSAL_FLAGS_WRITE,
-    now_iso,
     dispatch,
-    filter_fields,
     get_plet_dir,
     extract_output_flags,
     emit_json,
@@ -107,7 +109,9 @@ PITFALLS:
     - Wrong base branch is the #1 cause of merge conflicts — verify session count
 
 USAGE:
-    plet_git_iteration.py branch-name <plet_dir> [--iter-id ID_xxx] [--type TYPE] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py branch-name <plet_dir>
+        [--iter-id ID_xxx] [--type TYPE]
+        [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir         Path to plet directory (required)
     --iter-id     Iteration ID (required for --type iteration)
@@ -225,7 +229,9 @@ PITFALLS:
     - If you see "branch already exists" in output, it's a resume, not an error
 
 USAGE:
-    plet_git_iteration.py worktree-create <plet_dir> --iter-id ID_xxx [--base BRANCH] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-create <plet_dir> --iter-id ID_xxx
+        [--base BRANCH] [--worktree-dir DIR] [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir         Path to plet directory (required)
     --iter-id       Iteration ID (e.g., ID_001)
@@ -402,7 +408,9 @@ PITFALLS:
     - Force-removes untracked files (build artifacts) — committed work is safe.
 
 USAGE:
-    plet_git_iteration.py worktree-remove <plet_dir> --iter-id ID_xxx [--delete-branch] [--worktree-dir DIR] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_iteration.py worktree-remove <plet_dir> --iter-id ID_xxx
+        [--delete-branch] [--worktree-dir DIR] [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir         Path to plet directory (required)
     --iter-id        Iteration ID (e.g., ID_001)

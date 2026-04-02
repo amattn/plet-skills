@@ -51,7 +51,6 @@ from util_io import (
     iter_state_path,
     load_json,
     load_json_arg,
-    state_dir_path,
 )
 from util_state import (
     validate_iter_state,
@@ -470,8 +469,9 @@ Examples:
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id", "phase_activity", "activity_detail", "agent_id"} | UNIVERSAL_FLAGS_WRITE,
-                                 _help_hint("update-activity")):
+    if not validate_known_flags(kwargs, {
+        "iter_id", "phase_activity", "activity_detail", "agent_id",
+    } | UNIVERSAL_FLAGS_WRITE, _help_hint("update-activity")):
         return 1
     if not require_kwargs(kwargs, ["iter_id", "phase_activity", "activity_detail", "agent_id"], HELP):
         return 1
@@ -844,7 +844,9 @@ noTestRationale required when redTest is "none".
 Examples:
   plet_iter_state.py add-report plet --iter-id ID_001 \\
     --verdict passed --summary "All criteria pass." \\
-    --criteria-results '[{"id":"AC_1","status":"pass","oneLiner":"Solid","redTest":"none","noTestRationale":"read-only check","relatedEntries":[]}]' \\
+    --criteria-results '[{"id":"AC_1","status":"pass","oneLiner":"Solid",
+      "redTest":"none","noTestRationale":"read-only check",
+      "relatedEntries":[]}]' \\
     --findings '[]' --related-entries '[]' --agent-id agent_def456
 """
     if "-h" in args or "--help" in args:

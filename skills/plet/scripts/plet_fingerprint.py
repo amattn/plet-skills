@@ -7,9 +7,12 @@ dependent artifacts. Computing, embedding, and comparing these structures is
 purely mechanical — this script makes fingerprint operations deterministic.
 
 Usage:
-    plet_fingerprint.py extract <plet_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]
-    plet_fingerprint.py embed <plet_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_fingerprint.py check <plet_dir> [--level requirements|iterations|all] [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py extract <plet_dir> --type requirements|iterations
+        [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py embed <plet_dir> --type requirements|iterations|state
+        [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py check <plet_dir> [--level requirements|iterations|all]
+        [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     extract    Extract a fingerprint from a plan artifact by scanning its content
@@ -273,14 +276,14 @@ def write_fingerprint_block(text, fingerprint):
         _, start, end = parse_fingerprint_block(text)
     except ValueError:
         # Malformed block — replace it
-        start, end = -1, -1
+        start, _end = -1, -1
         marker = FINGERPRINT_START
         first = text.find(marker)
         if first != -1:
             second = text.find(marker, first + len(marker))
             if second != -1:
                 start = first
-                end = second + len(marker)
+                second + len(marker)
 
     if start >= 0:
         # Replace existing block
@@ -629,7 +632,9 @@ PITFALLS:
     - --bump is for prose-only changes — if IDs changed, auto-bump fires anyway
 
 USAGE:
-    plet_fingerprint.py embed <plet_dir> --type requirements|iterations|state [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py embed <plet_dir>
+        --type requirements|iterations|state
+        [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir        Path to plet directory (e.g., plet/)
     --type          requirements, iterations, or state
@@ -730,7 +735,7 @@ def _embed_requirements(artifact_dir, target_path, force_bump, dry_run,
                         output_json, pretty, fields):
     """Embed fingerprint in requirements.md."""
     CMD = "embed"
-    hint = help_hint(CMD)
+    help_hint(CMD)
 
     text = load_text(target_path)
     if text is None:
@@ -831,7 +836,7 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run,
                       output_json, pretty, fields):
     """Embed fingerprint in iterations.md."""
     CMD = "embed"
-    hint = help_hint(CMD)
+    help_hint(CMD)
 
     text = load_text(target_path)
     if text is None:
@@ -945,7 +950,7 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run,
                  output_json, pretty, fields):
     """Embed iterations fingerprint in state.json."""
     CMD = "embed"
-    hint = help_hint(CMD)
+    help_hint(CMD)
 
     # Read iterations fingerprint from iterations.md
     iter_text = load_text(iter_path)
@@ -1019,7 +1024,9 @@ PITFALLS:
     - "stale" means drift detected, not a tool error
 
 USAGE:
-    plet_fingerprint.py check <plet_dir> [--level requirements|iterations|all] [--output json [--pretty] [--fields f1,f2]]
+    plet_fingerprint.py check <plet_dir>
+        [--level requirements|iterations|all]
+        [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir         Path to plet directory (e.g., plet/)
     --level          requirements, iterations, or all (default: all)

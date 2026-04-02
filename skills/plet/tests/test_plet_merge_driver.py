@@ -290,7 +290,7 @@ def test_trace_both_appended():
     check("has decision event", "encrypted file storage" in merged)
 
     # Verify each line is valid NDJSON
-    lines = [l for l in merged.strip().split("\n") if l.strip()]
+    lines = [ln for ln in merged.strip().split("\n") if ln.strip()]
     valid = True
     for line in lines:
         try:
@@ -310,7 +310,7 @@ def test_trace_orchestrator_invocation_then_subagent():
 
     rc, merged = run_driver(base, ours, theirs)
     check("exit 0", rc == 0)
-    lines = [l for l in merged.strip().split("\n") if l.strip()]
+    lines = [ln for ln in merged.strip().split("\n") if ln.strip()]
     check("5 total events", len(lines) == 5)
     # First line should be invocation (from ours/base)
     first = json.loads(lines[0])
@@ -383,8 +383,14 @@ def test_large_merge():
     ours_entries = ""
     theirs_entries = ""
     for i in range(20):
-        ours_entries += "### [2026-03-31 10:{:02d}:00 UTC] ID_{:03d} — ORC\n\nOrchestrator entry {}\n\n".format(i, i + 1, i)
-        theirs_entries += "### [2026-03-31 10:{:02d}:30 UTC] ID_{:03d} — SUB\n\nSubagent entry {}\n\n".format(i, i + 1, i)
+        ours_entries += (
+            "### [2026-03-31 10:{:02d}:00 UTC] ID_{:03d} — ORC\n\n"
+            "Orchestrator entry {}\n\n"
+        ).format(i, i + 1, i)
+        theirs_entries += (
+            "### [2026-03-31 10:{:02d}:30 UTC] ID_{:03d} — SUB\n\n"
+            "Subagent entry {}\n\n"
+        ).format(i, i + 1, i)
 
     ours = base + ours_entries
     theirs = base + theirs_entries

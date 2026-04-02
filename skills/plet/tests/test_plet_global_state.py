@@ -12,7 +12,6 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(__file__))
-from util_fixture import make_global_state, read_global_state
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from util_io import state_json_path
@@ -173,7 +172,9 @@ def test_init_basic():
             "--project-name", "Log Analyzer",
             "--dependency-map", '{"ID_001":[],"ID_002":["ID_001"]}',
             "--milestones", '{"MS_1":{"name":"MVP","iterations":["ID_001","ID_002"]}}',
-            "--iterations-fingerprint", '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z","iterations":{"MS_1":["ID_001","ID_002"]}}',
+            "--iterations-fingerprint",
+            '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z",'
+            '"iterations":{"MS_1":["ID_001","ID_002"]}}',
         ])
         check("exits 0", True)
         check("OK in output", "OK" in out)
@@ -322,7 +323,10 @@ def test_init_plet_dir_missing():
         "--milestones", '{}',
         "--iterations-fingerprint", '{}',
     ], expect_exit=1)
-    check("error mentions directory", "not found" in err.lower() or "not exist" in err.lower() or "directory" in err.lower())
+    check("error mentions directory",
+          "not found" in err.lower()
+          or "not exist" in err.lower()
+          or "directory" in err.lower())
 
 
 # ---------------------------------------------------------------------------
@@ -375,7 +379,10 @@ def test_update_lifecycle_json_output():
     print("\n## update-lifecycle — JSON output")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "implementing", "--output", "json"])
+        out, _, _ = run([
+            "update-lifecycle", d, "--iter-id", "ID_001",
+            "--lifecycle", "implementing", "--output", "json",
+        ])
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
         check("from queued", data["from"] == "queued")
@@ -490,8 +497,8 @@ def test_get_lifecycle_sorted():
         state["lifecycles"] = {"ID_003": "queued", "ID_001": "complete", "ID_002": "implementing"}
         write_raw_state(d, state)
         out, _, _ = run(["get-lifecycle", d])
-        lines = [l for l in out.strip().split("\n") if l.startswith("ID_")]
-        ids = [l.split(":")[0].strip() for l in lines]
+        lines = [ln for ln in out.strip().split("\n") if ln.startswith("ID_")]
+        ids = [ln.split(":")[0].strip() for ln in lines]
         check("sorted order", ids == ["ID_001", "ID_002", "ID_003"])
 
 

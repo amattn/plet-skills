@@ -6,17 +6,18 @@ one commit per iteration on the workstream. Git history is never lost —
 incremental commits stay on the iteration branch.
 
 Usage:
-    plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
+        --phase implement|verify [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx
+        [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     audit-tag       Create an audit tag marking a phase boundary
     merge-squash    Merge iteration into workstream as one commit
 """
 
-import json
 import os
-import re
 from util_subprocess import run_git
 import sys
 
@@ -29,15 +30,13 @@ from util_cli import (
     validate_enum,
     validate_known_flags,
     UNIVERSAL_FLAGS_WRITE,
-    now_iso,
     dispatch,
-    filter_fields,
     get_plet_dir,
     extract_output_flags,
     emit_json,
     emit_json_error,
 )
-from util_io import validate_plet_dir, iter_state_path
+from util_io import validate_plet_dir
 from util_state import (
     load_and_validate_global_state,
     load_and_validate_iter_state,
@@ -113,7 +112,9 @@ PITFALLS:
     - Attempt number derived from iter state — don't pass it manually
 
 USAGE:
-    plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
+        --phase implement|verify [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (required)
     --iter-id            Iteration ID (e.g., ID_001)
@@ -394,7 +395,10 @@ Examples:
     # Check there's something to merge (iteration branch is not ancestor of workstream)
     r = run_git("merge-base", "--is-ancestor", iter_branch, "HEAD")
     if r.returncode == 0:
-        msg = "Error: iteration branch {} has no changes ahead of workstream — already merged or no work done".format(iter_branch)
+        msg = (
+            "Error: iteration branch {} has no changes ahead of"
+            " workstream — already merged or no work done"
+        ).format(iter_branch)
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:

@@ -146,7 +146,8 @@ def cmd_start_session(args):
           (idempotent) rather than creating a duplicate.
 
     USAGE
-        plet_session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+        plet_session.py start-session <plet_dir> --type loop|refine
+            [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_session.py start-session plet/ --type loop

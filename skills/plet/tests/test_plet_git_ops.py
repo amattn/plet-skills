@@ -165,7 +165,6 @@ def branch_exists(repo, branch_name):
 
 def get_head_hash(repo, short=True):
     """Get HEAD commit hash."""
-    fmt = "--short" if short else ""
     args = ["rev-parse"]
     if short:
         args.append("--short")

@@ -328,7 +328,7 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
         if not _os.path.isfile(_state_json_path(plet_dir)):
             return
 
-        full_cmd = "{}.py {} {}".format(script_name, command, " ".join(args))
+        "{}.py {} {}".format(script_name, command, " ".join(args))
         timestamp = now_iso()
 
         # Trace event — NDJSON line

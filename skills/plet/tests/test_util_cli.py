@@ -576,7 +576,6 @@ def test_emit_json_error_basic():
 # Invocation logging
 # ---------------------------------------------------------------------------
 
-import json
 import subprocess
 import tempfile
 import shutil

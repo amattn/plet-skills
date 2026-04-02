@@ -7,8 +7,10 @@ these to make deterministic routing decisions.
 
 Usage:
     plet_schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]
-    plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]
-    plet_schedule.py check-retry <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+    plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx
+        --position before|after [--output json [--pretty] [--fields f1,f2]]
+    plet_schedule.py check-retry <plet_dir> --iter-id ID_xxx
+        [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     eligible            List iterations ready for work (queued + all deps complete)
@@ -16,8 +18,6 @@ Commands:
     check-retry         Evaluate whether a failed iteration should retry
 """
 
-import glob as glob_mod
-import json
 import os
 import sys
 
@@ -27,11 +27,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     emit_json,
-    emit_json_error,
     extract_output_flags,
-    filter_fields,
     get_plet_dir,
-    now_iso,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -41,7 +38,6 @@ from util_cli import (
 from util_io import (
     load_json,
     state_json_path,
-    state_dir_path,
     iter_state_path,
 )
 
@@ -205,7 +201,9 @@ def cmd_check_breakpoints(args):
     arrays always return "miss".
 
     USAGE
-        plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]
+        plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx
+            --position before|after
+            [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_schedule.py check-breakpoints plet/ --iter-id ID_003 --position before
@@ -225,7 +223,9 @@ def cmd_check_breakpoints(args):
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ, _help_hint("check-breakpoints")):
+    if not validate_known_flags(
+            kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ,
+            _help_hint("check-breakpoints")):
         return 1
 
     # Require --iter-id and --position

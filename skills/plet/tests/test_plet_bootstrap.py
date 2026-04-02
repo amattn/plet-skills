@@ -312,7 +312,7 @@ def test_gitignore_no_plet():
         run(["setup", d])
         with open(os.path.join(d, ".gitignore")) as f:
             content = f.read()
-        lines = [l.strip() for l in content.split("\n") if l.strip() and not l.startswith("#")]
+        lines = [ln.strip() for ln in content.split("\n") if ln.strip() and not ln.startswith("#")]
         check(".plet/ present", ".plet/" in lines)
         check("plet/ NOT present", "plet/" not in lines)
     finally:

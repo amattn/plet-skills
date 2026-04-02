@@ -50,8 +50,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from util_io import (
-    state_json_path, state_dir_path, iter_state_path,
-    trace_dir_path, transcript_path,
+    trace_dir_path,
 )
 from util_fixture import (
     make_global_state, make_iter_state, make_git_repo,

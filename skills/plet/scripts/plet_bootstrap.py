@@ -31,7 +31,6 @@ from util_cli import (
     dispatch,
     emit_json,
     extract_output_flags,
-    now_iso,
     parse_kwargs,
     validate_known_flags,
 )
@@ -149,7 +148,10 @@ def _ensure_gitignore(project_dir):
     if not os.path.isfile(path):
         actions.append({"action": "created", "target": ".gitignore", "detail": "{} entries".format(len(missing))})
     else:
-        actions.append({"action": "configured", "target": ".gitignore", "detail": "added {} entries".format(len(missing))})
+        actions.append({
+            "action": "configured", "target": ".gitignore",
+            "detail": "added {} entries".format(len(missing)),
+        })
     return actions
 
 
@@ -326,7 +328,7 @@ Examples:
     if not ok:
         return 1
 
-    force = kwargs.get("force") is not None
+    kwargs.get("force") is not None
 
     # Preconditions
     if not os.path.isdir(project_dir):
@@ -499,8 +501,11 @@ Examples:
                                    "detail": "sandbox mode but no auto/bypass — subagents need autonomous access. "
                                    "Add: \"defaultMode\": \"auto\" to permissions"})
                 else:
-                    checks.append({"name": "permissions", "status": "warn",
-                                   "detail": "no defaultMode or bypassPermissions set — subagents may need approval for every tool call"})
+                    checks.append({
+                        "name": "permissions", "status": "warn",
+                        "detail": "no defaultMode or bypassPermissions set"
+                        " — subagents may need approval for every tool call",
+                    })
         except json.JSONDecodeError:
             checks.append({"name": "claude-settings", "status": "warn",
                            "detail": "invalid JSON in .claude/settings.json"})

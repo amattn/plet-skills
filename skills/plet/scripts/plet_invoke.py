@@ -5,7 +5,10 @@ Assembles prompt via plet_prompt.py, launches claude -p, captures streaming
 NDJSON to transcript file line by line. Returns subprocess exit code.
 
 Usage:
-    plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--permission-mode MODE] [--model MODEL] [--max-budget N] [--verbose] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify
+        --cwd <worktree_path> [--permission-mode MODE] [--model MODEL]
+        [--max-budget N] [--verbose] [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     run     Assemble prompt, launch subprocess, capture transcript
@@ -34,7 +37,6 @@ from util_cli import (
 )
 from util_io import (
     validate_plet_dir,
-    iter_state_path,
     load_iter_state_json,
     transcript_path,
 )
@@ -104,7 +106,11 @@ PITFALLS:
     - --bare skips hooks/LSP/plugins for faster startup
 
 USAGE:
-    plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--permission-mode MODE] [--model MODEL] [--max-budget N] [--verbose] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_invoke.py run <plet_dir> --iter-id ID_xxx
+        --phase implement|verify --cwd <worktree_path>
+        [--permission-mode MODE] [--model MODEL] [--max-budget N]
+        [--verbose] [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir           Path to plet directory (required)
     --iter-id          Iteration ID (required)
@@ -142,7 +148,10 @@ Examples:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {"iter_id", "phase", "cwd", "permission_mode", "model", "max_budget", "verbose"} | UNIVERSAL_FLAGS_WRITE, hint):
+    if not validate_known_flags(kwargs, {
+        "iter_id", "phase", "cwd", "permission_mode",
+        "model", "max_budget", "verbose",
+    } | UNIVERSAL_FLAGS_WRITE, hint):
         return 1
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)

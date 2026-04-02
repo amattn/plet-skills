@@ -8,7 +8,6 @@ Run with:
 
 import json
 import os
-import subprocess
 import sys
 import tempfile
 
@@ -85,7 +84,7 @@ def test_make_global_state_defaults():
 def test_make_global_state_custom():
     print("\n## make_global_state — custom values")
     with tempfile.TemporaryDirectory() as d:
-        path = make_global_state(
+        make_global_state(
             d,
             dep_map={"ID_001": [], "ID_002": ["ID_001"]},
             lifecycles={"ID_001": "complete", "ID_002": "queued"},

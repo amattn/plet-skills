@@ -12,7 +12,6 @@ the new CLI interface with renamed flags, new features, and new validations.
 
 import json
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -237,7 +236,9 @@ def test_progress_in_progress_header_suppression():
         # Header should NOT have " — IN_PROGRESS"
         check("header has no IN_PROGRESS suffix",
               "### [ID_002] implement-1\n" in content or "### [ID_002] impl-1 \n" in content.rstrip(),
-              "content near header: " + content[content.index("### [ID_002]"):content.index("### [ID_002]")+60] if "### [ID_002]" in content else "header not found")
+              "content near header: "
+              + content[content.index("### [ID_002]"):content.index("### [ID_002]") + 60]
+              if "### [ID_002]" in content else "header not found")
         check("IN_PROGRESS not in header line",
               "implement-1 — IN_PROGRESS" not in content)
 
@@ -813,7 +814,7 @@ def test_empty_content_file():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         empty_file = os.path.join(d, "empty.txt")
-        with open(empty_file, "w") as f:
+        with open(empty_file, "w"):
             pass  # empty file
         _, stderr, _ = run([
             "add-progress", d,

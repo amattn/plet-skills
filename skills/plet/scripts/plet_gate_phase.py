@@ -6,8 +6,10 @@ before work starts. Post-gate verifies artifact completeness before the
 subagent exits. --phase controls which checks run.
 
 Usage:
-    plet_gate_phase.py pre <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_phase.py post <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_phase.py pre <plet_dir> --iter-id ID_xxx
+        --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_phase.py post <plet_dir> --iter-id ID_xxx
+        --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     pre     Pre-phase gate — git, state, lifecycle, plus phase-specific checks
@@ -149,7 +151,8 @@ def check_implement_verdict(iter_state):
         return {"name": "implement-verdict", "status": "pass",
                 "detail": "implementVerdict is '{}'".format(verdict)}
     return {"name": "implement-verdict", "status": "fail",
-            "detail": "implementVerdict is null — implement subagent must call set-verdict --phase implement before exiting"}
+            "detail": "implementVerdict is null — implement subagent must call"
+            " set-verdict --phase implement before exiting"}
 
 
 def check_audit_tag(global_state, iter_state, phase, cwd=None):
@@ -401,7 +404,8 @@ PITFALLS:
     - verify pre is simpler (git + state + lifecycle only)
 
 USAGE:
-    plet_gate_phase.py pre <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_phase.py pre <plet_dir> --iter-id ID_xxx
+        --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 PURPOSE:
     Pre-phase gate. Verifies the foundation before the subagent starts.
@@ -422,7 +426,8 @@ PITFALLS:
     - verify post requires verifyVerdict + verificationReports
 
 USAGE:
-    plet_gate_phase.py post <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_phase.py post <plet_dir> --iter-id ID_xxx
+        --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 PURPOSE:
     Post-phase gate. Verifies artifact completeness after the subagent finishes.

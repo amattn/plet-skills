@@ -584,7 +584,10 @@ def test_preflight_invalid_session_type():
     print("\n## preflight — invalid --session-type")
     tmpdir = tempfile.mkdtemp()
     try:
-        _, stderr, _ = run(["preflight", os.path.join(tmpdir, "plet"), "--session-type", "bogus"], expect_exit=1, cwd=tmpdir)
+        _, stderr, _ = run(
+            ["preflight", os.path.join(tmpdir, "plet"),
+             "--session-type", "bogus"],
+            expect_exit=1, cwd=tmpdir)
         check("error mentions invalid", "invalid" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -627,8 +630,12 @@ def test_preflight_missing_claude_md():
         subprocess.run(["git", "-C", tmpdir, "add", "."], capture_output=True)
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
-        stdout, _, rc = run(["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan"], expect_exit=2, cwd=tmpdir)
-        check("claude-md-exists WARN", "WARN" in stdout and "claude-md" in stdout.lower())
+        stdout, _, rc = run(
+            ["preflight", os.path.join(tmpdir, "plet"),
+             "--session-type", "plan"],
+            expect_exit=2, cwd=tmpdir)
+        check("claude-md-exists WARN",
+              "WARN" in stdout and "claude-md" in stdout.lower())
     finally:
         shutil.rmtree(tmpdir)
 
@@ -647,8 +654,12 @@ def test_preflight_missing_gitignore_plet():
         subprocess.run(["git", "-C", tmpdir, "add", "."], capture_output=True)
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
-        stdout, _, rc = run(["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan"], expect_exit=2, cwd=tmpdir)
-        check("gitignore-plet WARN", "WARN" in stdout and "gitignore" in stdout.lower())
+        stdout, _, rc = run(
+            ["preflight", os.path.join(tmpdir, "plet"),
+             "--session-type", "plan"],
+            expect_exit=2, cwd=tmpdir)
+        check("gitignore-plet WARN",
+              "WARN" in stdout and "gitignore" in stdout.lower())
     finally:
         shutil.rmtree(tmpdir)
 
@@ -691,7 +702,10 @@ def test_preflight_json_output():
         subprocess.run(["git", "-C", tmpdir, "add", "."], capture_output=True)
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
-        stdout, _, _ = run(["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan", "--output", "json"], cwd=tmpdir)
+        stdout, _, _ = run(
+            ["preflight", os.path.join(tmpdir, "plet"),
+             "--session-type", "plan", "--output", "json"],
+            cwd=tmpdir)
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("command preflight", data["command"] == "preflight")
@@ -742,9 +756,13 @@ def test_preflight_fingerprints_skipped_on_plan():
         subprocess.run(["git", "-C", tmpdir, "add", "."], capture_output=True)
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
-        stdout, _, _ = run(["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan", "--output", "json"], cwd=tmpdir)
+        stdout, _, _ = run(
+            ["preflight", os.path.join(tmpdir, "plet"),
+             "--session-type", "plan", "--output", "json"],
+            cwd=tmpdir)
         data = json.loads(stdout)
-        fpr_check = [c for c in data["checks"] if c["name"] == "fingerprints-consistent"]
+        fpr_check = [c for c in data["checks"]
+                     if c["name"] == "fingerprints-consistent"]
         check("fingerprint check exists", len(fpr_check) == 1)
         check("fingerprint SKIPPED", fpr_check[0]["status"] == "skipped")
     finally:
@@ -765,7 +783,10 @@ def test_preflight_detect_session_type():
         subprocess.run(["git", "-C", tmpdir, "add", "."], capture_output=True)
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
-        stdout, _, _ = run(["preflight", os.path.join(tmpdir, "plet"), "--session-type", "detect", "--output", "json"], cwd=tmpdir)
+        stdout, _, _ = run(
+            ["preflight", os.path.join(tmpdir, "plet"),
+             "--session-type", "detect", "--output", "json"],
+            cwd=tmpdir)
         data = json.loads(stdout)
         # Fresh project → detect should resolve to plan
         check("sessionType resolved", data["sessionType"] == "plan")
@@ -787,9 +808,13 @@ def test_preflight_scripts_installed():
         subprocess.run(["git", "-C", tmpdir, "add", "."], capture_output=True)
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
-        stdout, _, _ = run(["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan", "--output", "json"], cwd=tmpdir)
+        stdout, _, _ = run(
+            ["preflight", os.path.join(tmpdir, "plet"),
+             "--session-type", "plan", "--output", "json"],
+            cwd=tmpdir)
         data = json.loads(stdout)
-        scripts_check = [c for c in data["checks"] if c["name"] == "scripts-installed"]
+        scripts_check = [c for c in data["checks"]
+                         if c["name"] == "scripts-installed"]
         check("scripts check exists", len(scripts_check) == 1)
         check("scripts check pass", scripts_check[0]["status"] == "pass")
     finally:

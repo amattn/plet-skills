@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Shared test fixture builders for plet script tests.
 
-Imported by test_*.py files. Can also be imported or executed directly 
-by agents or humans for manual testing or experimentation 
+Imported by test_*.py files. Can also be imported or executed directly
+by agents or humans for manual testing or experimentation
 (e.g., setting up a plet directory to test against).
 
 Provides canonical fixture creation functions so tests don't each
@@ -27,7 +27,7 @@ import tempfile
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 sys.path.insert(0, SCRIPTS_DIR)
 
-from util_io import state_json_path, iter_state_path, state_dir_path, trace_dir_path, events_path
+from util_io import state_json_path, iter_state_path, trace_dir_path, events_path
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +45,8 @@ def make_plet_dir(parent=None):
     """
     if parent is None:
         parent = tempfile.mkdtemp()
-        cleanup = lambda: __import__("shutil").rmtree(parent, ignore_errors=True)
+        def cleanup():
+            return __import__("shutil").rmtree(parent, ignore_errors=True)
     else:
         cleanup = None
 

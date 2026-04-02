@@ -8,8 +8,10 @@ All commands are read-only. Paired with plet_session.py for mutating lifecycle.
 Usage:
     plet_gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]
     plet_gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_session.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine
+        [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py postflight <plet_dir> --session-type loop|refine
+        [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     detect      Determine which session type to enter (plan, loop, refine)
@@ -32,9 +34,7 @@ from util_cli import (
     validate_enum,
     validate_known_flags,
     UNIVERSAL_FLAGS_READ,
-    now_iso,
     dispatch,
-    filter_fields,
     get_plet_dir,
     extract_output_flags,
     emit_json,
@@ -45,7 +45,6 @@ from util_io import (
     load_json,
     state_json_path,
     state_dir_path,
-    iter_state_path,
     requirements_path,
     iterations_path,
 )
@@ -629,7 +628,9 @@ PITFALLS:
     - Required — path to the plet directory
 
 USAGE:
-    plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]
+    plet_gate_session.py preflight <plet_dir>
+        --session-type detect|plan|loop|refine
+        [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir          Path to plet directory (required)
     --session-type    Required. Controls session-specific checks.
@@ -761,7 +762,9 @@ def cmd_postflight(args):
     better than a dangling open session.
 
     USAGE
-        plet_gate_session.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]
+        plet_gate_session.py postflight <plet_dir>
+            --session-type loop|refine
+            [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
         plet_gate_session.py postflight plet/ --session-type loop

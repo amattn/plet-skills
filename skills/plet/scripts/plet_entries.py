@@ -6,9 +6,16 @@ Enforces the entry formats defined in references/formats.md. Agents call this
 instead of composing markdown freehand, eliminating format drift across iterations.
 
 Usage:
-    plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
-    plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
-    plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
+    plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..."
+        --phase implement --attempt 1 --status COMPLETE --content "..."
+        [--content-file path] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
+    plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..."
+        --category gotcha --title "..." --content "..." [--content-file path]
+        --phase implement --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
+    plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..."
+        --title "..." --phase implement --category "design decision"
+        --content "..." [--content-file path] --attempt 1
+        [--dry-run] [--output json [--pretty]] [--fields f1,f2]
     plet_entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]
 
 Commands:
@@ -286,7 +293,10 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {"iter_id", "iter_title", "phase", "attempt", "status", "content", "content_file", "allow_fences"}, hint):
+    if not validate_known_flags(kwargs, {
+        "iter_id", "iter_title", "phase", "attempt", "status",
+        "content", "content_file", "allow_fences",
+    }, hint):
         return 1
 
     required = ["iter_id", "iter_title", "phase", "attempt", "status"]
@@ -429,7 +439,10 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {"iter_id", "iter_title", "category", "title", "phase", "attempt", "content", "content_file", "allow_fences"}, hint):
+    if not validate_known_flags(kwargs, {
+        "iter_id", "iter_title", "category", "title", "phase",
+        "attempt", "content", "content_file", "allow_fences",
+    }, hint):
         return 1
 
     required = ["iter_id", "iter_title", "category", "title", "phase", "attempt"]
@@ -555,7 +568,10 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {"iter_id", "iter_title", "title", "phase", "category", "attempt", "content", "content_file", "allow_fences"}, hint):
+    if not validate_known_flags(kwargs, {
+        "iter_id", "iter_title", "title", "phase", "category",
+        "attempt", "content", "content_file", "allow_fences",
+    }, hint):
         return 1
 
     required = ["iter_id", "iter_title", "title", "phase", "category", "attempt"]

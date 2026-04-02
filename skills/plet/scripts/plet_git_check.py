@@ -5,8 +5,10 @@ Verifies git invariants without modifying state. Called by gate scripts and
 the orchestrator. Reports findings as a list of pass/fail/warn checks.
 
 Usage:
-    plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
-    plet_git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx
+        --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-session <plet_dir>
+        [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     check-iteration   Per-iteration git compliance at phase boundaries
@@ -14,7 +16,6 @@ Commands:
 """
 
 import glob
-import json
 import os
 import sys
 
@@ -27,9 +28,7 @@ from util_cli import (
     validate_enum,
     validate_known_flags,
     UNIVERSAL_FLAGS_READ,
-    now_iso,
     dispatch,
-    filter_fields,
     get_plet_dir,
     extract_output_flags,
     emit_json,
@@ -37,8 +36,6 @@ from util_cli import (
 )
 from util_io import (
     validate_plet_dir,
-    state_json_path,
-    iter_state_path,
     state_dir_path,
 )
 from util_state import (
@@ -222,9 +219,9 @@ def check_clean_worktree(cwd=None):
     if not porcelain:
         return make_check("clean-worktree", "pass", "no uncommitted changes")
 
-    lines = [l for l in porcelain.split("\n") if l.strip()]
-    modified = sum(1 for l in lines if l.strip() and l[0] in "MADRCU")
-    untracked = sum(1 for l in lines if l.strip() and l.startswith("?"))
+    lines = [ln for ln in porcelain.split("\n") if ln.strip()]
+    modified = sum(1 for ln in lines if ln.strip() and ln[0] in "MADRCU")
+    untracked = sum(1 for ln in lines if ln.strip() and ln.startswith("?"))
     detail = "{} uncommitted changes".format(len(lines))
     parts = []
     if modified > 0:
@@ -249,7 +246,7 @@ def check_linear_history(workstream_branch, cwd=None):
         return make_check("linear-history", "pass",
                           "no merge commits since workstream divergence")
 
-    merge_lines = [l for l in merges.split("\n") if l.strip()]
+    merge_lines = [ln for ln in merges.split("\n") if ln.strip()]
     first_hash = merge_lines[0].split()[0] if merge_lines else "?"
     return make_check("linear-history", "fail",
                       "{} merge commit{} found (first: {})".format(
@@ -264,7 +261,7 @@ def check_no_stashes(cwd=None):
     if not stash_list:
         return make_check("no-stashes", "pass", "stash list empty")
 
-    count = len([l for l in stash_list.split("\n") if l.strip()])
+    count = len([ln for ln in stash_list.split("\n") if ln.strip()])
     return make_check("no-stashes", "warn",
                       "{} stash{} found".format(count, "es" if count != 1 else ""))
 
@@ -283,7 +280,9 @@ PITFALLS:
     - --phase is "implement" or "verify" (not "implementation")
 
 USAGE:
-    plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
+    plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx
+        --phase implement|verify
+        [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (required)
     --iter-id            Iteration ID (e.g., ID_001)
@@ -512,7 +511,8 @@ Examples:
     branch_prefix = "plet/{}/loop{}/".format(project_id, loop_n)
 
     # Run checks in order (BHV_5):
-    # in-progress-operation → workstream-exists → orphaned-worktrees → orphaned-branches → no-stashes → unmerged-complete
+    # in-progress-operation → workstream-exists → orphaned-worktrees
+    # → orphaned-branches → no-stashes → unmerged-complete
     checks = []
 
     # 1. in-progress-operation

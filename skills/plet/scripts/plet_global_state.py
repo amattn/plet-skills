@@ -23,7 +23,6 @@ All commands support: --output json [--pretty] [--fields f1,f2]
 Mutating commands also support: --dry-run
 """
 
-import json
 import os
 import re
 import sys
@@ -34,7 +33,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     emit_json,
-    emit_json_error,
     extract_output_flags,
     get_plet_dir,
     now_iso,

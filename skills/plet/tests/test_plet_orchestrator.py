@@ -17,9 +17,9 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import (state_json_path, state_dir_path, iter_state_path,
+from util_io import (state_json_path, iter_state_path,
                      requirements_path, iterations_path, progress_path,
-                     events_path, trace_dir_path, load_json)
+                     load_json)
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_orchestrator.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
@@ -234,11 +234,11 @@ with tempfile.TemporaryDirectory() as tmp:
 
     out, err, _ = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"])
     # Should return immediately with all_complete, no session started
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
     result = lines[-1]
     check("reason is all_complete", result.get("reason") == "all_complete",
           "got: " + str(result.get("reason")))
-    check("no session_start event", not any(l.get("type") == "session_start" for l in lines),
+    check("no session_start event", not any(ln.get("type") == "session_start" for ln in lines),
           "should not start a session for zero work")
 
 
@@ -267,19 +267,19 @@ with tempfile.TemporaryDirectory() as tmp:
                         cwd=tmp)  # must run from project root for git ops
 
     # Parse NDJSON events
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
-    event_types = [l.get("type") for l in lines]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
+    event_types = [ln.get("type") for ln in lines]
     result = lines[-1] if lines else {}
 
     check("exits 0", rc == 0)
     check("has session_start event", "session_start" in event_types,
           "events: " + str(event_types))
     check("has iteration_start implement", any(
-        l.get("type") == "iteration_start" and l.get("phase") == "implement"
-        for l in lines))
+        ln.get("type") == "iteration_start" and ln.get("phase") == "implement"
+        for ln in lines))
     check("has iteration_start verify", any(
-        l.get("type") == "iteration_start" and l.get("phase") == "verify"
-        for l in lines))
+        ln.get("type") == "iteration_start" and ln.get("phase") == "verify"
+        for ln in lines))
     check("has iteration_complete", "iteration_complete" in event_types)
     check("result reason all_complete", result.get("reason") == "all_complete",
           "got: " + str(result.get("reason")))
@@ -319,14 +319,14 @@ with tempfile.TemporaryDirectory() as tmp:
     })
 
     out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
     result = lines[-1] if lines else {}
 
     # Count implement phases (should be 2: first attempt + retry)
-    impl_starts = [l for l in lines
-                   if l.get("type") == "iteration_start" and l.get("phase") == "implement"]
-    verify_starts = [l for l in lines
-                     if l.get("type") == "iteration_start" and l.get("phase") == "verify"]
+    impl_starts = [ln for ln in lines
+                   if ln.get("type") == "iteration_start" and ln.get("phase") == "implement"]
+    verify_starts = [ln for ln in lines
+                     if ln.get("type") == "iteration_start" and ln.get("phase") == "verify"]
 
     check("exits 0", rc == 0)
     check("two implement phases", len(impl_starts) == 2,
@@ -364,7 +364,7 @@ with tempfile.TemporaryDirectory() as tmp:
     })
 
     out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
     result = lines[-1] if lines else {}
 
     check("exits 0", rc == 0)
@@ -374,8 +374,8 @@ with tempfile.TemporaryDirectory() as tmp:
           "got: " + str(result.get("iterationsCompleted")))
 
     # Verify ordering: ID_001 completed before ID_002 started
-    complete_events = [l for l in lines if l.get("type") == "iteration_complete"]
-    complete_ids = [l.get("iterationId") for l in complete_events]
+    complete_events = [ln for ln in lines if ln.get("type") == "iteration_complete"]
+    complete_ids = [ln.get("iterationId") for ln in complete_events]
     check("ID_001 completed", "ID_001" in complete_ids)
     check("ID_002 completed", "ID_002" in complete_ids)
     if len(complete_ids) >= 2:
@@ -417,7 +417,7 @@ with tempfile.TemporaryDirectory() as tmp:
     })
 
     out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
     result = lines[-1] if lines else {}
 
     check("exits 0 (pause, not error)", rc == 0)
@@ -428,7 +428,7 @@ with tempfile.TemporaryDirectory() as tmp:
           "got: " + str(pause))
 
     # No iteration should have started
-    impl_starts = [l for l in lines if l.get("type") == "iteration_start"]
+    impl_starts = [ln for ln in lines if ln.get("type") == "iteration_start"]
     check("no iterations started", len(impl_starts) == 0,
           "got: " + str(len(impl_starts)))
 
@@ -481,7 +481,7 @@ with tempfile.TemporaryDirectory() as tmp:
     })
 
     out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
     result = lines[-1] if lines else {}
 
     check("exits 0", rc == 0)
@@ -530,7 +530,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     out, err, rc = run(["run", plet_dir, "--allow-stale", "--max-iterations", "1",
                          "--output", "ndjson"], env=env, cwd=tmp)
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
     result = lines[-1] if lines else {}
 
     check("exits 0", rc == 0)
@@ -569,7 +569,7 @@ with tempfile.TemporaryDirectory() as tmp:
     })
 
     out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
     result = lines[-1] if lines else {}
 
     check("exits 0", rc == 0)
@@ -625,11 +625,11 @@ with tempfile.TemporaryDirectory() as tmp:
     })
 
     out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
-    lines = [json.loads(l) for l in out.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
     result = lines[-1] if lines else {}
 
     # Should have session_start with resumed=true
-    session_events = [l for l in lines if l.get("type") == "session_start"]
+    session_events = [ln for ln in lines if ln.get("type") == "session_start"]
     check("exits 0", rc == 0)
     check("has session_start", len(session_events) > 0)
     if session_events:
@@ -693,7 +693,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # With --allow-stale: should proceed
     out2, err2, rc2 = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"],
                            env=env, cwd=tmp)
-    lines = [json.loads(l) for l in out2.strip().split("\n") if l.strip()]
+    lines = [json.loads(ln) for ln in out2.strip().split("\n") if ln.strip()]
     result = lines[-1] if lines else {}
     check("proceeds with --allow-stale", rc2 == 0)
     check("completed with allow-stale",

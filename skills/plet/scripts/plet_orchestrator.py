@@ -16,7 +16,6 @@ import json
 import os
 import subprocess
 import sys
-import time
 
 # Add scripts dir to path for sibling imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -27,15 +26,13 @@ from util_cli import (
     now_iso,
     parse_kwargs,
     validate_known_flags,
-    UNIVERSAL_FLAGS_READ,
 )
 from util_io import (
     load_json,
     state_json_path,
-    iter_state_path,
     derive_worktree_plet_dir,
 )
-from util_state import load_and_validate_iter_state, load_and_validate_global_state
+from util_state import load_and_validate_iter_state
 
 SCRIPT_VERSION = "0.2.0"
 from util_constants import SKILL_VERSION  # noqa: E402
@@ -188,7 +185,6 @@ def cmd_run(args):
         return 1
 
     output_ndjson = kwargs.get("output") == "ndjson"
-    sequential = "sequential" in kwargs
     allow_stale = "allow_stale" in kwargs
     max_iterations = None
     if "max_iterations" in kwargs:
@@ -212,7 +208,7 @@ def cmd_run(args):
         print(_help_hint("run"), file=sys.stderr)
         return 1
 
-    project_id = global_state.get("projectId", "UNKNOWN")
+    global_state.get("projectId", "UNKNOWN")
 
     # Change to project root (parent of plet_dir) — all git ops run from here
     project_root = os.path.dirname(os.path.abspath(plet_dir))
@@ -264,9 +260,8 @@ def cmd_run(args):
     is_stale = fp_rc != 0 or (fp_data and not fp_data.get("allConsistent", True))
     if is_stale:
         if not allow_stale:
-            detail = ""
             if fp_data:
-                detail = fp_data.get("levels", {})
+                fp_data.get("levels", {})
             msg = "Fingerprints stale. Use --allow-stale to override."
             print("Error: {}".format(msg), file=sys.stderr)
             result = _make_result("error", counts, error=msg)
