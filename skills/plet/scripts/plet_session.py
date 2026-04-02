@@ -173,7 +173,6 @@ def cmd_start_session(args):
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-session")):
         return 1
-
     if not require_kwargs(kwargs, ["type"], help_text):
         return 1
 
@@ -186,30 +185,66 @@ def cmd_start_session(args):
     if not ok:
         return 1
 
-    # Load state
+    state, gs_path = _load_session_state(plet_dir, session_type)
+    if state is None:
+        return 1
+
+    history = state["sessionHistory"]
+    active = _find_active_sessions(history)
+
+    err = _check_active_sessions(active, session_type)
+    if err is not None:
+        return err
+
+    # Resume detection: same type already active
+    if len(active) == 1:
+        _, ae = active[0]
+        return _emit_session_result(
+            ae["session"], ae["branch"], session_type, state["projectId"], True, output_json, pretty, fields
+        )
+
+    # New session
+    counter_key = COUNTER_KEY[session_type]
+    state[counter_key] += 1
+    session_number = state[counter_key]
+    branch_type = "workstream" if session_type == "loop" else "refine"
+    branch = derive_branch_name(state, branch_type)
+
+    history.append(
+        {"type": session_type, "session": session_number, "branch": branch, "startedAt": now_iso(), "endedAt": None}
+    )
+
+    if not dry_run:
+        atomic_write_json(gs_path, state)
+        _ensure_merge_driver(plet_dir)
+
+    return _emit_session_result(
+        session_number, branch, session_type, state["projectId"], False, output_json, pretty, fields
+    )
+
+
+def _load_session_state(plet_dir, session_type):
+    """Load and prepare state for start-session. Returns (state, path) or (None, None)."""
     gs_path = state_json_path(plet_dir)
     state = load_json(gs_path)
     if state is None:
         print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
         print(_help_hint("start-session"), file=sys.stderr)
-        return 1
-
+        return None, None
     if "projectId" not in state:
         print("Error: state.json missing required field: projectId", file=sys.stderr)
         print(_help_hint("start-session"), file=sys.stderr)
-        return 1
-
-    # Initialize missing fields
+        return None, None
     if "sessionHistory" not in state:
         state["sessionHistory"] = []
     counter_key = COUNTER_KEY[session_type]
     if counter_key not in state:
         state[counter_key] = 0
+    return state, gs_path
 
-    history = state["sessionHistory"]
 
-    # Corruption check: multiple active sessions
-    active = _find_active_sessions(history)
+def _check_active_sessions(active, session_type):
+    """Check for corruption or cross-type conflict. Returns exit code or None."""
     if len(active) > 1:
         indices = [str(i) for i, _ in active]
         print(
@@ -218,79 +253,41 @@ def cmd_start_session(args):
             file=sys.stderr,
         )
         return 1
-
-    # Resume detection: same type already active
     if len(active) == 1:
-        _, active_entry = active[0]
-        if active_entry["type"] == session_type:
-            # Resume
-            session_number = active_entry["session"]
-            branch = active_entry["branch"]
-
-            if output_json:
-                data = {
-                    "status": "ok",
-                    "command": "start-session",
-                    "sessionType": session_type,
-                    "sessionNumber": session_number,
-                    "branch": branch,
-                    "projectId": state["projectId"],
-                    "resumed": True,
-                }
-                emit_json(data, SCRIPT_VERSION, pretty, fields)
-            else:
-                print(f"Session: {session_type} {session_number}")
-                print(f"Branch: {branch}")
-                print("Resumed: yes")
-            return 0
-        else:
-            # Cross-type conflict
+        _, ae = active[0]
+        if ae["type"] != session_type:
             print(
                 "Error: {} session {} is still active (endedAt: null). Run end-session first.".format(
-                    active_entry["type"], active_entry["session"]
+                    ae["type"], ae["session"]
                 ),
                 file=sys.stderr,
             )
             print(_help_hint("start-session"), file=sys.stderr)
             return 1
+    return None
 
-    # New session: increment counter, derive branch, append history
-    state[counter_key] += 1
-    session_number = state[counter_key]
 
-    # Build a temporary state view for derive_branch_name
-    branch_type = "workstream" if session_type == "loop" else "refine"
-    branch = derive_branch_name(state, branch_type)
-
-    new_entry = {
-        "type": session_type,
-        "session": session_number,
-        "branch": branch,
-        "startedAt": now_iso(),
-        "endedAt": None,
-    }
-    history.append(new_entry)
-
-    if not dry_run:
-        atomic_write_json(gs_path, state)
-        _ensure_merge_driver(plet_dir)
-
+def _emit_session_result(session_number, branch, session_type, project_id, resumed, output_json, pretty, fields):
+    """Emit start-session result."""
     if output_json:
-        data = {
-            "status": "ok",
-            "command": "start-session",
-            "sessionType": session_type,
-            "sessionNumber": session_number,
-            "branch": branch,
-            "projectId": state["projectId"],
-            "resumed": False,
-        }
-        emit_json(data, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": "start-session",
+                "sessionType": session_type,
+                "sessionNumber": session_number,
+                "branch": branch,
+                "projectId": project_id,
+                "resumed": resumed,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         print(f"Session: {session_type} {session_number}")
         print(f"Branch: {branch}")
-        print("Resumed: no")
-
+        print("Resumed: {}".format("yes" if resumed else "no"))
     return 0
 
 

@@ -469,6 +469,52 @@ def format_text_output(command, checks, overall, counts):
 # ---------------------------------------------------------------------------
 
 
+def _log_gate_to_progress(cmd, checks, plet_dir, iter_id, iter_state, phase, overall, counts, exit_code):
+    """Log gate result to progress.md via plet_entries.py."""
+    ent_script = os.path.join(scripts_dir(), "plet_entries.py")
+    progress_path_val = os.path.join(plet_dir, "progress.md")
+    if not (os.path.isfile(ent_script) and os.path.isfile(progress_path_val)):
+        return
+
+    iter_title = iter_state.get("title", iter_id)
+    check_summary = ", ".join("{}: {}".format(c["name"], c["status"]) for c in checks if c["status"] != "pass")
+    if not check_summary:
+        check_summary = "all passed"
+    content = (
+        "Gate {cmd} ({phase}): {overall}\n{passed} passed, {failed} failed, {warnings} warnings\n{details}".format(
+            cmd=cmd,
+            phase=phase,
+            overall=overall.upper(),
+            passed=counts["passed"],
+            failed=counts["failed"],
+            warnings=counts["warnings"],
+            details=check_summary,
+        )
+    )
+    attempt = iter_state.get("attempts", {}).get(phase, 1)
+    gate_status = "COMPLETE" if exit_code == 0 else "IN_PROGRESS"
+    run(
+        [
+            sys.executable,
+            ent_script,
+            "add-progress",
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--iter-title",
+            iter_title,
+            "--phase",
+            phase,
+            "--attempt",
+            str(attempt),
+            "--status",
+            gate_status,
+            "--content",
+            content,
+        ]
+    )
+
+
 def run_gate(cmd, args, phase_specific_pre_fn, phase_specific_post_fn):
     """Shared logic for pre and post commands."""
     help_pre = """IMPORTANT:
@@ -577,47 +623,7 @@ Examples:
 
     overall, counts, exit_code = summarize_checks(checks)
 
-    # Log gate result to progress.md
-    iter_title = iter_state.get("title", iter_id)
-    check_summary = ", ".join("{}: {}".format(c["name"], c["status"]) for c in checks if c["status"] != "pass")
-    if not check_summary:
-        check_summary = "all passed"
-    progress_content = (
-        "Gate {cmd} ({phase}): {overall}\n{passed} passed, {failed} failed, {warnings} warnings\n{details}"
-    ).format(
-        cmd=cmd,
-        phase=phase,
-        overall=overall.upper(),
-        passed=counts["passed"],
-        failed=counts["failed"],
-        warnings=counts["warnings"],
-        details=check_summary,
-    )
-    ent_script = os.path.join(scripts_dir(), "plet_entries.py")
-    progress_path = os.path.join(plet_dir, "progress.md")
-    if os.path.isfile(ent_script) and os.path.isfile(progress_path):
-        attempt = iter_state.get("attempts", {}).get(phase, 1)
-        gate_status = "COMPLETE" if exit_code == 0 else "IN_PROGRESS"
-        run(
-            [
-                sys.executable,
-                ent_script,
-                "add-progress",
-                plet_dir,
-                "--iter-id",
-                iter_id,
-                "--iter-title",
-                iter_title,
-                "--phase",
-                phase,
-                "--attempt",
-                str(attempt),
-                "--status",
-                gate_status,
-                "--content",
-                progress_content,
-            ]
-        )
+    _log_gate_to_progress(cmd, checks, plet_dir, iter_id, iter_state, phase, overall, counts, exit_code)
 
     if output_json:
         emit_json(

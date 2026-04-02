@@ -338,6 +338,66 @@ def _format_status_text(
 # ---------------------------------------------------------------------------
 
 
+def _collect_status_data(plet_dir, global_state, iter_states):
+    """Collect all data needed for the status command. Returns a dict."""
+    lifecycles = global_state.get("lifecycles", {})
+    lifecycle_counts = {
+        "ineligible": 0,
+        "queued": 0,
+        "implementing": 0,
+        "verifying": 0,
+        "complete": 0,
+        "blocked": 0,
+        "withdrawn": 0,
+    }
+    for _iter_id, lc in lifecycles.items():
+        if lc in lifecycle_counts:
+            lifecycle_counts[lc] += 1
+
+    total = len(lifecycles)
+    complete_count = lifecycle_counts["complete"]
+
+    blockers = []
+    for iter_id, lc in lifecycles.items():
+        if lc == "blocked":
+            title = ""
+            for s in iter_states:
+                if s["iterationId"] == iter_id:
+                    title = s.get("title", "")
+                    break
+            blockers.append({"iterationId": iter_id, "title": title})
+
+    active_agents = []
+    for s in iter_states:
+        agent_id = s.get("agentId")
+        if agent_id:
+            active_agents.append(
+                {
+                    "iterationId": s["iterationId"],
+                    "agentId": agent_id,
+                    "phaseActivity": s.get("phaseActivity", "unknown"),
+                }
+            )
+
+    session_type, _, _ = detect_session_type(plet_dir)
+    percent = int(round(100.0 * complete_count / total)) if total > 0 else 0
+    progress = {"complete": complete_count, "total": total, "percent": percent}
+
+    return {
+        "lifecycle_counts": lifecycle_counts,
+        "total": total,
+        "complete_count": complete_count,
+        "blockers": blockers,
+        "active_agents": active_agents,
+        "session_type": session_type,
+        "progress": progress,
+        "milestones_data": _compute_milestones(global_state, lifecycles),
+        "fingerprints": _check_fingerprints(plet_dir),
+        "project_id": global_state.get("projectId", "UNKNOWN"),
+        "loop_session": active_loop_number(global_state),
+    }
+
+
 def cmd_status(args):
     help_text = """IMPORTANT:
     status is read-only — it reads project state and prints a summary.
@@ -387,7 +447,6 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    # Preconditions: plet_dir must exist
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
@@ -396,13 +455,11 @@ Examples:
             print(err_msg, file=sys.stderr)
         return 1
 
-    # Load global state
     global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
         print(hint, file=sys.stderr)
         return 1
 
-    # Scan iteration states
     sd = state_dir_path(plet_dir)
     if not os.path.isdir(sd):
         msg = f"Error: state directory not found: {sd}"
@@ -413,85 +470,22 @@ Examples:
         return 1
 
     iter_states, warnings = scan_iter_states(plet_dir)
-
-    # Count lifecycles from state.json (SF_28)
-    lifecycles = global_state.get("lifecycles", {})
-    lifecycle_counts = {
-        "ineligible": 0,
-        "queued": 0,
-        "implementing": 0,
-        "verifying": 0,
-        "complete": 0,
-        "blocked": 0,
-        "withdrawn": 0,
-    }
-    for _iter_id, lc in lifecycles.items():
-        if lc in lifecycle_counts:
-            lifecycle_counts[lc] += 1
-
-    total = len(lifecycles)
-    complete_count = lifecycle_counts["complete"]
-
-    # Blockers — lifecycle from state.json, title from per-iteration files
-    blockers = []
-    for iter_id, lc in lifecycles.items():
-        if lc == "blocked":
-            # Find title from per-iteration state
-            title = ""
-            for s in iter_states:
-                if s["iterationId"] == iter_id:
-                    title = s.get("title", "")
-                    break
-            blockers.append(
-                {
-                    "iterationId": iter_id,
-                    "title": title,
-                }
-            )
-
-    # Active agents — phaseActivity (was agentActivity, SF_28)
-    active_agents = []
-    for s in iter_states:
-        agent_id = s.get("agentId")
-        if agent_id:
-            active_agents.append(
-                {
-                    "iterationId": s["iterationId"],
-                    "agentId": agent_id,
-                    "phaseActivity": s.get("phaseActivity", "unknown"),
-                }
-            )
-
-    # Session type via detect logic
-    session_type, _, _ = detect_session_type(plet_dir)
-
-    # Progress
-    percent = int(round(100.0 * complete_count / total)) if total > 0 else 0
-    progress = {"complete": complete_count, "total": total, "percent": percent}
-
-    # Milestones
-    milestones_data = _compute_milestones(global_state, lifecycles)
-
-    # Fingerprint check (P1 — graceful degradation)
-    fingerprints = _check_fingerprints(plet_dir)
-
-    project_id = global_state.get("projectId", "UNKNOWN")
-    loop_session = active_loop_number(global_state)
+    d = _collect_status_data(plet_dir, global_state, iter_states)
 
     if output_json:
         emit_json(
             {
                 "status": "ok",
                 "command": cmd_name,
-                "projectId": project_id,
-                "sessionType": session_type,
-                "loopSession": loop_session,
-                "progress": progress,
-                "iterations": dict(lifecycle_counts, total=total),
-                "milestones": milestones_data,
-                "blockers": blockers,
-                "activeAgents": active_agents,
-                "fingerprints": fingerprints,
+                "projectId": d["project_id"],
+                "sessionType": d["session_type"],
+                "loopSession": d["loop_session"],
+                "progress": d["progress"],
+                "iterations": dict(d["lifecycle_counts"], total=d["total"]),
+                "milestones": d["milestones_data"],
+                "blockers": d["blockers"],
+                "activeAgents": d["active_agents"],
+                "fingerprints": d["fingerprints"],
                 "warnings": warnings,
             },
             SCRIPT_VERSION,
@@ -500,18 +494,18 @@ Examples:
         )
     else:
         _format_status_text(
-            project_id,
-            session_type,
-            loop_session,
-            complete_count,
-            total,
-            percent,
-            lifecycle_counts,
-            blockers,
-            active_agents,
-            fingerprints,
+            d["project_id"],
+            d["session_type"],
+            d["loop_session"],
+            d["complete_count"],
+            d["total"],
+            d["progress"]["percent"],
+            d["lifecycle_counts"],
+            d["blockers"],
+            d["active_agents"],
+            d["fingerprints"],
             warnings,
-            milestones_data,
+            d["milestones_data"],
         )
 
     return 0
@@ -871,39 +865,43 @@ def cmd_postflight(args):
     if not ok:
         return 1
 
-    # Run preflight checks (reuse)
     checks = run_preflight_checks(plet_dir, session_type)
+    _append_transient_lifecycle_check(checks, plet_dir)
 
-    # End-of-session check: transient lifecycle detection from state.json (SF_28)
-    sjp = state_json_path(plet_dir)
-    if os.path.isfile(sjp):
-        gs = load_json(sjp)
-        if gs and "lifecycles" in gs:
-            transient = []
-            for iter_id, lc in gs.get("lifecycles", {}).items():
-                if lc in ("implementing", "verifying"):
-                    transient.append(iter_id)
-            if transient:
-                checks.append(
-                    {
-                        "name": "transient-lifecycle",
-                        "status": "warn",
-                        "detail": "iterations in transient state: {} ({})".format(
-                            ", ".join(transient),
-                            "may indicate crashed subagent — orchestrator should clean up on next run",
-                        ),
-                    }
-                )
-            else:
-                checks.append(
-                    {"name": "transient-lifecycle", "status": "pass", "detail": "no iterations in transient state"}
-                )
-
-    # Summarize — postflight never fails, downgrade all fails to warns
+    # Postflight never fails — downgrade all fails to warns
     for c in checks:
         if c["status"] == "fail":
             c["status"] = "warn"
 
+    return _emit_postflight_result(checks, session_type, output_json, pretty, fields)
+
+
+def _append_transient_lifecycle_check(checks, plet_dir):
+    """Append transient lifecycle check to checks list."""
+    sjp = state_json_path(plet_dir)
+    if not os.path.isfile(sjp):
+        return
+    gs = load_json(sjp)
+    if not gs or "lifecycles" not in gs:
+        return
+    transient = [iid for iid, lc in gs.get("lifecycles", {}).items() if lc in ("implementing", "verifying")]
+    if transient:
+        checks.append(
+            {
+                "name": "transient-lifecycle",
+                "status": "warn",
+                "detail": "iterations in transient state: {} ({})".format(
+                    ", ".join(transient),
+                    "may indicate crashed subagent — orchestrator should clean up on next run",
+                ),
+            }
+        )
+    else:
+        checks.append({"name": "transient-lifecycle", "status": "pass", "detail": "no iterations in transient state"})
+
+
+def _emit_postflight_result(checks, session_type, output_json, pretty, fields):
+    """Summarize and emit postflight results."""
     total = len(checks)
     passed_count = sum(1 for c in checks if c["status"] == "pass")
     warn_count = sum(1 for c in checks if c["status"] == "warn")
@@ -913,19 +911,18 @@ def cmd_postflight(args):
     exit_code = 0 if warn_count == 0 else 2
 
     if output_json:
-        data = {
-            "status": overall,
-            "command": "postflight",
-            "sessionType": session_type,
-            "checks": checks,
-            "summary": {
-                "total": total,
-                "passed": passed_count,
-                "warnings": warn_count,
-                "skipped": skip_count,
+        emit_json(
+            {
+                "status": overall,
+                "command": "postflight",
+                "sessionType": session_type,
+                "checks": checks,
+                "summary": {"total": total, "passed": passed_count, "warnings": warn_count, "skipped": skip_count},
             },
-        }
-        emit_json(data, SCRIPT_VERSION, pretty, fields)
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         label = "OK" if overall == "ok" else "WARN"
         print(f"{label}: postflight — {total} checks")

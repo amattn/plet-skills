@@ -246,6 +246,95 @@ def emit_json_error(command, message, pretty=False, extra=None):
 
 
 # ---------------------------------------------------------------------------
+# Shared entry parsing + writing
+# ---------------------------------------------------------------------------
+
+
+def _parse_entry_args(args, help_text, cmd_name, known_flags, required):
+    """Parse args for an add-* entry command.
+
+    Returns (artifact_dir, kwargs, output_json, pretty, fields, dry_run) or None.
+    """
+    hint = help_hint(cmd_name)
+    if "-h" in args or "--help" in args:
+        print(help_text)
+        return "help"
+    if len(args) < 1:
+        print(help_text, file=sys.stderr)
+        return None
+
+    artifact_dir = args[0]
+    try:
+        kwargs = parse_kwargs(args[1:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+
+    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    if not ok:
+        print(hint, file=sys.stderr)
+        return None
+    if not validate_known_flags(kwargs, known_flags, hint):
+        return None
+    if not require_kwargs(kwargs, required, help_text):
+        return None
+    if not validate_iter_id(kwargs["iter_id"]):
+        print(hint, file=sys.stderr)
+        return None
+
+    attempt, ok = validate_positive_int(kwargs["attempt"], "--attempt")
+    if not ok:
+        print(hint, file=sys.stderr)
+        return None
+
+    allow_fences = kwargs.pop("allow_fences", False) is True
+    content_text, ok = resolve_content(kwargs, allow_fences=allow_fences)
+    if not ok:
+        print(hint, file=sys.stderr)
+        return None
+
+    kwargs["_attempt_int"] = attempt
+    kwargs["_content_text"] = content_text
+    return artifact_dir, kwargs, output_json, pretty, fields, dry_run
+
+
+def _ensure_artifact_file(file_path):
+    """Auto-create artifact file if it doesn't exist."""
+    if not os.path.exists(file_path):
+        os.makedirs(os.path.dirname(file_path) or ".", exist_ok=True)
+        with open(file_path, "w") as f:
+            f.write("")
+
+
+def _emit_entry_result(cmd_name, plet_id, file_path, extra_data, dry_run, output_json, pretty, fields, text_suffix=""):
+    """Emit dry-run or final result for an add-* command. Returns 0."""
+    if dry_run:
+        msg = f"DRY RUN — would append {cmd_name.replace('add-', '')} entry {plet_id}{text_suffix} to {file_path}"
+        if output_json:
+            data = {
+                "status": "ok",
+                "command": cmd_name,
+                "pletId": plet_id,
+                "path": file_path,
+                "dryRun": True,
+                "message": msg,
+            }
+            emit_json(data, pretty, fields)
+        else:
+            print(msg)
+        return 0
+
+    if output_json:
+        data = {"status": "ok", "command": cmd_name, "pletId": plet_id, "path": file_path}
+        data.update(extra_data)
+        emit_json(data, pretty, fields)
+    else:
+        print(f"OK — {plet_id}{text_suffix}")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
 
@@ -284,138 +373,53 @@ Examples:
         --phase implement --attempt 1 --status COMPLETE \\
         --content "Initialized project with pytest, ruff. All checks pass."
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-    if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return 1
-
     cmd_name = "add-progress"
-    hint = help_hint(cmd_name)
-    artifact_dir = args[0]
-    try:
-        kwargs = parse_kwargs(args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(
-        kwargs,
-        {
-            "iter_id",
-            "iter_title",
-            "phase",
-            "attempt",
-            "status",
-            "content",
-            "content_file",
-            "allow_fences",
-        },
-        hint,
-    ):
-        return 1
-
+    known = {"iter_id", "iter_title", "phase", "attempt", "status", "content", "content_file", "allow_fences"}
     required = ["iter_id", "iter_title", "phase", "attempt", "status"]
-    if not require_kwargs(kwargs, required, help_text):
+    result = _parse_entry_args(args, help_text, cmd_name, known, required)
+    if result == "help":
+        return 0
+    if result is None:
         return 1
+    artifact_dir, kwargs, output_json, pretty, fields, dry_run = result
 
-    # Validate iter-id
-    if not validate_iter_id(kwargs["iter_id"]):
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate phase
+    hint = help_hint(cmd_name)
     if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
         if output_json:
             emit_json_error(cmd_name, "invalid --phase '{}'".format(kwargs["phase"]), pretty)
         print(hint, file=sys.stderr)
         return 1
-
-    # Validate status
     if not validate_enum(kwargs["status"], VALID_PROGRESS_STATUSES, "--status"):
         if output_json:
             emit_json_error(cmd_name, "invalid --status '{}'".format(kwargs["status"]), pretty)
         print(hint, file=sys.stderr)
         return 1
 
-    # Validate attempt
-    attempt, ok = validate_positive_int(kwargs["attempt"], "--attempt")
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Resolve content
-    allow_fences = kwargs.pop("allow_fences", False) is True
-    content_text, ok = resolve_content(kwargs, allow_fences=allow_fences)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
+    attempt = kwargs["_attempt_int"]
+    content_text = kwargs["_content_text"]
     phase = kwargs["phase"]
-    status = kwargs["status"]
 
-    # Auto-create artifact file if it doesn't exist
     prog_path = progress_path(artifact_dir)
-    if not os.path.exists(prog_path):
-        os.makedirs(os.path.dirname(prog_path) or ".", exist_ok=True)
-        with open(prog_path, "w") as f:
-            f.write("")
+    _ensure_artifact_file(prog_path)
 
     plet_id = generate_plet_id(TYPE_PREFIXES["progress"], kwargs["iter_id"], phase, attempt)
     entry = build_progress_entry(
-        plet_id,
-        kwargs["iter_id"],
-        kwargs["iter_title"],
-        phase,
-        attempt,
-        status,
-        content_text,
+        plet_id, kwargs["iter_id"], kwargs["iter_title"], phase, attempt, kwargs["status"], content_text
     )
 
-    if dry_run:
-        msg = f"DRY RUN — would append progress entry {plet_id} to {prog_path}"
-        if output_json:
-            emit_json(
-                {
-                    "status": "ok",
-                    "command": "add-progress",
-                    "pletId": plet_id,
-                    "path": prog_path,
-                    "dryRun": True,
-                    "message": msg,
-                },
-                pretty,
-                fields,
-            )
-        else:
-            print(msg)
-        return 0
+    if not dry_run:
+        atomic_append(prog_path, entry)
 
-    atomic_append(prog_path, entry)
-
-    if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": "add-progress",
-                "pletId": plet_id,
-                "path": prog_path,
-                "iteration": kwargs["iter_id"],
-                "phase": phase,
-                "attempt": attempt,
-            },
-            pretty,
-            fields,
-        )
-    else:
-        print(f"OK — {plet_id}")
-    return 0
+    return _emit_entry_result(
+        cmd_name,
+        plet_id,
+        prog_path,
+        {"iteration": kwargs["iter_id"], "phase": phase, "attempt": attempt},
+        dry_run,
+        output_json,
+        pretty,
+        fields,
+    )
 
 
 def cmd_add_learning(args):
@@ -454,124 +458,59 @@ Examples:
         --content "Default journal mode blocks readers during writes." \\
         --phase implement --attempt 1
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-    if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return 1
-
     cmd_name = "add-learning"
-    hint = help_hint(cmd_name)
-    artifact_dir = args[0]
-    try:
-        kwargs = parse_kwargs(args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(
-        kwargs,
-        {
-            "iter_id",
-            "iter_title",
-            "category",
-            "title",
-            "phase",
-            "attempt",
-            "content",
-            "content_file",
-            "allow_fences",
-        },
-        hint,
-    ):
-        return 1
-
+    known = {
+        "iter_id",
+        "iter_title",
+        "category",
+        "title",
+        "phase",
+        "attempt",
+        "content",
+        "content_file",
+        "allow_fences",
+    }
     required = ["iter_id", "iter_title", "category", "title", "phase", "attempt"]
-    if not require_kwargs(kwargs, required, help_text):
+    result = _parse_entry_args(args, help_text, cmd_name, known, required)
+    if result == "help":
+        return 0
+    if result is None:
         return 1
+    artifact_dir, kwargs, output_json, pretty, fields, dry_run = result
 
-    if not validate_iter_id(kwargs["iter_id"]):
+    hint = help_hint(cmd_name)
+    if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
         print(hint, file=sys.stderr)
         return 1
     if not validate_enum(kwargs["category"], VALID_LEARNING_CATEGORIES, "--category"):
         print(hint, file=sys.stderr)
         return 1
-    if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
 
-    attempt, ok = validate_positive_int(kwargs["attempt"], "--attempt")
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    allow_fences = kwargs.pop("allow_fences", False) is True
-    content_text, ok = resolve_content(kwargs, allow_fences=allow_fences)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
+    attempt = kwargs["_attempt_int"]
+    content_text = kwargs["_content_text"]
     phase = kwargs["phase"]
+
     learn_path = learnings_path(artifact_dir)
-    if not os.path.exists(learn_path):
-        os.makedirs(os.path.dirname(learn_path) or ".", exist_ok=True)
-        with open(learn_path, "w") as f:
-            f.write("")
+    _ensure_artifact_file(learn_path)
 
     plet_id = generate_plet_id(TYPE_PREFIXES["learning"], kwargs["iter_id"], phase, attempt)
     entry = build_learning_entry(
-        plet_id,
-        kwargs["iter_id"],
-        kwargs["iter_title"],
-        kwargs["category"],
-        kwargs["title"],
-        content_text,
-        phase,
+        plet_id, kwargs["iter_id"], kwargs["iter_title"], kwargs["category"], kwargs["title"], content_text, phase
     )
 
-    if dry_run:
-        msg = f"DRY RUN — would append learning entry {plet_id} to {learn_path}"
-        if output_json:
-            emit_json(
-                {
-                    "status": "ok",
-                    "command": "add-learning",
-                    "pletId": plet_id,
-                    "path": learn_path,
-                    "dryRun": True,
-                    "message": msg,
-                },
-                pretty,
-                fields,
-            )
-        else:
-            print(msg)
-        return 0
+    if not dry_run:
+        atomic_append(learn_path, entry)
 
-    atomic_append(learn_path, entry)
-
-    if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": "add-learning",
-                "pletId": plet_id,
-                "path": learn_path,
-                "category": kwargs["category"],
-                "iteration": kwargs["iter_id"],
-            },
-            pretty,
-            fields,
-        )
-    else:
-        print(f"OK — {plet_id}")
-    return 0
+    return _emit_entry_result(
+        cmd_name,
+        plet_id,
+        learn_path,
+        {"category": kwargs["category"], "iteration": kwargs["iter_id"]},
+        dry_run,
+        output_json,
+        pretty,
+        fields,
+    )
 
 
 def cmd_add_emergent(args):
@@ -611,77 +550,41 @@ Examples:
         --content "Requirements say persistent storage. Chose SQLite for simplicity." \\
         --attempt 1
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-    if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return 1
-
     cmd_name = "add-emergent"
-    hint = help_hint(cmd_name)
-    artifact_dir = args[0]
-    try:
-        kwargs = parse_kwargs(args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(
-        kwargs,
-        {
-            "iter_id",
-            "iter_title",
-            "title",
-            "phase",
-            "category",
-            "attempt",
-            "content",
-            "content_file",
-            "allow_fences",
-        },
-        hint,
-    ):
-        return 1
-
+    known = {
+        "iter_id",
+        "iter_title",
+        "title",
+        "phase",
+        "category",
+        "attempt",
+        "content",
+        "content_file",
+        "allow_fences",
+    }
     required = ["iter_id", "iter_title", "title", "phase", "category", "attempt"]
-    if not require_kwargs(kwargs, required, help_text):
+    result = _parse_entry_args(args, help_text, cmd_name, known, required)
+    if result == "help":
+        return 0
+    if result is None:
         return 1
+    artifact_dir, kwargs, output_json, pretty, fields, dry_run = result
 
-    if not validate_iter_id(kwargs["iter_id"]):
+    hint = help_hint(cmd_name)
+    if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
         print(hint, file=sys.stderr)
         return 1
     if not validate_enum(kwargs["category"], VALID_EMERGENT_CATEGORIES, "--category"):
         print(hint, file=sys.stderr)
         return 1
-    if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
 
-    attempt, ok = validate_positive_int(kwargs["attempt"], "--attempt")
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    allow_fences = kwargs.pop("allow_fences", False) is True
-    content_text, ok = resolve_content(kwargs, allow_fences=allow_fences)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
+    attempt = kwargs["_attempt_int"]
+    content_text = kwargs["_content_text"]
     phase = kwargs["phase"]
     em_number = next_em_number(artifact_dir)
 
     em_path = emergent_path(artifact_dir)
-    if not os.path.exists(em_path):
-        os.makedirs(os.path.dirname(em_path) or ".", exist_ok=True)
-        with open(em_path, "w") as f:
-            f.write("")
+    _ensure_artifact_file(em_path)
 
     plet_id = generate_plet_id(TYPE_PREFIXES["emergent"], kwargs["iter_id"], phase, attempt)
     entry = build_emergent_entry(
@@ -695,45 +598,77 @@ Examples:
         content_text,
     )
 
-    if dry_run:
-        msg = f"DRY RUN — would append emergent entry {plet_id} EM_{em_number} to {em_path}"
+    if not dry_run:
+        atomic_append(em_path, entry)
+
+    return _emit_entry_result(
+        cmd_name,
+        plet_id,
+        em_path,
+        {"referenceId": f"EM_{em_number}", "category": kwargs["category"], "iteration": kwargs["iter_id"]},
+        dry_run,
+        output_json,
+        pretty,
+        fields,
+        text_suffix=f" EM_{em_number}",
+    )
+
+
+def _parse_check_args(args, help_text):
+    """Parse args for the check command. Returns (artifact_dir, kwargs, output_json, pretty, fields) or None."""
+    cmd_name = "check"
+    hint = help_hint(cmd_name)
+    if "-h" in args or "--help" in args:
+        print(help_text)
+        return "help"
+    if len(args) < 1:
+        print(help_text, file=sys.stderr)
+        return None
+
+    artifact_dir = args[0]
+    try:
+        kwargs = parse_kwargs(args[1:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+
+    if "dry_run" in kwargs:
+        print("Error: --dry-run is not available on the check command (read-only)", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+
+    output_json, pretty, fields, _, ok = extract_universal_flags(kwargs)
+    if not ok:
+        print(hint, file=sys.stderr)
+        return None
+    if not validate_known_flags(kwargs, {"iter_id"}, hint):
+        return None
+    if not require_kwargs(kwargs, ["iter_id"], help_text):
+        return None
+
+    return artifact_dir, kwargs, output_json, pretty, fields
+
+
+def _validate_check_iter_id(iteration, cmd_name, output_json, pretty, hint):
+    """Validate iter-id for the check command. Returns True if valid."""
+    if iteration.lower() == "proj":
+        msg = "Error: --iter-id 'proj' is not accepted by check — R_7 is per-iteration only"
         if output_json:
-            emit_json(
-                {
-                    "status": "ok",
-                    "command": "add-emergent",
-                    "pletId": plet_id,
-                    "referenceId": f"EM_{em_number}",
-                    "path": em_path,
-                    "dryRun": True,
-                    "message": msg,
-                },
-                pretty,
-                fields,
-            )
+            emit_json_error(cmd_name, msg, pretty)
         else:
-            print(msg)
-        return 0
-
-    atomic_append(em_path, entry)
-
-    if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": "add-emergent",
-                "pletId": plet_id,
-                "referenceId": f"EM_{em_number}",
-                "path": em_path,
-                "category": kwargs["category"],
-                "iteration": kwargs["iter_id"],
-            },
-            pretty,
-            fields,
-        )
-    else:
-        print(f"OK — {plet_id} EM_{em_number}")
-    return 0
+            print(msg, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return False
+    if not ITER_ID_PATTERN.match(iteration):
+        msg = f"Error: --iter-id '{iteration}' does not match expected pattern ID_N+"
+        if output_json:
+            emit_json_error(cmd_name, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return False
+    return True
 
 
 def cmd_check(args):
@@ -759,58 +694,17 @@ Examples:
     plet_entries.py check plet/ --iter-id ID_001
     plet_entries.py check plet/ --iter-id ID_002 --output json
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
+    parsed = _parse_check_args(args, help_text)
+    if parsed == "help":
         return 0
-    if len(args) < 1:
-        print(help_text, file=sys.stderr)
+    if parsed is None:
         return 1
+    artifact_dir, kwargs, output_json, pretty, fields = parsed
 
     cmd_name = "check"
     hint = help_hint(cmd_name)
-    artifact_dir = args[0]
-    try:
-        kwargs = parse_kwargs(args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Check for --dry-run (not allowed on check)
-    if "dry_run" in kwargs:
-        print("Error: --dry-run is not available on the check command (read-only)", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    output_json, pretty, fields, _, ok = extract_universal_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"iter_id"}, hint):
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return 1
-
     iteration = kwargs["iter_id"]
-
-    # ENT_CHK_PRE_3: check only accepts ID_N+, not proj
-    if iteration.lower() == "proj":
-        msg = "Error: --iter-id 'proj' is not accepted by check — R_7 is per-iteration only"
-        if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    if not ITER_ID_PATTERN.match(iteration):
-        msg = f"Error: --iter-id '{iteration}' does not match expected pattern ID_N+"
-        if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
+    if not _validate_check_iter_id(iteration, cmd_name, output_json, pretty, hint):
         return 1
 
     results = {}
@@ -825,9 +719,6 @@ Examples:
             continue
         with open(path) as f:
             content = f.read()
-        # Count start fences whose plet ID contains the iteration segment.
-        # One fence = one entry. Avoids false positives from [ID_xxx] in
-        # freeform content.
         iter_seg = normalize_iteration(iteration)
         fence_pattern = rf'<div id="plet-(epr|eln|eem)_[0-9A-HJKMNP-TV-Z]{{10}}_{re.escape(iter_seg)}_[ivpr]\d+"></div>'
         count = len(re.findall(fence_pattern, content))

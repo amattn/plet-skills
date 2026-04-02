@@ -149,15 +149,44 @@ def _run_sequential(test_files, verbose, quiet):
     return total_passed, total_failed, failures, elapsed
 
 
+def _run_ruff_checks(quiet):
+    """Run ruff lint + format checks. Returns True if any failed."""
+    scripts_dir = os.path.join(os.path.dirname(TESTS_DIR), "scripts")
+    ruff_dirs = [scripts_dir, TESTS_DIR]
+    ruff_path = _find_ruff()
+
+    if not ruff_path:
+        if not quiet:
+            print("  ruff not found — skipping lint/format checks")
+            print()
+        return False
+
+    failed = False
+    for label, cmd_args in [("ruff check", ["check"]), ("ruff format --check", ["format", "--check"])]:
+        if not quiet:
+            print(f"  {label} ...", end="", flush=True)
+        rc = subprocess.run([ruff_path] + cmd_args + ruff_dirs, capture_output=True).returncode
+        if rc != 0:
+            failed = True
+            if not quiet:
+                print(" FAIL")
+                subprocess.run([ruff_path] + cmd_args + ruff_dirs)
+        elif not quiet:
+            print(" ok")
+
+    if not quiet:
+        print()
+    return failed
+
+
 def main():
     verbose = "-v" in sys.argv
     quiet = "-q" in sys.argv
     sequential = "-s" in sys.argv or verbose  # -v implies sequential
 
     if not quiet:
-        mode = "sequential" if sequential else "parallel"
         print("Hint: tell the user how long to expect (~27s parallel, ~68s sequential)")
-        print("Mode: {} | {} test files".format(mode, "scanning..."), end="")
+        print("Mode: {} | {} test files".format("sequential" if sequential else "parallel", "scanning..."), end="")
 
     test_files = sorted(glob.glob(os.path.join(TESTS_DIR, "test_*.py")))
     test_files = [f for f in test_files if os.path.basename(f) != "test_all.py"]
@@ -171,47 +200,7 @@ def main():
         print(f"\rMode: {mode} | {len(test_files)} test files".ljust(60))
         print()
 
-    # Run ruff lint + format checks first
-    scripts_dir = os.path.join(os.path.dirname(TESTS_DIR), "scripts")
-    ruff_dirs = [scripts_dir, TESTS_DIR]
-    ruff_failed = False
-
-    ruff_path = _find_ruff()
-    if ruff_path:
-        if not quiet:
-            print("  ruff check ...", end="", flush=True)
-        rc = subprocess.run(
-            [ruff_path, "check"] + ruff_dirs,
-            capture_output=True,
-        ).returncode
-        if rc != 0:
-            ruff_failed = True
-            if not quiet:
-                print(" FAIL")
-                # Re-run to show errors
-                subprocess.run([ruff_path, "check"] + ruff_dirs)
-        elif not quiet:
-            print(" ok")
-
-        if not quiet:
-            print("  ruff format --check ...", end="", flush=True)
-        rc = subprocess.run(
-            [ruff_path, "format", "--check"] + ruff_dirs,
-            capture_output=True,
-        ).returncode
-        if rc != 0:
-            ruff_failed = True
-            if not quiet:
-                print(" FAIL")
-                subprocess.run([ruff_path, "format", "--check"] + ruff_dirs)
-        elif not quiet:
-            print(" ok")
-
-        if not quiet:
-            print()
-    elif not quiet:
-        print("  ruff not found — skipping lint/format checks")
-        print()
+    ruff_failed = _run_ruff_checks(quiet)
 
     if sequential:
         total_passed, total_failed, failures, elapsed = _run_sequential(test_files, verbose, quiet)

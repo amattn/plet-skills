@@ -33,17 +33,12 @@ from util_subprocess import run_git
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
-    UNIVERSAL_FLAGS_READ,
     dispatch,
     emit_error,
     emit_json,
     emit_json_error,
-    extract_output_flags,
-    get_plet_dir,
     parse_command,
-    parse_kwargs,
     validate_enum,
-    validate_known_flags,
 )
 from util_io import DEFAULT_WORKTREE_DIR, derive_worktree_path, validate_plet_dir
 from util_state import load_and_validate_global_state
@@ -143,77 +138,46 @@ Examples:
     plet_git_iteration.py branch-name plet/ --type plan
     plet_git_iteration.py branch-name plet/ --type refine
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     cmd_name = "branch-name"
     hint = help_hint(cmd_name)
-    plet_dir, args = get_plet_dir(args)
-    if plet_dir is None:
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"type", "iter_id"},
+        required=[],
+        allow_dry_run=False,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
-    try:
-        kwargs = parse_kwargs(args)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"type", "iter_id"} | UNIVERSAL_FLAGS_READ, hint):
-        return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate plet_dir
-    valid, err = validate_plet_dir(plet_dir)
-    if not valid:
-        if output_json:
-            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
-        else:
-            print(err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Load and validate state
     state = load_and_validate_global_state(plet_dir)
     if state is None:
         print(hint, file=sys.stderr)
         return 1
 
-    # Determine type
     branch_type = kwargs.get("type", "iteration")
     if not validate_enum(branch_type, VALID_TYPES, "--type"):
         print(hint, file=sys.stderr)
         return 1
 
-    # --iter-id required for iteration type
     iter_id = kwargs.get("iter_id")
     if branch_type == "iteration":
         if not iter_id:
-            msg = "Error: --iter-id is required for --type iteration"
-            if output_json:
-                emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-            else:
-                print(msg, file=sys.stderr)
+            emit_error(
+                cmd_name, "Error: --iter-id is required for --type iteration", SCRIPT_VERSION, output_json, pretty
+            )
             print(hint, file=sys.stderr)
             return 1
         if not validate_iter_id(iter_id, cmd_name, output_json, pretty):
             print(hint, file=sys.stderr)
             return 1
 
-    # Derive branch name
     branch = derive_branch_name(state, branch_type, iter_id)
-
-    # Determine session number for output
-    if branch_type in ("iteration", "workstream"):
-        session_num = state["loopSessionCount"]
-    elif branch_type == "refine":
-        session_num = state["refineSessionCount"]
-    else:  # plan
-        session_num = 1
+    session_num = _branch_session_num(state, branch_type)
 
     if output_json:
         emit_json(
@@ -230,10 +194,18 @@ Examples:
             fields,
         )
     else:
-        # Bare output for shell capture — exception to UNV_CMD_15 (GTI_DXP_3)
         print(branch)
 
     return 0
+
+
+def _branch_session_num(state, branch_type):
+    """Determine session number for branch-name output."""
+    if branch_type in ("iteration", "workstream"):
+        return state["loopSessionCount"]
+    if branch_type == "refine":
+        return state["refineSessionCount"]
+    return 1
 
 
 def cmd_worktree_create(args):
@@ -337,12 +309,15 @@ Examples:
             print(msg)
         return 0
 
-    # Create parent directory if needed
+    return _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_json, pretty, fields, result_data)
+
+
+def _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_json, pretty, fields, result_data):
+    """Execute the actual worktree creation."""
     parent = os.path.dirname(wt_path)
     if parent and not os.path.exists(parent):
         os.makedirs(parent, exist_ok=True)
 
-    # Create worktree
     if resumed:
         r = run_git("worktree", "add", wt_path, branch)
     else:
@@ -351,15 +326,13 @@ Examples:
         emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
         return 1
 
-    if resumed:
-        msg = f"OK — resumed worktree at {wt_path} on existing branch {branch}"
-    else:
-        msg = f"OK — created worktree at {wt_path} on branch {branch}"
+    action = "resumed" if resumed else "created"
+    prefix = "existing " if resumed else ""
+    msg = f"OK — {action} worktree at {wt_path} on {prefix}branch {branch}"
     if output_json:
         emit_json(result_data, SCRIPT_VERSION, pretty, fields)
     else:
         print(msg)
-
     return 0
 
 

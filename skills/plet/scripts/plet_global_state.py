@@ -156,6 +156,35 @@ Exit 0 if valid, exit 1 if invalid or error.
 # ---------------------------------------------------------------------------
 
 
+def _validate_init_preconditions(plet_dir, project_id):
+    """Validate init preconditions. Returns error string or None."""
+    if not PROJECT_ID_RE.match(project_id):
+        return (
+            f"Error: projectId '{project_id}' does not match pattern [A-Z][A-Z0-9]{{2,5}} "
+            "(3-6 chars, starts with letter, uppercase alphanumeric)"
+        )
+    if not os.path.isdir(plet_dir):
+        return f"Error: directory does not exist: {plet_dir}"
+    sjp = state_json_path(plet_dir)
+    if os.path.isfile(sjp):
+        return f"Error: state.json already exists at {sjp}"
+    return None
+
+
+def _load_init_json_args(kwargs):
+    """Load JSON args for init. Returns (dep_map, milestones, iter_fp, error)."""
+    dep_map, err = load_json_arg(kwargs, "dependency_map", "dependency_map_file")
+    if err:
+        return None, None, None, err
+    milestones, err = load_json_arg(kwargs, "milestones", "milestones_file")
+    if err:
+        return None, None, None, err
+    iter_fp, err = load_json_arg(kwargs, "iterations_fingerprint", "iterations_fingerprint_file")
+    if err:
+        return None, None, None, err
+    return dep_map, milestones, iter_fp, None
+
+
 def cmd_init(args):
     """Create a new state.json with correct structure."""
     help_text = """Usage: plet_global_state.py init <global_plet_dir>
@@ -211,8 +240,6 @@ Examples:
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
         return 1
-
-    # Required: project-id, project-name
     if not require_kwargs(kwargs, ["project_id", "project_name"], help_text):
         return 1
 
@@ -220,54 +247,20 @@ Examples:
     project_name = kwargs.pop("project_name")
     project_desc = kwargs.pop("project_description", None)
 
-    # Validate project ID
-    if not PROJECT_ID_RE.match(project_id):
-        print(
-            f"Error: projectId '{project_id}' does not match pattern [A-Z][A-Z0-9]{{2,5}} "
-            "(3-6 chars, starts with letter, uppercase alphanumeric)",
-            file=sys.stderr,
-        )
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
-
-    # Precondition: plet_dir must exist
-    if not os.path.isdir(plet_dir):
-        print(f"Error: directory does not exist: {plet_dir}", file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
-
-    # Precondition: state.json must NOT exist
-    sjp = state_json_path(plet_dir)
-    if os.path.isfile(sjp):
-        print(f"Error: state.json already exists at {sjp}", file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
-
-    # Load JSON args (with --*-file alternatives)
-    dep_map, err = load_json_arg(kwargs, "dependency_map", "dependency_map_file")
+    err = _validate_init_preconditions(plet_dir, project_id)
     if err:
         print(err, file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
-    milestones, err = load_json_arg(kwargs, "milestones", "milestones_file")
+    dep_map, milestones, iter_fp, err = _load_init_json_args(kwargs)
     if err:
         print(err, file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
-    iter_fp, err = load_json_arg(kwargs, "iterations_fingerprint", "iterations_fingerprint_file")
-    if err:
-        print(err, file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
+    lifecycles = {iter_id: ("queued" if not deps else "ineligible") for iter_id, deps in dep_map.items()}
 
-    # Auto-initialize lifecycles from dependency map (GST_INI_BHV_1)
-    lifecycles = {}
-    for iter_id, deps in dep_map.items():
-        lifecycles[iter_id] = "queued" if not deps else "ineligible"
-
-    # Build state object
     project = {"name": project_name}
     if project_desc:
         project["description"] = project_desc
@@ -290,6 +283,7 @@ Examples:
         "iterationsFingerprint": iter_fp,
     }
 
+    sjp = state_json_path(plet_dir)
     iteration_count = len(dep_map)
 
     if dry_run:
@@ -311,11 +305,7 @@ Examples:
             print(f"DRY RUN — would create {sjp} ({project_id}, {iteration_count} iterations)")
         return 0
 
-    # Create state/ subdirectory (GST_INI_BHV_7)
-    state_dir = os.path.join(plet_dir, "state")
-    os.makedirs(state_dir, exist_ok=True)
-
-    # Write state.json
+    os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     atomic_write_json(sjp, state)
 
     if output_json:
@@ -341,6 +331,28 @@ Examples:
 # ---------------------------------------------------------------------------
 
 
+def _load_and_validate_for_update(plet_dir, hint):
+    """Load, parse, and validate state.json for update-lifecycle. Returns (state, path) or (None, path)."""
+    sjp = state_json_path(plet_dir)
+    if not os.path.isfile(sjp):
+        print(f"Error: state.json not found at {sjp}", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None, sjp
+    state = load_json(sjp)
+    if state is None:
+        print(f"Error: invalid JSON in {sjp}", file=sys.stderr)
+        return None, sjp
+    errors = validate_global_state(state)
+    if errors:
+        for err in errors:
+            print(f"Error: state.json: {err}", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None, sjp
+    if "lifecycles" not in state:
+        state["lifecycles"] = {}
+    return state, sjp
+
+
 def cmd_update_lifecycle(args):
     """Set lifecycle for one iteration in state.json.lifecycles."""
     help_text = """Usage: plet_global_state.py update-lifecycle <global_plet_dir>
@@ -361,15 +373,13 @@ Examples:
         print(help_text)
         return 0
 
+    hint = _help_hint("update-lifecycle")
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(
-        kwargs, {"iter_id", "lifecycle"} | UNIVERSAL_FLAGS_WRITE, _help_hint("update-lifecycle")
-    ):
+    if not validate_known_flags(kwargs, {"iter_id", "lifecycle"} | UNIVERSAL_FLAGS_WRITE, hint):
         return 1
-
     if not require_kwargs(kwargs, ["iter_id", "lifecycle"], help_text):
         return 1
 
@@ -379,61 +389,16 @@ Examples:
 
     iter_id = kwargs["iter_id"]
     new_lifecycle = kwargs["lifecycle"]
-
     if not validate_enum(new_lifecycle, VALID_LIFECYCLES, "lifecycle"):
-        print(_help_hint("update-lifecycle"), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
-    # Load state
-    sjp = state_json_path(plet_dir)
-    if not os.path.isfile(sjp):
-        print(f"Error: state.json not found at {sjp}", file=sys.stderr)
-        print(_help_hint("update-lifecycle"), file=sys.stderr)
-        return 1
-
-    state = load_json(sjp)
+    state, sjp = _load_and_validate_for_update(plet_dir, hint)
     if state is None:
-        print(f"Error: invalid JSON in {sjp}", file=sys.stderr)
         return 1
 
-    # Full validation before writing (GST_ULC_BHV_6)
-    errors = validate_global_state(state)
-    if errors:
-        for err in errors:
-            print(f"Error: state.json: {err}", file=sys.stderr)
-        print(_help_hint("update-lifecycle"), file=sys.stderr)
-        return 1
-
-    # Initialize lifecycles if missing (pre-migration compat)
-    if "lifecycles" not in state:
-        state["lifecycles"] = {}
-
-    old_lifecycle = state["lifecycles"].get(iter_id)  # None if new
+    old_lifecycle = state["lifecycles"].get(iter_id)
     changed = old_lifecycle != new_lifecycle
-
-    if dry_run:
-        result = {
-            "status": "ok",
-            "command": "update-lifecycle",
-            "iterationId": iter_id,
-            "from": old_lifecycle,
-            "to": new_lifecycle,
-            "changed": changed,
-            "dryRun": True,
-        }
-        if output_json:
-            emit_json(result, SCRIPT_VERSION, pretty, fields)
-        else:
-            if changed:
-                print(f"DRY RUN — {iter_id}: {old_lifecycle} → {new_lifecycle}")
-            else:
-                print(f"DRY RUN — {iter_id}: already {new_lifecycle}")
-        return 0
-
-    if changed:
-        state["lifecycles"][iter_id] = new_lifecycle
-        state["lastUpdated"] = now_iso()
-        atomic_write_json(sjp, state)
 
     result = {
         "status": "ok",
@@ -444,13 +409,25 @@ Examples:
         "changed": changed,
     }
 
+    if dry_run:
+        result["dryRun"] = True
+        if output_json:
+            emit_json(result, SCRIPT_VERSION, pretty, fields)
+        else:
+            label = f"{old_lifecycle} → {new_lifecycle}" if changed else f"already {new_lifecycle}"
+            print(f"DRY RUN — {iter_id}: {label}")
+        return 0
+
+    if changed:
+        state["lifecycles"][iter_id] = new_lifecycle
+        state["lastUpdated"] = now_iso()
+        atomic_write_json(sjp, state)
+
     if output_json:
         emit_json(result, SCRIPT_VERSION, pretty, fields)
     else:
-        if changed:
-            print(f"OK — {iter_id}: {old_lifecycle} → {new_lifecycle}")
-        else:
-            print(f"OK — {iter_id}: already {new_lifecycle}")
+        label = f"{old_lifecycle} → {new_lifecycle}" if changed else f"already {new_lifecycle}"
+        print(f"OK — {iter_id}: {label}")
     return 0
 
 

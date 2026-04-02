@@ -26,18 +26,12 @@ from util_subprocess import run_git
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
-    UNIVERSAL_FLAGS_WRITE,
     dispatch,
     emit_error,
     emit_json,
     emit_json_error,
-    extract_output_flags,
-    get_plet_dir,
     parse_command,
-    parse_kwargs,
-    require_kwargs,
     validate_enum,
-    validate_known_flags,
 )
 from util_io import validate_plet_dir
 from util_state import (
@@ -346,6 +340,23 @@ def _merge_squash_cleanup(global_state, iter_state, iter_id, iter_branch):
 # ---------------------------------------------------------------------------
 
 
+def _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pretty):
+    """Execute the git merge --squash and commit. Returns (commit_hash, error_code)."""
+    r = run_git("merge", "--squash", iter_branch)
+    if r.returncode != 0:
+        if "conflict" in r.stderr.lower() or "CONFLICT" in r.stderr:
+            run_git("merge", "--abort")
+            msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
+            return None, _merge_squash_error(cmd_name, msg, output_json, pretty)
+        return None, _merge_squash_error(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
+
+    r = run_git("commit", "-m", full_message)
+    if r.returncode != 0:
+        return None, _merge_squash_error(cmd_name, f"Error: git commit failed: {r.stderr}", output_json, pretty)
+
+    return get_head_short(), 0
+
+
 def cmd_merge_squash(args):
     help_text = """IMPORTANT:
     merge-squash creates one commit per iteration on the workstream.
@@ -370,42 +381,24 @@ Examples:
     plet_git_ops.py merge-squash plet/ --iter-id ID_001
     plet_git_ops.py merge-squash --iter-id ID_001 --dry-run
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     cmd_name = "merge-squash"
     hint = help_hint(cmd_name)
-
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id"},
+        required=["iter_id"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
-
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_WRITE, hint):
-        return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return 1
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
 
-    # Validate plet_dir
-    valid, err = validate_plet_dir(plet_dir)
-    if not valid:
-        return _merge_squash_error(cmd_name, err, output_json, pretty, hint)
-
-    # Load and validate both state files
     global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
         print(hint, file=sys.stderr)
@@ -416,20 +409,16 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    # Derive branch names
     ws_branch = derive_workstream_branch(global_state)
     iter_branch = derive_iteration_branch(global_state, iter_state)
 
-    # Validate git preconditions
     git_err = _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty)
     if git_err is not None:
         return git_err
 
-    # Build commit message
     commit_title, full_message = _build_merge_squash_message(iter_state)
 
     if dry_run:
-        msg = f"DRY RUN — would merge-squash {iter_branch} to {ws_branch}: {commit_title}"
         if output_json:
             emit_json(
                 {
@@ -445,38 +434,16 @@ Examples:
                 fields,
             )
         else:
-            print(msg)
+            print(f"DRY RUN — would merge-squash {iter_branch} to {ws_branch}: {commit_title}")
         return 0
 
-    # Merge --squash
-    r = run_git("merge", "--squash", iter_branch)
-    if r.returncode != 0:
-        if "conflict" in r.stderr.lower() or "CONFLICT" in r.stderr:
-            run_git("merge", "--abort")
-            msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
-            return _merge_squash_error(cmd_name, msg, output_json, pretty)
-        msg = f"Error: git command failed: {r.stderr}"
-        return _merge_squash_error(cmd_name, msg, output_json, pretty)
+    commit_hash, err = _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pretty)
+    if err != 0:
+        return err
 
-    # Commit
-    r = run_git("commit", "-m", full_message)
-    if r.returncode != 0:
-        msg = f"Error: git commit failed: {r.stderr}"
-        return _merge_squash_error(cmd_name, msg, output_json, pretty)
-
-    commit_hash = get_head_short()
-
-    # Cleanup tags and branches
-    iter_id = iter_state["iterationId"]
-    tags_cleaned, branch_deleted = _merge_squash_cleanup(global_state, iter_state, iter_id, iter_branch)
-
-    # Output
-    msg = f"OK — merged to workstream: {commit_title} ({commit_hash})"
-    if tags_cleaned:
-        for tc in tags_cleaned:
-            msg += "\n  Tag {} deleted (was at {})".format(tc["tag"], tc["hash"])
-    if branch_deleted:
-        msg += f"\n  Branch {iter_branch} deleted"
+    tags_cleaned, branch_deleted = _merge_squash_cleanup(
+        global_state, iter_state, iter_state["iterationId"], iter_branch
+    )
 
     if output_json:
         emit_json(
@@ -495,6 +462,12 @@ Examples:
             fields,
         )
     else:
+        msg = f"OK — merged to workstream: {commit_title} ({commit_hash})"
+        if tags_cleaned:
+            for tc in tags_cleaned:
+                msg += "\n  Tag {} deleted (was at {})".format(tc["tag"], tc["hash"])
+        if branch_deleted:
+            msg += f"\n  Branch {iter_branch} deleted"
         print(msg)
 
     return 0

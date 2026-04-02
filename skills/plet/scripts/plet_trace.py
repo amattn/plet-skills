@@ -388,6 +388,45 @@ def _parse_trace_args(args, help_text, command, known_flags, required, is_mutati
     return plet_dir, kwargs, flags
 
 
+def _parse_event_data(kwargs, hint):
+    """Parse --data or --data-file into a dict. Returns None on error."""
+    has_data = "data" in kwargs
+    has_data_file = "data_file" in kwargs
+
+    if has_data and has_data_file:
+        print("Error: --data and --data-file are mutually exclusive", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+    if not has_data and not has_data_file:
+        print("Error: --data or --data-file is required", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+
+    if has_data_file:
+        raw = load_text(kwargs["data_file"])
+        if raw is None:
+            return None
+        try:
+            data_obj = json.loads(raw)
+        except json.JSONDecodeError as e:
+            print(f"Error: --data-file must contain valid JSON: {e}", file=sys.stderr)
+            print(hint, file=sys.stderr)
+            return None
+    else:
+        try:
+            data_obj = json.loads(kwargs["data"])
+        except json.JSONDecodeError as e:
+            print(f"Error: --data must be valid JSON: {e}", file=sys.stderr)
+            print(hint, file=sys.stderr)
+            return None
+
+    if not isinstance(data_obj, dict):
+        print(f"Error: --data must be a JSON object, got {type(data_obj).__name__}", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+    return data_obj
+
+
 def cmd_append_event(args):
     help_text = """append-event — append a semantic event to a trace NDJSON file.
 
@@ -451,65 +490,15 @@ Examples:
         return 1
     iter_id, phase, attempt = ctx
 
-    # Validate event type
     event_type = kwargs["event_type"]
     if not validate_enum(event_type, VALID_EVENT_TYPES, "--event-type"):
         print(hint, file=sys.stderr)
         return 1
 
-    # Parse data (--data or --data-file, exactly one)
-    has_data = "data" in kwargs
-    has_data_file = "data_file" in kwargs
-
-    if has_data and has_data_file:
-        print(
-            "Error: --data and --data-file are mutually exclusive",
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
+    data_obj = _parse_event_data(kwargs, hint)
+    if data_obj is None:
         return 1
 
-    if not has_data and not has_data_file:
-        print(
-            "Error: --data or --data-file is required",
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
-
-    if has_data_file:
-        raw = load_text(kwargs["data_file"])
-        if raw is None:
-            return 1
-        try:
-            data_obj = json.loads(raw)
-        except json.JSONDecodeError as e:
-            print(
-                f"Error: --data-file must contain valid JSON: {e}",
-                file=sys.stderr,
-            )
-            print(hint, file=sys.stderr)
-            return 1
-    else:
-        try:
-            data_obj = json.loads(kwargs["data"])
-        except json.JSONDecodeError as e:
-            print(
-                f"Error: --data must be valid JSON: {e}",
-                file=sys.stderr,
-            )
-            print(hint, file=sys.stderr)
-            return 1
-
-    if not isinstance(data_obj, dict):
-        print(
-            f"Error: --data must be a JSON object, got {type(data_obj).__name__}",
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate type-specific required fields and enums
     data_errors = validate_data_fields(event_type, data_obj)
     if data_errors:
         for e in data_errors:
@@ -570,6 +559,33 @@ Examples:
     return 0
 
 
+def _validate_events_file(path):
+    """Read and validate all events in a trace file. Returns (errors, event_count, counts_by_type)."""
+    errors = []
+    event_count = 0
+    counts_by_type = {}
+
+    with open(path) as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError as e:
+                errors.append(f"Line {line_num}: invalid JSON: {e}")
+                continue
+            if not isinstance(event, dict):
+                errors.append(f"Line {line_num}: expected JSON object, got {type(event).__name__}")
+                continue
+            event_count += 1
+            errors.extend(validate_event(event, line_num))
+            etype = event.get("type", "unknown")
+            counts_by_type[etype] = counts_by_type.get(etype, 0) + 1
+
+    return errors, event_count, counts_by_type
+
+
 def cmd_validate(args):
     help_text = """validate — check a trace events file against the schema.
 
@@ -596,122 +612,55 @@ Examples:
     plet_trace.py validate plet/ --iter-id ID_001 --phase implement --attempt 1
     plet_trace.py validate --iter-id ID_001 --phase implement --attempt 1 --output json
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     hint = help_hint("validate")
-    clean_args, flags = parse_universal_flags(args)
-    flags["dry_run"] = False
+    result = _parse_trace_args(
+        args,
+        help_text,
+        "validate",
+        known_flags={"iter_id", "phase", "attempt"},
+        required=["iter_id", "phase", "attempt"],
+        is_mutating=False,
+        supports_raw=False,
+    )
+    if result == "help":
+        return 0
+    if result is None:
+        return 1
+    plet_dir, kwargs, flags = result
 
-    err = check_flag_dependencies(flags, command_is_mutating=False, supports_raw=False)
-    if err:
-        print(err, file=sys.stderr)
-        print(hint, file=sys.stderr)
+    ctx = _validate_trace_context(kwargs, hint)
+    if ctx is None:
         return 1
-
-    plet_dir, remaining = get_plet_dir(clean_args)
-    if plet_dir is None:
-        return 1
-
-    # Parse named args
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt"}, hint):
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt"], help_text):
-        return 1
-
-    # Validate iter-id
-    iter_id = kwargs["iter_id"]
-    if not ITERATION_ID_PATTERN.match(iter_id):
-        print(
-            f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)",
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate phase
-    phase = kwargs["phase"]
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate attempt
-    attempt, ok = validate_int(kwargs["attempt"], "--attempt")
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if attempt < 1:
-        print(
-            "Error: --attempt must be a positive integer, got '{}'".format(kwargs["attempt"]),
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
+    iter_id, phase, attempt = ctx
 
     path = derive_events_path(plet_dir, iter_id, phase, attempt)
-
     if not os.path.exists(path):
         print(f"Error: {path} does not exist", file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
-    errors = []
-    event_count = 0
-    counts_by_type = {}
-
-    with open(path) as f:
-        for line_num, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError as e:
-                errors.append(f"Line {line_num}: invalid JSON: {e}")
-                continue
-
-            if not isinstance(event, dict):
-                errors.append(f"Line {line_num}: expected JSON object, got {type(event).__name__}")
-                continue
-
-            event_count += 1
-            event_errors = validate_event(event, line_num)
-            errors.extend(event_errors)
-
-            # Count by type
-            etype = event.get("type", "unknown")
-            counts_by_type[etype] = counts_by_type.get(etype, 0) + 1
+    errors, event_count, counts_by_type = _validate_events_file(path)
 
     if flags["output"] == "json":
-        response = {
-            "status": "error" if errors else "ok",
-            "command": "validate",
-            "path": path,
-            "eventCount": event_count,
-            "countsByType": counts_by_type,
-            "errors": errors,
-            "errorCount": len(errors),
-        }
-        json_response(response, flags)
+        json_response(
+            {
+                "status": "error" if errors else "ok",
+                "command": "validate",
+                "path": path,
+                "eventCount": event_count,
+                "countsByType": counts_by_type,
+                "errors": errors,
+                "errorCount": len(errors),
+            },
+            flags,
+        )
         return 1 if errors else 0
 
     if errors:
         for e in errors:
             print(f"  {e}", file=sys.stderr)
         type_str = ", ".join(f"{v} {k}" for k, v in sorted(counts_by_type.items()))
-        print(
-            f"ERROR — {len(errors)} error(s) in {path} ({event_count} events: {type_str})",
-            file=sys.stderr,
-        )
+        print(f"ERROR — {len(errors)} error(s) in {path} ({event_count} events: {type_str})", file=sys.stderr)
         return 1
 
     type_str = ", ".join(f"{v} {k}" for k, v in sorted(counts_by_type.items()))

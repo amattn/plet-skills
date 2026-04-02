@@ -576,6 +576,21 @@ Examples:
 # ---------------------------------------------------------------------------
 
 
+def _find_criterion(criteria, criterion_id, iter_id, hint):
+    """Find a criterion by ID. Returns target or None (error printed)."""
+    for c in criteria:
+        if c.get("id") == criterion_id:
+            return c
+    print(
+        "Error: criterion '{}' not found in {} (available: {})".format(
+            criterion_id, iter_id, ", ".join(c.get("id", "?") for c in criteria)
+        ),
+        file=sys.stderr,
+    )
+    print(hint, file=sys.stderr)
+    return None
+
+
 def cmd_update_criterion(args):
     """Update a criterion's implementation or verification status."""
     help_text = """Usage: plet_iter_state.py update-criterion <plet_dir>
@@ -592,122 +607,110 @@ Examples:
     --criterion AC_1 --phase implementation --status pass \\
     --evidence "pytest exits 0" --agent-id agent_abc123
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
+    hint = _help_hint("update-criterion")
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id", "criterion", "phase", "status", "evidence", "agent_id", "elapsed"},
+        required=["iter_id", "criterion", "phase", "status", "evidence", "agent_id"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if result == "help":
         return 0
-
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
+    if result is None:
         return 1
-    kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(
-        kwargs,
-        {"iter_id", "criterion", "phase", "status", "evidence", "agent_id", "elapsed"} | UNIVERSAL_FLAGS_WRITE,
-        _help_hint("update-criterion"),
-    ):
-        return 1
-    if not require_kwargs(kwargs, ["iter_id", "criterion", "phase", "status", "evidence", "agent_id"], help_text):
-        return 1
-
-    output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return 1
+    plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
-    criterion_id = kwargs["criterion"]
     phase = kwargs["phase"]
     status = kwargs["status"]
-    evidence = kwargs["evidence"]
-    agent_id = kwargs["agent_id"]
-    elapsed = kwargs.get("elapsed")
 
     if not validate_enum(phase, ["implementation", "verification"], "phase"):
-        print(_help_hint("update-criterion"), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
     if not validate_enum(status, ["not_started", "fail", "pass", "error", "skipped"], "status"):
-        print(_help_hint("update-criterion"), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
+    elapsed = kwargs.get("elapsed")
     if elapsed is not None:
         try:
             elapsed = int(elapsed)
         except (ValueError, TypeError):
             print(f"Error: --elapsed must be an integer, got '{elapsed}'", file=sys.stderr)
-            print(_help_hint("update-criterion"), file=sys.stderr)
+            print(hint, file=sys.stderr)
             return 1
 
-    data, path = _load_state(plet_dir, iter_id, _help_hint("update-criterion"))
+    data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
         return 1
 
-    # Find criterion
-    criteria = data.get("criteria", [])
-    target = None
-    for c in criteria:
-        if c.get("id") == criterion_id:
-            target = c
-            break
-
+    target = _find_criterion(data.get("criteria", []), kwargs["criterion"], iter_id, hint)
     if target is None:
-        print(
-            "Error: criterion '{}' not found in {} (available: {})".format(
-                criterion_id, iter_id, ", ".join(c.get("id", "?") for c in criteria)
-            ),
-            file=sys.stderr,
-        )
-        print(_help_hint("update-criterion"), file=sys.stderr)
         return 1
 
     ts = now_iso()
+    target[phase] = {"status": status, "evidence": kwargs["evidence"], "timestamp": ts, "elapsedSeconds": elapsed or 0}
 
-    # Build phase sub-object
-    phase_obj = {
-        "status": status,
-        "evidence": evidence,
-        "timestamp": ts,
-        "elapsedSeconds": elapsed if elapsed is not None else 0,
-    }
-    target[phase] = phase_obj
-
-    # Derive top-level status (verification wins when present)
     if target.get("verification") is not None:
         target["status"] = target["verification"]["status"]
     elif target.get("implementation") is not None:
         target["status"] = target["implementation"]["status"]
 
-    data["agentId"] = agent_id
+    data["agentId"] = kwargs["agent_id"]
     data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
-    result = {
+    res = {
         "status": "ok",
         "command": "update-criterion",
         "iterationId": iter_id,
-        "criterionId": criterion_id,
+        "criterionId": kwargs["criterion"],
         "phase": phase,
         "criterionStatus": status,
     }
 
     if dry_run:
-        result["dryRun"] = True
+        res["dryRun"] = True
         if output_json:
-            emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+            emit_json(res, SCRIPT_VERSION, pretty, fields_filter)
         else:
-            print(f"DRY RUN — {iter_id} {criterion_id} {phase}: {status}")
+            print(f"DRY RUN — {iter_id} {kwargs['criterion']} {phase}: {status}")
         return 0
 
     atomic_write_json(path, data, update_timestamp=False)
-
     if output_json:
-        emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+        emit_json(res, SCRIPT_VERSION, pretty, fields_filter)
     else:
-        print(f"OK — {iter_id} {criterion_id} {phase}: {status}")
+        print(f"OK — {iter_id} {kwargs['criterion']} {phase}: {status}")
     return 0
 
 
 # ---------------------------------------------------------------------------
 # set-verdict
 # ---------------------------------------------------------------------------
+
+
+def _compute_phase_elapsed(data, phase, attempt, ts):
+    """Compute and store elapsed seconds for a phase attempt."""
+    if "phaseTimestamps" not in data:
+        data["phaseTimestamps"] = {}
+    data["phaseTimestamps"][f"{phase}_{attempt}_end"] = ts
+
+    start_ts = data["phaseTimestamps"].get(f"{phase}_{attempt}_start")
+    if not start_ts:
+        return
+    if "elapsedSeconds" not in data:
+        data["elapsedSeconds"] = {"total": 0}
+    try:
+        from datetime import datetime
+
+        start_dt = datetime.fromisoformat(start_ts.replace("Z", "+00:00"))
+        end_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        data["elapsedSeconds"][f"{phase}_{attempt}"] = int((end_dt - start_dt).total_seconds())
+    except (ValueError, TypeError):
+        pass
 
 
 def cmd_set_verdict(args):
@@ -729,98 +732,66 @@ Examples:
   plet_iter_state.py set-verdict plet --iter-id ID_001 \\
     --phase verify --verdict passed --agent-id agent_def456
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
+    hint = _help_hint("set-verdict")
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id", "phase", "verdict", "agent_id"},
+        required=["iter_id", "phase", "verdict", "agent_id"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if result == "help":
         return 0
-
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
+    if result is None:
         return 1
-    kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(
-        kwargs, {"iter_id", "phase", "verdict", "agent_id"} | UNIVERSAL_FLAGS_WRITE, _help_hint("set-verdict")
-    ):
-        return 1
-    if not require_kwargs(kwargs, ["iter_id", "phase", "verdict", "agent_id"], help_text):
-        return 1
-
-    output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return 1
+    plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     verdict = kwargs["verdict"]
-    agent_id = kwargs["agent_id"]
 
     if not validate_enum(phase, VALID_PHASES, "phase"):
-        print(_help_hint("set-verdict"), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
-    # Validate verdict for phase
     valid_verdicts = IMPLEMENT_VERDICTS if phase == "implement" else VERIFY_VERDICTS
     if verdict not in valid_verdicts:
         print(
             "Error: invalid verdict '{}' for {} (valid: {})".format(verdict, phase, ", ".join(valid_verdicts)),
             file=sys.stderr,
         )
-        print(_help_hint("set-verdict"), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
-    data, path = _load_state(plet_dir, iter_id, _help_hint("set-verdict"))
+    data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
         return 1
 
     ts = now_iso()
-
-    # Set verdict field
     verdict_field = "implementVerdict" if phase == "implement" else "verifyVerdict"
     data[verdict_field] = verdict
-
-    # Auto-idle
     data["phaseActivity"] = "idle"
-    data["agentId"] = agent_id
+    data["agentId"] = kwargs["agent_id"]
     data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
-    # Set end timestamp + calculate elapsed
     attempt = data.get("attempts", {}).get(phase, 1)
-    if "phaseTimestamps" not in data:
-        data["phaseTimestamps"] = {}
-    end_key = f"{phase}_{attempt}_end"
-    data["phaseTimestamps"][end_key] = ts
+    _compute_phase_elapsed(data, phase, attempt, ts)
 
-    start_key = f"{phase}_{attempt}_start"
-    start_ts = data["phaseTimestamps"].get(start_key)
-    if start_ts and "elapsedSeconds" not in data:
-        data["elapsedSeconds"] = {"total": 0}
-    if start_ts:
-        try:
-            from datetime import datetime
-
-            start_dt = datetime.fromisoformat(start_ts.replace("Z", "+00:00"))
-            end_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-            elapsed = int((end_dt - start_dt).total_seconds())
-            elapsed_key = f"{phase}_{attempt}"
-            data["elapsedSeconds"][elapsed_key] = elapsed
-        except (ValueError, TypeError):
-            pass  # Can't compute — skip
-
-    result = {"status": "ok", "command": "set-verdict", "iterationId": iter_id}
-    result[verdict_field] = verdict
+    res = {"status": "ok", "command": "set-verdict", "iterationId": iter_id, verdict_field: verdict}
 
     if dry_run:
-        result["dryRun"] = True
+        res["dryRun"] = True
         if output_json:
-            emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+            emit_json(res, SCRIPT_VERSION, pretty, fields_filter)
         else:
             print(f"DRY RUN — {iter_id} {verdict_field}: {verdict}")
         return 0
 
     atomic_write_json(path, data, update_timestamp=False)
-
     if output_json:
-        emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+        emit_json(res, SCRIPT_VERSION, pretty, fields_filter)
     else:
         print(f"OK — {iter_id} {verdict_field}: {verdict}")
     return 0

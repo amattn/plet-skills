@@ -27,7 +27,6 @@ from util_cli import (
     dispatch,
     emit_error,
     emit_json,
-    emit_json_error,
     parse_command,
     validate_enum,
 )
@@ -372,35 +371,10 @@ Examples:
         emit_error(cmd_name, f"Error: {prm_err}", SCRIPT_VERSION, output_json, pretty)
         return 1
 
-    # Build plet env vars (used for both prompt header and subprocess env)
-    plet_env = {
-        "PLET_SCRIPTS_DIR": scripts_dir(),
-        "PLET_DIR": os.path.abspath(plet_dir) if plet_dir else "",
-        "PLET_PROJECT_DIR": os.path.abspath(cwd),
-        "PLET_WORKTREE_BASE": os.path.abspath(os.path.join(os.path.dirname(plet_dir), ".plet", "worktrees")),
-        "PLET_ITER_ID": iter_id,
-        "PLET_PHASE": phase,
-        "PLET_ATTEMPT": str(attempt),
-    }
-    for passthrough in ("CLAUDE_SKILL_DIR", "CLAUDE_CONFIG_DIR"):
-        if passthrough in os.environ:
-            plet_env[passthrough] = os.environ[passthrough]
-
+    plet_env = _build_plet_env(plet_dir, cwd, iter_id, phase, attempt)
     prompt_text = _build_prompt_with_env(prompt_text, plet_env)
+    claude_cmd = build_claude_command(prompt_text, phase, iter_id, attempt, permission_mode, model, max_budget, verbose)
 
-    # Build claude command
-    claude_cmd = build_claude_command(
-        prompt_text,
-        phase,
-        iter_id,
-        attempt,
-        permission_mode,
-        model,
-        max_budget,
-        verbose,
-    )
-
-    # Dry-run
     if dry_run:
         cmd_str = " ".join(f'"{c}"' if " " in c or len(c) > 100 else c for c in claude_cmd)
         if output_json:
@@ -425,21 +399,74 @@ Examples:
             print(f"\nTranscript would be written to: {t_path}")
         return 0
 
-    # Check claude on PATH
+    return _execute_run(
+        cmd_name,
+        claude_cmd,
+        plet_dir,
+        plet_env,
+        iter_id,
+        phase,
+        attempt,
+        cwd,
+        permission_mode,
+        prompt_text,
+        model,
+        max_budget,
+        verbose,
+        t_path,
+        state_data,
+        output_json,
+        pretty,
+        fields,
+    )
+
+
+def _build_plet_env(plet_dir, cwd, iter_id, phase, attempt):
+    """Build plet environment variables dict."""
+    env = {
+        "PLET_SCRIPTS_DIR": scripts_dir(),
+        "PLET_DIR": os.path.abspath(plet_dir) if plet_dir else "",
+        "PLET_PROJECT_DIR": os.path.abspath(cwd),
+        "PLET_WORKTREE_BASE": os.path.abspath(os.path.join(os.path.dirname(plet_dir), ".plet", "worktrees")),
+        "PLET_ITER_ID": iter_id,
+        "PLET_PHASE": phase,
+        "PLET_ATTEMPT": str(attempt),
+    }
+    for passthrough in ("CLAUDE_SKILL_DIR", "CLAUDE_CONFIG_DIR"):
+        if passthrough in os.environ:
+            env[passthrough] = os.environ[passthrough]
+    return env
+
+
+def _execute_run(
+    cmd_name,
+    claude_cmd,
+    plet_dir,
+    plet_env,
+    iter_id,
+    phase,
+    attempt,
+    cwd,
+    permission_mode,
+    prompt_text,
+    model,
+    max_budget,
+    verbose,
+    t_path,
+    state_data,
+    output_json,
+    pretty,
+    fields,
+):
+    """Execute the claude subprocess (non-dry-run path)."""
     if find_claude() is None:
-        msg = "Error: claude not found on PATH"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
+        emit_error(cmd_name, "Error: claude not found on PATH", SCRIPT_VERSION, output_json, pretty)
         return 1
 
-    # Create trace directory if needed
     trace_dir = os.path.dirname(t_path)
     if not os.path.isdir(trace_dir):
         os.makedirs(trace_dir, exist_ok=True)
 
-    # Log invocation to trace event and progress.md
     _log_invocation(
         plet_dir,
         iter_id,
@@ -456,15 +483,12 @@ Examples:
         trace_dir,
     )
 
-    # Launch subprocess with transcript capture
     sub_exit, transcript_lines, elapsed = _launch_and_capture(claude_cmd, cwd, plet_env, t_path)
 
-    # Output
     if output_json:
-        status = "ok" if sub_exit == 0 else "error"
         emit_json(
             {
-                "status": status,
+                "status": "ok" if sub_exit == 0 else "error",
                 "command": cmd_name,
                 "iterationId": iter_id,
                 "phase": phase,

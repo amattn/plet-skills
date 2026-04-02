@@ -484,6 +484,47 @@ def compare_fingerprints(current, stored, id_field):
 # ---------------------------------------------------------------------------
 
 
+def _parse_fpr_args(args, help_text, cmd_name, valid_types):
+    """Parse args for a fingerprint command.
+
+    Returns (artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val) or None.
+    """
+    hint = help_hint(cmd_name)
+    if "-h" in args or "--help" in args:
+        print(help_text)
+        return "help"
+    if len(args) < 1:
+        print(help_text, file=sys.stderr)
+        return None
+
+    artifact_dir = args[0]
+    try:
+        kwargs = parse_kwargs(args[1:])
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+
+    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    if not ok:
+        print(hint, file=sys.stderr)
+        return None
+    if not validate_known_flags(kwargs, {"type", "bump"}, hint):
+        return None
+    if not require_kwargs(kwargs, ["type"], help_text):
+        return None
+
+    type_val = kwargs["type"]
+    if not validate_enum(type_val, valid_types, "--type"):
+        print(hint, file=sys.stderr)
+        return None
+    if not validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty):
+        print(hint, file=sys.stderr)
+        return None
+
+    return artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val
+
+
 def cmd_extract(args):
     help_text = """IMPORTANT:
     extract is read-only — it produces a fingerprint from file content without
@@ -514,30 +555,14 @@ Examples:
     plet_fingerprint.py extract plet/ --type requirements
     plet_fingerprint.py extract plet/ --type iterations --output json --pretty
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-    if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return 1
-
     cmd_name = "extract"
     hint = help_hint(cmd_name)
-    artifact_dir = args[0]
-
-    try:
-        kwargs = parse_kwargs(args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
+    parsed = _parse_fpr_args(args, help_text, cmd_name, VALID_EXTRACT_TYPES)
+    if parsed == "help":
+        return 0
+    if parsed is None:
         return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"type", "bump"}, hint):
-        return 1
+    artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val = parsed
 
     # --dry-run not valid on extract (read-only)
     if dry_run:
@@ -559,26 +584,11 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    if not require_kwargs(kwargs, ["type"], help_text):
-        return 1
-
-    type_val = kwargs["type"]
-    if not validate_enum(type_val, VALID_EXTRACT_TYPES, "--type"):
-        print(hint, file=sys.stderr)
-        return 1
-
-    if not validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty):
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Determine target file
     target_path = requirements_path(artifact_dir) if type_val == "requirements" else iterations_path(artifact_dir)
-
     if not validate_file_exists(target_path, cmd_name, output_json, pretty):
         print(hint, file=sys.stderr)
         return 1
 
-    # Load and extract
     text = load_text(target_path)
     if text is None:
         return 1
@@ -596,16 +606,9 @@ Examples:
             print(msg, file=sys.stderr)
         return 1
 
-    # Emit output
     if output_json:
         emit_json(
-            {
-                "status": "ok",
-                "command": cmd_name,
-                "type": type_val,
-                "path": target_path,
-                "fingerprint": fingerprint,
-            },
+            {"status": "ok", "command": cmd_name, "type": type_val, "path": target_path, "fingerprint": fingerprint},
             pretty,
             fields,
         )
@@ -658,53 +661,28 @@ Examples:
     plet_fingerprint.py embed plet/ --type state
     plet_fingerprint.py embed plet/ --type state --output json --pretty
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-    if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return 1
-
     cmd_name = "embed"
-    hint = help_hint(cmd_name)
-    artifact_dir = args[0]
-
-    try:
-        kwargs = parse_kwargs(args[1:])
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
+    parsed = _parse_fpr_args(args, help_text, cmd_name, VALID_EMBED_TYPES)
+    if parsed == "help":
+        return 0
+    if parsed is None:
         return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"type", "bump"}, hint):
-        return 1
+    artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val = parsed
 
     force_bump = kwargs.pop("bump", False) is True
 
-    if not require_kwargs(kwargs, ["type"], help_text):
-        return 1
+    return _dispatch_embed(type_val, artifact_dir, cmd_name, force_bump, dry_run, output_json, pretty, fields)
 
-    type_val = kwargs["type"]
-    if not validate_enum(type_val, VALID_EMBED_TYPES, "--type"):
-        print(hint, file=sys.stderr)
-        return 1
 
-    if not validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty):
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Check required files exist
+def _dispatch_embed(type_val, artifact_dir, cmd_name, force_bump, dry_run, output_json, pretty, fields):
+    """Route embed to the correct type-specific handler."""
     if type_val == "requirements":
         target_path = requirements_path(artifact_dir)
         if not validate_file_exists(target_path, cmd_name, output_json, pretty):
             return 1
         return _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_json, pretty, fields)
 
-    elif type_val == "iterations":
+    if type_val == "iterations":
         target_path = iterations_path(artifact_dir)
         req_path = requirements_path(artifact_dir)
         if not validate_file_exists(target_path, cmd_name, output_json, pretty):
@@ -713,64 +691,50 @@ Examples:
             return 1
         return _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, output_json, pretty, fields)
 
-    else:  # state
-        target_path = state_json_path(artifact_dir)
-        iter_path = iterations_path(artifact_dir)
-        if not validate_file_exists(target_path, cmd_name, output_json, pretty):
-            return 1
-        if not validate_file_exists(iter_path, cmd_name, output_json, pretty, "embed state fingerprint"):
-            return 1
-        return _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, output_json, pretty, fields)
-
-
-def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_json, pretty, fields):
-    """Embed fingerprint in requirements.md."""
-    cmd_name = "embed"
-    help_hint(cmd_name)
-
-    text = load_text(target_path)
-    if text is None:
+    # state
+    target_path = state_json_path(artifact_dir)
+    iter_path = iterations_path(artifact_dir)
+    if not validate_file_exists(target_path, cmd_name, output_json, pretty):
         return 1
-
-    # Read previous fingerprint (lenient — tolerate missing/malformed)
-    previous = None
-    with contextlib.suppress(ValueError):
-        previous, _, _ = parse_fingerprint_block(text)
-
-    # Extract new fingerprint from content
-    try:
-        fingerprint = extract_requirements_fingerprint(text)
-    except ValueError as e:
-        msg = f"Error: {e}"
-        if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
+    if not validate_file_exists(iter_path, cmd_name, output_json, pretty, "embed state fingerprint"):
         return 1
+    return _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, output_json, pretty, fields)
 
-    # Auto-bump logic
-    auto_bumped = False
-    if previous is not None:
-        _, id_diff = compare_id_arrays(
-            fingerprint.get("requirements", {}),
-            previous.get("requirements", {}),
-        )
-        if id_diff["added"] or id_diff["removed"]:
-            auto_bumped = True
 
-        # Also check milestones
+def _check_auto_bump(fingerprint, previous, id_field, check_milestones=False):
+    """Check if fingerprint IDs changed vs previous. Returns True if bumped."""
+    if previous is None:
+        return False
+    _, id_diff = compare_id_arrays(
+        fingerprint.get(id_field, {}),
+        previous.get(id_field, {}),
+    )
+    if id_diff["added"] or id_diff["removed"]:
+        return True
+    if check_milestones:
         current_ms = set(fingerprint.get("milestones", []))
         previous_ms = set(previous.get("milestones", []))
         if current_ms != previous_ms:
-            auto_bumped = True
-    else:
-        # First embed — default timestamp via BHV_6 (already set by extract)
-        pass
+            return True
+    return False
 
+
+def _emit_embed_result(
+    type_val,
+    target_path,
+    fingerprint,
+    auto_bumped,
+    force_bump,
+    text,
+    dry_run,
+    output_json,
+    pretty,
+    fields,
+):
+    """Apply bump, emit dry-run or write+emit for embed commands."""
     if auto_bumped or force_bump:
         fingerprint["lastNonTrivialUpdate"] = now_iso()
 
-    # Build bump description
     bump_parts = []
     if auto_bumped:
         bump_parts.append("auto-bumped")
@@ -778,62 +742,86 @@ def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_j
         bump_parts.append("force-bumped")
     bump_desc = ", ".join(bump_parts)
 
+    result_data = {
+        "status": "ok",
+        "command": "embed",
+        "type": type_val,
+        "path": target_path,
+        "fingerprint": fingerprint,
+        "autoBumped": auto_bumped,
+        "forceBumped": force_bump,
+    }
+
     if dry_run:
-        msg = f"DRY RUN — would embed requirements fingerprint in {target_path}"
+        msg = f"DRY RUN — would embed {type_val} fingerprint in {target_path}"
         if bump_desc:
             msg += f" (timestamp would be {bump_desc})"
+        result_data["dryRun"] = True
         if output_json:
-            emit_json(
-                {
-                    "status": "ok",
-                    "command": cmd_name,
-                    "type": "requirements",
-                    "path": target_path,
-                    "fingerprint": fingerprint,
-                    "autoBumped": auto_bumped,
-                    "forceBumped": force_bump,
-                    "dryRun": True,
-                },
-                pretty,
-                fields,
-            )
+            emit_json(result_data, pretty, fields)
         else:
             print(msg)
         return 0
 
-    # Write fingerprint block
     updated_text = write_fingerprint_block(text, fingerprint)
     with open(target_path, "w") as f:
         f.write(updated_text)
 
-    msg = f"OK — embedded requirements fingerprint in {target_path}"
+    msg = f"OK — embedded {type_val} fingerprint in {target_path}"
     if bump_desc:
         msg += f" (timestamp {bump_desc})"
 
     if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": cmd_name,
-                "type": "requirements",
-                "path": target_path,
-                "fingerprint": fingerprint,
-                "autoBumped": auto_bumped,
-                "forceBumped": force_bump,
-            },
-            pretty,
-            fields,
-        )
+        emit_json(result_data, pretty, fields)
     else:
         print(msg)
     return 0
 
 
+def _extract_fingerprint_safe(extract_fn, text, output_json, pretty):
+    """Extract fingerprint, handling errors. Returns (fingerprint, error_code)."""
+    try:
+        return extract_fn(text), 0
+    except ValueError as e:
+        msg = f"Error: {e}"
+        if output_json:
+            emit_json_error("embed", msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return None, 1
+
+
+def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_json, pretty, fields):
+    """Embed fingerprint in requirements.md."""
+    text = load_text(target_path)
+    if text is None:
+        return 1
+
+    previous = None
+    with contextlib.suppress(ValueError):
+        previous, _, _ = parse_fingerprint_block(text)
+
+    fingerprint, err = _extract_fingerprint_safe(extract_requirements_fingerprint, text, output_json, pretty)
+    if fingerprint is None:
+        return err
+
+    auto_bumped = _check_auto_bump(fingerprint, previous, "requirements", check_milestones=True)
+    return _emit_embed_result(
+        "requirements",
+        target_path,
+        fingerprint,
+        auto_bumped,
+        force_bump,
+        text,
+        dry_run,
+        output_json,
+        pretty,
+        fields,
+    )
+
+
 def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, output_json, pretty, fields):
     """Embed fingerprint in iterations.md."""
-    cmd_name = "embed"
-    help_hint(cmd_name)
-
     text = load_text(target_path)
     if text is None:
         return 1
@@ -842,7 +830,6 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
     if req_text is None:
         return 1
 
-    # Read the embedded requirements fingerprint from requirements.md
     try:
         req_fingerprint, _, _ = parse_fingerprint_block(req_text)
     except ValueError:
@@ -851,100 +838,33 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
     if req_fingerprint is None:
         msg = f"Error: no valid fingerprint found in {req_path} — run embed --type requirements first"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
+            emit_json_error("embed", msg, pretty)
         else:
             print(msg, file=sys.stderr)
         return 1
 
-    # Read previous fingerprint (lenient)
     previous = None
     with contextlib.suppress(ValueError):
         previous, _, _ = parse_fingerprint_block(text)
 
-    # Extract new fingerprint from content
-    try:
-        fingerprint = extract_iterations_fingerprint(text)
-    except ValueError as e:
-        msg = f"Error: {e}"
-        if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+    fingerprint, err = _extract_fingerprint_safe(extract_iterations_fingerprint, text, output_json, pretty)
+    if fingerprint is None:
+        return err
 
-    # Embed the requirements fingerprint
     fingerprint["requirementsFingerprint"] = req_fingerprint
-
-    # Auto-bump logic
-    auto_bumped = False
-    if previous is not None:
-        _, id_diff = compare_id_arrays(
-            fingerprint.get("iterations", {}),
-            previous.get("iterations", {}),
-        )
-        if id_diff["added"] or id_diff["removed"]:
-            auto_bumped = True
-    else:
-        pass
-
-    if auto_bumped or force_bump:
-        fingerprint["lastNonTrivialUpdate"] = now_iso()
-
-    bump_parts = []
-    if auto_bumped:
-        bump_parts.append("auto-bumped")
-    if force_bump:
-        bump_parts.append("force-bumped")
-    bump_desc = ", ".join(bump_parts)
-
-    if dry_run:
-        msg = f"DRY RUN — would embed iterations fingerprint in {target_path}"
-        if bump_desc:
-            msg += f" (timestamp would be {bump_desc})"
-        if output_json:
-            emit_json(
-                {
-                    "status": "ok",
-                    "command": cmd_name,
-                    "type": "iterations",
-                    "path": target_path,
-                    "fingerprint": fingerprint,
-                    "autoBumped": auto_bumped,
-                    "forceBumped": force_bump,
-                    "dryRun": True,
-                },
-                pretty,
-                fields,
-            )
-        else:
-            print(msg)
-        return 0
-
-    # Write fingerprint block
-    updated_text = write_fingerprint_block(text, fingerprint)
-    with open(target_path, "w") as f:
-        f.write(updated_text)
-
-    msg = f"OK — embedded iterations fingerprint in {target_path}"
-    if bump_desc:
-        msg += f" (timestamp {bump_desc})"
-
-    if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": cmd_name,
-                "type": "iterations",
-                "path": target_path,
-                "fingerprint": fingerprint,
-                "autoBumped": auto_bumped,
-                "forceBumped": force_bump,
-            },
-            pretty,
-            fields,
-        )
-    else:
-        print(msg)
+    auto_bumped = _check_auto_bump(fingerprint, previous, "iterations")
+    return _emit_embed_result(
+        "iterations",
+        target_path,
+        fingerprint,
+        auto_bumped,
+        force_bump,
+        text,
+        dry_run,
+        output_json,
+        pretty,
+        fields,
+    )
     return 0
 
 
