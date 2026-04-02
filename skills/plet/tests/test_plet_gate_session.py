@@ -939,7 +939,9 @@ def test_postflight_json():
 # Main
 # ===========================================================================
 
-if __name__ == "__main__":
+
+def main():
+    global passed, failed
     # detect tests
     test_detect_help()
     test_detect_fresh_project()
@@ -996,4 +998,8 @@ if __name__ == "__main__":
     test_postflight_json()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
-    sys.exit(1 if failed > 0 else 0)
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

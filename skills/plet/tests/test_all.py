@@ -189,7 +189,7 @@ def main():
         print("Mode: {} | {} test files".format("sequential" if sequential else "parallel", "scanning..."), end="")
 
     test_files = sorted(glob.glob(os.path.join(TESTS_DIR, "test_*.py")))
-    test_files = [f for f in test_files if os.path.basename(f) != "test_all.py"]
+    test_files = [f for f in test_files if os.path.basename(f) not in ("test_all.py", "test_coverage_imports.py")]
 
     if not test_files:
         print(f"\nNo test files found in {TESTS_DIR}")

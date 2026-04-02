@@ -224,7 +224,9 @@ def test_run_git_stderr_stripped():
 # Main
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+
+def main():
+    global passed, failed
     test_run_basic()
     test_run_failure()
     test_run_stderr()
@@ -243,4 +245,8 @@ if __name__ == "__main__":
     test_run_git_stderr_stripped()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
-    sys.exit(1 if failed > 0 else 0)
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

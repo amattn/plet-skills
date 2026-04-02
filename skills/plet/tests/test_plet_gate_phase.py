@@ -772,7 +772,9 @@ def test_verify_post_audit_tag_missing():
 # Main
 # ===========================================================================
 
-if __name__ == "__main__":
+
+def main():
+    global passed, failed
     test_pre_help()
     test_pre_missing_args()
     test_pre_invalid_phase()
@@ -806,4 +808,8 @@ if __name__ == "__main__":
     test_verify_post_audit_tag_missing()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
-    sys.exit(1 if failed > 0 else 0)
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

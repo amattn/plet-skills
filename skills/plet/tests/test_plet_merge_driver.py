@@ -535,7 +535,9 @@ def test_git_merge_integration():
 # Main
 # ===========================================================================
 
-if __name__ == "__main__":
+
+def main():
+    global passed, failed
     # Progress
     test_progress_both_appended()
     test_progress_only_theirs()
@@ -568,4 +570,8 @@ if __name__ == "__main__":
     test_git_merge_integration()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
-    sys.exit(1 if failed > 0 else 0)
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

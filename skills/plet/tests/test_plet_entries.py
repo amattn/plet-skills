@@ -1827,7 +1827,9 @@ def test_version():
 # Run all tests
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+
+def main():
+    global passed, failed
     print(f"Testing: {TOOL}\n")
 
     test_help_all_commands()
@@ -1883,4 +1885,8 @@ if __name__ == "__main__":
     print("\n" + "=" * 40)
     print(f"  {passed} passed, {failed} failed")
     print("=" * 40)
-    sys.exit(1 if failed else 0)
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

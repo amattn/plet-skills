@@ -430,7 +430,9 @@ def test_convenience_loaders():
 # Runner
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+
+def main():
+    global passed, failed
     print("Testing: util_io.py\n")
 
     test_load_json_valid()
@@ -459,4 +461,8 @@ if __name__ == "__main__":
     print(f"  {passed} passed, {failed} failed")
     print("{}".format("=" * 40))
 
-    sys.exit(1 if failed else 0)
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

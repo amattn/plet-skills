@@ -415,7 +415,9 @@ def test_missing_state_file():
 # Main
 # ===========================================================================
 
-if __name__ == "__main__":
+
+def main():
+    global passed, failed
     test_help()
     test_missing_args()
     test_invalid_phase()
@@ -437,4 +439,8 @@ if __name__ == "__main__":
     test_missing_state_file()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
-    sys.exit(1 if failed > 0 else 0)
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

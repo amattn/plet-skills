@@ -1,0 +1,39 @@
+[project]
+name = "plet-skills"
+version = "0.4.1"
+description = "Spec-driven autonomous development orchestrator for Claude Code"
+requires-python = ">=3.8"
+# No dependencies — stdlib only
+
+[tool.pytest.ini_options]
+testpaths = ["skills/plet/tests"]
+pythonpath = ["skills/plet/scripts", "skills/plet/tests"]
+
+[tool.coverage.run]
+source = ["skills/plet/scripts"]
+omit = ["skills/plet/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "if __name__",
+    "pragma: no cover",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",
+    "I",
+    "N",
+    "UP",
+    "B",
+    "SIM",
+    "C90",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15

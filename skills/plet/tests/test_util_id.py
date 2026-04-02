@@ -169,7 +169,9 @@ def test_generate_plet_id_plan_phase():
 # Runner
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+
+def main():
+    global passed, failed
     print("Testing: util_id.py\n")
 
     test_crockford_encode()
@@ -187,4 +189,8 @@ if __name__ == "__main__":
     print(f"  {passed} passed, {failed} failed")
     print("{}".format("=" * 40))
 
-    sys.exit(1 if failed else 0)
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
