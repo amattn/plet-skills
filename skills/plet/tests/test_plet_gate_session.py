@@ -17,8 +17,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from util_io import (state_json_path, state_dir_path, iter_state_path,
-                     requirements_path, iterations_path)
+from util_io import state_json_path, state_dir_path, iter_state_path, requirements_path, iterations_path
 from util_fixture import (
     make_global_state as _shared_make_global_state,
     make_iter_state as _shared_make_iter_state,
@@ -35,7 +34,9 @@ def run(args, expect_exit=0, cwd=None):
     """Run the script with args via subprocess, assert exit code."""
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True, text=True, cwd=cwd,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
@@ -57,11 +58,12 @@ def check(name, condition, detail=""):
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
 
 
-def make_global_state(plet_dir, project_id="TEST", loop_session=1, lifecycles=None,
-                      dep_map=None, milestones=None):
+def make_global_state(plet_dir, project_id="TEST", loop_session=1, lifecycles=None, dep_map=None, milestones=None):
     """Create a valid global state.json with SF_28 lifecycles."""
     _shared_make_global_state(
-        plet_dir, project_id=project_id, loop_session=loop_session,
+        plet_dir,
+        project_id=project_id,
+        loop_session=loop_session,
         lifecycles=lifecycles if lifecycles is not None else {},
         dep_map=dep_map if dep_map is not None else {},
         **({"milestones": milestones} if milestones is not None else {}),
@@ -76,15 +78,23 @@ def make_iter_state(plet_dir, iter_id, lifecycle=None, title=None, **overrides):
     Caller must put lifecycle in global state's lifecycles dict.
     """
     _shared_make_iter_state(
-        plet_dir, iter_id=iter_id,
+        plet_dir,
+        iter_id=iter_id,
         title=title or "Test iteration {}".format(iter_id),
         **overrides,
     )
     return iter_state_path(plet_dir, iter_id)
 
 
-def make_plet_dir(tmpdir, with_requirements=False, with_iterations=False,
-                  with_state=False, lifecycles=None, dep_map=None, milestones=None):
+def make_plet_dir(
+    tmpdir,
+    with_requirements=False,
+    with_iterations=False,
+    with_state=False,
+    lifecycles=None,
+    dep_map=None,
+    milestones=None,
+):
     """Create plet directory structure."""
     plet_dir = os.path.join(tmpdir, "plet")
     os.makedirs(plet_dir, exist_ok=True)
@@ -99,8 +109,7 @@ def make_plet_dir(tmpdir, with_requirements=False, with_iterations=False,
 
     if with_state:
         os.makedirs(state_dir_path(plet_dir), exist_ok=True)
-        make_global_state(plet_dir, lifecycles=lifecycles, dep_map=dep_map,
-                          milestones=milestones)
+        make_global_state(plet_dir, lifecycles=lifecycles, dep_map=dep_map, milestones=milestones)
 
     return plet_dir
 
@@ -108,6 +117,7 @@ def make_plet_dir(tmpdir, with_requirements=False, with_iterations=False,
 # ===========================================================================
 # detect — command-by-command tests (RED phase first)
 # ===========================================================================
+
 
 def test_detect_help():
     print("\n## detect — help")
@@ -165,8 +175,7 @@ def test_detect_queued_iterations():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "queued", "ID_002": "queued"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         make_iter_state(plet_dir, "ID_002")
         stdout, _, _ = run(["detect", plet_dir])
@@ -180,8 +189,7 @@ def test_detect_implementing():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "implementing"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns loop", stdout == "loop")
@@ -194,8 +202,7 @@ def test_detect_verifying():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "verifying"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         stdout, _, _ = run(["detect", plet_dir])
         check("returns loop", stdout == "loop")
@@ -208,8 +215,7 @@ def test_detect_all_complete():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "complete", "ID_002": "complete"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         make_iter_state(plet_dir, "ID_002")
         stdout, _, _ = run(["detect", plet_dir])
@@ -223,8 +229,7 @@ def test_detect_blocked_no_actionable():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "blocked", "ID_002": "complete"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         make_iter_state(plet_dir, "ID_002")
         stdout, _, _ = run(["detect", plet_dir])
@@ -238,8 +243,7 @@ def test_detect_ineligible_only():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "ineligible", "ID_002": "ineligible"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         make_iter_state(plet_dir, "ID_002")
         stdout, _, _ = run(["detect", plet_dir])
@@ -253,8 +257,7 @@ def test_detect_mix_complete_withdrawn():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "complete", "ID_002": "withdrawn"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         make_iter_state(plet_dir, "ID_002")
         stdout, _, _ = run(["detect", plet_dir])
@@ -268,8 +271,7 @@ def test_detect_mix_queued_and_complete():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "complete", "ID_002": "queued"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         make_iter_state(plet_dir, "ID_002")
         stdout, _, _ = run(["detect", plet_dir])
@@ -283,8 +285,7 @@ def test_detect_json_output():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "queued"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         stdout, _, _ = run(["detect", plet_dir, "--output", "json"])
         data = json.loads(stdout)
@@ -332,8 +333,7 @@ def test_detect_corrupt_iter_file_ignored():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "queued", "ID_002": "complete"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
         make_iter_state(plet_dir, "ID_001")
         # Write a corrupt per-iteration state file — detect reads from
         # state.json.lifecycles, so this doesn't matter
@@ -393,6 +393,7 @@ def test_detect_no_state_dir():
 # status — command-by-command tests (RED phase first)
 # ===========================================================================
 
+
 def make_full_project(tmpdir, iterations, milestones=None):
     """Create a full project with global state and iteration states.
 
@@ -402,9 +403,15 @@ def make_full_project(tmpdir, iterations, milestones=None):
     """
     lifecycles = {iter_id: lifecycle for iter_id, lifecycle, title in iterations}
     dep_map = {iter_id: [] for iter_id, _, _ in iterations}
-    plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                             with_state=True, lifecycles=lifecycles, dep_map=dep_map,
-                             milestones=milestones)
+    plet_dir = make_plet_dir(
+        tmpdir,
+        with_requirements=True,
+        with_iterations=True,
+        with_state=True,
+        lifecycles=lifecycles,
+        dep_map=dep_map,
+        milestones=milestones,
+    )
     for iter_id, lifecycle, title in iterations:
         make_iter_state(plet_dir, iter_id, title=title)
     return plet_dir
@@ -421,11 +428,14 @@ def test_status_basic():
     print("\n## status — basic text output")
     tmpdir = tempfile.mkdtemp()
     try:
-        plet_dir = make_full_project(tmpdir, [
-            ("ID_001", "complete", "Setup scaffolding"),
-            ("ID_002", "implementing", "Add auth"),
-            ("ID_003", "queued", "Add tests"),
-        ])
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "complete", "Setup scaffolding"),
+                ("ID_002", "implementing", "Add auth"),
+                ("ID_003", "queued", "Add tests"),
+            ],
+        )
         stdout, _, _ = run(["status", plet_dir])
         check("has project id", "TEST" in stdout)
         check("has session type", "loop" in stdout)
@@ -440,12 +450,15 @@ def test_status_json():
     print("\n## status — JSON output")
     tmpdir = tempfile.mkdtemp()
     try:
-        plet_dir = make_full_project(tmpdir, [
-            ("ID_001", "complete", "Setup scaffolding"),
-            ("ID_002", "implementing", "Add auth"),
-            ("ID_003", "queued", "Add tests"),
-            ("ID_004", "blocked", "OAuth integration"),
-        ])
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "complete", "Setup scaffolding"),
+                ("ID_002", "implementing", "Add auth"),
+                ("ID_003", "queued", "Add tests"),
+                ("ID_004", "blocked", "OAuth integration"),
+            ],
+        )
         stdout, _, _ = run(["status", plet_dir, "--output", "json"])
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
@@ -466,10 +479,13 @@ def test_status_blockers():
     print("\n## status — blockers listed")
     tmpdir = tempfile.mkdtemp()
     try:
-        plet_dir = make_full_project(tmpdir, [
-            ("ID_001", "blocked", "OAuth sandbox 500"),
-            ("ID_002", "complete", "Setup"),
-        ])
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "blocked", "OAuth sandbox 500"),
+                ("ID_002", "complete", "Setup"),
+            ],
+        )
         stdout, _, _ = run(["status", plet_dir, "--output", "json"])
         data = json.loads(stdout)
         check("has blockers", len(data["blockers"]) == 1)
@@ -484,10 +500,8 @@ def test_status_active_agents():
     tmpdir = tempfile.mkdtemp()
     try:
         lc = {"ID_001": "implementing"}
-        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True,
-                                 with_state=True, lifecycles=lc)
-        make_iter_state(plet_dir, "ID_001", title="Add auth",
-                        agent_id="agent-abc-123", phase_activity="running_checks")
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
+        make_iter_state(plet_dir, "ID_001", title="Add auth", agent_id="agent-abc-123", phase_activity="running_checks")
 
         stdout, _, _ = run(["status", plet_dir, "--output", "json"])
         data = json.loads(stdout)
@@ -502,12 +516,15 @@ def test_status_progress():
     print("\n## status — progress percentage")
     tmpdir = tempfile.mkdtemp()
     try:
-        plet_dir = make_full_project(tmpdir, [
-            ("ID_001", "complete", "A"),
-            ("ID_002", "complete", "B"),
-            ("ID_003", "queued", "C"),
-            ("ID_004", "queued", "D"),
-        ])
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "complete", "A"),
+                ("ID_002", "complete", "B"),
+                ("ID_003", "queued", "C"),
+                ("ID_004", "queued", "D"),
+            ],
+        )
         stdout, _, _ = run(["status", plet_dir, "--output", "json"])
         data = json.loads(stdout)
         check("progress complete 2", data["progress"]["complete"] == 2)
@@ -532,9 +549,12 @@ def test_status_corrupt_state_file():
     print("\n## status — corrupt state file → warning")
     tmpdir = tempfile.mkdtemp()
     try:
-        plet_dir = make_full_project(tmpdir, [
-            ("ID_001", "complete", "Good one"),
-        ])
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "complete", "Good one"),
+            ],
+        )
         with open(iter_state_path(plet_dir, "ID_002"), "w") as f:
             f.write("not json")
         stdout, _, _ = run(["status", plet_dir, "--output", "json"])
@@ -549,10 +569,13 @@ def test_status_text_output_has_progress():
     print("\n## status — text output includes progress")
     tmpdir = tempfile.mkdtemp()
     try:
-        plet_dir = make_full_project(tmpdir, [
-            ("ID_001", "complete", "A"),
-            ("ID_002", "queued", "B"),
-        ])
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "complete", "A"),
+                ("ID_002", "queued", "B"),
+            ],
+        )
         stdout, _, _ = run(["status", plet_dir])
         check("has progress percentage", "50%" in stdout or "1/2" in stdout)
     finally:
@@ -562,6 +585,7 @@ def test_status_text_output_has_progress():
 # ===========================================================================
 # preflight — command-by-command tests (RED phase first)
 # ===========================================================================
+
 
 def test_preflight_help():
     print("\n## preflight — help")
@@ -585,9 +609,8 @@ def test_preflight_invalid_session_type():
     tmpdir = tempfile.mkdtemp()
     try:
         _, stderr, _ = run(
-            ["preflight", os.path.join(tmpdir, "plet"),
-             "--session-type", "bogus"],
-            expect_exit=1, cwd=tmpdir)
+            ["preflight", os.path.join(tmpdir, "plet"), "--session-type", "bogus"], expect_exit=1, cwd=tmpdir
+        )
         check("error mentions invalid", "invalid" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -631,11 +654,9 @@ def test_preflight_missing_claude_md():
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
         stdout, _, rc = run(
-            ["preflight", os.path.join(tmpdir, "plet"),
-             "--session-type", "plan"],
-            expect_exit=2, cwd=tmpdir)
-        check("claude-md-exists WARN",
-              "WARN" in stdout and "claude-md" in stdout.lower())
+            ["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan"], expect_exit=2, cwd=tmpdir
+        )
+        check("claude-md-exists WARN", "WARN" in stdout and "claude-md" in stdout.lower())
     finally:
         shutil.rmtree(tmpdir)
 
@@ -655,11 +676,9 @@ def test_preflight_missing_gitignore_plet():
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
         stdout, _, rc = run(
-            ["preflight", os.path.join(tmpdir, "plet"),
-             "--session-type", "plan"],
-            expect_exit=2, cwd=tmpdir)
-        check("gitignore-plet WARN",
-              "WARN" in stdout and "gitignore" in stdout.lower())
+            ["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan"], expect_exit=2, cwd=tmpdir
+        )
+        check("gitignore-plet WARN", "WARN" in stdout and "gitignore" in stdout.lower())
     finally:
         shutil.rmtree(tmpdir)
 
@@ -703,9 +722,8 @@ def test_preflight_json_output():
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
         stdout, _, _ = run(
-            ["preflight", os.path.join(tmpdir, "plet"),
-             "--session-type", "plan", "--output", "json"],
-            cwd=tmpdir)
+            ["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan", "--output", "json"], cwd=tmpdir
+        )
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("command preflight", data["command"] == "preflight")
@@ -757,12 +775,10 @@ def test_preflight_fingerprints_skipped_on_plan():
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
         stdout, _, _ = run(
-            ["preflight", os.path.join(tmpdir, "plet"),
-             "--session-type", "plan", "--output", "json"],
-            cwd=tmpdir)
+            ["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan", "--output", "json"], cwd=tmpdir
+        )
         data = json.loads(stdout)
-        fpr_check = [c for c in data["checks"]
-                     if c["name"] == "fingerprints-consistent"]
+        fpr_check = [c for c in data["checks"] if c["name"] == "fingerprints-consistent"]
         check("fingerprint check exists", len(fpr_check) == 1)
         check("fingerprint SKIPPED", fpr_check[0]["status"] == "skipped")
     finally:
@@ -784,9 +800,8 @@ def test_preflight_detect_session_type():
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
         stdout, _, _ = run(
-            ["preflight", os.path.join(tmpdir, "plet"),
-             "--session-type", "detect", "--output", "json"],
-            cwd=tmpdir)
+            ["preflight", os.path.join(tmpdir, "plet"), "--session-type", "detect", "--output", "json"], cwd=tmpdir
+        )
         data = json.loads(stdout)
         # Fresh project → detect should resolve to plan
         check("sessionType resolved", data["sessionType"] == "plan")
@@ -809,12 +824,10 @@ def test_preflight_scripts_installed():
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
 
         stdout, _, _ = run(
-            ["preflight", os.path.join(tmpdir, "plet"),
-             "--session-type", "plan", "--output", "json"],
-            cwd=tmpdir)
+            ["preflight", os.path.join(tmpdir, "plet"), "--session-type", "plan", "--output", "json"], cwd=tmpdir
+        )
         data = json.loads(stdout)
-        scripts_check = [c for c in data["checks"]
-                         if c["name"] == "scripts-installed"]
+        scripts_check = [c for c in data["checks"] if c["name"] == "scripts-installed"]
         check("scripts check exists", len(scripts_check) == 1)
         check("scripts check pass", scripts_check[0]["status"] == "pass")
     finally:
@@ -824,6 +837,7 @@ def test_preflight_scripts_installed():
 # ===========================================================================
 # postflight tests
 # ===========================================================================
+
 
 def test_postflight_help():
     print("\n## postflight — help")
@@ -838,16 +852,16 @@ def test_postflight_basic():
     try:
         plet_dir = os.path.join(tmpdir, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        make_global_state(plet_dir, lifecycles={"ID_001": "complete"},
-                          dep_map={"ID_001": []})
+        make_global_state(plet_dir, lifecycles={"ID_001": "complete"}, dep_map={"ID_001": []})
         make_iter_state(plet_dir, "ID_001")
         with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
             f.write("# Requirements\n")
         with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
             f.write("# Iterations\n")
         subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
-        out, _, rc = run(["postflight", plet_dir, "--session-type", "loop"],
-                         expect_exit=2, cwd=tmpdir)  # 2 = warn (no CLAUDE.md etc in temp dir)
+        out, _, rc = run(
+            ["postflight", plet_dir, "--session-type", "loop"], expect_exit=2, cwd=tmpdir
+        )  # 2 = warn (no CLAUDE.md etc in temp dir)
         check("exits 2 (warn expected in temp dir)", rc == 2)
         check("has transient-lifecycle check", "transient-lifecycle" in out)
         check("transient passes", "no iterations in transient" in out)
@@ -861,16 +875,14 @@ def test_postflight_transient_detected():
     try:
         plet_dir = os.path.join(tmpdir, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        make_global_state(plet_dir, lifecycles={"ID_001": "implementing"},
-                          dep_map={"ID_001": []})
+        make_global_state(plet_dir, lifecycles={"ID_001": "implementing"}, dep_map={"ID_001": []})
         make_iter_state(plet_dir, "ID_001")
         with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
             f.write("# Requirements\n")
         with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
             f.write("# Iterations\n")
         subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
-        out, _, rc = run(["postflight", plet_dir, "--session-type", "loop"],
-                         expect_exit=2, cwd=tmpdir)
+        out, _, rc = run(["postflight", plet_dir, "--session-type", "loop"], expect_exit=2, cwd=tmpdir)
         check("exits 2 (warn)", rc == 2)
         check("mentions transient", "transient" in out.lower())
         check("mentions ID_001", "ID_001" in out)
@@ -886,8 +898,9 @@ def test_postflight_never_fails():
         os.makedirs(plet_dir, exist_ok=True)
         make_global_state(plet_dir)
         subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
-        out, _, rc = run(["postflight", plet_dir, "--session-type", "loop"],
-                         expect_exit=2, cwd=tmpdir)  # 2 = warn (missing specs downgraded from fail)
+        out, _, rc = run(
+            ["postflight", plet_dir, "--session-type", "loop"], expect_exit=2, cwd=tmpdir
+        )  # 2 = warn (missing specs downgraded from fail)
         check("never exits 1", rc != 1, "got exit code: " + str(rc))
         check("no FAIL in output (all downgraded to WARN)", "FAIL" not in out)
     finally:
@@ -900,16 +913,16 @@ def test_postflight_json():
     try:
         plet_dir = os.path.join(tmpdir, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        make_global_state(plet_dir, lifecycles={"ID_001": "complete"},
-                          dep_map={"ID_001": []})
+        make_global_state(plet_dir, lifecycles={"ID_001": "complete"}, dep_map={"ID_001": []})
         make_iter_state(plet_dir, "ID_001")
         with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
             f.write("# Requirements\n")
         with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
             f.write("# Iterations\n")
         subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
-        out, _, _ = run(["postflight", plet_dir, "--session-type", "loop",
-                         "--output", "json"], expect_exit=2, cwd=tmpdir)
+        out, _, _ = run(
+            ["postflight", plet_dir, "--session-type", "loop", "--output", "json"], expect_exit=2, cwd=tmpdir
+        )
         data = json.loads(out)
         check("json command postflight", data["command"] == "postflight")
         check("json has checks", len(data["checks"]) > 0)

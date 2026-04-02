@@ -101,4 +101,4 @@ def generate_plet_id(prefix, iteration_id, phase, attempt):
     ts = crockford_timestamp()
     iter_seg = normalize_iteration(iteration_id)
     phase_seg = phase_attempt_segment(phase, attempt)
-    return "{}_{}_{}_{}" .format(prefix, ts, iter_seg, phase_seg)
+    return "{}_{}_{}_{}".format(prefix, ts, iter_seg, phase_seg)

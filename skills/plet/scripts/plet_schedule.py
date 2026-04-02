@@ -45,8 +45,13 @@ SCRIPT_VERSION = "0.3.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_LIFECYCLES = {
-    "ineligible", "queued", "implementing", "verifying",
-    "complete", "blocked", "withdrawn",
+    "ineligible",
+    "queued",
+    "implementing",
+    "verifying",
+    "complete",
+    "blocked",
+    "withdrawn",
 }
 
 
@@ -57,6 +62,7 @@ def _help_hint(command):
 # ---------------------------------------------------------------------------
 # eligible
 # ---------------------------------------------------------------------------
+
 
 def cmd_eligible(args):
     """List iterations eligible for work.
@@ -116,15 +122,17 @@ def cmd_eligible(args):
     lifecycles = {}
     for iter_id in dep_map:
         if iter_id not in lifecycles_map:
-            print("Error: iteration {} in dependencyMap but not in lifecycles".format(iter_id),
-                  file=sys.stderr)
+            print("Error: iteration {} in dependencyMap but not in lifecycles".format(iter_id), file=sys.stderr)
             print(_help_hint("eligible"), file=sys.stderr)
             return 1
         lc = lifecycles_map[iter_id]
         if lc not in VALID_LIFECYCLES:
-            print("Error: invalid lifecycle '{}' for {} (valid: {})".format(
-                lc, iter_id, ", ".join(sorted(VALID_LIFECYCLES))),
-                file=sys.stderr)
+            print(
+                "Error: invalid lifecycle '{}' for {} (valid: {})".format(
+                    lc, iter_id, ", ".join(sorted(VALID_LIFECYCLES))
+                ),
+                file=sys.stderr,
+            )
             print(_help_hint("eligible"), file=sys.stderr)
             return 1
         lifecycles[iter_id] = lc
@@ -134,9 +142,7 @@ def cmd_eligible(args):
     for iter_id, deps in sorted(dep_map.items()):
         if lifecycles[iter_id] != "queued":
             continue
-        all_deps_complete = all(
-            lifecycles.get(dep_id) == "complete" for dep_id in deps
-        )
+        all_deps_complete = all(lifecycles.get(dep_id) == "complete" for dep_id in deps)
         if all_deps_complete:
             eligible.append(iter_id)
 
@@ -150,15 +156,14 @@ def cmd_eligible(args):
             continue
         if iter_id in eligible:
             continue
-        unsatisfiable = [
-            dep_id for dep_id in deps
-            if lifecycles.get(dep_id) in UNSATISFIABLE
-        ]
+        unsatisfiable = [dep_id for dep_id in deps if lifecycles.get(dep_id) in UNSATISFIABLE]
         if unsatisfiable:
-            stuck_iterations.append({
-                "iterationId": iter_id,
-                "unsatisfiableDeps": sorted(unsatisfiable),
-            })
+            stuck_iterations.append(
+                {
+                    "iterationId": iter_id,
+                    "unsatisfiableDeps": sorted(unsatisfiable),
+                }
+            )
 
     # Build lifecycle counts
     counts = {lc: 0 for lc in sorted(VALID_LIFECYCLES)}
@@ -184,8 +189,7 @@ def cmd_eligible(args):
         else:
             print("none")
         for si in stuck_iterations:
-            print("stuck: {} (blocked dep: {})".format(
-                si["iterationId"], ", ".join(si["unsatisfiableDeps"])))
+            print("stuck: {} (blocked dep: {})".format(si["iterationId"], ", ".join(si["unsatisfiableDeps"])))
 
     return 0
 
@@ -193,6 +197,7 @@ def cmd_eligible(args):
 # ---------------------------------------------------------------------------
 # check-breakpoints
 # ---------------------------------------------------------------------------
+
 
 def cmd_check_breakpoints(args):
     """Check if a breakpoint is set for an iteration.
@@ -224,8 +229,8 @@ def cmd_check_breakpoints(args):
         return 1
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(
-            kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ,
-            _help_hint("check-breakpoints")):
+        kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ, _help_hint("check-breakpoints")
+    ):
         return 1
 
     # Require --iter-id and --position
@@ -275,6 +280,7 @@ def cmd_check_breakpoints(args):
 # check-retry
 # ---------------------------------------------------------------------------
 
+
 def cmd_check_retry(args):
     """Evaluate whether a failed iteration should retry.
 
@@ -319,8 +325,7 @@ def cmd_check_retry(args):
     ip = iter_state_path(plet_dir, iter_id)
     iter_state = load_json(ip)
     if iter_state is None:
-        print("Error: state file not found for {} at {}".format(iter_id, ip),
-              file=sys.stderr)
+        print("Error: state file not found for {} at {}".format(iter_id, ip), file=sys.stderr)
         print(_help_hint("check-retry"), file=sys.stderr)
         return 1
 
@@ -344,8 +349,7 @@ def cmd_check_retry(args):
 
         # Determine trend
         is_decreasing = len(failure_trend) >= 2 and all(
-            failure_trend[i] > failure_trend[i + 1]
-            for i in range(len(failure_trend) - 1)
+            failure_trend[i] > failure_trend[i + 1] for i in range(len(failure_trend) - 1)
         )
         trend_direction = "decreasing" if is_decreasing else "not_decreasing"
         max_attempts = 6 if is_decreasing else 3
@@ -353,16 +357,17 @@ def cmd_check_retry(args):
 
         if verify_attempts >= max_attempts:
             decision = "abort"
-            reason = "Retry limit reached ({} attempts, max {}).".format(
-                verify_attempts, max_attempts)
+            reason = "Retry limit reached ({} attempts, max {}).".format(verify_attempts, max_attempts)
             if not is_decreasing:
                 reason += " Failure count not strictly decreasing: {}.".format(
-                    " \u2192 ".join(str(f) for f in failure_trend))
+                    " \u2192 ".join(str(f) for f in failure_trend)
+                )
         else:
             decision = "continue"
             if is_decreasing:
                 reason = "Failure count strictly decreasing: {}. Extended limit ({} max).".format(
-                    " \u2192 ".join(str(f) for f in failure_trend), max_attempts)
+                    " \u2192 ".join(str(f) for f in failure_trend), max_attempts
+                )
             elif verify_attempts < 3:
                 reason = "Under default limit ({}/3 attempts).".format(verify_attempts)
             else:
@@ -391,15 +396,14 @@ def cmd_check_retry(args):
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "eligible": cmd_eligible,
         "check-breakpoints": cmd_check_breakpoints,
         "check-retry": cmd_check_retry,
     }
-    return dispatch(
-        commands, "plet_schedule", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_schedule", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

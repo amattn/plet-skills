@@ -113,14 +113,12 @@ def trace_dir_path(plet_dir):
 
 def events_path(plet_dir, iter_id, phase, attempt):
     """Derive path to semantic events NDJSON file."""
-    return os.path.join(plet_dir, "trace",
-                        "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt))
+    return os.path.join(plet_dir, "trace", "{}-{}-{}-events.ndjson".format(iter_id, phase, attempt))
 
 
 def transcript_path(plet_dir, iter_id, phase, attempt):
     """Derive path to raw I/O transcript file."""
-    return os.path.join(plet_dir, "trace",
-                        "{}-{}-{}-transcript.ndjson".format(iter_id, phase, attempt))
+    return os.path.join(plet_dir, "trace", "{}-{}-{}-transcript.ndjson".format(iter_id, phase, attempt))
 
 
 DEFAULT_WORKTREE_DIR = ".plet/worktrees"
@@ -162,6 +160,7 @@ def derive_worktree_plet_dir(worktree_path, global_plet_dir):
 # Plet dir validation
 # ---------------------------------------------------------------------------
 
+
 def validate_plet_dir(path):
     """Check that path exists and is a directory.
 
@@ -179,6 +178,7 @@ def validate_plet_dir(path):
 # ---------------------------------------------------------------------------
 # File I/O
 # ---------------------------------------------------------------------------
+
 
 def load_json(path):
     """Load and parse a JSON file.
@@ -224,7 +224,8 @@ def load_json_arg(kwargs, name, file_name=None):
 
     if raw is not None and file_path is not None:
         return None, "Error: --{} and --{} are mutually exclusive".format(
-            name.replace("_", "-"), file_name.replace("_", "-"))
+            name.replace("_", "-"), file_name.replace("_", "-")
+        )
 
     if file_path is not None:
         if not os.path.isfile(file_path):
@@ -241,8 +242,7 @@ def load_json_arg(kwargs, name, file_name=None):
     try:
         return json.loads(raw), None
     except json.JSONDecodeError as e:
-        return None, "Error: invalid JSON for --{}: {}".format(
-            name.replace("_", "-"), e)
+        return None, "Error: invalid JSON for --{}: {}".format(name.replace("_", "-"), e)
 
 
 def atomic_write_json(path, data, update_timestamp=True):
@@ -313,6 +313,7 @@ def atomic_append(path, content):
 # ---------------------------------------------------------------------------
 # Convenience loaders — combine path derivation + load
 # ---------------------------------------------------------------------------
+
 
 def load_global_state_json(global_plet_dir):
     """Load plet/state.json as raw dict (no validation)."""

@@ -54,6 +54,7 @@ VALID_PERMISSION_MODES = ["auto", "bypassPermissions", "default"]
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def help_hint(command):
     return "Run: plet_invoke.py {} --help".format(command)
 
@@ -70,8 +71,7 @@ def find_claude():
 def assemble_prompt(plet_dir, iter_id, phase):
     """Call plet_prompt.py assemble. Returns (prompt_text, error_msg)."""
     prm_script = os.path.join(scripts_dir(), "plet_prompt.py")
-    result = run([sys.executable, prm_script, "assemble", plet_dir,
-                  "--iter-id", iter_id, "--phase", phase])
+    result = run([sys.executable, prm_script, "assemble", plet_dir, "--iter-id", iter_id, "--phase", phase])
     if result.returncode != 0:
         return None, "prompt assembly failed: {}".format(result.stderr.strip())
     return result.stdout, None
@@ -79,10 +79,19 @@ def assemble_prompt(plet_dir, iter_id, phase):
 
 def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model, max_budget, verbose):
     """Build the claude -p command list."""
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
-           "--permission-mode", permission_mode,
-           "--no-session-persistence",
-           "--name", "plet/{}/{}-{}".format(iter_id, phase, attempt)]
+    cmd = [
+        "claude",
+        "-p",
+        prompt,
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--permission-mode",
+        permission_mode,
+        "--no-session-persistence",
+        "--name",
+        "plet/{}/{}-{}".format(iter_id, phase, attempt),
+    ]
     if model:
         cmd.extend(["--model", model])
     if max_budget:
@@ -93,6 +102,7 @@ def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model
 # ---------------------------------------------------------------------------
 # run command
 # ---------------------------------------------------------------------------
+
 
 def cmd_run(args):
     HELP = """IMPORTANT:
@@ -148,10 +158,20 @@ Examples:
         print(str(e), file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {
-        "iter_id", "phase", "cwd", "permission_mode",
-        "model", "max_budget", "verbose",
-    } | UNIVERSAL_FLAGS_WRITE, hint):
+    if not validate_known_flags(
+        kwargs,
+        {
+            "iter_id",
+            "phase",
+            "cwd",
+            "permission_mode",
+            "model",
+            "max_budget",
+            "verbose",
+        }
+        | UNIVERSAL_FLAGS_WRITE,
+        hint,
+    ):
         return 1
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
@@ -196,8 +216,12 @@ Examples:
         return 1
 
     if permission_mode not in VALID_PERMISSION_MODES:
-        print("Error: invalid --permission-mode '{}' (valid: {})".format(
-            permission_mode, ", ".join(VALID_PERMISSION_MODES)), file=sys.stderr)
+        print(
+            "Error: invalid --permission-mode '{}' (valid: {})".format(
+                permission_mode, ", ".join(VALID_PERMISSION_MODES)
+            ),
+            file=sys.stderr,
+        )
         print(hint, file=sys.stderr)
         return 1
 
@@ -248,8 +272,7 @@ Examples:
         "PLET_SCRIPTS_DIR": scripts_dir(),
         "PLET_DIR": os.path.abspath(plet_dir) if plet_dir else "",
         "PLET_PROJECT_DIR": os.path.abspath(cwd),
-        "PLET_WORKTREE_BASE": os.path.abspath(
-            os.path.join(os.path.dirname(plet_dir), ".plet", "worktrees")),
+        "PLET_WORKTREE_BASE": os.path.abspath(os.path.join(os.path.dirname(plet_dir), ".plet", "worktrees")),
         "PLET_ITER_ID": iter_id,
         "PLET_PHASE": phase,
         "PLET_ATTEMPT": str(attempt),
@@ -277,27 +300,35 @@ Examples:
 
     # Build claude command
     claude_cmd = build_claude_command(
-        prompt_text, phase, iter_id, attempt,
-        permission_mode, model, max_budget, verbose,
+        prompt_text,
+        phase,
+        iter_id,
+        attempt,
+        permission_mode,
+        model,
+        max_budget,
+        verbose,
     )
 
     # Dry-run
     if dry_run:
-        cmd_str = " ".join(
-            '"{}"'.format(c) if " " in c or len(c) > 100 else c
-            for c in claude_cmd
-        )
+        cmd_str = " ".join('"{}"'.format(c) if " " in c or len(c) > 100 else c for c in claude_cmd)
         if output_json:
-            emit_json({
-                "status": "ok",
-                "command": CMD,
-                "iterationId": iter_id,
-                "phase": phase,
-                "attempt": attempt,
-                "claudeCommand": cmd_str,
-                "transcriptPath": t_path,
-                "dryRun": True,
-            }, SCRIPT_VERSION, pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": CMD,
+                    "iterationId": iter_id,
+                    "phase": phase,
+                    "attempt": attempt,
+                    "claudeCommand": cmd_str,
+                    "transcriptPath": t_path,
+                    "dryRun": True,
+                },
+                SCRIPT_VERSION,
+                pretty,
+                fields,
+            )
         else:
             print("DRY RUN — would execute:")
             print(cmd_str)
@@ -321,20 +352,37 @@ Examples:
     # Log invocation + full prompt to trace event
     trc_script = os.path.join(scripts_dir(), "plet_trace.py")
     if os.path.isfile(trc_script):
-        invocation_data = json.dumps({
-            "cwd": cwd,
-            "permissionMode": permission_mode,
-            "promptLength": len(prompt_text),
-            "model": model or "default",
-            "maxBudget": max_budget or "none",
-            "verbose": verbose,
-            "bare": True,
-            "transcriptPath": t_path,
-            "prompt": prompt_text,
-        })
-        run([sys.executable, trc_script, "append-event", plet_dir,
-             "--iter-id", iter_id, "--phase", phase, "--attempt", str(attempt),
-             "--event-type", "invocation", "--data", invocation_data])
+        invocation_data = json.dumps(
+            {
+                "cwd": cwd,
+                "permissionMode": permission_mode,
+                "promptLength": len(prompt_text),
+                "model": model or "default",
+                "maxBudget": max_budget or "none",
+                "verbose": verbose,
+                "bare": True,
+                "transcriptPath": t_path,
+                "prompt": prompt_text,
+            }
+        )
+        run(
+            [
+                sys.executable,
+                trc_script,
+                "append-event",
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--phase",
+                phase,
+                "--attempt",
+                str(attempt),
+                "--event-type",
+                "invocation",
+                "--data",
+                invocation_data,
+            ]
+        )
 
     # Log invocation + full prompt to progress.md (via temp file for large prompts)
     iter_title = state_data.get("title", iter_id)
@@ -348,8 +396,7 @@ Examples:
         "- Prompt length: {} chars\n"
         "- Transcript: {}\n\n"
         "Full prompt is in the trace event file, not repeated here."
-    ).format(phase, attempt, permission_mode, model or "default",
-             max_budget or "none", cwd, len(prompt_text), t_path)
+    ).format(phase, attempt, permission_mode, model or "default", max_budget or "none", cwd, len(prompt_text), t_path)
     ent_script = os.path.join(scripts_dir(), "plet_entries.py")
     if os.path.isfile(ent_script):
         # Use --content-file to avoid shell escaping issues with complex content
@@ -357,15 +404,29 @@ Examples:
         content_tmp = os.path.join(trace_dir, ".progress_content.tmp")
         with open(content_tmp, "w") as f:
             f.write(progress_content)
-        ent_result = run([sys.executable, ent_script, "add-progress", plet_dir,
-             "--iter-id", iter_id, "--iter-title", iter_title,
-             "--phase", phase, "--attempt", str(attempt),
-             "--status", "IN_PROGRESS",
-             "--content-file", content_tmp,
-             "--allow-fences"])
+        ent_result = run(
+            [
+                sys.executable,
+                ent_script,
+                "add-progress",
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--iter-title",
+                iter_title,
+                "--phase",
+                phase,
+                "--attempt",
+                str(attempt),
+                "--status",
+                "IN_PROGRESS",
+                "--content-file",
+                content_tmp,
+                "--allow-fences",
+            ]
+        )
         if ent_result.returncode != 0:
-            print("Warning: progress entry failed: {}".format(ent_result.stderr.strip()),
-                  file=sys.stderr)
+            print("Warning: progress entry failed: {}".format(ent_result.stderr.strip()), file=sys.stderr)
         if os.path.isfile(content_tmp):
             os.unlink(content_tmp)
 
@@ -404,23 +465,27 @@ Examples:
     # Output
     if output_json:
         status = "ok" if sub_exit == 0 else "error"
-        emit_json({
-            "status": status,
-            "command": CMD,
-            "iterationId": iter_id,
-            "phase": phase,
-            "attempt": attempt,
-            "subprocessExitCode": sub_exit,
-            "transcriptPath": t_path,
-            "transcriptLines": transcript_lines,
-            "elapsedSeconds": round(elapsed, 1),
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": status,
+                "command": CMD,
+                "iterationId": iter_id,
+                "phase": phase,
+                "attempt": attempt,
+                "subprocessExitCode": sub_exit,
+                "transcriptPath": t_path,
+                "transcriptLines": transcript_lines,
+                "elapsedSeconds": round(elapsed, 1),
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         if sub_exit == 0:
             print("OK — {} subprocess exited 0".format(phase))
         else:
-            print("ERROR — {} subprocess exited {}".format(phase, sub_exit),
-                  file=sys.stderr)
+            print("ERROR — {} subprocess exited {}".format(phase, sub_exit), file=sys.stderr)
 
     return sub_exit
 
@@ -429,13 +494,12 @@ Examples:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "run": cmd_run,
     }
-    return dispatch(
-        commands, "plet_invoke", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_invoke", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

@@ -78,6 +78,7 @@ MILESTONE_METADATA_RE = re.compile(r"\*\*Milestone:\*\*\s*(MS_\d+)")
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def help_hint(command):
     """One-line stderr hint pointing agents to --help."""
     return "Run: plet_fingerprint.py {} --help".format(command)
@@ -175,6 +176,7 @@ def validate_file_exists(path, command, output_json, pretty, context=""):
 # Section-aware text filtering
 # ---------------------------------------------------------------------------
 
+
 def filter_excluded_sections(text, excluded_headings):
     """Remove content under excluded headings from text.
 
@@ -221,6 +223,7 @@ def filter_excluded_sections(text, excluded_headings):
 # Fingerprint block parsing
 # ---------------------------------------------------------------------------
 
+
 def parse_fingerprint_block(text):
     """Extract the fingerprint JSON from between <!-- plet:fingerprint --> markers.
 
@@ -247,9 +250,7 @@ def parse_fingerprint_block(text):
     try:
         fingerprint = json.loads(json_text)
     except json.JSONDecodeError as e:
-        raise ValueError(
-            "malformed fingerprint: {}".format(e)
-        )
+        raise ValueError("malformed fingerprint: {}".format(e))
 
     # end_pos includes the closing marker
     end_pos = second + len(marker)
@@ -297,6 +298,7 @@ def write_fingerprint_block(text, fingerprint):
 # Fingerprint extraction
 # ---------------------------------------------------------------------------
 
+
 def extract_requirements_fingerprint(text):
     """Extract a fingerprint from requirements.md content.
 
@@ -319,9 +321,7 @@ def extract_requirements_fingerprint(text):
         pass
 
     # Scan for milestone IDs
-    milestones = sorted(set(
-        "MS_{}".format(m) for m in MILESTONE_ID_RE.findall(filtered)
-    ))
+    milestones = sorted(set("MS_{}".format(m) for m in MILESTONE_ID_RE.findall(filtered)))
 
     # Scan for requirement IDs (exclude reserved prefixes)
     requirements = {}
@@ -414,6 +414,7 @@ def extract_iterations_fingerprint(text):
 # Fingerprint comparison
 # ---------------------------------------------------------------------------
 
+
 def compare_id_arrays(current, stored):
     """Compare two dicts of ID arrays (e.g., requirements or iterations groups).
 
@@ -487,6 +488,7 @@ def compare_fingerprints(current, stored, id_field):
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
+
 
 def cmd_extract(args):
     HELP = """IMPORTANT:
@@ -605,13 +607,17 @@ Examples:
 
     # Emit output
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "type": type_val,
-            "path": target_path,
-            "fingerprint": fingerprint,
-        }, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "type": type_val,
+                "path": target_path,
+                "fingerprint": fingerprint,
+            },
+            pretty,
+            fields,
+        )
     else:
         print(json.dumps(fingerprint, indent=2))
 
@@ -705,34 +711,28 @@ Examples:
         target_path = requirements_path(artifact_dir)
         if not validate_file_exists(target_path, CMD, output_json, pretty):
             return 1
-        return _embed_requirements(artifact_dir, target_path, force_bump, dry_run,
-                                   output_json, pretty, fields)
+        return _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_json, pretty, fields)
 
     elif type_val == "iterations":
         target_path = iterations_path(artifact_dir)
         req_path = requirements_path(artifact_dir)
         if not validate_file_exists(target_path, CMD, output_json, pretty):
             return 1
-        if not validate_file_exists(req_path, CMD, output_json, pretty,
-                                    "embed iterations fingerprint"):
+        if not validate_file_exists(req_path, CMD, output_json, pretty, "embed iterations fingerprint"):
             return 1
-        return _embed_iterations(artifact_dir, target_path, req_path, force_bump,
-                                 dry_run, output_json, pretty, fields)
+        return _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, output_json, pretty, fields)
 
     else:  # state
         target_path = state_json_path(artifact_dir)
         iter_path = iterations_path(artifact_dir)
         if not validate_file_exists(target_path, CMD, output_json, pretty):
             return 1
-        if not validate_file_exists(iter_path, CMD, output_json, pretty,
-                                    "embed state fingerprint"):
+        if not validate_file_exists(iter_path, CMD, output_json, pretty, "embed state fingerprint"):
             return 1
-        return _embed_state(artifact_dir, target_path, iter_path, force_bump,
-                            dry_run, output_json, pretty, fields)
+        return _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, output_json, pretty, fields)
 
 
-def _embed_requirements(artifact_dir, target_path, force_bump, dry_run,
-                        output_json, pretty, fields):
+def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_json, pretty, fields):
     """Embed fingerprint in requirements.md."""
     CMD = "embed"
     help_hint(CMD)
@@ -794,16 +794,20 @@ def _embed_requirements(artifact_dir, target_path, force_bump, dry_run,
         if bump_desc:
             msg += " (timestamp would be {})".format(bump_desc)
         if output_json:
-            emit_json({
-                "status": "ok",
-                "command": CMD,
-                "type": "requirements",
-                "path": target_path,
-                "fingerprint": fingerprint,
-                "autoBumped": auto_bumped,
-                "forceBumped": force_bump,
-                "dryRun": True,
-            }, pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": CMD,
+                    "type": "requirements",
+                    "path": target_path,
+                    "fingerprint": fingerprint,
+                    "autoBumped": auto_bumped,
+                    "forceBumped": force_bump,
+                    "dryRun": True,
+                },
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -818,22 +822,25 @@ def _embed_requirements(artifact_dir, target_path, force_bump, dry_run,
         msg += " (timestamp {})".format(bump_desc)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "type": "requirements",
-            "path": target_path,
-            "fingerprint": fingerprint,
-            "autoBumped": auto_bumped,
-            "forceBumped": force_bump,
-        }, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "type": "requirements",
+                "path": target_path,
+                "fingerprint": fingerprint,
+                "autoBumped": auto_bumped,
+                "forceBumped": force_bump,
+            },
+            pretty,
+            fields,
+        )
     else:
         print(msg)
     return 0
 
 
-def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run,
-                      output_json, pretty, fields):
+def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, output_json, pretty, fields):
     """Embed fingerprint in iterations.md."""
     CMD = "embed"
     help_hint(CMD)
@@ -908,16 +915,20 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run,
         if bump_desc:
             msg += " (timestamp would be {})".format(bump_desc)
         if output_json:
-            emit_json({
-                "status": "ok",
-                "command": CMD,
-                "type": "iterations",
-                "path": target_path,
-                "fingerprint": fingerprint,
-                "autoBumped": auto_bumped,
-                "forceBumped": force_bump,
-                "dryRun": True,
-            }, pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": CMD,
+                    "type": "iterations",
+                    "path": target_path,
+                    "fingerprint": fingerprint,
+                    "autoBumped": auto_bumped,
+                    "forceBumped": force_bump,
+                    "dryRun": True,
+                },
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -932,22 +943,25 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run,
         msg += " (timestamp {})".format(bump_desc)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "type": "iterations",
-            "path": target_path,
-            "fingerprint": fingerprint,
-            "autoBumped": auto_bumped,
-            "forceBumped": force_bump,
-        }, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "type": "iterations",
+                "path": target_path,
+                "fingerprint": fingerprint,
+                "autoBumped": auto_bumped,
+                "forceBumped": force_bump,
+            },
+            pretty,
+            fields,
+        )
     else:
         print(msg)
     return 0
 
 
-def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run,
-                 output_json, pretty, fields):
+def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, output_json, pretty, fields):
     """Embed iterations fingerprint in state.json."""
     CMD = "embed"
     help_hint(CMD)
@@ -978,16 +992,20 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run,
     if dry_run:
         msg = "DRY RUN — would embed state fingerprint in {}".format(target_path)
         if output_json:
-            emit_json({
-                "status": "ok",
-                "command": CMD,
-                "type": "state",
-                "path": target_path,
-                "fingerprint": iter_fingerprint,
-                "autoBumped": False,
-                "forceBumped": False,
-                "dryRun": True,
-            }, pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": CMD,
+                    "type": "state",
+                    "path": target_path,
+                    "fingerprint": iter_fingerprint,
+                    "autoBumped": False,
+                    "forceBumped": False,
+                    "dryRun": True,
+                },
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -999,15 +1017,19 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run,
     msg = "OK — embedded state fingerprint in {}".format(target_path)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "type": "state",
-            "path": target_path,
-            "fingerprint": iter_fingerprint,
-            "autoBumped": False,
-            "forceBumped": False,
-        }, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "type": "state",
+                "path": target_path,
+                "fingerprint": iter_fingerprint,
+                "autoBumped": False,
+                "forceBumped": False,
+            },
+            pretty,
+            fields,
+        )
     else:
         print(msg)
     return 0
@@ -1154,9 +1176,7 @@ Examples:
             }
             all_consistent = False
         else:
-            consistent, details = compare_fingerprints(
-                current_req_fp, stored_req_fp, "requirements"
-            )
+            consistent, details = compare_fingerprints(current_req_fp, stored_req_fp, "requirements")
             levels_result["requirements"] = details
             if not consistent:
                 all_consistent = False
@@ -1191,9 +1211,7 @@ Examples:
             }
             all_consistent = False
         else:
-            consistent, details = compare_fingerprints(
-                current_iter_fp, stored_iter_fp, "iterations"
-            )
+            consistent, details = compare_fingerprints(current_iter_fp, stored_iter_fp, "iterations")
             levels_result["iterations"] = details
             if not consistent:
                 all_consistent = False
@@ -1201,13 +1219,17 @@ Examples:
     # Emit results
     if output_json:
         status = "ok" if all_consistent else "stale"
-        emit_json({
-            "status": status,
-            "command": CMD,
-            "artifactDir": artifact_dir,
-            "levels": levels_result,
-            "allConsistent": all_consistent,
-        }, pretty, fields)
+        emit_json(
+            {
+                "status": status,
+                "command": CMD,
+                "artifactDir": artifact_dir,
+                "levels": levels_result,
+                "allConsistent": all_consistent,
+            },
+            pretty,
+            fields,
+        )
     else:
         for level_name, details in levels_result.items():
             if details["consistent"]:
@@ -1219,10 +1241,12 @@ Examples:
                 if "removed" in details and details["removed"]:
                     print("    removed: {}".format(", ".join(details["removed"])))
                 if "currentTimestamp" in details:
-                    print("    timestamp mismatch: stored has {}, current has {}".format(
-                        details.get("storedTimestamp", "?"),
-                        details.get("currentTimestamp", "?"),
-                    ))
+                    print(
+                        "    timestamp mismatch: stored has {}, current has {}".format(
+                            details.get("storedTimestamp", "?"),
+                            details.get("currentTimestamp", "?"),
+                        )
+                    )
 
         if all_consistent:
             print("OK — all fingerprints consistent")
@@ -1236,15 +1260,14 @@ Examples:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "extract": cmd_extract,
         "embed": cmd_embed,
         "check": cmd_check,
     }
-    return dispatch(
-        commands, "plet_fingerprint", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_fingerprint", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

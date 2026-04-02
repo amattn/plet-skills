@@ -26,12 +26,15 @@ def run(args, expect_exit=0):
     """Run the script with args via subprocess, assert exit code."""
     result = subprocess.run(
         [sys.executable, TOOL] + args,
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
             "Expected exit {}, got {}.\nstdout: {}\nstderr: {}".format(
-                expect_exit, result.returncode, result.stdout, result.stderr))
+                expect_exit, result.returncode, result.stdout, result.stderr
+            )
+        )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
@@ -61,12 +64,24 @@ def write_iter_state(plet_dir, data, iter_id="ID_001"):
     return path
 
 
-def init_iter(plet_dir, iter_id="ID_001", title="Test iteration",
-              deps="[]", criteria=None):
+def init_iter(plet_dir, iter_id="ID_001", title="Test iteration", deps="[]", criteria=None):
     if criteria is None:
         criteria = '[{"id":"AC_1","description":"Tests pass"},{"id":"AC_2","description":"Lint clean"}]'
-    run(["init", plet_dir, "--iter-id", iter_id, "--title", title,
-         "--dependencies", deps, "--criteria", criteria, "--no-verify-deps"])
+    run(
+        [
+            "init",
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--title",
+            title,
+            "--dependencies",
+            deps,
+            "--criteria",
+            criteria,
+            "--no-verify-deps",
+        ]
+    )
 
 
 AGENT_ID = "agent_test_123"
@@ -75,6 +90,7 @@ AGENT_ID = "agent_test_123"
 # ---------------------------------------------------------------------------
 # help + version
 # ---------------------------------------------------------------------------
+
 
 def test_help():
     print("\n## --help and --version")
@@ -85,8 +101,16 @@ def test_help():
     out, _, _ = run(["--version"])
     check("--version has name", "plet_iter_state" in out)
 
-    for cmd in ["init", "start-phase", "update-activity", "update-criterion",
-                "set-verdict", "heartbeat", "add-report", "validate"]:
+    for cmd in [
+        "init",
+        "start-phase",
+        "update-activity",
+        "update-criterion",
+        "set-verdict",
+        "heartbeat",
+        "add-report",
+        "validate",
+    ]:
         run([cmd, "--help"])
         check("{} --help exits 0".format(cmd), True)
 
@@ -95,12 +119,24 @@ def test_help():
 # init
 # ---------------------------------------------------------------------------
 
+
 def test_init_basic():
     print("\n## init — basic")
     d = make_plet_dir()
-    out, _, _ = run(["init", d, "--iter-id", "ID_001", "--title", "Scaffolding",
-                     "--dependencies", "[]",
-                     "--criteria", '[{"id":"AC_1","description":"Tests pass"}]'])
+    out, _, _ = run(
+        [
+            "init",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--title",
+            "Scaffolding",
+            "--dependencies",
+            "[]",
+            "--criteria",
+            '[{"id":"AC_1","description":"Tests pass"}]',
+        ]
+    )
     check("OK in output", "OK" in out)
     check("file exists", os.path.isfile(os.path.join(d, "state", "ID_001.json")))
 
@@ -121,25 +157,40 @@ def test_init_exists_error():
     print("\n## init — file exists error")
     d = make_plet_dir()
     init_iter(d)
-    _, err, _ = run(["init", d, "--iter-id", "ID_001", "--title", "Dup",
-                     "--dependencies", "[]", "--criteria", "[]"], expect_exit=1)
+    _, err, _ = run(
+        ["init", d, "--iter-id", "ID_001", "--title", "Dup", "--dependencies", "[]", "--criteria", "[]"], expect_exit=1
+    )
     check("error mentions exists", "already exists" in err)
 
 
 def test_init_invalid_iter_id():
     print("\n## init — invalid iter id")
     d = make_plet_dir()
-    _, err, _ = run(["init", d, "--iter-id", "bad", "--title", "X",
-                     "--dependencies", "[]", "--criteria", "[]"], expect_exit=1)
+    _, err, _ = run(
+        ["init", d, "--iter-id", "bad", "--title", "X", "--dependencies", "[]", "--criteria", "[]"], expect_exit=1
+    )
     check("rejects bad id", "pattern" in err.lower() or "ID_" in err)
 
 
 def test_init_cleanup_flags():
     print("\n## init — cleanup flags")
     d = make_plet_dir()
-    run(["init", d, "--iter-id", "ID_001", "--title", "X",
-         "--dependencies", "[]", "--criteria", "[]",
-         "--cleanup-tags", "--cleanup-branches"])
+    run(
+        [
+            "init",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--title",
+            "X",
+            "--dependencies",
+            "[]",
+            "--criteria",
+            "[]",
+            "--cleanup-tags",
+            "--cleanup-branches",
+        ]
+    )
     data = read_iter_state(d)
     check("cleanupTags true", data["cleanupTagsAutomatically"] is True)
     check("cleanupBranches true", data["cleanupBranchesAutomatically"] is True)
@@ -148,10 +199,22 @@ def test_init_cleanup_flags():
 def test_init_json_output():
     print("\n## init — JSON output")
     d = make_plet_dir()
-    out, _, _ = run(["init", d, "--iter-id", "ID_001", "--title", "X",
-                     "--dependencies", "[]",
-                     "--criteria", '[{"id":"AC_1","description":"X"}]',
-                     "--output", "json"])
+    out, _, _ = run(
+        [
+            "init",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--title",
+            "X",
+            "--dependencies",
+            "[]",
+            "--criteria",
+            '[{"id":"AC_1","description":"X"}]',
+            "--output",
+            "json",
+        ]
+    )
     data = json.loads(out)
     check("status ok", data["status"] == "ok")
     check("command init", data["command"] == "init")
@@ -161,6 +224,7 @@ def test_init_json_output():
 # ---------------------------------------------------------------------------
 # start-phase
 # ---------------------------------------------------------------------------
+
 
 def test_start_phase_implement():
     print("\n## start-phase — implement")
@@ -220,8 +284,7 @@ def test_start_phase_json():
     print("\n## start-phase — JSON output")
     d = make_plet_dir()
     init_iter(d)
-    out, _, _ = run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement",
-                     "--output", "json"])
+    out, _, _ = run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
     data = json.loads(out)
     check("status ok", data["status"] == "ok")
     check("phase implement", data["phase"] == "implement")
@@ -232,15 +295,26 @@ def test_start_phase_json():
 # update-activity
 # ---------------------------------------------------------------------------
 
+
 def test_update_activity():
     print("\n## update-activity — basic")
     d = make_plet_dir()
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement"])
-    out, _, _ = run(["update-activity", d, "--iter-id", "ID_001",
-                     "--phase-activity", "writing_tests",
-                     "--activity-detail", "writing failing test for AC_1",
-                     "--agent-id", AGENT_ID])
+    out, _, _ = run(
+        [
+            "update-activity",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase-activity",
+            "writing_tests",
+            "--activity-detail",
+            "writing failing test for AC_1",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
     check("OK in output", "OK" in out)
 
     data = read_iter_state(d)
@@ -254,10 +328,21 @@ def test_update_activity_invalid():
     print("\n## update-activity — invalid phase activity")
     d = make_plet_dir()
     init_iter(d)
-    _, err, _ = run(["update-activity", d, "--iter-id", "ID_001",
-                     "--phase-activity", "dancing",
-                     "--activity-detail", "X", "--agent-id", AGENT_ID],
-                    expect_exit=1)
+    _, err, _ = run(
+        [
+            "update-activity",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase-activity",
+            "dancing",
+            "--activity-detail",
+            "X",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
     check("rejects invalid", "dancing" in err)
 
 
@@ -265,9 +350,10 @@ def test_update_activity_missing_detail():
     print("\n## update-activity — missing required activity-detail")
     d = make_plet_dir()
     init_iter(d)
-    _, err, _ = run(["update-activity", d, "--iter-id", "ID_001",
-                     "--phase-activity", "setup", "--agent-id", AGENT_ID],
-                    expect_exit=1)
+    _, err, _ = run(
+        ["update-activity", d, "--iter-id", "ID_001", "--phase-activity", "setup", "--agent-id", AGENT_ID],
+        expect_exit=1,
+    )
     check("requires detail", "activity" in err.lower() or "required" in err.lower())
 
 
@@ -275,9 +361,10 @@ def test_update_activity_missing_agent_id():
     print("\n## update-activity — missing required agent-id")
     d = make_plet_dir()
     init_iter(d)
-    _, err, _ = run(["update-activity", d, "--iter-id", "ID_001",
-                     "--phase-activity", "setup", "--activity-detail", "X"],
-                    expect_exit=1)
+    _, err, _ = run(
+        ["update-activity", d, "--iter-id", "ID_001", "--phase-activity", "setup", "--activity-detail", "X"],
+        expect_exit=1,
+    )
     check("requires agent-id", "agent" in err.lower() or "required" in err.lower())
 
 
@@ -285,14 +372,29 @@ def test_update_activity_missing_agent_id():
 # update-criterion
 # ---------------------------------------------------------------------------
 
+
 def test_update_criterion():
     print("\n## update-criterion — basic")
     d = make_plet_dir()
     init_iter(d)
-    out, _, _ = run(["update-criterion", d, "--iter-id", "ID_001",
-                     "--criterion", "AC_1", "--phase", "implementation",
-                     "--status", "pass", "--evidence", "pytest exits 0",
-                     "--agent-id", AGENT_ID])
+    out, _, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "implementation",
+            "--status",
+            "pass",
+            "--evidence",
+            "pytest exits 0",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
     check("OK in output", "OK" in out)
 
     data = read_iter_state(d)
@@ -307,13 +409,42 @@ def test_update_criterion_verification_wins():
     print("\n## update-criterion — verification status wins")
     d = make_plet_dir()
     init_iter(d)
-    run(["update-criterion", d, "--iter-id", "ID_001",
-         "--criterion", "AC_1", "--phase", "implementation",
-         "--status", "pass", "--evidence", "impl ok", "--agent-id", AGENT_ID])
-    run(["update-criterion", d, "--iter-id", "ID_001",
-         "--criterion", "AC_1", "--phase", "verification",
-         "--status", "fail", "--evidence", "tautological mock",
-         "--agent-id", AGENT_ID])
+    run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "implementation",
+            "--status",
+            "pass",
+            "--evidence",
+            "impl ok",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
+    run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "verification",
+            "--status",
+            "fail",
+            "--evidence",
+            "tautological mock",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
 
     data = read_iter_state(d)
     ac1 = data["criteria"][0]
@@ -324,10 +455,25 @@ def test_update_criterion_not_found():
     print("\n## update-criterion — criterion not found")
     d = make_plet_dir()
     init_iter(d)
-    _, err, _ = run(["update-criterion", d, "--iter-id", "ID_001",
-                     "--criterion", "AC_99", "--phase", "implementation",
-                     "--status", "pass", "--evidence", "X",
-                     "--agent-id", AGENT_ID], expect_exit=1)
+    _, err, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_99",
+            "--phase",
+            "implementation",
+            "--status",
+            "pass",
+            "--evidence",
+            "X",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
     check("error mentions AC_99", "AC_99" in err)
 
 
@@ -335,10 +481,26 @@ def test_update_criterion_json():
     print("\n## update-criterion — JSON output")
     d = make_plet_dir()
     init_iter(d)
-    out, _, _ = run(["update-criterion", d, "--iter-id", "ID_001",
-                     "--criterion", "AC_1", "--phase", "implementation",
-                     "--status", "pass", "--evidence", "ok",
-                     "--agent-id", AGENT_ID, "--output", "json"])
+    out, _, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "implementation",
+            "--status",
+            "pass",
+            "--evidence",
+            "ok",
+            "--agent-id",
+            AGENT_ID,
+            "--output",
+            "json",
+        ]
+    )
     data = json.loads(out)
     check("status ok", data["status"] == "ok")
     check("criterionId", data["criterionId"] == "AC_1")
@@ -349,14 +511,26 @@ def test_update_criterion_json():
 # set-verdict
 # ---------------------------------------------------------------------------
 
+
 def test_set_verdict_implement():
     print("\n## set-verdict — implement completed")
     d = make_plet_dir()
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement"])
-    out, _, _ = run(["set-verdict", d, "--iter-id", "ID_001",
-                     "--phase", "implement", "--verdict", "completed",
-                     "--agent-id", AGENT_ID])
+    out, _, _ = run(
+        [
+            "set-verdict",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase",
+            "implement",
+            "--verdict",
+            "completed",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
     check("OK in output", "OK" in out)
     check("implementVerdict in output", "implementVerdict" in out)
 
@@ -372,9 +546,9 @@ def test_set_verdict_verify():
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement"])
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
-    out, _, _ = run(["set-verdict", d, "--iter-id", "ID_001",
-                     "--phase", "verify", "--verdict", "passed",
-                     "--agent-id", AGENT_ID])
+    out, _, _ = run(
+        ["set-verdict", d, "--iter-id", "ID_001", "--phase", "verify", "--verdict", "passed", "--agent-id", AGENT_ID]
+    )
     check("verifyVerdict in output", "verifyVerdict" in out)
 
     data = read_iter_state(d)
@@ -385,14 +559,38 @@ def test_set_verdict_wrong_for_phase():
     print("\n## set-verdict — wrong verdict for phase")
     d = make_plet_dir()
     init_iter(d)
-    _, err, _ = run(["set-verdict", d, "--iter-id", "ID_001",
-                     "--phase", "implement", "--verdict", "passed",
-                     "--agent-id", AGENT_ID], expect_exit=1)
+    _, err, _ = run(
+        [
+            "set-verdict",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase",
+            "implement",
+            "--verdict",
+            "passed",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
     check("rejects passed for implement", "passed" in err and "implement" in err)
 
-    _, err, _ = run(["set-verdict", d, "--iter-id", "ID_001",
-                     "--phase", "verify", "--verdict", "completed",
-                     "--agent-id", AGENT_ID], expect_exit=1)
+    _, err, _ = run(
+        [
+            "set-verdict",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase",
+            "verify",
+            "--verdict",
+            "completed",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
     check("rejects completed for verify", "completed" in err and "verify" in err)
 
 
@@ -401,9 +599,22 @@ def test_set_verdict_json():
     d = make_plet_dir()
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement"])
-    out, _, _ = run(["set-verdict", d, "--iter-id", "ID_001",
-                     "--phase", "implement", "--verdict", "completed",
-                     "--agent-id", AGENT_ID, "--output", "json"])
+    out, _, _ = run(
+        [
+            "set-verdict",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase",
+            "implement",
+            "--verdict",
+            "completed",
+            "--agent-id",
+            AGENT_ID,
+            "--output",
+            "json",
+        ]
+    )
     data = json.loads(out)
     check("status ok", data["status"] == "ok")
     check("implementVerdict in JSON", data.get("implementVerdict") == "completed")
@@ -414,17 +625,28 @@ def test_set_verdict_elapsed():
     d = make_plet_dir()
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement"])
-    run(["set-verdict", d, "--iter-id", "ID_001",
-         "--phase", "implement", "--verdict", "completed",
-         "--agent-id", AGENT_ID])
+    run(
+        [
+            "set-verdict",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase",
+            "implement",
+            "--verdict",
+            "completed",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
     data = read_iter_state(d)
-    check("elapsedSeconds has implement_1",
-          "implement_1" in data.get("elapsedSeconds", {}))
+    check("elapsedSeconds has implement_1", "implement_1" in data.get("elapsedSeconds", {}))
 
 
 # ---------------------------------------------------------------------------
 # heartbeat
 # ---------------------------------------------------------------------------
+
 
 def test_heartbeat():
     print("\n## heartbeat — basic")
@@ -443,8 +665,7 @@ def test_heartbeat_json():
     print("\n## heartbeat — JSON output")
     d = make_plet_dir()
     init_iter(d)
-    out, _, _ = run(["heartbeat", d, "--iter-id", "ID_001",
-                     "--agent-id", AGENT_ID, "--output", "json"])
+    out, _, _ = run(["heartbeat", d, "--iter-id", "ID_001", "--agent-id", AGENT_ID, "--output", "json"])
     data = json.loads(out)
     check("status ok", data["status"] == "ok")
     check("lastHeartbeat present", "lastHeartbeat" in data)
@@ -462,11 +683,18 @@ def test_heartbeat_missing_agent_id():
 # add-report
 # ---------------------------------------------------------------------------
 
-VALID_CR = json.dumps([{
-    "id": "AC_1", "status": "pass", "oneLiner": "Tests solid",
-    "redTest": "none", "noTestRationale": "read-only check",
-    "relatedEntries": [],
-}])
+VALID_CR = json.dumps(
+    [
+        {
+            "id": "AC_1",
+            "status": "pass",
+            "oneLiner": "Tests solid",
+            "redTest": "none",
+            "noTestRationale": "read-only check",
+            "relatedEntries": [],
+        }
+    ]
+)
 
 
 def test_add_report():
@@ -474,11 +702,26 @@ def test_add_report():
     d = make_plet_dir()
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
-    out, _, _ = run(["add-report", d, "--iter-id", "ID_001",
-                     "--verdict", "passed", "--summary", "All good",
-                     "--criteria-results", VALID_CR,
-                     "--findings", "[]", "--related-entries", "[]",
-                     "--agent-id", AGENT_ID])
+    out, _, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "All good",
+            "--criteria-results",
+            VALID_CR,
+            "--findings",
+            "[]",
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
     check("OK in output", "OK" in out)
 
     data = read_iter_state(d)
@@ -495,22 +738,52 @@ def test_add_report_appends():
     d = make_plet_dir()
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
-    run(["add-report", d, "--iter-id", "ID_001",
-         "--verdict", "rejected", "--summary", "Issues found",
-         "--criteria-results", VALID_CR,
-         "--findings", '["mock tests"]', "--related-entries", "[]",
-         "--agent-id", AGENT_ID])
+    run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "rejected",
+            "--summary",
+            "Issues found",
+            "--criteria-results",
+            VALID_CR,
+            "--findings",
+            '["mock tests"]',
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
 
     # Increment verify attempt and add second report
     data = read_iter_state(d)
     data["attempts"]["verify"] = 2
     write_iter_state(d, data)
 
-    run(["add-report", d, "--iter-id", "ID_001",
-         "--verdict", "passed", "--summary", "Fixed",
-         "--criteria-results", VALID_CR,
-         "--findings", "[]", "--related-entries", "[]",
-         "--agent-id", AGENT_ID])
+    run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "Fixed",
+            "--criteria-results",
+            VALID_CR,
+            "--findings",
+            "[]",
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+        ]
+    )
 
     data = read_iter_state(d)
     check("two reports", len(data["verificationReports"]) == 2)
@@ -526,11 +799,27 @@ def test_add_report_validates_cr():
 
     # Missing required field
     bad_cr = json.dumps([{"id": "AC_1", "status": "pass"}])
-    _, err, _ = run(["add-report", d, "--iter-id", "ID_001",
-                     "--verdict", "passed", "--summary", "X",
-                     "--criteria-results", bad_cr,
-                     "--findings", "[]", "--related-entries", "[]",
-                     "--agent-id", AGENT_ID], expect_exit=1)
+    _, err, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "X",
+            "--criteria-results",
+            bad_cr,
+            "--findings",
+            "[]",
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
     check("rejects missing fields", "missing" in err.lower() or "required" in err.lower())
 
 
@@ -540,16 +829,40 @@ def test_add_report_validates_cr_unknown_field():
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
 
-    bad_cr = json.dumps([{
-        "id": "AC_1", "status": "pass", "oneLiner": "ok",
-        "redTest": "none", "noTestRationale": "X", "relatedEntries": [],
-        "extraField": "bad",
-    }])
-    _, err, _ = run(["add-report", d, "--iter-id", "ID_001",
-                     "--verdict", "passed", "--summary", "X",
-                     "--criteria-results", bad_cr,
-                     "--findings", "[]", "--related-entries", "[]",
-                     "--agent-id", AGENT_ID], expect_exit=1)
+    bad_cr = json.dumps(
+        [
+            {
+                "id": "AC_1",
+                "status": "pass",
+                "oneLiner": "ok",
+                "redTest": "none",
+                "noTestRationale": "X",
+                "relatedEntries": [],
+                "extraField": "bad",
+            }
+        ]
+    )
+    _, err, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "X",
+            "--criteria-results",
+            bad_cr,
+            "--findings",
+            "[]",
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
     check("rejects unknown field", "extraField" in err or "unknown" in err.lower())
 
 
@@ -559,15 +872,38 @@ def test_add_report_requires_no_test_rationale():
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
 
-    bad_cr = json.dumps([{
-        "id": "AC_1", "status": "pass", "oneLiner": "ok",
-        "redTest": "none", "relatedEntries": [],
-    }])
-    _, err, _ = run(["add-report", d, "--iter-id", "ID_001",
-                     "--verdict", "passed", "--summary", "X",
-                     "--criteria-results", bad_cr,
-                     "--findings", "[]", "--related-entries", "[]",
-                     "--agent-id", AGENT_ID], expect_exit=1)
+    bad_cr = json.dumps(
+        [
+            {
+                "id": "AC_1",
+                "status": "pass",
+                "oneLiner": "ok",
+                "redTest": "none",
+                "relatedEntries": [],
+            }
+        ]
+    )
+    _, err, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "X",
+            "--criteria-results",
+            bad_cr,
+            "--findings",
+            "[]",
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
     check("requires noTestRationale", "noTestRationale" in err)
 
 
@@ -576,11 +912,28 @@ def test_add_report_json():
     d = make_plet_dir()
     init_iter(d)
     run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
-    out, _, _ = run(["add-report", d, "--iter-id", "ID_001",
-                     "--verdict", "passed", "--summary", "All good",
-                     "--criteria-results", VALID_CR,
-                     "--findings", "[]", "--related-entries", "[]",
-                     "--agent-id", AGENT_ID, "--output", "json"])
+    out, _, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "All good",
+            "--criteria-results",
+            VALID_CR,
+            "--findings",
+            "[]",
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+            "--output",
+            "json",
+        ]
+    )
     data = json.loads(out)
     check("status ok", data["status"] == "ok")
     check("verdict passed", data["verdict"] == "passed")
@@ -590,6 +943,7 @@ def test_add_report_json():
 # ---------------------------------------------------------------------------
 # validate
 # ---------------------------------------------------------------------------
+
 
 def test_validate_valid():
     print("\n## validate — valid file")
@@ -627,6 +981,7 @@ def test_validate_missing():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     test_help()

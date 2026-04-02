@@ -17,9 +17,11 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import (progress_path as progress_path_fn,
-                     learnings_path as learnings_path_fn,
-                     emergent_path as emergent_path_fn)
+from util_io import (
+    progress_path as progress_path_fn,
+    learnings_path as learnings_path_fn,
+    emergent_path as emergent_path_fn,
+)
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_entries.py")
 
@@ -31,16 +33,17 @@ def run(args, expect_exit=0):
     """Run plet_entries.py with args, return (stdout, stderr, exit_code)."""
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n"
-            "  args: {}\n"
-            "  stdout: {}\n"
-            "  stderr: {}".format(
-                expect_exit, result.returncode, args,
-                result.stdout, result.stderr,
+            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
+                expect_exit,
+                result.returncode,
+                args,
+                result.stdout,
+                result.stderr,
             )
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
@@ -80,6 +83,7 @@ def parse_ok_id(stdout):
 # Help tests (UNV_TST_7 — every command)
 # ---------------------------------------------------------------------------
 
+
 def test_help_all_commands():
     print("\n## Help on every command")
     stdout, _, _ = run(["--help"])
@@ -89,29 +93,40 @@ def test_help_all_commands():
     for cmd in ["add-progress", "add-learning", "add-emergent", "check"]:
         stdout, _, _ = run([cmd, "--help"])
         check("{} --help exits 0".format(cmd), True)
-        check("{} help has content".format(cmd), len(stdout) > 50,
-              "got {} chars".format(len(stdout)))
+        check("{} help has content".format(cmd), len(stdout) > 50, "got {} chars".format(len(stdout)))
         # UNV_DXP_5: help has IMPORTANT/PITFALLS/USAGE/PURPOSE structure
         stdout_lower = stdout.lower()
-        check("{} help has IMPORTANT section".format(cmd),
-              "important" in stdout_lower, stdout[:200])
-        check("{} help has PITFALLS section".format(cmd),
-              "pitfall" in stdout_lower, stdout[:200])
+        check("{} help has IMPORTANT section".format(cmd), "important" in stdout_lower, stdout[:200])
+        check("{} help has PITFALLS section".format(cmd), "pitfall" in stdout_lower, stdout[:200])
 
 
 # ---------------------------------------------------------------------------
 # Plet ID format tests
 # ---------------------------------------------------------------------------
 
+
 def test_plet_id_format():
     print("\n## Plet ID format")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test", "--phase", "implement",
-            "--attempt", "1", "--status", "COMPLETE", "--content", "test",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+            ]
+        )
         # Output should be "OK — epr_xxx"
         check("output starts with OK", stdout.startswith("OK"))
         plet_id = parse_ok_id(stdout)
@@ -126,8 +141,7 @@ def test_plet_id_format():
         # Crockford Base32: no I, L, O, U
         ts = parts[1]
         bad_chars = set(ts) & set("IiLlOoUu")
-        check("timestamp uses Crockford alphabet", len(bad_chars) == 0,
-              "found: {}".format(bad_chars))
+        check("timestamp uses Crockford alphabet", len(bad_chars) == 0, "found: {}".format(bad_chars))
 
 
 def test_plet_id_phases():
@@ -142,29 +156,53 @@ def test_plet_id_phases():
             ("refine", "1", "r1"),
             ("plan", "1", "p1"),
         ]:
-            stdout, _, _ = run([
-                "add-learning", d,
-                "--iter-id", "ID_005", "--iter-title", "Test",
-                "--category", "pattern",
-                "--title", "test", "--content", "test",
-                "--phase", phase, "--attempt", attempt,
-            ])
+            stdout, _, _ = run(
+                [
+                    "add-learning",
+                    d,
+                    "--iter-id",
+                    "ID_005",
+                    "--iter-title",
+                    "Test",
+                    "--category",
+                    "pattern",
+                    "--title",
+                    "test",
+                    "--content",
+                    "test",
+                    "--phase",
+                    phase,
+                    "--attempt",
+                    attempt,
+                ]
+            )
             plet_id = parse_ok_id(stdout)
             seg = plet_id.split("_")[-1]
-            check("{}-{} -> {}".format(phase, attempt, expected),
-                  seg == expected, "got {}".format(seg))
+            check("{}-{} -> {}".format(phase, attempt, expected), seg == expected, "got {}".format(seg))
 
 
 def test_plet_id_project_level():
     print("\n## Plet ID project-level entries")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "proj", "--iter-title", "Project summary",
-            "--phase", "refine", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "proj",
+                "--iter-title",
+                "Project summary",
+                "--phase",
+                "refine",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+            ]
+        )
         plet_id = parse_ok_id(stdout)
         parts = plet_id.split("_")
         check("iteration segment is proj", parts[2] == "proj")
@@ -175,16 +213,29 @@ def test_plet_id_project_level():
 # Progress entry tests
 # ---------------------------------------------------------------------------
 
+
 def test_progress_entry_format():
     print("\n## Progress entry format (unified KV metadata)")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_003", "--iter-title", "OAuth integration",
-            "--phase", "implement", "--attempt", "2", "--status", "BLOCKED",
-            "--content", "Blocked on OAuth provider sandbox.",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_003",
+                "--iter-title",
+                "OAuth integration",
+                "--phase",
+                "implement",
+                "--attempt",
+                "2",
+                "--status",
+                "BLOCKED",
+                "--content",
+                "Blocked on OAuth provider sandbox.",
+            ]
+        )
         plet_id = parse_ok_id(stdout)
 
         with open(progress_path_fn(d)) as f:
@@ -209,12 +260,24 @@ def test_progress_no_files():
     print("\n## Progress entry without files")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-        ])
+        run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+            ]
+        )
         with open(progress_path_fn(d)) as f:
             content = f.read()
         check("no Files changed section", "**Files changed:**" not in content)
@@ -225,22 +288,35 @@ def test_progress_in_progress_header_suppression():
     print("\n## IN_PROGRESS header suppression")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        run([
-            "add-progress", d,
-            "--iter-id", "ID_002", "--iter-title", "Core data model",
-            "--phase", "implement", "--attempt", "1", "--status", "IN_PROGRESS",
-            "--content", "Working on schema.",
-        ])
+        run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_002",
+                "--iter-title",
+                "Core data model",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "IN_PROGRESS",
+                "--content",
+                "Working on schema.",
+            ]
+        )
         with open(progress_path_fn(d)) as f:
             content = f.read()
         # Header should NOT have " — IN_PROGRESS"
-        check("header has no IN_PROGRESS suffix",
-              "### [ID_002] implement-1\n" in content or "### [ID_002] impl-1 \n" in content.rstrip(),
-              "content near header: "
-              + content[content.index("### [ID_002]"):content.index("### [ID_002]") + 60]
-              if "### [ID_002]" in content else "header not found")
-        check("IN_PROGRESS not in header line",
-              "implement-1 — IN_PROGRESS" not in content)
+        check(
+            "header has no IN_PROGRESS suffix",
+            "### [ID_002] implement-1\n" in content or "### [ID_002] impl-1 \n" in content.rstrip(),
+            "content near header: " + content[content.index("### [ID_002]") : content.index("### [ID_002]") + 60]
+            if "### [ID_002]" in content
+            else "header not found",
+        )
+        check("IN_PROGRESS not in header line", "implement-1 — IN_PROGRESS" not in content)
 
 
 def test_progress_status_validation():
@@ -249,20 +325,45 @@ def test_progress_status_validation():
         make_artifacts(d)
 
         for status in ["IN_PROGRESS", "COMPLETE", "BLOCKED", "FAILED", "SKIPPED", "MIGRATED"]:
-            run([
-                "add-progress", d,
-                "--iter-id", "ID_001", "--iter-title", "Test",
-                "--phase", "implement", "--attempt", "1",
-                "--status", status, "--content", "test",
-            ])
+            run(
+                [
+                    "add-progress",
+                    d,
+                    "--iter-id",
+                    "ID_001",
+                    "--iter-title",
+                    "Test",
+                    "--phase",
+                    "implement",
+                    "--attempt",
+                    "1",
+                    "--status",
+                    status,
+                    "--content",
+                    "test",
+                ]
+            )
             check("accepts {}".format(status), True)
 
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "INVALID", "--content", "test",
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "INVALID",
+                "--content",
+                "test",
+            ],
+            expect_exit=1,
+        )
         check("rejects INVALID status", "invalid" in stderr.lower())
 
 
@@ -270,18 +371,31 @@ def test_progress_status_validation():
 # Learning entry tests
 # ---------------------------------------------------------------------------
 
+
 def test_learning_entry_format():
     print("\n## Learning entry format (unified KV metadata)")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-learning", d,
-            "--iter-id", "ID_002", "--iter-title", "Core data model",
-            "--category", "gotcha",
-            "--title", "WAL mode required",
-            "--content", "Default journal mode blocks readers.",
-            "--phase", "implement", "--attempt", "1",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-learning",
+                d,
+                "--iter-id",
+                "ID_002",
+                "--iter-title",
+                "Core data model",
+                "--category",
+                "gotcha",
+                "--title",
+                "WAL mode required",
+                "--content",
+                "Default journal mode blocks readers.",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ]
+        )
         plet_id = parse_ok_id(stdout)
 
         with open(learnings_path_fn(d)) as f:
@@ -293,8 +407,7 @@ def test_learning_entry_format():
         check("has category heading", "### [gotcha] WAL mode required" in content)
         check("has PletId", "**PletId:** `{}`".format(plet_id) in content)
         check("has Timestamp", "**Timestamp:** 20" in content)
-        check("has Iteration field with title",
-              "**Iteration:** [ID_002] Core data model" in content)
+        check("has Iteration field with title", "**Iteration:** [ID_002] Core data model" in content)
         check("has Phase field", "**Phase:** implement" in content)
         # Unified format: **Content:** marker
         check("has Content marker", "**Content:**" in content)
@@ -307,22 +420,49 @@ def test_learning_category_validation():
         make_artifacts(d)
 
         for cat in ["pattern", "gotcha", "technique", "tool", "debug", "context"]:
-            run([
-                "add-learning", d,
-                "--iter-id", "ID_001", "--iter-title", "Test",
-                "--category", cat,
-                "--title", "test", "--content", "test",
-                "--phase", "implement", "--attempt", "1",
-            ])
+            run(
+                [
+                    "add-learning",
+                    d,
+                    "--iter-id",
+                    "ID_001",
+                    "--iter-title",
+                    "Test",
+                    "--category",
+                    cat,
+                    "--title",
+                    "test",
+                    "--content",
+                    "test",
+                    "--phase",
+                    "implement",
+                    "--attempt",
+                    "1",
+                ]
+            )
             check("accepts {}".format(cat), True)
 
-        _, stderr, _ = run([
-            "add-learning", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--category", "invalid",
-            "--title", "test", "--content", "test",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-learning",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--category",
+                "invalid",
+                "--title",
+                "test",
+                "--content",
+                "test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("rejects invalid category", "invalid" in stderr.lower())
 
 
@@ -330,20 +470,32 @@ def test_learning_category_validation():
 # Emergent entry tests
 # ---------------------------------------------------------------------------
 
+
 def test_emergent_entry_format():
     """ENT spec: --source removed, emergent uses --iter-id/--iter-title for source."""
     print("\n## Emergent entry format (unified KV metadata)")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-emergent", d,
-            "--iter-id", "ID_002", "--iter-title", "Core data model",
-            "--title", "Chose SQLite",
-            "--phase", "implement",
-            "--category", "design decision",
-            "--content", "Chose SQLite for simplicity.",
-            "--attempt", "1",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-emergent",
+                d,
+                "--iter-id",
+                "ID_002",
+                "--iter-title",
+                "Core data model",
+                "--title",
+                "Chose SQLite",
+                "--phase",
+                "implement",
+                "--category",
+                "design decision",
+                "--content",
+                "Chose SQLite for simplicity.",
+                "--attempt",
+                "1",
+            ]
+        )
         # Output: "OK — eem_xxx EM_1"
         check("output starts with OK", stdout.startswith("OK"))
         after_ok = stdout.split(" — ", 1)[1]
@@ -360,8 +512,7 @@ def test_emergent_entry_format():
         check("has PletId", "**PletId:** `{}`".format(plet_id) in content)
         check("has Timestamp", "**Timestamp:** 20" in content)
         # Unified format: Iteration field (replaces Source)
-        check("has Iteration field",
-              "**Iteration:** [ID_002] Core data model" in content)
+        check("has Iteration field", "**Iteration:** [ID_002] Core data model" in content)
         check("has Phase field", "**Phase:** implement" in content)
         check("has Category field", "**Category:** design decision" in content)
         check("has Outcome pending", "**Outcome:** pending" in content)
@@ -375,12 +526,20 @@ def test_emergent_auto_numbering():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         base_args = [
-            "add-emergent", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement",
-            "--category", "assumption",
-            "--content", "test",
-            "--attempt", "1",
+            "add-emergent",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--iter-title",
+            "Test",
+            "--phase",
+            "implement",
+            "--category",
+            "assumption",
+            "--content",
+            "test",
+            "--attempt",
+            "1",
         ]
 
         stdout1, _, _ = run(base_args + ["--title", "First"])
@@ -401,24 +560,57 @@ def test_emergent_category_validation():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         valid_cats = [
-            "design decision", "requirement gap", "assumption",
-            "scope question", "edge case", "blocker",
+            "design decision",
+            "requirement gap",
+            "assumption",
+            "scope question",
+            "edge case",
+            "blocker",
         ]
         for cat in valid_cats:
-            run([
-                "add-emergent", d,
-                "--iter-id", "ID_001", "--iter-title", "Test",
-                "--title", "test", "--phase", "implement",
-                "--category", cat, "--content", "test", "--attempt", "1",
-            ])
+            run(
+                [
+                    "add-emergent",
+                    d,
+                    "--iter-id",
+                    "ID_001",
+                    "--iter-title",
+                    "Test",
+                    "--title",
+                    "test",
+                    "--phase",
+                    "implement",
+                    "--category",
+                    cat,
+                    "--content",
+                    "test",
+                    "--attempt",
+                    "1",
+                ]
+            )
             check("accepts '{}'".format(cat), True)
 
-        _, stderr, _ = run([
-            "add-emergent", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--title", "test", "--phase", "implement",
-            "--category", "invalid", "--content", "test", "--attempt", "1",
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-emergent",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--title",
+                "test",
+                "--phase",
+                "implement",
+                "--category",
+                "invalid",
+                "--content",
+                "test",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("rejects invalid category", "invalid" in stderr.lower())
 
 
@@ -426,30 +618,69 @@ def test_emergent_category_validation():
 # Check command tests
 # ---------------------------------------------------------------------------
 
+
 def test_check_all_present():
     print("\n## Check — all artifacts present")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-        ])
-        run([
-            "add-learning", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--category", "pattern",
-            "--title", "test", "--content", "test",
-            "--phase", "implement", "--attempt", "1",
-        ])
-        run([
-            "add-emergent", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--title", "test", "--phase", "implement",
-            "--category", "assumption", "--content", "test",
-            "--attempt", "1",
-        ])
+        run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+            ]
+        )
+        run(
+            [
+                "add-learning",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--category",
+                "pattern",
+                "--title",
+                "test",
+                "--content",
+                "test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ]
+        )
+        run(
+            [
+                "add-emergent",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--title",
+                "test",
+                "--phase",
+                "implement",
+                "--category",
+                "assumption",
+                "--content",
+                "test",
+                "--attempt",
+                "1",
+            ]
+        )
         stdout, _, _ = run(["check", d, "--iter-id", "ID_001"])
         check("reports OK", "OK" in stdout and "all artifacts" in stdout)
 
@@ -458,12 +689,24 @@ def test_check_missing():
     print("\n## Check — missing artifacts")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-        ])
+        run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+            ]
+        )
         stdout, stderr, _ = run(
             ["check", d, "--iter-id", "ID_001"],
             expect_exit=1,
@@ -486,9 +729,7 @@ def test_check_not_initialized():
             expect_exit=1,
         )
         combined = stdout + stderr
-        check("reports NOT_INITIALIZED for missing files",
-              "NOT_INITIALIZED" in combined,
-              "got: " + combined[:300])
+        check("reports NOT_INITIALIZED for missing files", "NOT_INITIALIZED" in combined, "got: " + combined[:300])
 
 
 def test_check_not_initialized_json():
@@ -542,41 +783,81 @@ def test_check_no_false_positives():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         # Add entries for ID_001 that mention ID_003 in content
-        run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE",
-            "--content", "This relates to [ID_003] work done earlier.",
-        ])
-        run([
-            "add-learning", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--category", "context", "--title", "Cross-ref",
-            "--content", "See [ID_003] for the prerequisite pattern.",
-            "--phase", "implement", "--attempt", "1",
-        ])
-        run([
-            "add-emergent", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--title", "Ref to ID_003", "--phase", "implement",
-            "--category", "assumption", "--attempt", "1",
-            "--content", "Assumed [ID_003] approach is correct.",
-        ])
+        run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "This relates to [ID_003] work done earlier.",
+            ]
+        )
+        run(
+            [
+                "add-learning",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--category",
+                "context",
+                "--title",
+                "Cross-ref",
+                "--content",
+                "See [ID_003] for the prerequisite pattern.",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ]
+        )
+        run(
+            [
+                "add-emergent",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--title",
+                "Ref to ID_003",
+                "--phase",
+                "implement",
+                "--category",
+                "assumption",
+                "--attempt",
+                "1",
+                "--content",
+                "Assumed [ID_003] approach is correct.",
+            ]
+        )
         # ID_003 has NO actual entries — only cross-references in ID_001 content
         _, stderr, _ = run(
             ["check", d, "--iter-id", "ID_003"],
             expect_exit=1,
         )
         combined = stderr
-        check("ID_003 not falsely present",
-              "INCOMPLETE" in combined,
-              "should report INCOMPLETE for ID_003 which has no real entries")
+        check(
+            "ID_003 not falsely present",
+            "INCOMPLETE" in combined,
+            "should report INCOMPLETE for ID_003 which has no real entries",
+        )
 
 
 # ---------------------------------------------------------------------------
 # Phase validation tests
 # ---------------------------------------------------------------------------
+
 
 def test_phase_validation():
     print("\n## Phase validation (includes plan)")
@@ -584,26 +865,52 @@ def test_phase_validation():
         make_artifacts(d)
 
         for phase in ["plan", "implement", "verify", "refine"]:
-            run([
-                "add-progress", d,
-                "--iter-id", "ID_001", "--iter-title", "Test",
-                "--phase", phase, "--attempt", "1",
-                "--status", "COMPLETE", "--content", "test",
-            ])
+            run(
+                [
+                    "add-progress",
+                    d,
+                    "--iter-id",
+                    "ID_001",
+                    "--iter-title",
+                    "Test",
+                    "--phase",
+                    phase,
+                    "--attempt",
+                    "1",
+                    "--status",
+                    "COMPLETE",
+                    "--content",
+                    "test",
+                ]
+            )
             check("accepts phase {}".format(phase), True)
 
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "invalid", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "invalid",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+            ],
+            expect_exit=1,
+        )
         check("rejects invalid phase", "invalid" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------
 # Error handling tests
 # ---------------------------------------------------------------------------
+
 
 def test_missing_required_args():
     print("\n## Missing required arguments")
@@ -624,12 +931,25 @@ def test_auto_create_artifact_file():
     print("\n## Auto-create artifact file")
     with tempfile.TemporaryDirectory() as d:
         # Artifact files are auto-created if they don't exist
-        stdout, _, rc = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "auto-created test",
-        ], expect_exit=0)
+        stdout, _, rc = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "auto-created test",
+            ],
+            expect_exit=0,
+        )
         check("succeeds with auto-created file", rc == 0)
         check("progress.md was created", os.path.isfile(progress_path_fn(d)))
 
@@ -640,9 +960,18 @@ def test_attempt_validation():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         base = [
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--status", "COMPLETE", "--content", "test",
+            "add-progress",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--iter-title",
+            "Test",
+            "--phase",
+            "implement",
+            "--status",
+            "COMPLETE",
+            "--content",
+            "test",
         ]
 
         _, stderr, _ = run(base + ["--attempt", "abc"], expect_exit=1)
@@ -661,9 +990,18 @@ def test_iter_id_validation():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         base = [
-            "add-progress", d,
-            "--iter-title", "Test", "--phase", "implement",
-            "--attempt", "1", "--status", "COMPLETE", "--content", "test",
+            "add-progress",
+            d,
+            "--iter-title",
+            "Test",
+            "--phase",
+            "implement",
+            "--attempt",
+            "1",
+            "--status",
+            "COMPLETE",
+            "--content",
+            "test",
         ]
 
         # Valid
@@ -692,6 +1030,7 @@ def test_unknown_command():
 # Fence pattern rejection (ENT_APR_BHV_7, ENT_ALR_BHV_5, ENT_AEM_BHV_6)
 # ---------------------------------------------------------------------------
 
+
 def test_fence_rejection():
     print("\n## Fence pattern rejection in content")
     with tempfile.TemporaryDirectory() as d:
@@ -701,21 +1040,48 @@ def test_fence_rejection():
             '<div id="END-plet-something"></div>',
         ]
         for bad in bad_contents:
-            _, stderr, _ = run([
-                "add-progress", d,
-                "--iter-id", "ID_001", "--iter-title", "Test",
-                "--phase", "implement", "--attempt", "1",
-                "--status", "COMPLETE", "--content", bad,
-            ], expect_exit=1)
+            _, stderr, _ = run(
+                [
+                    "add-progress",
+                    d,
+                    "--iter-id",
+                    "ID_001",
+                    "--iter-title",
+                    "Test",
+                    "--phase",
+                    "implement",
+                    "--attempt",
+                    "1",
+                    "--status",
+                    "COMPLETE",
+                    "--content",
+                    bad,
+                ],
+                expect_exit=1,
+            )
             check("rejects fence in progress content", "fence" in stderr.lower() or "plet-" in stderr.lower())
 
-            _, stderr, _ = run([
-                "add-learning", d,
-                "--iter-id", "ID_001", "--iter-title", "Test",
-                "--category", "pattern", "--title", "test",
-                "--content", bad,
-                "--phase", "implement", "--attempt", "1",
-            ], expect_exit=1)
+            _, stderr, _ = run(
+                [
+                    "add-learning",
+                    d,
+                    "--iter-id",
+                    "ID_001",
+                    "--iter-title",
+                    "Test",
+                    "--category",
+                    "pattern",
+                    "--title",
+                    "test",
+                    "--content",
+                    bad,
+                    "--phase",
+                    "implement",
+                    "--attempt",
+                    "1",
+                ],
+                expect_exit=1,
+            )
             check("rejects fence in learning content", "fence" in stderr.lower() or "plet-" in stderr.lower())
 
 
@@ -727,18 +1093,32 @@ def test_fence_rejection_content_file():
         bad_file = os.path.join(d, "bad_content.txt")
         with open(bad_file, "w") as f:
             f.write('Some text with <div id="plet-evil"></div> inside')
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content-file", bad_file,
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content-file",
+                bad_file,
+            ],
+            expect_exit=1,
+        )
         check("rejects fence in content-file", "fence" in stderr.lower() or "plet-" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------
 # --allow-fences flag
 # ---------------------------------------------------------------------------
+
 
 def test_allow_fences_flag():
     """--allow-fences bypasses fence rejection."""
@@ -748,22 +1128,48 @@ def test_allow_fences_flag():
         content_with_fence = 'Example: <div id="plet-abc123"></div> shows a start fence'
 
         # Without flag — should fail
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", content_with_fence,
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                content_with_fence,
+            ],
+            expect_exit=1,
+        )
         check("rejects without flag", "fence" in stderr.lower())
 
         # With flag — should succeed
-        stdout, _, rc = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", content_with_fence,
-            "--allow-fences",
-        ], expect_exit=0)
+        stdout, _, rc = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                content_with_fence,
+                "--allow-fences",
+            ],
+            expect_exit=0,
+        )
         check("accepts with --allow-fences", rc == 0)
 
         # Verify the content was written with fence intact
@@ -781,14 +1187,28 @@ def test_allow_fences_content_file():
         with open(fence_file, "w") as f:
             f.write('Full prompt with <div id="plet-xyz"></div> fence example')
 
-        stdout, _, rc = run([
-            "add-learning", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--category", "pattern", "--title", "test",
-            "--content-file", fence_file,
-            "--phase", "implement", "--attempt", "1",
-            "--allow-fences",
-        ], expect_exit=0)
+        stdout, _, rc = run(
+            [
+                "add-learning",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--category",
+                "pattern",
+                "--title",
+                "test",
+                "--content-file",
+                fence_file,
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--allow-fences",
+            ],
+            expect_exit=0,
+        )
         check("accepts fence via content-file", rc == 0)
 
 
@@ -796,16 +1216,30 @@ def test_allow_fences_content_file():
 # Empty content validation (ENT_EDG_15, ENT_EDG_16)
 # ---------------------------------------------------------------------------
 
+
 def test_empty_content():
     print("\n## Empty content validation")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "",
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "",
+            ],
+            expect_exit=1,
+        )
         check("rejects empty --content", "empty" in stderr.lower() or "content" in stderr.lower())
 
 
@@ -816,18 +1250,32 @@ def test_empty_content_file():
         empty_file = os.path.join(d, "empty.txt")
         with open(empty_file, "w"):
             pass  # empty file
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content-file", empty_file,
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content-file",
+                empty_file,
+            ],
+            expect_exit=1,
+        )
         check("rejects empty content-file", "empty" in stderr.lower() or "content" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------
 # --content-file support (ENT_APR_INP_9)
 # ---------------------------------------------------------------------------
+
 
 def test_content_file():
     print("\n## --content-file support")
@@ -837,12 +1285,24 @@ def test_content_file():
         with open(content_file, "w") as f:
             f.write("This is content from a file.\nWith multiple lines.")
 
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content-file", content_file,
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content-file",
+                content_file,
+            ]
+        )
         check("content-file accepted", stdout.startswith("OK"))
 
         with open(progress_path_fn(d)) as f:
@@ -859,13 +1319,26 @@ def test_content_file_learning():
         with open(content_file, "w") as f:
             f.write("WAL mode is required for concurrent reads.\nSet PRAGMA journal_mode=WAL.")
 
-        stdout, _, _ = run([
-            "add-learning", d,
-            "--iter-id", "ID_002", "--iter-title", "Core data model",
-            "--category", "gotcha", "--title", "WAL mode",
-            "--content-file", content_file,
-            "--phase", "implement", "--attempt", "1",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-learning",
+                d,
+                "--iter-id",
+                "ID_002",
+                "--iter-title",
+                "Core data model",
+                "--category",
+                "gotcha",
+                "--title",
+                "WAL mode",
+                "--content-file",
+                content_file,
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ]
+        )
         check("learning content-file accepted", stdout.startswith("OK"))
 
         with open(learnings_path_fn(d)) as f:
@@ -882,14 +1355,26 @@ def test_content_file_emergent():
         with open(content_file, "w") as f:
             f.write("Chose SQLite for simplicity.\nPostgreSQL would work too.")
 
-        stdout, _, _ = run([
-            "add-emergent", d,
-            "--iter-id", "ID_002", "--iter-title", "Core data model",
-            "--title", "Database choice",
-            "--phase", "implement", "--attempt", "1",
-            "--category", "design decision",
-            "--content-file", content_file,
-        ])
+        stdout, _, _ = run(
+            [
+                "add-emergent",
+                d,
+                "--iter-id",
+                "ID_002",
+                "--iter-title",
+                "Core data model",
+                "--title",
+                "Database choice",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--category",
+                "design decision",
+                "--content-file",
+                content_file,
+            ]
+        )
         check("emergent content-file accepted", stdout.startswith("OK"))
 
         with open(emergent_path_fn(d)) as f:
@@ -906,13 +1391,27 @@ def test_content_and_content_file_exclusive():
         content_file = os.path.join(d, "some.txt")
         with open(content_file, "w") as f:
             f.write("text")
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE",
-            "--content", "inline", "--content-file", content_file,
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "inline",
+                "--content-file",
+                content_file,
+            ],
+            expect_exit=1,
+        )
         check("rejects both content flags", "mutually exclusive" in stderr.lower() or "exclusive" in stderr.lower())
 
 
@@ -921,18 +1420,32 @@ def test_content_file_not_found():
     print("\n## --content-file not found")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content-file", "/nonexistent/path.txt",
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content-file",
+                "/nonexistent/path.txt",
+            ],
+            expect_exit=1,
+        )
         check("errors on missing content-file", "not found" in stderr.lower() or "content file" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------
 # --dry-run tests (UNV_CMD_17)
 # ---------------------------------------------------------------------------
+
 
 def test_dry_run():
     print("\n## --dry-run support")
@@ -944,13 +1457,25 @@ def test_dry_run():
         with open(progress_path) as f:
             before = f.read()
 
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-            "--dry-run",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+                "--dry-run",
+            ]
+        )
         check("dry-run output mentions DRY RUN", "DRY RUN" in stdout)
 
         with open(progress_path) as f:
@@ -978,17 +1503,31 @@ def test_dry_run_on_check():
 # --output json tests (UNV_CMD_18)
 # ---------------------------------------------------------------------------
 
+
 def test_json_output_progress():
     print("\n## --output json on add-progress")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-            "--output", "json",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+                "--output",
+                "json",
+            ]
+        )
         data = json.loads(stdout)
         check("JSON has status=ok", data.get("status") == "ok")
         check("JSON has command", data.get("command") == "add-progress")
@@ -1002,13 +1541,27 @@ def test_json_output_pretty():
     print("\n## --pretty flag")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-            "--output", "json", "--pretty",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+                "--output",
+                "json",
+                "--pretty",
+            ]
+        )
         check("pretty output is indented", "\n  " in stdout)
         data = json.loads(stdout)
         check("pretty output is valid JSON", data.get("status") == "ok")
@@ -1019,13 +1572,27 @@ def test_json_output_error():
     print("\n## --output json error behavior")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "INVALID", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-            "--output", "json",
-        ], expect_exit=1)
+        stdout, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "INVALID",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+                "--output",
+                "json",
+            ],
+            expect_exit=1,
+        )
         data = json.loads(stdout)
         check("JSON error has status=error", data.get("status") == "error")
         check("stderr has text message", len(stderr) > 0)
@@ -1036,13 +1603,26 @@ def test_pretty_without_json():
     print("\n## --pretty without --output json")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-            "--pretty",
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+                "--pretty",
+            ],
+            expect_exit=1,
+        )
         check("errors on --pretty without json", "requires" in stderr.lower() or "json" in stderr.lower())
 
 
@@ -1050,17 +1630,33 @@ def test_pretty_without_json():
 # --fields tests (UNV_CMD_19)
 # ---------------------------------------------------------------------------
 
+
 def test_fields_filter():
     print("\n## --fields filter")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-            "--output", "json", "--fields", "pletId,status",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+                "--output",
+                "json",
+                "--fields",
+                "pletId,status",
+            ]
+        )
         data = json.loads(stdout)
         check("fields: has pletId", "pletId" in data)
         check("fields: has status", "status" in data)
@@ -1073,13 +1669,27 @@ def test_fields_without_json():
     print("\n## --fields without --output json")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-            "--fields", "pletId",
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+                "--fields",
+                "pletId",
+            ],
+            expect_exit=1,
+        )
         check("errors on --fields without json", "requires" in stderr.lower() or "json" in stderr.lower())
 
 
@@ -1087,23 +1697,39 @@ def test_fields_without_json():
 # Duplicate flag detection (UNV_CMD_22)
 # ---------------------------------------------------------------------------
 
+
 def test_duplicate_flags():
     print("\n## Duplicate flag detection")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        _, stderr, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-            "--phase", "verify",  # duplicate
-        ], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+                "--phase",
+                "verify",  # duplicate
+            ],
+            expect_exit=1,
+        )
         check("rejects duplicate flag", "duplicate" in stderr.lower() or "more than once" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------
 # Multiple entries (append behavior)
 # ---------------------------------------------------------------------------
+
 
 def test_multiple_appends():
     print("\n## Multiple appends to same file")
@@ -1112,15 +1738,26 @@ def test_multiple_appends():
 
         ids = []
         for i in range(3):
-            stdout, _, _ = run([
-                "add-learning", d,
-                "--iter-id", "ID_00{}".format(i + 1),
-                "--iter-title", "Test {}".format(i + 1),
-                "--category", "pattern",
-                "--title", "Learning {}".format(i + 1),
-                "--content", "Content {}.".format(i + 1),
-                "--phase", "implement", "--attempt", "1",
-            ])
+            stdout, _, _ = run(
+                [
+                    "add-learning",
+                    d,
+                    "--iter-id",
+                    "ID_00{}".format(i + 1),
+                    "--iter-title",
+                    "Test {}".format(i + 1),
+                    "--category",
+                    "pattern",
+                    "--title",
+                    "Learning {}".format(i + 1),
+                    "--content",
+                    "Content {}.".format(i + 1),
+                    "--phase",
+                    "implement",
+                    "--attempt",
+                    "1",
+                ]
+            )
             ids.append(parse_ok_id(stdout))
 
         with open(learnings_path_fn(d)) as f:
@@ -1140,16 +1777,29 @@ def test_multiple_appends():
 # Fencing integrity tests
 # ---------------------------------------------------------------------------
 
+
 def test_fencing_structure():
     print("\n## Fencing structure")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        stdout, _, _ = run([
-            "add-progress", d,
-            "--iter-id", "ID_001", "--iter-title", "Test",
-            "--phase", "implement", "--attempt", "1",
-            "--status", "COMPLETE", "--content", "test",
-        ])
+        stdout, _, _ = run(
+            [
+                "add-progress",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--iter-title",
+                "Test",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "test",
+            ]
+        )
         plet_id = parse_ok_id(stdout)
 
         with open(progress_path_fn(d)) as f:
@@ -1165,6 +1815,7 @@ def test_fencing_structure():
 # ---------------------------------------------------------------------------
 # Version flag
 # ---------------------------------------------------------------------------
+
 
 def test_version():
     print("\n## --version flag")

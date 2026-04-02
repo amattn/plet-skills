@@ -32,7 +32,8 @@ def run_driver(base_content, ours_content, theirs_content):
     try:
         result = subprocess.run(
             [sys.executable, TOOL, base_path, ours_path, theirs_path],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         with open(ours_path) as f:
             merged = f.read()
@@ -152,30 +153,76 @@ model is limited.
 TRACE_HEADER = ""  # NDJSON files have no header
 
 TRACE_ORCHESTRATOR_ENTRY = (
-    json.dumps({"pletId": "inv_abc001", "timestamp": "2026-03-31T10:00:00Z",
-                "type": "invocation", "iterationId": "ID_001", "phase": "implement",
-                "attempt": 1, "data": {"prompt_length": 45230, "model": "claude-opus-4-6"}}) + "\n"
+    json.dumps(
+        {
+            "pletId": "inv_abc001",
+            "timestamp": "2026-03-31T10:00:00Z",
+            "type": "invocation",
+            "iterationId": "ID_001",
+            "phase": "implement",
+            "attempt": 1,
+            "data": {"prompt_length": 45230, "model": "claude-opus-4-6"},
+        }
+    )
+    + "\n"
 )
 
 TRACE_SUBAGENT_ENTRIES = (
-    json.dumps({"pletId": "tev_abc002", "timestamp": "2026-03-31T10:00:05Z",
-                "type": "activity_change", "iterationId": "ID_001", "phase": "implement",
-                "attempt": 1, "data": {"activity": "reading_requirements"}}) + "\n"
-    + json.dumps({"pletId": "tev_abc003", "timestamp": "2026-03-31T10:01:30Z",
-                  "type": "activity_change", "iterationId": "ID_001", "phase": "implement",
-                  "attempt": 1, "data": {"activity": "writing_tests"}}) + "\n"
-    + json.dumps({"pletId": "tev_abc004", "timestamp": "2026-03-31T10:02:45Z",
-                  "type": "decision", "iterationId": "ID_001", "phase": "implement",
-                  "attempt": 1, "data": {"decision": "encrypted file storage for tokens"}}) + "\n"
-    + json.dumps({"pletId": "tev_abc005", "timestamp": "2026-03-31T10:03:45Z",
-                  "type": "activity_change", "iterationId": "ID_001", "phase": "implement",
-                  "attempt": 1, "data": {"activity": "idle"}}) + "\n"
+    json.dumps(
+        {
+            "pletId": "tev_abc002",
+            "timestamp": "2026-03-31T10:00:05Z",
+            "type": "activity_change",
+            "iterationId": "ID_001",
+            "phase": "implement",
+            "attempt": 1,
+            "data": {"activity": "reading_requirements"},
+        }
+    )
+    + "\n"
+    + json.dumps(
+        {
+            "pletId": "tev_abc003",
+            "timestamp": "2026-03-31T10:01:30Z",
+            "type": "activity_change",
+            "iterationId": "ID_001",
+            "phase": "implement",
+            "attempt": 1,
+            "data": {"activity": "writing_tests"},
+        }
+    )
+    + "\n"
+    + json.dumps(
+        {
+            "pletId": "tev_abc004",
+            "timestamp": "2026-03-31T10:02:45Z",
+            "type": "decision",
+            "iterationId": "ID_001",
+            "phase": "implement",
+            "attempt": 1,
+            "data": {"decision": "encrypted file storage for tokens"},
+        }
+    )
+    + "\n"
+    + json.dumps(
+        {
+            "pletId": "tev_abc005",
+            "timestamp": "2026-03-31T10:03:45Z",
+            "type": "activity_change",
+            "iterationId": "ID_001",
+            "phase": "implement",
+            "attempt": 1,
+            "data": {"activity": "idle"},
+        }
+    )
+    + "\n"
 )
 
 
 # ===========================================================================
 # Progress merge tests
 # ===========================================================================
+
 
 def test_progress_both_appended():
     print("\n## progress — both sides appended")
@@ -230,6 +277,7 @@ def test_progress_neither_appended():
 # Learnings merge tests
 # ===========================================================================
 
+
 def test_learnings_both_appended():
     print("\n## learnings — both sides appended")
     base = LEARNINGS_HEADER
@@ -261,6 +309,7 @@ def test_learnings_with_existing_content():
 # Emergent merge tests
 # ===========================================================================
 
+
 def test_emergent_subagent_only():
     print("\n## emergent — subagent entry only (typical)")
     base = EMERGENT_HEADER
@@ -276,6 +325,7 @@ def test_emergent_subagent_only():
 # ===========================================================================
 # Trace NDJSON merge tests
 # ===========================================================================
+
 
 def test_trace_both_appended():
     print("\n## trace NDJSON — both sides appended")
@@ -324,6 +374,7 @@ def test_trace_orchestrator_invocation_then_subagent():
 # Conflict tests (not append-only)
 # ===========================================================================
 
+
 def test_conflict_theirs_modified_base():
     print("\n## conflict — theirs modified base content")
     base = PROGRESS_HEADER + "Original entry\n"
@@ -358,6 +409,7 @@ def test_conflict_theirs_modified_header():
 # Edge cases
 # ===========================================================================
 
+
 def test_empty_base():
     print("\n## edge — empty base (new file)")
     base = ""
@@ -383,14 +435,12 @@ def test_large_merge():
     ours_entries = ""
     theirs_entries = ""
     for i in range(20):
-        ours_entries += (
-            "### [2026-03-31 10:{:02d}:00 UTC] ID_{:03d} — ORC\n\n"
-            "Orchestrator entry {}\n\n"
-        ).format(i, i + 1, i)
-        theirs_entries += (
-            "### [2026-03-31 10:{:02d}:30 UTC] ID_{:03d} — SUB\n\n"
-            "Subagent entry {}\n\n"
-        ).format(i, i + 1, i)
+        ours_entries += ("### [2026-03-31 10:{:02d}:00 UTC] ID_{:03d} — ORC\n\nOrchestrator entry {}\n\n").format(
+            i, i + 1, i
+        )
+        theirs_entries += ("### [2026-03-31 10:{:02d}:30 UTC] ID_{:03d} — SUB\n\nSubagent entry {}\n\n").format(
+            i, i + 1, i
+        )
 
     ours = base + ours_entries
     theirs = base + theirs_entries
@@ -406,7 +456,8 @@ def test_cli_wrong_args():
     print("\n## edge — wrong number of args")
     result = subprocess.run(
         [sys.executable, TOOL, "only_one_arg"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     check("exit 1", result.returncode == 1)
     check("usage message", "Usage" in result.stderr)
@@ -415,6 +466,7 @@ def test_cli_wrong_args():
 # ===========================================================================
 # Git integration test
 # ===========================================================================
+
 
 def test_git_merge_integration():
     """Test the driver works when called by git merge --squash."""
@@ -427,14 +479,23 @@ def test_git_merge_integration():
 
         # Configure merge driver
         driver_path = os.path.abspath(TOOL)
-        subprocess.run(["git", "-C", d, "config",
-                        "merge.plet-append.driver",
-                        "{} {} %O %A %B".format(sys.executable, driver_path)],
-                       capture_output=True, check=True)
-        subprocess.run(["git", "-C", d, "config",
-                        "merge.plet-append.name",
-                        "plet append-only merge"],
-                       capture_output=True, check=True)
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                d,
+                "config",
+                "merge.plet-append.driver",
+                "{} {} %O %A %B".format(sys.executable, driver_path),
+            ],
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", d, "config", "merge.plet-append.name", "plet append-only merge"],
+            capture_output=True,
+            check=True,
+        )
 
         # Create .gitattributes
         with open(os.path.join(d, ".gitattributes"), "w") as f:
@@ -463,10 +524,8 @@ def test_git_merge_integration():
         subprocess.run(["git", "-C", d, "commit", "-m", "orchestrator entries"], capture_output=True)
 
         # Merge --squash (this should use our custom driver)
-        result = subprocess.run(["git", "-C", d, "merge", "--squash", "feature"],
-                                capture_output=True, text=True)
-        check("merge --squash exit 0", result.returncode == 0,
-              "stderr: " + result.stderr[:200])
+        result = subprocess.run(["git", "-C", d, "merge", "--squash", "feature"], capture_output=True, text=True)
+        check("merge --squash exit 0", result.returncode == 0, "stderr: " + result.stderr[:200])
 
         # Check merged content
         with open(os.path.join(plet_dir, "progress.md")) as f:

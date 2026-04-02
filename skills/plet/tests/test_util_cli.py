@@ -15,7 +15,7 @@ import sys
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 sys.path.insert(0, SCRIPTS_DIR)
 
-import util_cli
+import util_cli  # noqa: E402
 
 passed = 0
 failed = 0
@@ -35,6 +35,7 @@ def check(name, condition, detail=""):
 # ---------------------------------------------------------------------------
 # parse_kwargs
 # ---------------------------------------------------------------------------
+
 
 def test_parse_kwargs_basic():
     print("\n## parse_kwargs — basic key-value pairs")
@@ -57,15 +58,13 @@ def test_parse_kwargs_bare_flag():
 def test_parse_kwargs_mixed():
     print("\n## parse_kwargs — mixed flags and key-value pairs")
     result = util_cli.parse_kwargs(["--dry-run", "--name", "foo", "--verbose"])
-    check("mixed parsing",
-          result == {"dry_run": True, "name": "foo", "verbose": True})
+    check("mixed parsing", result == {"dry_run": True, "name": "foo", "verbose": True})
 
 
 def test_parse_kwargs_flag_before_value():
     print("\n## parse_kwargs — flag followed by --flag is bare")
     result = util_cli.parse_kwargs(["--flag-a", "--flag-b", "val"])
-    check("first is bare, second has value",
-          result == {"flag_a": True, "flag_b": "val"})
+    check("first is bare, second has value", result == {"flag_a": True, "flag_b": "val"})
 
 
 def test_parse_kwargs_empty():
@@ -95,15 +94,14 @@ def test_parse_kwargs_unexpected_positional():
 
 def test_parse_kwargs_json_value():
     print("\n## parse_kwargs — JSON string as value")
-    result = util_cli.parse_kwargs(
-        ["--criteria", '[{"id":"AC_1","description":"test"}]']
-    )
+    result = util_cli.parse_kwargs(["--criteria", '[{"id":"AC_1","description":"test"}]'])
     check("JSON string preserved", result["criteria"] == '[{"id":"AC_1","description":"test"}]')
 
 
 # ---------------------------------------------------------------------------
 # require_kwargs
 # ---------------------------------------------------------------------------
+
 
 def test_require_kwargs_all_present():
     print("\n## require_kwargs — all present")
@@ -117,6 +115,7 @@ def test_require_kwargs_missing():
     kwargs = {"name": "foo"}
     # Capture stderr
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     result = util_cli.require_kwargs(kwargs, ["name", "count"])
@@ -131,6 +130,7 @@ def test_require_kwargs_with_help():
     print("\n## require_kwargs — prints help on missing")
     kwargs = {}
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     result = util_cli.require_kwargs(kwargs, ["name"], command_help="Usage: do stuff")
@@ -145,6 +145,7 @@ def test_require_kwargs_with_help():
 # validate_known_flags
 # ---------------------------------------------------------------------------
 
+
 def test_validate_known_flags_all_known():
     print("\n## validate_known_flags — all known")
     kwargs = {"iter_id": "ID_001", "output": "json", "pretty": True}
@@ -156,6 +157,7 @@ def test_validate_known_flags_unknown():
     print("\n## validate_known_flags — unknown flag")
     kwargs = {"iter_id": "ID_001", "banana": "yellow"}
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     result = util_cli.validate_known_flags(kwargs, {"iter_id", "output", "pretty"})
@@ -170,10 +172,10 @@ def test_validate_known_flags_with_hint():
     print("\n## validate_known_flags — with help hint")
     kwargs = {"bad_flag": "x"}
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
-    result = util_cli.validate_known_flags(
-        kwargs, set(), help_hint="Run: script cmd --help")
+    result = util_cli.validate_known_flags(kwargs, set(), help_hint="Run: script cmd --help")
     err = sys.stderr.getvalue()
     sys.stderr = old_stderr
 
@@ -199,9 +201,11 @@ def test_validate_known_flags_hyphen_conversion():
 # validate_enum
 # ---------------------------------------------------------------------------
 
+
 def test_validate_enum_valid():
     print("\n## validate_enum — valid value")
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     result = util_cli.validate_enum("queued", ["queued", "blocked"], "lifecycle")
@@ -212,6 +216,7 @@ def test_validate_enum_valid():
 def test_validate_enum_invalid():
     print("\n## validate_enum — invalid value")
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     result = util_cli.validate_enum("running", ["queued", "blocked"], "lifecycle")
@@ -228,6 +233,7 @@ def test_validate_enum_invalid():
 # validate_int
 # ---------------------------------------------------------------------------
 
+
 def test_validate_int_valid():
     print("\n## validate_int — valid integer")
     val, ok = util_cli.validate_int("42", "elapsed")
@@ -243,6 +249,7 @@ def test_validate_int_negative():
 def test_validate_int_invalid():
     print("\n## validate_int — invalid string")
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     val, ok = util_cli.validate_int("abc", "elapsed")
@@ -257,6 +264,7 @@ def test_validate_int_invalid():
 def test_validate_int_float():
     print("\n## validate_int — float string is invalid")
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     val, ok = util_cli.validate_int("3.14", "elapsed")
@@ -268,6 +276,7 @@ def test_validate_int_float():
 # ---------------------------------------------------------------------------
 # now_iso
 # ---------------------------------------------------------------------------
+
 
 def test_now_iso():
     print("\n## now_iso — format check")
@@ -282,14 +291,18 @@ def test_now_iso():
 # dispatch
 # ---------------------------------------------------------------------------
 
+
 def test_dispatch_help():
     print("\n## dispatch — --help")
     import io
+
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
     code = util_cli.dispatch(
         {"test": lambda args: 0},
-        "test_script", "1.0", "0.1.0",
+        "test_script",
+        "1.0",
+        "0.1.0",
         "Test doc string",
         argv=["test_script", "--help"],
     )
@@ -303,11 +316,14 @@ def test_dispatch_help():
 def test_dispatch_h_flag():
     print("\n## dispatch — -h")
     import io
+
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
     code = util_cli.dispatch(
         {"test": lambda args: 0},
-        "test_script", "1.0", "0.1.0",
+        "test_script",
+        "1.0",
+        "0.1.0",
         "Test doc string",
         argv=["test_script", "-h"],
     )
@@ -318,11 +334,14 @@ def test_dispatch_h_flag():
 def test_dispatch_version():
     print("\n## dispatch — --version")
     import io
+
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
     code = util_cli.dispatch(
         {"test": lambda args: 0},
-        "plet_state", "0.1.0", "0.1.1",
+        "plet_state",
+        "0.1.0",
+        "0.1.1",
         "doc",
         argv=["plet_state", "--version"],
     )
@@ -338,11 +357,14 @@ def test_dispatch_version():
 def test_dispatch_unknown_command():
     print("\n## dispatch — unknown command")
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     code = util_cli.dispatch(
         {"validate": lambda args: 0, "init": lambda args: 0},
-        "test", "1.0", "0.1.0",
+        "test",
+        "1.0",
+        "0.1.0",
         "doc",
         argv=["test", "frobnicate"],
     )
@@ -364,7 +386,9 @@ def test_dispatch_valid_command():
 
     code = util_cli.dispatch(
         {"run": my_cmd},
-        "test", "1.0", "0.1.0",
+        "test",
+        "1.0",
+        "0.1.0",
         "doc",
         argv=["test", "run", "--flag", "value"],
     )
@@ -375,11 +399,14 @@ def test_dispatch_valid_command():
 def test_dispatch_no_args():
     print("\n## dispatch — no arguments")
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     code = util_cli.dispatch(
         {"test": lambda args: 0},
-        "test", "1.0", "0.1.0",
+        "test",
+        "1.0",
+        "0.1.0",
         "Test doc",
         argv=["test"],
     )
@@ -393,6 +420,7 @@ def test_dispatch_no_args():
 # ---------------------------------------------------------------------------
 # filter_fields
 # ---------------------------------------------------------------------------
+
 
 def test_filter_fields_none():
     print("\n## filter_fields — None returns unchanged")
@@ -433,6 +461,7 @@ def test_filter_fields_empty_request():
 # get_plet_dir
 # ---------------------------------------------------------------------------
 
+
 def test_get_plet_dir_with_dir():
     print("\n## get_plet_dir — explicit dir")
     plet_dir, remaining = util_cli.get_plet_dir(["my/plet", "--flag", "val"])
@@ -464,6 +493,7 @@ def test_get_plet_dir_flag_first():
 # ---------------------------------------------------------------------------
 # extract_output_flags
 # ---------------------------------------------------------------------------
+
 
 def test_extract_output_flags_json():
     print("\n## extract_output_flags — json mode")
@@ -520,12 +550,14 @@ def test_extract_output_flags_dry_run_rejected():
 # emit_json / emit_json_error
 # ---------------------------------------------------------------------------
 
-import json
-import io
+import json  # noqa: E402
+import io  # noqa: E402
+
 
 def test_emit_json_basic():
     print("\n## emit_json — basic output")
     import contextlib
+
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         util_cli.emit_json({"status": "ok", "command": "test"}, "0.1.0")
@@ -539,6 +571,7 @@ def test_emit_json_basic():
 def test_emit_json_pretty():
     print("\n## emit_json — pretty output")
     import contextlib
+
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         util_cli.emit_json({"status": "ok"}, "0.1.0", pretty=True)
@@ -549,6 +582,7 @@ def test_emit_json_pretty():
 def test_emit_json_fields():
     print("\n## emit_json — field filtering")
     import contextlib
+
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         util_cli.emit_json({"status": "ok", "extra": "val"}, "0.1.0", fields=["status"])
@@ -561,6 +595,7 @@ def test_emit_json_fields():
 def test_emit_json_error_basic():
     print("\n## emit_json_error — basic output")
     import contextlib
+
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
     with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
@@ -576,9 +611,9 @@ def test_emit_json_error_basic():
 # Invocation logging
 # ---------------------------------------------------------------------------
 
-import subprocess
-import tempfile
-import shutil
+import subprocess  # noqa: E402
+import tempfile  # noqa: E402
+import shutil  # noqa: E402
 
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 STATE_TOOL = os.path.join(SCRIPTS_DIR, "plet_iter_state.py")
@@ -590,27 +625,43 @@ def make_test_plet_dir():
     plet_dir = os.path.join(tmpdir, "plet")
     sys.path.insert(0, SCRIPTS_DIR)
     from util_io import state_json_path, state_dir_path, iter_state_path
+
     os.makedirs(state_dir_path(plet_dir), exist_ok=True)
     with open(state_json_path(plet_dir), "w") as f:
-        json.dump({
-            "schemaVersion": "0.2.0", "projectId": "TEST",
-            "project": {"name": "Test"}, "loopSessionCount": 1,
-            "refineSessionCount": 0, "dependencyMap": {},
-            "milestones": {}, "iterationsFingerprint": {},
-        }, f)
+        json.dump(
+            {
+                "schemaVersion": "0.2.0",
+                "projectId": "TEST",
+                "project": {"name": "Test"},
+                "loopSessionCount": 1,
+                "refineSessionCount": 0,
+                "dependencyMap": {},
+                "milestones": {},
+                "iterationsFingerprint": {},
+            },
+            f,
+        )
         f.write("\n")
     with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
-        json.dump({
-            "schemaVersion": "0.2.0", "iterationId": "ID_001",
-            "title": "Test", "lastUpdated": "2026-03-29T00:00:00Z",
-            "dependencies": [], "agentId": None,
-            "phaseActivity": "idle", "implementVerdict": None,
-            "verifyVerdict": None,
-            "attempts": {"implement": 1, "verify": 0},
-            "criteria": [],
-        }, f)
+        json.dump(
+            {
+                "schemaVersion": "0.2.0",
+                "iterationId": "ID_001",
+                "title": "Test",
+                "lastUpdated": "2026-03-29T00:00:00Z",
+                "dependencies": [],
+                "agentId": None,
+                "phaseActivity": "idle",
+                "implementVerdict": None,
+                "verifyVerdict": None,
+                "attempts": {"implement": 1, "verify": 0},
+                "criteria": [],
+            },
+            f,
+        )
         f.write("\n")
     from util_io import progress_path
+
     with open(progress_path(plet_dir), "w") as f:
         f.write("")
     return tmpdir, plet_dir
@@ -622,12 +673,13 @@ def test_invocation_logging_enabled():
     try:
         result = subprocess.run(
             [sys.executable, STATE_TOOL, "validate", plet_dir, "--iter-id", "ID_001"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
-        check("validate exits 0", result.returncode == 0,
-              "stderr: {}".format(result.stderr[:200]))
+        check("validate exits 0", result.returncode == 0, "stderr: {}".format(result.stderr[:200]))
         # Check compact progress entry was written
         from util_io import progress_path
+
         with open(progress_path(plet_dir)) as f:
             progress = f.read()
         check("progress has logging entry", len(progress.strip()) > 0)
@@ -635,6 +687,7 @@ def test_invocation_logging_enabled():
         check("entry has trace ref", "trace:" in progress or "tev_" in progress)
         # Check trace event was written
         from util_io import trace_dir_path
+
         tdir = trace_dir_path(plet_dir)
         if os.path.isdir(tdir):
             trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]
@@ -651,13 +704,16 @@ def test_invocation_logging_suppressed():
     try:
         result = subprocess.run(
             [sys.executable, STATE_TOOL, "--no-log", "validate", plet_dir, "--iter-id", "ID_001"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         check("validate still exits 0", result.returncode == 0)
         from util_io import progress_path
+
         with open(progress_path(plet_dir)) as f:
             check("progress empty", f.read() == "")
         from util_io import trace_dir_path
+
         tdir = trace_dir_path(plet_dir)
         if os.path.isdir(tdir):
             trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]
@@ -676,10 +732,13 @@ def test_nolog_cascades():
         env["PLET_NO_LOG"] = "1"
         result = subprocess.run(
             [sys.executable, STATE_TOOL, "validate", plet_dir, "--iter-id", "ID_001"],
-            capture_output=True, text=True, env=env,
+            capture_output=True,
+            text=True,
+            env=env,
         )
         check("validate exits 0", result.returncode == 0)
         from util_io import trace_dir_path
+
         tdir = trace_dir_path(plet_dir)
         if os.path.isdir(tdir):
             trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")]

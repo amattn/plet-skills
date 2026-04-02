@@ -15,7 +15,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from util_io import (progress_path as progress_path_fn)
+from util_io import progress_path as progress_path_fn
 from util_fixture import (
     make_global_state as _shared_make_global_state,
     make_iter_state as _shared_make_iter_state,
@@ -38,7 +38,9 @@ failed = 0
 def run(args, expect_exit=0, cwd=None):
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True, text=True, cwd=cwd,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
@@ -63,21 +65,22 @@ def check(name, condition, detail=""):
 # Fixtures
 # ---------------------------------------------------------------------------
 
-def make_global_state(plet_dir, project_id="TEST", loop_session=1,
-                      lifecycles=None):
+
+def make_global_state(plet_dir, project_id="TEST", loop_session=1, lifecycles=None):
     """Create global state with SF_28 lifecycles field."""
     _shared_make_global_state(
-        plet_dir, project_id=project_id, loop_session=loop_session,
+        plet_dir,
+        project_id=project_id,
+        loop_session=loop_session,
         lifecycles=lifecycles if lifecycles is not None else {},
     )
 
 
-def make_iter_state(plet_dir, iter_id="ID_001",
-                    implement_verdict=None, verify_verdict=None,
-                    verification_reports=None):
+def make_iter_state(plet_dir, iter_id="ID_001", implement_verdict=None, verify_verdict=None, verification_reports=None):
     """Create per-iteration state — NO lifecycle field (SF_28)."""
     _shared_make_iter_state(
-        plet_dir, iter_id=iter_id,
+        plet_dir,
+        iter_id=iter_id,
         attempts={"implement": 1, "verify": 1},
         implement_verdict=implement_verdict,
         verify_verdict=verify_verdict,
@@ -98,8 +101,7 @@ def setup_iteration_branch(repo, project_id="TEST", iter_id="ID_001"):
     create_iteration_branch(repo, project_id=project_id, iter_id=iter_id, num_commits=1)
 
 
-def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement",
-                           progress=True, learnings=True, emergent=True):
+def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement", progress=True, learnings=True, emergent=True):
     for fname in ["progress.md", "learnings.md", "emergent.md"]:
         p = os.path.join(plet_dir, fname)
         if not os.path.isfile(p):
@@ -107,28 +109,84 @@ def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement",
                 f.write("")
 
     if progress:
-        result = subprocess.run([sys.executable, ENT_TOOL, "add-progress", plet_dir,
-                        "--iter-id", iter_id, "--iter-title", "Test iteration",
-                        "--phase", phase, "--attempt", "1", "--status", "COMPLETE",
-                        "--content", "Did the work"], capture_output=True, text=True)
+        result = subprocess.run(
+            [
+                sys.executable,
+                ENT_TOOL,
+                "add-progress",
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--iter-title",
+                "Test iteration",
+                "--phase",
+                phase,
+                "--attempt",
+                "1",
+                "--status",
+                "COMPLETE",
+                "--content",
+                "Did the work",
+            ],
+            capture_output=True,
+            text=True,
+        )
         if result.returncode != 0:
             raise RuntimeError("add-progress failed: {}".format(result.stderr))
 
     if learnings:
-        result = subprocess.run([sys.executable, ENT_TOOL, "add-learning", plet_dir,
-                        "--iter-id", iter_id, "--iter-title", "Test iteration",
-                        "--category", "pattern", "--title", "Test pattern",
-                        "--content", "Learned something",
-                        "--phase", phase, "--attempt", "1"], capture_output=True, text=True)
+        result = subprocess.run(
+            [
+                sys.executable,
+                ENT_TOOL,
+                "add-learning",
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--iter-title",
+                "Test iteration",
+                "--category",
+                "pattern",
+                "--title",
+                "Test pattern",
+                "--content",
+                "Learned something",
+                "--phase",
+                phase,
+                "--attempt",
+                "1",
+            ],
+            capture_output=True,
+            text=True,
+        )
         if result.returncode != 0:
             raise RuntimeError("add-learning failed: {}".format(result.stderr))
 
     if emergent:
-        result = subprocess.run([sys.executable, ENT_TOOL, "add-emergent", plet_dir,
-                        "--iter-id", iter_id, "--iter-title", "Test iteration",
-                        "--category", "design decision", "--title", "A decision",
-                        "--content", "Made a decision",
-                        "--phase", phase, "--attempt", "1"], capture_output=True, text=True)
+        result = subprocess.run(
+            [
+                sys.executable,
+                ENT_TOOL,
+                "add-emergent",
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--iter-title",
+                "Test iteration",
+                "--category",
+                "design decision",
+                "--title",
+                "A decision",
+                "--content",
+                "Made a decision",
+                "--phase",
+                phase,
+                "--attempt",
+                "1",
+            ],
+            capture_output=True,
+            text=True,
+        )
         if result.returncode != 0:
             raise RuntimeError("add-emergent failed: {}".format(result.stderr))
 
@@ -143,9 +201,16 @@ def setup_impl_pre(tmpdir, lifecycle="implementing"):
     return plet_dir
 
 
-def setup_impl_post(tmpdir, progress=True, learnings=True, emergent=True, trace=True,
-                    lifecycle="implementing", implement_verdict="verifying",
-                    audit_tag=True):
+def setup_impl_post(
+    tmpdir,
+    progress=True,
+    learnings=True,
+    emergent=True,
+    trace=True,
+    lifecycle="implementing",
+    implement_verdict="verifying",
+    audit_tag=True,
+):
     repo = setup_git_repo(tmpdir)
     plet_dir = os.path.join(tmpdir, "plet")
     make_global_state(plet_dir, lifecycles={"ID_001": lifecycle})
@@ -170,16 +235,23 @@ def setup_verify_pre(tmpdir, lifecycle="verifying"):
     return plet_dir
 
 
-def setup_verify_post(tmpdir, progress=True, learnings=True, emergent=True,
-                      trace=True, verify_verdict="complete", verification_reports=None,
-                      lifecycle="verifying", audit_tag=True):
+def setup_verify_post(
+    tmpdir,
+    progress=True,
+    learnings=True,
+    emergent=True,
+    trace=True,
+    verify_verdict="complete",
+    verification_reports=None,
+    lifecycle="verifying",
+    audit_tag=True,
+):
     if verification_reports is None:
         verification_reports = [make_verification_report()]
     repo = setup_git_repo(tmpdir)
     plet_dir = os.path.join(tmpdir, "plet")
     make_global_state(plet_dir, lifecycles={"ID_001": lifecycle})
-    make_iter_state(plet_dir, verify_verdict=verify_verdict,
-                    verification_reports=verification_reports)
+    make_iter_state(plet_dir, verify_verdict=verify_verdict, verification_reports=verification_reports)
     make_spec_artifacts(plet_dir)
     make_runtime_artifacts(plet_dir, phase="verify", progress=progress, learnings=learnings, emergent=emergent)
     if trace:
@@ -193,6 +265,7 @@ def setup_verify_post(tmpdir, progress=True, learnings=True, emergent=True,
 # ===========================================================================
 # pre tests — implement phase
 # ===========================================================================
+
 
 def test_pre_help():
     print("\n## pre — help")
@@ -226,8 +299,7 @@ def test_impl_pre_passing():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_pre(tmpdir)
-        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=2, cwd=tmpdir)
+        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=2, cwd=tmpdir)
         check("exit 2 (fingerprint warn)", rc == 2)
         check("has git: checks", "git:" in stdout)
         check("has state-valid", "state-valid" in stdout)
@@ -244,8 +316,11 @@ def test_impl_pre_json():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_pre(tmpdir)
-        stdout, _, _ = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                            "--output", "json"], expect_exit=2, cwd=tmpdir)
+        stdout, _, _ = run(
+            ["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"],
+            expect_exit=2,
+            cwd=tmpdir,
+        )
         data = json.loads(stdout)
         check("has phase field", data["phase"] == "implement")
         check("has checks", len(data["checks"]) > 0)
@@ -263,8 +338,7 @@ def test_impl_pre_missing_artifacts():
         make_global_state(plet_dir, lifecycles={"ID_001": "implementing"})
         make_iter_state(plet_dir)
         setup_iteration_branch(repo)
-        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=tmpdir)
         check("exit 1", rc == 1)
         check("spec-artifacts FAIL", "FAIL" in stdout and "spec-artifacts" in stdout)
     finally:
@@ -276,8 +350,7 @@ def test_impl_pre_lifecycle_complete():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_pre(tmpdir, lifecycle="complete")
-        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=2, cwd=tmpdir)
+        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=2, cwd=tmpdir)
         check("lifecycle WARN", "WARN" in stdout and "lifecycle" in stdout.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -287,13 +360,13 @@ def test_impl_pre_lifecycle_complete():
 # pre tests — verify phase
 # ===========================================================================
 
+
 def test_verify_pre_passing():
     print("\n## verify pre — all passing")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_pre(tmpdir)
-        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
-                            expect_exit=0, cwd=tmpdir)
+        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=0, cwd=tmpdir)
         check("exit 0", rc == 0)
         check("has git: checks", "git:" in stdout)
         check("has state-valid", "state-valid" in stdout)
@@ -309,8 +382,7 @@ def test_verify_pre_lifecycle_implementing():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_pre(tmpdir, lifecycle="implementing")
-        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
-                            expect_exit=2, cwd=tmpdir)
+        stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=2, cwd=tmpdir)
         check("exit 2", rc == 2)
         check("lifecycle WARN", "WARN" in stdout and "lifecycle" in stdout.lower())
     finally:
@@ -322,8 +394,9 @@ def test_verify_pre_no_phase_specific():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_pre(tmpdir)
-        stdout, _, _ = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "verify",
-                            "--output", "json"], expect_exit=0, cwd=tmpdir)
+        stdout, _, _ = run(
+            ["pre", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"], expect_exit=0, cwd=tmpdir
+        )
         data = json.loads(stdout)
         names = [c["name"] for c in data["checks"]]
         check("no fingerprints", "fingerprints-consistent" not in names)
@@ -336,13 +409,15 @@ def test_verify_pre_no_phase_specific():
 # post tests — implement phase
 # ===========================================================================
 
+
 def test_impl_post_passing():
     print("\n## implement post — all entries present")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=0, cwd=tmpdir)
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=0, cwd=tmpdir
+        )
         check("exit 0", rc == 0)
         check("has progress-entry", "progress-entry" in stdout)
         check("has learnings-entry", "learnings-entry" in stdout)
@@ -360,8 +435,9 @@ def test_impl_post_missing_progress():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, progress=False)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=tmpdir
+        )
         check("exit 1", rc == 1)
         check("progress FAIL", "FAIL" in stdout and "progress" in stdout)
     finally:
@@ -373,8 +449,9 @@ def test_impl_post_missing_learnings():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, learnings=False)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=2, cwd=tmpdir)
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=2, cwd=tmpdir
+        )
         check("exit 2", rc == 2)
         check("learnings WARN", "WARN" in stdout and "learnings" in stdout)
     finally:
@@ -386,8 +463,9 @@ def test_impl_post_missing_trace():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, trace=False)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=2, cwd=tmpdir)
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=2, cwd=tmpdir
+        )
         check("exit 2", rc == 2)
         check("trace WARN", "WARN" in stdout and "trace" in stdout)
     finally:
@@ -399,8 +477,11 @@ def test_impl_post_json():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir)
-        stdout, _, _ = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                            "--output", "json"], expect_exit=0, cwd=tmpdir)
+        stdout, _, _ = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"],
+            expect_exit=0,
+            cwd=tmpdir,
+        )
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("phase implement", data["phase"] == "implement")
@@ -416,13 +497,13 @@ def test_impl_post_json():
 # post tests — verify phase
 # ===========================================================================
 
+
 def test_verify_post_passing():
     print("\n## verify post — all entries + verdict + report")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
-                            expect_exit=0, cwd=tmpdir)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=0, cwd=tmpdir)
         check("exit 0", rc == 0)
         check("has verify-verdict", "verify-verdict" in stdout)
         check("has verification-report", "verification-report" in stdout)
@@ -435,8 +516,7 @@ def test_verify_post_missing_verdict():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir, verify_verdict=None)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=1, cwd=tmpdir)
         check("exit 1", rc == 1)
         check("verify-verdict FAIL", "FAIL" in stdout and "verify-verdict" in stdout)
     finally:
@@ -448,8 +528,7 @@ def test_verify_post_missing_report():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir, verification_reports=[])
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=1, cwd=tmpdir)
         check("exit 1", rc == 1)
         check("verification-report FAIL", "FAIL" in stdout and "verification-report" in stdout)
     finally:
@@ -461,8 +540,7 @@ def test_verify_post_report_missing_fields():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir, verification_reports=[{"verdict": "complete"}])
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=1, cwd=tmpdir)
         check("exit 1", rc == 1)
         check("report FAIL", "FAIL" in stdout and "verification-report" in stdout)
     finally:
@@ -474,8 +552,7 @@ def test_verify_post_missing_progress():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir, progress=False)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=1, cwd=tmpdir)
         check("exit 1", rc == 1)
         check("progress FAIL", "FAIL" in stdout and "progress" in stdout)
     finally:
@@ -487,8 +564,11 @@ def test_verify_post_json():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir)
-        stdout, _, _ = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify",
-                            "--output", "json"], expect_exit=0, cwd=tmpdir)
+        stdout, _, _ = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"],
+            expect_exit=0,
+            cwd=tmpdir,
+        )
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("phase verify", data["phase"] == "verify")
@@ -505,8 +585,11 @@ def test_verify_post_git_checks():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir)
-        stdout, _, _ = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify",
-                            "--output", "json"], expect_exit=0, cwd=tmpdir)
+        stdout, _, _ = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"],
+            expect_exit=0,
+            cwd=tmpdir,
+        )
         data = json.loads(stdout)
         git_checks = [c for c in data["checks"] if c["name"].startswith("git:")]
         check("git checks present", len(git_checks) > 0)
@@ -524,8 +607,7 @@ def test_post_gate_logs_progress():
         if not os.path.isfile(progress_file):
             with open(progress_file, "w") as f:
                 f.write("")
-        run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-            expect_exit=0, cwd=tmpdir)
+        run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=0, cwd=tmpdir)
         with open(progress_file) as f:
             content = f.read()
         check("progress has gate entry", len(content) > 0)
@@ -545,8 +627,7 @@ def test_post_gate_logs_failure():
         if not os.path.isfile(progress_file):
             with open(progress_file, "w") as f:
                 f.write("")
-        run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-            expect_exit=1, cwd=tmpdir)
+        run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=tmpdir)
         with open(progress_file) as f:
             content = f.read()
         check("progress has gate entry on failure", len(content) > 0)
@@ -559,16 +640,17 @@ def test_post_gate_logs_failure():
 # post tests — implement-verdict (implement must set implementVerdict)
 # ===========================================================================
 
+
 def test_impl_post_implement_verdict_fail():
     print("\n## implement post — implementVerdict null → FAIL")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, implement_verdict=None)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=tmpdir
+        )
         check("exit 1", rc == 1)
-        check("mentions implement-verdict", "implement-verdict" in stdout,
-              "got: " + stdout[:200])
+        check("mentions implement-verdict", "implement-verdict" in stdout, "got: " + stdout[:200])
     finally:
         shutil.rmtree(tmpdir)
 
@@ -578,8 +660,9 @@ def test_impl_post_implement_verdict_pass():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, implement_verdict="verifying")
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=0, cwd=tmpdir)
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=0, cwd=tmpdir
+        )
         check("exit 0", rc == 0)
         check("has implement-verdict PASS", "PASS" in stdout and "implement-verdict" in stdout)
     finally:
@@ -590,14 +673,18 @@ def test_impl_post_implement_verdict_pass():
 # post tests — verdict-consistency (verify: verifyVerdict must match last report)
 # ===========================================================================
 
+
 def test_verify_post_verdict_consistency_pass():
     print("\n## verify post — verifyVerdict matches report → PASS")
     tmpdir = tempfile.mkdtemp()
     try:
         # verifyVerdict="complete" matches report verdict="complete"
         plet_dir = setup_verify_post(tmpdir, verify_verdict="complete")
-        stdout, _, _ = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify",
-                            "--output", "json"], expect_exit=0, cwd=tmpdir)
+        stdout, _, _ = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"],
+            expect_exit=0,
+            cwd=tmpdir,
+        )
         data = json.loads(stdout)
         vc = [c for c in data["checks"] if c["name"] == "verdict-consistency"]
         check("verdict-consistency present", len(vc) == 1)
@@ -610,14 +697,19 @@ def test_verify_post_verdict_consistency_warn():
     print("\n## verify post — verifyVerdict mismatches report → WARN")
     tmpdir = tempfile.mkdtemp()
     try:
-        reports = [{"verdict": "rejected", "criteriaResults": [
-            {"criterionId": "AC_1", "status": "fail", "evidence": "Test failed"}
-        ]}]
+        reports = [
+            {
+                "verdict": "rejected",
+                "criteriaResults": [{"criterionId": "AC_1", "status": "fail", "evidence": "Test failed"}],
+            }
+        ]
         # verifyVerdict="complete" but report says "rejected"
-        plet_dir = setup_verify_post(tmpdir, verify_verdict="complete",
-                                     verification_reports=reports)
-        stdout, _, _ = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify",
-                            "--output", "json"], expect_exit=2, cwd=tmpdir)
+        plet_dir = setup_verify_post(tmpdir, verify_verdict="complete", verification_reports=reports)
+        stdout, _, _ = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"],
+            expect_exit=2,
+            cwd=tmpdir,
+        )
         data = json.loads(stdout)
         vc = [c for c in data["checks"] if c["name"] == "verdict-consistency"]
         check("verdict-consistency present", len(vc) == 1)
@@ -630,16 +722,17 @@ def test_verify_post_verdict_consistency_warn():
 # post tests — audit tag existence
 # ===========================================================================
 
+
 def test_impl_post_audit_tag_missing():
     print("\n## implement post — audit tag missing → FAIL")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, audit_tag=False)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=tmpdir
+        )
         check("exit 1", rc == 1)
-        check("mentions audit-tag", "audit" in stdout.lower(),
-              "got: " + stdout[:200])
+        check("mentions audit-tag", "audit" in stdout.lower(), "got: " + stdout[:200])
     finally:
         shutil.rmtree(tmpdir)
 
@@ -649,8 +742,9 @@ def test_impl_post_audit_tag_present():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, audit_tag=True)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
-                            expect_exit=0, cwd=tmpdir)
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=0, cwd=tmpdir
+        )
         check("exit 0", rc == 0)
         check("has audit-tag check", "audit-tag" in stdout)
     finally:
@@ -662,11 +756,9 @@ def test_verify_post_audit_tag_missing():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir, audit_tag=False)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
-                            expect_exit=1, cwd=tmpdir)
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=1, cwd=tmpdir)
         check("exit 1", rc == 1)
-        check("mentions audit-tag", "audit" in stdout.lower(),
-              "got: " + stdout[:200])
+        check("mentions audit-tag", "audit" in stdout.lower(), "got: " + stdout[:200])
     finally:
         shutil.rmtree(tmpdir)
 

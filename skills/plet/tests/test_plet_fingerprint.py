@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import (state_json_path, requirements_path, iterations_path)
+from util_io import state_json_path, requirements_path, iterations_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_fingerprint.py")
 
@@ -26,16 +26,17 @@ def run(args, expect_exit=0):
     """Run plet_fingerprint.py with args, return (stdout, stderr, exit_code)."""
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n"
-            "  args: {}\n"
-            "  stdout: {}\n"
-            "  stderr: {}".format(
-                expect_exit, result.returncode, args,
-                result.stdout, result.stderr,
+            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
+                expect_exit,
+                result.returncode,
+                args,
+                result.stdout,
+                result.stderr,
             )
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
@@ -159,6 +160,7 @@ def make_artifacts(tmpdir):
 # Tests
 # ---------------------------------------------------------------------------
 
+
 def test_help_all_commands():
     print("\n## Help on every command")
 
@@ -196,8 +198,9 @@ def test_extract_requirements():
         check("has FR group", fp["requirements"]["FR"] == ["FR_1", "FR_2", "FR_3"])
         check("has NF group", fp["requirements"]["NF"] == ["NF_1", "NF_2"])
         check("has DX group", fp["requirements"]["DX"] == ["DX_1"])
-        check("no FC group (excluded)", "FC" not in fp["requirements"],
-              "FC was: {}".format(fp["requirements"].get("FC")))
+        check(
+            "no FC group (excluded)", "FC" not in fp["requirements"], "FC was: {}".format(fp["requirements"].get("FC"))
+        )
         check("DX_99 excluded (Future Considerations)", "DX_99" not in fp["requirements"].get("DX", []))
         check("NF_99 excluded (Open Questions)", "NF_99" not in fp["requirements"].get("NF", []))
         check("MS_ not in requirements", "MS" not in fp["requirements"])
@@ -213,12 +216,9 @@ def test_extract_iterations():
         fp = json.loads(stdout)
 
         check("has lastNonTrivialUpdate", "lastNonTrivialUpdate" in fp)
-        check("MS_1 has ID_001, ID_002",
-              fp["iterations"]["MS_1"] == ["ID_001", "ID_002"])
-        check("MS_2 has ID_003 only",
-              fp["iterations"]["MS_2"] == ["ID_003"])
-        check("ID_004 excluded (withdrawn)",
-              "ID_004" not in fp["iterations"].get("MS_2", []))
+        check("MS_1 has ID_001, ID_002", fp["iterations"]["MS_1"] == ["ID_001", "ID_002"])
+        check("MS_2 has ID_003 only", fp["iterations"]["MS_2"] == ["ID_003"])
+        check("ID_004 excluded (withdrawn)", "ID_004" not in fp["iterations"].get("MS_2", []))
 
 
 def test_extract_json_output():
@@ -226,8 +226,7 @@ def test_extract_json_output():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
 
-        stdout, _, _ = run(["extract", d, "--type", "requirements",
-                            "--output", "json", "--pretty"])
+        stdout, _, _ = run(["extract", d, "--type", "requirements", "--output", "json", "--pretty"])
         data = json.loads(stdout)
 
         check("status ok", data["status"] == "ok")
@@ -244,8 +243,9 @@ def test_extract_fields_filter():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
 
-        stdout, _, _ = run(["extract", d, "--type", "requirements",
-                            "--output", "json", "--fields", "status,fingerprint"])
+        stdout, _, _ = run(
+            ["extract", d, "--type", "requirements", "--output", "json", "--fields", "status,fingerprint"]
+        )
         data = json.loads(stdout)
 
         check("has status", "status" in data)
@@ -314,9 +314,9 @@ def test_embed_auto_bump():
 
         # Embed again — should auto-bump
         import time
+
         time.sleep(1)  # ensure timestamp differs
-        stdout2, _, _ = run(["embed", d, "--type", "requirements",
-                             "--output", "json"])
+        stdout2, _, _ = run(["embed", d, "--type", "requirements", "--output", "json"])
         data = json.loads(stdout2)
 
         check("autoBumped is true", data["autoBumped"] is True)
@@ -336,9 +336,9 @@ def test_embed_no_bump_when_unchanged():
 
         # Second embed — no changes
         import time
+
         time.sleep(1)
-        stdout2, _, _ = run(["embed", d, "--type", "requirements",
-                             "--output", "json"])
+        stdout2, _, _ = run(["embed", d, "--type", "requirements", "--output", "json"])
         data = json.loads(stdout2)
 
         check("autoBumped is false", data["autoBumped"] is False)
@@ -409,8 +409,7 @@ def test_check_staleness():
         data = json.loads(stdout_json)
         check("JSON status stale", data["status"] == "stale")
         check("allConsistent false", data["allConsistent"] is False)
-        check("requirements level not consistent",
-              data["levels"]["requirements"]["consistent"] is False)
+        check("requirements level not consistent", data["levels"]["requirements"]["consistent"] is False)
 
 
 def test_check_level_filter():
@@ -489,19 +488,18 @@ def test_lenient_read_strict_write():
         with open(req_path) as f:
             content = f.read()
 
-        malformed_fp = json.dumps({
-            "requirements": {"FR": ["FR_3", "FR_1", "FR_2"]},
-            # Missing milestones, lastNonTrivialUpdate
-        })
-        content += "\n<!-- plet:fingerprint -->\n{}\n<!-- plet:fingerprint -->\n".format(
-            malformed_fp
+        malformed_fp = json.dumps(
+            {
+                "requirements": {"FR": ["FR_3", "FR_1", "FR_2"]},
+                # Missing milestones, lastNonTrivialUpdate
+            }
         )
+        content += "\n<!-- plet:fingerprint -->\n{}\n<!-- plet:fingerprint -->\n".format(malformed_fp)
         with open(req_path, "w") as f:
             f.write(content)
 
         # Embed should succeed (lenient read) and produce correct structure
-        stdout, _, _ = run(["embed", d, "--type", "requirements",
-                            "--output", "json"])
+        stdout, _, _ = run(["embed", d, "--type", "requirements", "--output", "json"])
         data = json.loads(stdout)
 
         fp = data["fingerprint"]
@@ -537,8 +535,7 @@ def test_error_invalid_type():
 
 def test_error_dry_run_on_extract():
     print("\n## Error: --dry-run on extract")
-    _, stderr, _ = run(["extract", "/tmp", "--type", "requirements", "--dry-run"],
-                       expect_exit=1)
+    _, stderr, _ = run(["extract", "/tmp", "--type", "requirements", "--dry-run"], expect_exit=1)
     check("error mentions read-only", "read-only" in stderr)
 
 
@@ -551,22 +548,19 @@ def test_error_bump_on_check():
 def test_error_not_a_directory():
     print("\n## Error: not a directory")
     with tempfile.NamedTemporaryFile() as f:
-        _, stderr, _ = run(["extract", f.name, "--type", "requirements"],
-                           expect_exit=1)
+        _, stderr, _ = run(["extract", f.name, "--type", "requirements"], expect_exit=1)
         check("error mentions not a directory", "not a directory" in stderr)
 
 
 def test_error_pretty_without_json():
     print("\n## Error: --pretty without --output json")
-    _, stderr, _ = run(["extract", "/tmp", "--type", "requirements", "--pretty"],
-                       expect_exit=1)
+    _, stderr, _ = run(["extract", "/tmp", "--type", "requirements", "--pretty"], expect_exit=1)
     check("error mentions --output json", "--output json" in stderr)
 
 
 def test_error_fields_without_json():
     print("\n## Error: --fields without --output json")
-    _, stderr, _ = run(["extract", "/tmp", "--type", "requirements",
-                        "--fields", "status"], expect_exit=1)
+    _, stderr, _ = run(["extract", "/tmp", "--type", "requirements", "--fields", "status"], expect_exit=1)
     check("error mentions --output json", "--output json" in stderr)
 
 
@@ -598,6 +592,7 @@ def test_withdrawn_section_exclusion():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     test_help_all_commands()

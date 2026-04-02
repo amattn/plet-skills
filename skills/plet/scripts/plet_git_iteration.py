@@ -60,6 +60,7 @@ ITER_ID_RE = re.compile(r"^ID_\d+$")
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def help_hint(command):
     """One-line stderr hint pointing agents to --help."""
     return "Run: plet_git_iteration.py {} --help".format(command)
@@ -96,6 +97,7 @@ from util_git import derive_branch_name  # noqa: E402 — shared naming logic
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
+
 
 def cmd_branch_name(args):
     HELP = """IMPORTANT:
@@ -202,14 +204,19 @@ Examples:
         session_num = 1
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "branchName": branch,
-            "type": branch_type,
-            "projectId": state["projectId"],
-            "sessionNum": session_num,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "branchName": branch,
+                "type": branch_type,
+                "projectId": state["projectId"],
+                "sessionNum": session_num,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         # Bare output for shell capture — exception to UNV_CMD_15 (GTI_DXP_3)
         print(branch)
@@ -340,16 +347,21 @@ Examples:
         else:
             msg = "DRY RUN — would create worktree at {} on branch {} from {}".format(wt_path, branch, base)
         if output_json:
-            emit_json({
-                "status": "ok",
-                "command": CMD,
-                "worktreePath": wt_path,
-                "branchName": branch,
-                "baseBranch": base,
-                "iterationId": iter_id,
-                "resumed": resumed,
-                "dryRun": True,
-            }, SCRIPT_VERSION, pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": CMD,
+                    "worktreePath": wt_path,
+                    "branchName": branch,
+                    "baseBranch": base,
+                    "iterationId": iter_id,
+                    "resumed": resumed,
+                    "dryRun": True,
+                },
+                SCRIPT_VERSION,
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -381,15 +393,20 @@ Examples:
         msg = "OK — created worktree at {} on branch {}".format(wt_path, branch)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "worktreePath": wt_path,
-            "branchName": branch,
-            "baseBranch": base,
-            "iterationId": iter_id,
-            "resumed": resumed,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "worktreePath": wt_path,
+                "branchName": branch,
+                "baseBranch": base,
+                "iterationId": iter_id,
+                "resumed": resumed,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         print(msg)
 
@@ -505,15 +522,20 @@ Examples:
         if delete_branch:
             msg += " and branch {}".format(branch)
         if output_json:
-            emit_json({
-                "status": "ok",
-                "command": CMD,
-                "worktreePath": wt_path,
-                "branchName": branch,
-                "branchDeleted": delete_branch,
-                "iterationId": iter_id,
-                "dryRun": True,
-            }, SCRIPT_VERSION, pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": CMD,
+                    "worktreePath": wt_path,
+                    "branchName": branch,
+                    "branchDeleted": delete_branch,
+                    "iterationId": iter_id,
+                    "dryRun": True,
+                },
+                SCRIPT_VERSION,
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -549,14 +571,19 @@ Examples:
         msg += " and branch {}".format(branch)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "worktreePath": wt_path,
-            "branchName": branch,
-            "branchDeleted": branch_deleted,
-            "iterationId": iter_id,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "worktreePath": wt_path,
+                "branchName": branch,
+                "branchDeleted": branch_deleted,
+                "iterationId": iter_id,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         print(msg)
 
@@ -567,15 +594,14 @@ Examples:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "branch-name": cmd_branch_name,
         "worktree-create": cmd_worktree_create,
         "worktree-remove": cmd_worktree_remove,
     }
-    return dispatch(
-        commands, "plet_git_iteration", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_git_iteration", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

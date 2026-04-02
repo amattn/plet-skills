@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import (trace_dir_path, events_path)
+from util_io import trace_dir_path, events_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_trace.py")
 
@@ -27,16 +27,17 @@ def run(args, expect_exit=0):
     """Run plet_trace.py with args, return (stdout, stderr, exit_code)."""
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n"
-            "  args: {}\n"
-            "  stdout: {}\n"
-            "  stderr: {}".format(
-                expect_exit, result.returncode, args,
-                result.stdout, result.stderr,
+            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
+                expect_exit,
+                result.returncode,
+                args,
+                result.stdout,
+                result.stderr,
             )
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
@@ -68,6 +69,7 @@ def read_events(path):
 # Help & version tests
 # ---------------------------------------------------------------------------
 
+
 def test_help():
     print("\n## Help output")
     out, _, _ = run(["--help"])
@@ -95,17 +97,26 @@ def test_version():
 # append-event tests
 # ---------------------------------------------------------------------------
 
+
 def test_append_decision():
     print("\n## Append — decision event")
     with tempfile.TemporaryDirectory() as tmpdir:
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"Using pytest","rationale":"Requirements specify pytest"}',
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"Using pytest","rationale":"Requirements specify pytest"}',
+            ]
+        )
         check("reports OK", "OK" in out)
         check("has plet ID", "tev_" in out)
 
@@ -128,14 +139,22 @@ def test_append_decision():
 def test_append_criterion_update():
     print("\n## Append — criterion_update event")
     with tempfile.TemporaryDirectory() as tmpdir:
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "criterion_update",
-            "--data", '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}',
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "criterion_update",
+                "--data",
+                '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}',
+            ]
+        )
         check("reports OK", "OK" in out)
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
@@ -149,14 +168,22 @@ def test_append_criterion_update():
 def test_append_lifecycle_change():
     print("\n## Append — lifecycle_change event")
     with tempfile.TemporaryDirectory() as tmpdir:
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "lifecycle_change",
-            "--data", '{"from":"queued","to":"implementing"}',
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "lifecycle_change",
+                "--data",
+                '{"from":"queued","to":"implementing"}',
+            ]
+        )
         check("reports OK", "OK" in out)
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
@@ -168,14 +195,22 @@ def test_append_lifecycle_change():
 def test_append_activity_change():
     print("\n## Append — activity_change event")
     with tempfile.TemporaryDirectory() as tmpdir:
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "activity_change",
-            "--data", '{"activity":"running_checks","detail":"pytest -x"}',
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "activity_change",
+                "--data",
+                '{"activity":"running_checks","detail":"pytest -x"}',
+            ]
+        )
         check("reports OK", "OK" in out)
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
@@ -187,14 +222,22 @@ def test_append_activity_change():
 def test_append_error_event():
     print("\n## Append — error event")
     with tempfile.TemporaryDirectory() as tmpdir:
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "error",
-            "--data", '{"message":"pytest not found","recovery":"install pytest"}',
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "error",
+                "--data",
+                '{"message":"pytest not found","recovery":"install pytest"}',
+            ]
+        )
         check("reports OK", "OK" in out)
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
@@ -206,14 +249,22 @@ def test_append_error_event():
 def test_append_invocation_event():
     print("\n## Append — invocation event")
     with tempfile.TemporaryDirectory() as tmpdir:
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "invocation",
-            "--data", '{"cwd":"/tmp/worktree","permissionMode":"auto","promptLength":42000}',
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "invocation",
+                "--data",
+                '{"cwd":"/tmp/worktree","permissionMode":"auto","promptLength":42000}',
+            ]
+        )
         check("reports OK", "OK" in out)
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
@@ -227,20 +278,30 @@ def test_append_invocation_event():
 def test_append_invocation_with_prompt():
     print("\n## Append — invocation event with full prompt in data")
     with tempfile.TemporaryDirectory() as tmpdir:
-        data = json.dumps({
-            "cwd": "/tmp/wt",
-            "permissionMode": "auto",
-            "promptLength": 100,
-            "prompt": "This is the full prompt text with special chars: <div> \"quotes\" etc.",
-        })
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "verify",
-            "--attempt", "1",
-            "--event-type", "invocation",
-            "--data", data,
-        ])
+        data = json.dumps(
+            {
+                "cwd": "/tmp/wt",
+                "permissionMode": "auto",
+                "promptLength": 100,
+                "prompt": 'This is the full prompt text with special chars: <div> "quotes" etc.',
+            }
+        )
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "verify",
+                "--attempt",
+                "1",
+                "--event-type",
+                "invocation",
+                "--data",
+                data,
+            ]
+        )
         check("reports OK", "OK" in out)
 
         events = read_events(events_path(tmpdir, "ID_001", "verify", 1))
@@ -252,14 +313,22 @@ def test_append_multiple_events():
     print("\n## Append — multiple events to same file")
     with tempfile.TemporaryDirectory() as tmpdir:
         for i in range(3):
-            run([
-                "append-event", tmpdir,
-                "--iter-id", "ID_001",
-                "--phase", "implement",
-                "--attempt", "1",
-                "--event-type", "decision",
-                "--data", '{{"description":"decision {}","rationale":"reason {}"}}'.format(i, i),
-            ])
+            run(
+                [
+                    "append-event",
+                    tmpdir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                    "--attempt",
+                    "1",
+                    "--event-type",
+                    "decision",
+                    "--data",
+                    '{{"description":"decision {}","rationale":"reason {}"}}'.format(i, i),
+                ]
+            )
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         check("three events", len(events) == 3)
@@ -272,14 +341,22 @@ def test_append_multiple_events():
 def test_append_ndjson_format():
     print("\n## Append — NDJSON format (one JSON per line)")
     with tempfile.TemporaryDirectory() as tmpdir:
-        run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-        ])
+        run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+            ]
+        )
         path = events_path(tmpdir, "ID_001", "implement", 1)
         with open(path) as f:
             content = f.read()
@@ -297,14 +374,22 @@ def test_append_file_creation():
         path = events_path(tmpdir, "ID_002", "verify", 1)
         check("file does not exist before", not os.path.exists(path))
 
-        run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_002",
-            "--phase", "verify",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-        ])
+        run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_002",
+                "--phase",
+                "verify",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+            ]
+        )
         check("file exists after", os.path.exists(path))
 
 
@@ -312,58 +397,103 @@ def test_append_missing_required_data():
     print("\n## Append — missing type-specific required fields")
     with tempfile.TemporaryDirectory() as tmpdir:
         # decision missing rationale
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects missing rationale", "rationale" in err)
 
         # criterion_update missing status
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "criterion_update",
-            "--data", '{"criterionId":"AC_1","phase":"implementation"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "criterion_update",
+                "--data",
+                '{"criterionId":"AC_1","phase":"implementation"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects missing status", "status" in err)
 
         # lifecycle_change missing to
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "lifecycle_change",
-            "--data", '{"from":"queued"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "lifecycle_change",
+                "--data",
+                '{"from":"queued"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects missing to", "to" in err)
 
         # activity_change missing activity
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "activity_change",
-            "--data", '{}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "activity_change",
+                "--data",
+                "{}",
+            ],
+            expect_exit=1,
+        )
         check("rejects missing activity", "activity" in err)
 
         # error missing message
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "error",
-            "--data", '{"recovery":"try again"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "error",
+                "--data",
+                '{"recovery":"try again"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects missing message", "message" in err)
 
 
@@ -371,127 +501,217 @@ def test_append_enum_validation():
     print("\n## Append — enum validation in data fields")
     with tempfile.TemporaryDirectory() as tmpdir:
         # Invalid criterion_update phase
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "criterion_update",
-            "--data", '{"criterionId":"AC_1","phase":"implement","status":"pass"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "criterion_update",
+                "--data",
+                '{"criterionId":"AC_1","phase":"implement","status":"pass"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects impl as criterion phase", "implementation" in err or "verification" in err)
 
         # Invalid criterion_update status
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "criterion_update",
-            "--data", '{"criterionId":"AC_1","phase":"implementation","status":"done"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "criterion_update",
+                "--data",
+                '{"criterionId":"AC_1","phase":"implementation","status":"done"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects invalid criterion status", "done" in err)
 
         # Invalid lifecycle value
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "lifecycle_change",
-            "--data", '{"from":"queued","to":"running"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "lifecycle_change",
+                "--data",
+                '{"from":"queued","to":"running"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects invalid lifecycle", "running" in err)
 
         # Invalid activity value
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "activity_change",
-            "--data", '{"activity":"thinking"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "activity_change",
+                "--data",
+                '{"activity":"thinking"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects invalid activity", "thinking" in err)
 
 
 def test_append_invalid_phase():
     print("\n## Append — invalid --phase")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "plan",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "plan",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects plan phase", "implement" in err and "verify" in err)
 
 
 def test_append_invalid_event_type():
     print("\n## Append — invalid --event-type")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "info",
-            "--data", '{"description":"test"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "info",
+                "--data",
+                '{"description":"test"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects invalid event type", "info" in err)
 
 
 def test_append_invalid_iter_id():
     print("\n## Append — invalid --iter-id")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "iter_1",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "iter_1",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects bad iter-id", "ID_" in err)
 
 
 def test_append_invalid_attempt():
     print("\n## Append — invalid --attempt")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "0",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "0",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects zero attempt", "positive" in err.lower())
 
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "abc",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "abc",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects non-integer", "integer" in err.lower())
 
 
 def test_append_data_not_object():
     print("\n## Append — --data is not a JSON object")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '"just a string"',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '"just a string"',
+            ],
+            expect_exit=1,
+        )
         check("rejects non-object data", "object" in err.lower())
 
 
@@ -502,14 +722,22 @@ def test_append_data_file():
         with open(data_path, "w") as f:
             json.dump({"description": "from file", "rationale": "testing data-file"}, f)
 
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data-file", data_path,
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data-file",
+                data_path,
+            ]
+        )
         check("reports OK", "OK" in out)
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
@@ -523,30 +751,48 @@ def test_append_data_and_data_file():
         with open(data_path, "w") as f:
             f.write('{"description":"test","rationale":"test"}')
 
-        _, err, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"inline","rationale":"test"}',
-            "--data-file", data_path,
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"inline","rationale":"test"}',
+                "--data-file",
+                data_path,
+            ],
+            expect_exit=1,
+        )
         check("rejects both", "mutually exclusive" in err.lower())
 
 
 def test_append_dry_run():
     print("\n## Append — --dry-run")
     with tempfile.TemporaryDirectory() as tmpdir:
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-            "--dry-run",
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+                "--dry-run",
+            ]
+        )
         check("reports dry run", "DRY RUN" in out)
 
         events_file = events_path(tmpdir, "ID_001", "implement", 1)
@@ -556,15 +802,24 @@ def test_append_dry_run():
 def test_append_json_output():
     print("\n## Append — JSON output")
     with tempfile.TemporaryDirectory() as tmpdir:
-        out, _, _ = run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-            "--output", "json",
-        ])
+        out, _, _ = run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+                "--output",
+                "json",
+            ]
+        )
         data = json.loads(out)
         check("json status ok", data["status"] == "ok")
         check("json command", data["command"] == "append-event")
@@ -576,15 +831,22 @@ def test_append_json_output():
 def test_append_extra_data_fields():
     print("\n## Append — extra data fields preserved")
     with tempfile.TemporaryDirectory() as tmpdir:
-        run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test",'
-            '"alternatives":["option A","option B"],"custom":"field"}',
-        ])
+        run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test","alternatives":["option A","option B"],"custom":"field"}',
+            ]
+        )
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         check("alternatives preserved", events[0]["data"]["alternatives"] == ["option A", "option B"])
@@ -593,14 +855,23 @@ def test_append_extra_data_fields():
 
 def test_append_trace_dir_not_found():
     print("\n## Append — trace_dir not found")
-    _, err, _ = run([
-        "append-event", "/nonexistent/trace/",
-        "--iter-id", "ID_001",
-        "--phase", "implement",
-        "--attempt", "1",
-        "--event-type", "decision",
-        "--data", '{"description":"test","rationale":"test"}',
-    ], expect_exit=1)
+    _, err, _ = run(
+        [
+            "append-event",
+            "/nonexistent/trace/",
+            "--iter-id",
+            "ID_001",
+            "--phase",
+            "implement",
+            "--attempt",
+            "1",
+            "--event-type",
+            "decision",
+            "--data",
+            '{"description":"test","rationale":"test"}',
+        ],
+        expect_exit=1,
+    )
     check("clean error", "does not exist" in err.lower() or "not found" in err.lower())
 
 
@@ -611,28 +882,45 @@ def test_append_trace_dir_is_file():
         with open(fake_dir, "w") as f:
             f.write("I'm a file")
 
-        _, err, _ = run([
-            "append-event", fake_dir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "append-event",
+                fake_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+            ],
+            expect_exit=1,
+        )
         check("rejects file as dir", "not a directory" in err.lower() or "directory" in err.lower())
 
 
 def test_append_no_tmp_residue():
     print("\n## Append — no .tmp residue")
     with tempfile.TemporaryDirectory() as tmpdir:
-        run([
-            "append-event", tmpdir,
-            "--iter-id", "ID_001",
-            "--phase", "implement",
-            "--attempt", "1",
-            "--event-type", "decision",
-            "--data", '{"description":"test","rationale":"test"}',
-        ])
+        run(
+            [
+                "append-event",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--data",
+                '{"description":"test","rationale":"test"}',
+            ]
+        )
         trace_dir = trace_dir_path(tmpdir)
         files = os.listdir(trace_dir)
         check("no .tmp files", not any(f.endswith(".tmp") for f in files))
@@ -641,6 +929,7 @@ def test_append_no_tmp_residue():
 # ---------------------------------------------------------------------------
 # Helper: create a trace file with known events
 # ---------------------------------------------------------------------------
+
 
 def make_trace_file(tmpdir, events=None):
     """Create a trace file with given events, return path.
@@ -686,14 +975,18 @@ def make_event(event_type="decision", **overrides):
 # Validate tests
 # ---------------------------------------------------------------------------
 
+
 def test_validate_valid():
     print("\n## Validate — valid file")
     with tempfile.TemporaryDirectory() as tmpdir:
-        make_trace_file(tmpdir, [
-            make_event("decision"),
-            make_event("criterion_update"),
-            make_event("lifecycle_change"),
-        ])
+        make_trace_file(
+            tmpdir,
+            [
+                make_event("decision"),
+                make_event("criterion_update"),
+                make_event("lifecycle_change"),
+            ],
+        )
         out, _, _ = run(["validate", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"])
         check("reports OK", "OK" in out)
         check("shows event count", "3 events" in out)
@@ -714,10 +1007,19 @@ def test_validate_missing_fields():
     with tempfile.TemporaryDirectory() as tmpdir:
         bad_event = {"type": "decision", "data": {}}
         make_trace_file(tmpdir, [bad_event])
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("catches missing pletId", "pletId" in err)
         check("catches missing timestamp", "timestamp" in err)
 
@@ -728,10 +1030,19 @@ def test_validate_bad_event_type():
         ev = make_event("decision")
         ev["type"] = "info"
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("catches invalid type", "info" in err)
 
 
@@ -741,10 +1052,19 @@ def test_validate_bad_phase():
         ev = make_event("decision")
         ev["phase"] = "plan"
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("catches invalid phase", "plan" in err)
 
 
@@ -754,10 +1074,19 @@ def test_validate_bad_plet_id_prefix():
         ev = make_event("decision")
         ev["pletId"] = "epr_01JD8X3K7M_id001_i1"
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("catches bad prefix", "tev_" in err)
 
 
@@ -767,10 +1096,19 @@ def test_validate_bad_attempt():
         ev = make_event("decision")
         ev["attempt"] = 0
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("catches zero attempt", "positive" in err.lower())
 
 
@@ -780,10 +1118,19 @@ def test_validate_missing_data_fields():
         ev = make_event("decision")
         ev["data"] = {"description": "test"}  # missing rationale
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("catches missing rationale", "rationale" in err)
 
 
@@ -793,10 +1140,19 @@ def test_validate_enum_in_data():
         ev = make_event("lifecycle_change")
         ev["data"] = {"from": "queued", "to": "running"}
         make_trace_file(tmpdir, [ev])
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("catches invalid lifecycle", "running" in err)
 
 
@@ -810,26 +1166,47 @@ def test_validate_malformed_json_line():
             f.write(json.dumps(make_event("decision")) + "\n")
             f.write("{bad json\n")
             f.write(json.dumps(make_event("error")) + "\n")
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("reports line number", "Line 2" in err or "line 2" in err)
 
 
 def test_validate_counts_by_type():
     print("\n## Validate — countsByType in JSON output")
     with tempfile.TemporaryDirectory() as tmpdir:
-        make_trace_file(tmpdir, [
-            make_event("decision"),
-            make_event("decision"),
-            make_event("error"),
-        ])
-        out, _, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-            "--output", "json",
-        ])
+        make_trace_file(
+            tmpdir,
+            [
+                make_event("decision"),
+                make_event("decision"),
+                make_event("error"),
+            ],
+        )
+        out, _, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--output",
+                "json",
+            ]
+        )
         data = json.loads(out)
         check("countsByType present", "countsByType" in data)
         check("2 decisions", data["countsByType"]["decision"] == 2)
@@ -839,10 +1216,19 @@ def test_validate_counts_by_type():
 def test_validate_file_not_found():
     print("\n## Validate — trace file not found")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run([
-            "validate", tmpdir, "--iter-id", "ID_999",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "validate",
+                tmpdir,
+                "--iter-id",
+                "ID_999",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("clean error", "does not exist" in err.lower())
 
 
@@ -857,14 +1243,18 @@ def test_validate_missing_required_flags():
 # Query tests
 # ---------------------------------------------------------------------------
 
+
 def test_query_all():
     print("\n## Query — all events (no filter)")
     with tempfile.TemporaryDirectory() as tmpdir:
-        make_trace_file(tmpdir, [
-            make_event("decision"),
-            make_event("error"),
-            make_event("decision"),
-        ])
+        make_trace_file(
+            tmpdir,
+            [
+                make_event("decision"),
+                make_event("error"),
+                make_event("decision"),
+            ],
+        )
         out, _, _ = run(["query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1"])
         check("outputs events", "decision" in out and "error" in out)
 
@@ -872,16 +1262,28 @@ def test_query_all():
 def test_query_by_type():
     print("\n## Query — filter by event type")
     with tempfile.TemporaryDirectory() as tmpdir:
-        make_trace_file(tmpdir, [
-            make_event("decision"),
-            make_event("error"),
-            make_event("decision"),
-        ])
-        out, _, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-            "--event-type", "decision",
-        ])
+        make_trace_file(
+            tmpdir,
+            [
+                make_event("decision"),
+                make_event("error"),
+                make_event("decision"),
+            ],
+        )
+        out, _, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+            ]
+        )
         # Should have 2 decisions, no errors
         check("has decisions", "decision" in out)
         check("no errors in output", "test error" not in out)
@@ -895,11 +1297,20 @@ def test_query_by_criterion():
         ev2 = make_event("criterion_update")
         ev2["data"]["criterionId"] = "AC_2"
         make_trace_file(tmpdir, [ev1, ev2])
-        out, _, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-            "--criterion", "AC_1",
-        ])
+        out, _, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--criterion",
+                "AC_1",
+            ]
+        )
         check("has AC_1", "AC_1" in out)
         check("no AC_2", "AC_2" not in out)
 
@@ -913,11 +1324,22 @@ def test_query_last_n():
             ev["data"]["description"] = "decision_{}".format(i)
             events.append(ev)
         make_trace_file(tmpdir, events)
-        out, _, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-            "--event-type", "decision", "--last", "2",
-        ])
+        out, _, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--last",
+                "2",
+            ]
+        )
         check("has decision_3", "decision_3" in out)
         check("has decision_4", "decision_4" in out)
         check("no decision_0", "decision_0" not in out)
@@ -927,11 +1349,20 @@ def test_query_no_matches():
     print("\n## Query — no matches returns exit 0")
     with tempfile.TemporaryDirectory() as tmpdir:
         make_trace_file(tmpdir, [make_event("decision")])
-        out, _, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-            "--event-type", "error",
-        ])
+        out, _, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "error",
+            ]
+        )
         # Should exit 0 even with no matches
         check("exit 0 with no matches", True)
 
@@ -954,14 +1385,26 @@ def test_query_malformed_lines_skipped():
 def test_query_raw_output():
     print("\n## Query — --raw output")
     with tempfile.TemporaryDirectory() as tmpdir:
-        make_trace_file(tmpdir, [
-            make_event("decision"),
-            make_event("error"),
-        ])
-        out, _, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1", "--raw",
-        ])
+        make_trace_file(
+            tmpdir,
+            [
+                make_event("decision"),
+                make_event("error"),
+            ],
+        )
+        out, _, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--raw",
+            ]
+        )
         lines = [ln for ln in out.split("\n") if ln.strip()]
         check("two lines", len(lines) == 2)
         # Each line should be compact JSON (no indentation)
@@ -973,16 +1416,29 @@ def test_query_raw_output():
 def test_query_raw_with_filter():
     print("\n## Query — --raw with type filter")
     with tempfile.TemporaryDirectory() as tmpdir:
-        make_trace_file(tmpdir, [
-            make_event("decision"),
-            make_event("error"),
-            make_event("decision"),
-        ])
-        out, _, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-            "--event-type", "decision", "--raw",
-        ])
+        make_trace_file(
+            tmpdir,
+            [
+                make_event("decision"),
+                make_event("error"),
+                make_event("decision"),
+            ],
+        )
+        out, _, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--event-type",
+                "decision",
+                "--raw",
+            ]
+        )
         lines = [ln for ln in out.split("\n") if ln.strip()]
         check("two decision lines", len(lines) == 2)
 
@@ -991,25 +1447,49 @@ def test_query_raw_with_json_error():
     print("\n## Query — --raw with --output json is error")
     with tempfile.TemporaryDirectory() as tmpdir:
         make_trace_file(tmpdir, [make_event("decision")])
-        _, err, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1",
-            "--raw", "--output", "json",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--raw",
+                "--output",
+                "json",
+            ],
+            expect_exit=1,
+        )
         check("rejects raw+json", "mutually exclusive" in err.lower())
 
 
 def test_query_json_output():
     print("\n## Query — JSON output")
     with tempfile.TemporaryDirectory() as tmpdir:
-        make_trace_file(tmpdir, [
-            make_event("decision"),
-            make_event("error"),
-        ])
-        out, _, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001",
-            "--phase", "implement", "--attempt", "1",
-            "--output", "json",
-        ])
+        make_trace_file(
+            tmpdir,
+            [
+                make_event("decision"),
+                make_event("error"),
+            ],
+        )
+        out, _, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--output",
+                "json",
+            ]
+        )
         data = json.loads(out)
         check("json status ok", data["status"] == "ok")
         check("json command", data["command"] == "query")
@@ -1021,20 +1501,42 @@ def test_query_criterion_with_wrong_type():
     print("\n## Query — --criterion with wrong --event-type")
     with tempfile.TemporaryDirectory() as tmpdir:
         make_trace_file(tmpdir, [make_event("criterion_update")])
-        _, err, _ = run([
-            "query", tmpdir, "--iter-id", "ID_001", "--phase", "implement", "--attempt", "1",
-            "--criterion", "AC_1", "--event-type", "decision",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+                "--criterion",
+                "AC_1",
+                "--event-type",
+                "decision",
+            ],
+            expect_exit=1,
+        )
         check("rejects conflicting filters", "criterion_update" in err)
 
 
 def test_query_file_not_found():
     print("\n## Query — trace file not found")
     with tempfile.TemporaryDirectory() as tmpdir:
-        _, err, _ = run([
-            "query", tmpdir, "--iter-id", "ID_999",
-            "--phase", "implement", "--attempt", "1",
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "query",
+                tmpdir,
+                "--iter-id",
+                "ID_999",
+                "--phase",
+                "implement",
+                "--attempt",
+                "1",
+            ],
+            expect_exit=1,
+        )
         check("clean error", "does not exist" in err.lower())
 
 

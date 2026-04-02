@@ -67,8 +67,16 @@ VALID_PHASES = ["implement", "verify"]
 IMPLEMENT_VERDICTS = ["completed", "blocked"]
 VERIFY_VERDICTS = ["passed", "rejected", "blocked"]
 PHASE_ACTIVITIES = [
-    "setup", "writing_tests", "implementing", "verifying", "fixing",
-    "writing_report", "running_checks", "committing", "wrapping_up", "idle",
+    "setup",
+    "writing_tests",
+    "implementing",
+    "verifying",
+    "fixing",
+    "writing_report",
+    "running_checks",
+    "committing",
+    "wrapping_up",
+    "idle",
 ]
 
 
@@ -94,6 +102,7 @@ def _load_state(plet_dir, iter_id, hint):
 # validate
 # ---------------------------------------------------------------------------
 
+
 def cmd_validate(args):
     """Check a per-iteration state file against the schema."""
     HELP = """Usage: plet_iter_state.py validate <plet_dir> --iter-id ID_xxx
@@ -112,8 +121,7 @@ Exit 0 if valid, exit 1 if invalid or error.
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ,
-                                 _help_hint("validate")):
+    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("validate")):
         return 1
     if not require_kwargs(kwargs, ["iter_id"], HELP):
         return 1
@@ -126,22 +134,36 @@ Exit 0 if valid, exit 1 if invalid or error.
     data, path = _load_state(plet_dir, iter_id, _help_hint("validate"))
     if data is None:
         if output_json:
-            emit_json({"status": "error", "command": "validate", "path": path,
-                        "errors": ["file not found or invalid JSON"], "errorCount": 1},
-                       SCRIPT_VERSION, pretty, fields)
+            emit_json(
+                {
+                    "status": "error",
+                    "command": "validate",
+                    "path": path,
+                    "errors": ["file not found or invalid JSON"],
+                    "errorCount": 1,
+                },
+                SCRIPT_VERSION,
+                pretty,
+                fields,
+            )
         return 1
 
     errors = validate_iter_state(data)
     valid = len(errors) == 0
 
     if output_json:
-        emit_json({
-            "status": "ok" if valid else "error",
-            "command": "validate",
-            "path": path,
-            "errors": errors,
-            "errorCount": len(errors),
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok" if valid else "error",
+                "command": "validate",
+                "path": path,
+                "errors": errors,
+                "errorCount": len(errors),
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
         return 0 if valid else 1
 
     if valid:
@@ -157,6 +179,7 @@ Exit 0 if valid, exit 1 if invalid or error.
 # ---------------------------------------------------------------------------
 # init
 # ---------------------------------------------------------------------------
+
 
 def cmd_init(args):
     """Create a new per-iteration state file."""
@@ -185,9 +208,18 @@ Examples:
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(
         kwargs,
-        {"iter_id", "title", "dependencies", "dependencies_file",
-         "criteria", "criteria_file", "cleanup_tags", "cleanup_branches",
-         "no_verify_deps"} | UNIVERSAL_FLAGS_WRITE,
+        {
+            "iter_id",
+            "title",
+            "dependencies",
+            "dependencies_file",
+            "criteria",
+            "criteria_file",
+            "cleanup_tags",
+            "cleanup_branches",
+            "no_verify_deps",
+        }
+        | UNIVERSAL_FLAGS_WRITE,
         _help_hint("init"),
     ):
         return 1
@@ -207,9 +239,9 @@ Examples:
 
     # Validate iter_id pattern
     import re
+
     if not re.match(r"^ID_\d+$", iter_id):
-        print("Error: iterationId '{}' does not match pattern ID_N+ (e.g., ID_001)".format(iter_id),
-              file=sys.stderr)
+        print("Error: iterationId '{}' does not match pattern ID_N+ (e.g., ID_001)".format(iter_id), file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
@@ -251,8 +283,7 @@ Examples:
             return 1
         for req_field in ["id", "description"]:
             if req_field not in c:
-                print("Error: --criteria[{}] missing required field '{}'".format(i, req_field),
-                      file=sys.stderr)
+                print("Error: --criteria[{}] missing required field '{}'".format(i, req_field), file=sys.stderr)
                 print(_help_hint("init"), file=sys.stderr)
                 return 1
 
@@ -268,22 +299,27 @@ Examples:
         for dep_id in dependencies:
             dep_path = iter_state_path(plet_dir, dep_id)
             if not os.path.exists(dep_path):
-                print("Error: dependency '{}' not found — expected {}. "
-                      "Use --no-verify-deps to skip.".format(dep_id, dep_path),
-                      file=sys.stderr)
+                print(
+                    "Error: dependency '{}' not found — expected {}. Use --no-verify-deps to skip.".format(
+                        dep_id, dep_path
+                    ),
+                    file=sys.stderr,
+                )
                 print(_help_hint("init"), file=sys.stderr)
                 return 1
 
     # Build criteria with two-state model
     criteria = []
     for c in criteria_input:
-        criteria.append({
-            "id": c["id"],
-            "description": c["description"],
-            "status": "not_started",
-            "implementation": None,
-            "verification": None,
-        })
+        criteria.append(
+            {
+                "id": c["id"],
+                "description": c["description"],
+                "status": "not_started",
+                "implementation": None,
+                "verification": None,
+            }
+        )
 
     ts = now_iso()
     data = {
@@ -319,13 +355,21 @@ Examples:
 
     if dry_run:
         if output_json:
-            emit_json({"status": "ok", "command": "init", "path": path,
-                        "iterationId": iter_id, "criteriaCount": criteria_count,
-                        "dryRun": True},
-                       SCRIPT_VERSION, pretty, fields_filter)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": "init",
+                    "path": path,
+                    "iterationId": iter_id,
+                    "criteriaCount": criteria_count,
+                    "dryRun": True,
+                },
+                SCRIPT_VERSION,
+                pretty,
+                fields_filter,
+            )
         else:
-            print("DRY RUN — would create {} ({}, {} criteria)".format(
-                path, iter_id, criteria_count))
+            print("DRY RUN — would create {} ({}, {} criteria)".format(path, iter_id, criteria_count))
         return 0
 
     # Create state/ dir if needed
@@ -335,9 +379,12 @@ Examples:
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        emit_json({"status": "ok", "command": "init", "path": path,
-                    "iterationId": iter_id, "criteriaCount": criteria_count},
-                   SCRIPT_VERSION, pretty, fields_filter)
+        emit_json(
+            {"status": "ok", "command": "init", "path": path, "iterationId": iter_id, "criteriaCount": criteria_count},
+            SCRIPT_VERSION,
+            pretty,
+            fields_filter,
+        )
     else:
         print("OK — initialized {} ({}, {} criteria)".format(path, iter_id, criteria_count))
     return 0
@@ -346,6 +393,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # start-phase
 # ---------------------------------------------------------------------------
+
 
 def cmd_start_phase(args):
     """Initialize a phase (orchestrator pre-spawn)."""
@@ -371,8 +419,7 @@ Examples:
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_WRITE,
-                                 _help_hint("start-phase")):
+    if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-phase")):
         return 1
     if not require_kwargs(kwargs, ["iter_id", "phase"], HELP):
         return 1
@@ -420,8 +467,11 @@ Examples:
     data["phaseTimestamps"][ts_key] = ts
 
     result = {
-        "status": "ok", "command": "start-phase",
-        "iterationId": iter_id, "phase": phase, "attempt": attempt,
+        "status": "ok",
+        "command": "start-phase",
+        "iterationId": iter_id,
+        "phase": phase,
+        "attempt": attempt,
     }
 
     if dry_run:
@@ -444,6 +494,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # update-activity
 # ---------------------------------------------------------------------------
+
 
 def cmd_update_activity(args):
     """Set phaseActivity + activityDetail + heartbeat."""
@@ -469,9 +520,17 @@ Examples:
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {
-        "iter_id", "phase_activity", "activity_detail", "agent_id",
-    } | UNIVERSAL_FLAGS_WRITE, _help_hint("update-activity")):
+    if not validate_known_flags(
+        kwargs,
+        {
+            "iter_id",
+            "phase_activity",
+            "activity_detail",
+            "agent_id",
+        }
+        | UNIVERSAL_FLAGS_WRITE,
+        _help_hint("update-activity"),
+    ):
         return 1
     if not require_kwargs(kwargs, ["iter_id", "phase_activity", "activity_detail", "agent_id"], HELP):
         return 1
@@ -501,8 +560,10 @@ Examples:
     data["lastUpdated"] = ts
 
     result = {
-        "status": "ok", "command": "update-activity",
-        "iterationId": iter_id, "phaseActivity": phase_activity,
+        "status": "ok",
+        "command": "update-activity",
+        "iterationId": iter_id,
+        "phaseActivity": phase_activity,
         "activityDetail": activity_detail,
     }
 
@@ -526,6 +587,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # update-criterion
 # ---------------------------------------------------------------------------
+
 
 def cmd_update_criterion(args):
     """Update a criterion's implementation or verification status."""
@@ -600,10 +662,12 @@ Examples:
             break
 
     if target is None:
-        print("Error: criterion '{}' not found in {} (available: {})".format(
-            criterion_id, iter_id,
-            ", ".join(c.get("id", "?") for c in criteria)),
-              file=sys.stderr)
+        print(
+            "Error: criterion '{}' not found in {} (available: {})".format(
+                criterion_id, iter_id, ", ".join(c.get("id", "?") for c in criteria)
+            ),
+            file=sys.stderr,
+        )
         print(_help_hint("update-criterion"), file=sys.stderr)
         return 1
 
@@ -629,9 +693,12 @@ Examples:
     data["lastUpdated"] = ts
 
     result = {
-        "status": "ok", "command": "update-criterion",
-        "iterationId": iter_id, "criterionId": criterion_id,
-        "phase": phase, "criterionStatus": status,
+        "status": "ok",
+        "command": "update-criterion",
+        "iterationId": iter_id,
+        "criterionId": criterion_id,
+        "phase": phase,
+        "criterionStatus": status,
     }
 
     if dry_run:
@@ -654,6 +721,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # set-verdict
 # ---------------------------------------------------------------------------
+
 
 def cmd_set_verdict(args):
     """Set implementVerdict or verifyVerdict."""
@@ -682,8 +750,9 @@ Examples:
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id", "phase", "verdict", "agent_id"} | UNIVERSAL_FLAGS_WRITE,
-                                 _help_hint("set-verdict")):
+    if not validate_known_flags(
+        kwargs, {"iter_id", "phase", "verdict", "agent_id"} | UNIVERSAL_FLAGS_WRITE, _help_hint("set-verdict")
+    ):
         return 1
     if not require_kwargs(kwargs, ["iter_id", "phase", "verdict", "agent_id"], HELP):
         return 1
@@ -704,8 +773,10 @@ Examples:
     # Validate verdict for phase
     valid_verdicts = IMPLEMENT_VERDICTS if phase == "implement" else VERIFY_VERDICTS
     if verdict not in valid_verdicts:
-        print("Error: invalid verdict '{}' for {} (valid: {})".format(
-            verdict, phase, ", ".join(valid_verdicts)), file=sys.stderr)
+        print(
+            "Error: invalid verdict '{}' for {} (valid: {})".format(verdict, phase, ", ".join(valid_verdicts)),
+            file=sys.stderr,
+        )
         print(_help_hint("set-verdict"), file=sys.stderr)
         return 1
 
@@ -739,6 +810,7 @@ Examples:
     if start_ts:
         try:
             from datetime import datetime
+
             start_dt = datetime.fromisoformat(start_ts.replace("Z", "+00:00"))
             end_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             elapsed = int((end_dt - start_dt).total_seconds())
@@ -771,6 +843,7 @@ Examples:
 # heartbeat
 # ---------------------------------------------------------------------------
 
+
 def cmd_heartbeat(args):
     """Lightweight alive signal."""
     HELP = """Usage: plet_iter_state.py heartbeat <plet_dir>
@@ -790,8 +863,7 @@ Examples:
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id", "agent_id"} | UNIVERSAL_FLAGS_READ,
-                                 _help_hint("heartbeat")):
+    if not validate_known_flags(kwargs, {"iter_id", "agent_id"} | UNIVERSAL_FLAGS_READ, _help_hint("heartbeat")):
         return 1
     if not require_kwargs(kwargs, ["iter_id", "agent_id"], HELP):
         return 1
@@ -815,9 +887,12 @@ Examples:
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        emit_json({"status": "ok", "command": "heartbeat",
-                    "iterationId": iter_id, "lastHeartbeat": ts},
-                   SCRIPT_VERSION, pretty, fields_filter)
+        emit_json(
+            {"status": "ok", "command": "heartbeat", "iterationId": iter_id, "lastHeartbeat": ts},
+            SCRIPT_VERSION,
+            pretty,
+            fields_filter,
+        )
     else:
         print("OK — {} heartbeat".format(iter_id))
     return 0
@@ -826,6 +901,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # add-report
 # ---------------------------------------------------------------------------
+
 
 def cmd_add_report(args):
     """Append a verification report."""
@@ -859,8 +935,17 @@ Examples:
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(
         kwargs,
-        {"iter_id", "verdict", "summary", "criteria_results", "criteria_results_file",
-         "findings", "related_entries", "agent_id"} | UNIVERSAL_FLAGS_WRITE,
+        {
+            "iter_id",
+            "verdict",
+            "summary",
+            "criteria_results",
+            "criteria_results_file",
+            "findings",
+            "related_entries",
+            "agent_id",
+        }
+        | UNIVERSAL_FLAGS_WRITE,
         _help_hint("add-report"),
     ):
         return 1
@@ -927,24 +1012,30 @@ Examples:
         # Check required fields
         for rf in REQUIRED_CR_FIELDS:
             if rf not in cr:
-                print("Error: criteriaResults[{}] missing required field '{}'".format(i, rf),
-                      file=sys.stderr)
+                print("Error: criteriaResults[{}] missing required field '{}'".format(i, rf), file=sys.stderr)
                 return 1
         # Check no unknown fields
         unknown = set(cr.keys()) - ALLOWED_CR_FIELDS
         if unknown:
-            print("Error: criteriaResults[{}] has unknown field(s): {}".format(
-                i, ", ".join(sorted(unknown))), file=sys.stderr)
+            print(
+                "Error: criteriaResults[{}] has unknown field(s): {}".format(i, ", ".join(sorted(unknown))),
+                file=sys.stderr,
+            )
             return 1
         # Validate status
         if cr["status"] not in VALID_CR_STATUSES:
-            print("Error: criteriaResults[{}].status '{}' invalid (valid: {})".format(
-                i, cr["status"], ", ".join(VALID_CR_STATUSES)), file=sys.stderr)
+            print(
+                "Error: criteriaResults[{}].status '{}' invalid (valid: {})".format(
+                    i, cr["status"], ", ".join(VALID_CR_STATUSES)
+                ),
+                file=sys.stderr,
+            )
             return 1
         # noTestRationale required when redTest is "none"
         if cr["redTest"] == "none" and "noTestRationale" not in cr:
-            print("Error: criteriaResults[{}] redTest is 'none' but noTestRationale is missing".format(i),
-                  file=sys.stderr)
+            print(
+                "Error: criteriaResults[{}] redTest is 'none' but noTestRationale is missing".format(i), file=sys.stderr
+            )
             return 1
 
     data, path = _load_state(plet_dir, iter_id, _help_hint("add-report"))
@@ -956,6 +1047,7 @@ Examples:
     ts = now_iso()
 
     from util_id import generate_plet_id
+
     plet_id = generate_plet_id("vrp", iter_id, "verify", attempt)
 
     report = {
@@ -978,8 +1070,11 @@ Examples:
     data["lastUpdated"] = ts
 
     result = {
-        "status": "ok", "command": "add-report",
-        "iterationId": iter_id, "attempt": attempt, "verdict": verdict,
+        "status": "ok",
+        "command": "add-report",
+        "iterationId": iter_id,
+        "attempt": attempt,
+        "verdict": verdict,
     }
 
     if dry_run:
@@ -987,8 +1082,7 @@ Examples:
         if output_json:
             emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
         else:
-            print("DRY RUN — {} report added (attempt {}, verdict: {})".format(
-                iter_id, attempt, verdict))
+            print("DRY RUN — {} report added (attempt {}, verdict: {})".format(iter_id, attempt, verdict))
         return 0
 
     atomic_write_json(path, data, update_timestamp=False)
@@ -996,14 +1090,14 @@ Examples:
     if output_json:
         emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
     else:
-        print("OK — {} report added (attempt {}, verdict: {})".format(
-            iter_id, attempt, verdict))
+        print("OK — {} report added (attempt {}, verdict: {})".format(iter_id, attempt, verdict))
     return 0
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     commands = {
@@ -1017,7 +1111,11 @@ def main():
         "validate": cmd_validate,
     }
     return dispatch(
-        commands, SCRIPT_NAME, SCRIPT_VERSION, SKILL_VERSION, __doc__,
+        commands,
+        SCRIPT_NAME,
+        SCRIPT_VERSION,
+        SKILL_VERSION,
+        __doc__,
     )
 
 

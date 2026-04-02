@@ -53,8 +53,11 @@ from util_io import (
     trace_dir_path,
 )
 from util_fixture import (
-    make_global_state, make_iter_state, make_git_repo,
-    create_workstream_branch, create_iteration_branch,
+    make_global_state,
+    make_iter_state,
+    make_git_repo,
+    create_workstream_branch,
+    create_iteration_branch,
 )
 
 INVOKE_TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_invoke.py")
@@ -67,11 +70,11 @@ SMOKE_PROMPT = "Explain red/green testing and development strategy in 2-3 senten
 # Checks
 # ---------------------------------------------------------------------------
 
+
 def check_claude_installed():
     """Check claude CLI is available."""
     try:
-        result = subprocess.run(["claude", "--version"],
-                                capture_output=True, text=True, timeout=10)
+        result = subprocess.run(["claude", "--version"], capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             version = result.stdout.strip().split("\n")[0]
             return True, version
@@ -86,10 +89,9 @@ def check_invoke(plet_dir, cwd):
     """Run plet_invoke.py with real Claude. Returns (ok, detail, elapsed, stdout)."""
     start = time.time()
     result = subprocess.run(
-        [sys.executable, INVOKE_TOOL, "run", plet_dir,
-         "--iter-id", "ID_001", "--phase", "implement",
-         "--cwd", cwd],
-        capture_output=True, text=True,
+        [sys.executable, INVOKE_TOOL, "run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", cwd],
+        capture_output=True,
+        text=True,
         timeout=120,  # 2 minute timeout — small prompt should be fast
     )
     elapsed = time.time() - start
@@ -108,8 +110,7 @@ def check_invoke(plet_dir, cwd):
         except (json.JSONDecodeError, ValueError):
             pass
 
-    return True, "{} output lines ({} NDJSON), {:.1f}s".format(
-        len(lines), json_lines, elapsed), elapsed, result.stdout
+    return True, "{} output lines ({} NDJSON), {:.1f}s".format(len(lines), json_lines, elapsed), elapsed, result.stdout
 
 
 def check_transcript(plet_dir, iter_id="ID_001", phase="implement"):
@@ -148,36 +149,35 @@ def check_events(plet_dir, iter_id="ID_001"):
 # Project setup
 # ---------------------------------------------------------------------------
 
+
 def setup_project(tmpdir):
     """Create a minimal plet project for smoke testing."""
     repo = make_git_repo(tmpdir)
     plet_dir = os.path.join(repo, "plet")
 
-    make_global_state(plet_dir, project_id="SMOKE", loop_session=1,
-                      lifecycles={"ID_001": "implementing"})
+    make_global_state(plet_dir, project_id="SMOKE", loop_session=1, lifecycles={"ID_001": "implementing"})
 
     # attempts.implement = 0 so invoke treats this as attempt 1
-    make_iter_state(plet_dir, iter_id="ID_001",
-                    title="Smoke test iteration",
-                    attempts={"implement": 0, "verify": 0},
-                    criteria=[])
+    make_iter_state(
+        plet_dir, iter_id="ID_001", title="Smoke test iteration", attempts={"implement": 0, "verify": 0}, criteria=[]
+    )
 
     # Minimal spec artifacts
     os.makedirs(plet_dir, exist_ok=True)
     with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
         f.write("# Requirements\n\n## FR_1: Smoke Test\n\n{}\n".format(SMOKE_PROMPT))
     with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
-        f.write("# Iterations\n\n## ID_001 — Smoke test iteration\n\n"
-                "{}\n\n### Acceptance Criteria\n\nNone — this is a smoke test.\n".format(
-                    SMOKE_PROMPT))
+        f.write(
+            "# Iterations\n\n## ID_001 — Smoke test iteration\n\n"
+            "{}\n\n### Acceptance Criteria\n\nNone — this is a smoke test.\n".format(SMOKE_PROMPT)
+        )
     with open(os.path.join(plet_dir, "learnings.md"), "w") as f:
         f.write("# Learnings\n\nNo learnings — smoke test.\n")
 
     os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
 
     subprocess.run(["git", "-C", repo, "add", "-A"], capture_output=True)
-    subprocess.run(["git", "-C", repo, "commit", "-m", "smoke setup"],
-                   capture_output=True)
+    subprocess.run(["git", "-C", repo, "commit", "-m", "smoke setup"], capture_output=True)
     create_workstream_branch(repo, project_id="SMOKE")
     create_iteration_branch(repo, project_id="SMOKE", iter_id="ID_001")
 
@@ -187,6 +187,7 @@ def setup_project(tmpdir):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def report(name, ok, detail):
     status = "PASS" if ok else "FAIL"
@@ -235,8 +236,7 @@ def main():
     if dry_run:
         print("\n## Dry Run — skipping invoke")
         print("  To invoke manually:")
-        print("  python3 {} run {} --iter-id ID_001 --phase implement --cwd {}".format(
-            INVOKE_TOOL, plet_dir, repo))
+        print("  python3 {} run {} --iter-id ID_001 --phase implement --cwd {}".format(INVOKE_TOOL, plet_dir, repo))
         if not skip_cleanup:
             shutil.rmtree(tmpdir, ignore_errors=True)
             print("  Cleaned up.")

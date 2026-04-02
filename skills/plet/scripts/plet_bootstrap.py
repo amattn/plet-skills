@@ -109,7 +109,8 @@ def _is_git_repo(project_dir):
     """Check if project_dir is inside a git repository."""
     result = subprocess.run(
         ["git", "-C", project_dir, "rev-parse", "--git-dir"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     return result.returncode == 0
 
@@ -118,7 +119,8 @@ def _git_config_get(project_dir, key):
     """Read a git config value. Returns value or None."""
     result = subprocess.run(
         ["git", "-C", project_dir, "config", "--get", key],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     return result.stdout.strip() if result.returncode == 0 else None
 
@@ -148,10 +150,13 @@ def _ensure_gitignore(project_dir):
     if not os.path.isfile(path):
         actions.append({"action": "created", "target": ".gitignore", "detail": "{} entries".format(len(missing))})
     else:
-        actions.append({
-            "action": "configured", "target": ".gitignore",
-            "detail": "added {} entries".format(len(missing)),
-        })
+        actions.append(
+            {
+                "action": "configured",
+                "target": ".gitignore",
+                "detail": "added {} entries".format(len(missing)),
+            }
+        )
     return actions
 
 
@@ -193,8 +198,13 @@ def _ensure_merge_driver(project_dir):
     driver_path = os.path.join(scripts_dir, "plet_merge_driver.py")
 
     if not os.path.isfile(driver_path):
-        actions.append({"action": "skipped", "target": "merge driver",
-                        "detail": "plet_merge_driver.py not found at {}".format(driver_path)})
+        actions.append(
+            {
+                "action": "skipped",
+                "target": "merge driver",
+                "detail": "plet_merge_driver.py not found at {}".format(driver_path),
+            }
+        )
         return actions
 
     driver_cmd = "{} {} %O %A %B".format(sys.executable, driver_path)
@@ -245,8 +255,7 @@ def _ensure_claude_settings(project_dir):
             with open(settings_path, "r") as f:
                 settings = json.load(f)
         except json.JSONDecodeError as e:
-            return [{"action": "error", "target": ".claude/settings.json",
-                     "detail": "invalid JSON: {}".format(e)}]
+            return [{"action": "error", "target": ".claude/settings.json", "detail": "invalid JSON: {}".format(e)}]
     else:
         os.makedirs(claude_dir, exist_ok=True)
         settings = {}
@@ -261,15 +270,19 @@ def _ensure_claude_settings(project_dir):
     missing = [e for e in PLET_ALLOW_ENTRIES if e not in allow]
 
     if not missing:
-        actions.append({"action": "skipped", "target": ".claude/settings.json",
-                        "detail": "plet allow entries present"})
+        actions.append({"action": "skipped", "target": ".claude/settings.json", "detail": "plet allow entries present"})
     else:
         allow.extend(missing)
         with open(settings_path, "w") as f:
             json.dump(settings, f, indent=4)
             f.write("\n")
-        actions.append({"action": "configured", "target": ".claude/settings.json",
-                        "detail": "added {} allow entries".format(len(missing))})
+        actions.append(
+            {
+                "action": "configured",
+                "target": ".claude/settings.json",
+                "detail": "added {} allow entries".format(len(missing)),
+            }
+        )
 
     # Check permissions (warn only, never modify)
     default_mode = settings.get("permissions", {}).get("defaultMode")
@@ -280,17 +293,27 @@ def _ensure_claude_settings(project_dir):
     if default_mode == "auto" or has_bypass:
         pass  # sufficient
     elif sandbox_enabled:
-        actions.append({"action": "warn", "target": "permissions",
-                        "detail": "sandbox mode enabled but no bypassPermissions — "
-                        "subagents may not have autonomous tool access. "
-                        "Consider adding: \"permissions\": {\"defaultMode\": \"auto\"}"})
+        actions.append(
+            {
+                "action": "warn",
+                "target": "permissions",
+                "detail": "sandbox mode enabled but no bypassPermissions — "
+                "subagents may not have autonomous tool access. "
+                'Consider adding: "permissions": {"defaultMode": "auto"}',
+            }
+        )
     else:
         # Detect sandbox empirically
         tmpdir = os.environ.get("TMPDIR", "")
         if tmpdir.startswith("/tmp/claude"):
-            actions.append({"action": "warn", "target": "permissions",
-                            "detail": "sandbox mode detected (TMPDIR={}) but no auto/bypass — "
-                            "subagents may not have autonomous tool access".format(tmpdir)})
+            actions.append(
+                {
+                    "action": "warn",
+                    "target": "permissions",
+                    "detail": "sandbox mode detected (TMPDIR={}) but no auto/bypass — "
+                    "subagents may not have autonomous tool access".format(tmpdir),
+                }
+            )
 
     return actions
 
@@ -298,6 +321,7 @@ def _ensure_claude_settings(project_dir):
 # ---------------------------------------------------------------------------
 # setup
 # ---------------------------------------------------------------------------
+
 
 def cmd_setup(args):
     """Configure the project for plet operation."""
@@ -342,8 +366,12 @@ Examples:
 
     if dry_run:
         if output_json:
-            emit_json({"status": "ok", "command": "setup", "dryRun": True,
-                        "actions": [], "summary": {}}, SCRIPT_VERSION, pretty, fields)
+            emit_json(
+                {"status": "ok", "command": "setup", "dryRun": True, "actions": [], "summary": {}},
+                SCRIPT_VERSION,
+                pretty,
+                fields,
+            )
         else:
             print("DRY RUN — would configure project at {}".format(project_dir))
         return 0
@@ -365,18 +393,27 @@ Examples:
     errors = sum(1 for a in all_actions if a["action"] == "error")
 
     if output_json:
-        emit_json({
-            "status": "error" if errors else ("warn" if warnings else "ok"),
-            "command": "setup",
-            "actions": all_actions,
-            "summary": {"created": created, "configured": configured,
-                        "skipped": skipped, "warnings": warnings, "errors": errors},
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "error" if errors else ("warn" if warnings else "ok"),
+                "command": "setup",
+                "actions": all_actions,
+                "summary": {
+                    "created": created,
+                    "configured": configured,
+                    "skipped": skipped,
+                    "warnings": warnings,
+                    "errors": errors,
+                },
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         for a in all_actions:
             print("{}: {} — {}".format(a["action"], a["target"], a["detail"]))
-        print("\nBootstrap complete: {} created, {} configured, {} skipped".format(
-            created, configured, skipped))
+        print("\nBootstrap complete: {} created, {} configured, {} skipped".format(created, configured, skipped))
         if warnings:
             print("{} warning(s)".format(warnings))
 
@@ -386,6 +423,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # check
 # ---------------------------------------------------------------------------
+
 
 def cmd_check(args):
     """Verify bootstrap state without modifying anything."""
@@ -480,55 +518,63 @@ Examples:
             allow = settings.get("permissions", {}).get("allow", [])
             has_plet = any(e in allow for e in PLET_ALLOW_ENTRIES)
             if has_plet:
-                checks.append({"name": "claude-settings", "status": "pass",
-                               "detail": "plet allow entries present"})
+                checks.append({"name": "claude-settings", "status": "pass", "detail": "plet allow entries present"})
             else:
-                checks.append({"name": "claude-settings", "status": "warn",
-                               "detail": "plet allow entries missing"})
+                checks.append({"name": "claude-settings", "status": "warn", "detail": "plet allow entries missing"})
 
             # permissions check
             default_mode = settings.get("permissions", {}).get("defaultMode")
             has_bypass = "bypassPermissions" in settings.get("permissions", {})
             if default_mode == "auto" or has_bypass:
-                checks.append({"name": "permissions", "status": "pass",
-                               "detail": "autonomous mode configured"})
+                checks.append({"name": "permissions", "status": "pass", "detail": "autonomous mode configured"})
             else:
                 sandbox = settings.get("sandbox", {})
                 sandbox_on = sandbox.get("enabled", False) if isinstance(sandbox, dict) else False
                 tmpdir = os.environ.get("TMPDIR", "")
                 if sandbox_on or tmpdir.startswith("/tmp/claude"):
-                    checks.append({"name": "permissions", "status": "warn",
-                                   "detail": "sandbox mode but no auto/bypass — subagents need autonomous access. "
-                                   "Add: \"defaultMode\": \"auto\" to permissions"})
+                    checks.append(
+                        {
+                            "name": "permissions",
+                            "status": "warn",
+                            "detail": "sandbox mode but no auto/bypass — subagents need autonomous access. "
+                            'Add: "defaultMode": "auto" to permissions',
+                        }
+                    )
                 else:
-                    checks.append({
-                        "name": "permissions", "status": "warn",
-                        "detail": "no defaultMode or bypassPermissions set"
-                        " — subagents may need approval for every tool call",
-                    })
+                    checks.append(
+                        {
+                            "name": "permissions",
+                            "status": "warn",
+                            "detail": "no defaultMode or bypassPermissions set"
+                            " — subagents may need approval for every tool call",
+                        }
+                    )
         except json.JSONDecodeError:
-            checks.append({"name": "claude-settings", "status": "warn",
-                           "detail": "invalid JSON in .claude/settings.json"})
+            checks.append(
+                {"name": "claude-settings", "status": "warn", "detail": "invalid JSON in .claude/settings.json"}
+            )
     else:
-        checks.append({"name": "claude-settings", "status": "warn",
-                       "detail": ".claude/settings.json missing"})
+        checks.append({"name": "claude-settings", "status": "warn", "detail": ".claude/settings.json missing"})
 
     # git-config (user.email + user.name)
     if _is_git_repo(project_dir):
         email = _git_config_get(project_dir, "user.email")
         name = _git_config_get(project_dir, "user.name")
         if email and name:
-            checks.append({"name": "git-config", "status": "pass",
-                           "detail": "user.email and user.name configured"})
+            checks.append({"name": "git-config", "status": "pass", "detail": "user.email and user.name configured"})
         else:
             missing = []
             if not email:
                 missing.append("user.email")
             if not name:
                 missing.append("user.name")
-            checks.append({"name": "git-config", "status": "warn",
-                           "detail": "{} not configured — git commits will fail".format(
-                               " and ".join(missing))})
+            checks.append(
+                {
+                    "name": "git-config",
+                    "status": "warn",
+                    "detail": "{} not configured — git commits will fail".format(" and ".join(missing)),
+                }
+            )
 
     # Summarize
     passed = sum(1 for c in checks if c["status"] == "pass")
@@ -537,12 +583,17 @@ Examples:
 
     if output_json:
         status = "fail" if failed else ("warn" if warnings else "ok")
-        emit_json({
-            "status": status,
-            "command": "check",
-            "checks": checks,
-            "summary": {"passed": passed, "failed": failed, "warnings": warnings},
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": status,
+                "command": "check",
+                "checks": checks,
+                "summary": {"passed": passed, "failed": failed, "warnings": warnings},
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         for c in checks:
             print("{}: {} — {}".format(c["status"], c["name"], c["detail"]))
@@ -559,13 +610,18 @@ Examples:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "setup": cmd_setup,
         "check": cmd_check,
     }
     return dispatch(
-        commands, SCRIPT_NAME, SCRIPT_VERSION, SKILL_VERSION, __doc__,
+        commands,
+        SCRIPT_NAME,
+        SCRIPT_VERSION,
+        SKILL_VERSION,
+        __doc__,
     )
 
 

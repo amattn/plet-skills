@@ -35,9 +35,11 @@ def check(name, condition, detail=""):
 # crockford_encode
 # ---------------------------------------------------------------------------
 
+
 def test_crockford_encode():
     print("\n## crockford_encode — basic values")
     import util_id
+
     check("zero", util_id.crockford_encode(0) == "0")
     check("one", util_id.crockford_encode(1) == "1")
     check("31", util_id.crockford_encode(31) == "Z")
@@ -54,9 +56,11 @@ def test_crockford_encode():
 # crockford_timestamp
 # ---------------------------------------------------------------------------
 
+
 def test_crockford_timestamp():
     print("\n## crockford_timestamp — format")
     import util_id
+
     ts = util_id.crockford_timestamp()
     check("10 chars", len(ts) == 10)
     # All chars should be in Crockford alphabet
@@ -67,6 +71,7 @@ def test_crockford_timestamp():
 def test_crockford_timestamp_monotonic():
     print("\n## crockford_timestamp — monotonically increasing")
     import util_id
+
     ts1 = util_id.crockford_timestamp()
     time.sleep(0.002)  # 2ms gap
     ts2 = util_id.crockford_timestamp()
@@ -77,9 +82,11 @@ def test_crockford_timestamp_monotonic():
 # normalize_iteration
 # ---------------------------------------------------------------------------
 
+
 def test_normalize_iteration():
     print("\n## normalize_iteration")
     import util_id
+
     check("ID_001 -> id001", util_id.normalize_iteration("ID_001") == "id001")
     check("ID_42 -> id42", util_id.normalize_iteration("ID_42") == "id42")
     check("proj stays proj", util_id.normalize_iteration("proj") == "proj")
@@ -89,9 +96,11 @@ def test_normalize_iteration():
 # phase_attempt_segment
 # ---------------------------------------------------------------------------
 
+
 def test_phase_attempt_segment():
     print("\n## phase_attempt_segment")
     import util_id
+
     check("implement-1 -> i1", util_id.phase_attempt_segment("implement", 1) == "i1")
     check("verify-2 -> v2", util_id.phase_attempt_segment("verify", 2) == "v2")
     check("refine-1 -> r1", util_id.phase_attempt_segment("refine", 1) == "r1")
@@ -102,9 +111,11 @@ def test_phase_attempt_segment():
 # generate_plet_id
 # ---------------------------------------------------------------------------
 
+
 def test_generate_plet_id():
     print("\n## generate_plet_id — structure")
     import util_id
+
     pid = util_id.generate_plet_id("epr", "ID_001", "implement", 1)
     parts = pid.split("_")
     check("starts with prefix", parts[0] == "epr")
@@ -117,6 +128,7 @@ def test_generate_plet_id():
 def test_generate_plet_id_prefixes():
     print("\n## generate_plet_id — different prefixes")
     import util_id
+
     check("epr prefix", util_id.generate_plet_id("epr", "ID_001", "implement", 1).startswith("epr_"))
     check("eln prefix", util_id.generate_plet_id("eln", "ID_002", "verify", 1).startswith("eln_"))
     check("eem prefix", util_id.generate_plet_id("eem", "ID_003", "refine", 2).startswith("eem_"))
@@ -127,6 +139,7 @@ def test_generate_plet_id_prefixes():
 def test_generate_plet_id_uniqueness():
     print("\n## generate_plet_id — uniqueness")
     import util_id
+
     ids = set()
     for i in range(5):
         pid = util_id.generate_plet_id("epr", "ID_001", "implement", 1)
@@ -138,6 +151,7 @@ def test_generate_plet_id_uniqueness():
 def test_generate_plet_id_proj():
     print("\n## generate_plet_id — project-level")
     import util_id
+
     pid = util_id.generate_plet_id("epr", "proj", "refine", 1)
     check("has proj segment", "_proj_" in pid)
     check("refine segment", pid.endswith("_r1"))
@@ -146,6 +160,7 @@ def test_generate_plet_id_proj():
 def test_generate_plet_id_plan_phase():
     print("\n## generate_plet_id — plan phase")
     import util_id
+
     pid = util_id.generate_plet_id("epr", "proj", "plan", 1)
     check("plan segment", pid.endswith("_p1"))
 

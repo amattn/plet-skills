@@ -3,8 +3,3 @@ target-version = "py38"
 
 [lint]
 select = ["E", "F", "W"]
-
-[lint.per-file-ignores]
-# sys.path.insert before sibling imports is intentional and required
-"skills/plet/scripts/*.py" = ["E402"]
-"skills/plet/tests/*.py" = ["E402"]

@@ -52,16 +52,30 @@ SCRIPT_VERSION = "0.2.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PROGRESS_STATUSES = [
-    "IN_PROGRESS", "COMPLETE", "BLOCKED", "FAILED", "SKIPPED", "MIGRATED",
+    "IN_PROGRESS",
+    "COMPLETE",
+    "BLOCKED",
+    "FAILED",
+    "SKIPPED",
+    "MIGRATED",
 ]
 
 VALID_LEARNING_CATEGORIES = [
-    "pattern", "gotcha", "technique", "tool", "debug", "context",
+    "pattern",
+    "gotcha",
+    "technique",
+    "tool",
+    "debug",
+    "context",
 ]
 
 VALID_EMERGENT_CATEGORIES = [
-    "design decision", "requirement gap", "assumption",
-    "scope question", "edge case", "blocker",
+    "design decision",
+    "requirement gap",
+    "assumption",
+    "scope question",
+    "edge case",
+    "blocker",
 ]
 
 VALID_PHASES = ["plan", "implement", "verify", "refine"]
@@ -86,6 +100,7 @@ def help_hint(command):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def next_em_number(artifact_dir):
     """Find the next available EM_N number by scanning emergent.md."""
     em_path = emergent_path(artifact_dir)
@@ -101,8 +116,7 @@ def validate_iter_id(value):
     """Validate --iter-id matches ID_N+ or 'proj'. Returns True/False."""
     if not ITER_ID_PATTERN.match(value):
         print(
-            "Error: --iter-id '{}' does not match expected pattern "
-            "ID_N+ or 'proj'".format(value),
+            "Error: --iter-id '{}' does not match expected pattern ID_N+ or 'proj'".format(value),
             file=sys.stderr,
         )
         return False
@@ -116,9 +130,7 @@ def validate_positive_int(value, field_name):
         return None, False
     if parsed <= 0:
         print(
-            "Error: {} must be a positive integer, got '{}'".format(
-                field_name, value
-            ),
+            "Error: {} must be a positive integer, got '{}'".format(field_name, value),
             file=sys.stderr,
         )
         return None, False
@@ -132,9 +144,9 @@ def validate_content(content_text, allow_fences=False):
         return False
     if not allow_fences and FENCE_PATTERN.search(content_text):
         print(
-            'Error: content must not contain plet fence markers '
+            "Error: content must not contain plet fence markers "
             '(<div id="plet-..." or <div id="END-plet-...">). '
-            'Use --allow-fences if the content legitimately contains fence patterns.',
+            "Use --allow-fences if the content legitimately contains fence patterns.",
             file=sys.stderr,
         )
         return False
@@ -238,6 +250,7 @@ def emit_json_error(command, message, pretty=False, extra=None):
 # Commands
 # ---------------------------------------------------------------------------
 
+
 def cmd_add_progress(args):
     HELP = """IMPORTANT:
     Use --dry-run to preview before writing. Status is REQUIRED — use
@@ -293,10 +306,20 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {
-        "iter_id", "iter_title", "phase", "attempt", "status",
-        "content", "content_file", "allow_fences",
-    }, hint):
+    if not validate_known_flags(
+        kwargs,
+        {
+            "iter_id",
+            "iter_title",
+            "phase",
+            "attempt",
+            "status",
+            "content",
+            "content_file",
+            "allow_fences",
+        },
+        hint,
+    ):
         return 1
 
     required = ["iter_id", "iter_title", "phase", "attempt", "status"]
@@ -311,18 +334,14 @@ Examples:
     # Validate phase
     if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
         if output_json:
-            emit_json_error(CMD,
-                            "invalid --phase '{}'".format(kwargs["phase"]),
-                            pretty)
+            emit_json_error(CMD, "invalid --phase '{}'".format(kwargs["phase"]), pretty)
         print(hint, file=sys.stderr)
         return 1
 
     # Validate status
     if not validate_enum(kwargs["status"], VALID_PROGRESS_STATUSES, "--status"):
         if output_json:
-            emit_json_error(CMD,
-                            "invalid --status '{}'".format(kwargs["status"]),
-                            pretty)
+            emit_json_error(CMD, "invalid --status '{}'".format(kwargs["status"]), pretty)
         print(hint, file=sys.stderr)
         return 1
 
@@ -351,19 +370,30 @@ Examples:
 
     plet_id = generate_plet_id(TYPE_PREFIXES["progress"], kwargs["iter_id"], phase, attempt)
     entry = build_progress_entry(
-        plet_id, kwargs["iter_id"], kwargs["iter_title"],
-        phase, attempt, status, content_text,
+        plet_id,
+        kwargs["iter_id"],
+        kwargs["iter_title"],
+        phase,
+        attempt,
+        status,
+        content_text,
     )
 
     if dry_run:
-        msg = "DRY RUN — would append progress entry {} to {}".format(
-            plet_id, prog_path
-        )
+        msg = "DRY RUN — would append progress entry {} to {}".format(plet_id, prog_path)
         if output_json:
-            emit_json({"status": "ok", "command": "add-progress",
-                        "pletId": plet_id, "path": prog_path,
-                        "dryRun": True, "message": msg},
-                       pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": "add-progress",
+                    "pletId": plet_id,
+                    "path": prog_path,
+                    "dryRun": True,
+                    "message": msg,
+                },
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -371,12 +401,19 @@ Examples:
     atomic_append(prog_path, entry)
 
     if output_json:
-        emit_json({
-            "status": "ok", "command": "add-progress",
-            "pletId": plet_id, "path": prog_path,
-            "iteration": kwargs["iter_id"], "phase": phase,
-            "attempt": attempt,
-        }, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": "add-progress",
+                "pletId": plet_id,
+                "path": prog_path,
+                "iteration": kwargs["iter_id"],
+                "phase": phase,
+                "attempt": attempt,
+            },
+            pretty,
+            fields,
+        )
     else:
         print("OK — {}".format(plet_id))
     return 0
@@ -439,10 +476,21 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {
-        "iter_id", "iter_title", "category", "title", "phase",
-        "attempt", "content", "content_file", "allow_fences",
-    }, hint):
+    if not validate_known_flags(
+        kwargs,
+        {
+            "iter_id",
+            "iter_title",
+            "category",
+            "title",
+            "phase",
+            "attempt",
+            "content",
+            "content_file",
+            "allow_fences",
+        },
+        hint,
+    ):
         return 1
 
     required = ["iter_id", "iter_title", "category", "title", "phase", "attempt"]
@@ -479,19 +527,30 @@ Examples:
 
     plet_id = generate_plet_id(TYPE_PREFIXES["learning"], kwargs["iter_id"], phase, attempt)
     entry = build_learning_entry(
-        plet_id, kwargs["iter_id"], kwargs["iter_title"],
-        kwargs["category"], kwargs["title"], content_text, phase,
+        plet_id,
+        kwargs["iter_id"],
+        kwargs["iter_title"],
+        kwargs["category"],
+        kwargs["title"],
+        content_text,
+        phase,
     )
 
     if dry_run:
-        msg = "DRY RUN — would append learning entry {} to {}".format(
-            plet_id, learn_path
-        )
+        msg = "DRY RUN — would append learning entry {} to {}".format(plet_id, learn_path)
         if output_json:
-            emit_json({"status": "ok", "command": "add-learning",
-                        "pletId": plet_id, "path": learn_path,
-                        "dryRun": True, "message": msg},
-                       pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": "add-learning",
+                    "pletId": plet_id,
+                    "path": learn_path,
+                    "dryRun": True,
+                    "message": msg,
+                },
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -499,12 +558,18 @@ Examples:
     atomic_append(learn_path, entry)
 
     if output_json:
-        emit_json({
-            "status": "ok", "command": "add-learning",
-            "pletId": plet_id, "path": learn_path,
-            "category": kwargs["category"],
-            "iteration": kwargs["iter_id"],
-        }, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": "add-learning",
+                "pletId": plet_id,
+                "path": learn_path,
+                "category": kwargs["category"],
+                "iteration": kwargs["iter_id"],
+            },
+            pretty,
+            fields,
+        )
     else:
         print("OK — {}".format(plet_id))
     return 0
@@ -568,10 +633,21 @@ Examples:
     if not ok:
         print(hint, file=sys.stderr)
         return 1
-    if not validate_known_flags(kwargs, {
-        "iter_id", "iter_title", "title", "phase", "category",
-        "attempt", "content", "content_file", "allow_fences",
-    }, hint):
+    if not validate_known_flags(
+        kwargs,
+        {
+            "iter_id",
+            "iter_title",
+            "title",
+            "phase",
+            "category",
+            "attempt",
+            "content",
+            "content_file",
+            "allow_fences",
+        },
+        hint,
+    ):
         return 1
 
     required = ["iter_id", "iter_title", "title", "phase", "category", "attempt"]
@@ -610,20 +686,32 @@ Examples:
 
     plet_id = generate_plet_id(TYPE_PREFIXES["emergent"], kwargs["iter_id"], phase, attempt)
     entry = build_emergent_entry(
-        plet_id, em_number, kwargs["iter_id"], kwargs["iter_title"],
-        kwargs["title"], phase, kwargs["category"], content_text,
+        plet_id,
+        em_number,
+        kwargs["iter_id"],
+        kwargs["iter_title"],
+        kwargs["title"],
+        phase,
+        kwargs["category"],
+        content_text,
     )
 
     if dry_run:
-        msg = "DRY RUN — would append emergent entry {} EM_{} to {}".format(
-            plet_id, em_number, em_path
-        )
+        msg = "DRY RUN — would append emergent entry {} EM_{} to {}".format(plet_id, em_number, em_path)
         if output_json:
-            emit_json({"status": "ok", "command": "add-emergent",
-                        "pletId": plet_id, "referenceId": "EM_{}".format(em_number),
-                        "path": em_path,
-                        "dryRun": True, "message": msg},
-                       pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": "add-emergent",
+                    "pletId": plet_id,
+                    "referenceId": "EM_{}".format(em_number),
+                    "path": em_path,
+                    "dryRun": True,
+                    "message": msg,
+                },
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -631,13 +719,19 @@ Examples:
     atomic_append(em_path, entry)
 
     if output_json:
-        emit_json({
-            "status": "ok", "command": "add-emergent",
-            "pletId": plet_id, "referenceId": "EM_{}".format(em_number),
-            "path": em_path,
-            "category": kwargs["category"],
-            "iteration": kwargs["iter_id"],
-        }, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": "add-emergent",
+                "pletId": plet_id,
+                "referenceId": "EM_{}".format(em_number),
+                "path": em_path,
+                "category": kwargs["category"],
+                "iteration": kwargs["iter_id"],
+            },
+            pretty,
+            fields,
+        )
     else:
         print("OK — {} EM_{}".format(plet_id, em_number))
     return 0
@@ -685,8 +779,7 @@ Examples:
 
     # Check for --dry-run (not allowed on check)
     if "dry_run" in kwargs:
-        print("Error: --dry-run is not available on the check command (read-only)",
-              file=sys.stderr)
+        print("Error: --dry-run is not available on the check command (read-only)", file=sys.stderr)
         print(hint, file=sys.stderr)
         return 1
 
@@ -737,9 +830,8 @@ Examples:
         # One fence = one entry. Avoids false positives from [ID_xxx] in
         # freeform content.
         iter_seg = normalize_iteration(iteration)
-        fence_pattern = (
-            r'<div id="plet-(epr|eln|eem)_[0-9A-HJKMNP-TV-Z]{{10}}_{}_[ivpr]\d+"></div>'
-            .format(re.escape(iter_seg))
+        fence_pattern = r'<div id="plet-(epr|eln|eem)_[0-9A-HJKMNP-TV-Z]{{10}}_{}_[ivpr]\d+"></div>'.format(
+            re.escape(iter_seg)
         )
         count = len(re.findall(fence_pattern, content))
         results[artifact] = {"count": count, "initialized": True}
@@ -762,8 +854,7 @@ Examples:
             elif info["count"] == 0:
                 print("  MISSING — {}: 0 entry(ies) for {}".format(artifact, iteration))
             else:
-                print("  OK — {}: {} entry(ies) for {}".format(
-                    artifact, info["count"], iteration))
+                print("  OK — {}: {} entry(ies) for {}".format(artifact, info["count"], iteration))
 
         if all_present:
             print("OK — all artifacts have entries for {}".format(iteration))
@@ -781,6 +872,7 @@ Examples:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "add-progress": cmd_add_progress,
@@ -789,7 +881,11 @@ def main():
         "check": cmd_check,
     }
     return dispatch(
-        commands, "plet_entries", SCRIPT_VERSION, SKILL_VERSION, __doc__,
+        commands,
+        "plet_entries",
+        SCRIPT_VERSION,
+        SKILL_VERSION,
+        __doc__,
         no_log_commands={"add-progress", "add-learning", "add-emergent"},
     )
 

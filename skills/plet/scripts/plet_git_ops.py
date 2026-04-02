@@ -53,6 +53,7 @@ VALID_PHASES = ["implement", "verify"]
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def help_hint(command):
     return "Run: plet_git_ops.py {} --help".format(command)
 
@@ -79,15 +80,11 @@ def derive_tag_name(global_state, iter_state, phase):
     loop_n = global_state["loopSessionCount"]
     iter_id = iter_state["iterationId"]
     attempt = iter_state["attempts"][phase]
-    return "plet/{}/loop{}/audit/{}/{}-{}".format(
-        project_id, loop_n, iter_id, phase, attempt
-    )
+    return "plet/{}/loop{}/audit/{}/{}-{}".format(project_id, loop_n, iter_id, phase, attempt)
 
 
 def derive_workstream_branch(global_state):
-    return "plet/{}/loop{}/workstream".format(
-        global_state["projectId"], global_state["loopSessionCount"]
-    )
+    return "plet/{}/loop{}/workstream".format(global_state["projectId"], global_state["loopSessionCount"])
 
 
 def derive_iteration_branch(global_state, iter_state):
@@ -101,6 +98,7 @@ def derive_iteration_branch(global_state, iter_state):
 # ---------------------------------------------------------------------------
 # audit-tag
 # ---------------------------------------------------------------------------
+
 
 def cmd_audit_tag(args):
     HELP = """IMPORTANT:
@@ -213,18 +211,23 @@ Examples:
     if dry_run:
         msg = "DRY RUN — would create audit tag {} at {}".format(tag_name, commit_hash)
         if output_json:
-            emit_json({
-                "status": "ok",
-                "command": CMD,
-                "tagName": tag_name,
-                "commitHash": commit_hash,
-                "iterationId": iter_state["iterationId"],
-                "phase": phase,
-                "attempt": attempt,
-                "replaced": replaced,
-                "previousHash": previous_hash,
-                "dryRun": True,
-            }, SCRIPT_VERSION, pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": CMD,
+                    "tagName": tag_name,
+                    "commitHash": commit_hash,
+                    "iterationId": iter_state["iterationId"],
+                    "phase": phase,
+                    "attempt": attempt,
+                    "replaced": replaced,
+                    "previousHash": previous_hash,
+                    "dryRun": True,
+                },
+                SCRIPT_VERSION,
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -244,25 +247,31 @@ Examples:
         return 1
 
     if replaced:
-        msg = "OK — updated audit tag {} at {} (was at {})".format(
-            tag_name, commit_hash, previous_hash)
-        print("Warning: tag {} already existed at {}, updated to {}".format(
-            tag_name, previous_hash, commit_hash), file=sys.stderr)
+        msg = "OK — updated audit tag {} at {} (was at {})".format(tag_name, commit_hash, previous_hash)
+        print(
+            "Warning: tag {} already existed at {}, updated to {}".format(tag_name, previous_hash, commit_hash),
+            file=sys.stderr,
+        )
     else:
         msg = "OK — created audit tag {} at {}".format(tag_name, commit_hash)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "tagName": tag_name,
-            "commitHash": commit_hash,
-            "iterationId": iter_state["iterationId"],
-            "phase": phase,
-            "attempt": attempt,
-            "replaced": replaced,
-            "previousHash": previous_hash,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "tagName": tag_name,
+                "commitHash": commit_hash,
+                "iterationId": iter_state["iterationId"],
+                "phase": phase,
+                "attempt": attempt,
+                "replaced": replaced,
+                "previousHash": previous_hash,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         print(msg)
 
@@ -272,6 +281,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # merge-squash (placeholder — tests written next)
 # ---------------------------------------------------------------------------
+
 
 def cmd_merge_squash(args):
     HELP = """IMPORTANT:
@@ -364,8 +374,7 @@ Examples:
     # Must be on workstream
     current_branch = run_git("branch", "--show-current").stdout
     if current_branch != ws_branch:
-        msg = "Error: must be on workstream branch {}, currently on {}".format(
-            ws_branch, current_branch)
+        msg = "Error: must be on workstream branch {}, currently on {}".format(ws_branch, current_branch)
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -395,10 +404,9 @@ Examples:
     # Check there's something to merge (iteration branch is not ancestor of workstream)
     r = run_git("merge-base", "--is-ancestor", iter_branch, "HEAD")
     if r.returncode == 0:
-        msg = (
-            "Error: iteration branch {} has no changes ahead of"
-            " workstream — already merged or no work done"
-        ).format(iter_branch)
+        msg = ("Error: iteration branch {} has no changes ahead of workstream — already merged or no work done").format(
+            iter_branch
+        )
         if output_json:
             emit_json_error(CMD, msg, SCRIPT_VERSION, pretty)
         else:
@@ -434,8 +442,11 @@ Examples:
     criteria = iter_state.get("criteria", [])
     if criteria:
         total = len(criteria)
-        passed_count = sum(1 for c in criteria if c.get("status") == "pass"
-                          or (isinstance(c.get("status"), str) and c["status"] == "pass"))
+        passed_count = sum(
+            1
+            for c in criteria
+            if c.get("status") == "pass" or (isinstance(c.get("status"), str) and c["status"] == "pass")
+        )
         body_lines.append("Criteria: {}/{} passed".format(passed_count, total))
 
     commit_body = "\n".join(body_lines) if body_lines else ""
@@ -444,17 +455,21 @@ Examples:
         full_message = "{}\n\n{}".format(commit_title, commit_body)
 
     if dry_run:
-        msg = "DRY RUN — would merge-squash {} to {}: {}".format(
-            iter_branch, ws_branch, commit_title)
+        msg = "DRY RUN — would merge-squash {} to {}: {}".format(iter_branch, ws_branch, commit_title)
         if output_json:
-            emit_json({
-                "status": "ok",
-                "command": CMD,
-                "commitMessage": commit_title,
-                "iterationBranch": iter_branch,
-                "workstreamBranch": ws_branch,
-                "dryRun": True,
-            }, SCRIPT_VERSION, pretty, fields)
+            emit_json(
+                {
+                    "status": "ok",
+                    "command": CMD,
+                    "commitMessage": commit_title,
+                    "iterationBranch": iter_branch,
+                    "workstreamBranch": ws_branch,
+                    "dryRun": True,
+                },
+                SCRIPT_VERSION,
+                pretty,
+                fields,
+            )
         else:
             print(msg)
         return 0
@@ -527,16 +542,21 @@ Examples:
         msg += "\n  Branch {} deleted".format(iter_branch)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "commitMessage": commit_title,
-            "commitHash": commit_hash,
-            "iterationBranch": iter_branch,
-            "workstreamBranch": ws_branch,
-            "tagsCleaned": tags_cleaned,
-            "branchDeleted": branch_deleted,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "commitMessage": commit_title,
+                "commitHash": commit_hash,
+                "iterationBranch": iter_branch,
+                "workstreamBranch": ws_branch,
+                "tagsCleaned": tags_cleaned,
+                "branchDeleted": branch_deleted,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         print(msg)
 
@@ -547,14 +567,13 @@ Examples:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "audit-tag": cmd_audit_tag,
         "merge-squash": cmd_merge_squash,
     }
-    return dispatch(
-        commands, "plet_git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

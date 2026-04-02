@@ -24,12 +24,15 @@ failed = 0
 def run(args, expect_exit=0):
     result = subprocess.run(
         [sys.executable, TOOL] + args,
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
             "Expected exit {}, got {}.\nstdout: {}\nstderr: {}".format(
-                expect_exit, result.returncode, result.stdout, result.stderr))
+                expect_exit, result.returncode, result.stdout, result.stderr
+            )
+        )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
@@ -46,6 +49,7 @@ def check(name, condition, detail=""):
 # ---------------------------------------------------------------------------
 # help + version
 # ---------------------------------------------------------------------------
+
 
 def test_help():
     print("\n## --help and --version")
@@ -66,6 +70,7 @@ def test_help():
 # ---------------------------------------------------------------------------
 # setup — basic
 # ---------------------------------------------------------------------------
+
 
 def test_setup_fresh():
     print("\n## setup — fresh project")
@@ -93,8 +98,8 @@ def test_setup_fresh():
 
         # merge driver configured
         result = subprocess.run(
-            ["git", "-C", d, "config", "--get", "merge.plet-append.driver"],
-            capture_output=True, text=True)
+            ["git", "-C", d, "config", "--get", "merge.plet-append.driver"], capture_output=True, text=True
+        )
         check("merge driver in git config", result.returncode == 0)
 
         # CLAUDE.md created
@@ -116,6 +121,7 @@ def test_setup_fresh():
 # setup — idempotent
 # ---------------------------------------------------------------------------
 
+
 def test_setup_idempotent():
     print("\n## setup — idempotent (second run skips)")
     d = make_git_repo()
@@ -131,6 +137,7 @@ def test_setup_idempotent():
 # ---------------------------------------------------------------------------
 # setup — CLAUDE.md not overwritten
 # ---------------------------------------------------------------------------
+
 
 def test_claude_md_not_overwritten():
     print("\n## setup — CLAUDE.md not overwritten")
@@ -152,19 +159,14 @@ def test_claude_md_not_overwritten():
 # setup — .claude/settings.json merges, not overwrites
 # ---------------------------------------------------------------------------
 
+
 def test_settings_merge():
     print("\n## setup — .claude/settings.json merges existing entries")
     d = make_git_repo()
     try:
         claude_dir = os.path.join(d, ".claude")
         os.makedirs(claude_dir)
-        settings = {
-            "permissions": {
-                "allow": ["Bash(npm *)"],
-                "defaultMode": "auto"
-            },
-            "sandbox": {"enabled": True}
-        }
+        settings = {"permissions": {"allow": ["Bash(npm *)"], "defaultMode": "auto"}, "sandbox": {"enabled": True}}
         with open(os.path.join(claude_dir, "settings.json"), "w") as f:
             json.dump(settings, f)
 
@@ -186,6 +188,7 @@ def test_settings_merge():
 # setup — malformed settings.json
 # ---------------------------------------------------------------------------
 
+
 def test_settings_malformed():
     print("\n## setup — malformed .claude/settings.json")
     d = make_git_repo()
@@ -205,6 +208,7 @@ def test_settings_malformed():
 # setup — not a git repo
 # ---------------------------------------------------------------------------
 
+
 def test_setup_no_git():
     print("\n## setup — not a git repo")
     d = tempfile.mkdtemp()
@@ -218,6 +222,7 @@ def test_setup_no_git():
 # ---------------------------------------------------------------------------
 # setup — JSON output
 # ---------------------------------------------------------------------------
+
 
 def test_setup_json():
     print("\n## setup — JSON output")
@@ -236,6 +241,7 @@ def test_setup_json():
 # check — fresh (all warnings)
 # ---------------------------------------------------------------------------
 
+
 def test_check_fresh():
     print("\n## check — fresh project (warnings)")
     d = make_git_repo()
@@ -252,6 +258,7 @@ def test_check_fresh():
 # ---------------------------------------------------------------------------
 # check — after setup (all pass except permissions)
 # ---------------------------------------------------------------------------
+
 
 def test_check_after_setup():
     print("\n## check — after setup (mostly pass)")
@@ -273,6 +280,7 @@ def test_check_after_setup():
 # check — JSON output
 # ---------------------------------------------------------------------------
 
+
 def test_check_json():
     print("\n## check — JSON output")
     d = make_git_repo()
@@ -291,6 +299,7 @@ def test_check_json():
 # check — not a git repo
 # ---------------------------------------------------------------------------
 
+
 def test_check_no_git():
     print("\n## check — not a git repo")
     d = tempfile.mkdtemp()
@@ -304,6 +313,7 @@ def test_check_no_git():
 # ---------------------------------------------------------------------------
 # gitignore — doesn't add plet/
 # ---------------------------------------------------------------------------
+
 
 def test_gitignore_no_plet():
     print("\n## gitignore — does NOT add plet/")
@@ -322,6 +332,7 @@ def test_gitignore_no_plet():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     test_help()

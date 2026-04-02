@@ -52,20 +52,33 @@ SCRIPT_VERSION = "0.1.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_EVENT_TYPES = [
-    "decision", "criterion_update", "lifecycle_change",
-    "activity_change", "error", "invocation",
+    "decision",
+    "criterion_update",
+    "lifecycle_change",
+    "activity_change",
+    "error",
+    "invocation",
 ]
 
 VALID_PHASES = ["implement", "verify"]
 
 VALID_LIFECYCLES = [
-    "ineligible", "queued", "implementing", "verifying",
-    "complete", "blocked", "withdrawn",
+    "ineligible",
+    "queued",
+    "implementing",
+    "verifying",
+    "complete",
+    "blocked",
+    "withdrawn",
 ]
 
 VALID_ACTIVITIES = [
-    "idle", "reading_context", "implementing",
-    "running_checks", "committing", "wrapping_up",
+    "idle",
+    "reading_context",
+    "implementing",
+    "running_checks",
+    "committing",
+    "wrapping_up",
 ]
 
 VALID_CRITERION_STATUSES = ["not_started", "fail", "pass", "error", "skipped"]
@@ -87,6 +100,7 @@ REQUIRED_DATA_FIELDS = {
 # ---------------------------------------------------------------------------
 # Universal flag parsing
 # ---------------------------------------------------------------------------
+
 
 def parse_universal_flags(args):
     """Extract universal flags from an args list, return (clean_args, flags)."""
@@ -173,6 +187,7 @@ def derive_events_path(plet_dir, iter_id, phase, attempt):
 # Data validation
 # ---------------------------------------------------------------------------
 
+
 def validate_data_fields(event_type, data):
     """Validate type-specific required fields and enum values in data.
 
@@ -194,8 +209,7 @@ def validate_data_fields(event_type, data):
     if event_type == "criterion_update":
         if "phase" in data and data["phase"] not in VALID_CRITERION_PHASES:
             errors.append(
-                "criterion_update data.phase must be 'implementation' or "
-                "'verification', got '{}'".format(data["phase"])
+                "criterion_update data.phase must be 'implementation' or 'verification', got '{}'".format(data["phase"])
             )
         if "status" in data and data["status"] not in VALID_CRITERION_STATUSES:
             errors.append(
@@ -228,6 +242,7 @@ def validate_data_fields(event_type, data):
 # Event validation (for validate command)
 # ---------------------------------------------------------------------------
 
+
 def validate_event(event, line_num):
     """Validate a single parsed event dict. Returns list of error strings."""
     errors = []
@@ -235,8 +250,13 @@ def validate_event(event, line_num):
 
     # Base fields
     base_fields = {
-        "pletId": str, "timestamp": str, "type": str,
-        "iterationId": str, "phase": str, "attempt": int, "data": dict,
+        "pletId": str,
+        "timestamp": str,
+        "type": str,
+        "iterationId": str,
+        "phase": str,
+        "attempt": int,
+        "data": dict,
     }
     for field, expected_type in base_fields.items():
         if field not in event:
@@ -244,7 +264,9 @@ def validate_event(event, line_num):
         elif not isinstance(event[field], expected_type):
             errors.append(
                 "{}: '{}' must be {}, got {}".format(
-                    prefix, field, expected_type.__name__,
+                    prefix,
+                    field,
+                    expected_type.__name__,
                     type(event[field]).__name__,
                 )
             )
@@ -252,52 +274,39 @@ def validate_event(event, line_num):
     # pletId prefix
     if "pletId" in event and isinstance(event["pletId"], str):
         if not event["pletId"].startswith("tev_"):
-            errors.append(
-                "{}: pletId must start with 'tev_', got '{}'".format(
-                    prefix, event["pletId"]
-                )
-            )
+            errors.append("{}: pletId must start with 'tev_', got '{}'".format(prefix, event["pletId"]))
 
     # timestamp format
     if "timestamp" in event and isinstance(event["timestamp"], str):
         ts = event["timestamp"]
         if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", ts):
-            errors.append(
-                "{}: timestamp must be ISO 8601 UTC (YYYY-MM-DDTHH:MM:SSZ), "
-                "got '{}'".format(prefix, ts)
-            )
+            errors.append("{}: timestamp must be ISO 8601 UTC (YYYY-MM-DDTHH:MM:SSZ), got '{}'".format(prefix, ts))
 
     # type enum
     if "type" in event and isinstance(event["type"], str):
         if event["type"] not in VALID_EVENT_TYPES:
             errors.append(
-                "{}: invalid event type '{}' (valid: {})".format(
-                    prefix, event["type"], ", ".join(VALID_EVENT_TYPES)
-                )
+                "{}: invalid event type '{}' (valid: {})".format(prefix, event["type"], ", ".join(VALID_EVENT_TYPES))
             )
 
     # phase enum
     if "phase" in event and isinstance(event["phase"], str):
         if event["phase"] not in VALID_PHASES:
-            errors.append(
-                "{}: invalid phase '{}' (valid: {})".format(
-                    prefix, event["phase"], ", ".join(VALID_PHASES)
-                )
-            )
+            errors.append("{}: invalid phase '{}' (valid: {})".format(prefix, event["phase"], ", ".join(VALID_PHASES)))
 
     # attempt positive integer
     if "attempt" in event and isinstance(event["attempt"], int):
         if event["attempt"] < 1:
-            errors.append(
-                "{}: attempt must be a positive integer, got {}".format(
-                    prefix, event["attempt"]
-                )
-            )
+            errors.append("{}: attempt must be a positive integer, got {}".format(prefix, event["attempt"]))
 
     # Type-specific data validation
-    if ("type" in event and isinstance(event["type"], str)
-            and event["type"] in VALID_EVENT_TYPES
-            and "data" in event and isinstance(event["data"], dict)):
+    if (
+        "type" in event
+        and isinstance(event["type"], str)
+        and event["type"] in VALID_EVENT_TYPES
+        and "data" in event
+        and isinstance(event["data"], dict)
+    ):
         data_errors = validate_data_fields(event["type"], event["data"])
         for e in data_errors:
             errors.append("{}: {}".format(prefix, e))
@@ -308,6 +317,7 @@ def validate_event(event, line_num):
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
+
 
 def cmd_append_event(args):
     HELP = """append-event — append a semantic event to a trace NDJSON file.
@@ -388,17 +398,14 @@ Examples:
     if not validate_known_flags(kwargs, {"iter_id", "phase", "attempt", "event_type", "data", "data_file"}, hint):
         return 1
 
-    if not require_kwargs(
-        kwargs, ["iter_id", "phase", "attempt", "event_type"], HELP
-    ):
+    if not require_kwargs(kwargs, ["iter_id", "phase", "attempt", "event_type"], HELP):
         return 1
 
     # Validate iter-id
     iter_id = kwargs["iter_id"]
     if not ITERATION_ID_PATTERN.match(iter_id):
         print(
-            "Error: --iter-id '{}' does not match expected pattern "
-            "ID_N+ (e.g., ID_001)".format(iter_id),
+            "Error: --iter-id '{}' does not match expected pattern ID_N+ (e.g., ID_001)".format(iter_id),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
@@ -417,9 +424,7 @@ Examples:
         return 1
     if attempt < 1:
         print(
-            "Error: --attempt must be a positive integer, got '{}'".format(
-                kwargs["attempt"]
-            ),
+            "Error: --attempt must be a positive integer, got '{}'".format(kwargs["attempt"]),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
@@ -477,9 +482,7 @@ Examples:
 
     if not isinstance(data_obj, dict):
         print(
-            "Error: --data must be a JSON object, got {}".format(
-                type(data_obj).__name__
-            ),
+            "Error: --data must be a JSON object, got {}".format(type(data_obj).__name__),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
@@ -509,19 +512,20 @@ Examples:
 
     if flags["dry_run"]:
         if flags["output"] == "json":
-            json_response({
-                "status": "ok",
-                "command": "append-event",
-                "dryRun": True,
-                "eventType": event_type,
-                "path": events_path,
-                "pletId": plet_id,
-                "event": event,
-            }, flags)
+            json_response(
+                {
+                    "status": "ok",
+                    "command": "append-event",
+                    "dryRun": True,
+                    "eventType": event_type,
+                    "path": events_path,
+                    "pletId": plet_id,
+                    "event": event,
+                },
+                flags,
+            )
         else:
-            print("DRY RUN — would append {} event to {}".format(
-                event_type, events_path
-            ))
+            print("DRY RUN — would append {} event to {}".format(event_type, events_path))
         return 0
 
     # Serialize and append
@@ -529,18 +533,19 @@ Examples:
     atomic_append(events_path, line)
 
     if flags["output"] == "json":
-        json_response({
-            "status": "ok",
-            "command": "append-event",
-            "eventType": event_type,
-            "path": events_path,
-            "pletId": plet_id,
-            "event": event,
-        }, flags)
+        json_response(
+            {
+                "status": "ok",
+                "command": "append-event",
+                "eventType": event_type,
+                "path": events_path,
+                "pletId": plet_id,
+                "event": event,
+            },
+            flags,
+        )
     else:
-        print("OK — {} appended {} event to {}".format(
-            plet_id, event_type, events_path
-        ))
+        print("OK — {} appended {} event to {}".format(plet_id, event_type, events_path))
     return 0
 
 
@@ -605,8 +610,7 @@ Examples:
     iter_id = kwargs["iter_id"]
     if not ITERATION_ID_PATTERN.match(iter_id):
         print(
-            "Error: --iter-id '{}' does not match expected pattern "
-            "ID_N+ (e.g., ID_001)".format(iter_id),
+            "Error: --iter-id '{}' does not match expected pattern ID_N+ (e.g., ID_001)".format(iter_id),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
@@ -625,9 +629,7 @@ Examples:
         return 1
     if attempt < 1:
         print(
-            "Error: --attempt must be a positive integer, got '{}'".format(
-                kwargs["attempt"]
-            ),
+            "Error: --attempt must be a positive integer, got '{}'".format(kwargs["attempt"]),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
@@ -657,11 +659,7 @@ Examples:
                 continue
 
             if not isinstance(event, dict):
-                errors.append(
-                    "Line {}: expected JSON object, got {}".format(
-                        line_num, type(event).__name__
-                    )
-                )
+                errors.append("Line {}: expected JSON object, got {}".format(line_num, type(event).__name__))
                 continue
 
             event_count += 1
@@ -688,20 +686,14 @@ Examples:
     if errors:
         for e in errors:
             print("  {}".format(e), file=sys.stderr)
-        type_str = ", ".join(
-            "{} {}".format(v, k) for k, v in sorted(counts_by_type.items())
-        )
+        type_str = ", ".join("{} {}".format(v, k) for k, v in sorted(counts_by_type.items()))
         print(
-            "ERROR — {} error(s) in {} ({} events: {})".format(
-                len(errors), path, event_count, type_str
-            ),
+            "ERROR — {} error(s) in {} ({} events: {})".format(len(errors), path, event_count, type_str),
             file=sys.stderr,
         )
         return 1
 
-    type_str = ", ".join(
-        "{} {}".format(v, k) for k, v in sorted(counts_by_type.items())
-    )
+    type_str = ", ".join("{} {}".format(v, k) for k, v in sorted(counts_by_type.items()))
     print("OK — {} is valid ({} events: {})".format(path, event_count, type_str))
     return 0
 
@@ -769,8 +761,7 @@ Examples:
     iter_id = kwargs["iter_id"]
     if not ITERATION_ID_PATTERN.match(iter_id):
         print(
-            "Error: --iter-id '{}' does not match expected pattern "
-            "ID_N+ (e.g., ID_001)".format(iter_id),
+            "Error: --iter-id '{}' does not match expected pattern ID_N+ (e.g., ID_001)".format(iter_id),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
@@ -789,9 +780,7 @@ Examples:
         return 1
     if attempt < 1:
         print(
-            "Error: --attempt must be a positive integer, got '{}'".format(
-                kwargs["attempt"]
-            ),
+            "Error: --attempt must be a positive integer, got '{}'".format(kwargs["attempt"]),
             file=sys.stderr,
         )
         print(hint, file=sys.stderr)
@@ -819,8 +808,9 @@ Examples:
     if criterion_filter is not None:
         if event_type_filter is not None and event_type_filter != "criterion_update":
             print(
-                "Error: --criterion implies --event-type criterion_update, "
-                "but --event-type '{}' was specified".format(event_type_filter),
+                "Error: --criterion implies --event-type criterion_update, but --event-type '{}' was specified".format(
+                    event_type_filter
+                ),
                 file=sys.stderr,
             )
             print(hint, file=sys.stderr)
@@ -835,9 +825,7 @@ Examples:
             return 1
         if last_n < 1:
             print(
-                "Error: --last must be a positive integer, got '{}'".format(
-                    kwargs["last"]
-                ),
+                "Error: --last must be a positive integer, got '{}'".format(kwargs["last"]),
                 file=sys.stderr,
             )
             print(hint, file=sys.stderr)
@@ -878,13 +866,16 @@ Examples:
 
     # Output
     if flags["output"] == "json":
-        json_response({
-            "status": "ok",
-            "command": "query",
-            "path": path,
-            "matchCount": len(matches),
-            "events": matches,
-        }, flags)
+        json_response(
+            {
+                "status": "ok",
+                "command": "query",
+                "path": path,
+                "matchCount": len(matches),
+                "events": matches,
+            },
+            flags,
+        )
     elif flags["raw"]:
         for event in matches:
             print(json.dumps(event, separators=(",", ":")))

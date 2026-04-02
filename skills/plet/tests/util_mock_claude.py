@@ -75,8 +75,7 @@ def main(argv):
         with open("mock_impl_{}.txt".format(iter_id), "w") as f:
             f.write("implemented\n")
         subprocess.run(["git", "add", "-A"], capture_output=True)
-        subprocess.run(["git", "commit", "-m", "implement " + iter_id],
-                       capture_output=True)
+        subprocess.run(["git", "commit", "-m", "implement " + iter_id], capture_output=True)
 
     elif phase == "verify":
         attempt = state["attempts"].get("verify", 0) + 1
@@ -91,15 +90,16 @@ def main(argv):
 
         if "verificationReports" not in state:
             state["verificationReports"] = []
-        state["verificationReports"].append({
-            "attempt": attempt,
-            "verdict": verdict,
-            "criteriaResults": [
-                {"id": c["id"],
-                 "status": "pass" if verdict == "passed" else "fail"}
-                for c in state.get("criteria", [])
-            ],
-        })
+        state["verificationReports"].append(
+            {
+                "attempt": attempt,
+                "verdict": verdict,
+                "criteriaResults": [
+                    {"id": c["id"], "status": "pass" if verdict == "passed" else "fail"}
+                    for c in state.get("criteria", [])
+                ],
+            }
+        )
 
         with open(state_path, "w") as f:
             json.dump(state, f)
@@ -107,8 +107,7 @@ def main(argv):
         with open("mock_verify_{}.txt".format(iter_id), "w") as f:
             f.write("verified\n")
         subprocess.run(["git", "add", "-A"], capture_output=True)
-        subprocess.run(["git", "commit", "-m", "verify " + iter_id],
-                       capture_output=True)
+        subprocess.run(["git", "commit", "-m", "verify " + iter_id], capture_output=True)
 
     # Output JSONL (plet_invoke reads stdout line by line)
     print('{"type":"system","subtype":"init","session_id":"mock"}', flush=True)

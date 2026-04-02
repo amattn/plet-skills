@@ -36,6 +36,7 @@ def check(name, condition, detail=""):
 # run — general subprocess execution
 # ---------------------------------------------------------------------------
 
+
 def test_run_basic():
     print("\n## run — basic execution")
     import util_subprocess as us
@@ -116,6 +117,7 @@ def test_run_text_mode():
 # run_git — git convenience wrapper
 # ---------------------------------------------------------------------------
 
+
 def test_run_git_basic():
     print("\n## run_git — basic execution")
     import util_subprocess as us
@@ -130,6 +132,7 @@ def test_run_git_basic():
         check("stdout is str", isinstance(result.stdout, str))
     finally:
         import shutil
+
         shutil.rmtree(tmpdir)
 
 
@@ -154,6 +157,7 @@ def test_run_git_multiple_args():
         check("handles multiple args", result.returncode != 0 or result.stdout == "")
     finally:
         import shutil
+
         shutil.rmtree(tmpdir)
 
 
@@ -183,6 +187,7 @@ def test_run_git_cwd():
         check("git dir found", ".git" in result.stdout)
     finally:
         import shutil
+
         shutil.rmtree(tmpdir)
 
 

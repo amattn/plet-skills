@@ -44,6 +44,7 @@ check, get_results = make_check()
 # make_plet_dir
 # ---------------------------------------------------------------------------
 
+
 def test_make_plet_dir():
     print("\n## make_plet_dir")
     plet_dir, cleanup = make_plet_dir()
@@ -64,6 +65,7 @@ def test_make_plet_dir():
 # ---------------------------------------------------------------------------
 # make_global_state
 # ---------------------------------------------------------------------------
+
 
 def test_make_global_state_defaults():
     print("\n## make_global_state — defaults")
@@ -112,6 +114,7 @@ def test_make_global_state_overrides():
 # make_iter_state
 # ---------------------------------------------------------------------------
 
+
 def test_make_iter_state_defaults():
     print("\n## make_iter_state — defaults")
     with tempfile.TemporaryDirectory() as d:
@@ -138,15 +141,18 @@ def test_make_iter_state_custom():
     with tempfile.TemporaryDirectory() as d:
         os.makedirs(os.path.join(d, "state"), exist_ok=True)
         make_iter_state(
-            d, iter_id="ID_003", title="Custom title",
+            d,
+            iter_id="ID_003",
+            title="Custom title",
             attempts={"implement": 2, "verify": 1},
             phase_activity="writing_tests",
             activity_detail="writing test for AC_1",
             agent_id="agent_abc",
             implement_verdict="completed",
             verify_verdict="rejected",
-            criteria=[{"id": "AC_1", "description": "Test", "status": "pass",
-                       "implementation": None, "verification": None}],
+            criteria=[
+                {"id": "AC_1", "description": "Test", "status": "pass", "implementation": None, "verification": None}
+            ],
         )
         data = read_iter_state(d, "ID_003")
         check("custom iter_id", data["iterationId"] == "ID_003")
@@ -186,6 +192,7 @@ def test_make_iter_state_overrides():
 # Git repo
 # ---------------------------------------------------------------------------
 
+
 def test_make_git_repo():
     print("\n## make_git_repo")
     with tempfile.TemporaryDirectory() as d:
@@ -216,6 +223,7 @@ def test_create_branches():
 # Spec + runtime artifacts
 # ---------------------------------------------------------------------------
 
+
 def test_spec_artifacts():
     print("\n## make_spec_artifacts")
     with tempfile.TemporaryDirectory() as d:
@@ -238,6 +246,7 @@ def test_runtime_artifacts():
 # make_check
 # ---------------------------------------------------------------------------
 
+
 def test_make_check():
     print("\n## make_check")
     ch, get = make_check()
@@ -252,6 +261,7 @@ def test_make_check():
 # VALID_GLOBAL_STATE constant
 # ---------------------------------------------------------------------------
 
+
 def test_valid_global_state_constant():
     print("\n## VALID_GLOBAL_STATE constant")
     errors = validate_global_state(VALID_GLOBAL_STATE)
@@ -263,6 +273,7 @@ def test_valid_global_state_constant():
 # ---------------------------------------------------------------------------
 # Trace files
 # ---------------------------------------------------------------------------
+
 
 def test_make_trace_file():
     print("\n## make_trace_file")
@@ -289,6 +300,7 @@ def test_make_trace_file():
 # Verification reports
 # ---------------------------------------------------------------------------
 
+
 def test_make_verification_report():
     print("\n## make_verification_report")
     report = make_verification_report()
@@ -296,9 +308,9 @@ def test_make_verification_report():
     check("has criteriaResults", len(report["criteriaResults"]) == 1)
     check("default criterion", report["criteriaResults"][0]["criterionId"] == "AC_1")
 
-    custom = make_verification_report(verdict="rejected", criteria_results=[
-        {"criterionId": "AC_2", "status": "fail", "evidence": "broken"}
-    ])
+    custom = make_verification_report(
+        verdict="rejected", criteria_results=[{"criterionId": "AC_2", "status": "fail", "evidence": "broken"}]
+    )
     check("custom verdict", custom["verdict"] == "rejected")
     check("custom criteria", custom["criteriaResults"][0]["criterionId"] == "AC_2")
 
@@ -306,6 +318,7 @@ def test_make_verification_report():
 # ---------------------------------------------------------------------------
 # Raw state writing
 # ---------------------------------------------------------------------------
+
 
 def test_write_raw_state():
     print("\n## write_raw_state")
@@ -329,6 +342,7 @@ def test_write_raw_state():
 # Audit tags
 # ---------------------------------------------------------------------------
 
+
 def test_make_audit_tag():
     print("\n## make_audit_tag")
     with tempfile.TemporaryDirectory() as d:
@@ -342,6 +356,7 @@ def test_make_audit_tag():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     test_make_plet_dir()

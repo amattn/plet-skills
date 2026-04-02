@@ -63,6 +63,7 @@ LIFECYCLE_BY_PHASE = {
 # Subprocess helpers
 # ---------------------------------------------------------------------------
 
+
 def help_hint(command):
     return "Run: plet_gate_phase.py {} --help".format(command)
 
@@ -88,44 +89,59 @@ def run_tool(script_name, args):
 # Shared checks (both phases)
 # ---------------------------------------------------------------------------
 
+
 def run_gtc_checks(plet_dir, iter_id, phase):
     """Call GTC check-iteration. Returns list of check dicts with git: prefix."""
     checks = []
-    data, result = run_tool("plet_git_check.py", [
-        "check-iteration", plet_dir, "--iter-id", iter_id,
-        "--phase", phase, "--output", "json",
-    ])
+    data, result = run_tool(
+        "plet_git_check.py",
+        [
+            "check-iteration",
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--phase",
+            phase,
+            "--output",
+            "json",
+        ],
+    )
     if data is None and result is None:
-        checks.append({"name": "git-check", "status": "fail",
-                        "detail": "plet_git_check.py not found"})
+        checks.append({"name": "git-check", "status": "fail", "detail": "plet_git_check.py not found"})
     elif data is None:
-        checks.append({"name": "git-check", "status": "fail",
-                        "detail": "could not parse plet_git_check.py output"})
+        checks.append({"name": "git-check", "status": "fail", "detail": "could not parse plet_git_check.py output"})
     else:
         for gc in data.get("checks", []):
-            checks.append({
-                "name": "git:{}".format(gc["name"]),
-                "status": gc["status"],
-                "detail": gc.get("detail", ""),
-            })
+            checks.append(
+                {
+                    "name": "git:{}".format(gc["name"]),
+                    "status": gc["status"],
+                    "detail": gc.get("detail", ""),
+                }
+            )
     return checks
 
 
 def run_sta_validate(plet_dir, iter_id):
     """Call IST validate. Returns a check dict."""
     is_path = iter_state_path(plet_dir, iter_id)
-    data, result = run_tool("plet_iter_state.py", [
-        "validate", plet_dir, "--iter-id", iter_id, "--output", "json",
-    ])
+    data, result = run_tool(
+        "plet_iter_state.py",
+        [
+            "validate",
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--output",
+            "json",
+        ],
+    )
     if data is None and result is None:
-        return {"name": "state-valid", "status": "fail",
-                "detail": "plet_iter_state.py not found"}
+        return {"name": "state-valid", "status": "fail", "detail": "plet_iter_state.py not found"}
     if data is None:
-        return {"name": "state-valid", "status": "fail",
-                "detail": "could not parse plet_iter_state.py output"}
+        return {"name": "state-valid", "status": "fail", "detail": "could not parse plet_iter_state.py output"}
     if result.returncode == 0:
-        return {"name": "state-valid", "status": "pass",
-                "detail": "{} valid".format(os.path.basename(is_path))}
+        return {"name": "state-valid", "status": "pass", "detail": "{} valid".format(os.path.basename(is_path))}
     errors = data.get("errors", [])
     detail = "; ".join(errors[:3]) if errors else "validation failed"
     return {"name": "state-valid", "status": "fail", "detail": detail}
@@ -137,22 +153,26 @@ def check_lifecycle(global_state, iter_id, phase):
     lifecycles = global_state.get("lifecycles", {})
     lifecycle = lifecycles.get(iter_id, "unknown")
     if lifecycle in valid_states:
-        return {"name": "lifecycle-check", "status": "pass",
-                "detail": "lifecycle is {}".format(lifecycle)}
+        return {"name": "lifecycle-check", "status": "pass", "detail": "lifecycle is {}".format(lifecycle)}
     expected = " or ".join(sorted(valid_states))
-    return {"name": "lifecycle-check", "status": "warn",
-            "detail": "lifecycle is {} (expected {})".format(lifecycle, expected)}
+    return {
+        "name": "lifecycle-check",
+        "status": "warn",
+        "detail": "lifecycle is {} (expected {})".format(lifecycle, expected),
+    }
 
 
 def check_implement_verdict(iter_state):
     """Post-implement check: implementVerdict must be set (GPH_PST_BHV_11)."""
     verdict = iter_state.get("implementVerdict")
     if verdict is not None:
-        return {"name": "implement-verdict", "status": "pass",
-                "detail": "implementVerdict is '{}'".format(verdict)}
-    return {"name": "implement-verdict", "status": "fail",
-            "detail": "implementVerdict is null — implement subagent must call"
-            " set-verdict --phase implement before exiting"}
+        return {"name": "implement-verdict", "status": "pass", "detail": "implementVerdict is '{}'".format(verdict)}
+    return {
+        "name": "implement-verdict",
+        "status": "fail",
+        "detail": "implementVerdict is null — implement subagent must call"
+        " set-verdict --phase implement before exiting",
+    }
 
 
 def check_audit_tag(global_state, iter_state, phase, cwd=None):
@@ -161,61 +181,90 @@ def check_audit_tag(global_state, iter_state, phase, cwd=None):
     loop_n = active_loop_number(global_state)
     iter_id = iter_state.get("iterationId", "UNKNOWN")
     attempt = iter_state.get("attempts", {}).get(phase, 0)
-    tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(
-        project_id, loop_n, iter_id, phase, attempt)
+    tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(project_id, loop_n, iter_id, phase, attempt)
     result = run_git("rev-parse", "--verify", "refs/tags/" + tag_name, cwd=cwd)
     if result.returncode == 0:
-        return {"name": "audit-tag", "status": "pass",
-                "detail": "tag {} exists".format(tag_name)}
-    return {"name": "audit-tag", "status": "fail",
-            "detail": "tag {} not found — subagent must create audit tag before exiting".format(tag_name)}
+        return {"name": "audit-tag", "status": "pass", "detail": "tag {} exists".format(tag_name)}
+    return {
+        "name": "audit-tag",
+        "status": "fail",
+        "detail": "tag {} not found — subagent must create audit tag before exiting".format(tag_name),
+    }
 
 
 def run_ent_check(plet_dir, iter_id):
     """Call ENT check. Returns 3 check dicts (progress FAIL, learnings WARN, emergent WARN)."""
     checks = []
-    data, result = run_tool("plet_entries.py", [
-        "check", plet_dir, "--iter-id", iter_id, "--output", "json",
-    ])
+    data, result = run_tool(
+        "plet_entries.py",
+        [
+            "check",
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--output",
+            "json",
+        ],
+    )
     if data is None and result is None:
         for name in ("progress-entry", "learnings-entry", "emergent-entry"):
-            checks.append({"name": name, "status": "fail",
-                            "detail": "plet_entries.py not found"})
+            checks.append({"name": name, "status": "fail", "detail": "plet_entries.py not found"})
         return checks
     if data is None:
         for name in ("progress-entry", "learnings-entry", "emergent-entry"):
-            checks.append({"name": name, "status": "fail",
-                            "detail": "could not parse plet_entries.py output"})
+            checks.append({"name": name, "status": "fail", "detail": "could not parse plet_entries.py output"})
         return checks
 
     artifacts = data.get("artifacts", {})
 
     p_count = artifacts.get("progress", {}).get("count", 0)
     if p_count > 0:
-        checks.append({"name": "progress-entry", "status": "pass",
-                        "detail": "{} progress entries for {}".format(p_count, iter_id)})
+        checks.append(
+            {
+                "name": "progress-entry",
+                "status": "pass",
+                "detail": "{} progress entries for {}".format(p_count, iter_id),
+            }
+        )
     else:
-        checks.append({"name": "progress-entry", "status": "fail",
-                        "detail": "0 progress entries for {}".format(iter_id)})
+        checks.append(
+            {"name": "progress-entry", "status": "fail", "detail": "0 progress entries for {}".format(iter_id)}
+        )
 
     l_count = artifacts.get("learnings", {}).get("count", 0)
     if l_count > 0:
-        checks.append({"name": "learnings-entry", "status": "pass",
-                        "detail": "{} learnings entries for {}".format(l_count, iter_id)})
+        checks.append(
+            {
+                "name": "learnings-entry",
+                "status": "pass",
+                "detail": "{} learnings entries for {}".format(l_count, iter_id),
+            }
+        )
     else:
-        checks.append({"name": "learnings-entry", "status": "warn",
-                        "detail": "0 learnings entries for {}".format(iter_id)})
+        checks.append(
+            {"name": "learnings-entry", "status": "warn", "detail": "0 learnings entries for {}".format(iter_id)}
+        )
 
     e_count = artifacts.get("emergent", {}).get("count", 0)
     if e_count > 0:
-        checks.append({"name": "emergent-entry", "status": "pass",
-                        "detail": "{} emergent entries for {}".format(e_count, iter_id)})
+        checks.append(
+            {
+                "name": "emergent-entry",
+                "status": "pass",
+                "detail": "{} emergent entries for {}".format(e_count, iter_id),
+            }
+        )
     else:
-        checks.append({"name": "emergent-entry", "status": "warn",
-                        "detail": "0 emergent entries for {} — verify no design decisions, "
-                        "requirement gaps, or assumptions were made. "
-                        "If none, this is expected. If any were made, write them before "
-                        "exiting.".format(iter_id)})
+        checks.append(
+            {
+                "name": "emergent-entry",
+                "status": "warn",
+                "detail": "0 emergent entries for {} — verify no design decisions, "
+                "requirement gaps, or assumptions were made. "
+                "If none, this is expected. If any were made, write them before "
+                "exiting.".format(iter_id),
+            }
+        )
 
     return checks
 
@@ -225,27 +274,36 @@ def check_trace_events(plet_dir, iter_id, phase, attempt):
     trace_file = events_path(plet_dir, iter_id, phase, attempt)
 
     if not os.path.isfile(trace_file):
-        return {"name": "trace-events", "status": "warn",
-                "detail": "no trace events file for {} {}-{}".format(iter_id, phase, attempt)}
+        return {
+            "name": "trace-events",
+            "status": "warn",
+            "detail": "no trace events file for {} {}-{}".format(iter_id, phase, attempt),
+        }
     size = os.path.getsize(trace_file)
     if size == 0:
-        return {"name": "trace-events", "status": "warn",
-                "detail": "trace events file empty for {} {}-{}".format(iter_id, phase, attempt)}
+        return {
+            "name": "trace-events",
+            "status": "warn",
+            "detail": "trace events file empty for {} {}-{}".format(iter_id, phase, attempt),
+        }
 
-    data, result = run_tool("plet_trace.py", [
-        "validate", plet_dir, "--iter-id", iter_id,
-        "--phase", phase, "--attempt", str(attempt)])
+    data, result = run_tool(
+        "plet_trace.py", ["validate", plet_dir, "--iter-id", iter_id, "--phase", phase, "--attempt", str(attempt)]
+    )
     if result is not None and result.returncode != 0:
-        return {"name": "trace-events", "status": "warn",
-                "detail": "trace events file invalid for {} {}-{}".format(iter_id, phase, attempt)}
+        return {
+            "name": "trace-events",
+            "status": "warn",
+            "detail": "trace events file invalid for {} {}-{}".format(iter_id, phase, attempt),
+        }
 
-    return {"name": "trace-events", "status": "pass",
-            "detail": "trace events file valid ({} bytes)".format(size)}
+    return {"name": "trace-events", "status": "pass", "detail": "trace events file valid ({} bytes)".format(size)}
 
 
 # ---------------------------------------------------------------------------
 # Implement-only checks (pre)
 # ---------------------------------------------------------------------------
+
 
 def check_spec_artifacts(plet_dir):
     """Check requirements.md and iterations.md exist. Implement pre only."""
@@ -257,46 +315,56 @@ def check_spec_artifacts(plet_dir):
     if not os.path.isfile(itr):
         missing.append("iterations.md")
     if missing:
-        return {"name": "spec-artifacts", "status": "fail",
-                "detail": "missing: {}".format(", ".join(missing))}
-    return {"name": "spec-artifacts", "status": "pass",
-            "detail": "requirements.md and iterations.md exist"}
+        return {"name": "spec-artifacts", "status": "fail", "detail": "missing: {}".format(", ".join(missing))}
+    return {"name": "spec-artifacts", "status": "pass", "detail": "requirements.md and iterations.md exist"}
 
 
 def run_fpr_check(plet_dir):
     """Call FPR check. Implement pre only."""
-    data, result = run_tool("plet_fingerprint.py", [
-        "check", plet_dir, "--output", "json",
-    ])
+    data, result = run_tool(
+        "plet_fingerprint.py",
+        [
+            "check",
+            plet_dir,
+            "--output",
+            "json",
+        ],
+    )
     if data is None and result is None:
-        return {"name": "fingerprints-consistent", "status": "warn",
-                "detail": "plet_fingerprint.py not found"}
+        return {"name": "fingerprints-consistent", "status": "warn", "detail": "plet_fingerprint.py not found"}
     if data is None:
-        return {"name": "fingerprints-consistent", "status": "warn",
-                "detail": "could not parse plet_fingerprint.py output"}
+        return {
+            "name": "fingerprints-consistent",
+            "status": "warn",
+            "detail": "could not parse plet_fingerprint.py output",
+        }
     consistent = data.get("consistent", None)
     if consistent is True:
-        return {"name": "fingerprints-consistent", "status": "pass",
-                "detail": "all fingerprints consistent"}
+        return {"name": "fingerprints-consistent", "status": "pass", "detail": "all fingerprints consistent"}
     if consistent is False:
-        return {"name": "fingerprints-consistent", "status": "warn",
-                "detail": "fingerprints stale — spec drift detected"}
-    return {"name": "fingerprints-consistent", "status": "warn",
-            "detail": "fingerprint consistency unknown"}
+        return {
+            "name": "fingerprints-consistent",
+            "status": "warn",
+            "detail": "fingerprints stale — spec drift detected",
+        }
+    return {"name": "fingerprints-consistent", "status": "warn", "detail": "fingerprint consistency unknown"}
 
 
 # ---------------------------------------------------------------------------
 # Verify-only checks (post)
 # ---------------------------------------------------------------------------
 
+
 def check_verify_verdict(iter_state):
     """Check verifyVerdict is set. Verify post only (GPH_PST_BHV_7)."""
     verdict = iter_state.get("verifyVerdict")
     if verdict is not None:
-        return {"name": "verify-verdict", "status": "pass",
-                "detail": "verifyVerdict is '{}'".format(verdict)}
-    return {"name": "verify-verdict", "status": "fail",
-            "detail": "verifyVerdict is null — verify subagent must call set-verdict --phase verify before exiting"}
+        return {"name": "verify-verdict", "status": "pass", "detail": "verifyVerdict is '{}'".format(verdict)}
+    return {
+        "name": "verify-verdict",
+        "status": "fail",
+        "detail": "verifyVerdict is null — verify subagent must call set-verdict --phase verify before exiting",
+    }
 
 
 def check_verdict_consistency(iter_state):
@@ -304,29 +372,32 @@ def check_verdict_consistency(iter_state):
     verify_verdict = iter_state.get("verifyVerdict")
     reports = iter_state.get("verificationReports", [])
     if verify_verdict is None:
-        return {"name": "verdict-consistency", "status": "warn",
-                "detail": "skipped (no verifyVerdict set)"}
+        return {"name": "verdict-consistency", "status": "warn", "detail": "skipped (no verifyVerdict set)"}
     if not reports:
-        return {"name": "verdict-consistency", "status": "warn",
-                "detail": "skipped (no verificationReports)"}
+        return {"name": "verdict-consistency", "status": "warn", "detail": "skipped (no verificationReports)"}
     last_report_verdict = reports[-1].get("verdict")
     if last_report_verdict is None:
-        return {"name": "verdict-consistency", "status": "warn",
-                "detail": "skipped (last report has no verdict field)"}
+        return {"name": "verdict-consistency", "status": "warn", "detail": "skipped (last report has no verdict field)"}
     if verify_verdict == last_report_verdict:
-        return {"name": "verdict-consistency", "status": "pass",
-                "detail": "verifyVerdict '{}' matches last report verdict".format(verify_verdict)}
-    return {"name": "verdict-consistency", "status": "warn",
-            "detail": "verifyVerdict '{}' differs from last report verdict '{}'".format(
-                verify_verdict, last_report_verdict)}
+        return {
+            "name": "verdict-consistency",
+            "status": "pass",
+            "detail": "verifyVerdict '{}' matches last report verdict".format(verify_verdict),
+        }
+    return {
+        "name": "verdict-consistency",
+        "status": "warn",
+        "detail": "verifyVerdict '{}' differs from last report verdict '{}'".format(
+            verify_verdict, last_report_verdict
+        ),
+    }
 
 
 def check_verification_report(iter_state):
     """Check verificationReports has entry with required fields. Verify post only."""
     reports = iter_state.get("verificationReports", [])
     if not reports:
-        return {"name": "verification-report", "status": "fail",
-                "detail": "verificationReports is empty"}
+        return {"name": "verification-report", "status": "fail", "detail": "verificationReports is empty"}
     last_report = reports[-1]
     missing = []
     if "verdict" not in last_report:
@@ -334,16 +405,22 @@ def check_verification_report(iter_state):
     if "criteriaResults" not in last_report:
         missing.append("criteriaResults")
     if missing:
-        return {"name": "verification-report", "status": "fail",
-                "detail": "report missing required fields: {}".format(", ".join(missing))}
-    return {"name": "verification-report", "status": "pass",
-            "detail": "verification report present with {} criteria results".format(
-                len(last_report["criteriaResults"]))}
+        return {
+            "name": "verification-report",
+            "status": "fail",
+            "detail": "report missing required fields: {}".format(", ".join(missing)),
+        }
+    return {
+        "name": "verification-report",
+        "status": "pass",
+        "detail": "verification report present with {} criteria results".format(len(last_report["criteriaResults"])),
+    }
 
 
 # ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
+
 
 def summarize_checks(checks):
     counts = {"total": len(checks), "passed": 0, "failed": 0, "warnings": 0}
@@ -391,6 +468,7 @@ def format_text_output(command, checks, overall, counts):
 # ---------------------------------------------------------------------------
 # Common gate logic
 # ---------------------------------------------------------------------------
+
 
 def run_gate(cmd, args, phase_specific_pre_fn, phase_specific_post_fn):
     """Shared logic for pre and post commands."""
@@ -502,18 +580,18 @@ Examples:
 
     # Log gate result to progress.md
     iter_title = iter_state.get("title", iter_id)
-    check_summary = ", ".join(
-        "{}: {}".format(c["name"], c["status"]) for c in checks if c["status"] != "pass"
-    )
+    check_summary = ", ".join("{}: {}".format(c["name"], c["status"]) for c in checks if c["status"] != "pass")
     if not check_summary:
         check_summary = "all passed"
     progress_content = (
-        "Gate {cmd} ({phase}): {overall}\n"
-        "{passed} passed, {failed} failed, {warnings} warnings\n"
-        "{details}"
+        "Gate {cmd} ({phase}): {overall}\n{passed} passed, {failed} failed, {warnings} warnings\n{details}"
     ).format(
-        cmd=cmd, phase=phase, overall=overall.upper(),
-        passed=counts["passed"], failed=counts["failed"], warnings=counts["warnings"],
+        cmd=cmd,
+        phase=phase,
+        overall=overall.upper(),
+        passed=counts["passed"],
+        failed=counts["failed"],
+        warnings=counts["warnings"],
         details=check_summary,
     )
     ent_script = os.path.join(scripts_dir(), "plet_entries.py")
@@ -521,17 +599,41 @@ Examples:
     if os.path.isfile(ent_script) and os.path.isfile(progress_path):
         attempt = iter_state.get("attempts", {}).get(phase, 1)
         gate_status = "COMPLETE" if exit_code == 0 else "IN_PROGRESS"
-        run([sys.executable, ent_script, "add-progress", plet_dir,
-              "--iter-id", iter_id, "--iter-title", iter_title,
-              "--phase", phase, "--attempt", str(attempt),
-              "--status", gate_status,
-              "--content", progress_content])
+        run(
+            [
+                sys.executable,
+                ent_script,
+                "add-progress",
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--iter-title",
+                iter_title,
+                "--phase",
+                phase,
+                "--attempt",
+                str(attempt),
+                "--status",
+                gate_status,
+                "--content",
+                progress_content,
+            ]
+        )
 
     if output_json:
-        emit_json({
-            "status": overall, "command": cmd, "iterationId": iter_id,
-            "phase": phase, "checks": checks, "summary": counts,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": overall,
+                "command": cmd,
+                "iterationId": iter_id,
+                "phase": phase,
+                "checks": checks,
+                "summary": counts,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         print(format_text_output(cmd, checks, overall, counts))
 
@@ -571,6 +673,7 @@ def post_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state
 # Commands
 # ---------------------------------------------------------------------------
 
+
 def cmd_pre(args):
     return run_gate("pre", args, pre_phase_checks, post_phase_checks)
 
@@ -583,14 +686,13 @@ def cmd_post(args):
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "pre": cmd_pre,
         "post": cmd_post,
     }
-    return dispatch(
-        commands, "plet_gate_phase", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_gate_phase", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

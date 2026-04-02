@@ -45,7 +45,9 @@ def _run_parallel(test_files, quiet):
     for path in test_files:
         proc = subprocess.Popen(
             [sys.executable, path],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
         procs.append((path, proc))
 
@@ -74,8 +76,11 @@ def _run_parallel(test_files, quiet):
                     failures.append(name)
 
                 if not quiet:
-                    sys.stdout.write("  [{}/{}] {:40s} {:>4d} passed  [{:>5.1f}s] [{}]\n".format(
-                        completed, n, name, p, elapsed, status))
+                    sys.stdout.write(
+                        "  [{}/{}] {:40s} {:>4d} passed  [{:>5.1f}s] [{}]\n".format(
+                            completed, n, name, p, elapsed, status
+                        )
+                    )
                     sys.stdout.flush()
                 break
         else:
@@ -116,7 +121,8 @@ def _run_sequential(test_files, verbose, quiet):
 
         result = subprocess.run(
             [sys.executable, path],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
 
         output = result.stdout + result.stderr
@@ -130,8 +136,9 @@ def _run_sequential(test_files, verbose, quiet):
         if progress:
             elapsed = time.monotonic() - t0
             status = "FAIL" if (f > 0 or result.returncode != 0) else "ok"
-            sys.stdout.write("\r  [{}/{}] {:40s} {:>4d} passed  [{:>5.1f}s] [{}]\n".format(
-                idx, n, name, p, elapsed, status))
+            sys.stdout.write(
+                "\r  [{}/{}] {:40s} {:>4d} passed  [{:>5.1f}s] [{}]\n".format(idx, n, name, p, elapsed, status)
+            )
             sys.stdout.flush()
         elif verbose:
             status = "FAIL" if (f > 0 or result.returncode != 0) else "ok"
@@ -164,16 +171,13 @@ def main():
         print()
 
     if sequential:
-        total_passed, total_failed, failures, elapsed = _run_sequential(
-            test_files, verbose, quiet)
+        total_passed, total_failed, failures, elapsed = _run_sequential(test_files, verbose, quiet)
     else:
-        total_passed, total_failed, failures, elapsed = _run_parallel(
-            test_files, quiet)
+        total_passed, total_failed, failures, elapsed = _run_parallel(test_files, quiet)
 
     print()
     print("=" * 50)
-    print("  {} files, {} passed, {} failed  ({:.1f}s)".format(
-        len(test_files), total_passed, total_failed, elapsed))
+    print("  {} files, {} passed, {} failed  ({:.1f}s)".format(len(test_files), total_passed, total_failed, elapsed))
     print("=" * 50)
 
     if failures:

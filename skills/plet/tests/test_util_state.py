@@ -58,9 +58,7 @@ VALID_STATE = {
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer", "description": "A log analysis tool"},
     "dependencyMap": {"ID_001": [], "ID_002": ["ID_001"]},
-    "milestones": {
-        "MS_1": {"name": "MVP", "iterations": ["ID_001", "ID_002"]}
-    },
+    "milestones": {"MS_1": {"name": "MVP", "iterations": ["ID_001", "ID_002"]}},
     "loopSessionCount": 1,
     "refineSessionCount": 0,
     "iterationsFingerprint": {
@@ -73,6 +71,7 @@ VALID_STATE = {
 # ---------------------------------------------------------------------------
 # load_and_validate_global_state — success
 # ---------------------------------------------------------------------------
+
 
 def test_valid_state():
     print("\n## load_and_validate_global_state — valid file")
@@ -113,15 +112,14 @@ def test_valid_state_minimal():
         check("returns dict", isinstance(result, dict))
         check("projectId ABC", result["projectId"] == "ABC")
         # loopSessionCount and refineSessionCount are optional — defaults injected
-        check("loopSessionCount injected as 0",
-              result["loopSessionCount"] == 0)
-        check("refineSessionCount injected as 0",
-              result["refineSessionCount"] == 0)
+        check("loopSessionCount injected as 0", result["loopSessionCount"] == 0)
+        check("refineSessionCount injected as 0", result["refineSessionCount"] == 0)
 
 
 # ---------------------------------------------------------------------------
 # load_and_validate_global_state — file errors
 # ---------------------------------------------------------------------------
+
 
 def test_file_not_found():
     print("\n## load_and_validate_global_state — file not found (plet_dir exists but no state.json)")
@@ -158,6 +156,7 @@ def test_plet_dir_not_found():
 # Validation — projectId
 # ---------------------------------------------------------------------------
 
+
 def test_missing_project_id():
     print("\n## validate — missing projectId")
     import util_state
@@ -189,13 +188,13 @@ def test_project_id_invalid_pattern():
     import util_state
 
     invalid_ids = [
-        "",           # empty
-        "ab",         # too short (< 3)
-        "ABCDEFGH",   # too long (> 6)
-        "1ABC",       # starts with digit
-        "abc",        # lowercase
-        "AB-C",       # hyphen
-        "AB_C",       # underscore
+        "",  # empty
+        "ab",  # too short (< 3)
+        "ABCDEFGH",  # too long (> 6)
+        "1ABC",  # starts with digit
+        "abc",  # lowercase
+        "AB-C",  # hyphen
+        "AB_C",  # underscore
     ]
 
     for pid in invalid_ids:
@@ -212,11 +211,11 @@ def test_project_id_valid_patterns():
     import util_state
 
     valid_ids = [
-        "ABC",        # 3 chars
-        "LOGA",       # 4 chars
-        "SPARK",      # 5 chars
-        "SPARK1",     # 6 chars with digit
-        "A1B",        # digits after first
+        "ABC",  # 3 chars
+        "LOGA",  # 4 chars
+        "SPARK",  # 5 chars
+        "SPARK1",  # 6 chars with digit
+        "A1B",  # digits after first
     ]
 
     for pid in valid_ids:
@@ -225,13 +224,13 @@ def test_project_id_valid_patterns():
         with tempfile.TemporaryDirectory() as d:
             write_state(d, state)
             result = util_state.load_and_validate_global_state(d)
-            check("accepts '{}'".format(pid), result is not None,
-                  "got None" if result is None else "")
+            check("accepts '{}'".format(pid), result is not None, "got None" if result is None else "")
 
 
 # ---------------------------------------------------------------------------
 # Validation — session counts
 # ---------------------------------------------------------------------------
+
 
 def test_session_count_wrong_type():
     print("\n## validate — session counts wrong type")
@@ -282,12 +281,12 @@ def test_session_count_zero():
 # Validation — required fields
 # ---------------------------------------------------------------------------
 
+
 def test_missing_required_fields():
     print("\n## validate — missing required fields")
     import util_state
 
-    required = ["schemaVersion", "dependencyMap", "milestones",
-                "iterationsFingerprint"]
+    required = ["schemaVersion", "dependencyMap", "milestones", "iterationsFingerprint"]
 
     for field in required:
         state = dict(VALID_STATE)
@@ -322,6 +321,7 @@ def test_required_field_wrong_types():
 # Validation — project object
 # ---------------------------------------------------------------------------
 
+
 def test_missing_project():
     print("\n## validate — missing project object")
     import util_state
@@ -350,6 +350,7 @@ def test_project_missing_name():
 # Validation-only functions (no loading)
 # ---------------------------------------------------------------------------
 
+
 def test_validate_global_state_valid():
     print("\n## validate_global_state — valid data")
     import util_state
@@ -369,6 +370,7 @@ def test_validate_global_state_invalid():
 # ---------------------------------------------------------------------------
 # Optional fields don't cause errors
 # ---------------------------------------------------------------------------
+
 
 def test_optional_fields_absent():
     print("\n## validate — optional fields absent is ok")
@@ -418,6 +420,7 @@ def test_optional_fields_present():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     test_valid_state()
@@ -495,6 +498,7 @@ VALID_ITER_STATE = {
 # ---------------------------------------------------------------------------
 # Iter state tests
 # ---------------------------------------------------------------------------
+
 
 def test_iter_valid():
     print("\n## iter: load_and_validate_iter_state — valid file")
@@ -577,8 +581,16 @@ def test_iter_missing_required_fields():
     import util_state
 
     # lifecycle removed from required — now optional (SF_28 dual-schema)
-    required = ["schemaVersion", "iterationId", "title", "lastUpdated",
-                "dependencies", "agentId", "attempts", "criteria"]
+    required = [
+        "schemaVersion",
+        "iterationId",
+        "title",
+        "lastUpdated",
+        "dependencies",
+        "agentId",
+        "attempts",
+        "criteria",
+    ]
 
     for field in required:
         state = dict(VALID_ITER_STATE)
@@ -687,10 +699,18 @@ def test_iter_optional_defaults():
 
     state = dict(VALID_ITER_STATE)
     # Remove all optional fields that might be present
-    for key in ["phaseActivity", "activityDetail", "phaseTimestamps",
-                "elapsedSeconds", "cleanupTagsAutomatically",
-                "cleanupBranchesAutomatically", "verificationReports",
-                "implementVerdict", "verifyVerdict", "lastHeartbeat"]:
+    for key in [
+        "phaseActivity",
+        "activityDetail",
+        "phaseTimestamps",
+        "elapsedSeconds",
+        "cleanupTagsAutomatically",
+        "cleanupBranchesAutomatically",
+        "verificationReports",
+        "implementVerdict",
+        "verifyVerdict",
+        "lastHeartbeat",
+    ]:
         state.pop(key, None)
 
     with tempfile.TemporaryDirectory() as d:
@@ -699,8 +719,7 @@ def test_iter_optional_defaults():
 
         check("returns dict", result is not None)
         check("phaseActivity injected", result["phaseActivity"] == "idle")
-        check("cleanupBranchesAutomatically injected",
-              result["cleanupBranchesAutomatically"] is False)
+        check("cleanupBranchesAutomatically injected", result["cleanupBranchesAutomatically"] is False)
         check("verificationReports injected", result["verificationReports"] == [])
 
 
@@ -822,10 +841,8 @@ def test_iter_verdicts_accepted():
     with tempfile.TemporaryDirectory() as d:
         write_iter_state(d, state2, "ID_001")
         result = util_state.load_and_validate_iter_state(d, "ID_001")
-        check("absent implementVerdict defaults to None",
-              result.get("implementVerdict") is None)
-        check("absent verifyVerdict defaults to None",
-              result.get("verifyVerdict") is None)
+        check("absent implementVerdict defaults to None", result.get("implementVerdict") is None)
+        check("absent verifyVerdict defaults to None", result.get("verifyVerdict") is None)
 
 
 def test_global_lifecycles_optional():
@@ -837,8 +854,7 @@ def test_global_lifecycles_optional():
         write_state(d, VALID_STATE)
         result = util_state.load_and_validate_global_state(d)
         check("validates without lifecycles", result is not None)
-        check("lifecycles default injected",
-              result is not None and result.get("lifecycles") == {})
+        check("lifecycles default injected", result is not None and result.get("lifecycles") == {})
 
     # With lifecycles
     state = dict(VALID_STATE)
@@ -847,8 +863,7 @@ def test_global_lifecycles_optional():
         write_state(d, state)
         result = util_state.load_and_validate_global_state(d)
         check("validates with lifecycles", result is not None)
-        check("lifecycles preserved",
-              result is not None and result["lifecycles"]["ID_001"] == "complete")
+        check("lifecycles preserved", result is not None and result["lifecycles"]["ID_001"] == "complete")
 
 
 def test_global_lifecycles_validated():

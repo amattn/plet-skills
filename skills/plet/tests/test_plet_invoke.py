@@ -17,10 +17,18 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from util_io import (state_json_path, state_dir_path, iter_state_path,
-                     requirements_path, iterations_path, learnings_path,
-                     trace_dir_path, transcript_path, events_path,
-                     progress_path)
+from util_io import (
+    state_json_path,
+    state_dir_path,
+    iter_state_path,
+    requirements_path,
+    iterations_path,
+    learnings_path,
+    trace_dir_path,
+    transcript_path,
+    events_path,
+    progress_path,
+)
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_invoke.py")
 
@@ -31,7 +39,10 @@ failed = 0
 def run(args, expect_exit=0, cwd=None, env=None):
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True, text=True, cwd=cwd, env=env,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        env=env,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
@@ -103,23 +114,37 @@ def make_plet_dir(tmpdir):
 
     # Global state
     with open(state_json_path(plet_dir), "w") as f:
-        json.dump({
-            "schemaVersion": "0.2.0", "projectId": "TEST",
-            "project": {"name": "Test"},
-            "loopSessionCount": 1, "refineSessionCount": 0,
-            "dependencyMap": {}, "milestones": {}, "iterationsFingerprint": {},
-        }, f)
+        json.dump(
+            {
+                "schemaVersion": "0.2.0",
+                "projectId": "TEST",
+                "project": {"name": "Test"},
+                "loopSessionCount": 1,
+                "refineSessionCount": 0,
+                "dependencyMap": {},
+                "milestones": {},
+                "iterationsFingerprint": {},
+            },
+            f,
+        )
         f.write("\n")
 
     # Iter state
     with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
-        json.dump({
-            "schemaVersion": "0.2.0", "iterationId": "ID_001",
-            "title": "Test", "lastUpdated": "2026-03-28T00:00:00Z",
-            "lifecycle": "implementing", "dependencies": [], "agentId": None,
-            "attempts": {"implement": 0, "verify": 0},
-            "criteria": [{"id": "AC_1", "description": "test", "status": "pending"}],
-        }, f)
+        json.dump(
+            {
+                "schemaVersion": "0.2.0",
+                "iterationId": "ID_001",
+                "title": "Test",
+                "lastUpdated": "2026-03-28T00:00:00Z",
+                "lifecycle": "implementing",
+                "dependencies": [],
+                "agentId": None,
+                "attempts": {"implement": 0, "verify": 0},
+                "criteria": [{"id": "AC_1", "description": "test", "status": "pending"}],
+            },
+            f,
+        )
         f.write("\n")
 
     # Requirements + iterations (needed by PRM)
@@ -144,6 +169,7 @@ def make_worktree(tmpdir):
 # Basic tests (no mock needed)
 # ===========================================================================
 
+
 def test_help():
     print("\n## run — help")
     stdout, _, _ = run(["run", "--help"])
@@ -167,8 +193,9 @@ def test_invalid_phase():
     print("\n## run — invalid --phase")
     tmpdir = tempfile.mkdtemp()
     try:
-        _, stderr, _ = run(["run", tmpdir, "--iter-id", "ID_001", "--phase", "bogus", "--cwd", tmpdir],
-                           expect_exit=1, cwd=tmpdir)
+        _, stderr, _ = run(
+            ["run", tmpdir, "--iter-id", "ID_001", "--phase", "bogus", "--cwd", tmpdir], expect_exit=1, cwd=tmpdir
+        )
         check("error about phase", "invalid" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -179,8 +206,19 @@ def test_cwd_not_found():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        _, stderr, _ = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                            "--cwd", os.path.join(tmpdir, "nonexistent")], expect_exit=1)
+        _, stderr, _ = run(
+            [
+                "run",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--cwd",
+                os.path.join(tmpdir, "nonexistent"),
+            ],
+            expect_exit=1,
+        )
         check("error about cwd", "not found" in stderr.lower() or "directory" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -190,14 +228,14 @@ def test_cwd_not_found():
 # Dry-run tests (no mock needed)
 # ===========================================================================
 
+
 def test_dry_run():
     print("\n## run — dry-run shows command")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
-        stdout, _, rc = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                             "--cwd", wt, "--dry-run"])
+        stdout, _, rc = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt, "--dry-run"])
         check("exit 0", rc == 0)
         check("shows claude command", "claude" in stdout)
         check("shows -p", "-p" in stdout)
@@ -215,8 +253,21 @@ def test_dry_run_json():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
-        stdout, _, _ = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                            "--cwd", wt, "--dry-run", "--output", "json"])
+        stdout, _, _ = run(
+            [
+                "run",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--cwd",
+                wt,
+                "--dry-run",
+                "--output",
+                "json",
+            ]
+        )
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("has command field", "claudeCommand" in data or "command" in data)
@@ -231,8 +282,21 @@ def test_dry_run_with_model():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
-        stdout, _, _ = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                            "--cwd", wt, "--model", "sonnet", "--dry-run"])
+        stdout, _, _ = run(
+            [
+                "run",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--cwd",
+                wt,
+                "--model",
+                "sonnet",
+                "--dry-run",
+            ]
+        )
         check("shows model flag", "--model" in stdout and "sonnet" in stdout)
     finally:
         shutil.rmtree(tmpdir)
@@ -244,8 +308,21 @@ def test_dry_run_permission_mode():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
-        stdout, _, _ = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                            "--cwd", wt, "--permission-mode", "bypassPermissions", "--dry-run"])
+        stdout, _, _ = run(
+            [
+                "run",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--cwd",
+                wt,
+                "--permission-mode",
+                "bypassPermissions",
+                "--dry-run",
+            ]
+        )
         check("shows permission mode", "bypassPermissions" in stdout)
     finally:
         shutil.rmtree(tmpdir)
@@ -255,6 +332,7 @@ def test_dry_run_permission_mode():
 # Mock claude tests (transcript capture, exit codes)
 # ===========================================================================
 
+
 def test_launch_and_capture():
     print("\n## run — launch mock claude, capture transcript")
     tmpdir = tempfile.mkdtemp()
@@ -262,8 +340,9 @@ def test_launch_and_capture():
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
-        stdout, _, rc = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                             "--cwd", wt], expect_exit=0, env=env)
+        stdout, _, rc = run(
+            ["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env
+        )
         check("exit 0", rc == 0)
         # Check transcript was written
         transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
@@ -293,8 +372,9 @@ def test_exit_code_passthrough():
         env = os.environ.copy()
         env["PATH"] = mock_bin + os.pathsep + env.get("PATH", "")
 
-        _, _, rc = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                        "--cwd", wt], expect_exit=1, env=env)
+        _, _, rc = run(
+            ["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=1, env=env
+        )
         check("exit 1 passed through", rc == 1)
         # Transcript should still exist
         transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
@@ -310,8 +390,11 @@ def test_json_output_after_launch():
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
-        stdout, _, _ = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-                            "--cwd", wt, "--output", "json"], expect_exit=0, env=env)
+        stdout, _, _ = run(
+            ["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt, "--output", "json"],
+            expect_exit=0,
+            env=env,
+        )
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("has subprocessExitCode", data.get("subprocessExitCode") == 0)
@@ -335,14 +418,12 @@ def test_transcript_append_not_overwrite():
         transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
 
         # First run
-        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-             "--cwd", wt], expect_exit=0, env=env)
+        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         with open(transcript) as f:
             first_lines = len(f.readlines())
 
         # Second run (same attempt — should append)
-        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-             "--cwd", wt], expect_exit=0, env=env)
+        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         with open(transcript) as f:
             total_lines = len(f.readlines())
 
@@ -361,15 +442,12 @@ def test_trace_dir_created():
         env = create_mock_claude(tmpdir)
         # Remove trace dir
         shutil.rmtree(trace_dir_path(plet_dir))
-        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-             "--cwd", wt], expect_exit=0, env=env)
+        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         check("trace dir created", os.path.isdir(trace_dir_path(plet_dir)))
         transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
         check("transcript written", os.path.isfile(transcript))
     finally:
         shutil.rmtree(tmpdir)
-
-
 
 
 def test_invocation_trace_event():
@@ -379,8 +457,7 @@ def test_invocation_trace_event():
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
-        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-             "--cwd", wt], expect_exit=0, env=env)
+        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         # TRC writes to plet_dir/trace/{iter_id}-{phase}-{attempt}-events.ndjson
         events_file = events_path(plet_dir, "ID_001", "implement", 1)
         check("events file exists", os.path.isfile(events_file))
@@ -409,8 +486,9 @@ def test_invocation_progress_entry():
         # Create progress.md so ENT can append
         with open(progress_path(plet_dir), "w") as f:
             f.write("")
-        stdout, stderr, _ = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement",
-             "--cwd", wt], expect_exit=0, env=env)
+        stdout, stderr, _ = run(
+            ["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env
+        )
         prog_path = progress_path(plet_dir)
         with open(prog_path) as f:
             content = f.read()
@@ -420,8 +498,6 @@ def test_invocation_progress_entry():
         check("has full prompt", "full prompt" in content.lower())
     finally:
         shutil.rmtree(tmpdir)
-
-
 
 
 # ===========================================================================

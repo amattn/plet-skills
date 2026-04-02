@@ -27,12 +27,13 @@ import tempfile
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 sys.path.insert(0, SCRIPTS_DIR)
 
-from util_io import state_json_path, iter_state_path, trace_dir_path, events_path
+from util_io import state_json_path, iter_state_path, trace_dir_path, events_path  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
 # Directory creation
 # ---------------------------------------------------------------------------
+
 
 def make_plet_dir(parent=None):
     """Create a temp plet directory with state/ subdirectory.
@@ -45,6 +46,7 @@ def make_plet_dir(parent=None):
     """
     if parent is None:
         parent = tempfile.mkdtemp()
+
         def cleanup():
             return __import__("shutil").rmtree(parent, ignore_errors=True)
     else:
@@ -77,10 +79,17 @@ VALID_GLOBAL_STATE = {
 }
 
 
-def make_global_state(plet_dir, dep_map=None, lifecycles=None,
-                      project_id="TEST", loop_session=0,
-                      refine_session=0, session_history=None,
-                      breakpoints=None, **overrides):
+def make_global_state(
+    plet_dir,
+    dep_map=None,
+    lifecycles=None,
+    project_id="TEST",
+    loop_session=0,
+    refine_session=0,
+    session_history=None,
+    breakpoints=None,
+    **overrides,
+):
     """Create a state.json file in plet_dir.
 
     Args:
@@ -125,12 +134,23 @@ def make_global_state(plet_dir, dep_map=None, lifecycles=None,
 # Per-iteration state (state/{iter_id}.json)
 # ---------------------------------------------------------------------------
 
-def make_iter_state(plet_dir, iter_id="ID_001", title=None,
-                    attempts=None, criteria=None, dependencies=None,
-                    phase_activity="idle", activity_detail=None,
-                    agent_id=None, implement_verdict=None,
-                    verify_verdict=None, verification_reports=None,
-                    phase_timestamps=None, **overrides):
+
+def make_iter_state(
+    plet_dir,
+    iter_id="ID_001",
+    title=None,
+    attempts=None,
+    criteria=None,
+    dependencies=None,
+    phase_activity="idle",
+    activity_detail=None,
+    agent_id=None,
+    implement_verdict=None,
+    verify_verdict=None,
+    verification_reports=None,
+    phase_timestamps=None,
+    **overrides,
+):
     """Create a per-iteration state file (no lifecycle — SF_28).
 
     Args:
@@ -202,6 +222,7 @@ def read_global_state(plet_dir):
 # Git repo
 # ---------------------------------------------------------------------------
 
+
 def make_git_repo(tmpdir):
     """Initialize a git repo with standard test config.
 
@@ -209,17 +230,13 @@ def make_git_repo(tmpdir):
     Returns tmpdir.
     """
     subprocess.run(["git", "init", tmpdir], capture_output=True, check=True)
-    subprocess.run(["git", "-C", tmpdir, "config", "user.email", "test@test.com"],
-                   capture_output=True, check=True)
-    subprocess.run(["git", "-C", tmpdir, "config", "user.name", "Test"],
-                   capture_output=True, check=True)
+    subprocess.run(["git", "-C", tmpdir, "config", "user.email", "test@test.com"], capture_output=True, check=True)
+    subprocess.run(["git", "-C", tmpdir, "config", "user.name", "Test"], capture_output=True, check=True)
     gitkeep = os.path.join(tmpdir, ".gitkeep")
     with open(gitkeep, "w") as f:
         f.write("")
-    subprocess.run(["git", "-C", tmpdir, "add", ".gitkeep"],
-                   capture_output=True, check=True)
-    subprocess.run(["git", "-C", tmpdir, "commit", "-m", "initial"],
-                   capture_output=True, check=True)
+    subprocess.run(["git", "-C", tmpdir, "add", ".gitkeep"], capture_output=True, check=True)
+    subprocess.run(["git", "-C", tmpdir, "commit", "-m", "initial"], capture_output=True, check=True)
     return tmpdir
 
 
@@ -241,28 +258,24 @@ def create_workstream_branch(repo, project_id="TEST", loop_session=1):
     Returns the branch name.
     """
     branch = "plet/{}/loop{}/workstream".format(project_id, loop_session)
-    subprocess.run(["git", "-C", repo, "checkout", "-b", branch],
-                   capture_output=True, check=True)
+    subprocess.run(["git", "-C", repo, "checkout", "-b", branch], capture_output=True, check=True)
     return branch
 
 
-def create_iteration_branch(repo, project_id="TEST", iter_id="ID_001",
-                            loop_session=1, num_commits=0):
+def create_iteration_branch(repo, project_id="TEST", iter_id="ID_001", loop_session=1, num_commits=0):
     """Create an iteration branch off the current branch.
 
     Optionally creates num_commits dummy commits on it.
     Returns the branch name.
     """
     branch = "plet/{}/loop{}/{}".format(project_id, loop_session, iter_id)
-    subprocess.run(["git", "-C", repo, "checkout", "-b", branch],
-                   capture_output=True, check=True)
+    subprocess.run(["git", "-C", repo, "checkout", "-b", branch], capture_output=True, check=True)
     for i in range(num_commits):
         fname = os.path.join(repo, "impl_{}.txt".format(i))
         with open(fname, "w") as f:
             f.write("commit {}\n".format(i))
         subprocess.run(["git", "-C", repo, "add", "-A"], capture_output=True)
-        subprocess.run(["git", "-C", repo, "commit", "-m",
-                        "impl commit {}".format(i)], capture_output=True)
+        subprocess.run(["git", "-C", repo, "commit", "-m", "impl commit {}".format(i)], capture_output=True)
     return branch
 
 
@@ -270,7 +283,8 @@ def git_run(repo, args):
     """Run a git command in the repo. Returns (stdout, stderr, returncode)."""
     result = subprocess.run(
         ["git", "-C", repo] + args,
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -278,6 +292,7 @@ def git_run(repo, args):
 # ---------------------------------------------------------------------------
 # Spec artifacts
 # ---------------------------------------------------------------------------
+
 
 def make_spec_artifacts(plet_dir):
     """Create minimal requirements.md and iterations.md."""
@@ -294,6 +309,7 @@ def make_spec_artifacts(plet_dir):
 # Runtime artifacts
 # ---------------------------------------------------------------------------
 
+
 def make_runtime_artifacts(plet_dir):
     """Create empty runtime artifact files with headers."""
     for name in ["progress.md", "learnings.md", "emergent.md"]:
@@ -307,8 +323,8 @@ def make_runtime_artifacts(plet_dir):
 # Trace files
 # ---------------------------------------------------------------------------
 
-def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1,
-                    events=None):
+
+def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1, events=None):
     """Create an NDJSON trace events file.
 
     Args:
@@ -321,15 +337,17 @@ def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1,
     Returns the path to the trace file.
     """
     if events is None:
-        events = [{
-            "pletId": "tev_test0001",
-            "timestamp": "2026-03-07T14:00:00Z",
-            "type": "activity_change",
-            "iterationId": iter_id,
-            "phase": phase,
-            "attempt": attempt,
-            "data": {"activity": "implementing"},
-        }]
+        events = [
+            {
+                "pletId": "tev_test0001",
+                "timestamp": "2026-03-07T14:00:00Z",
+                "type": "activity_change",
+                "iterationId": iter_id,
+                "phase": phase,
+                "attempt": attempt,
+                "data": {"activity": "implementing"},
+            }
+        ]
     os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
     path = events_path(plet_dir, iter_id, phase, attempt)
     with open(path, "w") as f:
@@ -342,6 +360,7 @@ def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1,
 # Verification reports
 # ---------------------------------------------------------------------------
 
+
 def make_verification_report(verdict="complete", criteria_results=None):
     """Create a verification report dict.
 
@@ -352,15 +371,14 @@ def make_verification_report(verdict="complete", criteria_results=None):
     Returns a single report dict (not a list).
     """
     if criteria_results is None:
-        criteria_results = [
-            {"criterionId": "AC_1", "status": "pass", "evidence": "All tests pass"}
-        ]
+        criteria_results = [{"criterionId": "AC_1", "status": "pass", "evidence": "All tests pass"}]
     return {"verdict": verdict, "criteriaResults": criteria_results}
 
 
 # ---------------------------------------------------------------------------
 # Raw state writing (for invalid-state testing)
 # ---------------------------------------------------------------------------
+
 
 def write_raw_state(path, data):
     """Write arbitrary JSON to a file. For testing invalid/edge-case states.
@@ -382,24 +400,23 @@ def write_raw_state(path, data):
 # Git tags
 # ---------------------------------------------------------------------------
 
-def make_audit_tag(repo, project_id="TEST", iter_id="ID_001",
-                   phase="implement", attempt=1, loop_session=1):
+
+def make_audit_tag(repo, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1):
     """Create a plet audit tag in the repo.
 
     Tag format: plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}
 
     Returns the tag name.
     """
-    tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(
-        project_id, loop_session, iter_id, phase, attempt)
-    subprocess.run(["git", "-C", repo, "tag", "-f", tag_name],
-                   capture_output=True, check=True)
+    tag_name = "plet/{}/loop{}/audit/{}/{}-{}".format(project_id, loop_session, iter_id, phase, attempt)
+    subprocess.run(["git", "-C", repo, "tag", "-f", tag_name], capture_output=True, check=True)
     return tag_name
 
 
 # ---------------------------------------------------------------------------
 # Test harness helpers
 # ---------------------------------------------------------------------------
+
 
 def make_check():
     """Create a check() function and counters for test assertions.

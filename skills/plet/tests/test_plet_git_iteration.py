@@ -28,16 +28,18 @@ def run(args, expect_exit=0, cwd=None):
     """Run plet_git_iteration.py with args, return (stdout, stderr, exit_code)."""
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True, text=True, cwd=cwd,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
-            "Expected exit {}, got {}\n"
-            "  args: {}\n"
-            "  stdout: {}\n"
-            "  stderr: {}".format(
-                expect_exit, result.returncode, args,
-                result.stdout, result.stderr,
+            "Expected exit {}, got {}\n  args: {}\n  stdout: {}\n  stderr: {}".format(
+                expect_exit,
+                result.returncode,
+                args,
+                result.stdout,
+                result.stderr,
             )
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
@@ -58,20 +60,18 @@ def check(name, condition, detail=""):
 # Fixture helpers
 # ---------------------------------------------------------------------------
 
+
 def make_git_repo(tmpdir):
     """Initialize a git repo with an initial commit. Returns the repo path."""
     subprocess.run(["git", "init", tmpdir], capture_output=True, check=True)
-    subprocess.run(["git", "-C", tmpdir, "config", "user.email", "test@test.com"],
-                   capture_output=True, check=True)
-    subprocess.run(["git", "-C", tmpdir, "config", "user.name", "Test"],
-                   capture_output=True, check=True)
+    subprocess.run(["git", "-C", tmpdir, "config", "user.email", "test@test.com"], capture_output=True, check=True)
+    subprocess.run(["git", "-C", tmpdir, "config", "user.name", "Test"], capture_output=True, check=True)
     # Create initial commit
     readme = os.path.join(tmpdir, "README.md")
     with open(readme, "w") as f:
         f.write("# Test\n")
     subprocess.run(["git", "-C", tmpdir, "add", "."], capture_output=True, check=True)
-    subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"],
-                   capture_output=True, check=True)
+    subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True, check=True)
     return tmpdir
 
 
@@ -101,17 +101,15 @@ VALID_STATE = {
 
 def create_workstream_branch(repo_dir, state):
     """Create the loop workstream branch that worktree-create branches from."""
-    branch = "plet/{}/loop{}/workstream".format(
-        state["projectId"], state["loopSessionCount"]
-    )
-    subprocess.run(["git", "-C", repo_dir, "branch", branch],
-                   capture_output=True, check=True)
+    branch = "plet/{}/loop{}/workstream".format(state["projectId"], state["loopSessionCount"])
+    subprocess.run(["git", "-C", repo_dir, "branch", branch], capture_output=True, check=True)
     return branch
 
 
 # ---------------------------------------------------------------------------
 # branch-name tests (RED phase — write tests first)
 # ---------------------------------------------------------------------------
+
 
 def test_help_all_commands():
     print("\n## Help on every command")
@@ -140,8 +138,7 @@ def test_branch_name_iteration():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001"],
-                           cwd=repo)
+        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001"], cwd=repo)
         check("iteration branch", stdout == "plet/LOGA/loop1/ID_001")
 
 
@@ -151,8 +148,7 @@ def test_branch_name_iteration_default_type():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_003"],
-                           cwd=repo)
+        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_003"], cwd=repo)
         check("default type is iteration", stdout == "plet/LOGA/loop1/ID_003")
 
 
@@ -162,8 +158,7 @@ def test_branch_name_workstream():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", plet_dir, "--type", "workstream"],
-                           cwd=repo)
+        stdout, _, _ = run(["branch-name", plet_dir, "--type", "workstream"], cwd=repo)
         check("workstream branch", stdout == "plet/LOGA/loop1/workstream")
 
 
@@ -173,8 +168,7 @@ def test_branch_name_plan():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", plet_dir, "--type", "plan"],
-                           cwd=repo)
+        stdout, _, _ = run(["branch-name", plet_dir, "--type", "plan"], cwd=repo)
         check("plan branch always 1", stdout == "plet/LOGA/plan1/workstream")
 
 
@@ -186,10 +180,8 @@ def test_branch_name_refine():
         state["refineSessionCount"] = 2
         plet_dir = write_state(repo, state)
 
-        stdout, _, _ = run(["branch-name", plet_dir, "--type", "refine"],
-                           cwd=repo)
-        check("refine branch uses refineSessionCount",
-              stdout == "plet/LOGA/refine2/workstream")
+        stdout, _, _ = run(["branch-name", plet_dir, "--type", "refine"], cwd=repo)
+        check("refine branch uses refineSessionCount", stdout == "plet/LOGA/refine2/workstream")
 
 
 def test_branch_name_json_output():
@@ -198,8 +190,7 @@ def test_branch_name_json_output():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, VALID_STATE)
 
-        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001",
-                            "--output", "json", "--pretty"], cwd=repo)
+        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty"], cwd=repo)
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("command", data["command"] == "branch-name")
@@ -216,8 +207,7 @@ def test_branch_name_different_session():
         state["loopSessionCount"] = 3
         plet_dir = write_state(repo, state)
 
-        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_005"],
-                           cwd=repo)
+        stdout, _, _ = run(["branch-name", plet_dir, "--iter-id", "ID_005"], cwd=repo)
         check("uses session count 3", stdout == "plet/LOGA/loop3/ID_005")
 
 
@@ -237,8 +227,7 @@ def test_branch_name_invalid_type():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, VALID_STATE)
 
-        _, stderr, _ = run(["branch-name", plet_dir, "--type", "bogus"],
-                           expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["branch-name", plet_dir, "--type", "bogus"], expect_exit=1, cwd=repo)
         check("error mentions invalid type", "invalid" in stderr)
 
 
@@ -248,19 +237,17 @@ def test_branch_name_bad_state():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, {"not": "valid"})
 
-        _, stderr, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001"],
-                           expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
         check("error from state validation", "error" in stderr.lower())
 
 
 def test_branch_name_plet_dir_not_found():
     print("\n## branch-name — plet_dir not found")
-    _, stderr, _ = run(["branch-name", "/nonexistent/plet",
-                        "--iter-id", "ID_001"], expect_exit=1)
-    check("error mentions directory",
-          "not found" in stderr.lower()
-          or "does not exist" in stderr.lower()
-          or "directory" in stderr.lower())
+    _, stderr, _ = run(["branch-name", "/nonexistent/plet", "--iter-id", "ID_001"], expect_exit=1)
+    check(
+        "error mentions directory",
+        "not found" in stderr.lower() or "does not exist" in stderr.lower() or "directory" in stderr.lower(),
+    )
 
 
 def test_branch_name_dry_run_rejected():
@@ -269,14 +256,14 @@ def test_branch_name_dry_run_rejected():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, VALID_STATE)
 
-        _, stderr, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001",
-                            "--dry-run"], expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["branch-name", plet_dir, "--iter-id", "ID_001", "--dry-run"], expect_exit=1, cwd=repo)
         check("error mentions dry-run", "dry-run" in stderr.lower() or "dry_run" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------
 # Worktree test helpers
 # ---------------------------------------------------------------------------
+
 
 def branch_exists_in_repo(repo, branch_name):
     """Check if branch exists in the given repo."""
@@ -294,6 +281,7 @@ def git_run_in(repo, args):
 # worktree-create tests
 # ---------------------------------------------------------------------------
 
+
 def test_worktree_create():
     print("\n## worktree-create — basic")
     with tempfile.TemporaryDirectory() as d:
@@ -301,8 +289,7 @@ def test_worktree_create():
         plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"],
-                           cwd=repo)
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
         check("success message", "OK" in stdout and "ID_001" in stdout)
         check("not resumed", "resumed" not in stdout.lower())
 
@@ -324,8 +311,9 @@ def test_worktree_create_json():
         plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_002",
-                            "--output", "json", "--pretty"], cwd=repo)
+        stdout, _, _ = run(
+            ["worktree-create", plet_dir, "--iter-id", "ID_002", "--output", "json", "--pretty"], cwd=repo
+        )
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("resumed false", data["resumed"] is False)
@@ -344,8 +332,7 @@ def test_worktree_create_dry_run():
         plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001",
-                            "--dry-run"], cwd=repo)
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001", "--dry-run"], cwd=repo)
         check("dry run message", "DRY RUN" in stdout)
 
         # Verify nothing was created
@@ -364,8 +351,7 @@ def test_worktree_create_path_exists():
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
         os.makedirs(wt_path)
 
-        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"],
-                           expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
         check("error mentions path exists", "already exists" in stderr)
 
 
@@ -376,8 +362,7 @@ def test_worktree_create_no_base_branch():
         plet_dir = write_state(repo, VALID_STATE)
         # Don't create workstream branch
 
-        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"],
-                           expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
         check("error mentions base branch", "base branch" in stderr.lower() or "not found" in stderr.lower())
 
 
@@ -396,12 +381,10 @@ def test_worktree_create_auto_resume():
         git_run_in(repo, ["worktree", "remove", "--force", wt_path])
 
         # Branch should still exist
-        check("branch still exists after remove",
-              branch_exists_in_repo(repo, "plet/LOGA/loop1/ID_001"))
+        check("branch still exists after remove", branch_exists_in_repo(repo, "plet/LOGA/loop1/ID_001"))
 
         # Create again — should auto-resume
-        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001",
-                            "--output", "json"], cwd=repo)
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001", "--output", "json"], cwd=repo)
         data = json.loads(stdout)
         check("resumed is true", data["resumed"] is True)
 
@@ -415,8 +398,7 @@ def test_worktree_create_not_git_repo():
         # Don't init git
         plet_dir = write_state(d, VALID_STATE)
 
-        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"],
-                           expect_exit=1, cwd=d)
+        _, stderr, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=d)
         check("error mentions git", "git" in stderr.lower())
 
 
@@ -427,11 +409,9 @@ def test_worktree_create_projectid_namespace():
         plet_dir = write_state(repo, VALID_STATE)
         create_workstream_branch(repo, VALID_STATE)
 
-        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001",
-                            "--output", "json"], cwd=repo)
+        stdout, _, _ = run(["worktree-create", plet_dir, "--iter-id", "ID_001", "--output", "json"], cwd=repo)
         data = json.loads(stdout)
-        check("path includes projectId",
-              "/LOGA/" in data["worktreePath"])
+        check("path includes projectId", "/LOGA/" in data["worktreePath"])
 
         # Cleanup
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
@@ -442,6 +422,7 @@ def test_worktree_create_projectid_namespace():
 # worktree-remove tests
 # ---------------------------------------------------------------------------
 
+
 def test_worktree_remove():
     print("\n## worktree-remove — basic (keep branch)")
     with tempfile.TemporaryDirectory() as d:
@@ -451,8 +432,7 @@ def test_worktree_remove():
 
         # Create then remove
         run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001"],
-                           cwd=repo)
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001"], cwd=repo)
 
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
         check("success message", "OK" in stdout)
@@ -469,8 +449,7 @@ def test_worktree_remove_delete_branch():
 
         # Create then remove with branch deletion
         run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001",
-                            "--delete-branch"], cwd=repo)
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001", "--delete-branch"], cwd=repo)
 
         check("success mentions branch", "branch" in stdout.lower())
         check("branch deleted", not branch_exists_in_repo(repo, "plet/LOGA/loop1/ID_001"))
@@ -484,8 +463,7 @@ def test_worktree_remove_dry_run():
         create_workstream_branch(repo, VALID_STATE)
 
         run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001",
-                            "--dry-run"], cwd=repo)
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001", "--dry-run"], cwd=repo)
 
         wt_path = os.path.join(repo, DEFAULT_WORKTREE_DIR, "LOGA", "ID_001")
         check("dry run message", "DRY RUN" in stdout)
@@ -501,8 +479,7 @@ def test_worktree_remove_not_found():
         repo = make_git_repo(d)
         plet_dir = write_state(repo, VALID_STATE)
 
-        _, stderr, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_999"],
-                           expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_999"], expect_exit=1, cwd=repo)
         check("error mentions not found", "no worktree" in stderr.lower())
 
 
@@ -521,8 +498,7 @@ def test_worktree_remove_dirty():
             f.write("binary stuff")
 
         # Should succeed (--force)
-        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001"],
-                           cwd=repo)
+        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001"], cwd=repo)
         check("removed despite untracked", "OK" in stdout)
         check("worktree gone", not os.path.exists(wt_path))
 
@@ -535,8 +511,9 @@ def test_worktree_remove_json():
         create_workstream_branch(repo, VALID_STATE)
 
         run(["worktree-create", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        stdout, _, _ = run(["worktree-remove", plet_dir, "--iter-id", "ID_001",
-                            "--output", "json", "--pretty"], cwd=repo)
+        stdout, _, _ = run(
+            ["worktree-remove", plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty"], cwd=repo
+        )
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("branchDeleted false", data["branchDeleted"] is False)
@@ -545,6 +522,7 @@ def test_worktree_remove_json():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     # branch-name

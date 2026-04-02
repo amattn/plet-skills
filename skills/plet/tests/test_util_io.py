@@ -17,7 +17,7 @@ import tempfile
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 sys.path.insert(0, SCRIPTS_DIR)
 
-import util_io
+import util_io  # noqa: E402
 
 passed = 0
 failed = 0
@@ -38,6 +38,7 @@ def check(name, condition, detail=""):
 # load_json
 # ---------------------------------------------------------------------------
 
+
 def test_load_json_valid():
     print("\n## load_json — valid file")
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -53,6 +54,7 @@ def test_load_json_valid():
 def test_load_json_not_found():
     print("\n## load_json — file not found")
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     data = util_io.load_json("/nonexistent/path/file.json")
@@ -71,6 +73,7 @@ def test_load_json_invalid():
         path = f.name
     try:
         import io
+
         old_stderr = sys.stderr
         sys.stderr = io.StringIO()
         data = util_io.load_json(path)
@@ -90,6 +93,7 @@ def test_load_json_empty_file():
         path = f.name
     try:
         import io
+
         old_stderr = sys.stderr
         sys.stderr = io.StringIO()
         data = util_io.load_json(path)
@@ -103,6 +107,7 @@ def test_load_json_empty_file():
 # ---------------------------------------------------------------------------
 # atomic_write_json
 # ---------------------------------------------------------------------------
+
 
 def test_atomic_write_json_basic():
     print("\n## atomic_write_json — basic write")
@@ -186,6 +191,7 @@ def test_atomic_write_json_nested():
 # load_text
 # ---------------------------------------------------------------------------
 
+
 def test_load_text_valid():
     print("\n## load_text — valid file")
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -202,6 +208,7 @@ def test_load_text_valid():
 def test_load_text_not_found():
     print("\n## load_text — file not found")
     import io
+
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     result = util_io.load_text("/nonexistent/path/file.txt")
@@ -240,6 +247,7 @@ def test_load_text_multiline():
 # ---------------------------------------------------------------------------
 # atomic_append
 # ---------------------------------------------------------------------------
+
 
 def test_atomic_append_new_file():
     print("\n## atomic_append — creates new file")
@@ -298,6 +306,7 @@ def test_atomic_append_multiline():
 # Path derivation
 # ---------------------------------------------------------------------------
 
+
 def test_path_derivation():
     print("\n## path derivation functions")
     check("state_json_path", util_io.state_json_path("plet") == os.path.join("plet", "state.json"))
@@ -309,16 +318,20 @@ def test_path_derivation():
     check("learnings_path", util_io.learnings_path("plet") == os.path.join("plet", "learnings.md"))
     check("emergent_path", util_io.emergent_path("plet") == os.path.join("plet", "emergent.md"))
     check("trace_dir_path", util_io.trace_dir_path("plet") == os.path.join("plet", "trace"))
-    check("events_path",
-          util_io.events_path("plet", "ID_001", "implement", 1)
-          == os.path.join("plet", "trace", "ID_001-implement-1-events.ndjson"))
-    check("transcript_path",
-          util_io.transcript_path("plet", "ID_001", "verify", 2)
-          == os.path.join("plet", "trace",
-                          "ID_001-verify-2-transcript.ndjson"))
-    check("custom plet_dir",
-          util_io.state_json_path("/tmp/myproject/plet")
-          == os.path.join("/tmp/myproject/plet", "state.json"))
+    check(
+        "events_path",
+        util_io.events_path("plet", "ID_001", "implement", 1)
+        == os.path.join("plet", "trace", "ID_001-implement-1-events.ndjson"),
+    )
+    check(
+        "transcript_path",
+        util_io.transcript_path("plet", "ID_001", "verify", 2)
+        == os.path.join("plet", "trace", "ID_001-verify-2-transcript.ndjson"),
+    )
+    check(
+        "custom plet_dir",
+        util_io.state_json_path("/tmp/myproject/plet") == os.path.join("/tmp/myproject/plet", "state.json"),
+    )
     check("DEFAULT_PLET_DIR", util_io.DEFAULT_PLET_DIR == "plet/")
 
 
@@ -342,6 +355,7 @@ def test_validate_plet_dir():
         check("file error mentions file", "got file" in err)
     finally:
         import shutil
+
         shutil.rmtree(tmpdir)
 
 
@@ -405,6 +419,7 @@ def test_convenience_loaders():
         check("missing requirements.md returns None", text is None)
     finally:
         import shutil
+
         shutil.rmtree(tmpdir)
 
 

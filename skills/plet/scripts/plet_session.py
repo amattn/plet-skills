@@ -52,6 +52,7 @@ COUNTER_KEY = {
 def _format_duration(start_iso, end_iso):
     """Format duration between two ISO timestamps as human-readable string."""
     import datetime
+
     try:
         start = datetime.datetime.strptime(start_iso, "%Y-%m-%dT%H:%M:%SZ")
         end = datetime.datetime.strptime(end_iso, "%Y-%m-%dT%H:%M:%SZ")
@@ -83,6 +84,7 @@ def _find_active_sessions(history):
 # ---------------------------------------------------------------------------
 # start-session
 # ---------------------------------------------------------------------------
+
 
 def _ensure_merge_driver(plet_dir):
     """Ensure the plet-append merge driver is configured.
@@ -124,11 +126,13 @@ def _ensure_merge_driver(plet_dir):
         driver_cmd = "{} {} %O %A %B".format(sys.executable, driver_path)
         subprocess.run(
             ["git", "config", "merge.plet-append.driver", driver_cmd],
-            capture_output=True, cwd=project_root,
+            capture_output=True,
+            cwd=project_root,
         )
         subprocess.run(
             ["git", "config", "merge.plet-append.name", "plet append-only merge"],
-            capture_output=True, cwd=project_root,
+            capture_output=True,
+            cwd=project_root,
         )
 
 
@@ -208,9 +212,11 @@ def cmd_start_session(args):
     active = _find_active_sessions(history)
     if len(active) > 1:
         indices = [str(i) for i, _ in active]
-        print("Error: corrupt sessionHistory — multiple active sessions "
-              "found (entries {}). Manual repair required.".format(
-                  ", ".join(indices)), file=sys.stderr)
+        print(
+            "Error: corrupt sessionHistory — multiple active sessions "
+            "found (entries {}). Manual repair required.".format(", ".join(indices)),
+            file=sys.stderr,
+        )
         return 1
 
     # Resume detection: same type already active
@@ -239,10 +245,12 @@ def cmd_start_session(args):
             return 0
         else:
             # Cross-type conflict
-            print("Error: {} session {} is still active (endedAt: null). "
-                  "Run end-session first.".format(
-                      active_entry["type"], active_entry["session"]),
-                  file=sys.stderr)
+            print(
+                "Error: {} session {} is still active (endedAt: null). Run end-session first.".format(
+                    active_entry["type"], active_entry["session"]
+                ),
+                file=sys.stderr,
+            )
             print(_help_hint("start-session"), file=sys.stderr)
             return 1
 
@@ -289,6 +297,7 @@ def cmd_start_session(args):
 # ---------------------------------------------------------------------------
 # end-session
 # ---------------------------------------------------------------------------
+
 
 def cmd_end_session(args):
     """End the active session.
@@ -346,9 +355,11 @@ def cmd_end_session(args):
     active = _find_active_sessions(history)
     if len(active) > 1:
         indices = [str(i) for i, _ in active]
-        print("Error: corrupt sessionHistory — multiple active sessions "
-              "found (entries {}). Manual repair required.".format(
-                  ", ".join(indices)), file=sys.stderr)
+        print(
+            "Error: corrupt sessionHistory — multiple active sessions "
+            "found (entries {}). Manual repair required.".format(", ".join(indices)),
+            file=sys.stderr,
+        )
         return 1
 
     # Already ended (idempotent)
@@ -395,8 +406,7 @@ def cmd_end_session(args):
         }
         emit_json(data, SCRIPT_VERSION, pretty, fields)
     else:
-        print("Ended: {} {} ({})".format(
-            active_entry["type"], active_entry["session"], duration_str))
+        print("Ended: {} {} ({})".format(active_entry["type"], active_entry["session"], duration_str))
         print("Branch: {}".format(active_entry["branch"]))
 
     return 0
@@ -406,14 +416,13 @@ def cmd_end_session(args):
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "start-session": cmd_start_session,
         "end-session": cmd_end_session,
     }
-    return dispatch(
-        commands, "plet_session", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_session", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

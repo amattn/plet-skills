@@ -62,10 +62,6 @@ OPTIONAL_FIELDS = {
 }
 
 
-
-
-
-
 def validate_global_state(data):
     """Validate all fields in a parsed state.json dict.
 
@@ -79,16 +75,17 @@ def validate_global_state(data):
         if field not in data:
             errors.append("missing required field '{}'".format(field))
         elif not isinstance(data[field], expected_type):
-            errors.append("field '{}' must be {}, got {}".format(
-                field, expected_type.__name__, type(data[field]).__name__))
+            errors.append(
+                "field '{}' must be {}, got {}".format(field, expected_type.__name__, type(data[field]).__name__)
+            )
 
     # Validate projectId pattern (if present and is string)
     if "projectId" in data and isinstance(data["projectId"], str):
         if not PROJECT_ID_RE.match(data["projectId"]):
             errors.append(
                 "projectId '{}' does not match pattern [A-Z][A-Z0-9]{{2,5}} "
-                "(3-6 chars, starts with letter, uppercase alphanumeric)".format(
-                    data["projectId"]))
+                "(3-6 chars, starts with letter, uppercase alphanumeric)".format(data["projectId"])
+            )
 
     # Validate project.name (if project is present and is dict)
     if "project" in data and isinstance(data["project"], dict):
@@ -98,16 +95,17 @@ def validate_global_state(data):
     # Validate optional fields types when present
     for field, expected_type in OPTIONAL_FIELDS.items():
         if field in data and not isinstance(data[field], expected_type):
-            errors.append("field '{}' must be {}, got {}".format(
-                field, expected_type.__name__, type(data[field]).__name__))
+            errors.append(
+                "field '{}' must be {}, got {}".format(field, expected_type.__name__, type(data[field]).__name__)
+            )
 
     # Validate lifecycles values when present (SF_28 dual-schema migration)
     if "lifecycles" in data and isinstance(data["lifecycles"], dict):
         for iter_id, lc in data["lifecycles"].items():
             if not isinstance(lc, str) or lc not in VALID_LIFECYCLES:
                 errors.append(
-                    "lifecycles.{}: invalid lifecycle '{}' (valid: {})".format(
-                        iter_id, lc, ", ".join(VALID_LIFECYCLES)))
+                    "lifecycles.{}: invalid lifecycle '{}' (valid: {})".format(iter_id, lc, ", ".join(VALID_LIFECYCLES))
+                )
 
     # Validate session counts are non-negative integers when present
     for field in ("loopSessionCount", "refineSessionCount"):
@@ -117,8 +115,7 @@ def validate_global_state(data):
                 # bool is subclass of int in Python — reject it
                 errors.append("field '{}' must be int, got bool".format(field))
             elif isinstance(val, int) and val < 0:
-                errors.append("field '{}' must be non-negative, got {}".format(
-                    field, val))
+                errors.append("field '{}' must be non-negative, got {}".format(field, val))
             elif isinstance(val, float):
                 errors.append("field '{}' must be int, got float".format(field))
 
@@ -173,8 +170,13 @@ def load_and_validate_global_state(plet_dir):
 ITER_ID_RE = re.compile(r"^ID_\d+$")
 
 VALID_LIFECYCLES = [
-    "ineligible", "queued", "implementing", "verifying",
-    "complete", "blocked", "withdrawn",
+    "ineligible",
+    "queued",
+    "implementing",
+    "verifying",
+    "complete",
+    "blocked",
+    "withdrawn",
 ]
 
 ITER_REQUIRED_FIELDS = {
@@ -205,10 +207,6 @@ ITER_OPTIONAL_DEFAULTS = {
 }
 
 
-
-
-
-
 def validate_iter_state(data):
     """Validate all fields in a parsed per-iteration state dict.
 
@@ -222,35 +220,30 @@ def validate_iter_state(data):
         if field not in data:
             errors.append("missing required field '{}'".format(field))
         elif not isinstance(data[field], expected_type):
-            errors.append("field '{}' must be {}, got {}".format(
-                field, expected_type.__name__, type(data[field]).__name__))
+            errors.append(
+                "field '{}' must be {}, got {}".format(field, expected_type.__name__, type(data[field]).__name__)
+            )
 
     # agentId: required, must be string or null
     if "agentId" not in data:
         errors.append("missing required field 'agentId'")
     elif data["agentId"] is not None and not isinstance(data["agentId"], str):
-        errors.append("field 'agentId' must be string or null, got {}".format(
-            type(data["agentId"]).__name__))
+        errors.append("field 'agentId' must be string or null, got {}".format(type(data["agentId"]).__name__))
 
     # Validate iterationId pattern
     if "iterationId" in data and isinstance(data["iterationId"], str):
         if not ITER_ID_RE.match(data["iterationId"]):
-            errors.append(
-                "iterationId '{}' does not match pattern ID_N+ "
-                "(e.g., ID_001)".format(data["iterationId"]))
+            errors.append("iterationId '{}' does not match pattern ID_N+ (e.g., ID_001)".format(data["iterationId"]))
 
     # Reject deprecated fields (SF_28 — lifecycle extraction complete, seq 41a)
     if "lifecycle" in data:
         errors.append(
-            "field 'lifecycle' is deprecated in per-iteration state — "
-            "lifecycle is now in state.json.lifecycles (SF_28)")
+            "field 'lifecycle' is deprecated in per-iteration state — lifecycle is now in state.json.lifecycles (SF_28)"
+        )
     if "agentActivity" in data:
-        errors.append(
-            "field 'agentActivity' is deprecated — use 'phaseActivity' (SF_28)")
+        errors.append("field 'agentActivity' is deprecated — use 'phaseActivity' (SF_28)")
     if "lastVerdict" in data:
-        errors.append(
-            "field 'lastVerdict' is deprecated — use 'implementVerdict' "
-            "and 'verifyVerdict' (SF_28)")
+        errors.append("field 'lastVerdict' is deprecated — use 'implementVerdict' and 'verifyVerdict' (SF_28)")
 
     # Validate attempts object
     if "attempts" in data and isinstance(data["attempts"], dict):
@@ -262,11 +255,9 @@ def validate_iter_state(data):
                 if isinstance(val, bool):
                     errors.append("attempts.{} must be int, got bool".format(phase_key))
                 elif not isinstance(val, int):
-                    errors.append("attempts.{} must be int, got {}".format(
-                        phase_key, type(val).__name__))
+                    errors.append("attempts.{} must be int, got {}".format(phase_key, type(val).__name__))
                 elif val < 0:
-                    errors.append("attempts.{} must be non-negative, got {}".format(
-                        phase_key, val))
+                    errors.append("attempts.{} must be non-negative, got {}".format(phase_key, val))
 
     return errors
 

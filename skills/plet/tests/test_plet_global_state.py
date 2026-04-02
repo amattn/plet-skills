@@ -26,12 +26,15 @@ def run(args, expect_exit=0):
     """Run the script with args via subprocess, assert exit code."""
     result = subprocess.run(
         [sys.executable, TOOL] + args,
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
             "Expected exit {}, got {}.\nstdout: {}\nstderr: {}".format(
-                expect_exit, result.returncode, result.stdout, result.stderr))
+                expect_exit, result.returncode, result.stdout, result.stderr
+            )
+        )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
@@ -75,6 +78,7 @@ VALID_STATE = {
 # --help and --version
 # ---------------------------------------------------------------------------
 
+
 def test_help():
     print("\n## --help and --version")
     out, _, _ = run(["--help"])
@@ -101,6 +105,7 @@ def test_help():
 # ---------------------------------------------------------------------------
 # validate
 # ---------------------------------------------------------------------------
+
 
 def test_validate_valid():
     print("\n## validate — valid state.json")
@@ -163,19 +168,26 @@ def test_validate_invalid_lifecycle_in_lifecycles():
 # init
 # ---------------------------------------------------------------------------
 
+
 def test_init_basic():
     print("\n## init — basic creation")
     with tempfile.TemporaryDirectory() as d:
-        out, _, _ = run([
-            "init", d,
-            "--project-id", "LOGA",
-            "--project-name", "Log Analyzer",
-            "--dependency-map", '{"ID_001":[],"ID_002":["ID_001"]}',
-            "--milestones", '{"MS_1":{"name":"MVP","iterations":["ID_001","ID_002"]}}',
-            "--iterations-fingerprint",
-            '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z",'
-            '"iterations":{"MS_1":["ID_001","ID_002"]}}',
-        ])
+        out, _, _ = run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "LOGA",
+                "--project-name",
+                "Log Analyzer",
+                "--dependency-map",
+                '{"ID_001":[],"ID_002":["ID_001"]}',
+                "--milestones",
+                '{"MS_1":{"name":"MVP","iterations":["ID_001","ID_002"]}}',
+                "--iterations-fingerprint",
+                '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z","iterations":{"MS_1":["ID_001","ID_002"]}}',
+            ]
+        )
         check("exits 0", True)
         check("OK in output", "OK" in out)
         check("project id in output", "LOGA" in out)
@@ -195,14 +207,22 @@ def test_init_basic():
 def test_init_lifecycles_auto():
     print("\n## init — lifecycles auto-initialized from dependency map")
     with tempfile.TemporaryDirectory() as d:
-        run([
-            "init", d,
-            "--project-id", "TEST",
-            "--project-name", "Test",
-            "--dependency-map", '{"ID_001":[],"ID_002":["ID_001"],"ID_003":[]}',
-            "--milestones", '{}',
-            "--iterations-fingerprint", '{}',
-        ])
+        run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                '{"ID_001":[],"ID_002":["ID_001"],"ID_003":[]}',
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+            ]
+        )
         with open(os.path.join(d, "state.json")) as f:
             data = json.load(f)
 
@@ -215,14 +235,22 @@ def test_init_lifecycles_auto():
 def test_init_creates_state_dir():
     print("\n## init — creates state/ subdirectory")
     with tempfile.TemporaryDirectory() as d:
-        run([
-            "init", d,
-            "--project-id", "TEST",
-            "--project-name", "Test",
-            "--dependency-map", '{}',
-            "--milestones", '{}',
-            "--iterations-fingerprint", '{}',
-        ])
+        run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                "{}",
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+            ]
+        )
         state_dir = os.path.join(d, "state")
         check("state/ dir exists", os.path.isdir(state_dir))
 
@@ -230,14 +258,22 @@ def test_init_creates_state_dir():
 def test_init_defaults():
     print("\n## init — default values for optional fields")
     with tempfile.TemporaryDirectory() as d:
-        run([
-            "init", d,
-            "--project-id", "TEST",
-            "--project-name", "Test",
-            "--dependency-map", '{}',
-            "--milestones", '{}',
-            "--iterations-fingerprint", '{}',
-        ])
+        run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                "{}",
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+            ]
+        )
         with open(os.path.join(d, "state.json")) as f:
             data = json.load(f)
 
@@ -255,57 +291,93 @@ def test_init_exists_error():
     print("\n## init — errors if state.json already exists")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        _, err, _ = run([
-            "init", d,
-            "--project-id", "TEST",
-            "--project-name", "Test",
-            "--dependency-map", '{}',
-            "--milestones", '{}',
-            "--iterations-fingerprint", '{}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                "{}",
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+            ],
+            expect_exit=1,
+        )
         check("error mentions exists", "already exists" in err or "exists" in err.lower())
 
 
 def test_init_invalid_project_id():
     print("\n## init — invalid project ID")
     with tempfile.TemporaryDirectory() as d:
-        _, err, _ = run([
-            "init", d,
-            "--project-id", "bad",
-            "--project-name", "Test",
-            "--dependency-map", '{}',
-            "--milestones", '{}',
-            "--iterations-fingerprint", '{}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "bad",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                "{}",
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+            ],
+            expect_exit=1,
+        )
         check("rejects lowercase", "bad" in err or "pattern" in err.lower())
 
 
 def test_init_invalid_json_arg():
     print("\n## init — invalid JSON in --dependency-map")
     with tempfile.TemporaryDirectory() as d:
-        _, err, _ = run([
-            "init", d,
-            "--project-id", "TEST",
-            "--project-name", "Test",
-            "--dependency-map", "not json",
-            "--milestones", '{}',
-            "--iterations-fingerprint", '{}',
-        ], expect_exit=1)
+        _, err, _ = run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                "not json",
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+            ],
+            expect_exit=1,
+        )
         check("rejects bad JSON", "json" in err.lower() or "invalid" in err.lower())
 
 
 def test_init_json_output():
     print("\n## init — JSON output")
     with tempfile.TemporaryDirectory() as d:
-        out, _, _ = run([
-            "init", d,
-            "--project-id", "TEST",
-            "--project-name", "Test",
-            "--dependency-map", '{"ID_001":[]}',
-            "--milestones", '{}',
-            "--iterations-fingerprint", '{}',
-            "--output", "json",
-        ])
+        out, _, _ = run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                '{"ID_001":[]}',
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+                "--output",
+                "json",
+            ]
+        )
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
         check("command init", data["command"] == "init")
@@ -315,23 +387,33 @@ def test_init_json_output():
 
 def test_init_plet_dir_missing():
     print("\n## init — plet_dir does not exist")
-    _, err, _ = run([
-        "init", "/nonexistent/path",
-        "--project-id", "TEST",
-        "--project-name", "Test",
-        "--dependency-map", '{}',
-        "--milestones", '{}',
-        "--iterations-fingerprint", '{}',
-    ], expect_exit=1)
-    check("error mentions directory",
-          "not found" in err.lower()
-          or "not exist" in err.lower()
-          or "directory" in err.lower())
+    _, err, _ = run(
+        [
+            "init",
+            "/nonexistent/path",
+            "--project-id",
+            "TEST",
+            "--project-name",
+            "Test",
+            "--dependency-map",
+            "{}",
+            "--milestones",
+            "{}",
+            "--iterations-fingerprint",
+            "{}",
+        ],
+        expect_exit=1,
+    )
+    check(
+        "error mentions directory",
+        "not found" in err.lower() or "not exist" in err.lower() or "directory" in err.lower(),
+    )
 
 
 # ---------------------------------------------------------------------------
 # update-lifecycle
 # ---------------------------------------------------------------------------
+
 
 def test_update_lifecycle_basic():
     print("\n## update-lifecycle — basic transition")
@@ -379,10 +461,18 @@ def test_update_lifecycle_json_output():
     print("\n## update-lifecycle — JSON output")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run([
-            "update-lifecycle", d, "--iter-id", "ID_001",
-            "--lifecycle", "implementing", "--output", "json",
-        ])
+        out, _, _ = run(
+            [
+                "update-lifecycle",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--lifecycle",
+                "implementing",
+                "--output",
+                "json",
+            ]
+        )
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
         check("from queued", data["from"] == "queued")
@@ -431,6 +521,7 @@ def test_update_lifecycle_updates_timestamp():
 # ---------------------------------------------------------------------------
 # get-lifecycle
 # ---------------------------------------------------------------------------
+
 
 def test_get_lifecycle_all():
     print("\n## get-lifecycle — all iterations")
@@ -517,6 +608,7 @@ def test_get_lifecycle_empty():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     test_help()

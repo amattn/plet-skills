@@ -81,18 +81,10 @@ def parse_kwargs(args):
     while i < len(args):
         arg = args[i]
         if not arg.startswith("--"):
-            raise ValueError(
-                "Error: unexpected positional argument '{}' "
-                "(expected --flag)".format(arg)
-            )
+            raise ValueError("Error: unexpected positional argument '{}' (expected --flag)".format(arg))
         key = arg[2:].replace("-", "_")
         if key in result:
-            raise ValueError(
-                "Error: duplicate flag --{} "
-                "(each flag can only be specified once)".format(
-                    arg[2:]
-                )
-            )
+            raise ValueError("Error: duplicate flag --{} (each flag can only be specified once)".format(arg[2:]))
         # Check if next arg is a value or another flag (or end of args)
         if i + 1 < len(args) and not args[i + 1].startswith("--"):
             result[key] = args[i + 1]
@@ -144,8 +136,7 @@ def validate_known_flags(kwargs, known_flags, help_hint=""):
     for key in kwargs:
         if key not in known:
             flag = "--" + key.replace("_", "-")
-            print("Error: unknown flag {}. {}".format(flag, help_hint),
-                  file=sys.stderr)
+            print("Error: unknown flag {}. {}".format(flag, help_hint), file=sys.stderr)
             return False
     return True
 
@@ -158,9 +149,7 @@ def validate_enum(value, valid_values, field_name):
     """
     if value not in valid_values:
         print(
-            "Error: invalid {} '{}' (valid: {})".format(
-                field_name, value, ", ".join(valid_values)
-            ),
+            "Error: invalid {} '{}' (valid: {})".format(field_name, value, ", ".join(valid_values)),
             file=sys.stderr,
         )
         return False
@@ -188,8 +177,7 @@ def now_iso():
     return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def dispatch(commands, script_name, script_version, skill_version, doc, argv=None,
-             no_log_commands=None):
+def dispatch(commands, script_name, script_version, skill_version, doc, argv=None, no_log_commands=None):
     """Standard main() entry point for plet scripts.
 
     Parses argv to extract command name, handles --help, --version,
@@ -234,11 +222,7 @@ def dispatch(commands, script_name, script_version, skill_version, doc, argv=Non
         return 0
 
     if cmd == "--version":
-        print(
-            "{} {} (built against plet skill {})".format(
-                script_name, script_version, skill_version
-            )
-        )
+        print("{} {} (built against plet skill {})".format(script_name, script_version, skill_version))
         return 0
 
     if cmd not in commands:
@@ -271,6 +255,7 @@ def _extract_plet_dir(args):
     """Extract plet_dir from args (first non-flag arg that is a directory)."""
     import os as _os
     from util_io import DEFAULT_PLET_DIR
+
     for a in args:
         if a.startswith("-"):
             continue
@@ -280,8 +265,7 @@ def _extract_plet_dir(args):
         path = a
         for _ in range(3):
             parent = _os.path.dirname(path)
-            if parent and _os.path.isdir(parent) and _os.path.isfile(
-                    _os.path.join(parent, "state.json")):
+            if parent and _os.path.isdir(parent) and _os.path.isfile(_os.path.join(parent, "state.json")):
                 return parent
             path = parent
         return a
@@ -296,9 +280,13 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
     """
     try:
         import os as _os
-        from util_io import (atomic_append, events_path, trace_dir_path,
-                             progress_path as _progress_path,
-                             state_json_path as _state_json_path)
+        from util_io import (
+            atomic_append,
+            events_path,
+            trace_dir_path,
+            progress_path as _progress_path,
+            state_json_path as _state_json_path,
+        )
         from util_id import generate_plet_id
 
         plet_dir = _extract_plet_dir(args)
@@ -335,24 +323,29 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
         _os.makedirs(trace_dir_path(plet_dir), exist_ok=True)
         trace_file = events_path(plet_dir, iter_id, phase, int(attempt))
         tev_id = generate_plet_id("tev", iter_id, phase, int(attempt))
-        trace_line = json.dumps({
-            "pletId": tev_id,
-            "timestamp": timestamp,
-            "type": "invocation",
-            "iterationId": iter_id,
-            "phase": phase,
-            "attempt": int(attempt),
-            "data": {
-                "cwd": _os.getcwd(),
-                "permissionMode": "n/a",
-                "promptLength": 0,
-                "script": script_name,
-                "command": command,
-                "args": args,
-                "exitCode": exit_code,
-                "scriptVersion": script_version,
-            },
-        }) + "\n"
+        trace_line = (
+            json.dumps(
+                {
+                    "pletId": tev_id,
+                    "timestamp": timestamp,
+                    "type": "invocation",
+                    "iterationId": iter_id,
+                    "phase": phase,
+                    "attempt": int(attempt),
+                    "data": {
+                        "cwd": _os.getcwd(),
+                        "permissionMode": "n/a",
+                        "promptLength": 0,
+                        "script": script_name,
+                        "command": command,
+                        "args": args,
+                        "exitCode": exit_code,
+                        "scriptVersion": script_version,
+                    },
+                }
+            )
+            + "\n"
+        )
         atomic_append(trace_file, trace_line)
 
         # Progress entry — compact one-liner with trace ID for details
@@ -364,11 +357,15 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
         status_str = "exit 0" if exit_code == 0 else "exit {}".format(exit_code)
         entry = (
             '<div id="plet-{epr}"></div>\n'
-            '{script} {cmd} {iter} — {status} (trace: {tev})\n'
+            "{script} {cmd} {iter} — {status} (trace: {tev})\n"
             '<div id="END-plet-{epr}"></div>\n'
         ).format(
-            epr=epr_id, script=script_name, cmd=command,
-            iter=iter_id, status=status_str, tev=tev_id,
+            epr=epr_id,
+            script=script_name,
+            cmd=command,
+            iter=iter_id,
+            status=status_str,
+            tev=tev_id,
         )
         atomic_append(prog_path, entry)
     except Exception:
@@ -408,7 +405,7 @@ def filter_fields(data, fields):
 # Shared CLI helpers (UNV_CMD_26)
 # ---------------------------------------------------------------------------
 
-import json
+import json  # noqa: E402
 
 
 def get_plet_dir(args):

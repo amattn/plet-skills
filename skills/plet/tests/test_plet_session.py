@@ -26,7 +26,8 @@ def run(args, expect_exit=0):
     """Run the script with args via subprocess, assert exit code."""
     result = subprocess.run(
         [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
@@ -48,8 +49,7 @@ def check(name, condition, detail=""):
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
 
 
-def make_global_state(plet_dir, project_id="TEST", loop_count=0, refine_count=0,
-                      session_history=None):
+def make_global_state(plet_dir, project_id="TEST", loop_count=0, refine_count=0, session_history=None):
     """Create a minimal global state.json."""
     state = {
         "schemaVersion": "0.2.0",
@@ -98,8 +98,7 @@ with tempfile.TemporaryDirectory() as tmp:
     os.makedirs(plet_dir)
     out, err, _ = run(["start-session", plet_dir, "--type", "loop"], expect_exit=1)
     check("missing state.json exits 1", True)
-    check("error mentions state.json", "state.json" in err.lower() or "state.json" in out.lower(),
-          "stderr: " + err)
+    check("error mentions state.json", "state.json" in err.lower() or "state.json" in out.lower(), "stderr: " + err)
 
 # ===========================================================================
 # start-session — missing --type
@@ -124,8 +123,7 @@ with tempfile.TemporaryDirectory() as tmp:
     make_global_state(plet_dir)
     out, err, _ = run(["start-session", plet_dir, "--type", "plan"], expect_exit=1)
     check("invalid type exits 1", True)
-    check("error mentions valid types", "loop" in err and "refine" in err,
-          "stderr: " + err)
+    check("error mentions valid types", "loop" in err and "refine" in err, "stderr: " + err)
 
 # ===========================================================================
 # start-session — first loop session
@@ -163,13 +161,20 @@ print("\n## start-session — first refine session")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", refine_count=0,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": "2026-03-29T12:00:00Z"}
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        refine_count=0,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": "2026-03-29T12:00:00Z",
+            }
+        ],
+    )
 
     out, err, _ = run(["start-session", plet_dir, "--type", "refine"])
     check("refine text has session line", "Session: refine 1" in out, "got: " + out)
@@ -188,13 +193,20 @@ print("\n## start-session — sequential loop sessions")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=1,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": "2026-03-29T12:00:00Z"}
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=1,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": "2026-03-29T12:00:00Z",
+            }
+        ],
+    )
 
     out, err, _ = run(["start-session", plet_dir, "--type", "loop"])
     check("second loop is session 2", "Session: loop 2" in out, "got: " + out)
@@ -211,17 +223,27 @@ print("\n## start-session — resume active session")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=2,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": "2026-03-29T12:00:00Z"},
-                          {"type": "loop", "session": 2,
-                           "branch": "plet/MYPR/loop2/workstream",
-                           "startedAt": "2026-03-29T13:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=2,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": "2026-03-29T12:00:00Z",
+            },
+            {
+                "type": "loop",
+                "session": 2,
+                "branch": "plet/MYPR/loop2/workstream",
+                "startedAt": "2026-03-29T13:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["start-session", plet_dir, "--type", "loop"])
     check("resume text has Resumed: yes", "Resumed: yes" in out, "got: " + out)
@@ -245,29 +267,42 @@ print("\n## start-session — cross-type conflict")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", refine_count=1,
-                      session_history=[
-                          {"type": "refine", "session": 1,
-                           "branch": "plet/MYPR/refine1/workstream",
-                           "startedAt": "2026-03-29T13:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        refine_count=1,
+        session_history=[
+            {
+                "type": "refine",
+                "session": 1,
+                "branch": "plet/MYPR/refine1/workstream",
+                "startedAt": "2026-03-29T13:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["start-session", plet_dir, "--type", "loop"], expect_exit=1)
     check("cross-type conflict exits 1", True)
-    check("error mentions active refine", "refine" in err.lower(),
-          "stderr: " + err)
+    check("error mentions active refine", "refine" in err.lower(), "stderr: " + err)
 
 # Also test the reverse
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=1,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T13:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=1,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T13:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["start-session", plet_dir, "--type", "refine"], expect_exit=1)
     check("reverse cross-type conflict exits 1", True)
@@ -339,22 +374,31 @@ print("\n## start-session — corruption: multiple active sessions")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=2,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": None},
-                          {"type": "loop", "session": 2,
-                           "branch": "plet/MYPR/loop2/workstream",
-                           "startedAt": "2026-03-29T13:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=2,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": None,
+            },
+            {
+                "type": "loop",
+                "session": 2,
+                "branch": "plet/MYPR/loop2/workstream",
+                "startedAt": "2026-03-29T13:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["start-session", plet_dir, "--type", "loop"], expect_exit=1)
     check("multiple active sessions exits 1", True)
-    check("error mentions corruption", "corrupt" in err.lower() or "multiple" in err.lower(),
-          "stderr: " + err)
+    check("error mentions corruption", "corrupt" in err.lower() or "multiple" in err.lower(), "stderr: " + err)
 
 
 # ===========================================================================
@@ -390,8 +434,7 @@ with tempfile.TemporaryDirectory() as tmp:
     make_global_state(plet_dir, session_history=[])
     out, err, _ = run(["end-session", plet_dir], expect_exit=1)
     check("empty sessionHistory exits 1", True)
-    check("error mentions nothing to end", "nothing" in err.lower() or "no session" in err.lower(),
-          "stderr: " + err)
+    check("error mentions nothing to end", "nothing" in err.lower() or "no session" in err.lower(), "stderr: " + err)
 
 # ===========================================================================
 # end-session — no sessionHistory field
@@ -417,13 +460,20 @@ print("\n## end-session — normal close")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=1,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=1,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["end-session", plet_dir])
     check("text has Ended line", "Ended:" in out, "got: " + out)
@@ -444,13 +494,20 @@ print("\n## end-session — already ended (idempotent)")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=1,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": "2026-03-29T12:00:00Z"},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=1,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": "2026-03-29T12:00:00Z",
+            },
+        ],
+    )
 
     out, err, _ = run(["end-session", plet_dir])
     check("already ended exits 0", True)
@@ -470,13 +527,20 @@ print("\n## end-session — JSON output")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=1,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=1,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["end-session", plet_dir, "--output", "json"])
     data = json.loads(out)
@@ -496,13 +560,20 @@ print("\n## end-session — dry-run")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=1,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=1,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["end-session", plet_dir, "--dry-run"])
     check("dry-run shows end info", "Ended:" in out, "got: " + out)
@@ -518,22 +589,31 @@ print("\n## end-session — corruption: multiple active sessions")
 
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
-    make_global_state(plet_dir, project_id="MYPR", loop_count=2,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": None},
-                          {"type": "refine", "session": 1,
-                           "branch": "plet/MYPR/refine1/workstream",
-                           "startedAt": "2026-03-29T13:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=2,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": None,
+            },
+            {
+                "type": "refine",
+                "session": 1,
+                "branch": "plet/MYPR/refine1/workstream",
+                "startedAt": "2026-03-29T13:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["end-session", plet_dir], expect_exit=1)
     check("multiple active exits 1", True)
-    check("error mentions corruption", "corrupt" in err.lower() or "multiple" in err.lower(),
-          "stderr: " + err)
+    check("error mentions corruption", "corrupt" in err.lower() or "multiple" in err.lower(), "stderr: " + err)
 
 # ===========================================================================
 # end-session — duration in text output
@@ -544,18 +624,24 @@ print("\n## end-session — duration display")
 with tempfile.TemporaryDirectory() as tmp:
     plet_dir = os.path.join(tmp, "plet")
     # Session started 2h 30m ago
-    make_global_state(plet_dir, project_id="MYPR", loop_count=1,
-                      session_history=[
-                          {"type": "loop", "session": 1,
-                           "branch": "plet/MYPR/loop1/workstream",
-                           "startedAt": "2026-03-29T10:00:00Z",
-                           "endedAt": None},
-                      ])
+    make_global_state(
+        plet_dir,
+        project_id="MYPR",
+        loop_count=1,
+        session_history=[
+            {
+                "type": "loop",
+                "session": 1,
+                "branch": "plet/MYPR/loop1/workstream",
+                "startedAt": "2026-03-29T10:00:00Z",
+                "endedAt": None,
+            },
+        ],
+    )
 
     out, err, _ = run(["end-session", plet_dir])
     # Duration should be present (some form of time string)
-    check("text includes duration parenthetical", "(" in out and ")" in out,
-          "got: " + out)
+    check("text includes duration parenthetical", "(" in out and ")" in out, "got: " + out)
 
 # ===========================================================================
 # end-session — full lifecycle (start then end)
@@ -612,8 +698,7 @@ with tempfile.TemporaryDirectory() as tmp:
         check("has trace entry", "plet/trace/*.ndjson merge=plet-append" in content)
 
     # Check git config has merge driver
-    result = subprocess.run(["git", "-C", tmp, "config", "merge.plet-append.driver"],
-                            capture_output=True, text=True)
+    result = subprocess.run(["git", "-C", tmp, "config", "merge.plet-append.driver"], capture_output=True, text=True)
     check("git config has driver", result.returncode == 0)
     check("driver mentions merge_driver", "plet_merge_driver" in result.stdout)
 

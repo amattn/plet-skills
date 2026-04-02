@@ -59,6 +59,7 @@ REFERENCE_FILES = {
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def help_hint(command):
     return "Run: plet_prompt.py {} --help".format(command)
 
@@ -113,14 +114,11 @@ def format_iteration_state(state_data, lifecycle="?"):
     lifecycle comes from state.json.lifecycles (SF_28), not from per-iteration state.
     """
     lines = []
-    lines.append("Iteration: {} — {}".format(
-        state_data.get("iterationId", "?"),
-        state_data.get("title", "?")))
+    lines.append("Iteration: {} — {}".format(state_data.get("iterationId", "?"), state_data.get("title", "?")))
     lines.append("Lifecycle: {}".format(lifecycle))
 
     attempts = state_data.get("attempts", {})
-    lines.append("Attempts: implement-{}, verify-{}".format(
-        attempts.get("implement", 0), attempts.get("verify", 0)))
+    lines.append("Attempts: implement-{}, verify-{}".format(attempts.get("implement", 0), attempts.get("verify", 0)))
 
     deps = state_data.get("dependencies", [])
     if deps:
@@ -132,12 +130,10 @@ def format_iteration_state(state_data, lifecycle="?"):
         passed = sum(1 for c in criteria if c.get("status") == "pass")
         failed = sum(1 for c in criteria if c.get("status") == "fail")
         pending = total - passed - failed
-        lines.append("Criteria: {} total — {} passed, {} failed, {} pending".format(
-            total, passed, failed, pending))
+        lines.append("Criteria: {} total — {} passed, {} failed, {} pending".format(total, passed, failed, pending))
         for c in criteria:
             status = c.get("status", "pending")
-            lines.append("  - {} [{}]: {}".format(
-                c.get("id", "?"), status, c.get("description", "")))
+            lines.append("  - {} [{}]: {}".format(c.get("id", "?"), status, c.get("description", "")))
 
     return "\n".join(lines)
 
@@ -145,6 +141,7 @@ def format_iteration_state(state_data, lifecycle="?"):
 # ---------------------------------------------------------------------------
 # assemble
 # ---------------------------------------------------------------------------
+
 
 def cmd_assemble(args):
     HELP = """IMPORTANT:
@@ -228,8 +225,7 @@ Examples:
         else:
             print(msg, file=sys.stderr)
         return 1
-    sections.append({"name": "reference-file", "source": "references/{}".format(ref_filename),
-                      "content": ref_content})
+    sections.append({"name": "reference-file", "source": "references/{}".format(ref_filename), "content": ref_content})
 
     # 2. Iteration definition (extracted from iterations.md)
     iter_file = iterations_path(plet_dir)
@@ -249,8 +245,7 @@ Examples:
         else:
             print(msg, file=sys.stderr)
         return 1
-    sections.append({"name": "iteration-definition", "source": "plet/iterations.md",
-                      "content": iter_block})
+    sections.append({"name": "iteration-definition", "source": "plet/iterations.md", "content": iter_block})
 
     # 3. Formats guide
     fmt_content, fmt_path = load_reference("formats.md")
@@ -261,8 +256,7 @@ Examples:
         else:
             print(msg, file=sys.stderr)
         return 1
-    sections.append({"name": "formats", "source": "references/formats.md",
-                      "content": fmt_content})
+    sections.append({"name": "formats", "source": "references/formats.md", "content": fmt_content})
 
     # 4. State schema
     schema_content, schema_path = load_reference("state-schema.md")
@@ -273,8 +267,7 @@ Examples:
         else:
             print(msg, file=sys.stderr)
         return 1
-    sections.append({"name": "state-schema", "source": "references/state-schema.md",
-                      "content": schema_content})
+    sections.append({"name": "state-schema", "source": "references/state-schema.md", "content": schema_content})
 
     # 5. Requirements
     req_file = requirements_path(plet_dir)
@@ -286,16 +279,14 @@ Examples:
         else:
             print(msg, file=sys.stderr)
         return 1
-    sections.append({"name": "requirements", "source": "plet/requirements.md",
-                      "content": req_content})
+    sections.append({"name": "requirements", "source": "plet/requirements.md", "content": req_content})
 
     # 6. Learnings (always present, never errors)
     learn_file = learnings_path(plet_dir)
     learn_content = load_text(learn_file)
     if learn_content is None or learn_content.strip() == "":
         learn_content = "No learnings from prior iterations."
-    sections.append({"name": "learnings", "source": "plet/learnings.md",
-                      "content": learn_content})
+    sections.append({"name": "learnings", "source": "plet/learnings.md", "content": learn_content})
 
     # 7. Iteration state (formatted readably)
     state_file = iter_state_path(plet_dir, iter_id)
@@ -313,21 +304,25 @@ Examples:
     if global_state:
         lifecycle = global_state.get("lifecycles", {}).get(iter_id, "?")
     state_text = format_iteration_state(state_data, lifecycle=lifecycle)
-    sections.append({"name": "iteration-state", "source": "derived",
-                      "content": state_text})
+    sections.append({"name": "iteration-state", "source": "derived", "content": state_text})
 
     # Output
     total_length = sum(len(s["content"]) for s in sections)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "iterationId": iter_id,
-            "phase": phase,
-            "sections": sections,
-            "totalLength": total_length,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "iterationId": iter_id,
+                "phase": phase,
+                "sections": sections,
+                "totalLength": total_length,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         # Text mode — sections with markdown headers
         parts = []
@@ -345,13 +340,12 @@ Examples:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "assemble": cmd_assemble,
     }
-    return dispatch(
-        commands, "plet_prompt", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_prompt", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

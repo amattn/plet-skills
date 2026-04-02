@@ -55,6 +55,7 @@ VALID_PHASES = ["implement", "verify"]
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def help_hint(command):
     return "Run: plet_git_check.py {} --help".format(command)
 
@@ -77,9 +78,7 @@ def derive_iteration_branch(global_state, iter_state):
 
 def derive_workstream_branch(global_state):
     loop_n = active_loop_number(global_state)
-    return "plet/{}/loop{}/workstream".format(
-        global_state["projectId"], loop_n
-    )
+    return "plet/{}/loop{}/workstream".format(global_state["projectId"], loop_n)
 
 
 def branch_exists(branch_name, cwd=None):
@@ -129,8 +128,7 @@ def format_text_output(command, checks, status, summary):
     if summary["failed"] > 0:
         compressed += ", {} failed".format(summary["failed"])
     if summary["warnings"] > 0:
-        compressed += ", {} warning{}".format(
-            summary["warnings"], "s" if summary["warnings"] != 1 else "")
+        compressed += ", {} warning{}".format(summary["warnings"], "s" if summary["warnings"] != 1 else "")
     lines.append("{}: {} — {}".format(severity, command, compressed))
 
     # Per-check lines
@@ -142,12 +140,14 @@ def format_text_output(command, checks, status, summary):
             pass
         else:
             pass  # FAIL
-        lines.append("{}: {} — {}".format(sev.upper() if sev != "pass" else "PASS",
-                                           c["name"], c["detail"]))
+        lines.append("{}: {} — {}".format(sev.upper() if sev != "pass" else "PASS", c["name"], c["detail"]))
 
     # Summary line
-    lines.append("{} checks: {} passed, {} failed, {} warnings".format(
-        summary["total"], summary["passed"], summary["failed"], summary["warnings"]))
+    lines.append(
+        "{} checks: {} passed, {} failed, {} warnings".format(
+            summary["total"], summary["passed"], summary["failed"], summary["warnings"]
+        )
+    )
 
     return "\n".join(lines)
 
@@ -166,6 +166,7 @@ def get_git_dir(cwd=None):
 # ---------------------------------------------------------------------------
 # check-iteration checks
 # ---------------------------------------------------------------------------
+
 
 def check_in_progress_operation(cwd=None):
     """Check for interrupted git operations."""
@@ -189,8 +190,7 @@ def check_in_progress_operation(cwd=None):
     operations = list(dict.fromkeys(operations))
 
     if operations:
-        return make_check("in-progress-operation", "fail",
-                          "interrupted {} detected".format(", ".join(operations)))
+        return make_check("in-progress-operation", "fail", "interrupted {} detected".format(", ".join(operations)))
     return make_check("in-progress-operation", "pass", "no interrupted git operations")
 
 
@@ -205,12 +205,10 @@ def check_correct_branch(expected_branch, cwd=None):
     """Check that HEAD is on the expected branch."""
     current = run_git("branch", "--show-current", cwd=cwd).stdout.strip()
     if not current:
-        return make_check("correct-branch", "fail",
-                          "expected {}, HEAD is detached".format(expected_branch))
+        return make_check("correct-branch", "fail", "expected {}, HEAD is detached".format(expected_branch))
     if current == expected_branch:
         return make_check("correct-branch", "pass", "on {}".format(expected_branch))
-    return make_check("correct-branch", "fail",
-                      "expected {}, on {}".format(expected_branch, current))
+    return make_check("correct-branch", "fail", "expected {}, on {}".format(expected_branch, current))
 
 
 def check_clean_worktree(cwd=None):
@@ -236,23 +234,24 @@ def check_clean_worktree(cwd=None):
 def check_linear_history(workstream_branch, cwd=None):
     """Check for merge commits on the iteration branch since diverging from workstream."""
     if not branch_exists(workstream_branch, cwd):
-        return make_check("linear-history", "warn",
-                          "workstream branch {} not found — cannot check".format(workstream_branch))
+        return make_check(
+            "linear-history", "warn", "workstream branch {} not found — cannot check".format(workstream_branch)
+        )
 
-    r = run_git("log", "--merges", "--oneline",
-                "{}..HEAD".format(workstream_branch), cwd=cwd)
+    r = run_git("log", "--merges", "--oneline", "{}..HEAD".format(workstream_branch), cwd=cwd)
     merges = r.stdout.strip()
     if not merges:
-        return make_check("linear-history", "pass",
-                          "no merge commits since workstream divergence")
+        return make_check("linear-history", "pass", "no merge commits since workstream divergence")
 
     merge_lines = [ln for ln in merges.split("\n") if ln.strip()]
     first_hash = merge_lines[0].split()[0] if merge_lines else "?"
-    return make_check("linear-history", "fail",
-                      "{} merge commit{} found (first: {})".format(
-                          len(merge_lines),
-                          "s" if len(merge_lines) != 1 else "",
-                          first_hash))
+    return make_check(
+        "linear-history",
+        "fail",
+        "{} merge commit{} found (first: {})".format(
+            len(merge_lines), "s" if len(merge_lines) != 1 else "", first_hash
+        ),
+    )
 
 
 def check_no_stashes(cwd=None):
@@ -262,13 +261,13 @@ def check_no_stashes(cwd=None):
         return make_check("no-stashes", "pass", "stash list empty")
 
     count = len([ln for ln in stash_list.split("\n") if ln.strip()])
-    return make_check("no-stashes", "warn",
-                      "{} stash{} found".format(count, "es" if count != 1 else ""))
+    return make_check("no-stashes", "warn", "{} stash{} found".format(count, "es" if count != 1 else ""))
 
 
 # ---------------------------------------------------------------------------
 # check-iteration command
 # ---------------------------------------------------------------------------
+
 
 def cmd_check_iteration(args):
     HELP = """IMPORTANT:
@@ -378,14 +377,19 @@ Examples:
     status, summary, exit_code = compute_result(checks)
 
     if output_json:
-        emit_json({
-            "status": status,
-            "command": CMD,
-            "iterationId": iter_state["iterationId"],
-            "phase": phase,
-            "checks": checks,
-            "summary": summary,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": status,
+                "command": CMD,
+                "iterationId": iter_state["iterationId"],
+                "phase": phase,
+                "checks": checks,
+                "summary": summary,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         print(format_text_output(CMD, checks, status, summary))
 
@@ -395,6 +399,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # check-session command
 # ---------------------------------------------------------------------------
+
 
 def cmd_check_session(args):
     HELP = """IMPORTANT:
@@ -521,18 +526,23 @@ Examples:
     # 2. workstream-exists — lifecycle from state.json.lifecycles (SF_28)
     ws_exists = branch_exists(ws_branch)
     lifecycles = global_state.get("lifecycles", {})
-    has_non_ineligible = any(
-        lc != "ineligible" for lc in lifecycles.values()
-    )
+    has_non_ineligible = any(lc != "ineligible" for lc in lifecycles.values())
     if ws_exists:
-        checks.append(make_check("workstream-exists", "pass",
-                                 "{} exists".format(ws_branch)))
+        checks.append(make_check("workstream-exists", "pass", "{} exists".format(ws_branch)))
     elif has_non_ineligible:
-        checks.append(make_check("workstream-exists", "fail",
-                                 "{} not found but non-ineligible iterations exist".format(ws_branch)))
+        checks.append(
+            make_check(
+                "workstream-exists", "fail", "{} not found but non-ineligible iterations exist".format(ws_branch)
+            )
+        )
     else:
-        checks.append(make_check("workstream-exists", "pass",
-                                 "{} not found — all iterations ineligible (loop not started)".format(ws_branch)))
+        checks.append(
+            make_check(
+                "workstream-exists",
+                "pass",
+                "{} not found — all iterations ineligible (loop not started)".format(ws_branch),
+            )
+        )
 
     # 3. orphaned-worktrees
     wt_output = run_git("worktree", "list", "--porcelain").stdout
@@ -543,49 +553,46 @@ Examples:
         current_wt = {}
         for line in wt_output.split("\n"):
             if line.startswith("worktree "):
-                current_wt = {"path": line[len("worktree "):]}
+                current_wt = {"path": line[len("worktree ") :]}
             elif line.startswith("branch "):
-                ref = line[len("branch "):]
+                ref = line[len("branch ") :]
                 if ref.startswith("refs/heads/"):
-                    current_wt["branch"] = ref[len("refs/heads/"):]
+                    current_wt["branch"] = ref[len("refs/heads/") :]
             elif line.strip() == "" and current_wt:
                 # End of block — check if this is a plet worktree
                 branch = current_wt.get("branch", "")
                 if branch.startswith(branch_prefix) and branch != ws_branch:
                     # Extract iter_id from branch
-                    suffix = branch[len(branch_prefix):]
+                    suffix = branch[len(branch_prefix) :]
                     # Orphaned if lifecycle is complete, withdrawn, or missing (SF_28)
                     iter_lc = lifecycles.get(suffix)
                     is_orphaned = iter_lc in (None, "complete", "withdrawn")
                     if is_orphaned:
-                        orphaned_wts.append({
-                            "path": current_wt.get("path", "?"),
-                            "branch": branch
-                        })
+                        orphaned_wts.append({"path": current_wt.get("path", "?"), "branch": branch})
                 current_wt = {}
         # Handle last block (no trailing empty line)
         if current_wt:
             branch = current_wt.get("branch", "")
             if branch.startswith(branch_prefix) and branch != ws_branch:
-                suffix = branch[len(branch_prefix):]
+                suffix = branch[len(branch_prefix) :]
                 iter_lc = lifecycles.get(suffix)
                 is_orphaned = iter_lc in (None, "complete", "withdrawn")
                 if is_orphaned:
-                    orphaned_wts.append({
-                        "path": current_wt.get("path", "?"),
-                        "branch": branch
-                    })
+                    orphaned_wts.append({"path": current_wt.get("path", "?"), "branch": branch})
 
     if orphaned_wts:
         detail_parts = ["{} ({})".format(w["path"], w["branch"]) for w in orphaned_wts]
-        checks.append(make_check("orphaned-worktrees", "warn",
-                                 "{} orphaned worktree{}: {}".format(
-                                     len(orphaned_wts),
-                                     "s" if len(orphaned_wts) != 1 else "",
-                                     ", ".join(detail_parts))))
+        checks.append(
+            make_check(
+                "orphaned-worktrees",
+                "warn",
+                "{} orphaned worktree{}: {}".format(
+                    len(orphaned_wts), "s" if len(orphaned_wts) != 1 else "", ", ".join(detail_parts)
+                ),
+            )
+        )
     else:
-        checks.append(make_check("orphaned-worktrees", "pass",
-                                 "no orphaned plet worktrees"))
+        checks.append(make_check("orphaned-worktrees", "pass", "no orphaned plet worktrees"))
 
     # 4. orphaned-branches
     branch_list = run_git("branch", "--list", branch_prefix + "*").stdout
@@ -604,19 +611,22 @@ Examples:
             if branch == ws_branch:
                 continue
             # Extract iter_id
-            suffix = branch[len(branch_prefix):]
+            suffix = branch[len(branch_prefix) :]
             if suffix not in known_iter_ids:
                 orphaned_branches.append(branch)
 
     if orphaned_branches:
-        checks.append(make_check("orphaned-branches", "warn",
-                                 "{} orphaned branch{}: {}".format(
-                                     len(orphaned_branches),
-                                     "es" if len(orphaned_branches) != 1 else "",
-                                     ", ".join(orphaned_branches))))
+        checks.append(
+            make_check(
+                "orphaned-branches",
+                "warn",
+                "{} orphaned branch{}: {}".format(
+                    len(orphaned_branches), "es" if len(orphaned_branches) != 1 else "", ", ".join(orphaned_branches)
+                ),
+            )
+        )
     else:
-        checks.append(make_check("orphaned-branches", "pass",
-                                 "no plet branches without state files"))
+        checks.append(make_check("orphaned-branches", "pass", "no plet branches without state files"))
 
     # 5. no-stashes
     checks.append(check_no_stashes())
@@ -638,31 +648,43 @@ Examples:
             unmerged.append(iter_id)
 
     if unmerged:
-        checks.append(make_check("unmerged-complete", "fail",
-                                 "{} complete iteration{} not merged: {}".format(
-                                     len(unmerged),
-                                     "s" if len(unmerged) != 1 else "",
-                                     ", ".join(unmerged))))
+        checks.append(
+            make_check(
+                "unmerged-complete",
+                "fail",
+                "{} complete iteration{} not merged: {}".format(
+                    len(unmerged), "s" if len(unmerged) != 1 else "", ", ".join(unmerged)
+                ),
+            )
+        )
     else:
         if complete_iter_ids:
-            checks.append(make_check("unmerged-complete", "pass",
-                                     "all {} complete iterations merged to workstream".format(
-                                         len(complete_iter_ids))))
+            checks.append(
+                make_check(
+                    "unmerged-complete",
+                    "pass",
+                    "all {} complete iterations merged to workstream".format(len(complete_iter_ids)),
+                )
+            )
         else:
-            checks.append(make_check("unmerged-complete", "pass",
-                                     "no complete iterations to check"))
+            checks.append(make_check("unmerged-complete", "pass", "no complete iterations to check"))
 
     status, summary, exit_code = compute_result(checks)
 
     if output_json:
-        emit_json({
-            "status": status,
-            "command": CMD,
-            "projectId": project_id,
-            "loopSession": loop_n,
-            "checks": checks,
-            "summary": summary,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": status,
+                "command": CMD,
+                "projectId": project_id,
+                "loopSession": loop_n,
+                "checks": checks,
+                "summary": summary,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         print(format_text_output(CMD, checks, status, summary))
 
@@ -673,14 +695,13 @@ Examples:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "check-iteration": cmd_check_iteration,
         "check-session": cmd_check_session,
     }
-    return dispatch(
-        commands, "plet_git_check", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_git_check", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

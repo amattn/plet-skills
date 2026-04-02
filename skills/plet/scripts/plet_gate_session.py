@@ -67,6 +67,7 @@ LOOP_LIFECYCLES = {"queued", "implementing", "verifying"}
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def help_hint(command):
     return "Run: plet_gate_session.py {} --help".format(command)
 
@@ -162,6 +163,7 @@ def detect_session_type(plet_dir):
 # detect
 # ---------------------------------------------------------------------------
 
+
 def cmd_detect(args):
     HELP = """IMPORTANT:
     detect is read-only — it checks project state and prints the session type.
@@ -214,13 +216,18 @@ Examples:
     session_type, reason, artifacts = detect_session_type(plet_dir)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "sessionType": session_type,
-            "reason": reason,
-            "artifacts": artifacts,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "sessionType": session_type,
+                "reason": reason,
+                "artifacts": artifacts,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         # Bare output for shell capture (GSS_DXP_3)
         print(session_type)
@@ -231,6 +238,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # status (placeholder)
 # ---------------------------------------------------------------------------
+
 
 def cmd_status(args):
     HELP = """IMPORTANT:
@@ -311,8 +319,13 @@ Examples:
     # Count lifecycles from state.json (SF_28)
     lifecycles = global_state.get("lifecycles", {})
     lifecycle_counts = {
-        "ineligible": 0, "queued": 0, "implementing": 0,
-        "verifying": 0, "complete": 0, "blocked": 0, "withdrawn": 0,
+        "ineligible": 0,
+        "queued": 0,
+        "implementing": 0,
+        "verifying": 0,
+        "complete": 0,
+        "blocked": 0,
+        "withdrawn": 0,
     }
     for iter_id, lc in lifecycles.items():
         if lc in lifecycle_counts:
@@ -331,21 +344,25 @@ Examples:
                 if s["iterationId"] == iter_id:
                     title = s.get("title", "")
                     break
-            blockers.append({
-                "iterationId": iter_id,
-                "title": title,
-            })
+            blockers.append(
+                {
+                    "iterationId": iter_id,
+                    "title": title,
+                }
+            )
 
     # Active agents — phaseActivity (was agentActivity, SF_28)
     active_agents = []
     for s in iter_states:
         agent_id = s.get("agentId")
         if agent_id:
-            active_agents.append({
-                "iterationId": s["iterationId"],
-                "agentId": agent_id,
-                "phaseActivity": s.get("phaseActivity", "unknown"),
-            })
+            active_agents.append(
+                {
+                    "iterationId": s["iterationId"],
+                    "agentId": agent_id,
+                    "phaseActivity": s.get("phaseActivity", "unknown"),
+                }
+            )
 
     # Session type via detect logic
     session_type, _, _ = detect_session_type(plet_dir)
@@ -393,20 +410,25 @@ Examples:
     loop_session = active_loop_number(global_state)
 
     if output_json:
-        emit_json({
-            "status": "ok",
-            "command": CMD,
-            "projectId": project_id,
-            "sessionType": session_type,
-            "loopSession": loop_session,
-            "progress": progress,
-            "iterations": dict(lifecycle_counts, total=total),
-            "milestones": milestones_data,
-            "blockers": blockers,
-            "activeAgents": active_agents,
-            "fingerprints": fingerprints,
-            "warnings": warnings,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": "ok",
+                "command": CMD,
+                "projectId": project_id,
+                "sessionType": session_type,
+                "loopSession": loop_session,
+                "progress": progress,
+                "iterations": dict(lifecycle_counts, total=total),
+                "milestones": milestones_data,
+                "blockers": blockers,
+                "activeAgents": active_agents,
+                "fingerprints": fingerprints,
+                "warnings": warnings,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         # Formatted text output
         lines = []
@@ -426,8 +448,9 @@ Examples:
             lines.append("Blocker: {} — {}".format(b["iterationId"], b["title"]))
 
         for a in active_agents:
-            lines.append("Active: {} (phaseActivity: {}, {})".format(
-                a["iterationId"], a["phaseActivity"], a["agentId"]))
+            lines.append(
+                "Active: {} (phaseActivity: {}, {})".format(a["iterationId"], a["phaseActivity"], a["agentId"])
+            )
 
         if fingerprints["consistent"] is True:
             lines.append("Fingerprints: consistent")
@@ -443,8 +466,7 @@ Examples:
         if milestones_data:
             lines.append("Milestones:")
             for ms_id, ms in milestones_data.items():
-                lines.append("  {} ({}): {}/{} complete".format(
-                    ms_id, ms["name"], ms["complete"], ms["total"]))
+                lines.append("  {} ({}): {}/{} complete".format(ms_id, ms["name"], ms["complete"], ms["total"]))
 
         print("\n".join(lines))
 
@@ -455,6 +477,7 @@ Examples:
 # preflight checks (shared between preflight and postflight)
 # ---------------------------------------------------------------------------
 
+
 def run_preflight_checks(plet_dir, session_type):
     """Run all preflight checks. Returns list of check dicts."""
     checks = []
@@ -462,18 +485,24 @@ def run_preflight_checks(plet_dir, session_type):
 
     # 1. scripts-installed
     required_scripts = [
-        "plet_global_state.py", "plet_iter_state.py",
-        "plet_entries.py", "plet_fingerprint.py",
-        "plet_trace.py", "plet_git_iteration.py", "plet_git_ops.py",
-        "plet_git_check.py", "plet_invoke.py", "plet_merge_driver.py",
+        "plet_global_state.py",
+        "plet_iter_state.py",
+        "plet_entries.py",
+        "plet_fingerprint.py",
+        "plet_trace.py",
+        "plet_git_iteration.py",
+        "plet_git_ops.py",
+        "plet_git_check.py",
+        "plet_invoke.py",
+        "plet_merge_driver.py",
     ]
     missing_scripts = [s for s in required_scripts if not os.path.isfile(os.path.join(scripts_dir, s))]
     if missing_scripts:
-        checks.append({"name": "scripts-installed", "status": "fail",
-                        "detail": "missing: {}".format(", ".join(missing_scripts))})
+        checks.append(
+            {"name": "scripts-installed", "status": "fail", "detail": "missing: {}".format(", ".join(missing_scripts))}
+        )
     else:
-        checks.append({"name": "scripts-installed", "status": "pass",
-                        "detail": "all plet scripts found"})
+        checks.append({"name": "scripts-installed", "status": "pass", "detail": "all plet scripts found"})
 
     # 2. git-check (CKS) — call plet_git_check.py check-session via subprocess
     gtc_script = os.path.join(scripts_dir, "plet_git_check.py")
@@ -487,32 +516,29 @@ def run_preflight_checks(plet_dir, session_type):
             try:
                 gtc_data = json.loads(gtc_result.stdout)
                 for gc in gtc_data.get("checks", []):
-                    checks.append({
-                        "name": "git:{}".format(gc["name"]),
-                        "status": gc["status"],
-                        "detail": gc.get("detail", ""),
-                    })
+                    checks.append(
+                        {
+                            "name": "git:{}".format(gc["name"]),
+                            "status": gc["status"],
+                            "detail": gc.get("detail", ""),
+                        }
+                    )
             except (json.JSONDecodeError, KeyError):
-                checks.append({"name": "git-check", "status": "warn",
-                                "detail": "could not parse GTC output"})
+                checks.append({"name": "git-check", "status": "warn", "detail": "could not parse GTC output"})
         else:
             r = run_git("rev-parse", "--git-dir")
             if r.returncode == 0:
-                checks.append({"name": "git:repo", "status": "pass",
-                                "detail": "inside a git repository"})
+                checks.append({"name": "git:repo", "status": "pass", "detail": "inside a git repository"})
             else:
-                checks.append({"name": "git:repo", "status": "warn",
-                                "detail": "not inside a git repository"})
+                checks.append({"name": "git:repo", "status": "warn", "detail": "not inside a git repository"})
 
     # 3. claude-md-exists
     project_root = os.path.dirname(os.path.abspath(plet_dir)) if os.path.isabs(plet_dir) else os.getcwd()
     claude_md = os.path.join(project_root, "CLAUDE.md")
     if os.path.isfile(claude_md):
-        checks.append({"name": "claude-md-exists", "status": "pass",
-                        "detail": "CLAUDE.md found"})
+        checks.append({"name": "claude-md-exists", "status": "pass", "detail": "CLAUDE.md found"})
     else:
-        checks.append({"name": "claude-md-exists", "status": "warn",
-                        "detail": "CLAUDE.md not found"})
+        checks.append({"name": "claude-md-exists", "status": "warn", "detail": "CLAUDE.md not found"})
 
     # 4. gitignore-plet
     gitignore_path = os.path.join(project_root, ".gitignore")
@@ -525,11 +551,11 @@ def run_preflight_checks(plet_dir, session_type):
         except Exception:
             pass
     if gitignore_ok:
-        checks.append({"name": "gitignore-plet", "status": "pass",
-                        "detail": ".gitignore includes .plet/"})
+        checks.append({"name": "gitignore-plet", "status": "pass", "detail": ".gitignore includes .plet/"})
     else:
-        checks.append({"name": "gitignore-plet", "status": "warn",
-                        "detail": ".gitignore missing or does not include .plet/"})
+        checks.append(
+            {"name": "gitignore-plet", "status": "warn", "detail": ".gitignore missing or does not include .plet/"}
+        )
 
     # 5. spec-artifacts
     plet_dir_exists = os.path.isdir(plet_dir)
@@ -537,38 +563,37 @@ def run_preflight_checks(plet_dir, session_type):
         has_req = os.path.isfile(requirements_path(plet_dir))
         has_iter = os.path.isfile(iterations_path(plet_dir))
         if has_req and has_iter:
-            checks.append({"name": "spec-artifacts", "status": "pass",
-                            "detail": "requirements.md and iterations.md exist"})
+            checks.append(
+                {"name": "spec-artifacts", "status": "pass", "detail": "requirements.md and iterations.md exist"}
+            )
         else:
             missing = []
             if not has_req:
                 missing.append("requirements.md")
             if not has_iter:
                 missing.append("iterations.md")
-            checks.append({"name": "spec-artifacts", "status": "fail",
-                            "detail": "missing: {}".format(", ".join(missing))})
+            checks.append(
+                {"name": "spec-artifacts", "status": "fail", "detail": "missing: {}".format(", ".join(missing))}
+            )
     else:
-        checks.append({"name": "spec-artifacts", "status": "pass",
-                        "detail": "no plet directory (fresh project)"})
+        checks.append({"name": "spec-artifacts", "status": "pass", "detail": "no plet directory (fresh project)"})
 
     # 6. state-valid
     sjp = state_json_path(plet_dir)
     if os.path.isfile(sjp):
         gs = load_and_validate_global_state(plet_dir)
         if gs is not None:
-            checks.append({"name": "state-valid", "status": "pass",
-                            "detail": "plet/state.json valid"})
+            checks.append({"name": "state-valid", "status": "pass", "detail": "plet/state.json valid"})
         else:
-            checks.append({"name": "state-valid", "status": "fail",
-                            "detail": "plet/state.json validation failed"})
+            checks.append({"name": "state-valid", "status": "fail", "detail": "plet/state.json validation failed"})
     else:
-        checks.append({"name": "state-valid", "status": "pass",
-                        "detail": "no state.json (fresh project)"})
+        checks.append({"name": "state-valid", "status": "pass", "detail": "no state.json (fresh project)"})
 
     # 7. fingerprints-consistent
     if session_type == "plan":
-        checks.append({"name": "fingerprints-consistent", "status": "skipped",
-                        "detail": "plan session, check not applicable"})
+        checks.append(
+            {"name": "fingerprints-consistent", "status": "skipped", "detail": "plan session, check not applicable"}
+        )
     else:
         fpr_script = os.path.join(scripts_dir, "plet_fingerprint.py")
         if os.path.isfile(fpr_script) and plet_dir_exists:
@@ -579,36 +604,57 @@ def run_preflight_checks(plet_dir, session_type):
                 fpr_data = json.loads(fpr_result.stdout)
                 fpr_status = fpr_data.get("status", "error")
                 if fpr_status == "ok":
-                    checks.append({"name": "fingerprints-consistent", "status": "pass",
-                                    "detail": "fingerprints consistent"})
+                    checks.append(
+                        {"name": "fingerprints-consistent", "status": "pass", "detail": "fingerprints consistent"}
+                    )
                 elif fpr_status == "stale":
-                    checks.append({"name": "fingerprints-consistent", "status": "warn",
-                                    "detail": "fingerprints stale: {}".format(
-                                        fpr_data.get("detail", "see plet_fingerprint.py check"))})
+                    checks.append(
+                        {
+                            "name": "fingerprints-consistent",
+                            "status": "warn",
+                            "detail": "fingerprints stale: {}".format(
+                                fpr_data.get("detail", "see plet_fingerprint.py check")
+                            ),
+                        }
+                    )
                 else:
-                    checks.append({"name": "fingerprints-consistent", "status": "warn",
-                                    "detail": "fingerprint check returned: {}".format(fpr_status)})
+                    checks.append(
+                        {
+                            "name": "fingerprints-consistent",
+                            "status": "warn",
+                            "detail": "fingerprint check returned: {}".format(fpr_status),
+                        }
+                    )
             except (json.JSONDecodeError, Exception):
-                checks.append({"name": "fingerprints-consistent", "status": "warn",
-                                "detail": "fingerprint check failed"})
+                checks.append(
+                    {"name": "fingerprints-consistent", "status": "warn", "detail": "fingerprint check failed"}
+                )
         else:
-            checks.append({"name": "fingerprints-consistent", "status": "pass",
-                            "detail": "no plet directory or fingerprint script (fresh project)"})
+            checks.append(
+                {
+                    "name": "fingerprints-consistent",
+                    "status": "pass",
+                    "detail": "no plet directory or fingerprint script (fresh project)",
+                }
+            )
 
     # 8. merge-driver — check plet-append merge driver is configured
     if session_type in ("loop", "refine"):
         r = run_git("config", "merge.plet-append.driver")
         if r.returncode == 0 and r.stdout.strip():
-            checks.append({"name": "merge-driver", "status": "pass",
-                            "detail": "plet-append merge driver configured"})
+            checks.append({"name": "merge-driver", "status": "pass", "detail": "plet-append merge driver configured"})
         else:
-            checks.append({"name": "merge-driver", "status": "warn",
-                            "detail": "plet-append merge driver not configured — "
-                            "runtime artifact conflicts during merge-squash may not auto-resolve. "
-                            "start-session configures this automatically."})
+            checks.append(
+                {
+                    "name": "merge-driver",
+                    "status": "warn",
+                    "detail": "plet-append merge driver not configured — "
+                    "runtime artifact conflicts during merge-squash may not auto-resolve. "
+                    "start-session configures this automatically.",
+                }
+            )
     else:
-        checks.append({"name": "merge-driver", "status": "skipped",
-                        "detail": "plan session, merge driver not needed"})
+        checks.append({"name": "merge-driver", "status": "skipped", "detail": "plan session, merge driver not needed"})
 
     return checks
 
@@ -616,6 +662,7 @@ def run_preflight_checks(plet_dir, session_type):
 # ---------------------------------------------------------------------------
 # preflight
 # ---------------------------------------------------------------------------
+
 
 def cmd_preflight(args):
     HELP = """IMPORTANT:
@@ -712,13 +759,18 @@ Examples:
         exit_code = 0
 
     if output_json:
-        emit_json({
-            "status": overall,
-            "command": CMD,
-            "sessionType": session_type,
-            "checks": checks,
-            "summary": counts,
-        }, SCRIPT_VERSION, pretty, fields)
+        emit_json(
+            {
+                "status": overall,
+                "command": CMD,
+                "sessionType": session_type,
+                "checks": checks,
+                "summary": counts,
+            },
+            SCRIPT_VERSION,
+            pretty,
+            fields,
+        )
     else:
         # Title line
         if overall == "ok":
@@ -753,6 +805,7 @@ Examples:
 # postflight
 # ---------------------------------------------------------------------------
 
+
 def cmd_postflight(args):
     """Post-session health checks.
 
@@ -783,8 +836,7 @@ def cmd_postflight(args):
     if plet_dir is None:
         return 1
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ,
-                                help_hint("postflight")):
+    if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ, help_hint("postflight")):
         return 1
 
     if not require_kwargs(kwargs, ["session_type"], HELP):
@@ -811,19 +863,20 @@ def cmd_postflight(args):
                 if lc in ("implementing", "verifying"):
                     transient.append(iter_id)
             if transient:
-                checks.append({
-                    "name": "transient-lifecycle",
-                    "status": "warn",
-                    "detail": "iterations in transient state: {} ({})".format(
-                        ", ".join(transient),
-                        "may indicate crashed subagent — orchestrator should clean up on next run")
-                })
+                checks.append(
+                    {
+                        "name": "transient-lifecycle",
+                        "status": "warn",
+                        "detail": "iterations in transient state: {} ({})".format(
+                            ", ".join(transient),
+                            "may indicate crashed subagent — orchestrator should clean up on next run",
+                        ),
+                    }
+                )
             else:
-                checks.append({
-                    "name": "transient-lifecycle",
-                    "status": "pass",
-                    "detail": "no iterations in transient state"
-                })
+                checks.append(
+                    {"name": "transient-lifecycle", "status": "pass", "detail": "no iterations in transient state"}
+                )
 
     # Summarize — postflight never fails, downgrade all fails to warns
     for c in checks:
@@ -856,8 +909,7 @@ def cmd_postflight(args):
         label = "OK" if overall == "ok" else "WARN"
         print("{}: postflight — {} checks".format(label, total))
         for c in checks:
-            print("  {}: {:30s} {}".format(
-                c["status"].upper(), c["name"], c.get("detail", "")))
+            print("  {}: {:30s} {}".format(c["status"].upper(), c["name"], c.get("detail", "")))
         counts = {"total": total, "passed": passed_count, "warnings": warn_count, "skipped": skip_count}
         parts = ["{} passed".format(counts["passed"])]
         if counts["warnings"] > 0:
@@ -873,6 +925,7 @@ def cmd_postflight(args):
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     commands = {
         "detect": cmd_detect,
@@ -880,9 +933,7 @@ def main():
         "preflight": cmd_preflight,
         "postflight": cmd_postflight,
     }
-    return dispatch(
-        commands, "plet_gate_session", SCRIPT_VERSION, SKILL_VERSION, __doc__
-    )
+    return dispatch(commands, "plet_gate_session", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":
