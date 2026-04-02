@@ -102,6 +102,12 @@ def write_iter_state(plet_dir, iter_id="ID_001", **overrides):
     return iter_state_path(plet_dir, iter_id)
 
 
+def run_git_direct(repo, args):
+    """Run git directly (not via the tool) for test setup."""
+    result = sp.run(["git", "-C", repo] + args, capture_output=True, text=True)
+    return result.stdout.strip()
+
+
 def setup_clean_iteration(d):
     """Set up a clean repo with workstream + iteration branch + committed state files.
     Returns (repo, plet_dir).
@@ -662,12 +668,6 @@ def test_cks_state_dir_not_exists():
 
         _, stderr, _ = run(["check-session", plet_dir], expect_exit=1, cwd=repo)
         check("error mentions directory", "directory" in stderr.lower() or "not found" in stderr.lower())
-
-
-def run_git_direct(repo, args):
-    """Run git directly (not via the tool) for test setup."""
-    result = sp.run(["git", "-C", repo] + args, capture_output=True, text=True)
-    return result.stdout.strip()
 
 
 if __name__ == "__main__":
