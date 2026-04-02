@@ -156,7 +156,28 @@ Examples:
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     cwd = kwargs["cwd"]
-    permission_mode = kwargs.get("permission_mode", "auto")
+    permission_mode = kwargs.get("permission_mode")
+    if permission_mode is None:
+        # Auto-detect from project .claude/settings.json
+        # Check both cwd (worktree) and project root (parent of plet_dir)
+        project_root = os.path.dirname(os.path.abspath(plet_dir))
+        for search_dir in [cwd, project_root]:
+            settings_path = os.path.join(search_dir, ".claude", "settings.json")
+            if os.path.isfile(settings_path):
+                try:
+                    with open(settings_path) as _f:
+                        _settings = json.load(_f)
+                    perms = _settings.get("permissions", {})
+                    if "bypassPermissions" in perms:
+                        permission_mode = "bypassPermissions"
+                        break
+                    elif perms.get("defaultMode") == "auto":
+                        permission_mode = "auto"
+                        break
+                except (json.JSONDecodeError, OSError):
+                    pass
+        if permission_mode is None:
+            permission_mode = "auto"
     model = kwargs.get("model")
     max_budget = kwargs.get("max_budget")
     verbose = kwargs.get("verbose", False) is True
