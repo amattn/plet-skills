@@ -3,6 +3,7 @@
 
 Zero dependencies beyond stdlib. Run with:
     ./skills/plet/tests/test_plet_schedule.py
+    pytest skills/plet/tests/test_plet_schedule.py
 
 Red/green, command-by-command: eligible first, then check-breakpoints, then check-retry.
 """
@@ -66,22 +67,25 @@ def make_iter_state(plet_dir, iter_id, attempts=None, verification_reports=None,
     )
 
 
-def main():
-    global passed, failed
-    # ===========================================================================
-    # eligible — help
-    # ===========================================================================
+# ===========================================================================
+# eligible — help
+# ===========================================================================
 
+
+def test_eligible_help():
     print("## eligible — help")
 
     out, err, _ = run(["eligible", "--help"])
     check("eligible help exits 0", True)
     check("eligible help non-empty", len(out) > 0, "got empty output")
 
-    # ===========================================================================
-    # eligible — missing state.json
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — missing state.json
+# ===========================================================================
+
+
+def test_eligible_missing_state_json():
     print("\n## eligible — missing state.json")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -91,10 +95,13 @@ def main():
         check("missing state.json exits 1", True)
         check("error mentions state.json", "state.json" in err.lower() or "state.json" in out.lower(), "stderr: " + err)
 
-    # ===========================================================================
-    # eligible — empty dependency map
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — empty dependency map
+# ===========================================================================
+
+
+def test_eligible_empty_dependency_map():
     print("\n## eligible — empty dependency map")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -111,10 +118,13 @@ def main():
         check("json empty eligible list", data["eligible"] == [], "got: " + str(data.get("eligible")))
         check("json counts all zero", data["counts"]["eligible"] == 0)
 
-    # ===========================================================================
-    # eligible — single iteration, no deps, queued
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — single iteration, no deps, queued
+# ===========================================================================
+
+
+def test_eligible_single_queued_no_deps():
     print("\n## eligible — single queued iteration, no deps")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -134,10 +144,13 @@ def main():
             "eligible iterations should not also count as queued",
         )
 
-    # ===========================================================================
-    # eligible — single iteration, not queued (implementing)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — single iteration, not queued (implementing)
+# ===========================================================================
+
+
+def test_eligible_implementing_not_eligible():
     print("\n## eligible — single iteration, implementing (not eligible)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -151,10 +164,13 @@ def main():
         data = json.loads(out)
         check("json implementing counted", data["counts"]["implementing"] == 1)
 
-    # ===========================================================================
-    # eligible — linear chain: A → B → C
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — linear chain: A → B → C
+# ===========================================================================
+
+
+def test_eligible_linear_chain():
     print("\n## eligible — linear chain A → B → C")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -176,10 +192,13 @@ def main():
         out, err, _ = run(["eligible", plet_dir])
         check("chain: only B eligible", out == "ID_002", "got: " + out)
 
-    # ===========================================================================
-    # eligible — diamond: A → B, A → C, B+C → D
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — diamond: A → B, A → C, B+C → D
+# ===========================================================================
+
+
+def test_eligible_diamond_dependency():
     print("\n## eligible — diamond dependency graph")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -237,10 +256,13 @@ def main():
         out, err, _ = run(["eligible", plet_dir])
         check("diamond resolved: D eligible", out.strip() == "ID_004", "got: " + out)
 
-    # ===========================================================================
-    # eligible — parallel independent (no deps)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — parallel independent (no deps)
+# ===========================================================================
+
+
+def test_eligible_parallel_independent():
     print("\n## eligible — parallel independent iterations")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -263,10 +285,13 @@ def main():
         lines = out.strip().split("\n")
         check("all three eligible", sorted(lines) == ["ID_001", "ID_002", "ID_003"], "got: " + str(lines))
 
-    # ===========================================================================
-    # eligible — all lifecycle values (only queued+deps complete is eligible)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — all lifecycle values (only queued+deps complete is eligible)
+# ===========================================================================
+
+
+def test_eligible_lifecycle_filtering():
     print("\n## eligible — lifecycle filtering")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -306,10 +331,13 @@ def main():
         check("counts blocked=1", counts["blocked"] == 1)
         check("counts withdrawn=1", counts["withdrawn"] == 1)
 
-    # ===========================================================================
-    # eligible — missing per-iteration state file (hard error)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — missing per-iteration state file (hard error)
+# ===========================================================================
+
+
+def test_eligible_missing_iter_state_file():
     print("\n## eligible — missing state file for iteration in dep map")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -321,10 +349,13 @@ def main():
         check("missing state file exits 1", True)
         check("error mentions ID_002", "ID_002" in err or "ID_002" in out, "stderr: " + err)
 
-    # ===========================================================================
-    # eligible — invalid lifecycle value (caught by enum check)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — invalid lifecycle value (caught by enum check)
+# ===========================================================================
+
+
+def test_eligible_invalid_lifecycle_value():
     print("\n## eligible — invalid lifecycle value")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -335,10 +366,13 @@ def main():
         check("invalid lifecycle exits 1", True)
         check("error mentions invalid lifecycle", "lifecycle" in err.lower() or "complet" in err, "stderr: " + err)
 
-    # ===========================================================================
-    # eligible — sorted output order
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — sorted output order
+# ===========================================================================
+
+
+def test_eligible_sorted_output():
     print("\n## eligible — output sorted by ID")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -361,10 +395,13 @@ def main():
         lines = out.strip().split("\n")
         check("output sorted", lines == ["ID_001", "ID_002", "ID_003"], "got: " + str(lines))
 
-    # ===========================================================================
-    # eligible — stuck iterations (blocked dep)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — stuck iterations (blocked dep)
+# ===========================================================================
+
+
+def test_eligible_stuck_blocked_dep():
     print("\n## eligible — stuck iteration (dep is blocked)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -403,10 +440,13 @@ def main():
             "got: " + str(id002_stuck.get("unsatisfiableDeps")),
         )
 
-    # ===========================================================================
-    # eligible — stuck iteration (dep is withdrawn)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — stuck iteration (dep is withdrawn)
+# ===========================================================================
+
+
+def test_eligible_stuck_withdrawn_dep():
     print("\n## eligible — stuck iteration (dep is withdrawn)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -432,10 +472,13 @@ def main():
             "got: " + str(stuck),
         )
 
-    # ===========================================================================
-    # eligible — stuck iteration (text output)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — stuck iteration (text output)
+# ===========================================================================
+
+
+def test_eligible_stuck_text_output():
     print("\n## eligible — stuck iteration text output")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -456,10 +499,13 @@ def main():
         check("text mentions stuck", "stuck" in out.lower(), "got: " + out)
         check("text mentions ID_002", "ID_002" in out, "got: " + out)
 
-    # ===========================================================================
-    # eligible — not stuck (dep is queued, could still complete)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — not stuck (dep is queued, could still complete)
+# ===========================================================================
+
+
+def test_eligible_not_stuck_dep_queued():
     print("\n## eligible — dep is queued (not stuck, just waiting)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -481,10 +527,13 @@ def main():
         stuck = data.get("stuckIterations", [])
         check("no stuck iterations (dep is queued)", len(stuck) == 0, "got: " + str(stuck))
 
-    # ===========================================================================
-    # eligible — not stuck (dep is implementing, in progress)
-    # ===========================================================================
 
+# ===========================================================================
+# eligible — not stuck (dep is implementing, in progress)
+# ===========================================================================
+
+
+def test_eligible_not_stuck_dep_implementing():
     print("\n## eligible — dep is implementing (not stuck, in progress)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -506,20 +555,26 @@ def main():
         stuck = data.get("stuckIterations", [])
         check("no stuck (dep in progress)", len(stuck) == 0, "got: " + str(stuck))
 
-    # ===========================================================================
-    # check-breakpoints — help
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — help
+# ===========================================================================
+
+
+def test_check_breakpoints_help():
     print("\n## check-breakpoints — help")
 
     out, err, _ = run(["check-breakpoints", "--help"])
     check("check-breakpoints help exits 0", True)
     check("check-breakpoints help non-empty", len(out) > 0)
 
-    # ===========================================================================
-    # check-breakpoints — missing required args
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — missing required args
+# ===========================================================================
+
+
+def test_check_breakpoints_missing_args():
     print("\n## check-breakpoints — missing required args")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -543,10 +598,13 @@ def main():
         check("invalid position exits 1", True)
         check("error mentions valid values", "before" in err and "after" in err, "stderr: " + err)
 
-    # ===========================================================================
-    # check-breakpoints — no breakpoints field (always miss)
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — no breakpoints field (always miss)
+# ===========================================================================
+
+
+def test_check_breakpoints_no_field():
     print("\n## check-breakpoints — no breakpoints field")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -559,10 +617,13 @@ def main():
         out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "after"])
         check("no breakpoints field after also miss", out == "miss", "got: " + out)
 
-    # ===========================================================================
-    # check-breakpoints — empty breakpoint arrays
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — empty breakpoint arrays
+# ===========================================================================
+
+
+def test_check_breakpoints_empty_arrays():
     print("\n## check-breakpoints — empty breakpoint arrays")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -572,10 +633,13 @@ def main():
         out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "before"])
         check("empty before array returns miss", out == "miss", "got: " + out)
 
-    # ===========================================================================
-    # check-breakpoints — hit before
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — hit before
+# ===========================================================================
+
+
+def test_check_breakpoints_hit_before():
     print("\n## check-breakpoints — hit before")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -597,10 +661,13 @@ def main():
         out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_003", "--position", "before"])
         check("ID_003 before is hit", out == "hit", "got: " + out)
 
-    # ===========================================================================
-    # check-breakpoints — hit after
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — hit after
+# ===========================================================================
+
+
+def test_check_breakpoints_hit_after():
     print("\n## check-breakpoints — hit after")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -619,10 +686,13 @@ def main():
         out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "after"])
         check("ID_001 after is miss", out == "miss", "got: " + out)
 
-    # ===========================================================================
-    # check-breakpoints — JSON output
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — JSON output
+# ===========================================================================
+
+
+def test_check_breakpoints_json_output():
     print("\n## check-breakpoints — JSON output")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -651,10 +721,13 @@ def main():
         data = json.loads(out)
         check("json result miss", data["result"] == "miss")
 
-    # ===========================================================================
-    # check-breakpoints — missing state.json
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — missing state.json
+# ===========================================================================
+
+
+def test_check_breakpoints_missing_state_json():
     print("\n## check-breakpoints — missing state.json")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -664,10 +737,13 @@ def main():
         out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "before"], expect_exit=1)
         check("missing state.json exits 1", True)
 
-    # ===========================================================================
-    # check-breakpoints — iter-id not in dep map (still checks breakpoints)
-    # ===========================================================================
 
+# ===========================================================================
+# check-breakpoints — iter-id not in dep map (still checks breakpoints)
+# ===========================================================================
+
+
+def test_check_breakpoints_iter_not_in_dep_map():
     print("\n## check-breakpoints — iter-id not in dep map")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -677,20 +753,26 @@ def main():
         out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_999", "--position", "before"])
         check("ID not in dep map still checks breakpoints", out == "hit", "got: " + out)
 
-    # ===========================================================================
-    # check-retry — help
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — help
+# ===========================================================================
+
+
+def test_check_retry_help():
     print("\n## check-retry — help")
 
     out, err, _ = run(["check-retry", "--help"])
     check("check-retry help exits 0", True)
     check("check-retry help non-empty", len(out) > 0)
 
-    # ===========================================================================
-    # check-retry — missing required args
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — missing required args
+# ===========================================================================
+
+
+def test_check_retry_missing_args():
     print("\n## check-retry — missing required args")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -700,10 +782,13 @@ def main():
         out, err, _ = run(["check-retry", plet_dir], expect_exit=1)
         check("missing iter-id exits 1", True)
 
-    # ===========================================================================
-    # check-retry — missing state file
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — missing state file
+# ===========================================================================
+
+
+def test_check_retry_missing_state_file():
     print("\n## check-retry — missing state file")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -714,10 +799,13 @@ def main():
         check("missing state file exits 1", True)
         check("error mentions ID_001", "ID_001" in err or "ID_001" in out, "stderr: " + err)
 
-    # ===========================================================================
-    # check-retry — no verification reports (first)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — no verification reports (first)
+# ===========================================================================
+
+
+def test_check_retry_no_reports():
     print("\n## check-retry — no verification reports")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -727,10 +815,13 @@ def main():
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("no reports returns first", out == "first", "got: " + out)
 
-    # ===========================================================================
-    # check-retry — empty verification reports (first)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — empty verification reports (first)
+# ===========================================================================
+
+
+def test_check_retry_empty_reports():
     print("\n## check-retry — empty verification reports")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -740,10 +831,13 @@ def main():
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("empty reports returns first", out == "first", "got: " + out)
 
-    # ===========================================================================
-    # check-retry — 1 report, under limit (continue)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — 1 report, under limit (continue)
+# ===========================================================================
+
+
+def test_check_retry_single_report_under_limit():
     print("\n## check-retry — single report, under limit")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -764,10 +858,13 @@ def main():
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("single report under limit returns continue", out == "continue", "got: " + out)
 
-    # ===========================================================================
-    # check-retry — strictly decreasing trend (continue, extended)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — strictly decreasing trend (continue, extended)
+# ===========================================================================
+
+
+def test_check_retry_decreasing_trend():
     print("\n## check-retry — strictly decreasing trend")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -820,10 +917,13 @@ def main():
         check("json failureTrend", data["failureTrend"] == [5, 3, 1])
         check("json trendDirection decreasing", data["trendDirection"] == "decreasing")
 
-    # ===========================================================================
-    # check-retry — not decreasing at limit (abort)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — not decreasing at limit (abort)
+# ===========================================================================
+
+
+def test_check_retry_not_decreasing_at_limit():
     print("\n## check-retry — not decreasing at limit")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -868,10 +968,13 @@ def main():
         check("json maxAttempts default 3", data["maxAttempts"] == 3)
         check("json trendDirection not_decreasing", data["trendDirection"] == "not_decreasing")
 
-    # ===========================================================================
-    # check-retry — flat trend at limit (abort)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — flat trend at limit (abort)
+# ===========================================================================
+
+
+def test_check_retry_flat_trend_at_limit():
     print("\n## check-retry — flat trend at limit")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -898,10 +1001,13 @@ def main():
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("flat 1→1→1 at limit returns abort", out == "abort", "got: " + out)
 
-    # ===========================================================================
-    # check-retry — not decreasing but under limit (continue)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — not decreasing but under limit (continue)
+# ===========================================================================
+
+
+def test_check_retry_not_decreasing_under_limit():
     print("\n## check-retry — not decreasing but under limit")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -930,10 +1036,13 @@ def main():
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("increasing but under limit returns continue", out == "continue", "got: " + out)
 
-    # ===========================================================================
-    # check-retry — error/skipped not counted as failures
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — error/skipped not counted as failures
+# ===========================================================================
+
+
+def test_check_retry_error_skipped_excluded():
     print("\n## check-retry — error/skipped excluded from failure count")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -956,10 +1065,13 @@ def main():
         data = json.loads(out)
         check("failure trend counts only fail", data["failureTrend"] == [2], "got: " + str(data.get("failureTrend")))
 
-    # ===========================================================================
-    # check-retry — report with no criteriaResults (0 failures)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — report with no criteriaResults (0 failures)
+# ===========================================================================
+
+
+def test_check_retry_no_criteria_results():
     print("\n## check-retry — report with no criteriaResults")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -977,10 +1089,13 @@ def main():
             "got: " + str(data.get("failureTrend")),
         )
 
-    # ===========================================================================
-    # check-retry — extended limit, 4th attempt still decreasing (continue)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — extended limit, 4th attempt still decreasing (continue)
+# ===========================================================================
+
+
+def test_check_retry_extended_limit_4th_attempt():
     print("\n## check-retry — extended limit, 4th attempt")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -1037,18 +1152,17 @@ def main():
         check("json trend 4→3→2→1", data["failureTrend"] == [4, 3, 2, 1])
         check("json max 6", data["maxAttempts"] == 6)
 
-    # ===========================================================================
-    # check-retry — extended limit exhausted at 6 (abort)
-    # ===========================================================================
 
+# ===========================================================================
+# check-retry — extended limit exhausted at 6 (abort)
+# ===========================================================================
+
+
+def test_check_retry_extended_limit_exhausted():
     print("\n## check-retry — extended limit exhausted at 6")
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        reports = [
-            {"attempt": i, "verdict": "rejected", "criteriaResults": [{"id": "AC_1", "status": "fail"}]}
-            for i in range(1, 7)  # 6 reports, all with 1 failure (flat but got extended somehow)
-        ]
         # Actually make it strictly decreasing for first 3, then flat
         reports = [
             {
@@ -1079,9 +1193,53 @@ def main():
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("6 attempts exhausted returns abort", out == "abort", "got: " + out)
 
-    # ===========================================================================
-    # Summary
-    # ===========================================================================
+
+# ===========================================================================
+# Summary
+# ===========================================================================
+
+
+def main():
+    test_eligible_help()
+    test_eligible_missing_state_json()
+    test_eligible_empty_dependency_map()
+    test_eligible_single_queued_no_deps()
+    test_eligible_implementing_not_eligible()
+    test_eligible_linear_chain()
+    test_eligible_diamond_dependency()
+    test_eligible_parallel_independent()
+    test_eligible_lifecycle_filtering()
+    test_eligible_missing_iter_state_file()
+    test_eligible_invalid_lifecycle_value()
+    test_eligible_sorted_output()
+    test_eligible_stuck_blocked_dep()
+    test_eligible_stuck_withdrawn_dep()
+    test_eligible_stuck_text_output()
+    test_eligible_not_stuck_dep_queued()
+    test_eligible_not_stuck_dep_implementing()
+    test_check_breakpoints_help()
+    test_check_breakpoints_missing_args()
+    test_check_breakpoints_no_field()
+    test_check_breakpoints_empty_arrays()
+    test_check_breakpoints_hit_before()
+    test_check_breakpoints_hit_after()
+    test_check_breakpoints_json_output()
+    test_check_breakpoints_missing_state_json()
+    test_check_breakpoints_iter_not_in_dep_map()
+    test_check_retry_help()
+    test_check_retry_missing_args()
+    test_check_retry_missing_state_file()
+    test_check_retry_no_reports()
+    test_check_retry_empty_reports()
+    test_check_retry_single_report_under_limit()
+    test_check_retry_decreasing_trend()
+    test_check_retry_not_decreasing_at_limit()
+    test_check_retry_flat_trend_at_limit()
+    test_check_retry_not_decreasing_under_limit()
+    test_check_retry_error_skipped_excluded()
+    test_check_retry_no_criteria_results()
+    test_check_retry_extended_limit_4th_attempt()
+    test_check_retry_extended_limit_exhausted()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

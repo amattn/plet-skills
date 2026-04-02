@@ -195,22 +195,23 @@ def create_mock_claude(tmpdir, behavior="pass"):
     return mock_dir
 
 
-def main():
-    global passed, failed
-    # ===========================================================================
-    # run — help
-    # ===========================================================================
+# ===========================================================================
+# run — help
+# ===========================================================================
 
+def test_run_help():
     print("## run — help")
 
     out, err, _ = run(["run", "--help"])
     check("run help exits 0", True)
     check("run help non-empty", len(out) > 0)
 
-    # ===========================================================================
-    # run — missing state.json
-    # ===========================================================================
 
+# ===========================================================================
+# run — missing state.json
+# ===========================================================================
+
+def test_run_missing_state_json():
     print("\n## run — missing state.json")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -219,10 +220,12 @@ def main():
         out, err, _ = run(["run", plet_dir], expect_exit=1)
         check("missing state.json exits 1", True)
 
-    # ===========================================================================
-    # run — nothing eligible (all complete, no session started)
-    # ===========================================================================
 
+# ===========================================================================
+# run — nothing eligible (all complete, no session started)
+# ===========================================================================
+
+def test_run_nothing_eligible():
     print("\n## run — nothing eligible (pre-check, no session)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -249,10 +252,12 @@ def main():
             "should not start a session for zero work",
         )
 
-    # ===========================================================================
-    # run — single iteration happy path (implement → verify → pass → complete)
-    # ===========================================================================
 
+# ===========================================================================
+# run — single iteration happy path (implement → verify → pass → complete)
+# ===========================================================================
+
+def test_run_single_iteration_happy_path():
     print("\n## run — single iteration happy path")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -312,10 +317,12 @@ def main():
         history = gs.get("sessionHistory", []) if gs else []
         check("session ended", len(history) > 0 and history[-1].get("endedAt") is not None, "history: " + str(history))
 
-    # ===========================================================================
-    # run — reject then pass on retry (#1)
-    # ===========================================================================
 
+# ===========================================================================
+# run — reject then pass on retry (#1)
+# ===========================================================================
+
+def test_run_reject_then_pass_on_retry():
     print("\n## run — reject then pass on retry")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -354,10 +361,12 @@ def main():
         lc = gs_after.get("lifecycles", {}).get("ID_001") if gs_after else None
         check("final lifecycle complete", lc == "complete", "got: " + str(lc))
 
-    # ===========================================================================
-    # run — two-iteration dependency chain (#2)
-    # ===========================================================================
 
+# ===========================================================================
+# run — two-iteration dependency chain (#2)
+# ===========================================================================
+
+def test_run_two_iteration_dependency_chain():
     print("\n## run — two-iteration dependency chain")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -404,10 +413,12 @@ def main():
         check("ID_001 lifecycle complete", lcs.get("ID_001") == "complete")
         check("ID_002 lifecycle complete", lcs.get("ID_002") == "complete")
 
-    # ===========================================================================
-    # run — breakpoint before (#3)
-    # ===========================================================================
 
+# ===========================================================================
+# run — breakpoint before (#3)
+# ===========================================================================
+
+def test_run_breakpoint_before():
     print("\n## run — breakpoint before")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -465,10 +476,12 @@ def main():
                 "endedAt: " + str(history[-1].get("endedAt")),
             )
 
-    # ===========================================================================
-    # run — mixed outcome: pass + block + stuck (#7)
-    # ===========================================================================
 
+# ===========================================================================
+# run — mixed outcome: pass + block + stuck (#7)
+# ===========================================================================
+
+def test_run_mixed_outcome_pass_block_stuck():
     print("\n## run — mixed outcome: pass + exhaust retry + stuck dependent")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -541,10 +554,12 @@ def main():
         check("ID_001 complete", lcs.get("ID_001") == "complete")
         check("ID_003 still queued (stuck)", lcs.get("ID_003") == "queued", "got: " + str(lcs.get("ID_003")))
 
-    # ===========================================================================
-    # run — max-iterations limit (#4)
-    # ===========================================================================
 
+# ===========================================================================
+# run — max-iterations limit (#4)
+# ===========================================================================
+
+def test_run_max_iterations_limit():
     print("\n## run — max-iterations limit")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -591,10 +606,12 @@ def main():
         queued = sum(1 for lc in lcs.values() if lc == "queued")
         check("one complete one queued", completed == 1 and queued == 1, f"complete={completed} queued={queued}")
 
-    # ===========================================================================
-    # run — no commits → block (#5)
-    # ===========================================================================
 
+# ===========================================================================
+# run — no commits → block (#5)
+# ===========================================================================
+
+def test_run_no_commits_blocks_iteration():
     print("\n## run — no commits blocks iteration")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -631,10 +648,12 @@ def main():
         lc = gs_after.get("lifecycles", {}).get("ID_001") if gs_after else None
         check("lifecycle blocked", lc == "blocked", "got: " + str(lc))
 
-    # ===========================================================================
-    # run — crash recovery / resume (#6)
-    # ===========================================================================
 
+# ===========================================================================
+# run — crash recovery / resume (#6)
+# ===========================================================================
+
+def test_run_crash_recovery_resume():
     print("\n## run — crash recovery (resume after interrupted session)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -709,10 +728,12 @@ def main():
         # Should NOT have created a new session (resumed the existing one)
         check("still one session", len(history) == 1, "got: " + str(len(history)))
 
-    # ===========================================================================
-    # run — stale fingerprints blocking (#8)
-    # ===========================================================================
 
+# ===========================================================================
+# run — stale fingerprints blocking (#8)
+# ===========================================================================
+
+def test_run_stale_fingerprints_blocking():
     print("\n## run — stale fingerprints block by default")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -760,9 +781,26 @@ def main():
             "got: " + str(result.get("reason")),
         )
 
-    # ===========================================================================
-    # Summary
-    # ===========================================================================
+
+# ===========================================================================
+# Summary
+# ===========================================================================
+
+def main():
+    global passed, failed
+
+    test_run_help()
+    test_run_missing_state_json()
+    test_run_nothing_eligible()
+    test_run_single_iteration_happy_path()
+    test_run_reject_then_pass_on_retry()
+    test_run_two_iteration_dependency_chain()
+    test_run_breakpoint_before()
+    test_run_mixed_outcome_pass_block_stuck()
+    test_run_max_iterations_limit()
+    test_run_no_commits_blocks_iteration()
+    test_run_crash_recovery_resume()
+    test_run_stale_fingerprints_blocking()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

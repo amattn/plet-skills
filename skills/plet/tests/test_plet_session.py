@@ -3,6 +3,7 @@
 
 Zero dependencies beyond stdlib. Run with:
     ./skills/plet/tests/test_plet_session.py
+    pytest skills/plet/tests/test_plet_session.py
 
 Red/green, command-by-command: start-session first, then end-session.
 """
@@ -75,22 +76,25 @@ def load_state(plet_dir):
         return json.load(f)
 
 
-def main():
-    global passed, failed
-    # ===========================================================================
-    # start-session — help
-    # ===========================================================================
+# ===========================================================================
+# start-session — help
+# ===========================================================================
 
+
+def test_start_session_help():
     print("## start-session — help")
 
     out, err, _ = run(["start-session", "--help"])
     check("start-session help exits 0", True)
     check("start-session help non-empty", len(out) > 0)
 
-    # ===========================================================================
-    # start-session — missing state.json
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — missing state.json
+# ===========================================================================
+
+
+def test_start_session_missing_state_json():
     print("\n## start-session — missing state.json")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -100,10 +104,13 @@ def main():
         check("missing state.json exits 1", True)
         check("error mentions state.json", "state.json" in err.lower() or "state.json" in out.lower(), "stderr: " + err)
 
-    # ===========================================================================
-    # start-session — missing --type
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — missing --type
+# ===========================================================================
+
+
+def test_start_session_missing_type():
     print("\n## start-session — missing --type")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -112,10 +119,13 @@ def main():
         out, err, _ = run(["start-session", plet_dir], expect_exit=1)
         check("missing type exits 1", True)
 
-    # ===========================================================================
-    # start-session — invalid --type
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — invalid --type
+# ===========================================================================
+
+
+def test_start_session_invalid_type():
     print("\n## start-session — invalid --type")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -125,10 +135,13 @@ def main():
         check("invalid type exits 1", True)
         check("error mentions valid types", "loop" in err and "refine" in err, "stderr: " + err)
 
-    # ===========================================================================
-    # start-session — first loop session
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — first loop session
+# ===========================================================================
+
+
+def test_start_session_first_loop():
     print("\n## start-session — first loop session")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -153,10 +166,13 @@ def main():
         check("entry startedAt is ISO string", "T" in entry.get("startedAt", ""))
         check("entry endedAt is null", entry["endedAt"] is None)
 
-    # ===========================================================================
-    # start-session — first refine session
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — first refine session
+# ===========================================================================
+
+
+def test_start_session_first_refine():
     print("\n## start-session — first refine session")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -185,10 +201,13 @@ def main():
         check("sessionHistory has 2 entries", len(state["sessionHistory"]) == 2)
         check("new entry type is refine", state["sessionHistory"][1]["type"] == "refine")
 
-    # ===========================================================================
-    # start-session — sequential sessions (loop 1, loop 2)
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — sequential sessions (loop 1, loop 2)
+# ===========================================================================
+
+
+def test_start_session_sequential_loops():
     print("\n## start-session — sequential loop sessions")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -215,10 +234,13 @@ def main():
         state = load_state(plet_dir)
         check("loopSessionCount is 2", state["loopSessionCount"] == 2)
 
-    # ===========================================================================
-    # start-session — resume active session (idempotent)
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — resume active session (idempotent)
+# ===========================================================================
+
+
+def test_start_session_resume_active():
     print("\n## start-session — resume active session")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -259,10 +281,13 @@ def main():
         check("json resumed true", data["resumed"] is True)
         check("json sessionNumber 2", data["sessionNumber"] == 2)
 
-    # ===========================================================================
-    # start-session — cross-type conflict (loop while refine active)
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — cross-type conflict (loop while refine active)
+# ===========================================================================
+
+
+def test_start_session_cross_type_conflict():
     print("\n## start-session — cross-type conflict")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -307,10 +332,13 @@ def main():
         out, err, _ = run(["start-session", plet_dir, "--type", "refine"], expect_exit=1)
         check("reverse cross-type conflict exits 1", True)
 
-    # ===========================================================================
-    # start-session — missing sessionHistory field (initialize)
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — missing sessionHistory field (initialize)
+# ===========================================================================
+
+
+def test_start_session_missing_session_history():
     print("\n## start-session — missing sessionHistory field")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -328,10 +356,13 @@ def main():
         check("sessionHistory created", "sessionHistory" in state)
         check("loopSessionCount created", state.get("loopSessionCount") == 1)
 
-    # ===========================================================================
-    # start-session — dry-run
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — dry-run
+# ===========================================================================
+
+
+def test_start_session_dry_run():
     print("\n## start-session — dry-run")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -346,10 +377,13 @@ def main():
         check("dry-run did not increment counter", state["loopSessionCount"] == 0)
         check("dry-run did not add history", len(state.get("sessionHistory", [])) == 0)
 
-    # ===========================================================================
-    # start-session — JSON output
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — JSON output
+# ===========================================================================
+
+
+def test_start_session_json_output():
     print("\n## start-session — JSON output")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -366,10 +400,13 @@ def main():
         check("json projectId", data["projectId"] == "MYPR")
         check("json resumed false", data["resumed"] is False)
 
-    # ===========================================================================
-    # start-session — corruption: multiple active sessions
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — corruption: multiple active sessions
+# ===========================================================================
+
+
+def test_start_session_corruption_multiple_active():
     print("\n## start-session — corruption: multiple active sessions")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -400,20 +437,26 @@ def main():
         check("multiple active sessions exits 1", True)
         check("error mentions corruption", "corrupt" in err.lower() or "multiple" in err.lower(), "stderr: " + err)
 
-    # ===========================================================================
-    # end-session — help
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — help
+# ===========================================================================
+
+
+def test_end_session_help():
     print("\n## end-session — help")
 
     out, err, _ = run(["end-session", "--help"])
     check("end-session help exits 0", True)
     check("end-session help non-empty", len(out) > 0)
 
-    # ===========================================================================
-    # end-session — missing state.json
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — missing state.json
+# ===========================================================================
+
+
+def test_end_session_missing_state_json():
     print("\n## end-session — missing state.json")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -422,10 +465,13 @@ def main():
         out, err, _ = run(["end-session", plet_dir], expect_exit=1)
         check("missing state.json exits 1", True)
 
-    # ===========================================================================
-    # end-session — empty sessionHistory
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — empty sessionHistory
+# ===========================================================================
+
+
+def test_end_session_empty_session_history():
     print("\n## end-session — empty sessionHistory")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -439,10 +485,13 @@ def main():
             "stderr: " + err,
         )
 
-    # ===========================================================================
-    # end-session — no sessionHistory field
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — no sessionHistory field
+# ===========================================================================
+
+
+def test_end_session_no_session_history_field():
     print("\n## end-session — no sessionHistory field")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -455,10 +504,13 @@ def main():
         out, err, _ = run(["end-session", plet_dir], expect_exit=1)
         check("missing sessionHistory field exits 1", True)
 
-    # ===========================================================================
-    # end-session — normal close
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — normal close
+# ===========================================================================
+
+
+def test_end_session_normal_close():
     print("\n## end-session — normal close")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -489,10 +541,13 @@ def main():
         check("endedAt is ISO string", "T" in entry["endedAt"])
         check("startedAt unchanged", entry["startedAt"] == "2026-03-29T10:00:00Z")
 
-    # ===========================================================================
-    # end-session — idempotent (already ended)
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — idempotent (already ended)
+# ===========================================================================
+
+
+def test_end_session_already_ended():
     print("\n## end-session — already ended (idempotent)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -522,10 +577,13 @@ def main():
         check("json sessionType", data["sessionType"] == "loop")
         check("json sessionNumber", data["sessionNumber"] == 1)
 
-    # ===========================================================================
-    # end-session — JSON output
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — JSON output
+# ===========================================================================
+
+
+def test_end_session_json_output():
     print("\n## end-session — JSON output")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -555,10 +613,13 @@ def main():
         check("json endedAt set", data["endedAt"] is not None)
         check("json alreadyEnded false", data["alreadyEnded"] is False)
 
-    # ===========================================================================
-    # end-session — dry-run
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — dry-run
+# ===========================================================================
+
+
+def test_end_session_dry_run():
     print("\n## end-session — dry-run")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -584,10 +645,13 @@ def main():
         state = load_state(plet_dir)
         check("dry-run did not set endedAt", state["sessionHistory"][0]["endedAt"] is None)
 
-    # ===========================================================================
-    # end-session — corruption: multiple active sessions
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — corruption: multiple active sessions
+# ===========================================================================
+
+
+def test_end_session_corruption_multiple_active():
     print("\n## end-session — corruption: multiple active sessions")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -618,10 +682,13 @@ def main():
         check("multiple active exits 1", True)
         check("error mentions corruption", "corrupt" in err.lower() or "multiple" in err.lower(), "stderr: " + err)
 
-    # ===========================================================================
-    # end-session — duration in text output
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — duration in text output
+# ===========================================================================
+
+
+def test_end_session_duration_display():
     print("\n## end-session — duration display")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -646,10 +713,13 @@ def main():
         # Duration should be present (some form of time string)
         check("text includes duration parenthetical", "(" in out and ")" in out, "got: " + out)
 
-    # ===========================================================================
-    # end-session — full lifecycle (start then end)
-    # ===========================================================================
 
+# ===========================================================================
+# end-session — full lifecycle (start then end)
+# ===========================================================================
+
+
+def test_end_session_full_lifecycle():
     print("\n## end-session — full lifecycle")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -667,10 +737,13 @@ def main():
         check("after end: endedAt set", state["sessionHistory"][0]["endedAt"] is not None)
         check("after end: counter still 1", state["loopSessionCount"] == 1)
 
-    # ===========================================================================
-    # start-session — merge driver setup
-    # ===========================================================================
 
+# ===========================================================================
+# start-session — merge driver setup
+# ===========================================================================
+
+
+def test_start_session_merge_driver_setup():
     print("\n## start-session — configures merge driver")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -708,6 +781,8 @@ def main():
         check("git config has driver", result.returncode == 0)
         check("driver mentions merge_driver", "plet_merge_driver" in result.stdout)
 
+
+def test_start_session_merge_driver_idempotent():
     print("\n## start-session — merge driver idempotent")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -733,9 +808,41 @@ def main():
         check("no duplicate progress entry", content.count("plet/progress.md merge=plet-append") == 1)
         check("missing entries added", "plet/learnings.md merge=plet-append" in content)
 
-    # ===========================================================================
-    # Summary
-    # ===========================================================================
+
+# ===========================================================================
+# main — subprocess harness entry point
+# ===========================================================================
+
+
+def main():
+    global passed, failed
+
+    test_start_session_help()
+    test_start_session_missing_state_json()
+    test_start_session_missing_type()
+    test_start_session_invalid_type()
+    test_start_session_first_loop()
+    test_start_session_first_refine()
+    test_start_session_sequential_loops()
+    test_start_session_resume_active()
+    test_start_session_cross_type_conflict()
+    test_start_session_missing_session_history()
+    test_start_session_dry_run()
+    test_start_session_json_output()
+    test_start_session_corruption_multiple_active()
+    test_end_session_help()
+    test_end_session_missing_state_json()
+    test_end_session_empty_session_history()
+    test_end_session_no_session_history_field()
+    test_end_session_normal_close()
+    test_end_session_already_ended()
+    test_end_session_json_output()
+    test_end_session_dry_run()
+    test_end_session_corruption_multiple_active()
+    test_end_session_duration_display()
+    test_end_session_full_lifecycle()
+    test_start_session_merge_driver_setup()
+    test_start_session_merge_driver_idempotent()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
