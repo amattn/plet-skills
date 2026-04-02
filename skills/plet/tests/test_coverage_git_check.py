@@ -427,6 +427,414 @@ def test_check_unmerged_complete():
 
 
 # ---------------------------------------------------------------------------
+# cmd_check_iteration tests
+# ---------------------------------------------------------------------------
+
+
+def _make_iteration_project(lifecycles=None, loop_session=1):
+    """Create a git repo with plet state and iteration branches.
+
+    Sets up the repo on the iteration branch so cmd_check_iteration
+    can run from cwd. Returns (tmpdir, plet_dir).
+    """
+    if lifecycles is None:
+        lifecycles = {"ID_001": "implementing"}
+    d = tempfile.mkdtemp()
+    make_git_repo(d)
+    plet_dir = os.path.join(d, "plet")
+    os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+    make_global_state(
+        plet_dir,
+        dep_map={i: [] for i in lifecycles},
+        lifecycles=lifecycles,
+        loop_session=loop_session,
+    )
+    for i in lifecycles:
+        make_iter_state(plet_dir, i)
+    subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
+    subprocess.run(["git", "-C", d, "commit", "-m", "state"], capture_output=True)
+    # Create workstream and iteration branches
+    ws = f"plet/TEST/loop{loop_session}/workstream"
+    subprocess.run(["git", "-C", d, "checkout", "-b", ws], capture_output=True)
+    for i in lifecycles:
+        br = f"plet/TEST/loop{loop_session}/{i}"
+        subprocess.run(["git", "-C", d, "checkout", "-b", br, ws], capture_output=True)
+    return d, plet_dir
+
+
+def test_cmd_check_iteration_help():
+    import plet_git_check
+
+    rc = plet_git_check.cmd_check_iteration(["--help"])
+    check("help exits 0", rc == 0)
+
+
+def test_cmd_check_iteration_basic_pass():
+    import plet_git_check
+
+    d, plet_dir = _make_iteration_project()
+    old_cwd = os.getcwd()
+    try:
+        # Switch to the iteration branch
+        iter_branch = "plet/TEST/loop1/ID_001"
+        subprocess.run(["git", "-C", d, "checkout", iter_branch], capture_output=True)
+        os.chdir(d)
+        rc = plet_git_check.cmd_check_iteration([
+            plet_dir, "--iter-id", "ID_001", "--phase", "implement",
+        ])
+        check("basic pass exits 0", rc == 0)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_iteration_json_output():
+    import plet_git_check
+
+    d, plet_dir = _make_iteration_project()
+    old_cwd = os.getcwd()
+    try:
+        iter_branch = "plet/TEST/loop1/ID_001"
+        subprocess.run(["git", "-C", d, "checkout", iter_branch], capture_output=True)
+        os.chdir(d)
+
+        # Capture stdout
+        import io
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            rc = plet_git_check.cmd_check_iteration([
+                plet_dir, "--iter-id", "ID_001", "--phase", "implement",
+                "--output", "json",
+            ])
+            output = sys.stdout.getvalue()
+        finally:
+            sys.stdout = old_stdout
+
+        check("json exits 0", rc == 0)
+        data = json.loads(output)
+        check("json has status", "status" in data)
+        check("json has checks", "checks" in data)
+        check("json has command", data.get("command") == "check-iteration")
+        check("json has iterationId", data.get("iterationId") == "ID_001")
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_iteration_missing_args():
+    import plet_git_check
+
+    d, plet_dir = _make_iteration_project()
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # Missing --iter-id and --phase
+        rc = plet_git_check.cmd_check_iteration([plet_dir])
+        check("missing args exits 1", rc == 1)
+
+        # Missing --phase only
+        rc = plet_git_check.cmd_check_iteration([plet_dir, "--iter-id", "ID_001"])
+        check("missing phase exits 1", rc == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_iteration_invalid_phase():
+    import plet_git_check
+
+    d, plet_dir = _make_iteration_project()
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        rc = plet_git_check.cmd_check_iteration([
+            plet_dir, "--iter-id", "ID_001", "--phase", "build",
+        ])
+        check("invalid phase exits 1", rc == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_iteration_not_git_repo():
+    import plet_git_check
+
+    d = tempfile.mkdtemp()
+    old_cwd = os.getcwd()
+    try:
+        plet_dir = os.path.join(d, "plet")
+        os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
+        make_iter_state(plet_dir, "ID_001")
+        os.chdir(d)
+        rc = plet_git_check.cmd_check_iteration([
+            plet_dir, "--iter-id", "ID_001", "--phase", "implement",
+        ])
+        check("not git repo exits 1", rc == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_iteration_missing_state():
+    import plet_git_check
+
+    d = tempfile.mkdtemp()
+    make_git_repo(d)
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # plet_dir doesn't exist
+        rc = plet_git_check.cmd_check_iteration([
+            os.path.join(d, "plet"), "--iter-id", "ID_001", "--phase", "implement",
+        ])
+        check("missing state exits 1", rc == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_iteration_missing_iter_state():
+    import plet_git_check
+
+    d, plet_dir = _make_iteration_project()
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # Ask for an iteration that doesn't have state
+        rc = plet_git_check.cmd_check_iteration([
+            plet_dir, "--iter-id", "ID_999", "--phase", "implement",
+        ])
+        check("missing iter state exits 1", rc == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_iteration_wrong_branch():
+    """Checks fail when on the wrong branch (workstream instead of iteration)."""
+    import plet_git_check
+
+    d, plet_dir = _make_iteration_project()
+    old_cwd = os.getcwd()
+    try:
+        # Stay on workstream, not the iteration branch
+        subprocess.run(["git", "-C", d, "checkout", "plet/TEST/loop1/workstream"], capture_output=True)
+        os.chdir(d)
+        rc = plet_git_check.cmd_check_iteration([
+            plet_dir, "--iter-id", "ID_001", "--phase", "implement",
+        ])
+        # Should exit non-zero because correct-branch check fails
+        check("wrong branch exits non-zero", rc != 0)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# cmd_check_session tests
+# ---------------------------------------------------------------------------
+
+
+def _make_session_project(lifecycles=None, loop_session=1):
+    """Create a git repo with plet state and workstream branch.
+
+    Returns (tmpdir, plet_dir). Caller must clean up tmpdir.
+    """
+    if lifecycles is None:
+        lifecycles = {"ID_001": "implementing"}
+    d = tempfile.mkdtemp()
+    make_git_repo(d)
+    plet_dir = os.path.join(d, "plet")
+    os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+    make_global_state(
+        plet_dir,
+        dep_map={i: [] for i in lifecycles},
+        lifecycles=lifecycles,
+        loop_session=loop_session,
+    )
+    for i in lifecycles:
+        make_iter_state(plet_dir, i)
+    subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
+    subprocess.run(["git", "-C", d, "commit", "-m", "state"], capture_output=True)
+    # Create workstream branch
+    ws = f"plet/TEST/loop{loop_session}/workstream"
+    subprocess.run(["git", "-C", d, "checkout", "-b", ws], capture_output=True)
+    return d, plet_dir
+
+
+def test_cmd_check_session_help():
+    import plet_git_check
+
+    rc = plet_git_check.cmd_check_session(["--help"])
+    check("session help exits 0", rc == 0)
+
+
+def test_cmd_check_session_basic_pass():
+    import plet_git_check
+
+    d, plet_dir = _make_session_project()
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        rc = plet_git_check.cmd_check_session([plet_dir])
+        check("session basic pass exits 0", rc == 0)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_session_json_output():
+    import plet_git_check
+
+    d, plet_dir = _make_session_project()
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        import io
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            rc = plet_git_check.cmd_check_session([
+                plet_dir, "--output", "json",
+            ])
+            output = sys.stdout.getvalue()
+        finally:
+            sys.stdout = old_stdout
+
+        check("session json exits 0", rc == 0)
+        data = json.loads(output)
+        check("session json has status", "status" in data)
+        check("session json has checks", "checks" in data)
+        check("session json has command", data.get("command") == "check-session")
+        check("session json has projectId", data.get("projectId") == "TEST")
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_session_missing_state_dir():
+    import plet_git_check
+
+    d = tempfile.mkdtemp()
+    make_git_repo(d)
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # plet_dir doesn't exist at all
+        rc = plet_git_check.cmd_check_session([os.path.join(d, "plet")])
+        check("missing state dir exits 1", rc == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_session_stashes_detected():
+    import plet_git_check
+
+    d, plet_dir = _make_session_project()
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # Create a stash
+        with open(os.path.join(d, "stash_file.txt"), "w") as f:
+            f.write("stash content\n")
+        subprocess.run(["git", "-C", d, "add", "stash_file.txt"], capture_output=True)
+        subprocess.run(["git", "-C", d, "stash"], capture_output=True)
+
+        import io
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            rc = plet_git_check.cmd_check_session([
+                plet_dir, "--output", "json",
+            ])
+            output = sys.stdout.getvalue()
+        finally:
+            sys.stdout = old_stdout
+
+        # Stashes produce a warning, exit code 2
+        check("stashes detected exits 2", rc == 2)
+        data = json.loads(output)
+        stash_checks = [c for c in data["checks"] if c["name"] == "no-stashes"]
+        check("stash check is warn", len(stash_checks) == 1 and stash_checks[0]["status"] == "warn")
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_session_orphaned_worktree():
+    """Detect orphaned worktrees for completed/unknown iterations."""
+    import plet_git_check
+
+    d, plet_dir = _make_session_project(lifecycles={"ID_001": "complete"})
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # Create an iteration branch for the complete iteration
+        iter_branch = "plet/TEST/loop1/ID_001"
+        subprocess.run(["git", "-C", d, "branch", iter_branch], capture_output=True)
+
+        # Create a worktree for that branch (orphaned because lifecycle is complete)
+        wt_dir = os.path.join(d, "worktree_ID_001")
+        subprocess.run(
+            ["git", "-C", d, "worktree", "add", wt_dir, iter_branch],
+            capture_output=True,
+        )
+
+        import io
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            rc = plet_git_check.cmd_check_session([
+                plet_dir, "--output", "json",
+            ])
+            output = sys.stdout.getvalue()
+        finally:
+            sys.stdout = old_stdout
+
+        data = json.loads(output)
+        orphan_checks = [c for c in data["checks"] if c["name"] == "orphaned-worktrees"]
+        check(
+            "orphaned worktree detected",
+            len(orphan_checks) == 1 and orphan_checks[0]["status"] == "warn",
+        )
+
+        # Clean up worktree before rmtree
+        subprocess.run(["git", "-C", d, "worktree", "remove", "--force", wt_dir], capture_output=True)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def test_cmd_check_session_not_git_repo():
+    import plet_git_check
+
+    d = tempfile.mkdtemp()
+    old_cwd = os.getcwd()
+    try:
+        plet_dir = os.path.join(d, "plet")
+        os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
+        make_iter_state(plet_dir, "ID_001")
+        os.chdir(d)
+        rc = plet_git_check.cmd_check_session([plet_dir])
+        check("session not git repo exits 1", rc == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_check_session_missing_plet_dir():
+    """cmd_check_session with no plet_dir arg."""
+    import plet_git_check
+
+    rc = plet_git_check.cmd_check_session([])
+    check("session no plet_dir exits 1", rc == 1)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -448,6 +856,27 @@ def main():
     test_is_orphaned_plet_worktree()
     test_check_orphaned_branches()
     test_check_unmerged_complete()
+
+    # cmd_check_iteration tests
+    test_cmd_check_iteration_help()
+    test_cmd_check_iteration_basic_pass()
+    test_cmd_check_iteration_json_output()
+    test_cmd_check_iteration_missing_args()
+    test_cmd_check_iteration_invalid_phase()
+    test_cmd_check_iteration_not_git_repo()
+    test_cmd_check_iteration_missing_state()
+    test_cmd_check_iteration_missing_iter_state()
+    test_cmd_check_iteration_wrong_branch()
+
+    # cmd_check_session tests
+    test_cmd_check_session_help()
+    test_cmd_check_session_basic_pass()
+    test_cmd_check_session_json_output()
+    test_cmd_check_session_missing_state_dir()
+    test_cmd_check_session_stashes_detected()
+    test_cmd_check_session_orphaned_worktree()
+    test_cmd_check_session_not_git_repo()
+    test_cmd_check_session_missing_plet_dir()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0

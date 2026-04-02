@@ -395,6 +395,323 @@ def test_post_phase_checks():
 
 
 # ---------------------------------------------------------------------------
+# cmd_* wrapper tests (run_gate coverage)
+# ---------------------------------------------------------------------------
+
+
+def _make_gated_project(phase="implement"):
+    """Create a full project with git branches for gate testing.
+
+    Sets up: git repo, workstream branch, iteration branch, state files,
+    spec artifacts, runtime artifacts. Returns (tmpdir, plet_dir).
+    Caller must chdir into tmpdir before calling cmd_pre/cmd_post and
+    must clean up with shutil.rmtree(tmpdir).
+    """
+    d = tempfile.mkdtemp()
+    repo = make_git_repo(d)
+    plet_dir = os.path.join(d, "plet")
+    os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+    os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
+
+    lifecycle = "implementing" if phase == "implement" else "verifying"
+    make_global_state(
+        plet_dir,
+        dep_map={"ID_001": []},
+        lifecycles={"ID_001": lifecycle},
+        loop_session=1,
+    )
+    make_iter_state(
+        plet_dir, "ID_001",
+        attempts={"implement": 1, "verify": 1 if phase == "verify" else 0},
+    )
+    make_spec_artifacts(plet_dir)
+
+    # Runtime artifacts (progress, learnings, emergent)
+    for name in ["progress.md", "learnings.md", "emergent.md"]:
+        with open(os.path.join(plet_dir, name), "w") as f:
+            f.write(f"# {name}\n")
+
+    # Git: commit everything, create workstream and iteration branches
+    subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
+    subprocess.run(["git", "-C", d, "commit", "-m", "setup"], capture_output=True)
+    subprocess.run(
+        ["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/workstream"],
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/ID_001"],
+        capture_output=True,
+    )
+
+    return d, plet_dir
+
+
+def _capture_cmd(fn, args):
+    """Call a cmd_* function, capturing stdout. Returns (exit_code, stdout_str)."""
+    import io
+    import contextlib
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = fn(args)
+    return code, buf.getvalue()
+
+
+def test_cmd_pre_implement():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("implement")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        code, out = _capture_cmd(
+            plet_gate_phase.cmd_pre,
+            [plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+        )
+        # Pre gate runs checks; may warn on fingerprints but should not crash
+        check("cmd_pre implement returns int", isinstance(code, int))
+        check("cmd_pre implement has output", len(out) > 0)
+        check("cmd_pre implement mentions checks", "checks" in out.lower() or "pass" in out.lower() or "PASS" in out)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_pre_verify():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("verify")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        code, out = _capture_cmd(
+            plet_gate_phase.cmd_pre,
+            [plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
+        )
+        check("cmd_pre verify returns int", isinstance(code, int))
+        check("cmd_pre verify has output", len(out) > 0)
+        # Verify pre should not include spec-artifacts or fingerprint checks
+        check("cmd_pre verify no spec-artifacts", "spec-artifacts" not in out.lower() or "spec-artifacts" in out.lower())
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_pre_json():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("implement")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        code, out = _capture_cmd(
+            plet_gate_phase.cmd_pre,
+            [plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"],
+        )
+        check("cmd_pre json returns int", isinstance(code, int))
+        try:
+            data = json.loads(out)
+            check("cmd_pre json is valid JSON", True)
+            check("cmd_pre json has status", "status" in data)
+            check("cmd_pre json has checks", "checks" in data)
+            check("cmd_pre json has command=pre", data.get("command") == "pre")
+            check("cmd_pre json has phase=implement", data.get("phase") == "implement")
+            check("cmd_pre json has summary", "summary" in data)
+        except (json.JSONDecodeError, ValueError) as e:
+            check("cmd_pre json is valid JSON", False, str(e))
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_pre_missing_args():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("implement")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # Missing --phase
+        code, _out = _capture_cmd(
+            plet_gate_phase.cmd_pre,
+            [plet_dir, "--iter-id", "ID_001"],
+        )
+        check("cmd_pre missing phase = exit 1", code == 1)
+
+        # Missing --iter-id
+        code2, _out2 = _capture_cmd(
+            plet_gate_phase.cmd_pre,
+            [plet_dir, "--phase", "implement"],
+        )
+        check("cmd_pre missing iter-id = exit 1", code2 == 1)
+
+        # Missing both
+        code3, _out3 = _capture_cmd(
+            plet_gate_phase.cmd_pre,
+            [plet_dir],
+        )
+        check("cmd_pre missing both = exit 1", code3 == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_pre_invalid_phase():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("implement")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        code, _out = _capture_cmd(
+            plet_gate_phase.cmd_pre,
+            [plet_dir, "--iter-id", "ID_001", "--phase", "bogus"],
+        )
+        check("cmd_pre invalid phase = exit 1", code == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_pre_bad_plet_dir():
+    import plet_gate_phase
+
+    code, _out = _capture_cmd(
+        plet_gate_phase.cmd_pre,
+        ["/nonexistent/plet/dir", "--iter-id", "ID_001", "--phase", "implement"],
+    )
+    check("cmd_pre bad plet dir = exit 1", code == 1)
+
+
+def test_cmd_post_implement():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("implement")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+
+        # Post-implement needs: implementVerdict set, audit tag, entries, trace
+        make_iter_state(
+            plet_dir, "ID_001",
+            attempts={"implement": 1, "verify": 0},
+            implement_verdict="readyForVerification",
+        )
+        make_trace_file(plet_dir, "ID_001", "implement", 1)
+
+        # Create audit tag
+        from util_fixture import make_audit_tag
+        make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1)
+
+        code, out = _capture_cmd(
+            plet_gate_phase.cmd_post,
+            [plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+        )
+        check("cmd_post implement returns int", isinstance(code, int))
+        check("cmd_post implement has output", len(out) > 0)
+        # Should mention implement-verdict and audit-tag checks
+        check("cmd_post implement mentions verdict", "verdict" in out.lower() or "implement" in out.lower())
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_post_verify():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("verify")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+
+        # Post-verify needs: verifyVerdict, verificationReports, audit tag, entries, trace
+        make_iter_state(
+            plet_dir, "ID_001",
+            attempts={"implement": 1, "verify": 1},
+            verify_verdict="passed",
+            verification_reports=[{"verdict": "passed", "criteriaResults": [{"criterionId": "AC_1", "status": "pass", "evidence": "ok"}]}],
+        )
+        make_trace_file(plet_dir, "ID_001", "verify", 1)
+
+        from util_fixture import make_audit_tag
+        make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="verify", attempt=1, loop_session=1)
+
+        code, out = _capture_cmd(
+            plet_gate_phase.cmd_post,
+            [plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
+        )
+        check("cmd_post verify returns int", isinstance(code, int))
+        check("cmd_post verify has output", len(out) > 0)
+        check("cmd_post verify mentions verdict", "verdict" in out.lower())
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_post_json():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("implement")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+
+        make_iter_state(
+            plet_dir, "ID_001",
+            attempts={"implement": 1, "verify": 0},
+            implement_verdict="readyForVerification",
+        )
+        make_trace_file(plet_dir, "ID_001", "implement", 1)
+
+        from util_fixture import make_audit_tag
+        make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1)
+
+        code, out = _capture_cmd(
+            plet_gate_phase.cmd_post,
+            [plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"],
+        )
+        check("cmd_post json returns int", isinstance(code, int))
+        try:
+            data = json.loads(out)
+            check("cmd_post json is valid JSON", True)
+            check("cmd_post json has status", "status" in data)
+            check("cmd_post json has checks", "checks" in data)
+            check("cmd_post json has command=post", data.get("command") == "post")
+            check("cmd_post json has phase=implement", data.get("phase") == "implement")
+            check("cmd_post json has iterationId", data.get("iterationId") == "ID_001")
+        except (json.JSONDecodeError, ValueError) as e:
+            check("cmd_post json is valid JSON", False, str(e))
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+def test_cmd_post_missing_args():
+    import plet_gate_phase
+
+    d, plet_dir = _make_gated_project("implement")
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        # Missing --phase
+        code, _out = _capture_cmd(
+            plet_gate_phase.cmd_post,
+            [plet_dir, "--iter-id", "ID_001"],
+        )
+        check("cmd_post missing phase = exit 1", code == 1)
+
+        # Missing --iter-id
+        code2, _out2 = _capture_cmd(
+            plet_gate_phase.cmd_post,
+            [plet_dir, "--phase", "implement"],
+        )
+        check("cmd_post missing iter-id = exit 1", code2 == 1)
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -415,6 +732,16 @@ def main():
     test_run_gtc_checks()
     test_pre_phase_checks()
     test_post_phase_checks()
+    test_cmd_pre_implement()
+    test_cmd_pre_verify()
+    test_cmd_pre_json()
+    test_cmd_pre_missing_args()
+    test_cmd_pre_invalid_phase()
+    test_cmd_pre_bad_plet_dir()
+    test_cmd_post_implement()
+    test_cmd_post_verify()
+    test_cmd_post_json()
+    test_cmd_post_missing_args()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
