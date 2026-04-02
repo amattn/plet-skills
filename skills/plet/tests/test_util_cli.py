@@ -8,8 +8,13 @@ Since util_cli is an internal module (not a CLI tool), these tests
 import directly rather than using subprocess.
 """
 
+import io
+import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 
 # Add scripts dir to path so we can import util_cli
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
@@ -550,9 +555,6 @@ def test_extract_output_flags_dry_run_rejected():
 # emit_json / emit_json_error
 # ---------------------------------------------------------------------------
 
-import json  # noqa: E402
-import io  # noqa: E402
-
 
 def test_emit_json_basic():
     print("\n## emit_json — basic output")
@@ -610,10 +612,6 @@ def test_emit_json_error_basic():
 # ---------------------------------------------------------------------------
 # Invocation logging
 # ---------------------------------------------------------------------------
-
-import subprocess  # noqa: E402
-import tempfile  # noqa: E402
-import shutil  # noqa: E402
 
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 STATE_TOOL = os.path.join(SCRIPTS_DIR, "plet_iter_state.py")

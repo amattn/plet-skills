@@ -61,6 +61,7 @@ Dependencies: Python stdlib only (sys, datetime).
 """
 
 import datetime
+import json
 import sys
 
 
@@ -404,8 +405,6 @@ def filter_fields(data, fields):
 # ---------------------------------------------------------------------------
 # Shared CLI helpers (UNV_CMD_26)
 # ---------------------------------------------------------------------------
-
-import json  # noqa: E402
 
 
 def get_plet_dir(args):
