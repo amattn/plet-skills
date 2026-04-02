@@ -276,6 +276,119 @@ Examples:
 
 
 # ---------------------------------------------------------------------------
+# merge-squash helpers
+# ---------------------------------------------------------------------------
+
+
+def _merge_squash_error(cmd_name, msg, output_json, pretty, hint=None):
+    """Emit an error for merge-squash and return exit code 1."""
+    if output_json:
+        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
+    else:
+        print(msg, file=sys.stderr)
+    if hint:
+        print(hint, file=sys.stderr)
+    return 1
+
+
+def _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty):
+    """Validate git preconditions for merge-squash. Returns error code or None on success."""
+    if not is_git_repo():
+        return _merge_squash_error(cmd_name, "Error: not inside a git repository", output_json, pretty)
+
+    current_branch = run_git("branch", "--show-current").stdout
+    if current_branch != ws_branch:
+        msg = f"Error: must be on workstream branch {ws_branch}, currently on {current_branch}"
+        return _merge_squash_error(cmd_name, msg, output_json, pretty)
+
+    r = run_git("symbolic-ref", "HEAD")
+    if r.returncode != 0:
+        msg = "Error: HEAD is detached — merge-squash requires a named branch"
+        return _merge_squash_error(cmd_name, msg, output_json, pretty)
+
+    r = run_git("rev-parse", "--verify", "refs/heads/" + iter_branch)
+    if r.returncode != 0:
+        msg = f"Error: iteration branch not found: {iter_branch}"
+        return _merge_squash_error(cmd_name, msg, output_json, pretty)
+
+    r = run_git("merge-base", "--is-ancestor", iter_branch, "HEAD")
+    if r.returncode == 0:
+        msg = (
+            f"Error: iteration branch {iter_branch} has no changes ahead of workstream — already merged or no work done"
+        )
+        return _merge_squash_error(cmd_name, msg, output_json, pretty)
+
+    porcelain = run_git("status", "--porcelain").stdout
+    if porcelain:
+        msg = "Error: working tree is dirty (git status --porcelain non-empty) — commit changes before merge-squash"
+        return _merge_squash_error(cmd_name, msg, output_json, pretty)
+
+    return None
+
+
+def _build_merge_squash_message(iter_state):
+    """Build the commit title and full message for merge-squash."""
+    iter_id = iter_state["iterationId"]
+    title = iter_state["title"]
+    commit_title = f"plet: [{iter_id}] - {title}"
+
+    attempts = iter_state["attempts"]
+    body_lines = []
+    phase_parts = []
+    if attempts.get("implement", 0) > 0:
+        phase_parts.append("implement\u00d7{}".format(attempts["implement"]))
+    if attempts.get("verify", 0) > 0:
+        phase_parts.append("verify\u00d7{}".format(attempts["verify"]))
+    if phase_parts:
+        body_lines.append("Phases: {}".format(", ".join(phase_parts)))
+
+    criteria = iter_state.get("criteria", [])
+    if criteria:
+        total = len(criteria)
+        passed_count = sum(
+            1
+            for c in criteria
+            if c.get("status") == "pass" or (isinstance(c.get("status"), str) and c["status"] == "pass")
+        )
+        body_lines.append(f"Criteria: {passed_count}/{total} passed")
+
+    commit_body = "\n".join(body_lines) if body_lines else ""
+    full_message = commit_title
+    if commit_body:
+        full_message = f"{commit_title}\n\n{commit_body}"
+    return commit_title, full_message
+
+
+def _merge_squash_cleanup(global_state, iter_state, iter_id, iter_branch):
+    """Clean up tags and branches after merge-squash. Returns (tags_cleaned, branch_deleted)."""
+    tags_cleaned = []
+    cleanup_tags = iter_state.get("cleanupTagsAutomatically", False)
+    if cleanup_tags:
+        tag_prefix = "plet/{}/loop{}/audit/{}/".format(
+            global_state["projectId"],
+            global_state["loopSessionCount"],
+            iter_id,
+        )
+        tag_list_out = run_git("tag", "-l", tag_prefix + "*").stdout
+        if tag_list_out:
+            for tag_name in tag_list_out.split("\n"):
+                tag_name = tag_name.strip()
+                if tag_name:
+                    tag_hash = get_tag_hash(tag_name)
+                    run_git("tag", "-d", tag_name)
+                    tags_cleaned.append({"tag": tag_name, "hash": tag_hash})
+
+    branch_deleted = False
+    cleanup_branches = iter_state.get("cleanupBranchesAutomatically", False)
+    if cleanup_branches:
+        r = run_git("branch", "-D", iter_branch)
+        if r.returncode == 0:
+            branch_deleted = True
+
+    return tags_cleaned, branch_deleted
+
+
+# ---------------------------------------------------------------------------
 # merge-squash (placeholder — tests written next)
 # ---------------------------------------------------------------------------
 
@@ -337,12 +450,7 @@ Examples:
     # Validate plet_dir
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
-        if output_json:
-            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
-        else:
-            print(err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return _merge_squash_error(cmd_name, err, output_json, pretty, hint)
 
     # Load and validate both state files
     global_state = load_and_validate_global_state(plet_dir)
@@ -355,101 +463,17 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    # Check git repo
-    if not is_git_repo():
-        msg = "Error: not inside a git repository"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
     # Derive branch names
     ws_branch = derive_workstream_branch(global_state)
     iter_branch = derive_iteration_branch(global_state, iter_state)
 
-    # Must be on workstream
-    current_branch = run_git("branch", "--show-current").stdout
-    if current_branch != ws_branch:
-        msg = f"Error: must be on workstream branch {ws_branch}, currently on {current_branch}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    # Check not detached HEAD
-    r = run_git("symbolic-ref", "HEAD")
-    if r.returncode != 0:
-        msg = "Error: HEAD is detached — merge-squash requires a named branch"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    # Check iteration branch exists
-    r = run_git("rev-parse", "--verify", "refs/heads/" + iter_branch)
-    if r.returncode != 0:
-        msg = f"Error: iteration branch not found: {iter_branch}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    # Check there's something to merge (iteration branch is not ancestor of workstream)
-    r = run_git("merge-base", "--is-ancestor", iter_branch, "HEAD")
-    if r.returncode == 0:
-        msg = (
-            f"Error: iteration branch {iter_branch} has no changes ahead of workstream — already merged or no work done"
-        )
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    # Check working tree is clean
-    porcelain = run_git("status", "--porcelain").stdout
-    if porcelain:
-        msg = "Error: working tree is dirty (git status --porcelain non-empty) — commit changes before merge-squash"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+    # Validate git preconditions
+    git_err = _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty)
+    if git_err is not None:
+        return git_err
 
     # Build commit message
-    iter_id = iter_state["iterationId"]
-    title = iter_state["title"]
-    commit_title = f"plet: [{iter_id}] - {title}"
-
-    # Build commit body from iter state
-    attempts = iter_state["attempts"]
-    body_lines = []
-    phase_parts = []
-    if attempts.get("implement", 0) > 0:
-        phase_parts.append("implement\u00d7{}".format(attempts["implement"]))
-    if attempts.get("verify", 0) > 0:
-        phase_parts.append("verify\u00d7{}".format(attempts["verify"]))
-    if phase_parts:
-        body_lines.append("Phases: {}".format(", ".join(phase_parts)))
-
-    criteria = iter_state.get("criteria", [])
-    if criteria:
-        total = len(criteria)
-        passed_count = sum(
-            1
-            for c in criteria
-            if c.get("status") == "pass" or (isinstance(c.get("status"), str) and c["status"] == "pass")
-        )
-        body_lines.append(f"Criteria: {passed_count}/{total} passed")
-
-    commit_body = "\n".join(body_lines) if body_lines else ""
-    full_message = commit_title
-    if commit_body:
-        full_message = f"{commit_title}\n\n{commit_body}"
+    commit_title, full_message = _build_merge_squash_message(iter_state)
 
     if dry_run:
         msg = f"DRY RUN — would merge-squash {iter_branch} to {ws_branch}: {commit_title}"
@@ -474,61 +498,24 @@ Examples:
     # Merge --squash
     r = run_git("merge", "--squash", iter_branch)
     if r.returncode != 0:
-        # Check for conflicts
         if "conflict" in r.stderr.lower() or "CONFLICT" in r.stderr:
-            # Abort the merge
             run_git("merge", "--abort")
             msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
-            if output_json:
-                emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-            else:
-                print(msg, file=sys.stderr)
-            return 1
+            return _merge_squash_error(cmd_name, msg, output_json, pretty)
         msg = f"Error: git command failed: {r.stderr}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+        return _merge_squash_error(cmd_name, msg, output_json, pretty)
 
     # Commit
     r = run_git("commit", "-m", full_message)
     if r.returncode != 0:
         msg = f"Error: git commit failed: {r.stderr}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+        return _merge_squash_error(cmd_name, msg, output_json, pretty)
 
     commit_hash = get_head_short()
 
-    # Tag cleanup
-    tags_cleaned = []
-    cleanup_tags = iter_state.get("cleanupTagsAutomatically", False)
-    if cleanup_tags:
-        # Find all audit tags for this iteration
-        tag_prefix = "plet/{}/loop{}/audit/{}/".format(
-            global_state["projectId"],
-            global_state["loopSessionCount"],
-            iter_id,
-        )
-        tag_list_out = run_git("tag", "-l", tag_prefix + "*").stdout
-        if tag_list_out:
-            for tag_name in tag_list_out.split("\n"):
-                tag_name = tag_name.strip()
-                if tag_name:
-                    tag_hash = get_tag_hash(tag_name)
-                    run_git("tag", "-d", tag_name)
-                    tags_cleaned.append({"tag": tag_name, "hash": tag_hash})
-
-    # Branch cleanup
-    branch_deleted = False
-    cleanup_branches = iter_state.get("cleanupBranchesAutomatically", False)
-    if cleanup_branches:
-        r = run_git("branch", "-D", iter_branch)
-        if r.returncode == 0:
-            branch_deleted = True
+    # Cleanup tags and branches
+    iter_id = iter_state["iterationId"]
+    tags_cleaned, branch_deleted = _merge_squash_cleanup(global_state, iter_state, iter_id, iter_branch)
 
     # Output
     msg = f"OK — merged to workstream: {commit_title} ({commit_hash})"

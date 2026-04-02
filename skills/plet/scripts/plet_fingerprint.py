@@ -1021,6 +1021,93 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
     return 0
 
 
+def _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty):
+    """Check requirements-level fingerprint consistency. Returns (result_dict, consistent) or (None, None) on error."""
+    req_text = load_text(req_path)
+    iter_text = load_text(iter_path)
+    if req_text is None or iter_text is None:
+        return None, None
+
+    try:
+        current_req_fp = extract_requirements_fingerprint(req_text)
+    except ValueError as e:
+        msg = f"Error: malformed fingerprint in {req_path}: {e}"
+        if output_json:
+            emit_json_error(cmd_name, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return None, None
+
+    stored_req_fp = None
+    try:
+        iter_fp, _, _ = parse_fingerprint_block(iter_text)
+        if iter_fp:
+            stored_req_fp = iter_fp.get("requirementsFingerprint")
+    except ValueError:
+        pass
+
+    if stored_req_fp is None:
+        return {"consistent": False, "details": f"no fingerprint found in {iter_path}"}, False
+
+    consistent, details = compare_fingerprints(current_req_fp, stored_req_fp, "requirements")
+    return details, consistent
+
+
+def _check_iterations_level(iter_path, state_path, iter_text_cached, cmd_name, output_json, pretty):
+    """Check iterations-level fingerprint consistency. Returns (result_dict, consistent) or (None, None) on error."""
+    iter_text = iter_text_cached
+    if iter_text is None:
+        iter_text = load_text(iter_path)
+        if iter_text is None:
+            return None, None
+
+    try:
+        current_iter_fp = extract_iterations_fingerprint(iter_text)
+    except ValueError as e:
+        msg = f"Error: malformed fingerprint in {iter_path}: {e}"
+        if output_json:
+            emit_json_error(cmd_name, msg, pretty)
+        else:
+            print(msg, file=sys.stderr)
+        return None, None
+
+    state = load_json(state_path)
+    if state is None:
+        return None, None
+
+    stored_iter_fp = state.get("iterationsFingerprint")
+    if stored_iter_fp is None:
+        return {"consistent": False, "details": f"no iterationsFingerprint field in {state_path}"}, False
+
+    consistent, details = compare_fingerprints(current_iter_fp, stored_iter_fp, "iterations")
+    return details, consistent
+
+
+def _format_check_text_output(levels_result, all_consistent):
+    """Print text output for the check command."""
+    for level_name, details in levels_result.items():
+        if details["consistent"]:
+            print("  OK — {}: {}".format(level_name, details["details"]))
+        else:
+            print("  STALE — {}: {}".format(level_name, details["details"]))
+            if "added" in details and details["added"]:
+                print("    added: {}".format(", ".join(details["added"])))
+            if "removed" in details and details["removed"]:
+                print("    removed: {}".format(", ".join(details["removed"])))
+            if "currentTimestamp" in details:
+                print(
+                    "    timestamp mismatch: stored has {}, current has {}".format(
+                        details.get("storedTimestamp", "?"),
+                        details.get("currentTimestamp", "?"),
+                    )
+                )
+
+    if all_consistent:
+        print("OK — all fingerprints consistent")
+    else:
+        print("STALE — run refine or re-embed to fix")
+
+
 def cmd_check(args):
     help_text = """IMPORTANT:
     check is read-only — it detects staleness without modifying files.
@@ -1128,79 +1215,30 @@ Examples:
 
     levels_result = {}
     all_consistent = True
+    iter_text_cached = None
 
     # Requirements level: re-extract from requirements.md, compare against stored in iterations.md
     if check_req:
-        req_text = load_text(req_path)
-        iter_text = load_text(iter_path)
-        if req_text is None or iter_text is None:
+        result, consistent = _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty)
+        if result is None:
             return 1
-
-        try:
-            current_req_fp = extract_requirements_fingerprint(req_text)
-        except ValueError as e:
-            msg = f"Error: malformed fingerprint in {req_path}: {e}"
-            if output_json:
-                emit_json_error(cmd_name, msg, pretty)
-            else:
-                print(msg, file=sys.stderr)
-            return 1
-
-        # Read stored requirements fingerprint from iterations.md
-        stored_req_fp = None
-        try:
-            iter_fp, _, _ = parse_fingerprint_block(iter_text)
-            if iter_fp:
-                stored_req_fp = iter_fp.get("requirementsFingerprint")
-        except ValueError:
-            pass
-
-        if stored_req_fp is None:
-            levels_result["requirements"] = {
-                "consistent": False,
-                "details": f"no fingerprint found in {iter_path}",
-            }
+        levels_result["requirements"] = result
+        if not consistent:
             all_consistent = False
-        else:
-            consistent, details = compare_fingerprints(current_req_fp, stored_req_fp, "requirements")
-            levels_result["requirements"] = details
-            if not consistent:
-                all_consistent = False
+        # Cache iter_text if we'll need it for iterations level too
+        if check_iter:
+            iter_text_cached = load_text(iter_path)
 
     # Iterations level: re-extract from iterations.md, compare against stored in state.json
     if check_iter:
-        if "iter_text" not in dir():
-            iter_text = load_text(iter_path)
-            if iter_text is None:
-                return 1
-
-        try:
-            current_iter_fp = extract_iterations_fingerprint(iter_text)
-        except ValueError as e:
-            msg = f"Error: malformed fingerprint in {iter_path}: {e}"
-            if output_json:
-                emit_json_error(cmd_name, msg, pretty)
-            else:
-                print(msg, file=sys.stderr)
+        result, consistent = _check_iterations_level(
+            iter_path, state_path, iter_text_cached, cmd_name, output_json, pretty
+        )
+        if result is None:
             return 1
-
-        state = load_json(state_path)
-        if state is None:
-            return 1
-
-        stored_iter_fp = state.get("iterationsFingerprint")
-
-        if stored_iter_fp is None:
-            levels_result["iterations"] = {
-                "consistent": False,
-                "details": f"no iterationsFingerprint field in {state_path}",
-            }
+        levels_result["iterations"] = result
+        if not consistent:
             all_consistent = False
-        else:
-            consistent, details = compare_fingerprints(current_iter_fp, stored_iter_fp, "iterations")
-            levels_result["iterations"] = details
-            if not consistent:
-                all_consistent = False
 
     # Emit results
     if output_json:
@@ -1217,27 +1255,7 @@ Examples:
             fields,
         )
     else:
-        for level_name, details in levels_result.items():
-            if details["consistent"]:
-                print("  OK — {}: {}".format(level_name, details["details"]))
-            else:
-                print("  STALE — {}: {}".format(level_name, details["details"]))
-                if "added" in details and details["added"]:
-                    print("    added: {}".format(", ".join(details["added"])))
-                if "removed" in details and details["removed"]:
-                    print("    removed: {}".format(", ".join(details["removed"])))
-                if "currentTimestamp" in details:
-                    print(
-                        "    timestamp mismatch: stored has {}, current has {}".format(
-                            details.get("storedTimestamp", "?"),
-                            details.get("currentTimestamp", "?"),
-                        )
-                    )
-
-        if all_consistent:
-            print("OK — all fingerprints consistent")
-        else:
-            print("STALE — run refine or re-embed to fix")
+        _format_check_text_output(levels_result, all_consistent)
 
     return 0 if all_consistent else 1
 

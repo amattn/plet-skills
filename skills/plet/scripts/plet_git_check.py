@@ -392,6 +392,191 @@ Examples:
 
 
 # ---------------------------------------------------------------------------
+# check-session helpers
+# ---------------------------------------------------------------------------
+
+
+def _check_session_error(cmd_name, msg, output_json, pretty, hint):
+    """Emit an error for check-session and return exit code 1."""
+    if output_json:
+        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
+    else:
+        print(msg, file=sys.stderr)
+    print(hint, file=sys.stderr)
+    return 1
+
+
+def _check_session_validate_env(plet_dir, sd_path, cmd_name, output_json, pretty, hint):
+    """Validate plet_dir, state_dir, git repo. Returns (global_state, error_code) — error_code is None on success."""
+    valid, err_msg = validate_plet_dir(plet_dir)
+    if not valid:
+        return None, _check_session_error(cmd_name, err_msg, output_json, pretty, hint)
+
+    global_state = load_and_validate_global_state(plet_dir)
+    if global_state is None:
+        print(hint, file=sys.stderr)
+        return None, 1
+
+    if not os.path.exists(sd_path):
+        msg = f"Error: directory not found: {sd_path}"
+        return None, _check_session_error(cmd_name, msg, output_json, pretty, hint)
+
+    if not os.path.isdir(sd_path):
+        msg = f"Error: expected a directory, got file: {sd_path}"
+        return None, _check_session_error(cmd_name, msg, output_json, pretty, hint)
+
+    if not is_git_repo():
+        msg = "Error: not inside a git repository"
+        return None, _check_session_error(cmd_name, msg, output_json, pretty, hint)
+
+    return global_state, None
+
+
+def _load_iter_states(sd_path, plet_dir):
+    """Load all iteration state files from the state directory."""
+    iter_states = []
+    json_files = sorted(glob.glob(os.path.join(sd_path, "*.json")))
+    for jf in json_files:
+        if os.path.basename(jf) == "state.json":
+            continue
+        iter_id_from_file = os.path.splitext(os.path.basename(jf))[0]
+        ist = load_and_validate_iter_state(plet_dir, iter_id_from_file)
+        if ist is None:
+            iter_states.append({"_path": jf, "_valid": False})
+        else:
+            ist["_path"] = jf
+            ist["_valid"] = True
+            iter_states.append(ist)
+    return iter_states
+
+
+def _check_workstream_exists(ws_branch, lifecycles):
+    """Check whether the workstream branch exists."""
+    ws_exists = branch_exists(ws_branch)
+    has_non_ineligible = any(lc != "ineligible" for lc in lifecycles.values())
+    if ws_exists:
+        return ws_exists, make_check("workstream-exists", "pass", f"{ws_branch} exists")
+    elif has_non_ineligible:
+        return ws_exists, make_check(
+            "workstream-exists", "fail", f"{ws_branch} not found but non-ineligible iterations exist"
+        )
+    else:
+        return ws_exists, make_check(
+            "workstream-exists",
+            "pass",
+            f"{ws_branch} not found — all iterations ineligible (loop not started)",
+        )
+
+
+def _is_orphaned_plet_worktree(current_wt, branch_prefix, ws_branch, lifecycles):
+    """Check if a parsed worktree block is an orphaned plet worktree. Returns dict or None."""
+    branch = current_wt.get("branch", "")
+    if branch.startswith(branch_prefix) and branch != ws_branch:
+        suffix = branch[len(branch_prefix) :]
+        iter_lc = lifecycles.get(suffix)
+        if iter_lc in (None, "complete", "withdrawn"):
+            return {"path": current_wt.get("path", "?"), "branch": branch}
+    return None
+
+
+def _check_orphaned_worktrees(branch_prefix, ws_branch, lifecycles):
+    """Parse git worktree list and find orphaned plet worktrees."""
+    wt_output = run_git("worktree", "list", "--porcelain").stdout
+    orphaned_wts = []
+    if wt_output.strip():
+        current_wt = {}
+        for line in wt_output.split("\n"):
+            if line.startswith("worktree "):
+                current_wt = {"path": line[len("worktree ") :]}
+            elif line.startswith("branch "):
+                ref = line[len("branch ") :]
+                if ref.startswith("refs/heads/"):
+                    current_wt["branch"] = ref[len("refs/heads/") :]
+            elif line.strip() == "" and current_wt:
+                orphan = _is_orphaned_plet_worktree(current_wt, branch_prefix, ws_branch, lifecycles)
+                if orphan:
+                    orphaned_wts.append(orphan)
+                current_wt = {}
+        # Handle last block (no trailing empty line)
+        if current_wt:
+            orphan = _is_orphaned_plet_worktree(current_wt, branch_prefix, ws_branch, lifecycles)
+            if orphan:
+                orphaned_wts.append(orphan)
+
+    if orphaned_wts:
+        detail_parts = ["{} ({})".format(w["path"], w["branch"]) for w in orphaned_wts]
+        return make_check(
+            "orphaned-worktrees",
+            "warn",
+            "{} orphaned worktree{}: {}".format(
+                len(orphaned_wts), "s" if len(orphaned_wts) != 1 else "", ", ".join(detail_parts)
+            ),
+        )
+    return make_check("orphaned-worktrees", "pass", "no orphaned plet worktrees")
+
+
+def _check_orphaned_branches(branch_prefix, ws_branch, iter_states):
+    """Find branches under the prefix that have no matching state file."""
+    branch_list = run_git("branch", "--list", branch_prefix + "*").stdout
+    known_iter_ids = set()
+    for ist in iter_states:
+        if ist.get("_valid"):
+            known_iter_ids.add(ist["iterationId"])
+
+    orphaned_branches = []
+    if branch_list.strip():
+        for line in branch_list.split("\n"):
+            branch = line.strip().lstrip("* ")
+            if not branch or branch == ws_branch:
+                continue
+            suffix = branch[len(branch_prefix) :]
+            if suffix not in known_iter_ids:
+                orphaned_branches.append(branch)
+
+    if orphaned_branches:
+        return make_check(
+            "orphaned-branches",
+            "warn",
+            "{} orphaned branch{}: {}".format(
+                len(orphaned_branches), "es" if len(orphaned_branches) != 1 else "", ", ".join(orphaned_branches)
+            ),
+        )
+    return make_check("orphaned-branches", "pass", "no plet branches without state files")
+
+
+def _check_unmerged_complete(lifecycles, project_id, loop_n, ws_branch, ws_exists):
+    """Check for completed iterations not merged to the workstream."""
+    complete_iter_ids = [iid for iid, lc in lifecycles.items() if lc == "complete"]
+    unmerged = []
+    for iter_id in complete_iter_ids:
+        iter_branch = f"plet/{project_id}/loop{loop_n}/{iter_id}"
+        if not branch_exists(iter_branch):
+            continue
+        if ws_exists:
+            r = run_git("merge-base", "--is-ancestor", iter_branch, ws_branch)
+            if r.returncode != 0:
+                unmerged.append(iter_id)
+        else:
+            unmerged.append(iter_id)
+
+    if unmerged:
+        return make_check(
+            "unmerged-complete",
+            "fail",
+            "{} complete iteration{} not merged: {}".format(
+                len(unmerged), "s" if len(unmerged) != 1 else "", ", ".join(unmerged)
+            ),
+        )
+    if complete_iter_ids:
+        return make_check(
+            "unmerged-complete",
+            "pass",
+            f"all {len(complete_iter_ids)} complete iterations merged to workstream",
+        )
+    return make_check("unmerged-complete", "pass", "no complete iterations to check")
+
+
+# ---------------------------------------------------------------------------
 # check-session command
 # ---------------------------------------------------------------------------
 
@@ -442,225 +627,29 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    # Validate plet_dir
-    valid, err_msg = validate_plet_dir(plet_dir)
-    if not valid:
-        if output_json:
-            emit_json_error(cmd_name, err_msg, SCRIPT_VERSION, pretty)
-        else:
-            print(err_msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Derive state paths
+    # Validate environment (plet_dir, state_dir, git repo)
     sd_path = state_dir_path(plet_dir)
+    global_state, err = _check_session_validate_env(plet_dir, sd_path, cmd_name, output_json, pretty, hint)
+    if err is not None:
+        return err
 
-    # Load global state
-    global_state = load_and_validate_global_state(plet_dir)
-    if global_state is None:
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate state_dir
-    if not os.path.exists(sd_path):
-        msg = f"Error: directory not found: {sd_path}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    if not os.path.isdir(sd_path):
-        msg = f"Error: expected a directory, got file: {sd_path}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    # Check git repo
-    if not is_git_repo():
-        msg = "Error: not inside a git repository"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    # Load all iteration state files
-    iter_states = []
-    json_files = sorted(glob.glob(os.path.join(sd_path, "*.json")))
-    for jf in json_files:
-        # Skip if it's the global state.json
-        if os.path.basename(jf) == "state.json":
-            continue
-        # Extract iter_id from filename (e.g., ID_001.json -> ID_001)
-        iter_id_from_file = os.path.splitext(os.path.basename(jf))[0]
-        ist = load_and_validate_iter_state(plet_dir, iter_id_from_file)
-        if ist is None:
-            # Corrupt file — will be reported as warn
-            iter_states.append({"_path": jf, "_valid": False})
-        else:
-            ist["_path"] = jf
-            ist["_valid"] = True
-            iter_states.append(ist)
-
+    # Load iteration states and derive naming
+    iter_states = _load_iter_states(sd_path, plet_dir)
     ws_branch = derive_workstream_branch(global_state)
     project_id = global_state["projectId"]
     loop_n = active_loop_number(global_state)
     branch_prefix = f"plet/{project_id}/loop{loop_n}/"
-
-    # Run checks in order (BHV_5):
-    # in-progress-operation → workstream-exists → orphaned-worktrees
-    # → orphaned-branches → no-stashes → unmerged-complete
-    checks = []
-
-    # 1. in-progress-operation
-    checks.append(check_in_progress_operation())
-
-    # 2. workstream-exists — lifecycle from state.json.lifecycles (SF_28)
-    ws_exists = branch_exists(ws_branch)
     lifecycles = global_state.get("lifecycles", {})
-    has_non_ineligible = any(lc != "ineligible" for lc in lifecycles.values())
-    if ws_exists:
-        checks.append(make_check("workstream-exists", "pass", f"{ws_branch} exists"))
-    elif has_non_ineligible:
-        checks.append(
-            make_check("workstream-exists", "fail", f"{ws_branch} not found but non-ineligible iterations exist")
-        )
-    else:
-        checks.append(
-            make_check(
-                "workstream-exists",
-                "pass",
-                f"{ws_branch} not found — all iterations ineligible (loop not started)",
-            )
-        )
 
-    # 3. orphaned-worktrees
-    wt_output = run_git("worktree", "list", "--porcelain").stdout
-    orphaned_wts = []
-    # Parse porcelain output: blocks separated by empty lines
-    # Each block: "worktree <path>\nHEAD <hash>\nbranch refs/heads/<name>\n"
-    if wt_output.strip():
-        current_wt = {}
-        for line in wt_output.split("\n"):
-            if line.startswith("worktree "):
-                current_wt = {"path": line[len("worktree ") :]}
-            elif line.startswith("branch "):
-                ref = line[len("branch ") :]
-                if ref.startswith("refs/heads/"):
-                    current_wt["branch"] = ref[len("refs/heads/") :]
-            elif line.strip() == "" and current_wt:
-                # End of block — check if this is a plet worktree
-                branch = current_wt.get("branch", "")
-                if branch.startswith(branch_prefix) and branch != ws_branch:
-                    # Extract iter_id from branch
-                    suffix = branch[len(branch_prefix) :]
-                    # Orphaned if lifecycle is complete, withdrawn, or missing (SF_28)
-                    iter_lc = lifecycles.get(suffix)
-                    is_orphaned = iter_lc in (None, "complete", "withdrawn")
-                    if is_orphaned:
-                        orphaned_wts.append({"path": current_wt.get("path", "?"), "branch": branch})
-                current_wt = {}
-        # Handle last block (no trailing empty line)
-        if current_wt:
-            branch = current_wt.get("branch", "")
-            if branch.startswith(branch_prefix) and branch != ws_branch:
-                suffix = branch[len(branch_prefix) :]
-                iter_lc = lifecycles.get(suffix)
-                is_orphaned = iter_lc in (None, "complete", "withdrawn")
-                if is_orphaned:
-                    orphaned_wts.append({"path": current_wt.get("path", "?"), "branch": branch})
-
-    if orphaned_wts:
-        detail_parts = ["{} ({})".format(w["path"], w["branch"]) for w in orphaned_wts]
-        checks.append(
-            make_check(
-                "orphaned-worktrees",
-                "warn",
-                "{} orphaned worktree{}: {}".format(
-                    len(orphaned_wts), "s" if len(orphaned_wts) != 1 else "", ", ".join(detail_parts)
-                ),
-            )
-        )
-    else:
-        checks.append(make_check("orphaned-worktrees", "pass", "no orphaned plet worktrees"))
-
-    # 4. orphaned-branches
-    branch_list = run_git("branch", "--list", branch_prefix + "*").stdout
-    known_iter_ids = set()
-    for ist in iter_states:
-        if ist.get("_valid"):
-            known_iter_ids.add(ist["iterationId"])
-
-    orphaned_branches = []
-    if branch_list.strip():
-        for line in branch_list.split("\n"):
-            branch = line.strip().lstrip("* ")
-            if not branch:
-                continue
-            # Skip workstream
-            if branch == ws_branch:
-                continue
-            # Extract iter_id
-            suffix = branch[len(branch_prefix) :]
-            if suffix not in known_iter_ids:
-                orphaned_branches.append(branch)
-
-    if orphaned_branches:
-        checks.append(
-            make_check(
-                "orphaned-branches",
-                "warn",
-                "{} orphaned branch{}: {}".format(
-                    len(orphaned_branches), "es" if len(orphaned_branches) != 1 else "", ", ".join(orphaned_branches)
-                ),
-            )
-        )
-    else:
-        checks.append(make_check("orphaned-branches", "pass", "no plet branches without state files"))
-
-    # 5. no-stashes
+    # Run checks in order (BHV_5)
+    checks = []
+    checks.append(check_in_progress_operation())
+    ws_exists, ws_check = _check_workstream_exists(ws_branch, lifecycles)
+    checks.append(ws_check)
+    checks.append(_check_orphaned_worktrees(branch_prefix, ws_branch, lifecycles))
+    checks.append(_check_orphaned_branches(branch_prefix, ws_branch, iter_states))
     checks.append(check_no_stashes())
-
-    # 6. unmerged-complete — lifecycle from state.json.lifecycles (SF_28)
-    complete_iter_ids = [iid for iid, lc in lifecycles.items() if lc == "complete"]
-    unmerged = []
-    for iter_id in complete_iter_ids:
-        iter_branch = f"plet/{project_id}/loop{loop_n}/{iter_id}"
-        if not branch_exists(iter_branch):
-            # Branch deleted — treat as already handled
-            continue
-        if ws_exists:
-            r = run_git("merge-base", "--is-ancestor", iter_branch, ws_branch)
-            if r.returncode != 0:
-                unmerged.append(iter_id)
-        else:
-            # No workstream — can't check merge status
-            unmerged.append(iter_id)
-
-    if unmerged:
-        checks.append(
-            make_check(
-                "unmerged-complete",
-                "fail",
-                "{} complete iteration{} not merged: {}".format(
-                    len(unmerged), "s" if len(unmerged) != 1 else "", ", ".join(unmerged)
-                ),
-            )
-        )
-    else:
-        if complete_iter_ids:
-            checks.append(
-                make_check(
-                    "unmerged-complete",
-                    "pass",
-                    f"all {len(complete_iter_ids)} complete iterations merged to workstream",
-                )
-            )
-        else:
-            checks.append(make_check("unmerged-complete", "pass", "no complete iterations to check"))
+    checks.append(_check_unmerged_complete(lifecycles, project_id, loop_n, ws_branch, ws_exists))
 
     status, summary, exit_code = compute_result(checks)
 

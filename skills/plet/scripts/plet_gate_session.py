@@ -235,7 +235,106 @@ Examples:
 
 
 # ---------------------------------------------------------------------------
-# status (placeholder)
+# status helpers
+# ---------------------------------------------------------------------------
+
+
+def _compute_milestones(global_state, lifecycles):
+    """Compute milestone progress from global state and lifecycles."""
+    milestones_data = {}
+    raw_milestones = global_state.get("milestones", {})
+    for ms_id, ms_info in raw_milestones.items():
+        ms_name = ms_info.get("name", ms_id) if isinstance(ms_info, dict) else ms_id
+        ms_iters = ms_info.get("iterations", []) if isinstance(ms_info, dict) else []
+        ms_iter_status = {}
+        ms_complete = 0
+        for iid in ms_iters:
+            lc = lifecycles.get(iid, "unknown")
+            ms_iter_status[iid] = lc
+            if lc == "complete":
+                ms_complete += 1
+        milestones_data[ms_id] = {
+            "name": ms_name,
+            "complete": ms_complete,
+            "total": len(ms_iters),
+            "iterations": ms_iter_status,
+        }
+    return milestones_data
+
+
+def _check_fingerprints(plet_dir):
+    """Run fingerprint consistency check. Returns dict with 'consistent' key."""
+    fingerprints = {"consistent": None}
+    try:
+        scripts_dir = os.path.dirname(os.path.abspath(__file__))
+        fpr_script = os.path.join(scripts_dir, "plet_fingerprint.py")
+        if os.path.isfile(fpr_script):
+            fpr_result = run(
+                [sys.executable, fpr_script, "check", plet_dir, "--output", "json"],
+            )
+            if fpr_result.returncode == 0:
+                fpr_data = json.loads(fpr_result.stdout)
+                fingerprints["consistent"] = fpr_data.get("consistent", None)
+    except Exception:
+        pass  # Graceful degradation
+    return fingerprints
+
+
+def _format_status_text(
+    project_id,
+    session_type,
+    loop_session,
+    complete_count,
+    total,
+    percent,
+    lifecycle_counts,
+    blockers,
+    active_agents,
+    fingerprints,
+    warnings,
+    milestones_data,
+):
+    """Format text output for the status command."""
+    lines = []
+    lines.append(f"Project: {project_id}")
+    lines.append(f"Session: {session_type} (loop {loop_session})")
+    lines.append(f"Progress: {complete_count}/{total} ({percent}%)")
+    lines.append(f"Iterations: {total} total")
+
+    lc_parts = []
+    for lc in ["complete", "implementing", "verifying", "queued", "ineligible", "blocked", "withdrawn"]:
+        if lifecycle_counts[lc] > 0:
+            lc_parts.append(f"{lc}: {lifecycle_counts[lc]}")
+    if lc_parts:
+        lines.append("  " + " | ".join(lc_parts))
+
+    for b in blockers:
+        lines.append("Blocker: {} — {}".format(b["iterationId"], b["title"]))
+
+    for a in active_agents:
+        lines.append("Active: {} (phaseActivity: {}, {})".format(a["iterationId"], a["phaseActivity"], a["agentId"]))
+
+    if fingerprints["consistent"] is True:
+        lines.append("Fingerprints: consistent")
+    elif fingerprints["consistent"] is False:
+        lines.append("Fingerprints: STALE")
+    else:
+        lines.append("Fingerprints: unknown")
+
+    if warnings:
+        for w in warnings:
+            lines.append(f"Warning: {w}")
+
+    if milestones_data:
+        lines.append("Milestones:")
+        for ms_id, ms in milestones_data.items():
+            lines.append("  {} ({}): {}/{} complete".format(ms_id, ms["name"], ms["complete"], ms["total"]))
+
+    print("\n".join(lines))
+
+
+# ---------------------------------------------------------------------------
+# status
 # ---------------------------------------------------------------------------
 
 
@@ -371,39 +470,10 @@ Examples:
     progress = {"complete": complete_count, "total": total, "percent": percent}
 
     # Milestones
-    milestones_data = {}
-    raw_milestones = global_state.get("milestones", {})
-    for ms_id, ms_info in raw_milestones.items():
-        ms_name = ms_info.get("name", ms_id) if isinstance(ms_info, dict) else ms_id
-        ms_iters = ms_info.get("iterations", []) if isinstance(ms_info, dict) else []
-        ms_iter_status = {}
-        ms_complete = 0
-        for iid in ms_iters:
-            lc = lifecycles.get(iid, "unknown")
-            ms_iter_status[iid] = lc
-            if lc == "complete":
-                ms_complete += 1
-        milestones_data[ms_id] = {
-            "name": ms_name,
-            "complete": ms_complete,
-            "total": len(ms_iters),
-            "iterations": ms_iter_status,
-        }
+    milestones_data = _compute_milestones(global_state, lifecycles)
 
     # Fingerprint check (P1 — graceful degradation)
-    fingerprints = {"consistent": None}
-    try:
-        scripts_dir = os.path.dirname(os.path.abspath(__file__))
-        fpr_script = os.path.join(scripts_dir, "plet_fingerprint.py")
-        if os.path.isfile(fpr_script):
-            fpr_result = run(
-                [sys.executable, fpr_script, "check", plet_dir, "--output", "json"],
-            )
-            if fpr_result.returncode == 0:
-                fpr_data = json.loads(fpr_result.stdout)
-                fingerprints["consistent"] = fpr_data.get("consistent", None)
-    except Exception:
-        pass  # Graceful degradation
+    fingerprints = _check_fingerprints(plet_dir)
 
     project_id = global_state.get("projectId", "UNKNOWN")
     loop_session = active_loop_number(global_state)
@@ -429,45 +499,20 @@ Examples:
             fields,
         )
     else:
-        # Formatted text output
-        lines = []
-        lines.append(f"Project: {project_id}")
-        lines.append(f"Session: {session_type} (loop {loop_session})")
-        lines.append(f"Progress: {complete_count}/{total} ({percent}%)")
-        lines.append(f"Iterations: {total} total")
-
-        lc_parts = []
-        for lc in ["complete", "implementing", "verifying", "queued", "ineligible", "blocked", "withdrawn"]:
-            if lifecycle_counts[lc] > 0:
-                lc_parts.append(f"{lc}: {lifecycle_counts[lc]}")
-        if lc_parts:
-            lines.append("  " + " | ".join(lc_parts))
-
-        for b in blockers:
-            lines.append("Blocker: {} — {}".format(b["iterationId"], b["title"]))
-
-        for a in active_agents:
-            lines.append(
-                "Active: {} (phaseActivity: {}, {})".format(a["iterationId"], a["phaseActivity"], a["agentId"])
-            )
-
-        if fingerprints["consistent"] is True:
-            lines.append("Fingerprints: consistent")
-        elif fingerprints["consistent"] is False:
-            lines.append("Fingerprints: STALE")
-        else:
-            lines.append("Fingerprints: unknown")
-
-        if warnings:
-            for w in warnings:
-                lines.append(f"Warning: {w}")
-
-        if milestones_data:
-            lines.append("Milestones:")
-            for ms_id, ms in milestones_data.items():
-                lines.append("  {} ({}): {}/{} complete".format(ms_id, ms["name"], ms["complete"], ms["total"]))
-
-        print("\n".join(lines))
+        _format_status_text(
+            project_id,
+            session_type,
+            loop_session,
+            complete_count,
+            total,
+            percent,
+            lifecycle_counts,
+            blockers,
+            active_agents,
+            fingerprints,
+            warnings,
+            milestones_data,
+        )
 
     return 0
 

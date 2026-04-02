@@ -99,6 +99,174 @@ def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model
 
 
 # ---------------------------------------------------------------------------
+# run helpers
+# ---------------------------------------------------------------------------
+
+
+def _auto_detect_permission_mode(cwd, plet_dir):
+    """Auto-detect permission mode from project settings. Returns mode string."""
+    project_root = os.path.dirname(os.path.abspath(plet_dir))
+    for search_dir in [cwd, project_root]:
+        settings_path = os.path.join(search_dir, ".claude", "settings.json")
+        if os.path.isfile(settings_path):
+            try:
+                with open(settings_path) as _f:
+                    _settings = json.load(_f)
+                perms = _settings.get("permissions", {})
+                if "bypassPermissions" in perms:
+                    return "bypassPermissions"
+                elif perms.get("defaultMode") == "auto":
+                    return "auto"
+            except (json.JSONDecodeError, OSError):
+                pass
+    return "auto"
+
+
+def _build_prompt_with_env(prompt_text, plet_env):
+    """Prepend environment section to prompt text."""
+    env_lines = [
+        "# Environment",
+        "",
+        "**IMPORTANT: Read your environment variables (`env | grep -E 'PLET|CLAUDE'`) for paths and context.**",
+        "The key variables are listed below for reference, but always check the live env for the full set.",
+        "Do NOT search the filesystem for plet scripts — use `$PLET_SCRIPTS_DIR`.",
+        "",
+    ]
+    for key, val in sorted(plet_env.items()):
+        env_lines.append(f"- `{key}={val}`")
+    env_lines.append("")
+    env_lines.append("Call scripts as: `$PLET_SCRIPTS_DIR/plet_iter_state.py ...`")
+    env_lines.append("")
+    return "\n".join(env_lines) + "\n" + prompt_text
+
+
+def _log_invocation(
+    plet_dir,
+    iter_id,
+    phase,
+    attempt,
+    cwd,
+    permission_mode,
+    prompt_text,
+    model,
+    max_budget,
+    verbose,
+    t_path,
+    state_data,
+    trace_dir,
+):
+    """Log invocation to trace event and progress.md."""
+    trc_script = os.path.join(scripts_dir(), "plet_trace.py")
+    if os.path.isfile(trc_script):
+        invocation_data = json.dumps(
+            {
+                "cwd": cwd,
+                "permissionMode": permission_mode,
+                "promptLength": len(prompt_text),
+                "model": model or "default",
+                "maxBudget": max_budget or "none",
+                "verbose": verbose,
+                "bare": True,
+                "transcriptPath": t_path,
+                "prompt": prompt_text,
+            }
+        )
+        run(
+            [
+                sys.executable,
+                trc_script,
+                "append-event",
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--phase",
+                phase,
+                "--attempt",
+                str(attempt),
+                "--event-type",
+                "invocation",
+                "--data",
+                invocation_data,
+            ]
+        )
+
+    iter_title = state_data.get("title", iter_id)
+    progress_content = (
+        "Launching {} subagent (attempt {})\n\n"
+        "**Invocation details:**\n"
+        "- Permission mode: {}\n"
+        "- Model: {}\n"
+        "- Max budget: {}\n"
+        "- Working directory: {}\n"
+        "- Prompt length: {} chars\n"
+        "- Transcript: {}\n\n"
+        "Full prompt is in the trace event file, not repeated here."
+    ).format(phase, attempt, permission_mode, model or "default", max_budget or "none", cwd, len(prompt_text), t_path)
+    ent_script = os.path.join(scripts_dir(), "plet_entries.py")
+    if os.path.isfile(ent_script):
+        content_tmp = os.path.join(trace_dir, ".progress_content.tmp")
+        with open(content_tmp, "w") as f:
+            f.write(progress_content)
+        ent_result = run(
+            [
+                sys.executable,
+                ent_script,
+                "add-progress",
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--iter-title",
+                iter_title,
+                "--phase",
+                phase,
+                "--attempt",
+                str(attempt),
+                "--status",
+                "IN_PROGRESS",
+                "--content-file",
+                content_tmp,
+                "--allow-fences",
+            ]
+        )
+        if ent_result.returncode != 0:
+            print(f"Warning: progress entry failed: {ent_result.stderr.strip()}", file=sys.stderr)
+        if os.path.isfile(content_tmp):
+            os.unlink(content_tmp)
+
+
+def _launch_and_capture(claude_cmd, cwd, plet_env, t_path):
+    """Launch subprocess and capture transcript. Returns (exit_code, transcript_lines, elapsed)."""
+    start_time = time.time()
+    transcript_lines = 0
+
+    if os.path.isfile(t_path) and os.path.getsize(t_path) > 0:
+        with open(t_path, "a") as f:
+            f.write("--- retry ---\n")
+
+    sub_env = os.environ.copy()
+    sub_env.update(plet_env)
+
+    proc = sp.Popen(
+        claude_cmd,
+        stdout=sp.PIPE,
+        stderr=sys.stderr,
+        text=True,
+        cwd=cwd,
+        env=sub_env,
+    )
+
+    with open(t_path, "a") as transcript:
+        for line in proc.stdout:
+            transcript.write(line)
+            transcript.flush()
+            transcript_lines += 1
+
+    proc.wait()
+    elapsed = time.time() - start_time
+    return proc.returncode, transcript_lines, elapsed
+
+
+# ---------------------------------------------------------------------------
 # run command
 # ---------------------------------------------------------------------------
 
@@ -186,26 +354,7 @@ Examples:
     cwd = kwargs["cwd"]
     permission_mode = kwargs.get("permission_mode")
     if permission_mode is None:
-        # Auto-detect from project .claude/settings.json
-        # Check both cwd (worktree) and project root (parent of plet_dir)
-        project_root = os.path.dirname(os.path.abspath(plet_dir))
-        for search_dir in [cwd, project_root]:
-            settings_path = os.path.join(search_dir, ".claude", "settings.json")
-            if os.path.isfile(settings_path):
-                try:
-                    with open(settings_path) as _f:
-                        _settings = json.load(_f)
-                    perms = _settings.get("permissions", {})
-                    if "bypassPermissions" in perms:
-                        permission_mode = "bypassPermissions"
-                        break
-                    elif perms.get("defaultMode") == "auto":
-                        permission_mode = "auto"
-                        break
-                except (json.JSONDecodeError, OSError):
-                    pass
-        if permission_mode is None:
-            permission_mode = "auto"
+        permission_mode = _auto_detect_permission_mode(cwd, plet_dir)
     model = kwargs.get("model")
     max_budget = kwargs.get("max_budget")
     verbose = kwargs.get("verbose", False) is True
@@ -276,26 +425,11 @@ Examples:
         "PLET_PHASE": phase,
         "PLET_ATTEMPT": str(attempt),
     }
-    # Pass through Claude env vars if available
     for passthrough in ("CLAUDE_SKILL_DIR", "CLAUDE_CONFIG_DIR"):
         if passthrough in os.environ:
             plet_env[passthrough] = os.environ[passthrough]
 
-    # Prepend environment section — built dynamically from plet_env
-    env_lines = [
-        "# Environment",
-        "",
-        "**IMPORTANT: Read your environment variables (`env | grep -E 'PLET|CLAUDE'`) for paths and context.**",
-        "The key variables are listed below for reference, but always check the live env for the full set.",
-        "Do NOT search the filesystem for plet scripts — use `$PLET_SCRIPTS_DIR`.",
-        "",
-    ]
-    for key, val in sorted(plet_env.items()):
-        env_lines.append(f"- `{key}={val}`")
-    env_lines.append("")
-    env_lines.append("Call scripts as: `$PLET_SCRIPTS_DIR/plet_iter_state.py ...`")
-    env_lines.append("")
-    prompt_text = "\n".join(env_lines) + "\n" + prompt_text
+    prompt_text = _build_prompt_with_env(prompt_text, plet_env)
 
     # Build claude command
     claude_cmd = build_claude_command(
@@ -348,118 +482,25 @@ Examples:
     if not os.path.isdir(trace_dir):
         os.makedirs(trace_dir, exist_ok=True)
 
-    # Log invocation + full prompt to trace event
-    trc_script = os.path.join(scripts_dir(), "plet_trace.py")
-    if os.path.isfile(trc_script):
-        invocation_data = json.dumps(
-            {
-                "cwd": cwd,
-                "permissionMode": permission_mode,
-                "promptLength": len(prompt_text),
-                "model": model or "default",
-                "maxBudget": max_budget or "none",
-                "verbose": verbose,
-                "bare": True,
-                "transcriptPath": t_path,
-                "prompt": prompt_text,
-            }
-        )
-        run(
-            [
-                sys.executable,
-                trc_script,
-                "append-event",
-                plet_dir,
-                "--iter-id",
-                iter_id,
-                "--phase",
-                phase,
-                "--attempt",
-                str(attempt),
-                "--event-type",
-                "invocation",
-                "--data",
-                invocation_data,
-            ]
-        )
-
-    # Log invocation + full prompt to progress.md (via temp file for large prompts)
-    iter_title = state_data.get("title", iter_id)
-    progress_content = (
-        "Launching {} subagent (attempt {})\n\n"
-        "**Invocation details:**\n"
-        "- Permission mode: {}\n"
-        "- Model: {}\n"
-        "- Max budget: {}\n"
-        "- Working directory: {}\n"
-        "- Prompt length: {} chars\n"
-        "- Transcript: {}\n\n"
-        "Full prompt is in the trace event file, not repeated here."
-    ).format(phase, attempt, permission_mode, model or "default", max_budget or "none", cwd, len(prompt_text), t_path)
-    ent_script = os.path.join(scripts_dir(), "plet_entries.py")
-    if os.path.isfile(ent_script):
-        # Use --content-file to avoid shell escaping issues with complex content
-        # --allow-fences in case content contains fence patterns
-        content_tmp = os.path.join(trace_dir, ".progress_content.tmp")
-        with open(content_tmp, "w") as f:
-            f.write(progress_content)
-        ent_result = run(
-            [
-                sys.executable,
-                ent_script,
-                "add-progress",
-                plet_dir,
-                "--iter-id",
-                iter_id,
-                "--iter-title",
-                iter_title,
-                "--phase",
-                phase,
-                "--attempt",
-                str(attempt),
-                "--status",
-                "IN_PROGRESS",
-                "--content-file",
-                content_tmp,
-                "--allow-fences",
-            ]
-        )
-        if ent_result.returncode != 0:
-            print(f"Warning: progress entry failed: {ent_result.stderr.strip()}", file=sys.stderr)
-        if os.path.isfile(content_tmp):
-            os.unlink(content_tmp)
-
-    # Launch subprocess with transcript capture
-    start_time = time.time()
-    transcript_lines = 0
-
-    # Append separator if file exists (never overwrite)
-    if os.path.isfile(t_path) and os.path.getsize(t_path) > 0:
-        with open(t_path, "a") as f:
-            f.write("--- retry ---\n")
-
-    # Build subprocess environment from plet_env (built earlier for prompt header)
-    sub_env = os.environ.copy()
-    sub_env.update(plet_env)
-
-    proc = sp.Popen(
-        claude_cmd,
-        stdout=sp.PIPE,
-        stderr=sys.stderr,  # stderr passes through to orchestrator
-        text=True,
-        cwd=cwd,
-        env=sub_env,
+    # Log invocation to trace event and progress.md
+    _log_invocation(
+        plet_dir,
+        iter_id,
+        phase,
+        attempt,
+        cwd,
+        permission_mode,
+        prompt_text,
+        model,
+        max_budget,
+        verbose,
+        t_path,
+        state_data,
+        trace_dir,
     )
 
-    with open(t_path, "a") as transcript:
-        for line in proc.stdout:
-            transcript.write(line)
-            transcript.flush()
-            transcript_lines += 1
-
-    proc.wait()
-    elapsed = time.time() - start_time
-    sub_exit = proc.returncode
+    # Launch subprocess with transcript capture
+    sub_exit, transcript_lines, elapsed = _launch_and_capture(claude_cmd, cwd, plet_env, t_path)
 
     # Output
     if output_json:

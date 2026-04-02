@@ -11,6 +11,6 @@ select = [
     "SIM",           # Code simplification
     "C90",           # Complexity checks (McCabe)
 ]
-ignore = [
-    "C901",   # complex-structure — many commands are inherently complex, refactor later
-]
+
+[lint.mccabe]
+max-complexity = 30
