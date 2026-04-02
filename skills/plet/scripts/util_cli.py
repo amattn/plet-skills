@@ -457,12 +457,24 @@ def extract_output_flags(kwargs, allow_dry_run=False):
     return output_json, pretty, fields, dry_run, True
 
 
+def emit_error(cmd_name, msg, script_version, output_json, pretty):
+    """Print error in JSON or text mode.
+
+    Shared pattern — replaces identical _emit_error helpers in multiple scripts.
+    Always prints to stderr in text mode. In JSON mode, also emits structured error.
+    """
+    if output_json:
+        emit_json_error(cmd_name, msg, script_version, pretty)
+    else:
+        print(msg, file=sys.stderr)
+
+
 def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
     """Parse args for a standard plet command — boilerplate in one call.
 
-    Handles: help check, plet_dir extraction, kwarg parsing, flag validation,
-    output flag extraction, required arg validation. Reduces ~8 complexity
-    points from every command function.
+    Handles: help check, plet_dir extraction, plet_dir validation,
+    kwarg parsing, flag validation, output flag extraction,
+    required arg validation.
 
     Args:
         args: raw args list from dispatch
@@ -477,12 +489,20 @@ def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
         None if error (caller returns 1, error already printed)
         (plet_dir, kwargs, output_json, pretty, fields, dry_run) on success
     """
+    from util_io import validate_plet_dir
+
     if "-h" in args or "--help" in args:
         print(help_text)
         return "help"
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
+        return None
+
+    # Validate plet_dir exists and is a directory
+    valid, err = validate_plet_dir(plet_dir)
+    if not valid:
+        print(err, file=sys.stderr)
         return None
 
     try:

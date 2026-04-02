@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "Bash(./skills/plet/scripts/*)",
+      "Bash(./skills/plet/tests/*)",
       "Bash(chmod:*)",
       "Bash(git add:*)",
       "Bash(git branch:*)",
@@ -16,11 +18,12 @@
       "Bash(jq:*)",
       "Bash(ls:*)",
       "Bash(mkdir:*)",
+      "Bash(ruff --version)",
+      "Bash(ruff check:*)",
+      "Bash(ruff format:*)",
       "Bash(shasum)",
       "Bash(skills/plet/scripts/*)",
       "Bash(skills/plet/tests/*)",
-      "Bash(./skills/plet/scripts/*)",
-      "Bash(./skills/plet/tests/*)",
       "Bash(wc:*)",
       "WebFetch(domain:gist.github.com)",
       "WebSearch"

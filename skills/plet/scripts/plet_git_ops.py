@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     UNIVERSAL_FLAGS_WRITE,
     dispatch,
+    emit_error,
     emit_json,
     emit_json_error,
     extract_output_flags,
@@ -61,14 +62,6 @@ def help_hint(command):
 
 def is_git_repo(cwd=None):
     return run_git("rev-parse", "--git-dir", cwd=cwd).returncode == 0
-
-
-def _emit_error(cmd_name, msg, output_json, pretty):
-    """Print error in JSON or text mode."""
-    if output_json:
-        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-    else:
-        print(msg, file=sys.stderr)
 
 
 def get_head_short(cwd=None):
@@ -161,7 +154,7 @@ Examples:
     # Validate plet_dir
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
-        _emit_error(cmd_name, err, output_json, pretty)
+        emit_error(cmd_name, err, SCRIPT_VERSION, output_json, pretty)
         print(hint, file=sys.stderr)
         return 1
 
@@ -179,11 +172,11 @@ Examples:
     attempt = iter_state["attempts"].get(phase, 0)
     if attempt < 1:
         msg = f"Error: attempts.{phase} is {attempt} — phase has not been attempted"
-        _emit_error(cmd_name, msg, output_json, pretty)
+        emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
         return 1
 
     if not is_git_repo():
-        _emit_error(cmd_name, "Error: not inside a git repository", output_json, pretty)
+        emit_error(cmd_name, "Error: not inside a git repository", SCRIPT_VERSION, output_json, pretty)
         return 1
 
     return _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run)
@@ -218,7 +211,7 @@ def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, outpu
 
     r = run_git("tag", "-f", tag_name) if replaced else run_git("tag", tag_name)
     if r.returncode != 0:
-        _emit_error(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
+        emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
         return 1
 
     if replaced:

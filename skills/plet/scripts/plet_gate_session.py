@@ -35,7 +35,6 @@ from util_cli import (
     emit_json_error,
     extract_output_flags,
     get_plet_dir,
-    parse_command,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -774,19 +773,24 @@ Examples:
 """
     cmd_name = "preflight"
     hint = help_hint(cmd_name)
-    result = parse_command(
-        args,
-        help_text,
-        known_flags={"session_type"},
-        required=["session_type"],
-        allow_dry_run=False,
-        hint=hint,
-    )
-    if result == "help":
+    if "-h" in args or "--help" in args:
+        print(help_text)
         return 0
-    if result is None:
+
+    plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
         return 1
-    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
+    # NOTE: do NOT validate plet_dir exists — preflight checks fresh projects
+    # where plet/ may not exist yet. parse_command would reject this.
+
+    kwargs = parse_kwargs(remaining)
+    if not validate_known_flags(kwargs, {"session_type", "output", "pretty", "fields"}, hint):
+        return 1
+    if not require_kwargs(kwargs, ["session_type"], help_text):
+        return 1
+    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
+    if not ok:
+        return 1
 
     session_type_raw = kwargs["session_type"]
     if not validate_enum(session_type_raw, VALID_SESSION_TYPES, "--session-type"):

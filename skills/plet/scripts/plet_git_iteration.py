@@ -35,6 +35,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     UNIVERSAL_FLAGS_READ,
     dispatch,
+    emit_error,
     emit_json,
     emit_json_error,
     extract_output_flags,
@@ -77,23 +78,15 @@ def validate_iter_id(value, command, output_json, pretty):
     return True
 
 
-def _emit_error(cmd_name, msg, output_json, pretty):
-    """Print error in JSON or text mode."""
-    if output_json:
-        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-    else:
-        print(msg, file=sys.stderr)
-
-
 def _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint):
     """Validate plet_dir and git repo. Returns None on success, exit code on error."""
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
-        _emit_error(cmd_name, err, output_json, pretty)
+        emit_error(cmd_name, err, SCRIPT_VERSION, output_json, pretty)
         print(hint, file=sys.stderr)
         return 1
     if not is_git_repo():
-        _emit_error(cmd_name, "Error: not inside a git repository", output_json, pretty)
+        emit_error(cmd_name, "Error: not inside a git repository", SCRIPT_VERSION, output_json, pretty)
         return 1
     return None
 
@@ -313,13 +306,13 @@ Examples:
 
     if os.path.exists(wt_path):
         msg = f"Error: worktree path already exists: {wt_path}. Remove with worktree-remove first."
-        _emit_error(cmd_name, msg, output_json, pretty)
+        emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
         return 1
 
     resumed = branch_exists(branch)
     if not resumed and not branch_exists(base):
         msg = f"Error: base branch not found: {base}. Create the workstream branch first."
-        _emit_error(cmd_name, msg, output_json, pretty)
+        emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
         return 1
 
     result_data = {
@@ -355,7 +348,7 @@ Examples:
     else:
         r = run_git("worktree", "add", "-b", branch, wt_path, base)
     if r.returncode != 0:
-        _emit_error(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
+        emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
         return 1
 
     if resumed:
@@ -439,7 +432,7 @@ Examples:
     wt_path = derive_worktree_path(state, iter_id, worktree_dir)
 
     if not os.path.exists(wt_path):
-        _emit_error(cmd_name, f"Error: no worktree at {wt_path}", output_json, pretty)
+        emit_error(cmd_name, f"Error: no worktree at {wt_path}", SCRIPT_VERSION, output_json, pretty)
         return 1
 
     result_data = {
@@ -469,7 +462,7 @@ def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_js
     """Execute the actual worktree removal and optional branch deletion."""
     r = run_git("worktree", "remove", "--force", wt_path)
     if r.returncode != 0:
-        _emit_error(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
+        emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
         return 1
 
     run_git("worktree", "prune")
@@ -478,7 +471,8 @@ def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_js
     if delete_branch:
         r = run_git("branch", "-D", branch)
         if r.returncode != 0:
-            _emit_error(cmd_name, f"Error: git command failed while deleting branch: {r.stderr}", output_json, pretty)
+            msg = f"Error: git command failed while deleting branch: {r.stderr}"
+            emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
             return 1
         branch_deleted = True
 

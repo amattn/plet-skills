@@ -608,8 +608,12 @@ def test_preflight_invalid_session_type():
     print("\n## preflight — invalid --session-type")
     tmpdir = tempfile.mkdtemp()
     try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(plet_dir)
         _, stderr, _ = run(
-            ["preflight", os.path.join(tmpdir, "plet"), "--session-type", "bogus"], expect_exit=1, cwd=tmpdir
+            ["preflight", plet_dir, "--session-type", "bogus"],
+            expect_exit=1,
+            cwd=tmpdir,
         )
         check("error mentions invalid", "invalid" in stderr.lower())
     finally:

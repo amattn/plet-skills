@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
+    emit_error,
     emit_json,
     emit_json_error,
     parse_command,
@@ -57,14 +58,6 @@ def scripts_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def _emit_error(cmd_name, msg, output_json, pretty):
-    """Print error in JSON or text mode."""
-    if output_json:
-        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-    else:
-        print(msg, file=sys.stderr)
-
-
 def _validate_run_inputs(phase, permission_mode, plet_dir, cwd, cmd_name, output_json, pretty, hint):
     """Validate phase, permission_mode, plet_dir, and cwd. Returns None on success, exit code on error."""
     if not validate_enum(phase, VALID_PHASES, "--phase"):
@@ -81,10 +74,10 @@ def _validate_run_inputs(phase, permission_mode, plet_dir, cwd, cmd_name, output
         return 1
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
-        _emit_error(cmd_name, err, output_json, pretty)
+        emit_error(cmd_name, err, SCRIPT_VERSION, output_json, pretty)
         return 1
     if not os.path.isdir(cwd):
-        _emit_error(cmd_name, f"Error: working directory not found: {cwd}", output_json, pretty)
+        emit_error(cmd_name, f"Error: working directory not found: {cwd}", SCRIPT_VERSION, output_json, pretty)
         return 1
     return None
 
@@ -368,7 +361,7 @@ Examples:
 
     state_data = load_iter_state_json(plet_dir, iter_id)
     if state_data is None:
-        _emit_error(cmd_name, f"Error: iteration state not found for {iter_id}", output_json, pretty)
+        emit_error(cmd_name, f"Error: iteration state not found for {iter_id}", SCRIPT_VERSION, output_json, pretty)
         return 1
     attempt = state_data.get("attempts", {}).get(phase, 0) + 1
 
@@ -376,7 +369,7 @@ Examples:
 
     prompt_text, prm_err = assemble_prompt(plet_dir, iter_id, phase)
     if prompt_text is None:
-        _emit_error(cmd_name, f"Error: {prm_err}", output_json, pretty)
+        emit_error(cmd_name, f"Error: {prm_err}", SCRIPT_VERSION, output_json, pretty)
         return 1
 
     # Build plet env vars (used for both prompt header and subprocess env)
