@@ -78,7 +78,9 @@
 
 11. **BUG: No dependency promotion — ineligible iterations never become queued.** After ID_001 completed, ID_002 (depends on ID_001) stayed `ineligible` instead of being promoted to `queued`. The orchestrator calls `schedule.py eligible` which only returns `queued` iterations with all deps complete. But `ineligible` iterations are never promoted — nobody writes `queued` to state.json when deps are satisfied. GST `init` sets `ineligible` for iterations with deps, but nothing changes it later. The orchestrator needs a dependency promotion step after each completion. (→ critical bug fix)
 
-12. **"Files changed" mostly useless.** 19 entries with the field: 9 say "(none)" (auto-logged), 6 are template examples from embedded reference docs, 4 have real files (subagent-written). The auto-logger can't know what files changed — only the subagent can. Consider removing "Files changed" from auto-logged entries or making it optional in the format.
+12. **BUG: Merge conflict in state.json during merge-squash.** After ID_002 implement+verify succeeded, merge-squash failed with conflict markers in `sessionHistory[0].endedAt`. Both workstream and iteration branch modified state.json — the worktree had a stale copy from when the worktree was created, and the workstream was updated by the orchestrator (lifecycle transitions, session end). The merge-squash tries to merge the iteration branch (which has the stale state.json) into workstream — conflict. This is the same class of bug as Run 3 but in state.json instead of per-iteration files. (→ critical bug: state.json should be excluded from merge-squash, or the orchestrator should git-checkout state.json before merge)
+
+13. **"Files changed" mostly useless.** 19 entries with the field: 9 say "(none)" (auto-logged), 6 are template examples from embedded reference docs, 4 have real files (subagent-written). The auto-logger can't know what files changed — only the subagent can. Consider removing "Files changed" from auto-logged entries or making it optional in the format.
 
 ---
 
