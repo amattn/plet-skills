@@ -30,12 +30,13 @@ def pytest_configure(config):
     if not os.environ.get("COVERAGE_PROCESS_START") and not config.option.__dict__.get("cov_source"):
         return
 
-    # Ensure COVERAGE_PROCESS_START points to our config
-    if not os.environ.get("COVERAGE_PROCESS_START"):
-        pyproject = os.path.join(os.path.dirname(__file__), "..", "..", "..", "pyproject.toml")
-        pyproject = os.path.abspath(pyproject)
-        if os.path.isfile(pyproject):
-            os.environ["COVERAGE_PROCESS_START"] = pyproject
+    # Always set COVERAGE_PROCESS_START with absolute path.
+    # This is required for subprocess tracking — child processes may
+    # have different cwd, so relative paths break.
+    pyproject = os.path.join(os.path.dirname(__file__), "..", "..", "..", "pyproject.toml")
+    pyproject = os.path.abspath(pyproject)
+    if os.path.isfile(pyproject):
+        os.environ["COVERAGE_PROCESS_START"] = pyproject
 
     # Install .pth file if missing
     site_packages = site.getsitepackages()
