@@ -3,3 +3,10 @@ __pycache__/
 .claude/settings.local.json
 CLAUDE.local.md
 .venv/
+.coverage
+.coverage.*
+htmlcov/
+# uv.lock is normally committed for reproducible builds. Ignored here because
+# plet has zero runtime dependencies (stdlib-only). The lock only pins dev
+# tooling (pytest, ruff, coverage) which doesn't need cross-machine pinning.
+uv.lock

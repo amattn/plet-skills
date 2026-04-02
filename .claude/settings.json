@@ -24,6 +24,7 @@
       "Bash(shasum)",
       "Bash(skills/plet/scripts/*)",
       "Bash(skills/plet/tests/*)",
+      "Bash(uv:*)",
       "Bash(wc:*)",
       "WebFetch(domain:gist.github.com)",
       "WebSearch"

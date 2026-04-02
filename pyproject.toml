@@ -12,6 +12,7 @@ pythonpath = ["skills/plet/scripts", "skills/plet/tests"]
 [tool.coverage.run]
 source = ["skills/plet/scripts"]
 omit = ["skills/plet/tests/*"]
+parallel = true
 
 [tool.coverage.report]
 show_missing = true

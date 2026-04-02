@@ -1688,3 +1688,22 @@ Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree co
 **ruff integrated into test_all.py** — `ruff check` + `ruff format --check` run before tests. Failure counts as test failure.
 
 **Test count:** 1786 across 23 files (~19s).
+
+#### Coverage infrastructure — subprocess tracking (2026-04-02)
+
+**Problem:** pytest-cov can't measure code executed in subprocesses. Plet tests call scripts via `subprocess.run()` — thorough integration tests (1786) that show 0% coverage for the scripts they exercise.
+
+**Strategy evaluation:**
+1. **Subprocess coverage tracking (coverage.py built-in)** — set `COVERAGE_PROCESS_START` env var + `.pth` file in site-packages. Every subprocess auto-starts coverage. `coverage combine` merges. ← CHOSEN
+2. **Import-based re-exercise** — call `cmd_*` functions directly in pytest. Measures coverage but duplicates test effort.
+3. **Refactor into library + CLI wrapper** — clean but massive refactor.
+
+**Decision: subprocess tracking as default, import tests removed.** The 1786 subprocess tests already exercise every code path — we just couldn't see it. With subprocess tracking, **29% → 57%** without writing a single new test. The import-based `test_coverage_imports.py` (44 tests, +6% on top) was removed — its coverage was already captured by subprocess tracking for all but pure utility functions.
+
+**Implementation:**
+- `pyproject.toml`: `parallel = true` under `[tool.coverage.run]`
+- `conftest.py`: auto-installs `.pth` file in venv site-packages, sets `COVERAGE_PROCESS_START`
+- `.gitignore`: added `.coverage`, `.coverage.*`, `htmlcov/`
+- Run: `uv run pytest --cov` — subprocess tracking activates automatically
+
+**Tradeoff:** 116s runtime (was 57s without subprocess tracking), 557 `.coverage` files to combine. Acceptable — coverage runs are periodic, not every commit.
