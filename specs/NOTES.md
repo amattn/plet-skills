@@ -1668,3 +1668,23 @@ All six items from LOGA Run 4 implemented in one session:
 Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree copy is always stale. `merge=ours` tells git "workstream always wins" — no conflict possible. Added to both `plet_bootstrap.py` and `plet_session.py _ensure_merge_driver`. The pre-merge shutil.copy2 workaround in the orchestrator was removed — .gitattributes handles it.
 
 **Other Run 5 fixes:** invoke auto-detects permission mode from settings.json, progress entries clipped (no full prompt), Files changed field removed from progress format.
+
+#### Ruff linting + code quality (2026-04-02)
+
+**Added ruff** with 9 rule sets: E, F, W (basics), I (isort), N (naming), UP (modern syntax), B (bugbear), SIM (simplification), C90 (complexity). All enforced, all clean.
+
+**Fixes applied:** 194 initial errors → 720 after adding N/UP/SIM/C90 → all resolved. Key changes: 557 `.format()` → f-strings (UP032), 72 function-local UPPERCASE vars renamed (N806), import sorting (I001), unused imports removed (F401).
+
+**McCabe complexity:** Progressive reduction 30 → 25 → 20 → 15. Final: 0 functions over 15. Key enabler: `parse_command()` in util_cli replaces 6-step boilerplate (~8 complexity points per function). Adopted in 17+ command functions.
+
+**Shared utilities extracted:**
+- `util_cli.parse_command()` — arg parsing boilerplate in one call. Returns "help" | None | (plet_dir, kwargs, output_json, pretty, fields, dry_run).
+- `util_cli.emit_error()` — JSON or text error output. Replaced 3 duplicate `_emit_error` helpers.
+- `plet_entries._parse_entry_args()` — shared parsing for add-progress/learning/emergent (~80% duplication eliminated).
+- `parse_command` validates plet_dir exists (except preflight which accepts non-existent dirs for fresh projects).
+
+**Critical insight: Require Arguments, Never Default** updated with three rules: (1) almost everything required, (2) rarely optional, (3) never default. LOGA Run 4 example: auto-logger defaulting phase to "implement" for plan commands.
+
+**ruff integrated into test_all.py** — `ruff check` + `ruff format --check` run before tests. Failure counts as test failure.
+
+**Test count:** 1786 across 23 files (~19s).
