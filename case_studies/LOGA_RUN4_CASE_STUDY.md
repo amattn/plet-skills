@@ -178,6 +178,34 @@ Validate that the lifecycle extraction (SF_28) resolves the structural issues fr
 
 ---
 
+## Run 4 Conclusion
+
+**Run abandoned after ID_002 sandbox failure.** 1/13 iterations completed (ID_001). ID_002 blocked by sandbox `session-env` EPERM — subagent couldn't execute any Bash commands.
+
+**What Run 4 validated:**
+- Lifecycle extraction works end-to-end (ID_001: implement → verify → merge-squash, no worktree conflicts)
+- IST scripts called correctly by subagents (start-phase through set-verdict)
+- Dependency graph evaluation correct (ID_002 queued after ID_001 complete)
+- Red/green discipline followed (meaningful red on ID_001)
+- Session history branch lookup works (once env vars fix deployed)
+
+**What Run 4 exposed (fixed in 0.4.1):**
+- CLAUDE_SKILL_DIR not passed to subagents → env var injection (seq 44)
+- Progress.md auto-log headers wrong → compact entries with trace ID (seq 43)
+- .gitignore preflight wrong → bootstrap (seq 42)
+- loopSessionCount stale → session history lookup (seq 45)
+- Plan phase UX → two-path flow with confirmation (seq 47)
+
+**What remains unfixed (platform issues):**
+- Sandbox mode incompatible with autonomous subagents (Bash, Write, Edit all blocked)
+- `session-env` EPERM blocks all Bash in subagent process
+- Auto mode unavailable on some days (platform feature flag)
+- Minimum requirement: `bypassPermissions` + no sandbox, or auto mode
+
+**Next: LOGA Run 5 with sandbox disabled.**
+
+---
+
 ## Section 2: Artifact Analysis
 
 TBD — after run completes.
