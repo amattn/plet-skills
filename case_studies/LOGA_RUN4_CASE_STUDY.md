@@ -162,6 +162,20 @@ Validate that the lifecycle extraction (SF_28) resolves the structural issues fr
 
 54. **Run stopped after 1/13 iterations.** The user quit after ID_001 completed. ID_002 was eligible and ready. The orchestrator would have continued if the session hadn't been terminated.
 
+### Loop session 4 — ID_002 attempt
+
+55. **ID_002 implement subagent: Bash completely blocked by sandbox.** Every Bash command fails with EPERM creating `session-env/` directory. This is a Claude Code sandbox/hooks issue, not plet. The subagent fell back to Write/Edit tools — wrote Go files but couldn't run `go build`, `go test`, git, or plet scripts.
+
+56. **Subagent wrote state files directly (bypassing scripts).** Because Bash was blocked, the subagent edited state JSON files directly instead of calling IST scripts. This defeats the purpose of script-enforced compliance — schema may drift.
+
+57. **No git commits from ID_002.** The subagent couldn't run git at all. The orchestrator tried merge-squash but there was nothing to merge. ID_002 marked blocked.
+
+58. **ID_002 branch has fewer files than workstream.** The diff shows deletions — the Go files written by the subagent were never committed to the branch. Work lost.
+
+59. **SKILL.md agent confused by state mismatch.** State says ID_002 "blocked" but the agent thought implement+verify both "completed." The subagent wrote verdict fields directly to state (bypassing scripts), but the orchestrator's merge-squash failed — leaving inconsistent state.
+
+60. **Root cause: sandbox `session-env` EPERM.** A Claude Code hook tries to create a `session-env/` directory under CLAUDE_CONFIG_DIR. The sandbox blocks writes to that path. This is a platform issue — plet can't fix it. But plet_invoke.py could detect immediate Bash failures and fast-fail instead of letting the subagent struggle for minutes.
+
 ---
 
 ## Section 2: Artifact Analysis
