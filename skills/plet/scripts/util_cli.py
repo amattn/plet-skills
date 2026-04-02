@@ -457,6 +457,57 @@ def extract_output_flags(kwargs, allow_dry_run=False):
     return output_json, pretty, fields, dry_run, True
 
 
+def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
+    """Parse args for a standard plet command — boilerplate in one call.
+
+    Handles: help check, plet_dir extraction, kwarg parsing, flag validation,
+    output flag extraction, required arg validation. Reduces ~8 complexity
+    points from every command function.
+
+    Args:
+        args: raw args list from dispatch
+        help_text: help string to print on -h/--help or missing required args
+        known_flags: set of valid kwarg names (excluding output/pretty/fields/dry_run)
+        required: list of required kwarg names
+        allow_dry_run: whether --dry-run is valid for this command
+        hint: help hint string for error messages
+
+    Returns:
+        "help" if -h/--help was requested (caller returns 0)
+        None if error (caller returns 1, error already printed)
+        (plet_dir, kwargs, output_json, pretty, fields, dry_run) on success
+    """
+    if "-h" in args or "--help" in args:
+        print(help_text)
+        return "help"
+
+    plet_dir, remaining = get_plet_dir(args)
+    if plet_dir is None:
+        return None
+
+    try:
+        kwargs = parse_kwargs(remaining)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None
+
+    all_known = known_flags | {"output", "pretty", "fields"}
+    if allow_dry_run:
+        all_known = all_known | {"dry_run"}
+    if not validate_known_flags(kwargs, all_known, hint):
+        return None
+
+    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=allow_dry_run)
+    if not ok:
+        return None
+
+    if required and not require_kwargs(kwargs, required, help_text):
+        return None
+
+    return plet_dir, kwargs, output_json, pretty, fields, dry_run
+
+
 def emit_json(data, script_version, pretty=False, fields=None):
     """Print structured JSON to stdout.
 
