@@ -32,6 +32,7 @@ from util_cli import (
     emit_json_error,
     extract_output_flags,
     get_plet_dir,
+    parse_command,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -60,6 +61,14 @@ def help_hint(command):
 
 def is_git_repo(cwd=None):
     return run_git("rev-parse", "--git-dir", cwd=cwd).returncode == 0
+
+
+def _emit_error(cmd_name, msg, output_json, pretty):
+    """Print error in JSON or text mode."""
+    if output_json:
+        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
+    else:
+        print(msg, file=sys.stderr)
 
 
 def get_head_short(cwd=None):
@@ -127,33 +136,21 @@ Examples:
     plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement
     plet_git_ops.py audit-tag --iter-id ID_001 --phase verify --dry-run
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     cmd_name = "audit-tag"
     hint = help_hint(cmd_name)
-
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id", "phase"},
+        required=["iter_id", "phase"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
-
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_WRITE, hint):
-        return 1
-
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
-        return 1
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
@@ -164,10 +161,7 @@ Examples:
     # Validate plet_dir
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
-        if output_json:
-            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
-        else:
-            print(err, file=sys.stderr)
+        _emit_error(cmd_name, err, output_json, pretty)
         print(hint, file=sys.stderr)
         return 1
 
@@ -182,93 +176,59 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    # Check attempt > 0
     attempt = iter_state["attempts"].get(phase, 0)
     if attempt < 1:
         msg = f"Error: attempts.{phase} is {attempt} — phase has not been attempted"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
+        _emit_error(cmd_name, msg, output_json, pretty)
         return 1
 
-    # Check git repo
     if not is_git_repo():
-        msg = "Error: not inside a git repository"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
+        _emit_error(cmd_name, "Error: not inside a git repository", output_json, pretty)
         return 1
 
+    return _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run)
+
+
+def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run):
+    """Create or update the audit tag."""
     tag_name = derive_tag_name(global_state, iter_state, phase)
     commit_hash = get_head_short()
-
-    # Check if tag already exists (for replaced/previousHash reporting)
     replaced = tag_exists(tag_name)
     previous_hash = get_tag_hash(tag_name) if replaced else None
 
+    result_data = {
+        "status": "ok",
+        "command": cmd_name,
+        "tagName": tag_name,
+        "commitHash": commit_hash,
+        "iterationId": iter_state["iterationId"],
+        "phase": phase,
+        "attempt": attempt,
+        "replaced": replaced,
+        "previousHash": previous_hash,
+    }
+
     if dry_run:
-        msg = f"DRY RUN — would create audit tag {tag_name} at {commit_hash}"
+        result_data["dryRun"] = True
         if output_json:
-            emit_json(
-                {
-                    "status": "ok",
-                    "command": cmd_name,
-                    "tagName": tag_name,
-                    "commitHash": commit_hash,
-                    "iterationId": iter_state["iterationId"],
-                    "phase": phase,
-                    "attempt": attempt,
-                    "replaced": replaced,
-                    "previousHash": previous_hash,
-                    "dryRun": True,
-                },
-                SCRIPT_VERSION,
-                pretty,
-                fields,
-            )
+            emit_json(result_data, SCRIPT_VERSION, pretty, fields)
         else:
-            print(msg)
+            print(f"DRY RUN — would create audit tag {tag_name} at {commit_hash}")
         return 0
 
-    # Create tag (force if exists)
     r = run_git("tag", "-f", tag_name) if replaced else run_git("tag", tag_name)
-
     if r.returncode != 0:
-        msg = f"Error: git command failed: {r.stderr}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
+        _emit_error(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
         return 1
 
     if replaced:
         msg = f"OK — updated audit tag {tag_name} at {commit_hash} (was at {previous_hash})"
-        print(
-            f"Warning: tag {tag_name} already existed at {previous_hash}, updated to {commit_hash}",
-            file=sys.stderr,
-        )
+        print(f"Warning: tag {tag_name} already existed at {previous_hash}, updated to {commit_hash}", file=sys.stderr)
     else:
         msg = f"OK — created audit tag {tag_name} at {commit_hash}"
 
     if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": cmd_name,
-                "tagName": tag_name,
-                "commitHash": commit_hash,
-                "iterationId": iter_state["iterationId"],
-                "phase": phase,
-                "attempt": attempt,
-                "replaced": replaced,
-                "previousHash": previous_hash,
-            },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
-        )
+        emit_json(result_data, SCRIPT_VERSION, pretty, fields)
     else:
         print(msg)
 

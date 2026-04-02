@@ -13,4 +13,4 @@ select = [
 ]
 
 [lint.mccabe]
-max-complexity = 25
+max-complexity = 20

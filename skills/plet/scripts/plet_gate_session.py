@@ -35,6 +35,7 @@ from util_cli import (
     emit_json_error,
     extract_output_flags,
     get_plet_dir,
+    parse_command,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -522,12 +523,8 @@ Examples:
 # ---------------------------------------------------------------------------
 
 
-def run_preflight_checks(plet_dir, session_type):
-    """Run all preflight checks. Returns list of check dicts."""
-    checks = []
-    scripts_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # 1. scripts-installed
+def _check_scripts_installed(scripts_dir):
+    """Check that all required plet scripts are present."""
     required_scripts = [
         "plet_global_state.py",
         "plet_iter_state.py",
@@ -540,49 +537,121 @@ def run_preflight_checks(plet_dir, session_type):
         "plet_invoke.py",
         "plet_merge_driver.py",
     ]
-    missing_scripts = [s for s in required_scripts if not os.path.isfile(os.path.join(scripts_dir, s))]
-    if missing_scripts:
-        checks.append(
-            {"name": "scripts-installed", "status": "fail", "detail": "missing: {}".format(", ".join(missing_scripts))}
-        )
-    else:
-        checks.append({"name": "scripts-installed", "status": "pass", "detail": "all plet scripts found"})
+    missing = [s for s in required_scripts if not os.path.isfile(os.path.join(scripts_dir, s))]
+    if missing:
+        return {"name": "scripts-installed", "status": "fail", "detail": "missing: {}".format(", ".join(missing))}
+    return {"name": "scripts-installed", "status": "pass", "detail": "all plet scripts found"}
 
-    # 2. git-check (CKS) — call plet_git_check.py check-session via subprocess
+
+def _check_git_health(scripts_dir, plet_dir):
+    """Run git-check (CKS) via subprocess. Returns list of check dicts."""
+    checks = []
     gtc_script = os.path.join(scripts_dir, "plet_git_check.py")
-    if os.path.isfile(gtc_script):
-        sjp = state_json_path(plet_dir)
-        sdp = state_dir_path(plet_dir)
-        if os.path.isfile(sjp) and os.path.isdir(sdp):
-            gtc_result = run(
-                [sys.executable, gtc_script, "check-session", sjp, sdp, "--output", "json"],
-            )
-            try:
-                gtc_data = json.loads(gtc_result.stdout)
-                for gc in gtc_data.get("checks", []):
-                    checks.append(
-                        {
-                            "name": "git:{}".format(gc["name"]),
-                            "status": gc["status"],
-                            "detail": gc.get("detail", ""),
-                        }
-                    )
-            except (json.JSONDecodeError, KeyError):
-                checks.append({"name": "git-check", "status": "warn", "detail": "could not parse GTC output"})
-        else:
-            r = run_git("rev-parse", "--git-dir")
-            if r.returncode == 0:
-                checks.append({"name": "git:repo", "status": "pass", "detail": "inside a git repository"})
-            else:
-                checks.append({"name": "git:repo", "status": "warn", "detail": "not inside a git repository"})
+    if not os.path.isfile(gtc_script):
+        return checks
+    sjp = state_json_path(plet_dir)
+    sdp = state_dir_path(plet_dir)
+    if os.path.isfile(sjp) and os.path.isdir(sdp):
+        gtc_result = run(
+            [sys.executable, gtc_script, "check-session", sjp, sdp, "--output", "json"],
+        )
+        try:
+            gtc_data = json.loads(gtc_result.stdout)
+            for gc in gtc_data.get("checks", []):
+                checks.append(
+                    {"name": "git:{}".format(gc["name"]), "status": gc["status"], "detail": gc.get("detail", "")}
+                )
+        except (json.JSONDecodeError, KeyError):
+            checks.append({"name": "git-check", "status": "warn", "detail": "could not parse GTC output"})
+    else:
+        r = run_git("rev-parse", "--git-dir")
+        status = "pass" if r.returncode == 0 else "warn"
+        detail = "inside a git repository" if r.returncode == 0 else "not inside a git repository"
+        checks.append({"name": "git:repo", "status": status, "detail": detail})
+    return checks
+
+
+def _check_spec_artifacts(plet_dir, plet_dir_exists):
+    """Check that spec artifacts exist."""
+    if not plet_dir_exists:
+        return {"name": "spec-artifacts", "status": "pass", "detail": "no plet directory (fresh project)"}
+    has_req = os.path.isfile(requirements_path(plet_dir))
+    has_iter = os.path.isfile(iterations_path(plet_dir))
+    if has_req and has_iter:
+        return {"name": "spec-artifacts", "status": "pass", "detail": "requirements.md and iterations.md exist"}
+    missing = []
+    if not has_req:
+        missing.append("requirements.md")
+    if not has_iter:
+        missing.append("iterations.md")
+    return {"name": "spec-artifacts", "status": "fail", "detail": "missing: {}".format(", ".join(missing))}
+
+
+def _check_fingerprints_preflight(scripts_dir, plet_dir, plet_dir_exists, session_type):
+    """Check fingerprint consistency."""
+    if session_type == "plan":
+        return {"name": "fingerprints-consistent", "status": "skipped", "detail": "plan session, check not applicable"}
+    fpr_script = os.path.join(scripts_dir, "plet_fingerprint.py")
+    if not (os.path.isfile(fpr_script) and plet_dir_exists):
+        return {
+            "name": "fingerprints-consistent",
+            "status": "pass",
+            "detail": "no plet directory or fingerprint script (fresh project)",
+        }
+    try:
+        fpr_result = run([sys.executable, fpr_script, "check", plet_dir, "--output", "json"])
+        fpr_data = json.loads(fpr_result.stdout)
+        fpr_status = fpr_data.get("status", "error")
+        if fpr_status == "ok":
+            return {"name": "fingerprints-consistent", "status": "pass", "detail": "fingerprints consistent"}
+        if fpr_status == "stale":
+            return {
+                "name": "fingerprints-consistent",
+                "status": "warn",
+                "detail": "fingerprints stale: {}".format(fpr_data.get("detail", "see plet_fingerprint.py check")),
+            }
+        return {
+            "name": "fingerprints-consistent",
+            "status": "warn",
+            "detail": f"fingerprint check returned: {fpr_status}",
+        }
+    except (json.JSONDecodeError, Exception):
+        return {"name": "fingerprints-consistent", "status": "warn", "detail": "fingerprint check failed"}
+
+
+def _check_merge_driver(session_type):
+    """Check plet-append merge driver configuration."""
+    if session_type not in ("loop", "refine"):
+        return {"name": "merge-driver", "status": "skipped", "detail": "plan session, merge driver not needed"}
+    r = run_git("config", "merge.plet-append.driver")
+    if r.returncode == 0 and r.stdout.strip():
+        return {"name": "merge-driver", "status": "pass", "detail": "plet-append merge driver configured"}
+    return {
+        "name": "merge-driver",
+        "status": "warn",
+        "detail": "plet-append merge driver not configured — "
+        "runtime artifact conflicts during merge-squash may not auto-resolve. "
+        "start-session configures this automatically.",
+    }
+
+
+def run_preflight_checks(plet_dir, session_type):
+    """Run all preflight checks. Returns list of check dicts."""
+    checks = []
+    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 1. scripts-installed
+    checks.append(_check_scripts_installed(scripts_dir))
+
+    # 2. git-check (CKS)
+    checks.extend(_check_git_health(scripts_dir, plet_dir))
 
     # 3. claude-md-exists
     project_root = os.path.dirname(os.path.abspath(plet_dir)) if os.path.isabs(plet_dir) else os.getcwd()
     claude_md = os.path.join(project_root, "CLAUDE.md")
-    if os.path.isfile(claude_md):
-        checks.append({"name": "claude-md-exists", "status": "pass", "detail": "CLAUDE.md found"})
-    else:
-        checks.append({"name": "claude-md-exists", "status": "warn", "detail": "CLAUDE.md not found"})
+    status = "pass" if os.path.isfile(claude_md) else "warn"
+    detail = "CLAUDE.md found" if status == "pass" else "CLAUDE.md not found"
+    checks.append({"name": "claude-md-exists", "status": status, "detail": detail})
 
     # 4. gitignore-plet
     gitignore_path = os.path.join(project_root, ".gitignore")
@@ -603,102 +672,23 @@ def run_preflight_checks(plet_dir, session_type):
 
     # 5. spec-artifacts
     plet_dir_exists = os.path.isdir(plet_dir)
-    if plet_dir_exists:
-        has_req = os.path.isfile(requirements_path(plet_dir))
-        has_iter = os.path.isfile(iterations_path(plet_dir))
-        if has_req and has_iter:
-            checks.append(
-                {"name": "spec-artifacts", "status": "pass", "detail": "requirements.md and iterations.md exist"}
-            )
-        else:
-            missing = []
-            if not has_req:
-                missing.append("requirements.md")
-            if not has_iter:
-                missing.append("iterations.md")
-            checks.append(
-                {"name": "spec-artifacts", "status": "fail", "detail": "missing: {}".format(", ".join(missing))}
-            )
-    else:
-        checks.append({"name": "spec-artifacts", "status": "pass", "detail": "no plet directory (fresh project)"})
+    checks.append(_check_spec_artifacts(plet_dir, plet_dir_exists))
 
     # 6. state-valid
     sjp = state_json_path(plet_dir)
     if os.path.isfile(sjp):
         gs = load_and_validate_global_state(plet_dir)
-        if gs is not None:
-            checks.append({"name": "state-valid", "status": "pass", "detail": "plet/state.json valid"})
-        else:
-            checks.append({"name": "state-valid", "status": "fail", "detail": "plet/state.json validation failed"})
+        status = "pass" if gs is not None else "fail"
+        detail = "plet/state.json valid" if gs is not None else "plet/state.json validation failed"
+        checks.append({"name": "state-valid", "status": status, "detail": detail})
     else:
         checks.append({"name": "state-valid", "status": "pass", "detail": "no state.json (fresh project)"})
 
     # 7. fingerprints-consistent
-    if session_type == "plan":
-        checks.append(
-            {"name": "fingerprints-consistent", "status": "skipped", "detail": "plan session, check not applicable"}
-        )
-    else:
-        fpr_script = os.path.join(scripts_dir, "plet_fingerprint.py")
-        if os.path.isfile(fpr_script) and plet_dir_exists:
-            try:
-                fpr_result = run(
-                    [sys.executable, fpr_script, "check", plet_dir, "--output", "json"],
-                )
-                fpr_data = json.loads(fpr_result.stdout)
-                fpr_status = fpr_data.get("status", "error")
-                if fpr_status == "ok":
-                    checks.append(
-                        {"name": "fingerprints-consistent", "status": "pass", "detail": "fingerprints consistent"}
-                    )
-                elif fpr_status == "stale":
-                    checks.append(
-                        {
-                            "name": "fingerprints-consistent",
-                            "status": "warn",
-                            "detail": "fingerprints stale: {}".format(
-                                fpr_data.get("detail", "see plet_fingerprint.py check")
-                            ),
-                        }
-                    )
-                else:
-                    checks.append(
-                        {
-                            "name": "fingerprints-consistent",
-                            "status": "warn",
-                            "detail": f"fingerprint check returned: {fpr_status}",
-                        }
-                    )
-            except (json.JSONDecodeError, Exception):
-                checks.append(
-                    {"name": "fingerprints-consistent", "status": "warn", "detail": "fingerprint check failed"}
-                )
-        else:
-            checks.append(
-                {
-                    "name": "fingerprints-consistent",
-                    "status": "pass",
-                    "detail": "no plet directory or fingerprint script (fresh project)",
-                }
-            )
+    checks.append(_check_fingerprints_preflight(scripts_dir, plet_dir, plet_dir_exists, session_type))
 
-    # 8. merge-driver — check plet-append merge driver is configured
-    if session_type in ("loop", "refine"):
-        r = run_git("config", "merge.plet-append.driver")
-        if r.returncode == 0 and r.stdout.strip():
-            checks.append({"name": "merge-driver", "status": "pass", "detail": "plet-append merge driver configured"})
-        else:
-            checks.append(
-                {
-                    "name": "merge-driver",
-                    "status": "warn",
-                    "detail": "plet-append merge driver not configured — "
-                    "runtime artifact conflicts during merge-squash may not auto-resolve. "
-                    "start-session configures this automatically.",
-                }
-            )
-    else:
-        checks.append({"name": "merge-driver", "status": "skipped", "detail": "plan session, merge driver not needed"})
+    # 8. merge-driver
+    checks.append(_check_merge_driver(session_type))
 
     return checks
 
@@ -706,6 +696,52 @@ def run_preflight_checks(plet_dir, session_type):
 # ---------------------------------------------------------------------------
 # preflight
 # ---------------------------------------------------------------------------
+
+
+def _summarize_checks(checks):
+    """Compute counts and overall status from a list of check dicts.
+
+    Returns (counts, overall, exit_code).
+    """
+    status_key = {"pass": "passed", "fail": "failed", "warn": "warnings", "skipped": "skipped"}
+    counts = {"passed": 0, "failed": 0, "warnings": 0, "skipped": 0}
+    for c in checks:
+        key = status_key.get(c["status"])
+        if key:
+            counts[key] += 1
+    counts["total"] = len(checks)
+
+    if counts["failed"] > 0:
+        return counts, "fail", 1
+    if counts["warnings"] > 0:
+        return counts, "warn", 2
+    return counts, "ok", 0
+
+
+def _format_preflight_text(checks, counts, overall):
+    """Print human-readable preflight output."""
+    if overall == "ok":
+        title_detail = "{} passed".format(counts["passed"])
+    elif overall == "fail":
+        parts = []
+        if counts["failed"] > 0:
+            parts.append("{} failed".format(counts["failed"]))
+        if counts["warnings"] > 0:
+            parts.append("{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else ""))
+        title_detail = ", ".join(parts)
+    else:
+        title_detail = "{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else "")
+    print(f"{overall.upper()}: preflight — {title_detail}")
+
+    for c in checks:
+        print("{}: {} — {}".format(c["status"].upper(), c["name"], c["detail"]))
+
+    parts = ["{} passed".format(counts["passed"])]
+    parts.append("{} failed".format(counts["failed"]))
+    parts.append("{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else ""))
+    if counts["skipped"] > 0:
+        parts.append("{} skipped".format(counts["skipped"]))
+    print("{} checks: {}".format(counts["total"], ", ".join(parts)))
 
 
 def cmd_preflight(args):
@@ -736,71 +772,32 @@ Examples:
     plet_gate_session.py preflight plet/ --session-type loop
     plet_gate_session.py preflight plet/ --session-type plan --output json --pretty
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
     cmd_name = "preflight"
     hint = help_hint(cmd_name)
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"session_type"},
+        required=["session_type"],
+        allow_dry_run=False,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
-    if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ, hint):
-        return 1
-
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
-    if not ok:
-        print(hint, file=sys.stderr)
-        return 1
-
-    # --session-type is required
-    session_type_raw = kwargs.pop("session_type", None)
-    if not session_type_raw:
-        print("Error: --session-type is required (valid: detect, plan, loop, refine)", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+    session_type_raw = kwargs["session_type"]
     if not validate_enum(session_type_raw, VALID_SESSION_TYPES, "--session-type"):
         print(hint, file=sys.stderr)
         return 1
 
     # Resolve "detect" to actual session type
-    if session_type_raw == "detect":
-        session_type, _, _ = detect_session_type(plet_dir)
-    else:
-        session_type = session_type_raw
+    session_type = detect_session_type(plet_dir)[0] if session_type_raw == "detect" else session_type_raw
 
     checks = run_preflight_checks(plet_dir, session_type)
-
-    # Summarize
-    counts = {"passed": 0, "failed": 0, "warnings": 0, "skipped": 0}
-    for c in checks:
-        if c["status"] == "pass":
-            counts["passed"] += 1
-        elif c["status"] == "fail":
-            counts["failed"] += 1
-        elif c["status"] == "warn":
-            counts["warnings"] += 1
-        elif c["status"] == "skipped":
-            counts["skipped"] += 1
-    counts["total"] = len(checks)
-
-    # Determine overall status and exit code
-    if counts["failed"] > 0:
-        overall = "fail"
-        exit_code = 1
-    elif counts["warnings"] > 0:
-        overall = "warn"
-        exit_code = 2
-    else:
-        overall = "ok"
-        exit_code = 0
+    counts, overall, exit_code = _summarize_checks(checks)
 
     if output_json:
         emit_json(
@@ -816,31 +813,7 @@ Examples:
             fields,
         )
     else:
-        # Title line
-        if overall == "ok":
-            title_detail = "{} passed".format(counts["passed"])
-        elif overall == "fail":
-            parts = []
-            if counts["failed"] > 0:
-                parts.append("{} failed".format(counts["failed"]))
-            if counts["warnings"] > 0:
-                parts.append("{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else ""))
-            title_detail = ", ".join(parts)
-        else:
-            title_detail = "{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else "")
-        print(f"{overall.upper()}: preflight — {title_detail}")
-
-        # Per-check lines
-        for c in checks:
-            print("{}: {} — {}".format(c["status"].upper(), c["name"], c["detail"]))
-
-        # Summary line
-        parts = ["{} passed".format(counts["passed"])]
-        parts.append("{} failed".format(counts["failed"]))
-        parts.append("{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else ""))
-        if counts["skipped"] > 0:
-            parts.append("{} skipped".format(counts["skipped"]))
-        print("{} checks: {}".format(counts["total"], ", ".join(parts)))
+        _format_preflight_text(checks, counts, overall)
 
     return exit_code
 

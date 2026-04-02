@@ -57,6 +57,38 @@ def scripts_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
+def _emit_error(cmd_name, msg, output_json, pretty):
+    """Print error in JSON or text mode."""
+    if output_json:
+        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
+    else:
+        print(msg, file=sys.stderr)
+
+
+def _validate_run_inputs(phase, permission_mode, plet_dir, cwd, cmd_name, output_json, pretty, hint):
+    """Validate phase, permission_mode, plet_dir, and cwd. Returns None on success, exit code on error."""
+    if not validate_enum(phase, VALID_PHASES, "--phase"):
+        print(hint, file=sys.stderr)
+        return 1
+    if permission_mode not in VALID_PERMISSION_MODES:
+        print(
+            "Error: invalid --permission-mode '{}' (valid: {})".format(
+                permission_mode, ", ".join(VALID_PERMISSION_MODES)
+            ),
+            file=sys.stderr,
+        )
+        print(hint, file=sys.stderr)
+        return 1
+    valid, err = validate_plet_dir(plet_dir)
+    if not valid:
+        _emit_error(cmd_name, err, output_json, pretty)
+        return 1
+    if not os.path.isdir(cwd):
+        _emit_error(cmd_name, f"Error: working directory not found: {cwd}", output_json, pretty)
+        return 1
+    return None
+
+
 def find_claude():
     """Check if claude is on PATH. Returns path or None."""
     return shutil.which("claude")
@@ -330,60 +362,21 @@ Examples:
     max_budget = kwargs.get("max_budget")
     verbose = kwargs.get("verbose", False) is True
 
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+    err = _validate_run_inputs(phase, permission_mode, plet_dir, cwd, cmd_name, output_json, pretty, hint)
+    if err is not None:
+        return err
 
-    if permission_mode not in VALID_PERMISSION_MODES:
-        print(
-            "Error: invalid --permission-mode '{}' (valid: {})".format(
-                permission_mode, ", ".join(VALID_PERMISSION_MODES)
-            ),
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
-
-    # Validate plet_dir
-    valid, err = validate_plet_dir(plet_dir)
-    if not valid:
-        if output_json:
-            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
-        else:
-            print(err, file=sys.stderr)
-        return 1
-
-    # Validate --cwd
-    if not os.path.isdir(cwd):
-        msg = f"Error: working directory not found: {cwd}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-
-    # Read attempt number from iter state
     state_data = load_iter_state_json(plet_dir, iter_id)
     if state_data is None:
-        msg = f"Error: iteration state not found for {iter_id}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
+        _emit_error(cmd_name, f"Error: iteration state not found for {iter_id}", output_json, pretty)
         return 1
     attempt = state_data.get("attempts", {}).get(phase, 0) + 1
 
-    # Derive transcript path
     t_path = transcript_path(plet_dir, iter_id, phase, attempt)
 
-    # Assemble prompt
     prompt_text, prm_err = assemble_prompt(plet_dir, iter_id, phase)
     if prompt_text is None:
-        msg = f"Error: {prm_err}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
+        _emit_error(cmd_name, f"Error: {prm_err}", output_json, pretty)
         return 1
 
     # Build plet env vars (used for both prompt header and subprocess env)

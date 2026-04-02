@@ -1084,6 +1084,51 @@ def _check_iterations_level(iter_path, state_path, iter_text_cached, cmd_name, o
     return details, consistent
 
 
+def _run_level_checks(check_req, check_iter, req_path, iter_path, state_path, cmd_name, output_json, pretty):
+    """Run requirements and/or iterations level checks.
+
+    Returns (levels_result, all_consistent) on success, or (None, None) on error.
+    """
+    required_files = []
+    if check_req:
+        required_files.extend([req_path, iter_path])
+    if check_iter:
+        required_files.extend([iter_path, state_path])
+    # Deduplicate while preserving order
+    seen = set()
+    for f in required_files:
+        if f not in seen:
+            seen.add(f)
+            if not validate_file_exists(f, cmd_name, output_json, pretty):
+                return None, None
+
+    levels_result = {}
+    all_consistent = True
+    iter_text_cached = None
+
+    if check_req:
+        result, consistent = _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty)
+        if result is None:
+            return None, None
+        levels_result["requirements"] = result
+        if not consistent:
+            all_consistent = False
+        if check_iter:
+            iter_text_cached = load_text(iter_path)
+
+    if check_iter:
+        result, consistent = _check_iterations_level(
+            iter_path, state_path, iter_text_cached, cmd_name, output_json, pretty
+        )
+        if result is None:
+            return None, None
+        levels_result["iterations"] = result
+        if not consistent:
+            all_consistent = False
+
+    return levels_result, all_consistent
+
+
 def _format_check_text_output(levels_result, all_consistent):
     """Print text output for the check command."""
     for level_name, details in levels_result.items():
@@ -1183,44 +1228,11 @@ Examples:
     check_req = level in ("requirements", "all")
     check_iter = level in ("iterations", "all")
 
-    if check_req:
-        if not validate_file_exists(req_path, cmd_name, output_json, pretty):
-            return 1
-        if not validate_file_exists(iter_path, cmd_name, output_json, pretty):
-            return 1
-
-    if check_iter:
-        if not validate_file_exists(iter_path, cmd_name, output_json, pretty):
-            return 1
-        if not validate_file_exists(state_path, cmd_name, output_json, pretty):
-            return 1
-
-    levels_result = {}
-    all_consistent = True
-    iter_text_cached = None
-
-    # Requirements level: re-extract from requirements.md, compare against stored in iterations.md
-    if check_req:
-        result, consistent = _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty)
-        if result is None:
-            return 1
-        levels_result["requirements"] = result
-        if not consistent:
-            all_consistent = False
-        # Cache iter_text if we'll need it for iterations level too
-        if check_iter:
-            iter_text_cached = load_text(iter_path)
-
-    # Iterations level: re-extract from iterations.md, compare against stored in state.json
-    if check_iter:
-        result, consistent = _check_iterations_level(
-            iter_path, state_path, iter_text_cached, cmd_name, output_json, pretty
-        )
-        if result is None:
-            return 1
-        levels_result["iterations"] = result
-        if not consistent:
-            all_consistent = False
+    levels_result, all_consistent = _run_level_checks(
+        check_req, check_iter, req_path, iter_path, state_path, cmd_name, output_json, pretty
+    )
+    if levels_result is None:
+        return 1
 
     # Emit results
     if output_json:

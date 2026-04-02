@@ -719,6 +719,68 @@ Examples:
     return 0
 
 
+def _validate_query_filters(kwargs, hint):
+    """Validate and extract query filters. Returns (event_type_filter, criterion_filter, last_n, error_flag)."""
+    event_type_filter = kwargs.get("event_type")
+    criterion_filter = kwargs.get("criterion")
+    last_n = kwargs.get("last")
+
+    if event_type_filter is not None and not validate_enum(event_type_filter, VALID_EVENT_TYPES, "--event-type"):
+        print(hint, file=sys.stderr)
+        return None, None, None, True
+
+    if criterion_filter is not None:
+        if event_type_filter is not None and event_type_filter != "criterion_update":
+            print(
+                "Error: --criterion implies --event-type criterion_update,"
+                f" but --event-type '{event_type_filter}' was specified",
+                file=sys.stderr,
+            )
+            print(hint, file=sys.stderr)
+            return None, None, None, True
+        event_type_filter = "criterion_update"
+
+    if last_n is not None:
+        last_n, ok = validate_int(last_n, "--last")
+        if not ok:
+            print(hint, file=sys.stderr)
+            return None, None, None, True
+        if last_n < 1:
+            print("Error: --last must be a positive integer, got '{}'".format(kwargs["last"]), file=sys.stderr)
+            print(hint, file=sys.stderr)
+            return None, None, None, True
+
+    return event_type_filter, criterion_filter, last_n, None
+
+
+def _read_and_filter_events(path, event_type_filter, criterion_filter, last_n):
+    """Read NDJSON events from path, apply filters, return matching events."""
+    matches = []
+    with open(path) as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                print(f"Warning: line {line_num} is not valid JSON, skipping", file=sys.stderr)
+                continue
+            if not isinstance(event, dict):
+                continue
+            if event_type_filter and event.get("type") != event_type_filter:
+                continue
+            if criterion_filter:
+                data = event.get("data", {})
+                if data.get("criterionId") != criterion_filter:
+                    continue
+            matches.append(event)
+
+    if last_n is not None and len(matches) > last_n:
+        matches = matches[-last_n:]
+    return matches
+
+
 def cmd_query(args):
     help_text = """query — filter and extract events from a trace file.
 
@@ -775,74 +837,11 @@ Examples:
         print(hint, file=sys.stderr)
         return 1
 
-    # Extract filters
-    event_type_filter = kwargs.get("event_type")
-    criterion_filter = kwargs.get("criterion")
-    last_n = kwargs.get("last")
-
-    # Validate event type
-    if event_type_filter is not None and not validate_enum(event_type_filter, VALID_EVENT_TYPES, "--event-type"):
-        print(hint, file=sys.stderr)
+    event_type_filter, criterion_filter, last_n, err = _validate_query_filters(kwargs, hint)
+    if err:
         return 1
 
-    # --criterion implies criterion_update
-    if criterion_filter is not None:
-        if event_type_filter is not None and event_type_filter != "criterion_update":
-            print(
-                "Error: --criterion implies --event-type criterion_update,"
-                f" but --event-type '{event_type_filter}' was specified",
-                file=sys.stderr,
-            )
-            print(hint, file=sys.stderr)
-            return 1
-        event_type_filter = "criterion_update"
-
-    # Validate --last
-    if last_n is not None:
-        last_n, ok = validate_int(last_n, "--last")
-        if not ok:
-            print(hint, file=sys.stderr)
-            return 1
-        if last_n < 1:
-            print(
-                "Error: --last must be a positive integer, got '{}'".format(kwargs["last"]),
-                file=sys.stderr,
-            )
-            print(hint, file=sys.stderr)
-            return 1
-
-    # Read and filter events
-    matches = []
-    with open(path) as f:
-        for line_num, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                print(
-                    f"Warning: line {line_num} is not valid JSON, skipping",
-                    file=sys.stderr,
-                )
-                continue
-
-            if not isinstance(event, dict):
-                continue
-
-            # Apply filters
-            if event_type_filter and event.get("type") != event_type_filter:
-                continue
-            if criterion_filter:
-                data = event.get("data", {})
-                if data.get("criterionId") != criterion_filter:
-                    continue
-
-            matches.append(event)
-
-    # Apply --last N
-    if last_n is not None and len(matches) > last_n:
-        matches = matches[-last_n:]
+    matches = _read_and_filter_events(path, event_type_filter, criterion_filter, last_n)
 
     # Output
     if flags["output"] == "json":

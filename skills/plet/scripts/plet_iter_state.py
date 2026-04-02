@@ -85,6 +85,47 @@ def _help_hint(cmd):
     return f"Run: plet_iter_state.py {cmd} --help"
 
 
+def _validate_init_inputs(plet_dir, iter_id, kwargs, no_verify_deps):
+    """Validate basic init inputs. Returns error string or None."""
+    import re
+
+    if not re.match(r"^ID_\d+$", iter_id):
+        return f"Error: iterationId '{iter_id}' does not match pattern ID_N+ (e.g., ID_001)"
+    if not os.path.isdir(plet_dir):
+        return f"Error: directory does not exist: {plet_dir}"
+    return None
+
+
+def _parse_init_data(plet_dir, iter_id, kwargs):
+    """Parse and validate JSON args for init. Returns (dependencies, criteria_input, path, error)."""
+    dependencies, err = load_json_arg(kwargs, "dependencies", "dependencies_file")
+    if err:
+        return None, None, None, err
+
+    criteria_input, err = load_json_arg(kwargs, "criteria", "criteria_file")
+    if err:
+        return None, None, None, err
+
+    if not isinstance(dependencies, list):
+        return None, None, None, "Error: --dependencies must be a JSON array"
+
+    if not isinstance(criteria_input, list):
+        return None, None, None, "Error: --criteria must be a JSON array"
+
+    for i, c in enumerate(criteria_input):
+        if not isinstance(c, dict):
+            return None, None, None, f"Error: --criteria[{i}] must be an object"
+        for req_field in ["id", "description"]:
+            if req_field not in c:
+                return None, None, None, f"Error: --criteria[{i}] missing required field '{req_field}'"
+
+    path = iter_state_path(plet_dir, iter_id)
+    if os.path.isfile(path):
+        return None, None, None, f"Error: state file already exists at {path}"
+
+    return dependencies, criteria_input, path, None
+
+
 def _load_state(plet_dir, iter_id, hint):
     """Load per-iteration state file. Returns (data, path) or (None, path) on error."""
     path = iter_state_path(plet_dir, iter_id)
@@ -230,60 +271,15 @@ Examples:
     cleanup_branches = kwargs.get("cleanup_branches") is not None
     no_verify_deps = kwargs.get("no_verify_deps") is not None
 
-    # Validate iter_id pattern
-    import re
-
-    if not re.match(r"^ID_\d+$", iter_id):
-        print(f"Error: iterationId '{iter_id}' does not match pattern ID_N+ (e.g., ID_001)", file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
-
-    # Precondition: plet_dir exists
-    if not os.path.isdir(plet_dir):
-        print(f"Error: directory does not exist: {plet_dir}", file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
-
-    # Load JSON args
-    dependencies, err = load_json_arg(kwargs, "dependencies", "dependencies_file")
+    err = _validate_init_inputs(plet_dir, iter_id, kwargs, no_verify_deps)
     if err:
         print(err, file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
-    criteria_input, err = load_json_arg(kwargs, "criteria", "criteria_file")
+    dependencies, criteria_input, path, err = _parse_init_data(plet_dir, iter_id, kwargs)
     if err:
         print(err, file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
-
-    # Validate dependencies is a list
-    if not isinstance(dependencies, list):
-        print("Error: --dependencies must be a JSON array", file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
-
-    # Validate criteria
-    if not isinstance(criteria_input, list):
-        print("Error: --criteria must be a JSON array", file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
-
-    for i, c in enumerate(criteria_input):
-        if not isinstance(c, dict):
-            print(f"Error: --criteria[{i}] must be an object", file=sys.stderr)
-            print(_help_hint("init"), file=sys.stderr)
-            return 1
-        for req_field in ["id", "description"]:
-            if req_field not in c:
-                print(f"Error: --criteria[{i}] missing required field '{req_field}'", file=sys.stderr)
-                print(_help_hint("init"), file=sys.stderr)
-                return 1
-
-    # Check state file doesn't exist
-    path = iter_state_path(plet_dir, iter_id)
-    if os.path.isfile(path):
-        print(f"Error: state file already exists at {path}", file=sys.stderr)
         print(_help_hint("init"), file=sys.stderr)
         return 1
 
@@ -890,6 +886,64 @@ Examples:
 
 
 # ---------------------------------------------------------------------------
+# add-report helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_report_json_args(kwargs):
+    """Parse JSON array args for add-report. Returns (criteria_results, findings, related_entries, error)."""
+    criteria_results, err = load_json_arg(kwargs, "criteria_results", "criteria_results_file")
+    if err:
+        return None, None, None, err
+
+    findings_raw = kwargs.get("findings")
+    if findings_raw is None:
+        return None, None, None, "Error: --findings is required (use '[]' for none)"
+    try:
+        findings = json.loads(findings_raw)
+    except json.JSONDecodeError as e:
+        return None, None, None, f"Error: invalid JSON for --findings: {e}"
+
+    related_raw = kwargs.get("related_entries")
+    if related_raw is None:
+        return None, None, None, "Error: --related-entries is required (use '[]' for none)"
+    try:
+        related_entries = json.loads(related_raw)
+    except json.JSONDecodeError as e:
+        return None, None, None, f"Error: invalid JSON for --related-entries: {e}"
+
+    return criteria_results, findings, related_entries, None
+
+
+def _validate_criteria_results(criteria_results):
+    """Validate criteria results array. Returns error string or None."""
+    if not isinstance(criteria_results, list):
+        return "Error: --criteria-results must be a JSON array"
+
+    required_cr_fields = {"id", "status", "oneLiner", "redTest", "relatedEntries"}
+    allowed_cr_fields = required_cr_fields | {"noTestRationale"}
+    valid_cr_statuses = ["pass", "fail", "skipped", "error"]
+
+    for i, cr in enumerate(criteria_results):
+        if not isinstance(cr, dict):
+            return f"Error: criteriaResults[{i}] must be an object"
+        for rf in required_cr_fields:
+            if rf not in cr:
+                return f"Error: criteriaResults[{i}] missing required field '{rf}'"
+        unknown = set(cr.keys()) - allowed_cr_fields
+        if unknown:
+            return "Error: criteriaResults[{}] has unknown field(s): {}".format(i, ", ".join(sorted(unknown)))
+        if cr["status"] not in valid_cr_statuses:
+            return "Error: criteriaResults[{}].status '{}' invalid (valid: {})".format(
+                i, cr["status"], ", ".join(valid_cr_statuses)
+            )
+        if cr["redTest"] == "none" and "noTestRationale" not in cr:
+            return f"Error: criteriaResults[{i}] redTest is 'none' but noTestRationale is missing"
+
+    return None
+
+
+# ---------------------------------------------------------------------------
 # add-report
 # ---------------------------------------------------------------------------
 
@@ -916,17 +970,11 @@ Examples:
       "relatedEntries":[]}]' \\
     --findings '[]' --related-entries '[]' --agent-id agent_def456
 """
-    if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
-
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
-        return 1
-    kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(
-        kwargs,
-        {
+    hint = _help_hint("add-report")
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={
             "iter_id",
             "verdict",
             "summary",
@@ -935,17 +983,16 @@ Examples:
             "findings",
             "related_entries",
             "agent_id",
-        }
-        | UNIVERSAL_FLAGS_WRITE,
-        _help_hint("add-report"),
-    ):
+        },
+        required=["iter_id", "verdict", "summary", "agent_id"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if result == "help":
+        return 0
+    if result is None:
         return 1
-    if not require_kwargs(kwargs, ["iter_id", "verdict", "summary", "agent_id"], help_text):
-        return 1
-
-    output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return 1
+    plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
     verdict = kwargs["verdict"]
@@ -953,79 +1000,19 @@ Examples:
     agent_id = kwargs["agent_id"]
 
     if not validate_enum(verdict, ["passed", "rejected", "blocked"], "verdict"):
-        print(_help_hint("add-report"), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
-    # Load JSON array args
-    criteria_results, err = load_json_arg(kwargs, "criteria_results", "criteria_results_file")
+    criteria_results, findings, related_entries, err = _parse_report_json_args(kwargs)
     if err:
         print(err, file=sys.stderr)
-        print(_help_hint("add-report"), file=sys.stderr)
+        print(hint, file=sys.stderr)
         return 1
 
-    findings_raw = kwargs.get("findings")
-    if findings_raw is None:
-        print("Error: --findings is required (use '[]' for none)", file=sys.stderr)
-        print(_help_hint("add-report"), file=sys.stderr)
+    err = _validate_criteria_results(criteria_results)
+    if err:
+        print(err, file=sys.stderr)
         return 1
-    try:
-        findings = json.loads(findings_raw)
-    except json.JSONDecodeError as e:
-        print(f"Error: invalid JSON for --findings: {e}", file=sys.stderr)
-        print(_help_hint("add-report"), file=sys.stderr)
-        return 1
-
-    related_raw = kwargs.get("related_entries")
-    if related_raw is None:
-        print("Error: --related-entries is required (use '[]' for none)", file=sys.stderr)
-        print(_help_hint("add-report"), file=sys.stderr)
-        return 1
-    try:
-        related_entries = json.loads(related_raw)
-    except json.JSONDecodeError as e:
-        print(f"Error: invalid JSON for --related-entries: {e}", file=sys.stderr)
-        print(_help_hint("add-report"), file=sys.stderr)
-        return 1
-
-    # Validate criteria results
-    if not isinstance(criteria_results, list):
-        print("Error: --criteria-results must be a JSON array", file=sys.stderr)
-        return 1
-
-    required_cr_fields = {"id", "status", "oneLiner", "redTest", "relatedEntries"}
-    allowed_cr_fields = required_cr_fields | {"noTestRationale"}
-    valid_cr_statuses = ["pass", "fail", "skipped", "error"]
-
-    for i, cr in enumerate(criteria_results):
-        if not isinstance(cr, dict):
-            print(f"Error: criteriaResults[{i}] must be an object", file=sys.stderr)
-            return 1
-        # Check required fields
-        for rf in required_cr_fields:
-            if rf not in cr:
-                print(f"Error: criteriaResults[{i}] missing required field '{rf}'", file=sys.stderr)
-                return 1
-        # Check no unknown fields
-        unknown = set(cr.keys()) - allowed_cr_fields
-        if unknown:
-            print(
-                "Error: criteriaResults[{}] has unknown field(s): {}".format(i, ", ".join(sorted(unknown))),
-                file=sys.stderr,
-            )
-            return 1
-        # Validate status
-        if cr["status"] not in valid_cr_statuses:
-            print(
-                "Error: criteriaResults[{}].status '{}' invalid (valid: {})".format(
-                    i, cr["status"], ", ".join(valid_cr_statuses)
-                ),
-                file=sys.stderr,
-            )
-            return 1
-        # noTestRationale required when redTest is "none"
-        if cr["redTest"] == "none" and "noTestRationale" not in cr:
-            print(f"Error: criteriaResults[{i}] redTest is 'none' but noTestRationale is missing", file=sys.stderr)
-            return 1
 
     data, path = _load_state(plet_dir, iter_id, _help_hint("add-report"))
     if data is None:

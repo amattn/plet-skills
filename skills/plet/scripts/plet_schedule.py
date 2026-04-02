@@ -30,6 +30,7 @@ from util_cli import (
     emit_json,
     extract_output_flags,
     get_plet_dir,
+    parse_command,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -57,6 +58,74 @@ VALID_LIFECYCLES = {
 
 def _help_hint(command):
     return f"Run: plet_schedule.py {command} --help"
+
+
+def _load_eligible_state(plet_dir, hint):
+    """Load global state and dependency map. Returns (global_state, dep_map, error_flag)."""
+    gs_path = state_json_path(plet_dir)
+    global_state = load_json(gs_path)
+    if global_state is None:
+        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None, None, True
+    dep_map = global_state.get("dependencyMap")
+    if dep_map is None:
+        print("Error: state.json missing required field: dependencyMap", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return None, None, True
+    return global_state, dep_map, None
+
+
+def _resolve_lifecycles(dep_map, global_state, hint):
+    """Resolve and validate lifecycles for all iterations. Returns (lifecycles, error_flag)."""
+    lifecycles_map = global_state.get("lifecycles", {})
+    lifecycles = {}
+    for iter_id in dep_map:
+        if iter_id not in lifecycles_map:
+            print(f"Error: iteration {iter_id} in dependencyMap but not in lifecycles", file=sys.stderr)
+            print(hint, file=sys.stderr)
+            return None, True
+        lc = lifecycles_map[iter_id]
+        if lc not in VALID_LIFECYCLES:
+            valid_str = ", ".join(sorted(VALID_LIFECYCLES))
+            print(
+                f"Error: invalid lifecycle '{lc}' for {iter_id} (valid: {valid_str})",
+                file=sys.stderr,
+            )
+            print(hint, file=sys.stderr)
+            return None, True
+        lifecycles[iter_id] = lc
+    return lifecycles, None
+
+
+def _evaluate_eligibility(dep_map, lifecycles):
+    """Compute eligible, stuck, and counts from dep_map and lifecycles."""
+    eligible = []
+    for iter_id, deps in sorted(dep_map.items()):
+        if lifecycles[iter_id] != "queued":
+            continue
+        if all(lifecycles.get(dep_id) == "complete" for dep_id in deps):
+            eligible.append(iter_id)
+
+    unsatisfiable_set = {"blocked", "withdrawn", "ineligible"}
+    stuck_iterations = []
+    eligible_set = set(eligible)
+    for iter_id, deps in sorted(dep_map.items()):
+        if lifecycles[iter_id] != "queued" or iter_id in eligible_set:
+            continue
+        bad_deps = [dep_id for dep_id in deps if lifecycles.get(dep_id) in unsatisfiable_set]
+        if bad_deps:
+            stuck_iterations.append({"iterationId": iter_id, "unsatisfiableDeps": sorted(bad_deps)})
+
+    counts = {lc: 0 for lc in sorted(VALID_LIFECYCLES)}
+    counts["eligible"] = 0
+    for iter_id, lc in lifecycles.items():
+        if iter_id in eligible_set:
+            counts["eligible"] += 1
+        else:
+            counts[lc] = counts.get(lc, 0) + 1
+
+    return eligible, stuck_iterations, counts
 
 
 # ---------------------------------------------------------------------------
@@ -89,90 +158,30 @@ def cmd_eligible(args):
         and after each iteration completes to determine what to spawn next.
     """
     help_text = cmd_eligible.__doc__
-    if "-h" in args or "--help" in args:
-        print(help_text)
+    hint = _help_hint("eligible")
+    result = parse_command(
+        args,
+        help_text,
+        known_flags=set(),
+        required=[],
+        allow_dry_run=False,
+        hint=hint,
+    )
+    if result == "help":
         return 0
+    if result is None:
+        return 1
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
-    plet_dir, remaining = get_plet_dir(args)
-    if plet_dir is None:
-        return 1
-    kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("eligible")):
-        return 1
-    output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
-    if not ok:
+    global_state, dep_map, err = _load_eligible_state(plet_dir, hint)
+    if err:
         return 1
 
-    # Load global state
-    gs_path = state_json_path(plet_dir)
-    global_state = load_json(gs_path)
-    if global_state is None:
-        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
-        print(_help_hint("eligible"), file=sys.stderr)
+    lifecycles, err = _resolve_lifecycles(dep_map, global_state, hint)
+    if err:
         return 1
 
-    dep_map = global_state.get("dependencyMap")
-    if dep_map is None:
-        print("Error: state.json missing required field: dependencyMap", file=sys.stderr)
-        print(_help_hint("eligible"), file=sys.stderr)
-        return 1
-
-    # Read lifecycles from state.json (SF_28 — O(1) file reads, not O(N))
-    lifecycles_map = global_state.get("lifecycles", {})
-    lifecycles = {}
-    for iter_id in dep_map:
-        if iter_id not in lifecycles_map:
-            print(f"Error: iteration {iter_id} in dependencyMap but not in lifecycles", file=sys.stderr)
-            print(_help_hint("eligible"), file=sys.stderr)
-            return 1
-        lc = lifecycles_map[iter_id]
-        if lc not in VALID_LIFECYCLES:
-            print(
-                "Error: invalid lifecycle '{}' for {} (valid: {})".format(
-                    lc, iter_id, ", ".join(sorted(VALID_LIFECYCLES))
-                ),
-                file=sys.stderr,
-            )
-            print(_help_hint("eligible"), file=sys.stderr)
-            return 1
-        lifecycles[iter_id] = lc
-
-    # Evaluate eligibility
-    eligible = []
-    for iter_id, deps in sorted(dep_map.items()):
-        if lifecycles[iter_id] != "queued":
-            continue
-        all_deps_complete = all(lifecycles.get(dep_id) == "complete" for dep_id in deps)
-        if all_deps_complete:
-            eligible.append(iter_id)
-
-    # Detect stuck iterations: queued but deps can never be satisfied
-    # A dep is unsatisfiable if its lifecycle is blocked, withdrawn, or ineligible
-    # (not complete and not queued/implementing/verifying — those could still finish)
-    unsatisfiable = {"blocked", "withdrawn", "ineligible"}
-    stuck_iterations = []
-    for iter_id, deps in sorted(dep_map.items()):
-        if lifecycles[iter_id] != "queued":
-            continue
-        if iter_id in eligible:
-            continue
-        unsatisfiable = [dep_id for dep_id in deps if lifecycles.get(dep_id) in unsatisfiable]
-        if unsatisfiable:
-            stuck_iterations.append(
-                {
-                    "iterationId": iter_id,
-                    "unsatisfiableDeps": sorted(unsatisfiable),
-                }
-            )
-
-    # Build lifecycle counts
-    counts = {lc: 0 for lc in sorted(VALID_LIFECYCLES)}
-    counts["eligible"] = 0
-    for iter_id, lc in lifecycles.items():
-        if iter_id in eligible:
-            counts["eligible"] += 1
-        else:
-            counts[lc] = counts.get(lc, 0) + 1
+    eligible, stuck_iterations, counts = _evaluate_eligibility(dep_map, lifecycles)
 
     if output_json:
         data = {

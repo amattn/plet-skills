@@ -132,6 +132,75 @@ def format_iteration_state(state_data, lifecycle="?"):
     return "\n".join(lines)
 
 
+def _load_required(content, error_msg):
+    """Check content is not None, return error_msg if it is."""
+    if content is None:
+        return error_msg
+    return None
+
+
+def _build_prompt_sections(plet_dir, iter_id, phase):
+    """Build all prompt sections. Returns (sections, error_msg)."""
+    sections = []
+
+    # 1. Reference file
+    ref_filename = REFERENCE_FILES[phase]
+    ref_content, ref_path = load_reference(ref_filename)
+    if ref_content is None:
+        return None, f"Error: reference file not found: {ref_path}"
+    sections.append({"name": "reference-file", "source": f"references/{ref_filename}", "content": ref_content})
+
+    # 2. Iteration definition
+    iter_file = iterations_path(plet_dir)
+    iter_content = load_text(iter_file)
+    if iter_content is None:
+        return None, f"Error: iterations.md not found: {iter_file}"
+    iter_block = extract_iteration_block(iter_content, iter_id)
+    if iter_block is None:
+        return None, f"Error: iteration {iter_id} not found in iterations.md"
+    sections.append({"name": "iteration-definition", "source": "plet/iterations.md", "content": iter_block})
+
+    # 3. Formats guide
+    fmt_content, fmt_path = load_reference("formats.md")
+    if fmt_content is None:
+        return None, f"Error: reference file not found: {fmt_path}"
+    sections.append({"name": "formats", "source": "references/formats.md", "content": fmt_content})
+
+    # 4. State schema
+    schema_content, schema_path = load_reference("state-schema.md")
+    if schema_content is None:
+        return None, f"Error: reference file not found: {schema_path}"
+    sections.append({"name": "state-schema", "source": "references/state-schema.md", "content": schema_content})
+
+    # 5. Requirements
+    req_file = requirements_path(plet_dir)
+    req_content = load_text(req_file)
+    if req_content is None:
+        return None, f"Error: requirements.md not found: {req_file}"
+    sections.append({"name": "requirements", "source": "plet/requirements.md", "content": req_content})
+
+    # 6. Learnings (always present, never errors)
+    learn_file = learnings_path(plet_dir)
+    learn_content = load_text(learn_file)
+    if learn_content is None or learn_content.strip() == "":
+        learn_content = "No learnings from prior iterations."
+    sections.append({"name": "learnings", "source": "plet/learnings.md", "content": learn_content})
+
+    # 7. Iteration state
+    state_file = iter_state_path(plet_dir, iter_id)
+    state_data = load_iter_state_json(plet_dir, iter_id)
+    if state_data is None:
+        return None, f"Error: iteration state file not found: {state_file}"
+    global_state = load_global_state_json(plet_dir)
+    lifecycle = "?"
+    if global_state:
+        lifecycle = global_state.get("lifecycles", {}).get(iter_id, "?")
+    state_text = format_iteration_state(state_data, lifecycle=lifecycle)
+    sections.append({"name": "iteration-state", "source": "derived", "content": state_text})
+
+    return sections, None
+
+
 # ---------------------------------------------------------------------------
 # assemble
 # ---------------------------------------------------------------------------
@@ -197,98 +266,13 @@ Examples:
         return 1
 
     # Build sections
-    sections = []
-
-    # 1. Reference file (implement.md or verify.md)
-    ref_filename = REFERENCE_FILES[phase]
-    ref_content, ref_path = load_reference(ref_filename)
-    if ref_content is None:
-        msg = f"Error: reference file not found: {ref_path}"
+    sections, err = _build_prompt_sections(plet_dir, iter_id, phase)
+    if err:
         if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
+            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
         else:
-            print(msg, file=sys.stderr)
+            print(err, file=sys.stderr)
         return 1
-    sections.append({"name": "reference-file", "source": f"references/{ref_filename}", "content": ref_content})
-
-    # 2. Iteration definition (extracted from iterations.md)
-    iter_file = iterations_path(plet_dir)
-    iter_content = load_text(iter_file)
-    if iter_content is None:
-        msg = f"Error: iterations.md not found: {iter_file}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-    iter_block = extract_iteration_block(iter_content, iter_id)
-    if iter_block is None:
-        msg = f"Error: iteration {iter_id} not found in iterations.md"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-    sections.append({"name": "iteration-definition", "source": "plet/iterations.md", "content": iter_block})
-
-    # 3. Formats guide
-    fmt_content, fmt_path = load_reference("formats.md")
-    if fmt_content is None:
-        msg = f"Error: reference file not found: {fmt_path}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-    sections.append({"name": "formats", "source": "references/formats.md", "content": fmt_content})
-
-    # 4. State schema
-    schema_content, schema_path = load_reference("state-schema.md")
-    if schema_content is None:
-        msg = f"Error: reference file not found: {schema_path}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-    sections.append({"name": "state-schema", "source": "references/state-schema.md", "content": schema_content})
-
-    # 5. Requirements
-    req_file = requirements_path(plet_dir)
-    req_content = load_text(req_file)
-    if req_content is None:
-        msg = f"Error: requirements.md not found: {req_file}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-    sections.append({"name": "requirements", "source": "plet/requirements.md", "content": req_content})
-
-    # 6. Learnings (always present, never errors)
-    learn_file = learnings_path(plet_dir)
-    learn_content = load_text(learn_file)
-    if learn_content is None or learn_content.strip() == "":
-        learn_content = "No learnings from prior iterations."
-    sections.append({"name": "learnings", "source": "plet/learnings.md", "content": learn_content})
-
-    # 7. Iteration state (formatted readably)
-    state_file = iter_state_path(plet_dir, iter_id)
-    state_data = load_iter_state_json(plet_dir, iter_id)
-    if state_data is None:
-        msg = f"Error: iteration state file not found: {state_file}"
-        if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
-    # Lifecycle from state.json.lifecycles (SF_28)
-    global_state = load_global_state_json(plet_dir)
-    lifecycle = "?"
-    if global_state:
-        lifecycle = global_state.get("lifecycles", {}).get(iter_id, "?")
-    state_text = format_iteration_state(state_data, lifecycle=lifecycle)
-    sections.append({"name": "iteration-state", "source": "derived", "content": state_text})
 
     # Output
     total_length = sum(len(s["content"]) for s in sections)
