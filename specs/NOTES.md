@@ -1743,4 +1743,14 @@ Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree co
 
 **Remaining gap:** plet_orchestrator at 30% is the only major outlier. Its `cmd_run` orchestrates the entire loop via subprocess calls to 10 scripts + mock claude. The 12 existing test scenarios cover 30% but the remaining 70% is error handling, retry paths, and session management branches.
 
-**Test counts:** 2127 harness (test_all.py), 940 pytest. `coverage_all.sh` for periodic measurement (~160s).
+**Test counts at campaign start:** 2127 harness (test_all.py), 940 pytest. `coverage_all.sh` for periodic measurement (~160s).
+
+#### Coverage campaign continued — cmd_* wrappers + orchestrator (2026-04-02)
+
+**cmd_* wrapper tests proved high-value.** Each script gained 20-40% from ~55 tests calling command entry points directly. The gate_session test (45%→83%) demonstrated the pattern; applied to git_check, iter_state, gate_phase.
+
+**Orchestrator without mock claude (30%→61%).** Tested 9 helper functions via import: `_make_result`, `_emit_event`/`_emit_text`, `_parse_run_args`, `_check_nothing_to_do`, `_promote_eligible`, `_handle_verify_verdict` (all 4 paths), `_end_session`, `_setup_session`. Remaining 39% is phase runners + `cmd_run` (need mock claude on PATH).
+
+**Coverage threshold set: 85%.** `fail_under = 85` in pyproject.toml. `coverage_all.sh` exits non-zero if coverage drops.
+
+**Final test counts:** 2189 harness, 1002 pytest. 85% overall coverage (was 57% at session start). 31 test files across the test suite.
