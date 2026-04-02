@@ -442,22 +442,15 @@ def cmd_run(args):
                 _update_lifecycle(global_plet_dir, iter_id, "blocked")
             elif verdict == "passed":
                 # Merge-squash to workstream
-                # SF_28: orchestrator owns state.json (lifecycles, session history).
-                # The worktree has a stale state.json from worktree creation time.
-                # Revert ALL orchestrator-owned files on the iteration branch to
-                # the workstream version before merge-squash to prevent conflicts.
+                # SF_28: state.json conflicts prevented by .gitattributes merge=ours.
+                # The worktree has a stale state.json, but merge=ours always keeps
+                # the workstream version. No manual copy needed.
+                # Commit any uncommitted subagent work on the iteration branch.
                 if worktree_path:
-                    # Copy workstream state.json → iteration branch (authoritative)
-                    ws_state = state_json_path(global_plet_dir)
-                    iter_state_json = os.path.join(worktree_plet_dir, "state.json")
-                    if os.path.isfile(ws_state) and os.path.isfile(iter_state_json):
-                        import shutil
-                        shutil.copy2(ws_state, iter_state_json)
-                    # Commit everything on iteration branch (subagent work + state fix)
                     subprocess.run(["git", "-C", worktree_path, "add", "-A"],
                                    capture_output=True)
                     subprocess.run(["git", "-C", worktree_path, "commit", "-m",
-                                    "plet: pre-merge sync (state.json from workstream)",
+                                    "plet: pre-merge commit",
                                     "--allow-empty"], capture_output=True)
 
                 # Commit pending changes on workstream before merge-squash

@@ -50,6 +50,7 @@ GITIGNORE_ENTRIES = [
 ]
 
 GITATTR_PATTERNS = [
+    "plet/state.json merge=ours",
     "plet/progress.md merge=plet-append",
     "plet/learnings.md merge=plet-append",
     "plet/emergent.md merge=plet-append",

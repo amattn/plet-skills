@@ -1652,3 +1652,19 @@ All six items from LOGA Run 4 implemented in one session:
 **Shared fixtures:** `make_temp_git_repo()` added to util_fixture.py. Scripts CLAUDE.md updated with shared fixture directive.
 
 **Test count:** 1787 across 23 files.
+
+#### LOGA Run 5 fixes (2026-04-01 / 2026-04-02)
+
+**Dependency promotion bug.** GST `init` sets iterations with deps to `ineligible`. After deps complete, nothing promoted them to `queued` — `schedule.py eligible` only returns `queued` iterations. Fix: orchestrator calls `_promote_eligible()` before each `eligible()` check, scanning `ineligible` iterations whose deps are all `complete` and promoting to `queued`.
+
+**State.json merge conflict on merge-squash.** The worktree has a stale copy of state.json from worktree creation time. The orchestrator updates state.json on the workstream (lifecycle transitions, session history) after that. On merge-squash, both versions conflict. LOGA Run 5: `sessionHistory[0].endedAt` had different timestamps.
+
+**Decision: `.gitattributes merge=ours` for state.json.** Options considered:
+- A. Delete state.json from worktree after creation — subagent might be confused
+- B. `.gitattributes: plet/state.json merge=ours` — git auto-resolves, keeps workstream version ← CHOSEN
+- C. plet-append merge driver for state.json — wrong tool, not append-only
+- D. `git checkout --ours` during merge-squash — fallback if B insufficient
+
+Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree copy is always stale. `merge=ours` tells git "workstream always wins" — no conflict possible. Added to both `plet_bootstrap.py` and `plet_session.py _ensure_merge_driver`. The pre-merge shutil.copy2 workaround in the orchestrator was removed — .gitattributes handles it.
+
+**Other Run 5 fixes:** invoke auto-detects permission mode from settings.json, progress entries clipped (no full prompt), Files changed field removed from progress format.

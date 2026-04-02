@@ -96,6 +96,7 @@ def _ensure_merge_driver(plet_dir):
 
     plet_name = os.path.basename(os.path.normpath(plet_dir))
     needed_patterns = [
+        "{}/state.json merge=ours".format(plet_name),
         "{}/progress.md merge=plet-append".format(plet_name),
         "{}/learnings.md merge=plet-append".format(plet_name),
         "{}/emergent.md merge=plet-append".format(plet_name),
