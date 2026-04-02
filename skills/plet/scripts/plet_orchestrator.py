@@ -37,7 +37,7 @@ from util_io import (
 )
 from util_state import load_and_validate_iter_state, load_and_validate_global_state
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.2.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -74,6 +74,39 @@ def _update_lifecycle(global_plet_dir, iter_id, lifecycle):
         "update-lifecycle", global_plet_dir,
         "--iter-id", iter_id, "--lifecycle", lifecycle,
     ])
+
+
+def _promote_eligible(global_plet_dir, output_ndjson):
+    """Promote ineligible → queued for iterations whose deps are all complete.
+
+    Reads state.json, checks each ineligible iteration's dependencies,
+    and promotes to queued if all deps are complete. This must run before
+    each eligible() check so newly-satisfied iterations are picked up.
+    """
+    gs_path = state_json_path(global_plet_dir)
+    state = load_json(gs_path)
+    if state is None:
+        return
+
+    dep_map = state.get("dependencyMap", {})
+    lifecycles = state.get("lifecycles", {})
+    promoted = []
+
+    for iter_id, deps in dep_map.items():
+        if lifecycles.get(iter_id) != "ineligible":
+            continue
+        if not deps:
+            # No deps but ineligible — shouldn't happen, but promote anyway
+            promoted.append(iter_id)
+            continue
+        if all(lifecycles.get(dep) == "complete" for dep in deps):
+            promoted.append(iter_id)
+
+    for iter_id in sorted(promoted):
+        _update_lifecycle(global_plet_dir, iter_id, "queued")
+        _emit_event({"type": "dependency_promotion",
+                     "iterationId": iter_id,
+                     "from": "ineligible", "to": "queued"}, output_ndjson)
 
 
 def _emit_event(event, output_ndjson):
@@ -284,6 +317,9 @@ def cmd_run(args):
     max_rounds = 100  # safety limit
 
     for _round in range(max_rounds):
+        # Promote ineligible → queued where deps are satisfied
+        _promote_eligible(global_plet_dir, output_ndjson)
+
         # Re-evaluate eligible
         eligible_data, _, rc = _run_script_json("plet_schedule.py", ["eligible", global_plet_dir])
         if rc != 0 or eligible_data is None:

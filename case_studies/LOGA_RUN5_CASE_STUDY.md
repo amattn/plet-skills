@@ -52,6 +52,34 @@
 
 <!-- Add observations here as they happen. -->
 
+### Plan phase
+
+1. **Script discovery working.** Agent found scripts path immediately — no 8-minute search like Run 4. Used `$SCRIPTS` variable from the CLAUDE.md stub or plugin context.
+
+2. **Allow pattern doesn't match.** `Bash(plet_*.py*)` in settings.json doesn't match `$SCRIPTS/plet_fingerprint.py ...` because the command starts with the variable assignment. Claude Code prompts for approval on every plet script call. Option 2 ("don't ask again for similar commands") works as project-level auto-allow.
+
+3. **No sandbox, no auto mode, no bypassPermissions.** Running with bare permissions + allow list only. Every non-plet Bash command and every Write/Edit needs manual approval. This will block subagents in the loop phase.
+
+4. **Plan committed to main — no plan branch.** Despite SKILL.md Step 2 saying "create plan branch," the agent committed directly to main. Same issue as Run 3 (#2) and Run 4 (#2). Third time — prose instructions don't work for this. Need a script to enforce branch creation, or accept that plan commits go to main. (→ FB item: plan branch creation needs enforcement, not prose)
+
+5. **Agent correctly instructed user to fix permissions.** Detected insufficient permissions (no auto mode, no bypassPermissions) and told the user what to add to settings.json. Bootstrap `check` permissions warning working as designed.
+
+### Loop phase
+
+6. **Permission prompts only for parent agent, not subagents.** SKILL.md agent prompted for gate-session and orchestrator script calls (parent context). Once orchestrator spawned subagent via plet_invoke.py, bypassPermissions kicked in — no more prompts. This is correct behavior.
+
+7. **Env var injection working.** Subagent uses `$PLET_SCRIPTS_DIR` for all script calls. No searching. Immediate discovery.
+
+8. **Bash working — no sandbox blocks.** `go mod init`, `go test`, `go build`, `git add && git commit` all executing. No EPERM errors. Sandbox disabled = full tool access.
+
+9. **IST scripts called correctly.** start-phase, update-activity (with --phase-activity + --activity-detail + --agent-id), update-criterion — all via `$PLET_SCRIPTS_DIR`. Git commits with plet format (`wip: [ID_001] ...`).
+
+10. **Go toolchain friction.** GOROOT/GOTOOLCHAIN version mismatch between homebrew Go and system Go. Not a plet issue — environment config. Subagent worked around it.
+
+11. **BUG: No dependency promotion — ineligible iterations never become queued.** After ID_001 completed, ID_002 (depends on ID_001) stayed `ineligible` instead of being promoted to `queued`. The orchestrator calls `schedule.py eligible` which only returns `queued` iterations with all deps complete. But `ineligible` iterations are never promoted — nobody writes `queued` to state.json when deps are satisfied. GST `init` sets `ineligible` for iterations with deps, but nothing changes it later. The orchestrator needs a dependency promotion step after each completion. (→ critical bug fix)
+
+12. **"Files changed" mostly useless.** 19 entries with the field: 9 say "(none)" (auto-logged), 6 are template examples from embedded reference docs, 4 have real files (subagent-written). The auto-logger can't know what files changed — only the subagent can. Consider removing "Files changed" from auto-logged entries or making it optional in the format.
+
 ---
 
 ## Section 2: Artifact Analysis
