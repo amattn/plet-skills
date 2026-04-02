@@ -24,6 +24,13 @@ import time
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+def _find_ruff():
+    """Find ruff on PATH. Returns path or None."""
+    import shutil
+
+    return shutil.which("ruff")
+
+
 def _parse_results(output):
     """Extract pass/fail counts from test output."""
     match = re.search(r"(\d+)\s+passed,\s+(\d+)\s+failed", output)
@@ -170,10 +177,56 @@ def main():
         print("\rMode: {} | {} test files".format(mode, len(test_files)).ljust(60))
         print()
 
+    # Run ruff lint + format checks first
+    scripts_dir = os.path.join(os.path.dirname(TESTS_DIR), "scripts")
+    ruff_dirs = [scripts_dir, TESTS_DIR]
+    ruff_failed = False
+
+    ruff_path = _find_ruff()
+    if ruff_path:
+        if not quiet:
+            print("  ruff check ...", end="", flush=True)
+        rc = subprocess.run(
+            [ruff_path, "check"] + ruff_dirs,
+            capture_output=True,
+        ).returncode
+        if rc != 0:
+            ruff_failed = True
+            if not quiet:
+                print(" FAIL")
+                # Re-run to show errors
+                subprocess.run([ruff_path, "check"] + ruff_dirs)
+        elif not quiet:
+            print(" ok")
+
+        if not quiet:
+            print("  ruff format --check ...", end="", flush=True)
+        rc = subprocess.run(
+            [ruff_path, "format", "--check"] + ruff_dirs,
+            capture_output=True,
+        ).returncode
+        if rc != 0:
+            ruff_failed = True
+            if not quiet:
+                print(" FAIL")
+                subprocess.run([ruff_path, "format", "--check"] + ruff_dirs)
+        elif not quiet:
+            print(" ok")
+
+        if not quiet:
+            print()
+    elif not quiet:
+        print("  ruff not found — skipping lint/format checks")
+        print()
+
     if sequential:
         total_passed, total_failed, failures, elapsed = _run_sequential(test_files, verbose, quiet)
     else:
         total_passed, total_failed, failures, elapsed = _run_parallel(test_files, quiet)
+
+    if ruff_failed:
+        failures.append("ruff")
+        total_failed += 1
 
     print()
     print("=" * 50)
