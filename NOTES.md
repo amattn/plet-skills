@@ -411,6 +411,74 @@ Claude Code has three layers of memory:
 
 ### Architecture & Routing
 
+#### Subagent must NOT squash — orchestrator owns merge-squash (2026-04-02)
+
+Removed squash instructions from implement.md and verify.md. Subagents commit incrementally (wip commits for crash recovery); the orchestrator's merge-squash creates the single clean commit per phase on the workstream branch.
+
+**Problem:** When subagents squashed their own wip commits before the orchestrator's merge-squash, the branch diverged — the squash rewrote history, creating a forked graph visible in `git log --graph`. The orchestrator's subsequent merge-squash couldn't cleanly fast-forward.
+
+**Fix:** implement.md "Tag and Squash" → "Tag" only. verify.md same. Added explicit "Do NOT squash — orchestrator handles it." This keeps one owner for the squash operation.
+
+#### Orchestrator commits state.json before worktree creation (2026-04-02)
+
+After `start-session` increments `loopSessionCount`, the orchestrator now runs `git add -A && git commit` before creating worktrees. Previously, worktrees were created from the workstream tip which had a stale `loopSessionCount`. The subagent in the worktree would see the old value, and LOGA Run 6 showed a subagent "fixing" it — modifying state.json in the worktree (violating SF_28: orchestrator-owned).
+
+#### Dependency promotion in orchestrator (2026-04-01)
+
+**Bug:** After ID_001 completed in LOGA Run 5, ID_002 stayed `ineligible` instead of promoting to `queued`. The orchestrator called `schedule.py eligible` which only returns `queued` iterations with all deps complete. But nothing ever changed `ineligible` → `queued` when deps were satisfied.
+
+**Fix:** Added `_promote_eligible()` to orchestrator — after each iteration completes, scans all `ineligible` iterations and promotes to `queued` when all dependencies are `complete`. Called before each `eligible()` check.
+
+#### State.json merge=ours for worktree conflicts (2026-04-01)
+
+**Bug:** LOGA Run 5 merge-squash failed with conflict markers in state.json. Both workstream and worktree had modified state.json — worktree had a stale copy from creation time, workstream was updated by the orchestrator during the iteration.
+
+**Fix:** `.gitattributes` entry `plet/state.json merge=ours` — workstream version always wins on merge. Safe because state.json is orchestrator-owned (SF_28).
+
+#### Permission mode auto-detection in plet_invoke.py (2026-04-01)
+
+`plet_invoke.py` always passed `--permission-mode auto` regardless of project settings. Fixed to auto-detect from `.claude/settings.json` — checks for `bypassPermissions: true` or `defaultMode` and passes the correct flag.
+
+#### Compact progress entries from dispatch auto-logger (2026-04-01)
+
+Progress entries from the auto-logger previously dumped the full 94KB prompt into progress.md (LOGA Run 5: 12,975 lines for 3 iterations). Fixed to show invocation metadata + trace reference only — one-liner entries.
+
+Also removed the `**Files changed:**` field entirely — git history is the source of truth for file changes.
+
+#### Bootstrap script — plet_bootstrap.py (2026-04-01)
+
+New script for project setup automation. `setup` command: creates .plet/ dir, .gitignore (3 entries), .gitattributes (merge driver + merge=ours for state.json), git config for merge driver, CLAUDE.md stub, .claude/settings.json (merge allow entries), permissions check. `check` command: read-only verification of all bootstrap items + empirical sandbox detection. 46 tests.
+
+Resolves the long-standing issue of agents spending 8+ minutes searching for scripts (LOGA Run 4). Bootstrap ensures the environment is configured before plan session begins.
+
+#### Env var injection for subagent script discovery (2026-04-01)
+
+`plet_invoke.py` injects 8 `PLET_*` env vars + `CLAUDE_*` pass-through into subagent subprocess and prompt header. Subagents use `$PLET_SCRIPTS_DIR` for all script calls — immediate discovery, no searching.
+
+Env vars injected: `PLET_SCRIPTS_DIR`, `PLET_DIR`, `PLET_PROJECT_DIR`, `PLET_WORKTREE_BASE`, `PLET_ITER_ID`, `PLET_PHASE`, `PLET_ATTEMPT`, plus `CLAUDE_*` pass-through.
+
+#### Plan branch enforcement — prose fails, enforcement needed (2026-04-01)
+
+Runs 3, 4, and 5 all committed plan output directly to main despite SKILL.md Step 2 saying "create plan branch." Run 6 (v0.4.2) was the first run where the plan branch was created correctly. Unclear whether v0.4.2 changes fixed this or it was coincidental. Worth monitoring — if it fails again, needs script enforcement, not prose.
+
+#### LOGA Run 6 — first fully successful scripted run (2026-04-02)
+
+13/13 iterations completed in one continuous loop session. bypassPermissions mode, plan branch created correctly. 100% verify first-pass rate (same as Run 5). Per-iteration average ~18 min. One observed issue: subagent modified state.json in worktree (loopSessionCount), fixed post-run by committing state.json before worktree creation.
+
+This validates the entire lifecycle extraction (seq 39-41), dependency promotion, env var injection, and all Run 4/5 fixes. Most successful run since Run 1 (prose baseline).
+
+#### Ruff linting + pytest/coverage infrastructure (2026-04-02)
+
+Added ruff with 9 rule sets (E, F, W, I, N, UP, B, SIM, C90). McCabe complexity threshold at 15 — started at 30 and progressively lowered. All violations fixed directly (no per-file ignores).
+
+Added pytest + pytest-cov infrastructure. 85% coverage (was unmeasured). 2189 tests across 31 files (was 1786 across 23). All test files wrapped in `def main()` for pytest discovery. `test_all.py` auto-formats with `ruff format` before running tests. `uv.lock` committed to pin dev tooling versions.
+
+#### parse_command() and emit_error() — shared CLI utilities (2026-04-02)
+
+`parse_command()` in util_cli replaces the 6-step arg parsing boilerplate (parse raw, check help, check version, get plet_dir, extract kwargs, set up output). Returns "help" | None | (plet_dir, kwargs, output_json, pretty, fields, dry_run). Adopted in 17+ command functions.
+
+`emit_error()` in util_cli provides shared JSON/text error output. Replaced 3 duplicate `_emit_error` helpers across scripts.
+
 #### util_io as single source of truth for all file paths (2026-03-29)
 
 Every plet file path is derived from `util_io` functions. No script constructs paths manually via `os.path.join`. Functions added during this session:

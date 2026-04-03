@@ -18,6 +18,8 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `SPARKBOARD_CASE_STUDY.md` | SPARK (sparkboard) | Elixir | 23 | State schema solved; learnings/emergent regressed; 42 stashes despite ban |
 | `LOGA_RUN2_CASE_STUDY.md` | LOGA (logalyzer) | Go | 1/13 | First PLAN_9 run; scripts used but orchestrator bypassed; plugin conflict |
 | `LOGA_RUN3_CASE_STUDY.md` | LOGA (logalyzer) | Go | 0/13 | First orchestrator+invoke run; worktree state merge conflict exposed; 3 invoke hotfixes |
+| `LOGA_RUN5_CASE_STUDY.md` | LOGA (logalyzer) | Go | 3/13 | Env var injection works; dependency promotion bug found; state.json merge conflict |
+| `LOGA_RUN6_CASE_STUDY.md` | LOGA (logalyzer) | Go | 13/13 | First fully successful scripted run; zero human intervention; validates v0.4.x architecture |
 
 ## Standard Sections
 
