@@ -199,6 +199,7 @@ def create_mock_claude(tmpdir, behavior="pass"):
 # run — help
 # ===========================================================================
 
+
 def test_run_help():
     print("## run — help")
 
@@ -210,6 +211,7 @@ def test_run_help():
 # ===========================================================================
 # run — missing state.json
 # ===========================================================================
+
 
 def test_run_missing_state_json():
     print("\n## run — missing state.json")
@@ -224,6 +226,7 @@ def test_run_missing_state_json():
 # ===========================================================================
 # run — nothing eligible (all complete, no session started)
 # ===========================================================================
+
 
 def test_run_nothing_eligible():
     print("\n## run — nothing eligible (pre-check, no session)")
@@ -256,6 +259,7 @@ def test_run_nothing_eligible():
 # ===========================================================================
 # run — single iteration happy path (implement → verify → pass → complete)
 # ===========================================================================
+
 
 def test_run_single_iteration_happy_path():
     print("\n## run — single iteration happy path")
@@ -322,6 +326,7 @@ def test_run_single_iteration_happy_path():
 # run — reject then pass on retry (#1)
 # ===========================================================================
 
+
 def test_run_reject_then_pass_on_retry():
     print("\n## run — reject then pass on retry")
 
@@ -365,6 +370,7 @@ def test_run_reject_then_pass_on_retry():
 # ===========================================================================
 # run — two-iteration dependency chain (#2)
 # ===========================================================================
+
 
 def test_run_two_iteration_dependency_chain():
     print("\n## run — two-iteration dependency chain")
@@ -417,6 +423,7 @@ def test_run_two_iteration_dependency_chain():
 # ===========================================================================
 # run — breakpoint before (#3)
 # ===========================================================================
+
 
 def test_run_breakpoint_before():
     print("\n## run — breakpoint before")
@@ -480,6 +487,7 @@ def test_run_breakpoint_before():
 # ===========================================================================
 # run — mixed outcome: pass + block + stuck (#7)
 # ===========================================================================
+
 
 def test_run_mixed_outcome_pass_block_stuck():
     print("\n## run — mixed outcome: pass + exhaust retry + stuck dependent")
@@ -559,6 +567,7 @@ def test_run_mixed_outcome_pass_block_stuck():
 # run — max-iterations limit (#4)
 # ===========================================================================
 
+
 def test_run_max_iterations_limit():
     print("\n## run — max-iterations limit")
 
@@ -611,6 +620,7 @@ def test_run_max_iterations_limit():
 # run — no commits → block (#5)
 # ===========================================================================
 
+
 def test_run_no_commits_blocks_iteration():
     print("\n## run — no commits blocks iteration")
 
@@ -652,6 +662,7 @@ def test_run_no_commits_blocks_iteration():
 # ===========================================================================
 # run — crash recovery / resume (#6)
 # ===========================================================================
+
 
 def test_run_crash_recovery_resume():
     print("\n## run — crash recovery (resume after interrupted session)")
@@ -733,6 +744,7 @@ def test_run_crash_recovery_resume():
 # run — stale fingerprints blocking (#8)
 # ===========================================================================
 
+
 def test_run_stale_fingerprints_blocking():
     print("\n## run — stale fingerprints block by default")
 
@@ -785,6 +797,7 @@ def test_run_stale_fingerprints_blocking():
 # ===========================================================================
 # Summary
 # ===========================================================================
+
 
 def main():
     global passed, failed

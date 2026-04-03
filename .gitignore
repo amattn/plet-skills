@@ -6,7 +6,5 @@ CLAUDE.local.md
 .coverage
 .coverage.*
 htmlcov/
-# uv.lock is normally committed for reproducible builds. Ignored here because
-# plet has zero runtime dependencies (stdlib-only). The lock only pins dev
-# tooling (pytest, ruff, coverage) which doesn't need cross-machine pinning.
-uv.lock
+# uv.lock committed to pin dev tooling versions (ruff, pytest, coverage).
+# Prevents cross-machine format/lint differences from ruff version mismatches.

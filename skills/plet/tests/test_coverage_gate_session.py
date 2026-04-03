@@ -97,8 +97,9 @@ def test_cmd_detect_refine():
 
 
 def test_cmd_detect_json():
-    import plet_gate_session
     import io
+
+    import plet_gate_session
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
     try:
@@ -140,8 +141,9 @@ def test_cmd_status_basic():
 
 
 def test_cmd_status_json():
-    import plet_gate_session
     import io
+
+    import plet_gate_session
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "complete", "ID_002": "blocked"})
     try:
@@ -266,8 +268,9 @@ def test_cmd_preflight_detect():
 
 
 def test_cmd_preflight_json():
-    import plet_gate_session
     import io
+
+    import plet_gate_session
 
     d, plet_dir = _make_project()
     try:
@@ -439,8 +442,9 @@ def test_cmd_postflight_transient():
 
 
 def test_cmd_postflight_json():
-    import plet_gate_session
     import io
+
+    import plet_gate_session
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "complete"})
     try:

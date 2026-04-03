@@ -19,10 +19,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from util_fixture import (
     create_iteration_branch,
     create_workstream_branch,
+    make_audit_tag,
     make_git_repo,
     make_global_state,
     make_iter_state,
-    make_audit_tag,
 )
 
 passed = 0
@@ -625,14 +625,15 @@ def test_cmd_merge_squash_dry_run():
     try:
         # Set up attempts so iter state is valid
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             attempts={"implement": 1, "verify": 0},
         )
         subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
         subprocess.run(["git", "-C", d, "commit", "-m", "update state"], capture_output=True)
 
         ws = create_workstream_branch(d)
-        iter_br = create_iteration_branch(d, num_commits=1)
+        create_iteration_branch(d, num_commits=1)
         subprocess.run(["git", "-C", d, "checkout", ws], capture_output=True)
 
         old_cwd = os.getcwd()
@@ -655,7 +656,8 @@ def test_cmd_merge_squash_full():
     )
     try:
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             title="Add feature",
             attempts={"implement": 1, "verify": 1},
             criteria=[
@@ -666,7 +668,7 @@ def test_cmd_merge_squash_full():
         subprocess.run(["git", "-C", d, "commit", "-m", "update state"], capture_output=True)
 
         ws = create_workstream_branch(d)
-        iter_br = create_iteration_branch(d, num_commits=2)
+        create_iteration_branch(d, num_commits=2)
         subprocess.run(["git", "-C", d, "checkout", ws], capture_output=True)
 
         old_cwd = os.getcwd()
@@ -689,7 +691,8 @@ def test_cmd_merge_squash_json_output():
     )
     try:
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             title="JSON test",
             attempts={"implement": 1, "verify": 1},
         )
@@ -697,7 +700,7 @@ def test_cmd_merge_squash_json_output():
         subprocess.run(["git", "-C", d, "commit", "-m", "update state"], capture_output=True)
 
         ws = create_workstream_branch(d)
-        iter_br = create_iteration_branch(d, num_commits=1)
+        create_iteration_branch(d, num_commits=1)
         subprocess.run(["git", "-C", d, "checkout", ws], capture_output=True)
 
         old_cwd = os.getcwd()
@@ -721,7 +724,8 @@ def test_cmd_merge_squash_full_json_with_cleanup():
     )
     try:
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             title="Cleanup test",
             attempts={"implement": 1, "verify": 1},
             cleanupTagsAutomatically=True,
@@ -731,7 +735,7 @@ def test_cmd_merge_squash_full_json_with_cleanup():
         subprocess.run(["git", "-C", d, "commit", "-m", "update state"], capture_output=True)
 
         ws = create_workstream_branch(d)
-        iter_br = create_iteration_branch(d, num_commits=1)
+        create_iteration_branch(d, num_commits=1)
 
         # Create audit tags while on the iteration branch
         make_audit_tag(d, iter_id="ID_001", phase="implement", attempt=1)
@@ -758,7 +762,8 @@ def test_cmd_merge_squash_text_with_cleanup():
     )
     try:
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             title="Text cleanup",
             attempts={"implement": 1, "verify": 1},
             cleanupTagsAutomatically=True,
@@ -768,7 +773,7 @@ def test_cmd_merge_squash_text_with_cleanup():
         subprocess.run(["git", "-C", d, "commit", "-m", "update state"], capture_output=True)
 
         ws = create_workstream_branch(d)
-        iter_br = create_iteration_branch(d, num_commits=1)
+        create_iteration_branch(d, num_commits=1)
         make_audit_tag(d, iter_id="ID_001", phase="implement", attempt=1)
         subprocess.run(["git", "-C", d, "checkout", ws], capture_output=True)
 
@@ -815,7 +820,8 @@ def test_cmd_audit_tag_integration():
     )
     try:
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             attempts={"implement": 1, "verify": 0},
         )
         subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
@@ -895,6 +901,7 @@ def test_cmd_merge_squash_bad_global_state():
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
         # Write invalid global state
         import json
+
         with open(os.path.join(plet_dir, "state.json"), "w") as f:
             json.dump({"bad": "data"}, f)
 
@@ -938,7 +945,8 @@ def test_cmd_merge_squash_git_validation_fails():
     )
     try:
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             attempts={"implement": 1, "verify": 0},
         )
         subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)

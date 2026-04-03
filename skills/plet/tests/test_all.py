@@ -25,10 +25,18 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def _find_ruff():
-    """Find ruff on PATH. Returns path or None."""
+    """Find ruff on PATH or in .venv. Returns path or None."""
     import shutil
 
-    return shutil.which("ruff")
+    found = shutil.which("ruff")
+    if found:
+        return found
+    # Check .venv/bin relative to repo root
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(TESTS_DIR)))
+    venv_ruff = os.path.join(repo_root, ".venv", "bin", "ruff")
+    if os.path.isfile(venv_ruff):
+        return venv_ruff
+    return None
 
 
 def _parse_results(output):
@@ -162,17 +170,31 @@ def _run_ruff_checks(quiet):
         return False
 
     failed = False
-    for label, cmd_args in [("ruff check", ["check"]), ("ruff format --check", ["format", "--check"])]:
+
+    # Lint check
+    if not quiet:
+        print("  ruff check ...", end="", flush=True)
+    rc = subprocess.run([ruff_path, "check"] + ruff_dirs, capture_output=True).returncode
+    if rc != 0:
+        failed = True
         if not quiet:
-            print(f"  {label} ...", end="", flush=True)
-        rc = subprocess.run([ruff_path] + cmd_args + ruff_dirs, capture_output=True).returncode
-        if rc != 0:
-            failed = True
-            if not quiet:
-                print(" FAIL")
-                subprocess.run([ruff_path] + cmd_args + ruff_dirs)
-        elif not quiet:
-            print(" ok")
+            print(" FAIL")
+            subprocess.run([ruff_path, "check"] + ruff_dirs)
+    elif not quiet:
+        print(" ok")
+
+    # Format: auto-fix then verify (prevents cross-machine version mismatches)
+    if not quiet:
+        print("  ruff format ...", end="", flush=True)
+    subprocess.run([ruff_path, "format"] + ruff_dirs, capture_output=True)
+    rc = subprocess.run([ruff_path, "format", "--check"] + ruff_dirs, capture_output=True).returncode
+    if rc != 0:
+        failed = True
+        if not quiet:
+            print(" FAIL (format --check failed after format)")
+            subprocess.run([ruff_path, "format", "--check"] + ruff_dirs)
+    elif not quiet:
+        print(" ok")
 
     if not quiet:
         print()

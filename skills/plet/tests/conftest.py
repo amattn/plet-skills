@@ -21,7 +21,6 @@ run pytest once to reinstall it.
 
 import os
 import site
-import sys
 
 
 def pytest_configure(config):

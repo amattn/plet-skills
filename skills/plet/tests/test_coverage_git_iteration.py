@@ -7,7 +7,6 @@ These tests call internal functions directly for coverage measurement.
 Run with: uv run pytest skills/plet/tests/test_cov_git_iteration.py
 """
 
-import json
 import os
 import shutil
 import subprocess
@@ -33,8 +32,7 @@ def check(name, condition, detail=""):
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
 
 
-def _make_project(project_id="TEST", loop_session=1, refine_session=0,
-                  lifecycles=None, iters=None):
+def _make_project(project_id="TEST", loop_session=1, refine_session=0, lifecycles=None, iters=None):
     """Create a git repo with plet state. Returns (tmpdir, plet_dir)."""
     d = tempfile.mkdtemp()
     make_git_repo(d)
@@ -110,7 +108,8 @@ def test_branch_exists():
         # main/master branch exists after init
         result = subprocess.run(
             ["git", "-C", d, "branch", "--show-current"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         current = result.stdout.strip()
         check("current branch exists", plet_git_iteration.branch_exists(current, cwd=d))
@@ -144,9 +143,7 @@ def test_validate_git_preconditions():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            result = plet_git_iteration._validate_git_preconditions(
-                plet_dir, "test-cmd", False, False, "hint"
-            )
+            result = plet_git_iteration._validate_git_preconditions(plet_dir, "test-cmd", False, False, "hint")
             check("valid preconditions", result is None)
 
             # Invalid plet dir (nonexistent)
@@ -164,9 +161,7 @@ def test_validate_git_preconditions():
             os.makedirs(non_git_plet, exist_ok=True)
             os.chdir(non_git)
             try:
-                result = plet_git_iteration._validate_git_preconditions(
-                    non_git_plet, "test-cmd", False, False, "hint"
-                )
+                result = plet_git_iteration._validate_git_preconditions(non_git_plet, "test-cmd", False, False, "hint")
                 check("not git repo = 1", result == 1)
             finally:
                 os.chdir(old_cwd)
@@ -195,9 +190,16 @@ def test_cmd_branch_name_iteration():
             check("branch-name text rc=0", rc == 0)
 
             # JSON output (lines 182-195)
-            rc = plet_git_iteration.cmd_branch_name([
-                plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty",
-            ])
+            rc = plet_git_iteration.cmd_branch_name(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--output",
+                    "json",
+                    "--pretty",
+                ]
+            )
             check("branch-name json rc=0", rc == 0)
 
             # Missing --iter-id for iteration type (lines 169-174)
@@ -209,9 +211,15 @@ def test_cmd_branch_name_iteration():
             check("bad iter-id = 1", rc == 1)
 
             # Invalid --type (lines 163-165)
-            rc = plet_git_iteration.cmd_branch_name([
-                plet_dir, "--iter-id", "ID_001", "--type", "invalid",
-            ])
+            rc = plet_git_iteration.cmd_branch_name(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--type",
+                    "invalid",
+                ]
+            )
             check("bad type = 1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -284,25 +292,48 @@ def test_cmd_worktree_create_dry_run():
             wt_dir = os.path.join(d, ".plet", "worktrees")
 
             # Dry run — new branch (lines 300-310)
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir, "--dry-run",
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--dry-run",
+                ]
+            )
             check("create dry-run rc=0", rc == 0)
 
             # Dry run — JSON output
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-                "--dry-run", "--output", "json", "--pretty",
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--dry-run",
+                    "--output",
+                    "json",
+                    "--pretty",
+                ]
+            )
             check("create dry-run json rc=0", rc == 0)
 
             # Dry run — resumed branch (line 301-302)
             iter_branch = "plet/PROJ/loop1/ID_002"
             subprocess.run(["git", "-C", d, "checkout", "-b", iter_branch, ws], capture_output=True)
             subprocess.run(["git", "-C", d, "checkout", ws], capture_output=True)
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_002", "--worktree-dir", wt_dir, "--dry-run",
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_002",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--dry-run",
+                ]
+            )
             check("create dry-run resumed rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -325,25 +356,38 @@ def test_cmd_worktree_create_actual():
             wt_dir = os.path.join(d, ".plet", "worktrees")
 
             # Create worktree (new branch)
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("create actual rc=0", rc == 0)
 
             wt_path = os.path.join(wt_dir, "PROJ", "ID_001")
             check("worktree exists", os.path.isdir(wt_path))
 
             # Try to create again — should fail (path already exists, line 280-282)
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("duplicate create = 1", rc == 1)
         finally:
             os.chdir(old_cwd)
             # Clean up worktrees
-            subprocess.run(["git", "-C", d, "worktree", "remove", "--force",
-                            os.path.join(wt_dir, "PROJ", "ID_001")],
-                           capture_output=True)
+            subprocess.run(
+                ["git", "-C", d, "worktree", "remove", "--force", os.path.join(wt_dir, "PROJ", "ID_001")],
+                capture_output=True,
+            )
     finally:
         shutil.rmtree(d)
 
@@ -368,9 +412,15 @@ def test_cmd_worktree_create_resumed():
             wt_dir = os.path.join(d, ".plet", "worktrees")
 
             # Create worktree (resumed)
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("resumed create rc=0", rc == 0)
 
             wt_path = os.path.join(wt_dir, "PROJ", "ID_001")
@@ -378,8 +428,7 @@ def test_cmd_worktree_create_resumed():
         finally:
             os.chdir(old_cwd)
             wt_path = os.path.join(d, ".plet", "worktrees", "PROJ", "ID_001")
-            subprocess.run(["git", "-C", d, "worktree", "remove", "--force", wt_path],
-                           capture_output=True)
+            subprocess.run(["git", "-C", d, "worktree", "remove", "--force", wt_path], capture_output=True)
     finally:
         shutil.rmtree(d)
 
@@ -398,16 +447,23 @@ def test_cmd_worktree_create_json():
 
             wt_dir = os.path.join(d, ".plet", "worktrees")
 
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-                "--output", "json", "--pretty",
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--output",
+                    "json",
+                    "--pretty",
+                ]
+            )
             check("create json rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
             wt_path = os.path.join(d, ".plet", "worktrees", "PROJ", "ID_001")
-            subprocess.run(["git", "-C", d, "worktree", "remove", "--force", wt_path],
-                           capture_output=True)
+            subprocess.run(["git", "-C", d, "worktree", "remove", "--force", wt_path], capture_output=True)
     finally:
         shutil.rmtree(d)
 
@@ -423,9 +479,15 @@ def test_cmd_worktree_create_missing_base():
         try:
             # No workstream branch created — base doesn't exist
             wt_dir = os.path.join(d, ".plet", "worktrees")
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("missing base = 1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -443,9 +505,15 @@ def test_cmd_worktree_create_bad_iter_id():
         os.chdir(d)
         try:
             wt_dir = os.path.join(d, ".plet", "worktrees")
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "BAD", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "BAD",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("bad iter-id create = 1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -466,9 +534,15 @@ def test_cmd_worktree_create_bad_state():
         os.chdir(d)
         try:
             wt_dir = os.path.join(d, ".plet", "worktrees")
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("create missing state = 1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -496,35 +570,63 @@ def test_cmd_worktree_remove_dry_run():
             wt_dir = os.path.join(d, ".plet", "worktrees")
 
             # Create a worktree first
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("setup create rc=0", rc == 0)
 
             # Dry run remove (text output, lines 420-428)
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir, "--dry-run",
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--dry-run",
+                ]
+            )
             check("remove dry-run rc=0", rc == 0)
 
             # Dry run remove with --delete-branch (line 422-423)
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-                "--dry-run", "--delete-branch",
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--dry-run",
+                    "--delete-branch",
+                ]
+            )
             check("remove dry-run delete-branch rc=0", rc == 0)
 
             # Dry run remove with JSON output (line 425-426)
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-                "--dry-run", "--output", "json", "--pretty",
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--dry-run",
+                    "--output",
+                    "json",
+                    "--pretty",
+                ]
+            )
             check("remove dry-run json rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
             wt_path = os.path.join(d, ".plet", "worktrees", "PROJ", "ID_001")
-            subprocess.run(["git", "-C", d, "worktree", "remove", "--force", wt_path],
-                           capture_output=True)
+            subprocess.run(["git", "-C", d, "worktree", "remove", "--force", wt_path], capture_output=True)
     finally:
         shutil.rmtree(d)
 
@@ -544,14 +646,26 @@ def test_cmd_worktree_remove_actual():
             wt_dir = os.path.join(d, ".plet", "worktrees")
 
             # Create then remove
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("setup for remove rc=0", rc == 0)
 
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("remove actual rc=0", rc == 0)
 
             wt_path = os.path.join(wt_dir, "PROJ", "ID_001")
@@ -576,15 +690,27 @@ def test_cmd_worktree_remove_with_delete_branch():
 
             wt_dir = os.path.join(d, ".plet", "worktrees")
 
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("setup for delete-branch rc=0", rc == 0)
 
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-                "--delete-branch",
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--delete-branch",
+                ]
+            )
             check("remove+delete rc=0", rc == 0)
 
             # Branch should be gone
@@ -610,15 +736,29 @@ def test_cmd_worktree_remove_json():
 
             wt_dir = os.path.join(d, ".plet", "worktrees")
 
-            rc = plet_git_iteration.cmd_worktree_create([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_create(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("setup for json remove rc=0", rc == 0)
 
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-                "--output", "json", "--pretty",
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                    "--output",
+                    "json",
+                    "--pretty",
+                ]
+            )
             check("remove json rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -636,9 +776,15 @@ def test_cmd_worktree_remove_no_worktree():
         os.chdir(d)
         try:
             wt_dir = os.path.join(d, ".plet", "worktrees")
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("no worktree = 1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -656,9 +802,15 @@ def test_cmd_worktree_remove_bad_iter_id():
         os.chdir(d)
         try:
             wt_dir = os.path.join(d, ".plet", "worktrees")
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "BAD", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "BAD",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("bad iter-id remove = 1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -679,9 +831,15 @@ def test_cmd_worktree_remove_bad_state():
         os.chdir(d)
         try:
             wt_dir = os.path.join(d, ".plet", "worktrees")
-            rc = plet_git_iteration.cmd_worktree_remove([
-                plet_dir, "--iter-id", "ID_001", "--worktree-dir", wt_dir,
-            ])
+            rc = plet_git_iteration.cmd_worktree_remove(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--worktree-dir",
+                    wt_dir,
+                ]
+            )
             check("remove missing state = 1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -719,16 +877,24 @@ def test_execute_worktree_create_direct():
 
             # New branch creation
             rc = plet_git_iteration._execute_worktree_create(
-                wt_path, "test-branch", "base-branch",
-                False, "worktree-create", False, False, None, result_data,
+                wt_path,
+                "test-branch",
+                "base-branch",
+                False,
+                "worktree-create",
+                False,
+                False,
+                None,
+                result_data,
             )
             check("execute create rc=0", rc == 0)
             check("execute create path exists", os.path.isdir(wt_path))
         finally:
             os.chdir(old_cwd)
-            subprocess.run(["git", "-C", d, "worktree", "remove", "--force",
-                            os.path.join(d, ".plet", "wt", "test")],
-                           capture_output=True)
+            subprocess.run(
+                ["git", "-C", d, "worktree", "remove", "--force", os.path.join(d, ".plet", "wt", "test")],
+                capture_output=True,
+            )
     finally:
         shutil.rmtree(d)
 
@@ -762,8 +928,14 @@ def test_execute_worktree_remove_direct():
 
             # Remove without deleting branch
             rc = plet_git_iteration._execute_worktree_remove(
-                wt_path, "rm-branch", False,
-                "worktree-remove", False, False, None, result_data,
+                wt_path,
+                "rm-branch",
+                False,
+                "worktree-remove",
+                False,
+                False,
+                None,
+                result_data,
             )
             check("execute remove rc=0", rc == 0)
             check("execute remove path gone", not os.path.exists(wt_path))
@@ -804,8 +976,14 @@ def test_execute_worktree_remove_with_branch_delete():
             }
 
             rc = plet_git_iteration._execute_worktree_remove(
-                wt_path, "del-branch", True,
-                "worktree-remove", False, False, None, result_data,
+                wt_path,
+                "del-branch",
+                True,
+                "worktree-remove",
+                False,
+                False,
+                None,
+                result_data,
             )
             check("execute remove+delete rc=0", rc == 0)
             check("branch gone", not plet_git_iteration.branch_exists("del-branch", cwd=d))

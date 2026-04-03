@@ -120,8 +120,9 @@ def test_make_result_no_stuck():
 
 
 def test_emit_event_ndjson():
-    import plet_orchestrator
     import io
+
+    import plet_orchestrator
 
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
@@ -136,8 +137,9 @@ def test_emit_event_ndjson():
 
 
 def test_emit_event_suppressed():
-    import plet_orchestrator
     import io
+
+    import plet_orchestrator
 
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
@@ -149,8 +151,9 @@ def test_emit_event_suppressed():
 
 
 def test_emit_text():
-    import plet_orchestrator
     import io
+
+    import plet_orchestrator
 
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
@@ -199,9 +202,9 @@ def test_parse_run_args_all_flags():
 
     d, plet_dir = _make_project()
     try:
-        r = plet_orchestrator._parse_run_args([
-            plet_dir, "--output", "ndjson", "--allow-stale", "--max-iterations", "3"
-        ])
+        r = plet_orchestrator._parse_run_args(
+            [plet_dir, "--output", "ndjson", "--allow-stale", "--max-iterations", "3"]
+        )
         check("ndjson true", r[1] is True)
         check("allow_stale true", r[2] is True)
         check("max_iterations 3", r[3] == 3)
@@ -267,8 +270,9 @@ def test_check_nothing_to_do_in_progress():
 
 
 def test_check_nothing_to_do_all_complete():
-    import plet_orchestrator
     import io
+
+    import plet_orchestrator
 
     counts = {"queued": 0, "complete": 3, "blocked": 0, "implementing": 0, "verifying": 0, "withdrawn": 0}
     old_stdout = sys.stdout
@@ -279,8 +283,9 @@ def test_check_nothing_to_do_all_complete():
 
 
 def test_check_nothing_to_do_blocked():
-    import plet_orchestrator
     import io
+
+    import plet_orchestrator
 
     counts = {"queued": 0, "complete": 2, "blocked": 1, "implementing": 0, "verifying": 0, "withdrawn": 0}
     old_stdout = sys.stdout
@@ -291,8 +296,9 @@ def test_check_nothing_to_do_blocked():
 
 
 def test_check_nothing_to_do_ndjson():
-    import plet_orchestrator
     import io
+
+    import plet_orchestrator
 
     counts = {"queued": 0, "complete": 1, "blocked": 0, "implementing": 0, "verifying": 0, "withdrawn": 0}
     old_stdout = sys.stdout
@@ -357,8 +363,9 @@ def test_promote_eligible_no_deps_but_ineligible():
 
 
 def test_promote_eligible_ndjson():
-    import plet_orchestrator
     import io
+
+    import plet_orchestrator
 
     d, plet_dir = _make_project(
         lifecycles={"ID_001": "complete", "ID_002": "ineligible"},
@@ -396,9 +403,7 @@ def test_handle_verdict_none():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
-        completed, blocked = plet_orchestrator._handle_verify_verdict(
-            None, "ID_001", plet_dir, plet_dir, False, 0, {}
-        )
+        completed, blocked = plet_orchestrator._handle_verify_verdict(None, "ID_001", plet_dir, plet_dir, False, 0, {})
         check("none verdict = blocked", blocked is True)
         check("completed unchanged", completed == 0)
         gs = load_json(state_json_path(plet_dir))
@@ -449,12 +454,17 @@ def test_handle_verdict_passed():
             # Need proper branch setup with session history for merge-squash
             gs = load_json(state_json_path(plet_dir))
             gs["loopSessionCount"] = 1
-            gs["sessionHistory"] = [{
-                "type": "loop", "session": 1,
-                "branch": "plet/TEST/loop1/workstream",
-                "startedAt": "2026-04-01T00:00:00Z", "endedAt": None,
-            }]
+            gs["sessionHistory"] = [
+                {
+                    "type": "loop",
+                    "session": 1,
+                    "branch": "plet/TEST/loop1/workstream",
+                    "startedAt": "2026-04-01T00:00:00Z",
+                    "endedAt": None,
+                }
+            ]
             import util_io
+
             util_io.atomic_write_json(state_json_path(plet_dir), gs)
 
             subprocess.run(["git", "add", "-A"], capture_output=True)
@@ -492,6 +502,7 @@ def test_end_session():
     try:
         # Start a session so there's one to end
         import plet_session
+
         plet_session.cmd_start_session([plet_dir, "--type", "loop"])
 
         old_cwd = os.getcwd()
@@ -504,9 +515,7 @@ def test_end_session():
                 f.write(".plet/\n")
 
             counts = {"queued": 0, "complete": 1, "blocked": 0, "implementing": 0, "verifying": 0}
-            plet_orchestrator._end_session(
-                plet_dir, 1, 1, counts, [], "plet/TEST/loop1/workstream", False
-            )
+            plet_orchestrator._end_session(plet_dir, 1, 1, counts, [], "plet/TEST/loop1/workstream", False)
             check("end completes without error", True)
 
             gs = load_json(state_json_path(plet_dir))
@@ -541,13 +550,14 @@ def test_setup_session():
 
             counts = {"queued": 1, "complete": 0, "blocked": 0}
             session_number, branch, err = plet_orchestrator._setup_session(
-                plet_dir, counts, True, False  # allow_stale=True
+                plet_dir,
+                counts,
+                True,
+                False,  # allow_stale=True
             )
             check("no error", err is None, f"got error: {err}")
-            check("session number > 0", session_number is not None and session_number > 0,
-                  f"got: {session_number}")
-            check("branch returned", branch is not None and "workstream" in str(branch),
-                  f"got: {branch}")
+            check("session number > 0", session_number is not None and session_number > 0, f"got: {session_number}")
+            check("branch returned", branch is not None and "workstream" in str(branch), f"got: {branch}")
         finally:
             os.chdir(old_cwd)
     finally:

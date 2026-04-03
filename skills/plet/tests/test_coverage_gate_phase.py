@@ -190,16 +190,28 @@ def test_format_text_output():
         {"name": "a", "status": "pass", "detail": "ok"},
         {"name": "b", "status": "fail", "detail": "bad"},
     ]
-    text = plet_gate_phase.format_text_output("post", checks, "fail", {"total": 2, "passed": 1, "failed": 1, "warnings": 0})
+    text = plet_gate_phase.format_text_output(
+        "post", checks, "fail", {"total": 2, "passed": 1, "failed": 1, "warnings": 0}
+    )
     check("has FAIL", "FAIL" in text)
     check("has 2 checks", "2 checks" in text)
 
     # Warn output
-    text2 = plet_gate_phase.format_text_output("pre", [{"name": "x", "status": "warn", "detail": "y"}], "warn", {"total": 1, "passed": 0, "failed": 0, "warnings": 1})
+    text2 = plet_gate_phase.format_text_output(
+        "pre",
+        [{"name": "x", "status": "warn", "detail": "y"}],
+        "warn",
+        {"total": 1, "passed": 0, "failed": 0, "warnings": 1},
+    )
     check("has WARN", "WARN" in text2)
 
     # OK output
-    text3 = plet_gate_phase.format_text_output("pre", [{"name": "x", "status": "pass", "detail": "y"}], "ok", {"total": 1, "passed": 1, "failed": 0, "warnings": 0})
+    text3 = plet_gate_phase.format_text_output(
+        "pre",
+        [{"name": "x", "status": "pass", "detail": "y"}],
+        "ok",
+        {"total": 1, "passed": 1, "failed": 0, "warnings": 0},
+    )
     check("has OK/PASS", "OK" in text3 or "PASS" in text3)
 
 
@@ -211,7 +223,7 @@ def test_format_text_output():
 def _make_project():
     """Create a full project for gate_phase testing."""
     d = tempfile.mkdtemp()
-    repo = make_git_repo(d)
+    make_git_repo(d)
     plet_dir = os.path.join(d, "plet")
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
@@ -408,7 +420,7 @@ def _make_gated_project(phase="implement"):
     must clean up with shutil.rmtree(tmpdir).
     """
     d = tempfile.mkdtemp()
-    repo = make_git_repo(d)
+    make_git_repo(d)
     plet_dir = os.path.join(d, "plet")
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
@@ -421,7 +433,8 @@ def _make_gated_project(phase="implement"):
         loop_session=1,
     )
     make_iter_state(
-        plet_dir, "ID_001",
+        plet_dir,
+        "ID_001",
         attempts={"implement": 1, "verify": 1 if phase == "verify" else 0},
     )
     make_spec_artifacts(plet_dir)
@@ -448,8 +461,8 @@ def _make_gated_project(phase="implement"):
 
 def _capture_cmd(fn, args):
     """Call a cmd_* function, capturing stdout. Returns (exit_code, stdout_str)."""
-    import io
     import contextlib
+    import io
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
@@ -491,7 +504,9 @@ def test_cmd_pre_verify():
         check("cmd_pre verify returns int", isinstance(code, int))
         check("cmd_pre verify has output", len(out) > 0)
         # Verify pre should not include spec-artifacts or fingerprint checks
-        check("cmd_pre verify no spec-artifacts", "spec-artifacts" not in out.lower() or "spec-artifacts" in out.lower())
+        check(
+            "cmd_pre verify no spec-artifacts", "spec-artifacts" not in out.lower() or "spec-artifacts" in out.lower()
+        )
     finally:
         os.chdir(old_cwd)
         shutil.rmtree(d)
@@ -593,7 +608,8 @@ def test_cmd_post_implement():
 
         # Post-implement needs: implementVerdict set, audit tag, entries, trace
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             attempts={"implement": 1, "verify": 0},
             implement_verdict="readyForVerification",
         )
@@ -601,6 +617,7 @@ def test_cmd_post_implement():
 
         # Create audit tag
         from util_fixture import make_audit_tag
+
         make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
@@ -626,14 +643,18 @@ def test_cmd_post_verify():
 
         # Post-verify needs: verifyVerdict, verificationReports, audit tag, entries, trace
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             attempts={"implement": 1, "verify": 1},
             verify_verdict="passed",
-            verification_reports=[{"verdict": "passed", "criteriaResults": [{"criterionId": "AC_1", "status": "pass", "evidence": "ok"}]}],
+            verification_reports=[
+                {"verdict": "passed", "criteriaResults": [{"criterionId": "AC_1", "status": "pass", "evidence": "ok"}]}
+            ],
         )
         make_trace_file(plet_dir, "ID_001", "verify", 1)
 
         from util_fixture import make_audit_tag
+
         make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="verify", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
@@ -657,13 +678,15 @@ def test_cmd_post_json():
         os.chdir(d)
 
         make_iter_state(
-            plet_dir, "ID_001",
+            plet_dir,
+            "ID_001",
             attempts={"implement": 1, "verify": 0},
             implement_verdict="readyForVerification",
         )
         make_trace_file(plet_dir, "ID_001", "implement", 1)
 
         from util_fixture import make_audit_tag
+
         make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
