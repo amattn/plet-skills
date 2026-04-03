@@ -98,15 +98,18 @@ Plugin metadata and distribution scaffolding.
 
 ### Remaining open FOO items
 
-As of 2026-04-03: 72 total FOO items. 55 resolved, 4 withdrawn, 2 deferred, 11 open (FOO_58–68, FOO_69–72 filed during FEEDBACK_FOO.md overhaul).
+As of 2026-04-03: 72 total. 66 resolved, 5 withdrawn, 2 deferred, 11 open.
 
 Key open items:
-- FOO_25: Priority histogram at end of plan session (deferred)
-- FOO_64–68: Plan phase UX improvements (confirm before init, create branch, don't auto-launch loop, bootstrap CLAUDE.md, fix .gitignore check)
+- FOO_46: Should plan/refine generate trace events?
+- FOO_48: verify.md needs explicit artifact commit guidance
+- FOO_52: Ambiguity/gap detection in plan sessions
+- FOO_53: Different software types need different planning templates
+- FOO_61: Implement attempt counter — orchestrator should call start-phase
+- FOO_63: Verdict value validation in gate scripts (may be done)
 - FOO_69: Parallel scheduling in orchestrator
 - FOO_70: Milestone boundary refactor step
 - FOO_71: Phase "unknown" in trace files — CLI design
-- FOO_72: Worktree cleanup after iteration completion
 
 ---
 

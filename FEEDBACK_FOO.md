@@ -513,11 +513,15 @@ Plan sessions currently run interactively in the main conversation. GTI added `-
 
 The branch pattern exists in the code and PRD, but the workflow around it is undecided. Evaluate during orchestrator spec (ORC) when the full session lifecycle is defined.
 
+`[resolved]` → Plan creates `plet/{projectId}/plan{N}/workstream` branch (SKILL.md). Sub-questions resolved: (1) yes, plan uses a branch; (2) no worktree needed — plan is interactive; (3) no planSessionCount — plan is always session 1; (4) re-planning during refine is unrelated — refine has its own branches.
+
 ### FOO_48: PRD should be explicit that runtime artifacts are committed on iteration branches [artifacts] [prd]
 
 Source: GTC spec review (UNV_NFR_10)
 
 Runtime artifacts (progress.md, learnings.md, emergent.md) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. This is a load-bearing assumption across multiple specs (GTC clean-worktree, GTO merge-squash, gate scripts) but is not explicitly stated in the PRD. Added to `specs/conventions.md` as UNV_NFR_10 during GTC review. PRD and reference files (implement.md, verify.md) should also be explicit about this.
+
+**Status:** PRD ES_5 updated. `implement.md` includes `plet/` in git add. **Remaining:** `verify.md` does not explicitly state that runtime artifacts should be committed on the iteration branch.
 
 ### FOO_49: GUI must discover and monitor worktree plet/ directories [gui] [worktrees]
 
@@ -533,6 +537,8 @@ With the worktree architecture, during parallel execution each iteration has its
 Two scopes: **session dashboard** (main plet/) and **iteration dashboard** (worktree plet/). Both are valid, different update frequencies. This is a feature, not a bug — but the GUI needs to be designed for it.
 
 The PRD mentions an optional GUI (§1 Overview) but doesn't describe this multi-directory model. Document in the GUI design when that project starts.
+
+`[withdrawn]` → Captured in NOTES.md § GUI Design (multi-directory model, discovery, dashboards). GUI is a separate project; this doesn't need active tracking here.
 
 ### FOO_50: Incorporate sandboxing into plet's security model [security] [prd]
 
@@ -552,6 +558,8 @@ Where this belongs:
 - **README/docs** — setup instructions should include sandboxing configuration
 - **reference files** — implement.md/verify.md could note that agents operate in a sandboxed environment
 
+`[resolved]` → PRD ES_8 documents sandboxing. Sandbox mode is not viable for plet — it restricts too many tools subagents need (Write, Edit, etc.). bypassPermissions is the documented requirement. If isolation is important, consider dev containers rather than Claude Code sandbox.
+
 ### FOO_51: plet_state.py should auto-calculate elapsedSeconds and auto-update lastHeartbeat [tooling] [dx]
 
 Source: IST spec review
@@ -565,6 +573,8 @@ Currently agents must manually include `elapsedSeconds` and `lastHeartbeat` in e
 3. **Convenience flag for heartbeat-only updates.** Sometimes the agent wants to signal "I'm alive" without changing any fields. A `plet_state.py heartbeat plet/ --iter-id ID_xxx` command (or `update-field` with no `--data`) would update just `lastHeartbeat` and `elapsedSeconds`. Useful for long-running operations where no state fields change but the agent needs to prevent the 5-minute stale detection.
 
 **Impact:** Eliminates a class of agent compliance failures. Heartbeat and elapsed time become infrastructure, not agent responsibility. Reference files (implement.md, verify.md) can simplify their "update heartbeat on every write" guidance to just "call plet_state.py — heartbeat updates automatically."
+
+`[resolved]` → `set-verdict` auto-calcs elapsedSeconds. `lastHeartbeat` auto-updates on every state write. `heartbeat` command exists. Critical paths covered.
 
 ### FOO_52: Plan and refine sessions need explicit ambiguity/gap detection steps [planning] [prompting]
 
@@ -676,6 +686,8 @@ Observations from first live run with PLAN_9 tooling on the logalyzer project. T
 
 **Next step:** Complete iter 01, do full case study. Verify which skill version the agent is actually loading.
 
+`[resolved]` → All sub-items addressed: 1-3 fixed directly, 4 resolved by mandatory orchestrator call (SKILL.md), 5 resolved by verify.md branch context clarification, 6 resolved by FOO_60/implement.md `plet/` in git add, 7 resolved by FOO_9/IMP_16, 8 resolved by CLAUDE.md testing instructions (uninstall published plugin).
+
 ### FOO_59: Phase name drift — "implementation" vs "implement" in traces [state] [prompting]
 
 Source: CASE_LOGA_R02_F_5
@@ -708,11 +720,15 @@ Source: CASE_LOGA_R02_STFL (lastVerdict null)
 
 LOGA Run 2: ID_001 has `lifecycle: "complete"` but `lastVerdict: null`. The verify agent set lifecycle directly (violating ownership model) without setting lastVerdict. The post-verify gate (GPH_PST_BHV_7, BHV_12) should have caught both issues — but gate scripts weren't called.
 
+`[resolved, verified]` → `lastVerdict` replaced by `verifyVerdict`/`implementVerdict` (SF_28). Gate scripts enforce verdict not-null (GPH_PST_BHV_7, BHV_11). Orchestrator calls gate after every phase. LOGA Run 6 validated end-to-end.
+
 ### FOO_63: Verification report schema drift — "decision" vs "verdict" [state]
 
 Source: CASE_LOGA_R02_F_6
 
 LOGA Run 2: Verification report uses `"decision": "pass"` instead of `"verdict": "passed"`. The state-schema.md defines `verdict` as the field name with values `passed`/`rejected`/`blocked`. Agent used wrong field name and wrong value format.
+
+**Note:** May already be implemented — gate_phase verdict value validation needs checking.
 
 ---
 
@@ -724,11 +740,15 @@ Source: CASE_LOGA_R04_OBS_6
 
 Plan phase detected existing requirements.md + iterations.md and silently bootstrapped state from them. User expected an interactive confirmation ("Found 13 iterations across 3 milestones. Proceed?"). Even on the resume path, plan should show what it found and ask before writing state files. The auto-initialization was surprising.
 
+`[resolved]` → SKILL.md Path B step 4: "Show what was found... Do NOT silently re-initialize. Ask before making changes."
+
 ### FOO_65: Plan phase should create a branch [plan] [git]
 
 Source: CASE_LOGA_R03_OBS_2, CASE_LOGA_R04_OBS_2, CASE_LOGA_R04_OBS_7
 
 All plan work commits directly to main. Many repos tie main to CI/CD and automations. Plan should create `plet/{projectId}/plan{N}/workstream` before making any commits, same as loop does. Keeps main clean until the plan is approved.
+
+`[resolved, verified]` → SKILL.md plan phase creates `plet/{projectId}/plan{N}/workstream` before commits. LOGA Run 6 created plan branch correctly (first run to do so).
 
 ### FOO_66: Plan should not auto-launch loop [plan] [ux]
 
@@ -736,17 +756,23 @@ Source: CASE_LOGA_R03_OBS_3
 
 After plan completed, the agent immediately tried to launch the orchestrator without being asked. Plan and loop should be separate invocations. The agent should either stop and tell the user "Ready — run `/plet loop` to start" or ask "Ready to start the loop?" before launching.
 
+`[resolved, verified]` → SKILL.md step 6: "STOP. Do NOT auto-launch the loop." LOGA Run 6 stopped correctly after plan.
+
 ### FOO_67: Plan/bootstrap should create CLAUDE.md and .gitignore [plan] [bootstrap]
 
 Source: CASE_LOGA_R04_OBS_8
 
 Preflight detects CLAUDE.md and .gitignore are missing but only warns. Plan phase or bootstrap should offer to create them: a CLAUDE.md stub with plet project instructions, and .gitignore with `.plet/` exclusion. The agent shouldn't wait until ID_001 to create project infrastructure. Specced in plet_bootstrap.py (seq 42).
 
+`[resolved, verified]` → `plet_bootstrap.py setup` creates CLAUDE.md stub and .gitignore with `.plet/` entry. SKILL.md plan phase step 0 calls bootstrap. LOGA Run 6 validated.
+
 ### FOO_68: .gitignore preflight check is wrong — should ignore .plet/ not plet/ [preflight] [git]
 
 Source: CASE_LOGA_R04_OBS_18
 
 Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be committed (state files, progress.md, requirements.md, etc. are project state tracked in git). What should be gitignored is `.plet/` (worktrees, copied scripts — infrastructure, not artifacts). The preflight check needs to be fixed to check for `.plet/` instead. Specced in plet_bootstrap.py (seq 42).
+
+`[resolved, verified]` → `plet_gate_session.py` preflight checks for `.plet/` in .gitignore. `plet_bootstrap.py` writes `.plet/` entry. LOGA Run 6 validated.
 
 ---
 
@@ -781,6 +807,8 @@ Options:
 Source: CASE_LOGA_R05_OQ_2
 
 Run 5 OQ_2: "ID_002 worktree not cleaned up (still exists). Is worktree cleanup working?" The orchestrator creates worktrees via plet_git_iteration.py worktree-create but may not be calling worktree-remove after merge-squash. Orphaned worktrees consume disk space and could confuse tools scanning for active work.
+
+`[resolved]` → `plet_orchestrator.py` calls `worktree-remove` after both normal completion and block paths.
 
 ---
 
