@@ -45,14 +45,14 @@ Files to sweep: case studies (definitions), FEEDBACK.md (references), NOTES.md (
 
 ### Phase 2: Cross-references
 - [ ] Every case study recommendation gets a `→ FB_N` note (or "no FB item")
-- [ ] Every FB item with a case study source gets a `Source: CASE_..._N` line
+- [x] Every FB item with a case study source gets a `Source: CASE_..._N` line
 - [ ] Identify case study recs that never got FB items → create them in Phase 4
 
 ### Phase 3: Resolution pass
-- [ ] Audit every FB item against current code
-- [ ] Mark items resolved that were fixed but never updated (especially PLAN_8 deferrals)
-- [ ] Withdraw items no longer relevant
-- [ ] Update `[resolved, unverified]` → `[resolved, verified]` where Run 6 validated the fix
+- [x] Audit every FB item against current code
+- [x] Mark items resolved that were fixed but never updated (especially PLAN_8 deferrals)
+- [x] Withdraw items no longer relevant
+- [x] Update `[resolved, unverified]` → `[resolved, verified]` where Run 6 validated the fix
 
 ### Phase 4: New FB items
 - [ ] CASE_LOGA_R06_REC_3 — parallel scheduling (unresolved)
@@ -86,11 +86,15 @@ Every case study recommendation (`CASE_{PROJECT}_{RUN}_{N}`) gets a correspondin
 
 ### FB_1: State JSON files not updated incrementally [state] [timing]
 
+Source: LOGA Run 1 user observation
+
 Intermediate writes to the JSON state files didn't happen — they were typically only written at the end. Expected: state files updated as work progresses so that a crashed or interrupted agent leaves recoverable state.
 
 `[resolved]` → CASE_LOGA_R01_REC_2 in execute.md and verify.md (intermediate state writes mandated)
 
 ### FB_2: No intermediate commits [git] [timing]
+
+Source: LOGA Run 1 user observation
 
 Similarly, intermediate commits didn't happen during iteration execution. Work was only committed at the end. Expected: incremental commits during implementation so progress isn't lost on interruption.
 
@@ -98,11 +102,15 @@ Similarly, intermediate commits didn't happen during iteration execution. Work w
 
 ### FB_3: Autonomous agents asked for confirmation [autonomy] [blocking]
 
+Source: LOGA Run 1 user observation
+
 Autonomous subagents asked "should I proceed?" once or twice during execution. This is effectively blocking — autonomous agents should never prompt for human input. The whole point of the loop is unattended execution. Caused a ~5 hour stall.
 
 `[resolved]` → CASE_LOGA_R01_REC_9 in execute.md and verify.md (explicit "never prompt for confirmation" rule)
 
 ### FB_4: tagBeforeSquash should be always-on [git] [config]
+
+Source: LOGA Run 1 user observation
 
 `tagBeforeSquash` as an opt-in flag is the wrong default. Tags should always be created before squash. Replace with `cleanupTagAutomatically` — the question isn't whether to tag, it's whether to clean up the tag afterward. When cleaning up, note the commit hash in progress.md and log that the tag was removed.
 
@@ -110,11 +118,15 @@ Autonomous subagents asked "should I proceed?" once or twice during execution. T
 
 ### FB_5: Project needs a short project ID [config] [naming]
 
+Source: LOGA Run 1 user observation
+
 There needs to be a project ID in short form (e.g., `LOGA` for log analyzer). Used for namespacing branches, tags, and potentially state files across projects or subplets.
 
 `[resolved]` → CASE_LOGA_R01_REC_6 in plan.md Step 2 and state-schema.md (project ID defined during plan session)
 
 ### FB_6: Agents should not work on main branch [git] [autonomy]
+
+Source: LOGA Run 1 user observation
 
 Agents worked directly on `main`. The `logalyzer_workstream` branch was created manually. There should be a naming convention for workstream branches, and agents should never commit to main directly.
 
@@ -122,17 +134,23 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 ### FB_7: Batched verify commits too coarse [git] [artifacts]
 
+Source: LOGA Run 1 user observation
+
 One commit contained four iterations verified together — a rejection and three passes sharing a single commit. Each verify should be its own commit for clean revert, bisect, and audit.
 
 `[resolved]` → CASE_LOGA_R01_REC_3 in verify.md (one verify = one commit)
 
 ### FB_8: Uncommitted progress.md at end of run [artifacts] [timing]
 
+Source: LOGA Run 1 user observation
+
 The orchestrator left progress.md uncommitted at end of run, requiring manual cleanup. The system should auto-commit all runtime artifacts at the end of each phase and at loop completion.
 
 `[resolved]` → CASE_LOGA_R01_REC_1/CASE_LOGA_R01_REC_2 (intermediate commits and state writes cover this case)
 
 ### FB_9: Agents used git stashes — not captured in case study archival [git] [artifacts]
+
+Source: LIBT Run 1 user observation
 
 During the LIBT run, agents made use of `git stash` during execution (visible in `git stash list` post-run). The case study archival process currently preserves branches and tags but does not account for stashes. Stashes are local-only git objects that can be garbage collected — if not explicitly preserved, they are silently lost. The archival checklist should include: (1) `git stash list` to inventory stashes, (2) convert relevant stashes to commits or tags before deleting branches, (3) document stash contents in the case study artifact analysis.
 
@@ -146,9 +164,9 @@ Agents didn't write learnings or emergent entries unless strongly prompted. Miss
 
 Source: CASE_LOGA_R01_REC_7
 
-`[resolved, unverified]` → execute.md checkpoint rule added (`e25e952`). LIBT showed dramatic improvement (11 learnings, 6 emergent vs LOGA's 3/1) — possibly due to this fix, but project size may also be a factor (see FB_21).
+`[resolved, verified]` → execute.md checkpoint rule added (`e25e952`). LIBT showed dramatic improvement (11 learnings, 6 emergent vs LOGA's 3/1) — possibly due to this fix, but project size may also be a factor (see FB_21). Run 6 had 2.0 learnings/iter.
 
-`[resolved]` — plet_gate_phase.py post enforces mandatory progress entry (GPH_PST_BHV_3, FAIL if missing). Learnings/emergent are WARN.
+`[resolved, verified]` — plet_gate_phase.py post enforces mandatory progress entry (GPH_PST_BHV_3, FAIL if missing). Learnings/emergent are WARN.
 
 ### FB_11: Trace file generation incomplete and schema inconsistent [artifacts] [state]
 
@@ -156,9 +174,9 @@ LOGA: traces for 1 of 13 iterations. LIBT: 4 of 5 iterations (improved but still
 
 Source: CASE_LOGA_R01_REC_8, CASE_LIBT_R01_REC_4
 
-`[resolved, unverified]` → Decided: traces on by default, configurable. Schema standardization deferred → PLAN_8 (`plet_trace.py`).
+`[resolved, verified]` → Decided: traces on by default, configurable. Schema standardization deferred → PLAN_8 (`plet_trace.py`). Run 6 had 100% trace coverage.
 
-`[resolved]` — plet_trace.py enforces schema (VALID_PHASES, VALID_EVENT_TYPES, required fields per event type). validate command checks files.
+`[resolved, verified]` — plet_trace.py enforces schema (VALID_PHASES, VALID_EVENT_TYPES, required fields per event type). validate command checks files.
 
 ### FB_12: State file schema drift across iterations [state] [artifacts]
 
@@ -166,7 +184,7 @@ The most persistent issue across both case studies. Each iteration's state JSON 
 
 Source: CASE_LOGA_R01_REC_10, CASE_LIBT_R01_REC_1
 
-`[resolved, unverified]` → Built `scripts/plet_state.py` tool shipped via `${CLAUDE_SKILL_DIR}/scripts/`. Commands: `init`, `update-criterion`, `update-field`, `validate`. Agents use the tool instead of writing state JSON by hand — schema enforcement is automatic. execute.md, verify.md, and plan.md updated with tool usage examples. A/B test: FB_12 uses tooling, FB_17 uses stronger prose — comparison in next case study.
+`[resolved, verified]` → Built `scripts/plet_state.py` tool shipped via `${CLAUDE_SKILL_DIR}/scripts/`. Commands: `init`, `update-criterion`, `update-field`, `validate`. Agents use the tool instead of writing state JSON by hand — schema enforcement is automatic. execute.md, verify.md, and plan.md updated with tool usage examples. A/B test: FB_12 uses tooling, FB_17 uses stronger prose — comparison in next case study. Run 6 had 100% schema consistency.
 
 ### FB_13: Branch isolation during parallel execution [git] [autonomy]
 
@@ -174,7 +192,7 @@ LOGA had cross-branch contamination (ID_006 work on ID_011 branch). Parallel age
 
 Source: CASE_LOGA_R01_REC_11
 
-`[resolved, unverified]` → Decided: git worktrees for parallel agents. Implementation deferred → PLAN_8 (`plet_git.py` worktree commands).
+`[resolved, verified]` → Decided: git worktrees for parallel agents. Implemented in plet_git_iteration.py (worktree-create/worktree-remove). Run 6 used worktrees, zero cross-branch contamination.
 
 ### FB_14: FEEDBACK.md formalization [artifacts] [process]
 
@@ -182,7 +200,7 @@ FEEDBACK.md emerged organically during the LOGA run and proved valuable. Needed 
 
 Source: CASE_LOGA_R01_REC_12
 
-`[resolved, unverified]` → FEEDBACK.md exists with format conventions (PLET.md § FEEDBACK.md), intake pipeline formalized (case study recommendation → FB entry → artifact changes → resolve → verify). Not yet validated end-to-end in a plet run.
+`[resolved, verified]` → FEEDBACK.md exists with format conventions (PLET.md § FEEDBACK.md), intake pipeline formalized (case study recommendation → FB entry → artifact changes → resolve → verify). Pipeline working end-to-end.
 
 ### FB_15: Co-Author tags inconsistent across agent commits [git] [artifacts]
 
@@ -200,7 +218,7 @@ requirements.md and iterations.md don't exist in LIBT's plet/ directory. The sta
 
 Source: CASE_LIBT_R01_REC_2
 
-`[resolved, unverified]` → Two-layer fix: (1) plan.md Step 8.4 — spec artifact checkpoint verifies requirements.md and iterations.md exist on disk and are committed before offering to start the loop. (2) execute.md pre-flight — agents verify spec artifacts exist before starting work, block immediately if missing.
+`[resolved, verified]` → Two-layer fix: (1) plan.md Step 8.4 — spec artifact checkpoint verifies requirements.md and iterations.md exist on disk and are committed before offering to start the loop. (2) execute.md pre-flight — agents verify spec artifacts exist before starting work, block immediately if missing. Run 6 preserved both spec artifacts.
 
 ### FB_17: Progress.md formatting inconsistent within a single run [artifacts]
 
@@ -208,7 +226,7 @@ ID_001 uses div markers, ID_002 uses fenced code blocks, later iterations use ma
 
 Source: CASE_LIBT_R01_REC_3
 
-`[resolved, unverified]` → Added inline progress.md template to execute.md and verify.md "How to Write" sections. Added explicit "match the template exactly" language. formats.md remains the source of truth; inline templates reduce approximation by putting the structure right where agents need it. If agents still drift, next step is a validator or generator tool (see NOTES.md).
+`[resolved, verified]` → Added inline progress.md template to execute.md and verify.md "How to Write" sections. Added explicit "match the template exactly" language. formats.md remains the source of truth; inline templates reduce approximation by putting the structure right where agents need it. Run 6 formatting consistent throughout.
 
 ### FB_18: File lost during parallel branch merge [git]
 
@@ -216,7 +234,7 @@ ID_004's test file (`test_commands_complete_delete.py`) was lost during the para
 
 Source: CASE_LIBT_R01_REC_5
 
-`[resolved, unverified]` → Added post-merge verification step in verify.md after the ff-merge: run full test suite + compare file list from iteration branch against workstream. Lost files must be restored before proceeding.
+`[resolved, verified]` → Added post-merge verification step in verify.md after the ff-merge: run full test suite + compare file list from iteration branch against workstream. Lost files must be restored before proceeding. Orchestrator now handles merge-squash deterministically.
 
 ### FB_19: state.json session timestamps are synthetic [state] [timing]
 
@@ -224,7 +242,7 @@ state.json records `startedAt: "2026-03-10T00:01:00Z"` and `endedAt: "2026-03-10
 
 Source: CASE_LIBT_R01_REC_6
 
-`[resolved, unverified]` → SKILL.md loop start (step 1), loop end (step 12), and refine start (step 1) now explicitly require `date -u +%Y-%m-%dT%H:%M:%SZ` for all sessionHistory timestamps. Added "never fabricate or round timestamps" language.
+`[resolved, verified]` → SKILL.md loop start (step 1), loop end (step 12), and refine start (step 1) now explicitly require `date -u +%Y-%m-%dT%H:%M:%SZ` for all sessionHistory timestamps. Added "never fabricate or round timestamps" language. Run 6 state.json has real timestamps.
 
 ### FB_20: Debug numbers must be hardcoded literals, not runtime-generated [prompting] [code-quality]
 
@@ -235,6 +253,8 @@ Source: CASE_LIBT_R01_REC_7
 `[resolved, unverified]` → PL_DX_2 updated with "hardcoded literal" and grep invariant. Exception added to PL_SM_4, VF_9, VF_12 (verify.md anti-slop bias), VF_9 (verify.md code quality), plan.md PL_SM_4, NOTES.md.
 
 ### FB_22: plet should warn if bypassPermissions not configured [autonomy] [onboarding]
+
+Source: LIBT Run 1 user observation
 
 Autonomous agents need `bypassPermissions` in the target project's `.claude/settings.local.json` to actually run autonomously. Without it, agents hit permission prompts for Bash, Write, etc. — defeating the purpose. plet should check for this during plan session setup (or at loop start) and warn the user with specific instructions if the setting is missing. The `allowed-tools` frontmatter in SKILL.md helps for skill-level tools (e.g., `plet_state.py`), but doesn't cover general agent operations (git, test runners, linters, etc.).
 
@@ -250,21 +270,27 @@ Source: CASE_LIBT_R01_REC_8
 
 ### FB_23: plet should bootstrap CLAUDE.md if it doesn't exist [onboarding] [artifacts]
 
+Source: LIBT/LOGA user observation
+
 Plet's plan session reads CLAUDE.md "if it exists" (DX_2) but never creates one. On a fresh repo, the entire institutional memory layer is missing — Notes Discipline, Required Reading, compaction recovery, key file references. The /notes skill's bootstrap adds *to* CLAUDE.md but assumes it exists. Either plet's plan session or EX_5 (/bootstrap) should create a minimal CLAUDE.md when one isn't present.
 
 Same gap for NOTES.md and FEEDBACK.md — plet bootstraps the runtime artifacts (progress.md, learnings.md, emergent.md) but not the memory artifacts. Oddly asymmetric: the ephemeral runtime files get created automatically, but the persistent institutional memory files that carry across sessions don't.
 
 More broadly, plet may need a **bootstrap phase** before plan — a pre-flight that ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK.md exists, bypassPermissions is configured (FB_22), etc. Currently the plan session jumps straight into requirements gathering without verifying the foundation is in place.
 
-`[deferred → PLAN_8]` — `plet_gate_session.py preflight` checks for this.
+`[resolved]` — plet_bootstrap.py creates CLAUDE.md, plet_gate_session.py preflight checks for CLAUDE.md existence.
 
 ### FB_24: Requirements not written to disk incrementally despite PL_12 [artifacts] [prompting]
 
+Source: LIBT Run 1 user observation
+
 PL_12 explicitly says "Each approved section is written to disk immediately" and is reinforced at the requirement approval step (plan.md line 201) and iteration approval step (line 279). Despite this, agents defer writing requirements.md to the end of the plan session. The rule exists — the agents ignore it. May need stronger language, a different position in the plan flow, or a checkpoint that verifies the file was actually written after each approval.
 
-`[resolved, unverified]` → Added "verify on disk" step (read back after write) to plan.md Step 4 and Step 7. Agents must confirm file exists before proceeding.
+`[resolved, verified]` → Added "verify on disk" step (read back after write) to plan.md Step 4 and Step 7. Agents must confirm file exists before proceeding. Run 6 has requirements on disk.
 
 ### FB_25: Show priority histogram at end of plan session [ux] [planning]
+
+Source: LIBT Run 1 user observation
 
 At the end of the plan session, show a histogram/summary of iteration priorities (P0, P1, P2, P3). Gives the user a quick sanity check on the distribution before starting the loop — too many P0s might mean priorities aren't differentiated enough, no P0s might mean nothing is critical.
 
@@ -272,11 +298,15 @@ At the end of the plan session, show a histogram/summary of iteration priorities
 
 ### FB_26: Milestones generated too early in plan session [planning] [sequencing]
 
+Source: LIBT Run 1 user observation
+
 Milestones should wait until the section-by-section requirement review is complete. Requirements change during review — sections get added, removed, reprioritized — so milestones generated before review is done are based on stale input and need to be redone.
 
-`[resolved, unverified]` → §9 Release Milestones in requirements template marked as deferred. New Step 5 added after section review for milestone finalization.
+`[resolved, verified]` → §9 Release Milestones in requirements template marked as deferred. New Step 5 added after section review for milestone finalization.
 
 ### FB_27: Plan session needs a data modeling section [planning] [spec]
+
+Source: LIBT Run 1 user observation
 
 Requirements often involve data models — database schemas, JSON structures, API designs. Currently the plan session has no explicit step for defining these. Sometimes the user wants to specify models in the spec (human-driven design); sometimes they want agents to derive them during execution (agent-driven design). The plan session should have an optional data modeling section that lets the user choose: define models now (and include them in requirements.md), or leave them for agents to design during implementation. When defined in the spec, models become acceptance criteria — agents must implement against them. When deferred, agents should capture their data modeling decisions in learnings.md.
 
@@ -284,9 +314,11 @@ Requirements often involve data models — database schemas, JSON structures, AP
 
 ### FB_28: No intermediate commits during plan session [git] [planning]
 
+Source: LIBT Run 1 user observation
+
 The plan session produces zero commits — everything is uncommitted until the session ends (or doesn't get committed at all). Related to FB_24 (files not written to disk incrementally) but distinct: even when files are written, they're not committed. Each approved section should be committed immediately. This protects against context loss, makes the planning history inspectable via git log, and matches the intermediate commit discipline already required during execute (R_1).
 
-`[resolved, unverified]` → Added commit step to plan.md Step 4 and Step 7. Each approved section gets `plet: [plan] approve {section_name}`. Pairs with FB_24 verify-on-disk fix.
+`[resolved, verified]` → Added commit step to plan.md Step 4 and Step 7. Each approved section gets `plet: [plan] approve {section_name}`. Pairs with FB_24 verify-on-disk fix. Run 6 plan branch has commits.
 
 ## SparkBoard Run 1 (2026-03)
 
@@ -296,8 +328,6 @@ SPARK produced 2 learnings and 1 emergent from 23 iterations (0.09 and 0.04 per 
 
 Source: CASE_SPARK_R01_REC_1
 
-`[deferred → PLAN_8]` — `plet_gate_phase.py post` blocks without entries.
-
 `[resolved]` — same as FB_10. Gate phase post enforces.
 
 ### FB_30: Agents used 42 git stashes despite ban [git] [autonomy]
@@ -305,8 +335,6 @@ Source: CASE_SPARK_R01_REC_1
 FB_9 explicitly banned `git stash` in agents. SPARK run produced 42 stashes — agents use stashing heavily during parallel branch work. The ban is ineffective because stashing is fundamental to how agents handle branch switching in parallel execution. Worktree isolation (FB_13) may make stashes unnecessary rather than just banning them.
 
 Source: CASE_SPARK_R01_REC_2
-
-`[deferred → PLAN_8]` — `plet_git.py` worktrees eliminate the need to stash.
 
 `[resolved]` — worktrees (plet_git_iteration.py) eliminate stashing. Git stash not used in any script.
 
@@ -316,8 +344,6 @@ The loop completed (all 23 iterations verified) but the final commit consolidati
 
 Source: CASE_SPARK_R01_REC_3
 
-`[deferred → PLAN_8]` — `plet_orchestrator.py end-session` auto-commits.
-
 `[resolved]` — plet_orchestrator.py handles session lifecycle and merge-squash deterministically.
 
 ### FB_32: Orphaned worktree after retry [git] [state]
@@ -326,7 +352,7 @@ ID_015's retry left behind an orphaned worktree at `.claude/worktrees/ID_015-imp
 
 Source: CASE_SPARK_R01_REC_4
 
-`[deferred → PLAN_8]` — `plet_git.py` worktree cleanup on completion/retry.
+`[resolved]` — plet_git_iteration.py worktree-remove cleans up worktrees. Orchestrator calls worktree-remove on completion and retry.
 
 ### FB_33: Progress.md entries incomplete — 6 entries from 23 iterations [artifacts] [prompting]
 
@@ -334,7 +360,7 @@ Only 6 explicit work entries in progress.md from 23 iterations. Most iterations 
 
 Source: CASE_SPARK_R01_REC_5
 
-`[deferred → PLAN_8]` — `plet_gate_phase.py post` enforces entries for both phases.
+`[resolved]` — plet_gate_phase.py post enforces entries for both phases.
 
 ### FB_34: Recommend user stays for first 1-2 iterations [onboarding] [ux]
 
@@ -342,7 +368,7 @@ SPARK's ID_001 hit a Postgres.app permissions blocker that required human interv
 
 Source: SPARK run observation
 
-`[deferred → PLAN_8]` — `plet_orchestrator.py` prints the recommendation at loop start.
+`[resolved, unverified]` — plet_orchestrator.py prints the recommendation at loop start.
 
 ### FB_35: Agent lost commits during implementation (ID_007) [git] [crash-recovery]
 
@@ -374,7 +400,7 @@ SPARK's 2 learnings entries existed but weren't referenced by later iterations �
 
 Source: SPARK case study, comparison table
 
-`[deferred → PLAN_8]` — `plet_prompt.py` always injects learnings.md into subagent prompts.
+`[resolved]` — plet_prompt.py always injects learnings.md into subagent prompts.
 
 ### FB_39: SP_6 root cause investigation needs its own entry [research] [scale]
 
@@ -385,6 +411,8 @@ Source: CASE_SPARK_R01_REC_6
 `[withdrawn]` — Root cause is academic. The new tooling (`plet_prompt.py` for guaranteed learnings injection, `plet_gate_phase.py` for mandatory entry enforcement) should improve this regardless of why prose rules failed. PLAN_9 comparison runs will validate.
 
 ### FB_40: State file lifecycle not transitioned to complete after iteration finishes [state] [orchestrator]
+
+Source: SPARK Run 1 refine session observation
 
 10 of 23 state files have incorrect lifecycle values despite all iterations completing successfully. 7 stuck at `verifying` (ID_003, 008, 014, 015, 017, 018, 020), 3 at `ineligible` (ID_006, 016, 019). Progress.md and the orchestrator summary both report 23/23 complete. The plet_state.py tool enforces correct schema and format, but the orchestrator never called it to transition lifecycle after verification passed.
 
@@ -410,8 +438,6 @@ This is two bugs, not one: (1) orchestrator doesn't finalize lifecycle to `compl
 Went with A for expediency. But B is the more rigorous choice — future runs should default to B unless the user explicitly opts for A. The refine agent surfacing these options unprompted is a good example of the refine phase working as intended.
 
 Source: SPARK case study, discovered during refine session
-
-`[deferred → PLAN_8]` — `plet_orchestrator.py` transitions lifecycle deterministically after verify passes.
 
 `[resolved]` — orchestrator owns all post-verify lifecycle transitions (lifecycle ownership model, IMP_8).
 
@@ -445,15 +471,19 @@ The current progress entry format has a single `--summary` field — a short 1-3
 
 Source: SPARK refine session observation
 
-`[deferred → PLAN_8]` — `plet_entries.py` enhancement: add `--content` or `--content-file` flag to `add-progress`.
+`[resolved]` — plet_entries.py has --content and --content-file flags for multiline progress entries.
 
 ### FB_45: Scripts directory needs a CLAUDE.md or AGENTS.md with coding standards [tooling] [conventions]
+
+Source: specs review (seq 29)
 
 `skills/plet/scripts/` is growing (plet_state.py, plet_entries.py, and more planned). There's no standards file governing how these scripts are written. Needs a CLAUDE.md or AGENTS.md in the scripts directory that defines conventions like: every script must support `--help`, consistent argument parsing style, error output format, exit code conventions, testing requirements, docstring standards, etc. Without this, each script will be written with slightly different patterns — the same prose-drift problem we see in agent-written artifacts, but in our own tooling.
 
 `[resolved]` — `scripts/CLAUDE.md` created with full coding standards.
 
 ### FB_46: Should plan and refine sessions generate trace events? [artifacts] [trace]
+
+Source: specs review
 
 Currently only impl and verify phases write semantic trace events (via `plet_trace.py append-event`). Plan and refine sessions are interactive (human-driven) and produce no trace events. But there may be a case for tracing significant events during these sessions — decisions made during planning (requirement prioritization, milestone scoping, iteration decomposition choices) and refine (triage decisions, withdrawal rationale, re-decomposition choices) are high-value signals that currently only live in NOTES.md prose.
 
@@ -464,6 +494,8 @@ Arguments against: plan/refine run in the main conversation where the human is p
 Evaluate after PLAN_9 comparison runs — if post-run analysis would benefit from structured plan/refine events, add support.
 
 ### FB_47: Formalize plan session branch and worktree behavior [git] [planning]
+
+Source: GTI spec review
 
 Plan sessions currently run interactively in the main conversation. GTI added `--type plan` generating `plet/{projectId}/plan1/workstream` for consistency with refine, and the PRD branch table now includes this pattern. But several questions remain:
 
@@ -476,9 +508,13 @@ The branch pattern exists in the code and PRD, but the workflow around it is und
 
 ### FB_48: PRD should be explicit that runtime artifacts are committed on iteration branches [artifacts] [prd]
 
+Source: GTC spec review (UNV_NFR_10)
+
 Runtime artifacts (progress.md, learnings.md, emergent.md) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. This is a load-bearing assumption across multiple specs (GTC clean-worktree, GTO merge-squash, gate scripts) but is not explicitly stated in the PRD. Added to `specs/conventions.md` as UNV_NFR_10 during GTC review. PRD and reference files (implement.md, verify.md) should also be explicit about this.
 
 ### FB_49: GUI must discover and monitor worktree plet/ directories [gui] [worktrees]
+
+Source: worktree architecture design
 
 With the worktree architecture, during parallel execution each iteration has its own plet/ directory in its worktree (`.plet/worktrees/{projectId}/{iter_id}/plet/`). The main repo's `plet/` has the orchestrator's view (stale during active iterations). A GUI tool can't just watch one `plet/` directory — it needs to:
 
@@ -492,6 +528,8 @@ Two scopes: **session dashboard** (main plet/) and **iteration dashboard** (work
 The PRD mentions an optional GUI (§1 Overview) but doesn't describe this multi-directory model. Document in the GUI design when that project starts.
 
 ### FB_50: Incorporate sandboxing into plet's security model [security] [prd]
+
+Source: Claude Code sandboxing feature
 
 Claude Code's sandboxing (https://code.claude.com/docs/en/sandboxing) provides OS-level filesystem and network isolation for subprocess execution. This is highly relevant to plet's autonomous loop — subagents execute code, install packages, and modify files without human supervision.
 
@@ -509,6 +547,8 @@ Where this belongs:
 
 ### FB_51: plet_state.py should auto-calculate elapsedSeconds and auto-update lastHeartbeat [tooling] [dx]
 
+Source: IST spec review
+
 Currently agents must manually include `elapsedSeconds` and `lastHeartbeat` in every `update-field` call. This is error-prone — agents forget, pass stale timestamps, or skip it entirely. Two improvements:
 
 1. **elapsedSeconds should auto-calculate.** `plet_state.py` knows `phaseTimestamps` and can compute elapsed time from the phase start timestamp to now. Every `update-field` and `update-criterion` call should update `elapsedSeconds` automatically without the agent passing it.
@@ -521,6 +561,8 @@ Currently agents must manually include `elapsedSeconds` and `lastHeartbeat` in e
 
 ### FB_52: Plan and refine sessions need explicit ambiguity/gap detection steps [planning] [prompting]
 
+Source: plan/refine review
+
 Plan and refine session reference files (plan.md, refine.md) should include explicit directives for the agent to actively look for ambiguities, functionality gaps, and specificity gaps in requirements and acceptance criteria. Currently these sessions focus on capturing what the user wants, but don't systematically probe for what's missing or underspecified — the kind of gaps that cause `blocked` verdicts during implementation or verification.
 
 Examples of what the agent should surface:
@@ -532,6 +574,8 @@ Examples of what the agent should surface:
 This would reduce `blocked` iterations and cycle-backs caused by spec gaps that could have been caught during planning.
 
 ### FB_53: Different software types need different planning templates [planning] [config]
+
+Source: plan template review
 
 The current plan session and requirements template is shaped by the projects we've built so far (CLI tools, Python scripts). But different kinds of software need fundamentally different specs:
 
@@ -547,6 +591,8 @@ plet's plan session should either support multiple requirements templates (selec
 
 ### FB_54: Red/green discipline needs meaningful red — stub before test [prompting] [testing]
 
+Source: red/green discipline refinement
+
 The red/green discipline as originally stated ("write tests first, they must fail") has a gap: if the script doesn't exist yet, tests fail with `FileNotFoundError` — which is **meaningless red**. It proves nothing about the test's ability to catch bad behavior. The same test would fail identically regardless of what it asserts.
 
 **Meaningful red** requires the script to exist as a runnable stub (dispatch, help, command functions returning dummy values). Tests fail because the behavior is wrong (empty list, hardcoded zero), not because the file is missing. This proves the test is actually load-bearing.
@@ -558,6 +604,8 @@ The fix (already applied to CLAUDE.md § Red/Green Development Discipline): stub
 `[resolved]` — IMP_4 updated with meaningful-red requirement. implement.md Red Step updated with stub-first rule.
 
 ### FB_55: plet_gate_phase.py post should verify audit tag exists [artifacts] [git]
+
+Source: GPH spec review
 
 The post gate checks entries, state, trace — but not whether the subagent created the audit tag via `plet_git_ops.py audit-tag`. If the subagent skips it, the tag is silently missing. The orchestrator relies on the tag for pre-squash history preservation.
 
@@ -571,11 +619,15 @@ Expanded during lifecycle ownership analysis: post gate now also enforces lifecy
 
 ### FB_56: plet_gate_session.py needs postflight command [artifacts] [symmetry]
 
+Source: GSS spec review
+
 Add `postflight` to `plet_gate_session.py` — symmetric with `preflight`. Internally calls preflight for shared checks, adds end-of-session checks (transient lifecycle detection: iterations stuck in `implementing`/`verifying`). Warnings only — never blocks end-session. Called by orchestrator before `end-session`. Separate command for discoverability; may diverge from preflight over time. Added to GSS command summary in spec.
 
 `[resolved]` — postflight command implemented in plet_gate_session.py. Reuses preflight checks + transient lifecycle detection.
 
 ### FB_57: Replace optional positional plet_dir with required --plet-dir flag [dx] [subplets]
+
+Source: subplet design (seq 37)
 
 All plet scripts take `<plet_dir>` as an optional positional arg (default: `plet/`). This causes two problems:
 
@@ -592,6 +644,8 @@ All plet scripts take `<plet_dir>` as an optional positional arg (default: `plet
 `[resolved]` — plet_dir is now required positional arg. get_plet_dir returns None if missing. seq 37 complete.
 
 ### FB_58: LOGA run 2 — live observations (2026-03-29) [prompting] [testing]
+
+Source: LOGA Run 2 observations
 
 Observations from first live run with PLAN_9 tooling on the logalyzer project. The orchestrator script exists but these issues surfaced during the run:
 
@@ -617,6 +671,8 @@ Observations from first live run with PLAN_9 tooling on the logalyzer project. T
 
 ### FB_59: Phase name drift — "implementation" vs "implement" in traces [state] [prompting]
 
+Source: LOGA Run 2 trace analysis
+
 LOGA Run 2 trace files show both `implement-1` and `implementation-1` filenames for the same iteration. The agent used "implementation" as the phase name in some plet_trace.py calls. `VALID_PHASES = ["implement", "verify"]` should reject "implementation", but the universal invocation logging (`util_cli._log_script_invocation`) may use whatever phase was passed to the calling script (e.g., `plet_state.py update-criterion --phase implementation` is valid for criterion phases but wrong for trace filenames).
 
 Fix: ensure trace file naming always uses "implement"/"verify" regardless of what the criterion phase is called. Or unify: rename criterion phases from "implementation"/"verification" to "implement"/"verify" everywhere.
@@ -624,6 +680,8 @@ Fix: ensure trace file naming always uses "implement"/"verify" regardless of wha
 `[resolved]` — util_cli._log_script_invocation normalizes criterion phases to command phases for trace file naming. Validation drops invalid phases silently.
 
 ### FB_60: Runtime artifacts not committed during implement/verify [git] [prompting]
+
+Source: LOGA Run 2 observation
 
 LOGA Run 2: `plet/progress.md`, `plet/learnings.md`, `plet/emergent.md`, `plet/state/`, and `plet/trace/` were all modified/created but never committed. Only source code was committed.
 
@@ -633,13 +691,19 @@ implement.md says "commit after every red/green step" but agents interpret this 
 
 ### FB_61: Implement attempt counter never incremented [state] [prompting]
 
+Source: LOGA Run 2 observation
+
 LOGA Run 2: `attempts.implement` stayed 0 despite implementation clearly happening. The agent updated criteria, wrote artifacts, and set lifecycle → verifying, but never incremented the attempt counter. implement.md should make this a critical early step.
 
 ### FB_62: lastVerdict not set despite completion [state] [prompting]
 
+Source: LOGA Run 2 observation
+
 LOGA Run 2: ID_001 has `lifecycle: "complete"` but `lastVerdict: null`. The verify agent set lifecycle directly (violating ownership model) without setting lastVerdict. The post-verify gate (GPH_PST_BHV_7, BHV_12) should have caught both issues — but gate scripts weren't called.
 
 ### FB_63: Verification report schema drift — "decision" vs "verdict" [state]
+
+Source: LOGA Run 2 observation
 
 LOGA Run 2: Verification report uses `"decision": "pass"` instead of `"verdict": "passed"`. The state-schema.md defines `verdict` as the field name with values `passed`/`rejected`/`blocked`. Agent used wrong field name and wrong value format.
 
@@ -649,31 +713,31 @@ LOGA Run 2: Verification report uses `"decision": "pass"` instead of `"verdict":
 
 ### FB_64: Plan phase should confirm before initializing [plan] [ux]
 
-Source: LOGA Run 4 #1, #6
+Source: LOGA Run 4 observations
 
 Plan phase detected existing requirements.md + iterations.md and silently bootstrapped state from them. User expected an interactive confirmation ("Found 13 iterations across 3 milestones. Proceed?"). Even on the resume path, plan should show what it found and ask before writing state files. The auto-initialization was surprising.
 
 ### FB_65: Plan phase should create a branch [plan] [git]
 
-Source: LOGA Run 3 #2, LOGA Run 4 #2, #7
+Source: LOGA Run 3/4 observations
 
 All plan work commits directly to main. Many repos tie main to CI/CD and automations. Plan should create `plet/{projectId}/plan{N}/workstream` before making any commits, same as loop does. Keeps main clean until the plan is approved.
 
 ### FB_66: Plan should not auto-launch loop [plan] [ux]
 
-Source: LOGA Run 3 #3
+Source: LOGA Run 3 observation
 
 After plan completed, the agent immediately tried to launch the orchestrator without being asked. Plan and loop should be separate invocations. The agent should either stop and tell the user "Ready — run `/plet loop` to start" or ask "Ready to start the loop?" before launching.
 
 ### FB_67: Plan/bootstrap should create CLAUDE.md and .gitignore [plan] [bootstrap]
 
-Source: LOGA Run 4 #8
+Source: LOGA Run 4 observation
 
 Preflight detects CLAUDE.md and .gitignore are missing but only warns. Plan phase or bootstrap should offer to create them: a CLAUDE.md stub with plet project instructions, and .gitignore with `.plet/` exclusion. The agent shouldn't wait until ID_001 to create project infrastructure. Specced in plet_bootstrap.py (seq 42).
 
 ### FB_68: .gitignore preflight check is wrong — should ignore .plet/ not plet/ [preflight] [git]
 
-Source: LOGA Run 4 #18
+Source: LOGA Run 4 observation
 
 Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be committed (state files, progress.md, requirements.md, etc. are project state tracked in git). What should be gitignored is `.plet/` (worktrees, copied scripts — infrastructure, not artifacts). The preflight check needs to be fixed to check for `.plet/` instead. Specced in plet_bootstrap.py (seq 42).
 
