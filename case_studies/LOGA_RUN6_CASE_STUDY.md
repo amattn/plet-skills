@@ -150,6 +150,7 @@ Session timestamps from state.json:
 
 - **66 files total** — 5 per iteration (implement-events, implement-transcript, verify-events, verify-transcript, unknown-events) + 1 proj-level
 - The `unknown-1-events.ndjson` files are from auto-logged invocations (dispatch logger with phase "unknown" — correct behavior per the auto-logger fix)
+- **GUI concern:** 5 files per iteration instead of the expected 4 (implement + verify × events + transcript). A GUI scanning `trace/` would need to either filter out `*-unknown-*` files or display them as a separate "orchestrator overhead" category. The `unknown` phase name is functional but not self-descriptive for external consumers — consider renaming to `auto` or `dispatch` in a future version.
 - **Coverage:** 100% — every phase has both events and transcript files
 - Transcript files enable full replay of subagent sessions
 
