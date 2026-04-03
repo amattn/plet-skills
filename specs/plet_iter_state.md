@@ -18,7 +18,7 @@ Design principle: commands match agent workflow, not JSON structure. The old `up
 
 | ID | Caller | Context | Commands used |
 |----|--------|---------|---------------|
-| IST_AGT_1 | plan session agent | Step 8: Initialize State | `init` |
+| IST_AGT_1 | plan session agent | Step 9: Initialize State | `init` |
 | IST_AGT_2 | orchestrator | pre-spawn setup (SF_26) | `start-phase` |
 | IST_AGT_3 | implement subagent | during implementation | `update-activity`, `update-criterion`, `set-verdict`, `heartbeat` |
 | IST_AGT_4 | verify subagent | during verification | `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report` |

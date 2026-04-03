@@ -182,9 +182,27 @@ This step may produce additional requirements changes. Apply them to `plet/requi
 
 ---
 
-## Step 4: Re-Decomposition (RF_9)
+## Step 4: Gap Analysis (FOO_52)
 
-If any spec changes were made during triage (Steps 1–3), re-run the decomposition step to update iteration definitions.
+After blockers, triage, and learnings, proactively probe for gaps — the same analysis as plan.md Step 6, but informed by what happened during the loop.
+
+**Surface these categories:**
+
+1. **Underspecified requirements** — requirements where implementation agents had to guess or where verify rejected ambiguous work
+2. **Missing edge cases** — error paths, boundary conditions, or failure modes discovered during the loop but not in the spec
+3. **Implicit dependencies** — ordering or data dependencies that caused blocked iterations or retry cycles
+4. **Ambiguous acceptance criteria** — criteria that verify agents interpreted differently from implement agents
+5. **Architecture decisions surfaced by implementation** — patterns that emerged during the loop and should be codified
+
+Cross-reference with learnings and emergent items — many gaps will already be documented there. The value of this step is systematically checking for gaps that *weren't* captured.
+
+Present as a numbered list with concrete proposals. The user resolves each: update the requirement, add a new requirement, defer to Open Questions, or dismiss. Update requirements.md and commit after each resolution.
+
+---
+
+## Step 5: Re-Decomposition (RF_9)
+
+If any spec changes were made during triage (Steps 1–4), re-run the decomposition step to update iteration definitions.
 
 ### Frozen Iteration Rules
 
@@ -263,7 +281,7 @@ Iterations with lifecycle `queued` or `ineligible` can be freely updated — mod
 
 ---
 
-## Step 5: Milestone Assignment (RF_14, RF_15)
+## Step 6: Milestone Assignment (RF_14, RF_15)
 
 ### Frozen Milestone Rules (RF_14)
 
@@ -301,7 +319,7 @@ When deciding whether to create a new milestone or append to an existing unfroze
 
 ---
 
-## Step 6: Breakpoint Management (RF_13)
+## Step 7: Breakpoint Management (RF_13)
 
 Ask the user if they want to adjust breakpoints. If yes:
 
@@ -323,7 +341,7 @@ Update `plet/state.json` → `breakpoints.before` and `breakpoints.after` arrays
 
 ---
 
-## Step 7: Fingerprint Updates (RF_10)
+## Step 8: Fingerprint Updates (RF_10)
 
 After all spec and iteration changes, update fingerprints across all three plan artifacts:
 
@@ -377,7 +395,7 @@ After updating all three, verify:
 
 ---
 
-## Step 8: State File Updates
+## Step 9: State File Updates
 
 Use atomic writes where practical for state files — write to a temp file in the same directory, then rename (see `references/state-schema.md` SF_15, SF_16). Acceptable for v1: direct Write tool for small JSON files.
 
@@ -406,7 +424,7 @@ Update `plet/state.json` → `parallelGroups` if new iterations can run in paral
 
 ---
 
-## Step 9: Status Summary (RF_11)
+## Step 10: Status Summary (RF_11)
 
 Optionally (ask the user first), summarize overall project status:
 
@@ -418,7 +436,7 @@ Optionally (ask the user first), summarize overall project status:
 
 ---
 
-## Step 10: Cascading Consistency Pass (RF_16)
+## Step 11: Cascading Consistency Pass (RF_16)
 
 The refine phase touches more files than any other phase. Before wrapping up, run a cascading consistency check following the data flow: **decisions → requirements.md → iterations.md → state files**.
 

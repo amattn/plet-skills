@@ -590,6 +590,8 @@ Examples of what the agent should surface:
 
 This would reduce `blocked` iterations and cycle-backs caused by spec gaps that could have been caught during planning.
 
+`[resolved]` → Added Gap Analysis step to both plan.md (Step 6, after milestones, before decomposition) and refine.md (Step 4, after learnings, before re-decomposition). Five categories: underspecified requirements, missing edge cases, implicit dependencies, ambiguous acceptance criteria, architecture decisions not yet made.
+
 ### FOO_53: Different software types need different planning templates [planning] [config]
 
 Source: plan template review

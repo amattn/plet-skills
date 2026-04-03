@@ -18,7 +18,7 @@ The split follows the ownership boundary established by SF_28: global state (sta
 
 | ID | Caller | Context | Commands used |
 |----|--------|---------|---------------|
-| GST_AGT_1 | plan session agent | Step 8: Initialize State | `init` |
+| GST_AGT_1 | plan session agent | Step 9: Initialize State | `init` |
 | GST_AGT_2 | orchestrator | lifecycle transitions during loop | `update-lifecycle`, `get-lifecycle` |
 | GST_AGT_3 | orchestrator | session start/end | (session fields managed by plet_session.py — GST does not own session fields) |
 | GST_AGT_4 | gate scripts | preflight/postflight checks | `validate`, `get-lifecycle` |

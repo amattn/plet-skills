@@ -19,7 +19,7 @@ This script's success led to two key insights: "Skills for Judgment, Code for Co
 
 | ID | Caller | Context | Commands used |
 |----|--------|---------|---------------|
-| STA_AGT_1 | plan session agent | Step 8: Initialize State | `init` |
+| STA_AGT_1 | plan session agent | Step 9: Initialize State | `init` |
 | STA_AGT_2 | implement subagent | during implementation | `update-criterion`, `update-field` |
 | STA_AGT_3 | verify subagent | during verification | `update-criterion`, `update-field` |
 | STA_AGT_4 | orchestrator | after verify completes | `update-field`, `validate` |

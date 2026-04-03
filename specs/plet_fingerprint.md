@@ -18,7 +18,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 |----|--------|---------|---------------|
 | FPR_AGT_1 | orchestrator | before starting a loop session | `check` (staleness gate) |
 | FPR_AGT_2 | router/preflight | during preflight checks | `check` (staleness gate) |
-| FPR_AGT_3 | refine session agent | after spec/iteration changes (refine.md Step 7) | `extract`, `embed`, `check` |
+| FPR_AGT_3 | refine session agent | after spec/iteration changes (refine.md Step 8) | `extract`, `embed`, `check` |
 | FPR_AGT_4 | plan session agent | after writing requirements.md and iterations.md | `extract`, `embed` |
 | FPR_AGT_5 | human | debugging, inspection | `check`, `extract` |
 | FPR_AGT_6 | external GUI / monitoring tool | displays staleness alert, warning icon, or banner when artifacts are out of sync | `check` (polls or triggered on file change) |
@@ -367,7 +367,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 ## 7. Agent Flows (FPR_AFL)
 
-### FPR_AFL_1: Refine session fingerprint update (refine.md Step 7)
+### FPR_AFL_1: Refine session fingerprint update (refine.md Step 8)
 
 1. Agent finishes spec/iteration changes
 2. `plet_fingerprint.py embed plet/ --type requirements --bump`

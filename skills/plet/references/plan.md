@@ -232,9 +232,31 @@ After all requirement sections are reviewed and approved, finalize §9 Release M
 
 ---
 
-## Step 6: Iteration Decomposition (PL_8, PL_9)
+## Step 6: Gap Analysis (FOO_52)
 
-After requirements and milestones are approved, break them into iteration definitions small enough to fit in a single context window, with dependency relationships.
+Before decomposing into iterations, proactively probe for gaps that will cause blocked iterations. Poor plans create blocked iterations; this step prevents them.
+
+**Surface these categories:**
+
+1. **Underspecified requirements** — requirements where an implementation agent would need to guess. Look for: vague verbs ("handle," "support," "manage"), missing error cases, unspecified data formats, ambiguous scope boundaries. For each, propose a concrete clarification.
+
+2. **Missing edge cases** — what happens when input is empty, invalid, very large, concurrent, or missing? What happens on network failure, disk full, permission denied? Focus on cases the implementation agent will encounter but the requirements don't address.
+
+3. **Implicit dependencies** — requirements that reference each other without explicit dependency. Data models that must exist before features that use them. Configuration that must be in place before features that read it.
+
+4. **Ambiguous acceptance criteria candidates** — requirements where "testable" acceptance criteria are hard to write. If you can't imagine the test, the requirement needs refinement.
+
+5. **Architecture decisions not yet made** — database choice, API style, auth strategy, file format — decisions that multiple requirements depend on but that aren't captured in §6 Technical Architecture.
+
+**Present as a numbered list with concrete proposals.** The user resolves each item: clarify the requirement, add a new requirement, defer to Open Questions, or dismiss. Update requirements.md and commit after each resolution.
+
+If no gaps found, say so and move on. Don't invent problems — but don't skip this step either.
+
+---
+
+## Step 7: Iteration Decomposition (PL_8, PL_9)
+
+After requirements, milestones, and gap analysis are complete, break them into iteration definitions small enough to fit in a single context window, with dependency relationships.
 
 ### Iteration Definition Structure
 
@@ -294,7 +316,7 @@ Assign iterations to milestones based on the release milestones defined in the r
 
 ---
 
-## Step 7: Iteration Review (PL_10)
+## Step 8: Iteration Review (PL_10)
 
 Present each iteration definition to the user for review:
 
@@ -309,7 +331,7 @@ Present each iteration definition to the user for review:
 
 ---
 
-## Step 8: Initialize State (PL_11)
+## Step 9: Initialize State (PL_11)
 
 After all iterations are approved:
 
