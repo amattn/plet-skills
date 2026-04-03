@@ -608,6 +608,8 @@ A requirements document for a web app needs sections on UI/UX, navigation, respo
 
 plet's plan session should either support multiple requirements templates (selected during project setup) or have a flexible enough structure that the agent adapts the sections to the project type. Currently the template is implicit in plan.md's guidance — making it explicit and configurable would produce better specs for non-CLI projects.
 
+`[resolved]` → Added "Adapt the template to the project type" directive and Project Type Guidance subsection to plan.md Step 3. Covers CLI tools, web apps, APIs, and libraries with feature area suggestions, section emphasis, and additional sections to consider.
+
 ### FOO_54: Red/green discipline needs meaningful red — stub before test [prompting] [testing]
 
 Source: red/green discipline refinement

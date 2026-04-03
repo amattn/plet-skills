@@ -97,6 +97,8 @@ The project name goes into the PRD header. The project ID goes into `state.json`
 
 Generate a structured requirements document saved to `plet/requirements.md`. Follow the conventions of the ridl-skills:prd format.
 
+**Adapt the template to the project type.** The document structure below is universal, but §3 Functional Requirements feature areas and emphasis vary by project type. See Project Type Guidance below for CLI tools, web apps, APIs, and libraries. Don't force CLI-shaped sections onto a web app or vice versa.
+
 ### Document Structure
 
 ```markdown
@@ -202,6 +204,52 @@ Include a fingerprint at the end of `requirements.md` in a fenced JSON block:
 - Requirement IDs grouped by prefix
 - `lastNonTrivialUpdate`: ISO 8601 UTC, second resolution. Bump when requirements change in ways that affect behavior. Don't bump for typo fixes or rewording.
 - **Future Considerations and Open Questions are excluded from the fingerprint (SY_8)**
+
+### Project Type Guidance (FOO_53)
+
+The document structure above is universal. Adapt §3 feature areas and section emphasis based on what you're building. These are starting points — use judgment to add or skip sections.
+
+**CLI tools / scripts:**
+
+For a thorough CLI spec, use `references/cli-spec-template.md` as a reference. It defines a 15-section structure with per-command sub-sections. Per command, define:
+
+- **Purpose & justification** — what the command does, when it's used, what compliance gap it fills
+- **Definition** — usage string, properties (read-only vs mutating, idempotent vs not)
+- **Inputs** — required/optional flags, positional args, defaults, JSON for complex values
+- **Outputs** — text mode, JSON mode, error messages. Include JSON output schemas
+- **Preconditions** — what must be true before the command runs (files exist, valid state, etc.)
+- **Postconditions** — what is guaranteed after success (each one is a test assertion)
+- **Behaviors** — key behavior points with rationale
+
+Beyond per-command specs:
+- §3 Feature areas: command inventory with one-line descriptions, universal flags table, per-command sections
+- §4 NFR: startup time, memory for large inputs, signal handling, exit codes (0=success, 1=error)
+- §5 DX: installation, shell completion, help text quality, copy-pasteable examples in `--help`
+- §6 Architecture: dispatch pattern, module structure, shared utilities
+- §7 Data Models: config file format, input schemas, output schemas, state file schemas
+- §8 User Flows: multi-command workflows, piping, common sequences
+- Edge cases, error handling, agent flows, and test areas as separate sections
+
+**Web apps:**
+- Feature areas: pages/views, navigation, components, forms, real-time features (WebSocket, SSE), auth/authorization
+- §7 Data Models: database schemas, migrations, relationships, indexes
+- §8 User Flows: user journeys through pages, form submissions, error states, loading states
+- §6 Architecture: frontend/backend split, routing, middleware, asset pipeline, deployment
+- §4 NFR: response times, concurrent users, accessibility (WCAG level), responsive breakpoints, browser support
+- Additional sections to consider: API endpoints (if the app has an API layer), background jobs, email/notifications
+
+**APIs / services:**
+- Feature areas: endpoint inventory, request/response schemas, auth (API keys, OAuth, JWT), rate limiting, versioning
+- §7 Data Models: resource schemas, relationships, pagination patterns
+- §8 User Flows: API call sequences, webhook flows, error recovery
+- §4 NFR: latency targets, throughput, availability SLA, payload size limits
+
+**Libraries / packages:**
+- Feature areas: public API surface, type signatures, configuration, extension points
+- §7 Data Models: core types, options/config structs
+- §8 User Flows: integration examples, migration from alternatives
+- §4 NFR: backwards compatibility policy, minimum language/runtime version, dependency policy, bundle size
+- §5 DX: documentation quality, error messages, type inference support
 
 ---
 
