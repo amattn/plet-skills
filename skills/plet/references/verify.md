@@ -403,7 +403,7 @@ Use the git operations scripts:
 plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase verify
 ```
 
-If no commits were made during verification (no fix-in-place work), skip the squash — there's nothing to squash.
+**Do NOT squash your commits.** Leave incremental commits on the iteration branch. The orchestrator handles merge-squash after verification completes.
 
 ### Rebase and Merge to Workstream (IMP_16)
 

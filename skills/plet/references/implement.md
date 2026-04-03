@@ -124,7 +124,7 @@ The tool enforces the two-state model automatically — it creates the correct `
 
 ### Commit Incrementally (IMP_17)
 
-Commit after each red step (failing test written) and after each green step (implementation passing) at a minimum. Also commit after any other logical unit of work. These incremental commits are for crash recovery — they will be squashed at the end of the phase.
+Commit after each red step (failing test written) and after each green step (implementation passing) at a minimum. Also commit after any other logical unit of work. These incremental commits are for crash recovery. Do NOT squash them — the orchestrator handles squashing via merge-squash after verify completes.
 
 **Always include `plet/` in your commits.** Runtime artifacts (progress.md, learnings.md, emergent.md, state files, trace files) live in the `plet/` directory. If you only commit source code, runtime artifacts are lost on crash or worktree removal.
 
@@ -269,19 +269,18 @@ When all acceptance criteria pass:
 5. Run the full test suite — all tests must pass
 6. If any check fails, fix the issue and re-run
 
-### Tag and Squash (IMP_17)
+### Tag (IMP_17)
 
-Use the git operations scripts:
+Create an audit tag to preserve your incremental commit history:
 
 ```bash
 # Create audit tag preserving incremental commit history
 plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement
-
-# Squash all incremental commits into one commit on the iteration branch
-# (merge-squash to workstream is done by the orchestrator AFTER verify completes)
 ```
 
-The audit tag and merge-squash handle tag naming (`plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}`), commit messages (`plet: [ID_xxx] - {title}`), and cleanup (`cleanupTagsAutomatically`) automatically.
+**Do NOT squash your commits.** Leave the incremental wip commits on the iteration branch. The orchestrator handles merge-squash to the workstream after verify completes. If you squash, it creates a forked branch history in the git graph.
+
+The audit tag preserves the pre-squash history so individual red/green steps are always recoverable.
 
 ### Update State and Run Post-Gate
 
@@ -368,8 +367,8 @@ A failed attempt is different from a blocker. You're not saying "I need human he
    - What approaches are dead ends
    - Any codebase knowledge gained
 5. Write semantic event entries to the events trace file
-6. Tag before squash (always), log tag and commit hash in progress.md
-7. Squash and commit — preserve work for the retry
+6. Create audit tag, log tag and commit hash in progress.md
+7. Do NOT squash — orchestrator handles merge-squash
 8. If `cleanupTagsAutomatically`, delete the tag and log deletion with commit hash in progress.md
 
 ### State Update
