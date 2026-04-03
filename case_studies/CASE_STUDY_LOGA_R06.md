@@ -296,72 +296,72 @@ Run 1 was faster per iteration when actively running (~8 min vs ~13 min) — no 
 
 ### What Worked Well
 
-1. **(CASE_LOGA_R06_W1) 13/13 iterations, zero human intervention.** The entire loop ran unattended from start to finish. This is the design goal — autonomous execution with human steering only at session boundaries.
+1. **(CASE_LOGA_R06_W_1) 13/13 iterations, zero human intervention.** The entire loop ran unattended from start to finish. This is the design goal — autonomous execution with human steering only at session boundaries.
 
-2. **(CASE_LOGA_R06_W2) 100% verify first-pass rate.** All 13 iterations passed verification on the first attempt. The implement subagent consistently produced work that met acceptance criteria. This matches Run 5's rate and establishes it as a trend, not a fluke.
+2. **(CASE_LOGA_R06_W_2) 100% verify first-pass rate.** All 13 iterations passed verification on the first attempt. The implement subagent consistently produced work that met acceptance criteria. This matches Run 5's rate and establishes it as a trend, not a fluke.
 
-3. **(CASE_LOGA_R06_W3) Lifecycle extraction validated.** Lifecycles in state.json, per-iteration files have verdicts only. No ownership confusion, no merge conflicts. SF_28 is working.
+3. **(CASE_LOGA_R06_W_3) Lifecycle extraction validated.** Lifecycles in state.json, per-iteration files have verdicts only. No ownership confusion, no merge conflicts. SF_28 is working.
 
-4. **(CASE_LOGA_R06_W4) Dependency promotion working automatically.** The orchestrator's `_promote_eligible()` correctly promoted iterations from `ineligible` → `queued` as dependencies completed. No manual intervention needed (Run 5 required it).
+4. **(CASE_LOGA_R06_W_4) Dependency promotion working automatically.** The orchestrator's `_promote_eligible()` correctly promoted iterations from `ineligible` → `queued` as dependencies completed. No manual intervention needed (Run 5 required it).
 
-5. **(CASE_LOGA_R06_W5) Compact progress entries.** 1,738 lines for 13 iterations vs 12,975 lines for 3 iterations in Run 5. The auto-logger fix eliminated the prompt dump problem.
+5. **(CASE_LOGA_R06_W_5) Compact progress entries.** 1,738 lines for 13 iterations vs 12,975 lines for 3 iterations in Run 5. The auto-logger fix eliminated the prompt dump problem.
 
-6. **(CASE_LOGA_R06_W6) Learnings quality.** 2.0 entries per iteration with substantive content. Categories used correctly (pattern, gotcha). Cross-iteration references present. This is the target rate.
+6. **(CASE_LOGA_R06_W_6) Learnings quality.** 2.0 entries per iteration with substantive content. Categories used correctly (pattern, gotcha). Cross-iteration references present. This is the target rate.
 
-7. **(CASE_LOGA_R06_W7) Emergent self-awareness.** EM_3 self-reported a red/green discipline gap. EM_7/EM_10 flagged NF_2 memory tensions. The subagents are producing useful triage material for a refine session.
+7. **(CASE_LOGA_R06_W_7) Emergent self-awareness.** EM_3 self-reported a red/green discipline gap. EM_7/EM_10 flagged NF_2 memory tensions. The subagents are producing useful triage material for a refine session.
 
-8. **(CASE_LOGA_R06_W8) All audit tags created.** 26 tags (implement + verify for each iteration). Complete audit trail.
+8. **(CASE_LOGA_R06_W_8) All audit tags created.** 26 tags (implement + verify for each iteration). Complete audit trail.
 
-9. **(CASE_LOGA_R06_W9) Zero stashes.** No stash discipline violations.
+9. **(CASE_LOGA_R06_W_9) Zero stashes.** No stash discipline violations.
 
-10. **(CASE_LOGA_R06_W10) Plan branch created correctly.** `plet/LOGA/plan1/workstream` — first time in 6 runs.
+10. **(CASE_LOGA_R06_W_10) Plan branch created correctly.** `plet/LOGA/plan1/workstream` — first time in 6 runs.
 
 ### What Didn't Work Well
 
-1. **(CASE_LOGA_R06_F1) End-session state not committed.** The orchestrator's `_end_session()` updates state.json (ID_013 `verifying` → `complete`, session `endedAt`, `lastUpdated`), writes a final progress entry, and appends a trace event — but never commits. Three files left dirty on the workstream: `plet/state.json`, `plet/progress.md`, `plet/trace/proj-unknown-1-events.ndjson`. The last committed state has ID_013 at `verifying` and `endedAt: null`. A resume or refine session reading from git (not working tree) would see an incomplete run. `[resolved]` → fixed in plet_orchestrator.py 0.2.1.
+1. **(CASE_LOGA_R06_F_1) End-session state not committed.** The orchestrator's `_end_session()` updates state.json (ID_013 `verifying` → `complete`, session `endedAt`, `lastUpdated`), writes a final progress entry, and appends a trace event — but never commits. Three files left dirty on the workstream: `plet/state.json`, `plet/progress.md`, `plet/trace/proj-unknown-1-events.ndjson`. The last committed state has ID_013 at `verifying` and `endedAt: null`. A resume or refine session reading from git (not working tree) would see an incomplete run. `[resolved]` → fixed in plet_orchestrator.py 0.2.1.
 
-2. **(CASE_LOGA_R06_F2) Subagent modified state.json in worktree.** The subagent saw a stale `loopSessionCount` and "fixed" it — writing to state.json in the worktree, violating SF_28 (orchestrator-owned). Harmless due to merge=ours, but the subagent shouldn't touch it. `[resolved]` → orchestrator now commits state.json before creating worktrees; implement.md/verify.md now warn "Do NOT modify state.json."
+2. **(CASE_LOGA_R06_F_2) Subagent modified state.json in worktree.** The subagent saw a stale `loopSessionCount` and "fixed" it — writing to state.json in the worktree, violating SF_28 (orchestrator-owned). Harmless due to merge=ours, but the subagent shouldn't touch it. `[resolved]` → orchestrator now commits state.json before creating worktrees; implement.md/verify.md now warn "Do NOT modify state.json."
 
-3. **(CASE_LOGA_R06_F3) No parallel execution.** Despite the dependency graph having parallel opportunities (ID_005/ID_006/ID_007 could run concurrently after ID_004/ID_003), all iterations ran sequentially. The orchestrator doesn't yet implement parallel scheduling.
+3. **(CASE_LOGA_R06_F_3) No parallel execution.** Despite the dependency graph having parallel opportunities (ID_005/ID_006/ID_007 could run concurrently after ID_004/ID_003), all iterations ran sequentially. The orchestrator doesn't yet implement parallel scheduling.
 
-4. **(CASE_LOGA_R06_F4) Go toolchain friction.** GOROOT/GOTOOLCHAIN version mismatch required workaround in CLAUDE.md. Environment-specific, not a plet issue, but it consumed time in ID_001.
+4. **(CASE_LOGA_R06_F_4) Go toolchain friction.** GOROOT/GOTOOLCHAIN version mismatch required workaround in CLAUDE.md. Environment-specific, not a plet issue, but it consumed time in ID_001.
 
-5. **(CASE_LOGA_R06_F5) main.go accumulation.** At 433 lines, main.go is the largest file and handles all subcommand routing. A Tier 1 refactor candidate that the current pipeline doesn't catch (no milestone boundary refactor implemented).
+5. **(CASE_LOGA_R06_F_5) main.go accumulation.** At 433 lines, main.go is the largest file and handles all subcommand routing. A Tier 1 refactor candidate that the current pipeline doesn't catch (no milestone boundary refactor implemented).
 
-6. **(CASE_LOGA_R06_F6) Tests fail after Go version change.** The produced code was built with go1.23.4 (GOROOT issue); the system now has go1.26.1. Tests fail with version mismatch. Not a code quality issue, but the code isn't portable across Go versions without adjusting go.mod.
+6. **(CASE_LOGA_R06_F_6) Tests fail after Go version change.** The produced code was built with go1.23.4 (GOROOT issue); the system now has go1.26.1. Tests fail with version mismatch. Not a code quality issue, but the code isn't portable across Go versions without adjusting go.mod.
 
 ### Surprises
 
-1. **(CASE_LOGA_R06_S1) Faster per-iteration time.** 13 min average vs 18 min in Run 5. No bugs to work around = less time wasted.
+1. **(CASE_LOGA_R06_S_1) Faster per-iteration time.** 13 min average vs 18 min in Run 5. No bugs to work around = less time wasted.
 
-2. **(CASE_LOGA_R06_S2) Execution order was optimal.** The orchestrator naturally chose ID_007 (depends on ID_003) before ID_005/ID_006 (depend on ID_004), filling the gap while the longer dependency chain progressed. Not explicitly designed — emergent from the scheduling algorithm.
+2. **(CASE_LOGA_R06_S_2) Execution order was optimal.** The orchestrator naturally chose ID_007 (depends on ID_003) before ID_005/ID_006 (depend on ID_004), filling the gap while the longer dependency chain progressed. Not explicitly designed — emergent from the scheduling algorithm.
 
-3. **(CASE_LOGA_R06_S3) All emergent items are design decisions.** Every EM entry is a design choice the subagent made. None are blockers or spec gaps. Either the spec was very well-written or the subagents handled ambiguity without escalating.
+3. **(CASE_LOGA_R06_S_3) All emergent items are design decisions.** Every EM entry is a design choice the subagent made. None are blockers or spec gaps. Either the spec was very well-written or the subagents handled ambiguity without escalating.
 
 ### Recommendations
 
 | ID | Recommendation | Priority |
 |----|---------------|----------|
-| CASE_LOGA_R06_REC1 | Orchestrator must `git add -A && git commit` after `_end_session()` | High |
-| CASE_LOGA_R06_REC2 | Add "do NOT modify state.json" warning to implement.md and verify.md | High |
-| CASE_LOGA_R06_REC3 | Implement parallel scheduling in orchestrator for independent iterations | Medium |
-| CASE_LOGA_R06_REC4 | Consider milestone boundary refactor step (main.go accumulation pattern) | Low |
-| CASE_LOGA_R06_REC5 | Add `--go-version` or `GOTOOLCHAIN` handling to bootstrap for Go projects | Low |
+| CASE_LOGA_R06_REC_1 | Orchestrator must `git add -A && git commit` after `_end_session()` | High |
+| CASE_LOGA_R06_REC_2 | Add "do NOT modify state.json" warning to implement.md and verify.md | High |
+| CASE_LOGA_R06_REC_3 | Implement parallel scheduling in orchestrator for independent iterations | Medium |
+| CASE_LOGA_R06_REC_4 | Consider milestone boundary refactor step (main.go accumulation pattern) | Low |
+| CASE_LOGA_R06_REC_5 | Add `--go-version` or `GOTOOLCHAIN` handling to bootstrap for Go projects | Low |
 
 **Resolution status:**
-- CASE_LOGA_R06_REC1: `[resolved]` → plet_orchestrator.py 0.2.1
-- CASE_LOGA_R06_REC2: `[resolved]` → implement.md, verify.md updated
-- CASE_LOGA_R06_REC3: open → FB item needed
-- CASE_LOGA_R06_REC4: open → FB item needed
-- CASE_LOGA_R06_REC5: deferred (language-specific, low priority)
+- CASE_LOGA_R06_REC_1: `[resolved]` → plet_orchestrator.py 0.2.1
+- CASE_LOGA_R06_REC_2: `[resolved]` → implement.md, verify.md updated
+- CASE_LOGA_R06_REC_3: open → FB item needed
+- CASE_LOGA_R06_REC_4: open → FB item needed
+- CASE_LOGA_R06_REC_5: deferred (language-specific, low priority)
 
 ### Open Questions
 
-1. **(CASE_LOGA_R06_OQ1) Is 100% verify first-pass rate sustainable?** 16/16 across Runs 5-6. Could indicate the spec is too easy, the implement agent is very good, or the verify agent isn't strict enough. Need more data — a harder project would test this.
+1. **(CASE_LOGA_R06_OQ_1) Is 100% verify first-pass rate sustainable?** 16/16 across Runs 5-6. Could indicate the spec is too easy, the implement agent is very good, or the verify agent isn't strict enough. Need more data — a harder project would test this.
 
-2. **(CASE_LOGA_R06_OQ2) Would parallel execution help significantly?** The dependency graph has limited parallelism (max 3 concurrent at the ID_005/ID_006/ID_007 point). For 13 iterations at ~13 min each, parallelism might save ~30-40 min. Worth it but not urgent.
+2. **(CASE_LOGA_R06_OQ_2) Would parallel execution help significantly?** The dependency graph has limited parallelism (max 3 concurrent at the ID_005/ID_006/ID_007 point). For 13 iterations at ~13 min each, parallelism might save ~30-40 min. Worth it but not urgent.
 
-3. **(CASE_LOGA_R06_OQ3) Plan branch creation — fluke or fix?** Runs 3-5 all committed plan to main. Run 6 got it right. Was this v0.4.2's changes or coincidence? Needs monitoring in the next run.
+3. **(CASE_LOGA_R06_OQ_3) Plan branch creation — fluke or fix?** Runs 3-5 all committed plan to main. Run 6 got it right. Was this v0.4.2's changes or coincidence? Needs monitoring in the next run.
 
 ---
 

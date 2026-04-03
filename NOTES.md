@@ -322,7 +322,7 @@ First-pass verification rate sounds useful but incentivizes rubber-stamping. Nev
 
 State schema drift was the most persistent issue across LOGA and LIBT (5 different schemas in 5 iterations, both runs). Prose rules ("match this schema exactly") failed repeatedly. plet_state.py — a Python tool shipped inside the skill via `${CLAUDE_SKILL_DIR}/scripts/` — solved it completely. SPARK: zero schema drift across 23 iterations.
 
-Meanwhile, learnings/emergent capture (enforced only via prose rule R_7) regressed from LIBT's 2.2/iter to SPARK's 0.09/iter. Same agents, same run, different enforcement mechanism, dramatically different compliance.
+Meanwhile, learnings/emergent capture (enforced only via prose rule CASE_LOGA_R01_REC_7) regressed from LIBT's 2.2/iter to SPARK's 0.09/iter. Same agents, same run, different enforcement mechanism, dramatically different compliance.
 
 **The deeper insight:** This validates a lesson from the RIDL/Ridler.app experience. In RIDL, the harness (code) and the loop (agent skills) were separate projects with separate implementation methodologies — developing both in parallel was hard, and keeping them consistent was harder. In plet, enforcement tools (plet_state.py) are bundled *inside* the skill itself. Same package, same version, same deployment. The agent calls a tool that guarantees correctness rather than interpreting prose instructions about what "correct" looks like.
 
@@ -796,7 +796,7 @@ Practical sweet spots: prefix 4 (sprint/week), prefix 5 (session), prefix 3 (ann
 
 ### Execution
 
-#### Git branch strategy (R_5, R_6)
+#### Git branch strategy (CASE_LOGA_R01_REC_5, CASE_LOGA_R01_REC_6)
 
 All branches and tags are namespaced under `plet/{projectId}/`. Agents never commit to main.
 
@@ -821,7 +821,7 @@ All branches and tags are namespaced under `plet/{projectId}/`. Agents never com
 - Commit convention: `plet: [{iteration_id}] {phase}-{attempt} - {title}`
 - If an iteration cycles (implement-1, verify-1, implement-2, verify-2), each phase is a separate squashed commit
 
-#### Project ID (R_6)
+#### Project ID (CASE_LOGA_R01_REC_6)
 
 Short project identifier defined during plan session (Step 2, alongside project name), stored in `state.json` as `projectId`. Used in branch names, tag names, and potentially state file paths (e.g., `plet/LOGA/workstream`). Agent suggests 2-3 options using the numbers-letters style; user picks or overrides.
 
@@ -998,11 +998,11 @@ Added to global state.json to track refine session number. Incremented at the st
 
 **Rationale:** Impl/verify track attempts in per-iteration state. Refine is project-level, so the counter lives in global state. Considered using timestamp-only (no counter) since the Crockford segment already gives uniqueness, but the session number enables grouping — grep `_r3` to see everything from one refine session. The grouping value was the tiebreaker.
 
-#### `loopSessionCount` (R_5)
+#### `loopSessionCount` (CASE_LOGA_R01_REC_5)
 
 Added to global `state.json` to track loop invocations. Incremented at the start of each `/plet loop` invocation. Used in branch names (`loop1`, `loop2`). Mirrors `refineSessionCount` — same suffix, same semantics. Name chosen over `loopCount` (too terse) and `loopInvocationCount` (breaks naming parallel with `refineSessionCount`).
 
-#### Workstream branch creation (R_5)
+#### Workstream branch creation (CASE_LOGA_R01_REC_5)
 
 The orchestrator creates workstream branches at phase entry:
 - **Loop:** increment `loopSessionCount`, create `plet/{projectId}/loop{N}/workstream`. If resuming an interrupted loop (branch exists), reuse it.
@@ -1112,15 +1112,15 @@ Updated prefix table in CLAUDE.md: `spec`, `skill`, `plan`, `docs`, `retro`.
 
 Case studies live in `case_studies/` at project root. Considered: `examples/` (mixes source with analysis), `docs/` (too generic), `examples/logalyzer/` (colocated but wrong scope), `examples/logalyzer/case_study/` (too nested). Chose top-level `case_studies/` because: (1) case studies are about plet's performance, not the example project, (2) scales to multiple case studies across different projects, (3) self-documenting folder name.
 
-#### Trace files — on by default, configurable (R_8) — DECIDED (2026-03-10)
+#### Trace files — on by default, configurable (CASE_LOGA_R01_REC_8) — DECIDED (2026-03-10)
 
 Traces are a real feature, on by default, can be disabled via config. The logalyzer run only generated traces for ID_001 — that's a bug in execution, not a spec problem. The format definition in state-schema.md stays. When config artifacts are designed, add a toggle to disable trace generation. Rejected: removing traces entirely (loses traceability), mandating with no opt-out (too rigid).
 
-#### Branch isolation via git worktrees (R_11) — DECIDED (2026-03-10)
+#### Branch isolation via git worktrees (CASE_LOGA_R01_REC_11) — DECIDED (2026-03-10)
 
 Parallel agents each get their own git worktree for their iteration branch. True filesystem isolation — agents can't contaminate each other's branches. Claude Code supports `isolation: "worktree"` on subagents natively. The logalyzer run proved that branch discipline alone fails (ID_006 work on ID_011 branch). Worktree directory naming is left to Claude Code — plet controls the branch name (already defined), not the filesystem path. Rejected: sequential-only (loses parallelism), shared working directory with branch discipline (fragile, proven to fail), separate full clones (overkill when worktrees exist), plet-controlled worktree paths (unnecessary, Claude Code handles creation/cleanup).
 
-#### Artifact quality monitoring (R_10) — DECIDED (2026-03-10)
+#### Artifact quality monitoring (CASE_LOGA_R01_REC_10) — DECIDED (2026-03-10)
 
 Two-layer enforcement, orchestrator stays simple:
 - **Implement agent** self-checks before marking done — confirms it wrote learnings, emergent, and progress entries, and state file has required fields.
@@ -1133,13 +1133,13 @@ Two-layer enforcement, orchestrator stays simple:
 
 The orchestrator is the longest-lived agent and most vulnerable to context pressure. Its work should be as simple as possible — delegate complexity to short-lived subagents (implement, verify) that have fresh context windows. The orchestrator routes, spawns, and tracks; it does not judge quality or validate content. Heavy lifting belongs in subagents.
 
-#### Co-Author tags on all agent commits (R_13) — DECIDED (2026-03-10)
+#### Co-Author tags on all agent commits (CASE_LOGA_R01_REC_13) — DECIDED (2026-03-10)
 
 All agent-authored commits (implement, verify, merge, orchestrator) get a `Co-Authored-By` tag. Git author is the user's identity (Claude Code commits as the user), so the tag is the only signal distinguishing human commits from agent commits. Consistency matters for audit trails. Rejected: no tags (loses the only authorship signal), implement-only (inconsistent, no principled reason to exclude verify/merge).
 
 #### Logalyzer re-run plan (2026-03-09)
 
-Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from the plan checkpoint (`203c58a`, rebased from original `7cecbf5`) — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan session output as the control variable. Detailed phasing in `case_studies/LOG_ANALYZER_CASE_STUDY.md` § Next Steps.
+Agreed to a two-phase approach: first improve plet based on case study recommendations (R_1–R_13), then re-run logalyzer from the plan checkpoint (`203c58a`, rebased from original `7cecbf5`) — same spec, fresh execution with improved plet. This gives a direct before/after comparison with the plan session output as the control variable. Detailed phasing in `case_studies/CASE_STUDY_LOGA_R01.md` § Next Steps.
 
 #### Logalyzer run 2 setup and run 1 archival (2026-03-10)
 
@@ -1187,7 +1187,7 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 - **execute.md**: added "never create merge commits" critical rule
 - **SKILL.md** and **PLET.md**: already correct, no changes needed
 
-#### FEEDBACK.md formalization (R_12) — DECIDED (2026-03-10)
+#### FEEDBACK.md formalization (CASE_LOGA_R01_REC_12) — DECIDED (2026-03-10)
 
 FEEDBACK.md captures meta-observations about plet itself (process issues, instruction gaps, tooling friction). Distinct from learnings.md (target project) and emergent.md (execution discoveries).
 
@@ -1638,7 +1638,7 @@ Key questions:
 
 #### Case study → FEEDBACK.md pipeline formalized (2026-03-12)
 
-**Decision:** Every case study recommendation (S_1, R_1, etc.) must have a corresponding FB entry in FEEDBACK.md. FEEDBACK.md is the single intake queue — no recommendation lives only in a case study.
+**Decision:** Every case study recommendation (CASE_LOGA_R01_REC_1, CASE_LIBT_R01_REC_1, etc.) must have a corresponding FB entry in FEEDBACK.md. FEEDBACK.md is the single intake queue — no recommendation lives only in a case study.
 
 **Resolution states:** `[resolved]` (committed), `[resolved, unverified]` (committed but not validated in a run), `[resolved, verified]` (confirmed working in a subsequent case study).
 
@@ -1646,7 +1646,7 @@ Key questions:
 
 **Where documented:** Brief rule in FEEDBACK.md intro, detailed process in case_studies/CLAUDE.md.
 
-**Observation:** LOGA R_7, R_8, R_10, R_11, R_12, R_13 bypassed FEEDBACK.md — went directly from case study to NOTES.md decisions to PLAN.md status. This left them with less tracking visibility. The new convention prevents this.
+**Observation:** LOGA CASE_LOGA_R01_REC_7, REC8, REC10, REC11, REC12, REC13 bypassed FEEDBACK.md — went directly from case study to NOTES.md decisions to PLAN.md status. This left them with less tracking visibility. The new convention prevents this.
 
 #### PLAN.md uses stable labels (PLAN_N prefix) — DECIDED (2026-03-14)
 
@@ -1955,7 +1955,7 @@ plet improving its own PRD is refine-on-refine. The refine session already analy
 
 ### Case study as a self-improvement mechanism
 
-The logalyzer case study (LOG_ANALYZER_CASE_STUDY.md) demonstrated a concrete self-improvement workflow: run plet on a real project → collect user feedback and autonomous branch analysis → synthesize into recommendations → apply improvements → re-run the same project from the same plan checkpoint to measure the delta. This is manual self-improvement, but the structure is clear and repeatable:
+The logalyzer case study (CASE_STUDY_LOGA_R01.md) demonstrated a concrete self-improvement workflow: run plet on a real project → collect user feedback and autonomous branch analysis → synthesize into recommendations → apply improvements → re-run the same project from the same plan checkpoint to measure the delta. This is manual self-improvement, but the structure is clear and repeatable:
 
 1. **Run** — build something with plet
 2. **Observe** — user feedback (subjective) + branch analysis (data-driven)
@@ -1970,7 +1970,7 @@ This pattern could eventually be automated as part of the self-improvement skill
 The consistency pass documentation went through a full draft → use → observe → redesign cycle:
 
 1. **Draft** — four numbered "flavors" codified during skill build (Phase 2), documented in CLAUDE.md and PLET.md
-2. **Use** — applied heavily during case study feedback work (R_1–R_13), vocabulary cleanup, convention changes
+2. **Use** — applied heavily during case study feedback work (CASE_LOGA_R01_REC_1–REC13), vocabulary cleanup, convention changes
 3. **Observe** — the user noticed the agent had stopped announcing flavors and asked: "have your passes changed or evolved?" This was the monitoring event — not a formal mechanism, but a human noticing behavioral drift from documentation
 4. **Analyze** — reviewed actual usage and found: flavor 1+3 were always combined (→ Standard), flavor 2 (Deep) was never used standalone, the vocabulary cleanup used a miniplan pattern not in the taxonomy, and the numbered naming was awkward to say in conversation
 5. **Redesign** — replaced numbered flavors with Quick/Standard/Sweep/Structural based on actual practice. Dropped Deep, added Sweep (validated by the vocabulary cleanup miniplan)

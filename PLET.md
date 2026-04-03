@@ -214,7 +214,7 @@ Not every decision touches all 5. Most touch 1-2. But always ask: "does this dec
 
 ## Consistency Passes
 
-After making changes, run a consistency pass appropriate to the scope. Run Quick and Standard proactively after changes — no need to wait to be asked. Always announce which level you ran (e.g., "Ran a Standard pass for R_12 references").
+After making changes, run a consistency pass appropriate to the scope. Run Quick and Standard proactively after changes — no need to wait to be asked. Always announce which level you ran (e.g., "Ran a Standard pass for CASE_LOGA_R01_REC_12 references").
 
 **Quick** — grep for one specific pattern (a rename, stale value, old format reference). Fast and targeted.
 
@@ -262,7 +262,7 @@ unattended execution.
 **Suggested tags** (new tags welcome):
 `[autonomy]`, `[state]`, `[git]`, `[artifacts]`, `[timing]`, `[prompting]`, `[config]`
 
-**Mutability:** Editable. Resolved entries are marked `[resolved]` with a note on where the insight was promoted (e.g., "→ R_9 in implement.md"). Resolved entries stay for history but can be removed during cleanup.
+**Mutability:** Editable. Resolved entries are marked `[resolved]` with a note on where the insight was promoted (e.g., "→ CASE_LOGA_R01_REC_9 in implement.md"). Resolved entries stay for history but can be removed during cleanup.
 
 **Promotion path:** Depends on the item:
 - → `CLAUDE.md` or `PLET.md` (becomes a rule or convention)

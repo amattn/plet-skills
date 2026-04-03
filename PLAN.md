@@ -56,31 +56,31 @@ Two case studies completed. All feedback tracked in `FEEDBACK.md` (FB_1–FB_22)
 
 ### LOGA Run 1 (logalyzer, Go, 13 iterations)
 
-**Analysis:** `case_studies/LOG_ANALYZER_CASE_STUDY.md`
+**Analysis:** `case_studies/CASE_STUDY_LOGA_R01.md`
 
-Produced R_1–R_13. Status:
+Produced CASE_LOGA_R01_REC_1–REC13 (formerly R_1–R_13). Status:
 
 | Rec | Description | Status |
 |-----|-------------|--------|
-| R_1 | Intermediate commits during implement | ✓ Done (`e25e952`) |
-| R_2 | Intermediate state writes | ✓ Done (`e25e952`) |
-| R_3 | One verify = one commit | ✓ Done (`037a2ab`) |
-| R_4 | Tag lifecycle — always tag, `cleanupTagsAutomatically` | ✓ Done |
-| R_5 | Workstream branch conventions | ✓ Done (`bad4261`) |
-| R_6 | Short project ID | ✓ Done (`bad4261`) |
-| R_7 | Mandatory learnings/emergent entries | ✓ Done (`e25e952`) |
-| R_8 | Trace file generation — decided, not fully implemented | → FB_11 |
-| R_9 | Subagent non-blocking | ✓ Done |
-| R_10 | Artifact quality monitoring | ✓ Done → FB_12 (plet_state.py tool) |
-| R_11 | Branch isolation — decided, not validated | → FB_13 (open) |
-| R_12 | FEEDBACK.md formalization | ✓ Done → FB_14 |
-| R_13 | Co-Author tag convention — decided, not validated | → FB_15 |
+| CASE_LOGA_R01_REC_1 | Intermediate commits during implement | ✓ Done (`e25e952`) |
+| CASE_LOGA_R01_REC_2 | Intermediate state writes | ✓ Done (`e25e952`) |
+| CASE_LOGA_R01_REC_3 | One verify = one commit | ✓ Done (`037a2ab`) |
+| CASE_LOGA_R01_REC_4 | Tag lifecycle — always tag, `cleanupTagsAutomatically` | ✓ Done |
+| CASE_LOGA_R01_REC_5 | Workstream branch conventions | ✓ Done (`bad4261`) |
+| CASE_LOGA_R01_REC_6 | Short project ID | ✓ Done (`bad4261`) |
+| CASE_LOGA_R01_REC_7 | Mandatory learnings/emergent entries | ✓ Done (`e25e952`) |
+| CASE_LOGA_R01_REC_8 | Trace file generation — decided, not fully implemented | → FB_11 |
+| CASE_LOGA_R01_REC_9 | Subagent non-blocking | ✓ Done |
+| CASE_LOGA_R01_REC_10 | Artifact quality monitoring | ✓ Done → FB_12 (plet_state.py tool) |
+| CASE_LOGA_R01_REC_11 | Branch isolation — decided, not validated | → FB_13 (open) |
+| CASE_LOGA_R01_REC_12 | FEEDBACK.md formalization | ✓ Done → FB_14 |
+| CASE_LOGA_R01_REC_13 | Co-Author tag convention — decided, not validated | → FB_15 |
 
 ### LIBT Run 1 (todo-cli, Python, 5 iterations)
 
-**Analysis:** `case_studies/TODO_CLI_CASE_STUDY.md`
+**Analysis:** `case_studies/CASE_STUDY_LIBT_R01.md`
 
-Produced S_1–S_8. All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvements over LOGA: learnings/emergent dramatically better, zero orchestrator stalls, 100% first-pass verify rate. Recurring issues: state schema drift, progress format drift, trace inconsistency.
+Produced CASE_LIBT_R01_REC_1–REC8 (formerly S_1–S_8). All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvements over LOGA: learnings/emergent dramatically better, zero orchestrator stalls, 100% first-pass verify rate. Recurring issues: state schema drift, progress format drift, trace inconsistency.
 
 ### Additional work done during PLAN_4
 

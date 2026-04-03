@@ -13,13 +13,14 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 
 | File | Project | Language | Iterations | Key Finding |
 |------|---------|----------|------------|-------------|
-| `LOG_ANALYZER_CASE_STUDY.md` | LOGA (logalyzer) | Go | 13 | First run baseline; learnings/emergent underutilized |
-| `TODO_CLI_CASE_STUDY.md` | LIBT (todo-cli) | Python | 5 | Learnings/emergent dramatically improved; state schema still drifts |
-| `SPARKBOARD_CASE_STUDY.md` | SPARK (sparkboard) | Elixir | 23 | State schema solved; learnings/emergent regressed; 42 stashes despite ban |
-| `LOGA_RUN2_CASE_STUDY.md` | LOGA (logalyzer) | Go | 1/13 | First PLAN_9 run; scripts used but orchestrator bypassed; plugin conflict |
-| `LOGA_RUN3_CASE_STUDY.md` | LOGA (logalyzer) | Go | 0/13 | First orchestrator+invoke run; worktree state merge conflict exposed; 3 invoke hotfixes |
-| `LOGA_RUN5_CASE_STUDY.md` | LOGA (logalyzer) | Go | 3/13 | Env var injection works; dependency promotion bug found; state.json merge conflict |
-| `LOGA_RUN6_CASE_STUDY.md` | LOGA (logalyzer) | Go | 13/13 | First fully successful scripted run; zero human intervention; validates v0.4.x architecture |
+| `CASE_STUDY_LOGA_R01.md` | LOGA (logalyzer) | Go | 13 | First run baseline; learnings/emergent underutilized |
+| `CASE_STUDY_LIBT_R01.md` | LIBT (todo-cli) | Python | 5 | Learnings/emergent dramatically improved; state schema still drifts |
+| `CASE_STUDY_SPARK_R01.md` | SPARK (sparkboard) | Elixir | 23 | State schema solved; learnings/emergent regressed; 42 stashes despite ban |
+| `CASE_STUDY_LOGA_R02.md` | LOGA (logalyzer) | Go | 1/13 | First PLAN_9 run; scripts used but orchestrator bypassed; plugin conflict |
+| `CASE_STUDY_LOGA_R03.md` | LOGA (logalyzer) | Go | 0/13 | First orchestrator+invoke run; worktree state merge conflict exposed; 3 invoke hotfixes |
+| `CASE_STUDY_LOGA_R04.md` | LOGA (logalyzer) | Go | 1/13 | Sandbox incompatibility; script discovery issue; plan phase UX problems |
+| `CASE_STUDY_LOGA_R05.md` | LOGA (logalyzer) | Go | 3/13 | Env var injection works; dependency promotion bug found; state.json merge conflict |
+| `CASE_STUDY_LOGA_R06.md` | LOGA (logalyzer) | Go | 13/13 | First fully successful scripted run; zero human intervention; validates v0.4.x architecture |
 
 ## Stable Labels
 
@@ -42,28 +43,28 @@ CASE_{PROJECT}_{RUN}_{QUALIFIER}
 | Scope | Qualifier style | Example |
 |-------|----------------|---------|
 | H3/H4 sections | Mnemonic abbreviation | `CASE_LOGA_R06_ARCH`, `CASE_LOGA_R06_TRAC` |
-| What Worked Well | `W` + number | `CASE_LOGA_R06_W1` |
-| What Didn't Work Well | `F` + number | `CASE_LOGA_R06_F3` |
-| Surprises | `S` + number | `CASE_LOGA_R06_S2` |
-| Recommendations | `REC` + number | `CASE_LOGA_R06_REC3` |
-| Open Questions | `OQ` + number | `CASE_LOGA_R06_OQ1` |
+| What Worked Well | `W` + number | `CASE_LOGA_R06_W_1` |
+| What Didn't Work Well | `F` + number | `CASE_LOGA_R06_F_3` |
+| Surprises | `S` + number | `CASE_LOGA_R06_S_2` |
+| Recommendations | `REC` + number | `CASE_LOGA_R06_REC_3` |
+| Open Questions | `OQ` + number | `CASE_LOGA_R06_OQ_1` |
 
 ### Where labels appear
 
 - **Section headings:** `### CASE_LOGA_R06_ARCH: Architecture`
-- **Numbered items:** `1. **(CASE_LOGA_R06_W1) Title.** Description...`
-- **Recommendation table:** `| CASE_LOGA_R06_REC1 | Description | Priority |`
+- **Numbered items:** `1. **(CASE_LOGA_R06_W_1) Title.** Description...`
+- **Recommendation table:** `| CASE_LOGA_R06_REC_1 | Description | Priority |`
 
 ### Cross-referencing
 
 Every recommendation (`REC`) should have a corresponding `FB_N` entry in FEEDBACK.md. Add resolution status below the recommendation table:
 
 ```
-- CASE_LOGA_R06_REC1: `[resolved]` → plet_orchestrator.py 0.2.1
-- CASE_LOGA_R06_REC3: open → FB_69
+- CASE_LOGA_R06_REC_1: `[resolved]` → plet_orchestrator.py 0.2.1
+- CASE_LOGA_R06_REC_3: open → FB_69
 ```
 
-FEEDBACK.md entries reference back: `Source: CASE_LOGA_R06_REC3`
+FEEDBACK.md entries reference back: `Source: CASE_LOGA_R06_REC_3`
 
 ---
 
@@ -157,7 +158,7 @@ Track **trends** — improved, regressed, no change.
 - **What worked well** — with evidence
 - **What didn't work well** — with evidence
 - **Surprises** — unexpected behaviors or outcomes
-- **Recommendations** — numbered (S_1, S_2, ...) with concrete options where applicable. **Every recommendation must have a corresponding FB entry in FEEDBACK.md.** This is the pipeline: case study recommendation → FB entry → artifact changes → mark resolved → verify in next run. No recommendation should live only in the case study.
+- **Recommendations** — labeled (`CASE_{PROJECT}_{RUN}_REC1`, etc.) with concrete options where applicable. **Every recommendation must have a corresponding FB entry in FEEDBACK.md.** This is the pipeline: case study recommendation → FB entry → artifact changes → mark resolved → verify in next run. No recommendation should live only in the case study.
 - **Open questions** — things we still don't know
 
 ### Meta

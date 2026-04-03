@@ -678,7 +678,7 @@ See `specs/conventions.md` for universal requirements.
 | # | Question | Decision |
 |---|----------|----------|
 | 1 | Plet ID format — ULID vs custom? | Custom Crockford Base32 with type/iteration/phase segments. More context-rich than ULID. |
-| 2 | `check` requires all 3 artifacts or just progress? | All 3 — R_7 mandates entries in progress, learnings, and emergent. |
+| 2 | `check` requires all 3 artifacts or just progress? | All 3 — CASE_LOGA_R01_REC_7 mandates entries in progress, learnings, and emergent. |
 | 3 | EM_N numbering — agent-assigned or auto? | Auto-assigned by scanning emergent.md. Prevents collisions from parallel agents. |
 | 4 | Should `add-*` success output prefix with `OK —`? | Yes — `OK — {plet_id}` for consistency with other scripts. Scripts capturing the ID parse after `OK — `. |
 | 5 | Should `--attempt` validate as integer? | Yes — wrap in try/except, produce specific error message. |
