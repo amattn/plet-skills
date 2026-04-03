@@ -238,7 +238,7 @@ Check if `plet/state.json` exists. This determines the path:
 6. **STOP.** Do NOT auto-launch the loop. Tell the user:
    - "Plan complete on branch `plet/{projectId}/plan1/workstream`."
    - "Run `/plet loop` to start implementation. The loop will branch from here."
-   - "Merge to main when you're ready — that's your decision (may trigger CI/CD)."
+   - **Never merge to main** unless the user gives direct, explicit, confirmed instruction. The loop branches from the plan workstream — merging to main is not required for any plet workflow.
 
 ### Loop Phase
 
@@ -268,7 +268,7 @@ The orchestrator manages the full loop lifecycle internally — session setup, d
 
 | Reason | What SKILL.md should do |
 |--------|------------------------|
-| `all_complete` | Congratulate. Offer to merge workstream to main. |
+| `all_complete` | Congratulate. Tell user the workstream is ready. **Do not merge to main** unless the user explicitly asks. |
 | `all_blocked_or_complete` | Report blocked iterations + stuck dependents. Recommend `/plet refine`. |
 | `breakpoint_before` / `breakpoint_after` | Show the breakpointed iteration ID. Ask user: continue, remove breakpoint, or stop. To continue: remove breakpoint from state.json, re-run orchestrator. |
 | `max_iterations_reached` | Report progress. Ask: continue or stop. |
@@ -345,7 +345,7 @@ Default maximum **3** retry attempts. If failures are strictly decreasing (trend
 
 ## Git Strategy
 
-All branches namespaced under `plet/{projectId}/`. Agents never commit to main.
+All branches namespaced under `plet/{projectId}/`. Agents never commit or merge to main — merging to main requires direct, explicit, confirmed human instruction.
 
 | Purpose | Pattern | Example |
 |---------|---------|---------|
