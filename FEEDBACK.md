@@ -55,11 +55,11 @@ Files to sweep: case studies (definitions), FEEDBACK.md (references), NOTES.md (
 - [x] Update `[resolved, unverified]` → `[resolved, verified]` where Run 6 validated the fix
 
 ### Phase 4: New FB items
-- [ ] CASE_LOGA_R06_REC_3 — parallel scheduling (unresolved)
-- [ ] CASE_LOGA_R06_REC_4 — milestone boundary refactor (unresolved)
-- [ ] Phase "unknown" CLI design issue — some invocations have no phase but phase is required
-- [ ] Worktree cleanup — Run 5 OQ_2, still open
-- [ ] Any gaps found in Phase 2
+- [x] FB_69: CASE_LOGA_R06_REC_3 — parallel scheduling
+- [x] FB_70: CASE_LOGA_R06_REC_4 — milestone boundary refactor
+- [x] FB_71: Phase "unknown" CLI design issue
+- [x] FB_72: Worktree cleanup (Run 5 OQ_2)
+- [x] No additional gaps found in Phase 2
 
 ### Phase 5: Cleanup
 - [ ] Final consistency pass (grep old labels, verify all cross-refs)
@@ -740,6 +740,40 @@ Preflight detects CLAUDE.md and .gitignore are missing but only warns. Plan phas
 Source: CASE_LOGA_R04_OBS_18
 
 Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be committed (state files, progress.md, requirements.md, etc. are project state tracked in git). What should be gitignored is `.plet/` (worktrees, copied scripts — infrastructure, not artifacts). The preflight check needs to be fixed to check for `.plet/` instead. Specced in plet_bootstrap.py (seq 42).
+
+---
+
+## LOGA Run 5 + Run 6 (2026-04-01 / 2026-04-02)
+
+### FB_69: Orchestrator should support parallel scheduling [orchestrator] [performance]
+
+Source: CASE_LOGA_R06_REC_3, CASE_LOGA_R06_F_3
+
+The dependency graph has parallel opportunities (e.g., ID_005/ID_006/ID_007 could run concurrently after ID_004/ID_003 complete), but the orchestrator executes all iterations sequentially. For 13 iterations at ~13 min each, parallelism at the ID_005/006/007 point might save ~30-40 min. The worktree infrastructure already supports isolation — plet_git_iteration.py creates per-iteration worktrees. The missing piece is the orchestrator spawning multiple subagents concurrently and waiting for results.
+
+### FB_70: Milestone boundary refactor step [orchestrator] [code-quality]
+
+Source: CASE_LOGA_R06_REC_4, CASE_LOGA_R06_F_5
+
+Run 6's main.go accumulated to 433 lines — each iteration added subcommand handling without extracting. This is the "excessive special cases" pattern from NOTES.md § Two-tier refactoring model. The Tier 2 milestone boundary refactor is designed but not implemented. The orchestrator should trigger a refactor analysis when all iterations in a milestone reach `complete`.
+
+### FB_71: Phase "unknown" in trace files — CLI design issue [cli] [trace]
+
+Source: CASE_LOGA_R06_TRAC
+
+Some script invocations genuinely have no phase — orchestrator-level calls (schedule, fingerprint check, gate session) happen outside any implement/verify phase. The dispatch auto-logger requires `--phase` but has no valid value to use, so it defaults to "unknown". This creates `*-unknown-1-events.ndjson` trace files (13 per run, one per iteration). The issue isn't the filename — it's that the CLI requires a value that doesn't exist for this class of invocation.
+
+Options:
+- A. Add `orchestrator` as a valid phase value — these are orchestrator-phase invocations
+- B. Add `none` or `setup` — explicitly "no phase" rather than a misleading name
+- C. Make `--phase` optional on trace/logging commands — omit when not applicable
+- D. Separate orchestrator-level trace files from iteration-level ones (different naming pattern)
+
+### FB_72: Worktree cleanup after iteration completion [git] [orchestrator]
+
+Source: CASE_LOGA_R05_OQ_2
+
+Run 5 OQ_2: "ID_002 worktree not cleaned up (still exists). Is worktree cleanup working?" The orchestrator creates worktrees via plet_git_iteration.py worktree-create but may not be calling worktree-remove after merge-squash. Orphaned worktrees consume disk space and could confuse tools scanning for active work.
 
 ---
 
