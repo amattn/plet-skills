@@ -264,9 +264,7 @@ Design principle: commands match agent workflow, not JSON structure. `start-phas
 | `IMP` | Implement agent rules | implement.md |
 | `VF` | Verify agent rules | verify.md |
 | `PL` | Plan session rules | plan.md |
-| `R` | LOGA case study recommendations | LOG_ANALYZER_CASE_STUDY.md |
-| `S` | LIBT case study recommendations | TODO_CLI_CASE_STUDY.md |
-| `SP` | SPARK case study recommendations | SPARKBOARD_CASE_STUDY.md |
+| `CASE` | Case study recommendations | `CASE_{PROJECT}_{RUN}_{N}` — all case studies. Replaces R_, S_, SP_, R6_ |
 | `EX` (extractable) | Extractable skill inventory | EXTRACTABLE.md |
 | `UNV`, `STA`, `ENT`, etc. | Script spec prefixes (11 scripts + sections) | specs/*.md — see `specs/NOTES.md` § Stable Label Prefixes |
 

@@ -2,11 +2,73 @@
 
 Meta-observations about plet itself — process issues, instruction gaps, tooling friction. Distinct from learnings (target project knowledge) and emergent items (execution discoveries). See PLET.md § FEEDBACK.md for format and conventions.
 
+---
+
+## Cleanup Miniplan (2026-04-03)
+
+> Remove this section when all steps are complete.
+
+### Phase 0: Label format decision
+- [x] Adopt `CASE_{PROJECT}_{RUN}_{N}` for all case study recommendations
+- [x] Update prefix table in NOTES.md
+
+### Phase 1: Label all case studies with stable labels
+Apply `CASE_{PROJECT}_{RUN}_{QUALIFIER}` labels to every case study. Two sub-tasks per study:
+(a) Add section labels (H3/H4) and finding labels (W/F/S/REC/OQ) per the template in case_studies/CLAUDE.md
+(b) Rename old recommendation labels (R_, S_, SP_, R6_) to new format in all files
+
+**Recommendation mapping:**
+
+| Old | New | Case Study |
+|-----|-----|-----------|
+| R_1–R_13 | CASE_LOGA_R01_REC1–13 | LOG_ANALYZER_CASE_STUDY.md |
+| S_1–S_8 | CASE_LIBT_R01_REC1–8 | TODO_CLI_CASE_STUDY.md |
+| SP_1–SP_6 | CASE_SPARK_R01_REC1–6 | SPARKBOARD_CASE_STUDY.md |
+| R6_1–R6_5 | CASE_LOGA_R06_REC1–5 | LOGA_RUN6_CASE_STUDY.md (done) |
+| (none) | — | LOGA_RUN2 (no formal recs) |
+| (none) | — | LOGA_RUN3 (no formal recs) |
+| (none) | — | LOGA_RUN5 (bugs table, no formal recs) |
+
+Files to sweep: case studies (definitions), FEEDBACK.md (references), NOTES.md (references)
+
+- [x] LOGA Run 6 — labeled (54 labels)
+- [ ] LOGA Run 1 — label + rename R_1–R_13
+- [ ] LIBT Run 1 — label + rename S_1–S_8
+- [ ] SPARK Run 1 — label + rename SP_1–SP_6
+- [ ] LOGA Runs 2, 3, 5 — add section labels (no recs to rename)
+- [ ] Rename old labels in FEEDBACK.md (Source: lines, inline refs)
+- [ ] Rename old labels in NOTES.md (inline refs)
+- [ ] Grep for any remaining old-format refs
+
+### Phase 2: Cross-references
+- [ ] Every case study recommendation gets a `→ FB_N` note (or "no FB item")
+- [ ] Every FB item with a case study source gets a `Source: CASE_..._N` line
+- [ ] Identify case study recs that never got FB items → create them in Phase 4
+
+### Phase 3: Resolution pass
+- [ ] Audit every FB item against current code
+- [ ] Mark items resolved that were fixed but never updated (especially PLAN_8 deferrals)
+- [ ] Withdraw items no longer relevant
+- [ ] Update `[resolved, unverified]` → `[resolved, verified]` where Run 6 validated the fix
+
+### Phase 4: New FB items
+- [ ] CASE_LOGA_R06_3 — parallel scheduling (unresolved)
+- [ ] CASE_LOGA_R06_4 — milestone boundary refactor (unresolved)
+- [ ] Phase "unknown" CLI design issue — some invocations have no phase but phase is required
+- [ ] Worktree cleanup — Run 5 OQ_2, still open
+- [ ] Any gaps found in Phase 2
+
+### Phase 5: Cleanup
+- [ ] Final consistency pass (grep old labels, verify all cross-refs)
+- [ ] Remove this miniplan section
+
+---
+
 ## Intake Convention
 
-Every case study recommendation (S_1, R_1, etc.) gets a corresponding FB entry here. This is the single intake queue — no recommendation lives only in a case study.
+Every case study recommendation (`CASE_{PROJECT}_{RUN}_{N}`) gets a corresponding FB entry here. This is the single intake queue — no recommendation lives only in a case study.
 
-**Format:** Same `FB_N` namespace for all entries (user observations and case study findings). Case study items include a `Source:` line referencing the case study and recommendation ID.
+**Format:** Same `FB_N` namespace for all entries (user observations and case study findings). Case study items include a `Source:` line referencing the case study recommendation ID.
 
 **Resolution states:**
 - `[resolved]` — artifact changes committed. Note which files changed.

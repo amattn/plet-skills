@@ -21,6 +21,52 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `LOGA_RUN5_CASE_STUDY.md` | LOGA (logalyzer) | Go | 3/13 | Env var injection works; dependency promotion bug found; state.json merge conflict |
 | `LOGA_RUN6_CASE_STUDY.md` | LOGA (logalyzer) | Go | 13/13 | First fully successful scripted run; zero human intervention; validates v0.4.x architecture |
 
+## Stable Labels
+
+> **Skill:** Load `/session-kit:stable-label` for the full stable label convention, consistency pass approaches, and ID lifecycle rules.
+
+Every case study uses the `CASE_{PROJECT}_{RUN}_{N}` label convention for greppable cross-referencing with FEEDBACK.md and NOTES.md.
+
+### Label format
+
+```
+CASE_{PROJECT}_{RUN}_{QUALIFIER}
+```
+
+- `{PROJECT}` — project ID (LOGA, LIBT, SPARK, etc.)
+- `{RUN}` — run number, zero-padded (R01, R06, etc.)
+- `{QUALIFIER}` — section or item identifier
+
+### What gets labeled
+
+| Scope | Qualifier style | Example |
+|-------|----------------|---------|
+| H3/H4 sections | Mnemonic abbreviation | `CASE_LOGA_R06_ARCH`, `CASE_LOGA_R06_TRAC` |
+| What Worked Well | `W` + number | `CASE_LOGA_R06_W1` |
+| What Didn't Work Well | `F` + number | `CASE_LOGA_R06_F3` |
+| Surprises | `S` + number | `CASE_LOGA_R06_S2` |
+| Recommendations | `REC` + number | `CASE_LOGA_R06_REC3` |
+| Open Questions | `OQ` + number | `CASE_LOGA_R06_OQ1` |
+
+### Where labels appear
+
+- **Section headings:** `### CASE_LOGA_R06_ARCH: Architecture`
+- **Numbered items:** `1. **(CASE_LOGA_R06_W1) Title.** Description...`
+- **Recommendation table:** `| CASE_LOGA_R06_REC1 | Description | Priority |`
+
+### Cross-referencing
+
+Every recommendation (`REC`) should have a corresponding `FB_N` entry in FEEDBACK.md. Add resolution status below the recommendation table:
+
+```
+- CASE_LOGA_R06_REC1: `[resolved]` → plet_orchestrator.py 0.2.1
+- CASE_LOGA_R06_REC3: open → FB_69
+```
+
+FEEDBACK.md entries reference back: `Source: CASE_LOGA_R06_REC3`
+
+---
+
 ## Standard Sections
 
 Every case study should follow this structure. Not every section will be equally deep for every project, but all should be present.
