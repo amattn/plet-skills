@@ -242,6 +242,15 @@ def _handle_rejected_verdict(iter_id, global_plet_dir, worktree_plet_dir, output
 def _setup_session(global_plet_dir, counts, allow_stale, output_ndjson):
     """Run preflight, fingerprint check, and start session. Returns (session_number, branch, error_code).
     error_code is None on success."""
+    # Validate state.json before anything else — if corrupt, nothing works
+    _, val_err, val_rc = _run_script("plet_global_state.py", ["validate", global_plet_dir])
+    if val_rc != 0:
+        msg = f"state.json validation failed: {val_err[:200]}"
+        print(f"Error: {msg}", file=sys.stderr)
+        result = _make_result("error", counts, error=msg)
+        _emit_event(result, output_ndjson)
+        return 0, "", 1
+
     _emit_text("Running preflight...", output_ndjson)
     _, pf_err, pf_rc = _run_script("plet_gate_session.py", ["preflight", global_plet_dir, "--session-type", "loop"])
     if pf_rc == 1:

@@ -304,7 +304,7 @@ def test_make_trace_file():
 def test_make_verification_report():
     print("\n## make_verification_report")
     report = make_verification_report()
-    check("default verdict", report["verdict"] == "complete")
+    check("default verdict", report["verdict"] == "passed")
     check("has criteriaResults", len(report["criteriaResults"]) == 1)
     check("default criterion", report["criteriaResults"][0]["criterionId"] == "AC_1")
 
