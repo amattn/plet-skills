@@ -500,6 +500,8 @@ Arguments against: plan/refine run in the main conversation where the human is p
 
 Evaluate after PLAN_9 comparison runs — if post-run analysis would benefit from structured plan/refine events, add support.
 
+`[resolved]` → Decided: no trace events for plan/refine sessions for now. The human is present and making decisions — NOTES.md and progress entries capture what happened. Revisit if post-run analysis or GUI work surfaces a need for structured plan/refine traces.
+
 ### FOO_47: Formalize plan session branch and worktree behavior [git] [planning]
 
 Source: GTI spec review
@@ -795,6 +797,8 @@ The dependency graph has parallel opportunities (e.g., ID_005/ID_006/ID_007 coul
 Source: CASE_LOGA_R06_REC_4, CASE_LOGA_R06_F_5
 
 Run 6's main.go accumulated to 433 lines — each iteration added subcommand handling without extracting. This is the "excessive special cases" pattern from NOTES.md § Two-tier refactoring model. The Tier 2 milestone boundary refactor is designed but not implemented. The orchestrator should trigger a refactor analysis when all iterations in a milestone reach `complete`.
+
+`[deferred]` → Big change: needs a refactor→verify loop at milestone boundaries, possibly every iteration. Deferred to its own plan item (PLAN_13). See PLAN.md.
 
 ### FOO_71: Phase "unknown" in trace files — CLI design issue [cli] [trace]
 
