@@ -66,7 +66,7 @@ def test_check_lifecycle():
 def test_check_implement_verdict():
     import plet_gate_phase
 
-    r = plet_gate_phase.check_implement_verdict({"implementVerdict": "readyForVerification"})
+    r = plet_gate_phase.check_implement_verdict({"implementVerdict": "completed"})
     check("set = pass", r["status"] == "pass")
 
     r = plet_gate_phase.check_implement_verdict({"implementVerdict": None})

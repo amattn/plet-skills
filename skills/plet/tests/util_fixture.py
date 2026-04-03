@@ -360,11 +360,11 @@ def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1, ev
 # ---------------------------------------------------------------------------
 
 
-def make_verification_report(verdict="complete", criteria_results=None):
+def make_verification_report(verdict="passed", criteria_results=None):
     """Create a verification report dict.
 
     Args:
-        verdict: report verdict string. Default: "complete".
+        verdict: report verdict string. Default: "passed".
         criteria_results: list of criteria result dicts. Default: one passing AC_1.
 
     Returns a single report dict (not a list).

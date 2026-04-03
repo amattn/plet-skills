@@ -98,7 +98,7 @@ Plugin metadata and distribution scaffolding.
 
 ### Remaining open FOO items
 
-As of 2026-04-03: 72 total. 66 resolved, 5 withdrawn, 2 deferred, 11 open.
+As of 2026-04-03: 72 total. 67 resolved, 5 withdrawn, 2 deferred, 10 open.
 
 Key open items:
 - FOO_46: Should plan/refine generate trace events?

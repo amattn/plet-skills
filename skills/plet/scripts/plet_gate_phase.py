@@ -48,10 +48,12 @@ from util_state import (
 )
 from util_subprocess import run, run_git
 
-SCRIPT_VERSION = "0.2.0"
+SCRIPT_VERSION = "0.3.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
+IMPLEMENT_VERDICTS = ["completed", "blocked"]
+VERIFY_VERDICTS = ["passed", "rejected", "blocked"]
 LIFECYCLE_BY_PHASE = {
     "implement": {"queued", "implementing"},
     "verify": {"verifying"},
@@ -162,16 +164,22 @@ def check_lifecycle(global_state, iter_id, phase):
 
 
 def check_implement_verdict(iter_state):
-    """Post-implement check: implementVerdict must be set (GPH_PST_BHV_11)."""
+    """Post-implement check: implementVerdict must be set and valid (GPH_PST_BHV_11)."""
     verdict = iter_state.get("implementVerdict")
-    if verdict is not None:
-        return {"name": "implement-verdict", "status": "pass", "detail": f"implementVerdict is '{verdict}'"}
-    return {
-        "name": "implement-verdict",
-        "status": "fail",
-        "detail": "implementVerdict is null — implement subagent must call"
-        " set-verdict --phase implement before exiting",
-    }
+    if verdict is None:
+        return {
+            "name": "implement-verdict",
+            "status": "fail",
+            "detail": "implementVerdict is null — implement subagent must call"
+            " set-verdict --phase implement before exiting",
+        }
+    if verdict not in IMPLEMENT_VERDICTS:
+        return {
+            "name": "implement-verdict",
+            "status": "fail",
+            "detail": f"implementVerdict is '{verdict}' (valid: {', '.join(IMPLEMENT_VERDICTS)})",
+        }
+    return {"name": "implement-verdict", "status": "pass", "detail": f"implementVerdict is '{verdict}'"}
 
 
 def check_audit_tag(global_state, iter_state, phase, cwd=None):
@@ -357,15 +365,21 @@ def run_fpr_check(plet_dir):
 
 
 def check_verify_verdict(iter_state):
-    """Check verifyVerdict is set. Verify post only (GPH_PST_BHV_7)."""
+    """Check verifyVerdict is set and valid. Verify post only (GPH_PST_BHV_7)."""
     verdict = iter_state.get("verifyVerdict")
-    if verdict is not None:
-        return {"name": "verify-verdict", "status": "pass", "detail": f"verifyVerdict is '{verdict}'"}
-    return {
-        "name": "verify-verdict",
-        "status": "fail",
-        "detail": "verifyVerdict is null — verify subagent must call set-verdict --phase verify before exiting",
-    }
+    if verdict is None:
+        return {
+            "name": "verify-verdict",
+            "status": "fail",
+            "detail": "verifyVerdict is null — verify subagent must call set-verdict --phase verify before exiting",
+        }
+    if verdict not in VERIFY_VERDICTS:
+        return {
+            "name": "verify-verdict",
+            "status": "fail",
+            "detail": f"verifyVerdict is '{verdict}' (valid: {', '.join(VERIFY_VERDICTS)})",
+        }
+    return {"name": "verify-verdict", "status": "pass", "detail": f"verifyVerdict is '{verdict}'"}
 
 
 def check_verdict_consistency(iter_state):

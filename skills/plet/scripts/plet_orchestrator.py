@@ -34,7 +34,7 @@ from util_io import (
 )
 from util_state import load_and_validate_iter_state
 
-SCRIPT_VERSION = "0.2.1"
+SCRIPT_VERSION = "0.3.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -456,6 +456,7 @@ def _run_implement_phase(iter_id, global_plet_dir, worktree_path, output_ndjson,
     """Run implement phase. Returns (worktree_plet_dir, implement_verdict) or (None, None) on failure."""
     worktree_plet_dir = derive_worktree_plet_dir(worktree_path, global_plet_dir)
     _update_lifecycle(global_plet_dir, iter_id, "implementing")
+    _run_script("plet_iter_state.py", ["start-phase", worktree_plet_dir, "--iter-id", iter_id, "--phase", "implement"])
 
     impl_out, impl_err, impl_rc = _run_script(
         "plet_invoke.py",
@@ -480,6 +481,7 @@ def _run_implement_phase(iter_id, global_plet_dir, worktree_path, output_ndjson,
 def _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir, output_ndjson, completed_this_run):
     """Run verify phase. Returns verdict string or None."""
     _update_lifecycle(global_plet_dir, iter_id, "verifying")
+    _run_script("plet_iter_state.py", ["start-phase", worktree_plet_dir, "--iter-id", iter_id, "--phase", "verify"])
     _emit_event({"type": "iteration_start", "iterationId": iter_id, "phase": "verify"}, output_ndjson)
     _emit_text(f"[{completed_this_run + 1}] {iter_id}: verifying...", output_ndjson)
 

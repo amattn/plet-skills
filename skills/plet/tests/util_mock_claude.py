@@ -61,8 +61,8 @@ def main(argv):
         state = json.load(f)
 
     if phase == "implement":
-        state["attempts"]["implement"] = state["attempts"].get("implement", 0) + 1
-        state["implementVerdict"] = "readyForVerification"  # handoff (SF_28)
+        # attempts.implement already incremented by orchestrator's start-phase call
+        state["implementVerdict"] = "completed"
         state["phaseActivity"] = "idle"
         for c in state.get("criteria", []):
             if "implementation" in c:
@@ -78,8 +78,8 @@ def main(argv):
         subprocess.run(["git", "commit", "-m", "implement " + iter_id], capture_output=True)
 
     elif phase == "verify":
-        attempt = state["attempts"].get("verify", 0) + 1
-        state["attempts"]["verify"] = attempt
+        # attempts.verify already incremented by orchestrator's start-phase call
+        attempt = state["attempts"].get("verify", 0)
 
         verdict = "passed"
         if behavior == "reject_then_pass" and attempt == 1:

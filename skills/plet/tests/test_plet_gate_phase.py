@@ -213,7 +213,7 @@ def setup_impl_post(
     emergent=True,
     trace=True,
     lifecycle="implementing",
-    implement_verdict="verifying",
+    implement_verdict="completed",
     audit_tag=True,
 ):
     repo = setup_git_repo(tmpdir)
@@ -246,7 +246,7 @@ def setup_verify_post(
     learnings=True,
     emergent=True,
     trace=True,
-    verify_verdict="complete",
+    verify_verdict="passed",
     verification_reports=None,
     lifecycle="verifying",
     audit_tag=True,
@@ -664,12 +664,38 @@ def test_impl_post_implement_verdict_pass():
     print("\n## implement post — implementVerdict set → PASS")
     tmpdir = tempfile.mkdtemp()
     try:
-        plet_dir = setup_impl_post(tmpdir, implement_verdict="verifying")
+        plet_dir = setup_impl_post(tmpdir, implement_verdict="completed")
         stdout, _, rc = run(
             ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=0, cwd=tmpdir
         )
         check("exit 0", rc == 0)
         check("has implement-verdict PASS", "PASS" in stdout and "implement-verdict" in stdout)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_impl_post_implement_verdict_invalid():
+    print("\n## implement post — implementVerdict invalid value → FAIL")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_impl_post(tmpdir, implement_verdict="verifying")
+        stdout, _, rc = run(
+            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=tmpdir
+        )
+        check("exit 1", rc == 1)
+        check("mentions valid values", "completed" in stdout and "blocked" in stdout, "got: " + stdout[:200])
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_verify_post_verify_verdict_invalid():
+    print("\n## verify post — verifyVerdict invalid value → FAIL")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_verify_post(tmpdir, verify_verdict="complete")
+        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=1, cwd=tmpdir)
+        check("exit 1", rc == 1)
+        check("mentions valid values", "passed" in stdout and "rejected" in stdout, "got: " + stdout[:200])
     finally:
         shutil.rmtree(tmpdir)
 
@@ -683,8 +709,8 @@ def test_verify_post_verdict_consistency_pass():
     print("\n## verify post — verifyVerdict matches report → PASS")
     tmpdir = tempfile.mkdtemp()
     try:
-        # verifyVerdict="complete" matches report verdict="complete"
-        plet_dir = setup_verify_post(tmpdir, verify_verdict="complete")
+        # verifyVerdict="passed" matches report verdict="passed"
+        plet_dir = setup_verify_post(tmpdir, verify_verdict="passed")
         stdout, _, _ = run(
             ["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"],
             expect_exit=0,
@@ -708,8 +734,8 @@ def test_verify_post_verdict_consistency_warn():
                 "criteriaResults": [{"criterionId": "AC_1", "status": "fail", "evidence": "Test failed"}],
             }
         ]
-        # verifyVerdict="complete" but report says "rejected"
-        plet_dir = setup_verify_post(tmpdir, verify_verdict="complete", verification_reports=reports)
+        # verifyVerdict="passed" but report says "rejected"
+        plet_dir = setup_verify_post(tmpdir, verify_verdict="passed", verification_reports=reports)
         stdout, _, _ = run(
             ["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"],
             expect_exit=2,
@@ -801,6 +827,8 @@ def main():
     test_post_gate_logs_failure()
     test_impl_post_implement_verdict_fail()
     test_impl_post_implement_verdict_pass()
+    test_impl_post_implement_verdict_invalid()
+    test_verify_post_verify_verdict_invalid()
     test_verify_post_verdict_consistency_pass()
     test_verify_post_verdict_consistency_warn()
     test_impl_post_audit_tag_missing()

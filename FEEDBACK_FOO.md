@@ -714,6 +714,8 @@ Source: CASE_LOGA_R02_F_4
 
 LOGA Run 2: `attempts.implement` stayed 0 despite implementation clearly happening. The agent updated criteria, wrote artifacts, and set lifecycle → verifying, but never incremented the attempt counter. implement.md should make this a critical early step.
 
+`[resolved]` → Orchestrator now calls `plet_iter_state.py start-phase` before spawning subagents for both implement and verify phases. Attempt counters, phase timestamps, and verdict clearing are deterministic — no longer dependent on subagent prose compliance.
+
 ### FOO_62: lastVerdict not set despite completion [state] [prompting]
 
 Source: CASE_LOGA_R02_STFL (lastVerdict null)
@@ -728,7 +730,7 @@ Source: CASE_LOGA_R02_F_6
 
 LOGA Run 2: Verification report uses `"decision": "pass"` instead of `"verdict": "passed"`. The state-schema.md defines `verdict` as the field name with values `passed`/`rejected`/`blocked`. Agent used wrong field name and wrong value format.
 
-**Note:** May already be implemented — gate_phase verdict value validation needs checking.
+`[resolved]` → `check_implement_verdict` and `check_verify_verdict` in gate_phase.py now validate values against `IMPLEMENT_VERDICTS` (completed, blocked) and `VERIFY_VERDICTS` (passed, rejected, blocked). Invalid values produce FAIL with the valid options listed.
 
 ---
 
