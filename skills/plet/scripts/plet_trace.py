@@ -60,7 +60,7 @@ VALID_EVENT_TYPES = [
     "invocation",
 ]
 
-VALID_PHASES = ["implement", "verify"]
+VALID_PHASES = ["implement", "verify", "orchestrator", "unknown"]
 
 VALID_LIFECYCLES = [
     "ineligible",

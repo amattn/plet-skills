@@ -313,7 +313,7 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
         phase = phase_map.get(phase, phase)
         # After normalization, phase must be a valid command phase or "unknown".
         # If it's something else entirely, skip logging.
-        if phase not in ("implement", "verify", "plan", "refine", "unknown"):
+        if phase not in ("implement", "verify", "plan", "refine", "orchestrator", "unknown"):
             return
         attempt = _extract_from_args(args, "attempt") or "1"
 

@@ -113,6 +113,7 @@ project (LOGA)
 - **Session** = a `/plet` invocation: plan session, loop session, refine session
 - **Iteration** = a unit of work with acceptance criteria (loop sessions only)
 - **Phase** = implement or verify within an iteration (not plan/loop/refine)
+- **Phase in traces/entries vs phase in lifecycle:** The `--phase` flag in trace and entry scripts accepts a broader vocabulary than the iteration lifecycle. Lifecycle phases are `implement` and `verify` (Level 3). Trace/entry phases also include `plan`, `refine`, `orchestrator`, and `unknown` — these label *who did the work* for observability, not where we are in the iteration lifecycle. `plan` and `refine` are Level 1 sessions, not Level 3 phases, but they're valid phase values for attribution. `orchestrator` represents loop-management work (scheduling, gating, fingerprinting) outside any iteration phase. `unknown` is the fallback when no `--phase` is provided. Gate scripts, iter_state, and git scripts retain the strict `["implement", "verify"]` — they only operate within iteration phases.
 - Retry numbering (`implement-1`, `implement-2`) is a detail within phases, not a formal hierarchy level
 - "Cycle" is informal shorthand for one implement run + one verify run
 

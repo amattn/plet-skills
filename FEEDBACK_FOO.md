@@ -802,11 +802,13 @@ Source: CASE_LOGA_R06_TRAC
 
 Some script invocations genuinely have no phase — orchestrator-level calls (schedule, fingerprint check, gate session) happen outside any implement/verify phase. The dispatch auto-logger requires `--phase` but has no valid value to use, so it defaults to "unknown". This creates `*-unknown-1-events.ndjson` trace files (13 per run, one per iteration). The issue isn't the filename — it's that the CLI requires a value that doesn't exist for this class of invocation.
 
-Options:
-- A. Add `orchestrator` as a valid phase value — these are orchestrator-phase invocations
-- B. Add `none` or `setup` — explicitly "no phase" rather than a misleading name
-- C. Make `--phase` optional on trace/logging commands — omit when not applicable
-- D. Separate orchestrator-level trace files from iteration-level ones (different naming pattern)
+`[resolved]` ��� Added `orchestrator` as a valid phase value in plet_trace.py, plet_entries.py, and util_cli.py dispatch logger (option A). Callers can pass `--phase orchestrator` explicitly. `unknown` remains the fallback when no `--phase` is provided — both are accepted. Taxonomy exception documented in NOTES.md: trace/entry phases (`plan`, `implement`, `verify`, `refine`, `orchestrator`, `unknown`) are broader than lifecycle phases (`implement`, `verify`).
+
+Options considered:
+- A. Add `orchestrator` as a valid phase value ← chosen
+- B. Add `none` or `setup`
+- C. Make `--phase` optional
+- D. Separate naming pattern
 
 ### FOO_72: Worktree cleanup after iteration completion [git] [orchestrator]
 

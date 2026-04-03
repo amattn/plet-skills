@@ -77,7 +77,7 @@ VALID_EMERGENT_CATEGORIES = [
     "blocker",
 ]
 
-VALID_PHASES = ["plan", "implement", "verify", "refine"]
+VALID_PHASES = ["plan", "implement", "verify", "refine", "orchestrator"]
 
 TYPE_PREFIXES = {
     "progress": "epr",
