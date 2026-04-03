@@ -683,7 +683,7 @@ See `specs/conventions.md` for universal requirements.
 | 4 | Should `add-*` success output prefix with `OK —`? | Yes — `OK — {plet_id}` for consistency with other scripts. Scripts capturing the ID parse after `OK — `. |
 | 5 | Should `--attempt` validate as integer? | Yes — wrap in try/except, produce specific error message. |
 | 6 | Should error paths print HELP text? | Yes — per UNV_CMD_16, print HELP to stderr after the error message. |
-| 7 | FB_44: multiline content support? | Resolved — `--content-file` added (ENT_APR_INP_9). All three commands unified to `--content`/`--content-file`. |
+| 7 | FOO_44: multiline content support? | Resolved — `--content-file` added (ENT_APR_INP_9). All three commands unified to `--content`/`--content-file`. |
 | 8 | Unified entry format? | Yes — all three entry types share KV metadata on top, `**Content:**` marker, freeform content block until end fence. See specs/NOTES.md for full rationale. |
 | 9 | Fencing safety? | Reject content containing fence patterns by default. Agent-first: fail loudly rather than silently escaping. `--allow-fences` overrides for legitimate cases (e.g., logging prompts that include format examples). |
 | 10 | IN_PROGRESS visual noise? | `--status` stays required (consistency). IN_PROGRESS is suppressed from the header line — entry just shows `### [ID_xxx] phase-N`. All other statuses printed. See ENT_APR_BHV_8. |
@@ -705,12 +705,12 @@ See `specs/conventions.md` for universal requirements.
 | ENT_FUT_4 | Format migration | If entry format changes, a migration tool for existing entries. |
 | ENT_FUT_5 | ~~BLOCKED variant~~ | Withdrawn — BLOCKED details are content guidance for agents, not CLI-enforced fields. Info is recoverable from state files, tests, and git history if agent omits it. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_17 — progress.md formatting inconsistent (complemented by this tool)
-- FB_29 — learnings/emergent mandatory entry rule not enforced (`check` command enables gate scripts)
-- FB_33 — progress.md entries incomplete (`check` + gate scripts enforce completeness)
-- FB_44 — multiline progress content (resolved via `--content-file`, ENT_APR_INP_9)
+- FOO_17 — progress.md formatting inconsistent (complemented by this tool)
+- FOO_29 — learnings/emergent mandatory entry rule not enforced (`check` command enables gate scripts)
+- FOO_33 — progress.md entries incomplete (`check` + gate scripts enforce completeness)
+- FOO_44 — multiline progress content (resolved via `--content-file`, ENT_APR_INP_9)
 
 ## Audit Findings (2026-03-15)
 

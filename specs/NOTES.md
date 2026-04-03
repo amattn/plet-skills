@@ -77,7 +77,7 @@ This was validated across three case studies: state schema drift (the most persi
 | TST | Testing & Verification | §13 |
 | FUT | Future Considerations | §15 |
 
-Sections 14 (Resolved Questions) and 16 (FB Items) don't get IDs — they reference existing IDs.
+Sections 14 (Resolved Questions) and 16 (FOO Items) don't get IDs — they reference existing IDs.
 
 **Command sub-sections** (used as: `STA_VAL_BHV_1`):
 
@@ -167,7 +167,7 @@ Mapped plet's PRD template (plan.md §1–§14) to a lightweight script spec. Ke
 - Release Milestones → omitted (scripts ship with plet skill)
 - Success Metrics → omitted (scripts either work or don't)
 - Developer Experience → **kept** (agents are developers too — CLI ergonomics matter)
-- Added: Edge Cases, Error Handling, FB Items Addressed (not in PRD template)
+- Added: Edge Cases, Error Handling, FOO Items Addressed (not in PRD template)
 
 Decision to keep DX: even though scripts follow scripts/CLAUDE.md for coding standards, per-script CLI ergonomics (output format, help quality, agent-readability) warrant their own section.
 
@@ -375,7 +375,7 @@ This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" ca
 - **Transcript capture:** free (stdout/stderr) vs manual copy to trace/
 - **Judgment calls:** must be pre-coded or deferred to subagents (can't adapt in-flight)
 - **Error recovery:** must be explicitly coded vs Claude reasoning about failures
-- **Permissions:** `--dangerously-skip-permissions` bypasses all safety checks. Named that way for a reason. But plet subagents are already designed for full autonomy (FB_3) — they need unrestricted tool access anyway.
+- **Permissions:** `--dangerously-skip-permissions` bypasses all safety checks. Named that way for a reason. But plet subagents are already designed for full autonomy (FOO_3) — they need unrestricted tool access anyway.
 
 **Impact on PLAN_8:** This changes `plet_orchestrator.py` from "helper commands the skill calls" to potentially "the orchestrator itself." The `assemble-prompt` command becomes the bridge — it produces the exact prompt text that gets piped to `claude -p`.
 
@@ -480,7 +480,7 @@ Decisions made during §2–§3.1 review of `plet_entries.md`:
 
 6. **Universal Inputs section (spec + template):** Universal flags (`--output json`, `--pretty`, `--fields`, `--dry-run`) listed once in a table under §3 before per-command sections. Each flag notes which commands it applies to, explicitly stating `--dry-run` is NOT available on read-only commands. Template updated with this convention.
 
-7. **`--summary-file` flag added (ENT_APR_INP_9, P1):** Reads summary from a file path. Resolves FB_44 (multiline progress content). Mutually exclusive with `--summary`. Use for long content awkward as shell args (plan milestones, blocker details). ENT_FUT_1 marked resolved.
+7. **`--summary-file` flag added (ENT_APR_INP_9, P1):** Reads summary from a file path. Resolves FOO_44 (multiline progress content). Mutually exclusive with `--summary`. Use for long content awkward as shell args (plan milestones, blocker details). ENT_FUT_1 marked resolved.
 
 8. **Blocker content embedded in summary:** BLOCKED entries include "Work completed:" and "Work remaining:" sections as part of `--summary` or `--summary-file` content. Tool stays thin — enforces the envelope (fencing, metadata, IDs), content is freeform. Rejected separate `--work-completed`/`--work-remaining` flags. **Rationale:** adding flags for every format variant doesn't scale. The div fencing gives GUI entry boundaries; within entries, markdown structure is parseable enough.
 
@@ -582,10 +582,10 @@ Decisions made during §3.4–§9 review of `plet_entries.md`:
 
 The script-as-orchestrator architecture changes the resolution path for most PLAN_7 feedback items. Of 26 open items:
 
-- **5 already resolved** (FB_36, FB_37, FB_41, FB_42, FB_45) — withdrawn or done in earlier sessions
+- **5 already resolved** (FOO_36, FOO_37, FOO_41, FOO_42, FOO_45) — withdrawn or done in earlier sessions
 - **12 defer to PLAN_8 tooling** — problems caused by orchestrator drift or agent non-compliance that the scripts handle deterministically. No prose fixes needed.
-- **5 need PLAN_7 prose fixes** — all plan session issues (FB_24–FB_28) unaffected by the orchestrator change
-- **4 research/minor** — triage individually (FB_21, FB_34, FB_39, FB_43) plus FB_44 as a `plet_entries.py` enhancement
+- **5 need PLAN_7 prose fixes** — all plan session issues (FOO_24–FOO_28) unaffected by the orchestrator change
+- **4 research/minor** — triage individually (FOO_21, FOO_34, FOO_39, FOO_43) plus FOO_44 as a `plet_entries.py` enhancement
 
 **Key insight:** The plan session is the only phase still fully skill-driven (interactive, judgment-heavy). Its feedback items are the only ones that need prose fixes. Loop and verify issues are almost entirely subsumed by the script orchestrator and gate scripts.
 
@@ -606,7 +606,7 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - §13 (Testing) approved as-is — shebang covered by conventions reference
 - §14 (Resolved Questions) approved — RQ_10 and RQ_11 added for status suppression and BLOCKED decisions
 - §15 (Future): ENT_FUT_1 resolved (cross-ref to RQ_7), ENT_FUT_5 withdrawn
-- §16 (FB Items): FB_44 updated to resolved via --content-file
+- §16 (FOO Items): FOO_44 updated to resolved via --content-file
 - Audit findings approved — 9 implementation tasks guide Seq 3 implementation
 - **ENT spec complete** — all 16 sections reviewed and approved
 
@@ -764,7 +764,7 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 - **load_state_context → load_and_validate_global_state:** Renamed everywhere. Internal split: `load_global_state` (load JSON) + `validate_global_state` (check fields). Public function composes both.
 - **WTC auto-resume on existing branch:** If the iteration branch already exists (blocked→unblocked cycle), `worktree-create` auto-resumes — creates worktree on existing branch without `-b`. No `--resume` flag needed — the branch's existence IS the signal. Preserves all commits from the blocked attempt. EDG_2 and ERR_8 updated (no longer errors). CRT_11 added.
 - **UNV_NFR_9 added:** subprocess calls must use explicit args lists, never shell=True. Promoted from GTI-specific to universal convention.
-- **FB_47 filed:** Formalize plan session branch and worktree behavior (open questions about whether plan actually needs branches/worktrees).
+- **FOO_47 filed:** Formalize plan session branch and worktree behavior (open questions about whether plan actually needs branches/worktrees).
 - **PRD updated:** Plan branch pattern added to branch/tag convention table.
 
 #### GTI spec review decisions (2026-03-21)
@@ -862,7 +862,7 @@ CLEANUP (per-iteration state controls):
 - §3.1 CKI_OUT: three-tier exit codes (0=pass, 1=fail, 2=warn-only). Title line shows worst severity (PASS/WARN/FAIL). JSON status adds `"warn"` state. Rationale: exit 2 gives callers a distinct signal for warnings without forcing binary pass/fail. Gate scripts and orchestrator decide how to handle exit 2.
 - §3.1 CKI_BHV: confirmed merge-commits-only for linear-history (fast-forwards are fine, duplicate commits from bad rebases are a different problem). No SKIP status — dependent checks fail naturally, check order (BHV_6) tells the story top-to-bottom. Simplest approach, no dependency-linking metadata needed.
 - §3.1 CKI_BHV_8 added: in-progress-operation check — detects interrupted rebase/merge/cherry-pick/bisect. FAIL. Runs first in check order. More actionable than clean-worktree alone (explains *why* the tree is dirty).
-- Clarification: plet runtime artifacts (progress.md, learnings.md, state files, traces) ARE committed on iteration branches alongside code. The branch is a complete record of the iteration's work. Added UNV_NFR_10 to conventions.md. FB_48 filed to make this explicit in PRD and reference files.
+- Clarification: plet runtime artifacts (progress.md, learnings.md, state files, traces) ARE committed on iteration branches alongside code. The branch is a complete record of the iteration's work. Added UNV_NFR_10 to conventions.md. FOO_48 filed to make this explicit in PRD and reference files.
 - §3.2 CKS_CMD: `--state-dir` changed to positional `state_dir`. Consistency with check-iteration's two-positional-args pattern. Script validates directory type via ERR_6/ERR_7.
 - §3.2 CKS_BHV_8 added: in-progress-operation check (same as CKI_BHV_8). Session preflight is the only checkpoint before work begins — if repo has an interrupted operation, nothing else matters. Shared check name across both commands.
 - §3.2 CKS_BHV_9 added: orphaned-branches — plet-namespaced branches without corresponding state files. WARN. Reverse of unmerged-complete (branch without state vs state without merge). Rejected: workstream-ahead-of-main (judgment call, not compliance) and active-iteration-branches-exist (state-level, not git-level).
@@ -884,17 +884,17 @@ CLEANUP (per-iteration state controls):
 - **JSON schemas:** All OUT sections use pulled-out fenced blocks with full stable labels (GSS_DET_OUT_2, not OUT_2). Convention applied across all 9 specs.
 - **Postflight open question:** Added OQ_1 — should GSS have a postflight command that calls GTC + ENT check + FPR check + state validation as a session-end gate? Evaluate during orchestrator spec.
 - **DXP_3:** detect bare output exception references GTI_DXP_3 precedent.
-- **Router → session rename:** RTR → SES. All active references updated. FB_22/23 updated.
+- **Router → session rename:** RTR → SES. All active references updated. FOO_22/23 updated.
 - **§3.2 STS approved.** Unified plet_dir input (same as detect/preflight). Added BHV_8 (progress percentage), BHV_9 (milestone breakdown — bottom of text, full in JSON). Fingerprint check graceful degradation (null if unavailable).
 - **§3.3 PRF approved.** Major design decisions:
-  - **bypass-permissions dropped** — plet_invoke.py uses `claude --enable-auto-mode`. FB_22 resolved by architecture.
+  - **bypass-permissions dropped** — plet_invoke.py uses `claude --enable-auto-mode`. FOO_22 resolved by architecture.
   - **--session-type required** — `detect|plan|loop|refine`. Controls fingerprint severity. Users can force session type.
   - **Fingerprint severity by session:** loop→FAIL, refine→WARN, plan→SKIPPED. Stale specs in loop = wasted work.
   - **SKIPPED status added** — fourth check status (pass/fail/warn/skipped). Doesn't affect exit code.
   - **Full GTC check-session integrated** — preflight IS a session boundary. CKS checks included with `git:` prefix.
   - **scripts-installed check** — missing plet scripts = FAIL (corrupted installation).
   - Check order: scripts-installed → git-check (CKS) → claude-md-exists → gitignore-plet → spec-artifacts → state-valid → fingerprints-consistent.
-- **§4–§16 approved.** Added ERR_9 (invalid --session-type), CRT_11 (GTC integration), CRT_12 (fingerprint SKIPPED on plan). FB_22 updated (resolved by invoke architecture).
+- **§4–§16 approved.** Added ERR_9 (invalid --session-type), CRT_11 (GTC integration), CRT_12 (fingerprint SKIPPED on plan). FOO_22 updated (resolved by invoke architecture).
 - **SES spec review complete.**
 
 #### Worktree + shared artifacts merge strategy (2026-03-26)
@@ -935,7 +935,7 @@ CLEANUP (per-iteration state controls):
 - **State reads, doesn't write:** Reads attempt number from iter state for filename. Doesn't increment — orchestrator's job.
 - **`--permission-mode auto`** requires one-time `claude --enable-auto-mode` setup (https://claude.com/blog/auto-mode). `bypassPermissions` as fallback for older models.
 - **No `--dangerously-skip-permissions`:** Use `--permission-mode bypassPermissions` instead.
-- **Sandboxing:** Environment-level config, not per-invocation. See FB_50.
+- **Sandboxing:** Environment-level config, not per-invocation. See FOO_50.
 - **`--dry-run`** supported — previews full claude command without launching.
 - **Mock testing strategy:** Mock `claude` script on PATH outputs JSONL and exits with controlled code.
 - **37 tests, all passing.**
@@ -944,8 +944,8 @@ CLEANUP (per-iteration state controls):
 
 - **Renamed:** `plet_inject_prompt.py` (INJ) → `plet_prompt.py` (PRM). Simpler name — "it builds the prompt."
 - **Single command:** `assemble` with `--phase implement|verify`. Reads files on disk, outputs complete prompt.
-- **7 sections in order:** reference-file (implement.md or verify.md), iteration-definition (extracted from iterations.md), formats, state-schema, requirements, learnings (always present — FB_38), iteration-state (formatted readably).
-- **Learnings always injected (FB_38):** Even when learnings.md is empty or missing, the section appears with a "no learnings" note. Guarantees cross-iteration knowledge transfer is deterministic.
+- **7 sections in order:** reference-file (implement.md or verify.md), iteration-definition (extracted from iterations.md), formats, state-schema, requirements, learnings (always present — FOO_38), iteration-state (formatted readably).
+- **Learnings always injected (FOO_38):** Even when learnings.md is empty or missing, the section appears with a "no learnings" note. Guarantees cross-iteration knowledge transfer is deterministic.
 - **Iteration definition extraction:** Regex-based heading match in iterations.md. Extracts from matching heading to next same-level heading.
 - **State formatted as text:** Not raw JSON — human-readable summary of lifecycle, attempts, criteria with statuses.
 - **Matches current SKILL.md injection list.** Will evolve when skills are rewritten to use enforcement scripts. This version is a historical baseline — formats.md and state-schema.md may become unnecessary when agents call scripts instead of writing freehand.
@@ -984,8 +984,8 @@ CLEANUP (per-iteration state controls):
 - **§3.1 PRE approved.** Added BHV_5 (lifecycle-check, WARN), BHV_6 (fingerprints-consistent, WARN). FUT_3 promoted. Open question resolved.
 - **§3.2 PST — post does NOT repeat lifecycle/spec-artifacts/fingerprints.** Rationale: lifecycle mid-transition, spec artifacts can't disappear, fingerprints can't change during impl. Post = git + state re-verify + entry checks only.
 - **Worktree merge strategy decided.** Sequential merge-squash for shared runtime artifacts. Parallel execution, serial merge (< 2s each). Already natural behavior. Cascaded to GTO RQ_7, orchestrator placeholder.
-- **§3.2 PST approved.** JUS_2 fixed (subagent calls post). BHV_8 added (trace-events WARN if missing/empty, FB_11). emergent-entry WARN includes actionable guidance ("verify no decisions were made"). RQ_3 updated.
-- **§4–§16 approved.** CRT_11 added (trace events). FB_11 added to §16.
+- **§3.2 PST approved.** JUS_2 fixed (subagent calls post). BHV_8 added (trace-events WARN if missing/empty, FOO_11). emergent-entry WARN includes actionable guidance ("verify no decisions were made"). RQ_3 updated.
+- **§4–§16 approved.** CRT_11 added (trace events). FOO_11 added to §16.
 - **GIM spec review complete.**
 
 #### GIM spec review (2026-03-25)
@@ -1070,7 +1070,7 @@ Retrofitting all specs first, then implementations.
 
 - **UNV_CMD_28 added** to `specs/conventions.md`: `--no-log` flag convention. Intentionally excluded from `--help` output — this flag is for tests and GUIs only, not agent use. Cascades via `PLET_NO_LOG=1` env var.
 - **`dispatch()` signature fixed** in `specs/util_modules.md`: was missing `argv` and `no_log_commands` parameters, now complete with logging behavior description.
-- **PLAN.md FB_29/FB_33 updated**: stale references to `plet_gate_impl.py`/`plet_gate_verify.py` corrected to `plet_gate_phase.py` (scripts were merged).
+- **PLAN.md FOO_29/FOO_33 updated**: stale references to `plet_gate_impl.py`/`plet_gate_verify.py` corrected to `plet_gate_phase.py` (scripts were merged).
 - **11 spec files fixed** (earlier in session): `python3 skills/plet/tests/test_...` → `./skills/plet/tests/test_...` to match shebang-style convention from commit 7b8c0cc.
 
 #### Orchestrator execution model — toolkit + run (2026-03-29)
@@ -1117,8 +1117,8 @@ Retrofitting all specs first, then implementations.
   - SCH_RTY_BHV_6: `blocked` verdict → orchestrator must NOT call check-retry. Retry only evaluates `rejected`.
   - SCH_NFR_2: uses `util_state.load_and_validate_iter_state` + explicit lifecycle enum check. Catches both structural corruption and lifecycle typos.
 - **UNV_CMD_29 added:** unknown flags error. New scripts implement from the start; retrofit existing scripts in seq 33.
-- **FB_52 filed:** plan/refine sessions need explicit ambiguity/gap detection steps.
-- **FB_53 filed:** different software types need different planning templates.
+- **FOO_52 filed:** plan/refine sessions need explicit ambiguity/gap detection steps.
+- **FOO_53 filed:** different software types need different planning templates.
 
 #### plet_session.py spec (SES) — complete (2026-03-29)
 
@@ -1146,7 +1146,7 @@ Retrofitting all specs first, then implementations.
 - Parallel spawn (round-based), sequential merge. `--sequential` for debugging. `--max-iterations N` for incremental runs.
 - No-commits after implement → block (EDG_1). Red/green means every criterion produces commits.
 - Crash recovery: criteria-check heuristic (all pass → proceed, incomplete → re-queue). Unified for EDG_3 and EDG_5.
-- Postflight command added to plet_gate_session.py (FB_56) — symmetric with preflight, may diverge.
+- Postflight command added to plet_gate_session.py (FOO_56) — symmetric with preflight, may diverge.
 - Testing: real scripts + mock claude only. One mock instead of ten.
 - **Emergent updates completed (seq 34):** plet_gate_phase.py (3 new post checks), plet_gate_session.py (postflight), plet_schedule.py (stuck iteration detection).
 - **Implementation completed (seq 36):** 58 integration tests with real scripts + mock claude. Bugs found and fixed: worktree path (relative→absolute), command ordering (plet_dir before command→command before plet_dir), merge-squash dirty tree (commit state before merge), fingerprint check field name (consistent→allConsistent), infinite loop guard (failed_this_round set).
@@ -1173,7 +1173,7 @@ Also: `plan` and `refine` are session phases used in runtime artifact entries an
 
 **Do NOT unify these.** The distinction is semantic: command phases are short verbs (CLI), criterion phases are nouns (data model), lifecycle states are gerunds (activity). Unifying creates ambiguity.
 
-**Bug fixed (FB_59):** `util_cli._log_script_invocation` used the raw `--phase` arg from criterion commands, creating trace files named `implementation-1` instead of `implement-1`. Fixed: logger now normalizes criterion phases → command phases for trace file naming.
+**Bug fixed (FOO_59):** `util_cli._log_script_invocation` used the raw `--phase` arg from criterion commands, creating trace files named `implementation-1` instead of `implement-1`. Fixed: logger now normalizes criterion phases → command phases for trace file naming.
 
 #### Worktree state file invariants (2026-03-30)
 
@@ -1624,7 +1624,7 @@ Lifecycle extraction works end-to-end. IST scripts (start-phase, update-activity
 1. **Script discovery via prompt, not file copying.** `plet_prompt.py` includes absolute script path in subagent prompt. Fallback chain: `CLAUDE_SKILL_DIR` → `CLAUDE_CONFIG_DIR` + plugin cache → `~/.claude` + plugin cache. Simpler than copying scripts to `.plet/scripts/` (which wouldn't be visible in worktrees anyway — gitignored).
 2. **Bootstrap spec revised.** No longer copies scripts. Focuses on project infrastructure: git merge driver, .gitignore (`.plet/`, `.claude/settings.local.json`, `CLAUDE.local.md`), .claude/settings.json (merge allow entries), CLAUDE.md stub (with script discovery instructions), empirical sandbox/permissions detection.
 3. **Empirical runtime detection.** Bootstrap `check` should detect sandbox mode (`TMPDIR=/tmp/claude`), permission mode, and git config — not just read config files.
-4. **FB_64–68 filed for plan phase UX.** Confirm before init, create branch, don't auto-launch loop, create CLAUDE.md/.gitignore, fix .gitignore check.
+4. **FOO_64–68 filed for plan phase UX.** Confirm before init, create branch, don't auto-launch loop, create CLAUDE.md/.gitignore, fix .gitignore check.
 5. **Seq 42–47 added to plan.** Bootstrap, optional flags audit, script discovery, loopSessionCount fix, flag naming, plan UX.
 
 #### Seq 42–47 implementation (2026-04-01)
@@ -1641,7 +1641,7 @@ All six items from LOGA Run 4 implemented in one session:
 
 **Seq 46 — no change.** `--phase-activity` flag name kept as-is. Explicit and correct; env header solves discovery.
 
-**Seq 47 — plan phase UX (FB_64–68).** SKILL.md plan phase rewritten with two paths:
+**Seq 47 — plan phase UX (FOO_64–68).** SKILL.md plan phase rewritten with two paths:
 - Fresh project: "What do you want to build?" → project ID → plan branch → clarifying questions
 - Existing project: read state.json → show findings → confirm before changes
 - Bootstrap runs first in both paths

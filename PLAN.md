@@ -52,7 +52,7 @@ Plugin metadata and distribution scaffolding.
 
 ## PLAN_4: Case Study Feedback Loop ✓ COMPLETE
 
-8 case studies across 3 projects. All feedback tracked in `FEEDBACK.md` (FB_1–FB_72). Stable labels: `CASE_{PROJECT}_{RUN}_{N}` convention (adopted 2026-04-03).
+8 case studies across 3 projects. All feedback tracked in `FEEDBACK_FOO.md` (FOO_1–FOO_72). Stable labels: `CASE_{PROJECT}_{RUN}_{N}` convention (adopted 2026-04-03).
 
 ### Case study inventory
 
@@ -67,9 +67,9 @@ Plugin metadata and distribution scaffolding.
 | `CASE_STUDY_LOGA_R05.md` | LOGA (Go) | 3/13 | Env var injection works; dependency promotion bug | — |
 | `CASE_STUDY_LOGA_R06.md` | LOGA (Go) | 13/13 | First fully successful scripted run; zero human intervention | REC_1–5 |
 
-### FEEDBACK.md overhaul (2026-04-03)
+### FEEDBACK_FOO.md overhaul (2026-04-03)
 
-5-phase cleanup: (0) stable label format decision, (1) label all case studies + rename files `*_CASE_STUDY.md` → `CASE_STUDY_*.md`, (2) cross-reference every REC ↔ FB item, (3) resolution pass — mark PLAN_8 deferrals resolved/verified after Run 6, (4) new FB items (FB_69–72), (5) coverage check + cleanup. All phases complete.
+5-phase cleanup: (0) stable label format decision, (1) label all case studies + rename files `*_CASE_STUDY.md` → `CASE_STUDY_*.md`, (2) cross-reference every REC ↔ FOO item, (3) resolution pass — mark PLAN_8 deferrals resolved/verified after Run 6, (4) new FOO items (FOO_69–72), (5) coverage check + cleanup. All phases complete.
 
 ### Additional work done during PLAN_4
 
@@ -82,31 +82,31 @@ Plugin metadata and distribution scaffolding.
 - Compaction recovery defense validated (3-layer: CLAUDE.md → PLET.md → auto-memory)
 - SKILL.md frontmatter description rewritten with session summaries
 - Case study methodology formalized (`case_studies/CLAUDE.md`)
-- Case study → FEEDBACK.md pipeline formalized
-- Git stash banned in agents (FB_9)
+- Case study → FEEDBACK_FOO.md pipeline formalized
+- Git stash banned in agents (FOO_9)
 - Linear history and green/rebase/green invariant enforced (IMP_16)
 - Version corrected to 0.1.0 across all files (history rewritten)
-- Debug number hardcoded literal exception added across all artifacts (FB_20)
-- Progress.md format enforcement via "match exactly" prose + inline templates (FB_17)
-- State file schema enforcement via plet_state.py tool (FB_12) — A/B test vs FB_17 prose
+- Debug number hardcoded literal exception added across all artifacts (FOO_20)
+- Progress.md format enforcement via "match exactly" prose + inline templates (FOO_17)
+- State file schema enforcement via plet_state.py tool (FOO_12) — A/B test vs FOO_17 prose
 - PRD traceability tags made permanent, "will be stripped" build notes removed
-- Spec artifact preservation: plan checkpoint + execute pre-flight (FB_16)
-- Post-merge file verification added to verify.md (FB_18)
-- Real timestamps via `date -u` in SKILL.md session history (FB_19)
+- Spec artifact preservation: plan checkpoint + execute pre-flight (FOO_16)
+- Post-merge file verification added to verify.md (FOO_18)
+- Real timestamps via `date -u` in SKILL.md session history (FOO_19)
 - `allowed-tools` added to SKILL.md frontmatter for plet_state.py
-- FB_22 filed: bypassPermissions pre-flight check needed
+- FOO_22 filed: bypassPermissions pre-flight check needed
 
-### Remaining open FB items
+### Remaining open FOO items
 
-As of 2026-04-03: 72 total FB items. 55 resolved, 4 withdrawn, 2 deferred, 11 open (FB_58–68, FB_69–72 filed during FEEDBACK.md overhaul).
+As of 2026-04-03: 72 total FOO items. 55 resolved, 4 withdrawn, 2 deferred, 11 open (FOO_58–68, FOO_69–72 filed during FEEDBACK_FOO.md overhaul).
 
 Key open items:
-- FB_25: Priority histogram at end of plan session (deferred)
-- FB_64–68: Plan phase UX improvements (confirm before init, create branch, don't auto-launch loop, bootstrap CLAUDE.md, fix .gitignore check)
-- FB_69: Parallel scheduling in orchestrator
-- FB_70: Milestone boundary refactor step
-- FB_71: Phase "unknown" in trace files — CLI design
-- FB_72: Worktree cleanup after iteration completion
+- FOO_25: Priority histogram at end of plan session (deferred)
+- FOO_64–68: Plan phase UX improvements (confirm before init, create branch, don't auto-launch loop, bootstrap CLAUDE.md, fix .gitignore check)
+- FOO_69: Parallel scheduling in orchestrator
+- FOO_70: Milestone boundary refactor step
+- FOO_71: Phase "unknown" in trace files — CLI design
+- FOO_72: Worktree cleanup after iteration completion
 
 ---
 
@@ -140,7 +140,7 @@ Generalizable patterns extracted as standalone skills, implemented and published
 
 ## PLAN_7: Feedback Triage ✓ COMPLETE
 
-Review and resolve open FB items. Each item gets one of: resolve (artifact changes), defer (with rationale), or withdraw (not worth fixing).
+Review and resolve open FOO items. Each item gets one of: resolve (artifact changes), defer (with rationale), or withdraw (not worth fixing).
 
 The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator architecture") changes the resolution path for many items: problems caused by orchestrator drift or agent non-compliance become "the script handles this deterministically" rather than "fix the prose."
 
@@ -148,48 +148,48 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 
 | ID | Summary | Resolution |
 |----|---------|------------|
-| FB_36 | Retry overhead 24% | Withdrawn — Goldilocks framing (NOTES.md) |
-| FB_37 | Verify first-pass rate 83% | Withdrawn — Goldilocks framing (NOTES.md) |
-| FB_41 | Refine jumped to re-decomposition | Resolved — triage-before-decomposition rule (NOTES.md) |
-| FB_42 | Refine created state files during redecomp | Resolved — same decision (NOTES.md) |
-| FB_45 | Scripts CLAUDE.md | Done — `scripts/CLAUDE.md` exists |
+| FOO_36 | Retry overhead 24% | Withdrawn — Goldilocks framing (NOTES.md) |
+| FOO_37 | Verify first-pass rate 83% | Withdrawn — Goldilocks framing (NOTES.md) |
+| FOO_41 | Refine jumped to re-decomposition | Resolved — triage-before-decomposition rule (NOTES.md) |
+| FOO_42 | Refine created state files during redecomp | Resolved — same decision (NOTES.md) |
+| FOO_45 | Scripts CLAUDE.md | Done — `scripts/CLAUDE.md` exists |
 
 ### Defer to PLAN_8 tooling (12) — script handles deterministically
 
 | ID | Summary | Script |
 |----|---------|--------|
-| FB_11 | Trace schema standardization | `plet_trace.py` |
-| FB_13 | Branch isolation via worktrees | `plet_git.py` worktree commands |
-| FB_22 | Warn if bypassPermissions not configured | `plet_router.py preflight` |
-| FB_23 | Bootstrap CLAUDE.md if missing | `plet_router.py preflight` |
-| FB_29 | Learnings/emergent mandatory rule not enforced | `plet_gate_phase.py post` |
-| FB_30 | 42 git stashes despite ban | `plet_git.py` worktrees eliminate stashing |
-| FB_31 | Final loop commit required human prompting | `plet_orchestrator.py end-session` |
-| FB_32 | Orphaned worktree after retry | `plet_git.py` worktree cleanup |
-| FB_33 | Progress.md entries incomplete | `plet_gate_phase.py post` |
-| FB_35 | Agent lost commits during implement | `plet_git.py` worktree isolation |
-| FB_38 | Cross-iteration knowledge transfer | `plet_inject_prompt.py` always injects learnings |
-| FB_40 | State lifecycle not transitioned | `plet_orchestrator.py` transitions deterministically |
+| FOO_11 | Trace schema standardization | `plet_trace.py` |
+| FOO_13 | Branch isolation via worktrees | `plet_git.py` worktree commands |
+| FOO_22 | Warn if bypassPermissions not configured | `plet_router.py preflight` |
+| FOO_23 | Bootstrap CLAUDE.md if missing | `plet_router.py preflight` |
+| FOO_29 | Learnings/emergent mandatory rule not enforced | `plet_gate_phase.py post` |
+| FOO_30 | 42 git stashes despite ban | `plet_git.py` worktrees eliminate stashing |
+| FOO_31 | Final loop commit required human prompting | `plet_orchestrator.py end-session` |
+| FOO_32 | Orphaned worktree after retry | `plet_git.py` worktree cleanup |
+| FOO_33 | Progress.md entries incomplete | `plet_gate_phase.py post` |
+| FOO_35 | Agent lost commits during implement | `plet_git.py` worktree isolation |
+| FOO_38 | Cross-iteration knowledge transfer | `plet_inject_prompt.py` always injects learnings |
+| FOO_40 | State lifecycle not transitioned | `plet_orchestrator.py` transitions deterministically |
 
 ### Resolve in PLAN_7 — plan session prose fixes (5)
 
 | ID | Summary | Tags |
 |----|---------|------|
-| FB_24 | Requirements not written to disk incrementally | `[artifacts]` `[prompting]` |
-| FB_25 | Priority histogram at end of plan session | `[ux]` `[planning]` |
-| FB_26 | Milestones generated too early | `[planning]` `[sequencing]` |
-| FB_27 | Plan session needs data modeling section | `[planning]` `[spec]` |
-| FB_28 | No intermediate commits during plan session | `[git]` `[planning]` |
+| FOO_24 | Requirements not written to disk incrementally | `[artifacts]` `[prompting]` |
+| FOO_25 | Priority histogram at end of plan session | `[ux]` `[planning]` |
+| FOO_26 | Milestones generated too early | `[planning]` `[sequencing]` |
+| FOO_27 | Plan session needs data modeling section | `[planning]` `[spec]` |
+| FOO_28 | No intermediate commits during plan session | `[git]` `[planning]` |
 
 ### Research / minor (5) — triaged
 
 | ID | Summary | Resolution |
 |----|---------|------------|
-| FB_21 | Research — learnings/emergent improvement factors | Withdrawn — tooling makes root cause moot |
-| FB_34 | Recommend user stays for first iterations | Deferred → PLAN_8 (`plet_orchestrator.py` prints message) |
-| FB_39 | SP_6 root cause investigation | Withdrawn — same as FB_21 |
-| FB_43 | All refine status steps → progress entries | Resolved — progress entries added to refine.md Steps 5, 6, 8 |
-| FB_44 | Progress entries need multiline content | Deferred → PLAN_8 (`plet_entries.py` enhancement) |
+| FOO_21 | Research — learnings/emergent improvement factors | Withdrawn — tooling makes root cause moot |
+| FOO_34 | Recommend user stays for first iterations | Deferred → PLAN_8 (`plet_orchestrator.py` prints message) |
+| FOO_39 | SP_6 root cause investigation | Withdrawn — same as FOO_21 |
+| FOO_43 | All refine status steps → progress entries | Resolved — progress entries added to refine.md Steps 5, 6, 8 |
+| FOO_44 | Progress entries need multiline content | Deferred → PLAN_8 (`plet_entries.py` enhancement) |
 
 ---
 
@@ -230,10 +230,10 @@ Scripts, prose, and orchestrator all complete. LOGA Run 6 validated the full pip
 - **1 rename:** plet_session.py → plet_gate_session.py (GSS)
 - **1 new util:** util_git.py (shared branch naming)
 - **Gate phase updates:** lifecycle-handoff, lifecycle-unchanged, audit-tag checks (GPH_PST_BHV_11-13)
-- **Gate session update:** postflight command (FB_56)
+- **Gate session update:** postflight command (FOO_56)
 - **Schedule update:** stuck iteration detection (SCH_ELG_BHV_5)
 - **Cross-cutting:** UNV_CMD_29 (unknown flags), NDJSON standardization, meaningful red, defense in depth, test_all parallel execution
-- **FB items filed:** FB_52–FB_57
+- **FOO items filed:** FOO_52–FOO_57
 
 ---
 
@@ -284,7 +284,7 @@ Design thinking exists in NOTES.md (§ Multi-Developer Analysis, subplet branch 
 - Branch convention: `plet/{projectId}/subplet/{subId}/loop{N}/...`
 - `subplet/` path segment makes hierarchy self-documenting
 - No sub-sub-plets (one level of nesting only)
-- Required `--plet-dir` (FB_57) — enables nested paths like `plet/subplets/AUTH/plet/`
+- Required `--plet-dir` (FOO_57) — enables nested paths like `plet/subplets/AUTH/plet/`
 
 ### Phases
 

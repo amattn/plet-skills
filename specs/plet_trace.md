@@ -55,7 +55,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_JUS_1 | Why: trace data is essential for self-improvement — understanding what agents did, why, and where they struggled drives the refinement cycle that makes plet better over time. But early experiments with agent-based tracing (prose instructions to write NDJSON) saw two failure modes: (1) format drift across iterations (field names, types, structure — FB_11), and (2) completely missing entries and files in most cases (agents deprioritized tracing when under context pressure). Script enforcement makes every event canonical and every call guaranteed to produce output. | P0 |
+| TRC_APE_JUS_1 | Why: trace data is essential for self-improvement — understanding what agents did, why, and where they struggled drives the refinement cycle that makes plet better over time. But early experiments with agent-based tracing (prose instructions to write NDJSON) saw two failure modes: (1) format drift across iterations (field names, types, structure — FOO_11), and (2) completely missing entries and files in most cases (agents deprioritized tracing when under context pressure). Script enforcement makes every event canonical and every call guaranteed to produce output. | P0 |
 | TRC_APE_JUS_2 | When: called throughout implement and verify phases — on decisions, criterion updates, lifecycle transitions, activity changes, and errors. Also called by the orchestrator for lifecycle changes it initiates. Highest-frequency trace command. | P0 |
 | TRC_APE_JUS_3 | Deprecation signal: only if semantic events are replaced by a fundamentally different telemetry mechanism. | P1 |
 
@@ -130,7 +130,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_BHV_1 | Constructs the full event object: `{"pletId": "tev_01JD8X3K7M_id001_i1", "timestamp": now_iso(), "type": event_type, "iterationId": iter_id, "phase": phase, "attempt": attempt_int, "data": data_obj}`. The `pletId` uses `tev_` prefix with the standard plet ID context segments: `{iteration}_{phase_attempt}` (e.g., `tev_01JD8X3K7M_id001_i1`). Same scheme as ENT's `epr_`/`eln_`/`eem_` IDs — iteration normalized to lowercase without underscores, phase as single letter + attempt number. The `timestamp` is always set by the script (not from user input) to prevent fabricated timestamps (FB_11). | P0 |
+| TRC_APE_BHV_1 | Constructs the full event object: `{"pletId": "tev_01JD8X3K7M_id001_i1", "timestamp": now_iso(), "type": event_type, "iterationId": iter_id, "phase": phase, "attempt": attempt_int, "data": data_obj}`. The `pletId` uses `tev_` prefix with the standard plet ID context segments: `{iteration}_{phase_attempt}` (e.g., `tev_01JD8X3K7M_id001_i1`). Same scheme as ENT's `epr_`/`eln_`/`eem_` IDs — iteration normalized to lowercase without underscores, phase as single letter + attempt number. The `timestamp` is always set by the script (not from user input) to prevent fabricated timestamps (FOO_11). | P0 |
 | TRC_APE_BHV_2 | Validates type-specific required fields in `data`: **decision** requires `description`, `rationale`; **criterion_update** requires `criterionId`, `phase`, `status`; **lifecycle_change** requires `from`, `to`; **activity_change** requires `activity`; **error** requires `message`; **invocation** requires `cwd`, `permissionMode`, `promptLength`. Optional fields are allowed and passed through (e.g., invocation may include `prompt` with the full text, but it is not required for validation). | P0 |
 | TRC_APE_BHV_3 | Serializes the event as a single JSON line (no indentation, no trailing comma) followed by a newline. This is NDJSON format — one JSON object per line. | P0 |
 | TRC_APE_BHV_4 | Appends to the events file using atomic append (write to temp, then append). Creates the file if it doesn't exist. | P0 |
@@ -672,6 +672,6 @@ None.
 | TRC_FUT_5 | Transcript validation/query | If post-run analysis needs to validate or query raw transcript NDJSON (e.g., "find all tool_use events", "count tokens per iteration"), add `validate-transcript` and `query-transcript` commands to this script or create a separate tool. Deferred — transcript capture lives in `plet_invoke.py`, analysis needs are unknown until more runs. |
 | TRC_FUT_6 | Native Agent tool support | Native subagents (Claude Code's Agent tool) offer UI benefits but lack reliable transcript capture — no streaming JSONL output, log file locations are implementation details that may change or be non-portable. If native subagent tracing becomes possible (e.g., Claude Code exposes a transcript API), add support. Until then, subprocess invocations are the only architecture that provides the traceability guarantee. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_11 — Trace file generation incomplete and schema inconsistent. `plet_trace.py` makes schema compliance automatic: `append-event` produces canonical NDJSON, `validate` checks existing files.
+- FOO_11 — Trace file generation incomplete and schema inconsistent. `plet_trace.py` makes schema compliance automatic: `append-event` produces canonical NDJSON, `validate` checks existing files.

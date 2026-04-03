@@ -47,38 +47,38 @@ Each section is written independently and can be read standalone. Section 2 is s
 
 ## Section 2: User Feedback
 
-### CASE_LOGA_R01_FB_1: FB_1: State JSON files not updated incrementally
+### CASE_LOGA_R01_FOO_1: FOO_1: State JSON files not updated incrementally
 
 Intermediate writes to the JSON state files didn't seem to happen — they were typically only written at the end. Expected: state files updated as work progresses so that a crashed or interrupted agent leaves recoverable state.
 
-### CASE_LOGA_R01_FB_2: FB_2: No intermediate commits
+### CASE_LOGA_R01_FOO_2: FOO_2: No intermediate commits
 
 Similarly, intermediate commits didn't seem to happen during iteration execution. Work was only committed at the end. Expected: incremental commits during implementation so progress isn't lost on interruption.
 
-### CASE_LOGA_R01_FB_3: FB_3: Autonomous agents asked for confirmation (blocking)
+### CASE_LOGA_R01_FOO_3: FOO_3: Autonomous agents asked for confirmation (blocking)
 
 Autonomous subagents asked "should I proceed?" once or twice during execution. This is effectively blocking — autonomous agents should never prompt for human input. The whole point of the loop is unattended execution.
 
-### CASE_LOGA_R01_FB_4: FB_4: tagBeforeSquash should be always-on, replace with cleanupTagAutomatically
+### CASE_LOGA_R01_FOO_4: FOO_4: tagBeforeSquash should be always-on, replace with cleanupTagAutomatically
 
 `tagBeforeSquash` as an opt-in flag is the wrong default. Tags should always be created before squash. Replace with `cleanupTagAutomatically` (or similar) — the question isn't whether to tag, it's whether to clean up the tag afterward. When cleaning up, the system should:
 - Note the commit hash in progress.md
 - Log that the tag was removed as part of the squash process
 - Record the hash so tags can be recreated in most cases (as long as git hasn't garbage-collected orphaned commits)
 
-### CASE_LOGA_R01_FB_5: FB_5: Project needs a short project ID
+### CASE_LOGA_R01_FOO_5: FOO_5: Project needs a short project ID
 
 There probably needs to be a project ID in short form (e.g., `LOGA` for log analyzer). Used for namespacing branches, tags, and potentially state files across projects or subplets.
 
-### CASE_LOGA_R01_FB_7: FB_7: Batched verify commits too coarse
+### CASE_LOGA_R01_FOO_7: FOO_7: Batched verify commits too coarse
 
 One commit looked like: `plet: [ID_008] [ID_010] [ID_012] verify-1 complete, [ID_009] verify-1 rejected` — four iterations verified in a single commit. Unclear if this was the system not committing at a fine enough granularity (each verify should be its own commit) or the result of over-aggressive squashing. Either way, the commit is too coarse — a rejection and three passes should not share a commit.
 
-### CASE_LOGA_R01_FB_8: FB_8: Uncommitted progress.md at end of run
+### CASE_LOGA_R01_FOO_8: FOO_8: Uncommitted progress.md at end of run
 
 The final commit on the workstream (`5eaab05 "final manual progress update. was not committed"`) was a manual cleanup — the orchestrator left progress.md uncommitted. Section 3 independently caught this. The system should auto-commit all runtime artifacts at the end of each phase.
 
-### CASE_LOGA_R01_FB_6: FB_6: Agents should not work on main branch
+### CASE_LOGA_R01_FOO_6: FOO_6: Agents should not work on main branch
 
 Agents worked directly on `main`. The `logalyzer_workstream` branch was created manually. There should be a naming convention for workstream branches, and agents should never commit to main directly. Open question: is the workstream branch scoped per loop invocation, per plet, or per subplet?
 
@@ -189,7 +189,7 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 - Structured NDJSON events: `lifecycle_change`, `activity_change`, `criterion_update`
 - No other iterations produced traces — feature was experimental and dropped after the first iteration
 
-#### CASE_LOGA_R01_FDBK: FEEDBACK.md
+#### CASE_LOGA_R01_FDBK: FEEDBACK_FOO.md
 - 8 feedback items (F_1–F_8) capturing meta-observations about the plet process
 - F_8 ("write to disk more frequently during plan phase") documents a spec violation during planning
 - F_5 proposes the PLET.md bootstrapping pattern that was later implemented
@@ -260,11 +260,11 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 ### CASE_LOGA_R01_FAIL: What didn't work well
 
-1. **(CASE_LOGA_R01_F_1) Artifact discipline degraded over time.** (FB_1, FB_2, Section 3.5 #8) State files, learnings, and emergent items were rich for ID_001–ID_003 and progressively sparser after. The system front-loaded discipline and lost it — exactly the failure mode NOTES.md Discipline was designed to prevent, but at the agent level.
+1. **(CASE_LOGA_R01_F_1) Artifact discipline degraded over time.** (FOO_1, FOO_2, Section 3.5 #8) State files, learnings, and emergent items were rich for ID_001–ID_003 and progressively sparser after. The system front-loaded discipline and lost it — exactly the failure mode NOTES.md Discipline was designed to prevent, but at the agent level.
 
-2. **(CASE_LOGA_R01_F_2) No intermediate commits or state writes.** (FB_1, FB_2) Work was committed at phase boundaries, not during implementation. A crash mid-iteration loses everything. This is a durability gap.
+2. **(CASE_LOGA_R01_F_2) No intermediate commits or state writes.** (FOO_1, FOO_2) Work was committed at phase boundaries, not during implementation. A crash mid-iteration loses everything. This is a durability gap.
 
-3. **(CASE_LOGA_R01_F_3) Verify commits too coarse.** (FB_7) Batching 4 verify results (3 passes + 1 rejection) into a single commit conflates independent outcomes. Each verify should be its own commit for clean revert, bisect, and audit.
+3. **(CASE_LOGA_R01_F_3) Verify commits too coarse.** (FOO_7) Batching 4 verify results (3 passes + 1 rejection) into a single commit conflates independent outcomes. Each verify should be its own commit for clean revert, bisect, and audit.
 
 4. **(CASE_LOGA_R01_F_4) Learnings mechanism abandoned.** (Section 3.3) Only 3 entries in the first 3 iterations, then nothing. Either the parallel execution mode disrupted the habit, or the agents don't prioritize writing learnings when they're "just implementing." This undermines the L in PLET.
 
@@ -272,11 +272,11 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 6. **(CASE_LOGA_R01_F_6) Trace files dropped after ID_001.** (Section 3.5 #5) The T in PLET is effectively absent for 12 of 13 iterations. Whether this was intentional or a bug, it leaves a gap in post-hoc analysis.
 
-7. **(CASE_LOGA_R01_F_7) Uncommitted runtime artifacts.** (FB_8) The orchestrator left progress.md uncommitted at end of run, requiring manual cleanup. The system should auto-commit all dirty runtime artifacts at phase boundaries and at loop completion.
+7. **(CASE_LOGA_R01_F_7) Uncommitted runtime artifacts.** (FOO_8) The orchestrator left progress.md uncommitted at end of run, requiring manual cleanup. The system should auto-commit all dirty runtime artifacts at phase boundaries and at loop completion.
 
 8. **(CASE_LOGA_R01_F_8) Cross-branch contamination.** (Section 3.5 #7) ID_006 work ended up on the ID_011 branch. Parallel execution needs better isolation — each iteration agent should be confined to its own branch.
 
-9. **(CASE_LOGA_R01_F_9) Agent blocking.** (FB_3) Autonomous agents asked "should I proceed?" — defeating the purpose of unattended execution. Subagents must never prompt for input.
+9. **(CASE_LOGA_R01_F_9) Agent blocking.** (FOO_3) Autonomous agents asked "should I proceed?" — defeating the purpose of unattended execution. Subagents must never prompt for input.
 
 ### CASE_LOGA_R01_SURP: Surprises
 
@@ -286,7 +286,7 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 3. **(CASE_LOGA_R01_S_3) Progress.md became the de facto record.** It's richer than state JSONs for later iterations and more complete than learnings or emergent files. The system's actual memory ended up in a single append-only markdown file rather than the structured state artifacts designed for it.
 
-4. **(CASE_LOGA_R01_S_4) ~5 hour gap in the timeline.** Between 02:00 and 07:03, no commits. Likely caused by an agent asking "should I proceed?" (FB_3) while the user was not monitoring. The loop stalled waiting for human input that should never have been requested — a concrete example of the cost of agent blocking.
+4. **(CASE_LOGA_R01_S_4) ~5 hour gap in the timeline.** Between 02:00 and 07:03, no commits. Likely caused by an agent asking "should I proceed?" (FOO_3) while the user was not monitoring. The loop stalled waiting for human input that should never have been requested — a concrete example of the cost of agent blocking.
 
 5. **(CASE_LOGA_R01_S_5) The first iteration is always the best-documented.** ID_001 has traces, rich state, learnings — everything the spec asks for. It's a pattern worth investigating: is this novelty-driven (agent tries hard on the first one), or does context pressure / parallel mode degrade discipline?
 
@@ -298,23 +298,23 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 **CASE_LOGA_R01_REC_3: One verify = one commit.** Never batch verify results across iterations in a single commit. Each `[ID_xxx] verify-N` gets its own commit, even when verified in sequence by the same agent. This is a git hygiene requirement for bisect, revert, and audit.
 
-**CASE_LOGA_R01_REC_4: Replace `tagBeforeSquash` with `cleanupTagAutomatically`.** (FB_4) Always tag before squash. The option becomes whether to clean up the tag afterward, with a progress.md entry recording the commit hash for recovery.
+**CASE_LOGA_R01_REC_4: Replace `tagBeforeSquash` with `cleanupTagAutomatically`.** (FOO_4) Always tag before squash. The option becomes whether to clean up the tag afterward, with a progress.md entry recording the commit hash for recovery.
 
-**CASE_LOGA_R01_REC_5: Define workstream branch conventions.** (FB_6) Agents must never commit to main. Propose: `plet/{project_id}/workstream` (e.g., `plet/LOGA/workstream`) as the integration branch, with `plet/loop/ID_*` as iteration branches off it. Requires a project ID (see CASE_LOGA_R01_REC_6).
+**CASE_LOGA_R01_REC_5: Define workstream branch conventions.** (FOO_6) Agents must never commit to main. Propose: `plet/{project_id}/workstream` (e.g., `plet/LOGA/workstream`) as the integration branch, with `plet/loop/ID_*` as iteration branches off it. Requires a project ID (see CASE_LOGA_R01_REC_6).
 
-**CASE_LOGA_R01_REC_6: Add a short project ID.** (FB_5) Something like `LOGA` for log analyzer. Used in branch names, tag names, and potentially state file paths. Defined during plan phase, stored in state.json.
+**CASE_LOGA_R01_REC_6: Add a short project ID.** (FOO_5) Something like `LOGA` for log analyzer. Used in branch names, tag names, and potentially state file paths. Defined during plan phase, stored in state.json.
 
 **CASE_LOGA_R01_REC_7: Enforce learnings and emergent writes — including "nothing found" entries.** The spec says to write them; agents don't unless strongly prompted. Worse, a missing entry is ambiguous — was the step skipped, or was there genuinely nothing? Fix: require an entry every phase, even if it's explicitly "no learnings" / "no emergent items." This makes the absence of findings a positive signal rather than an unknown. Options for enforcement: (a) add a hard checkpoint in execute.md ("before marking an iteration complete, write a learnings entry and an emergent entry — even if the entry says nothing was found"), (b) have the verify agent check that entries exist as part of verification.
 
 **CASE_LOGA_R01_REC_8: Fix trace file generation.** Either make traces a real feature (generated for every iteration) or remove them from the spec. The current state — traces for ID_001 only — is worse than either option.
 
-**CASE_LOGA_R01_REC_9: Enforce subagent non-blocking.** (FB_3) Add an explicit instruction to execute.md and verify.md: "Never ask for user confirmation. Never prompt 'should I proceed?' You are running autonomously. If you encounter ambiguity, make your best judgment and document it in emergent.md."
+**CASE_LOGA_R01_REC_9: Enforce subagent non-blocking.** (FOO_3) Add an explicit instruction to execute.md and verify.md: "Never ask for user confirmation. Never prompt 'should I proceed?' You are running autonomously. If you encounter ambiguity, make your best judgment and document it in emergent.md."
 
 **CASE_LOGA_R01_REC_10: Monitor artifact quality degradation.** The pattern of rich-first-iteration, sparse-later needs a structural fix, not just stronger prompting. Consider: (a) verify agent checks artifact completeness, (b) orchestrator validates state file schema before marking a phase complete.
 
 **CASE_LOGA_R01_REC_11: Enforce branch isolation during parallel execution.** Cross-branch contamination (ID_006 work on ID_011 branch) means parallel agents weren't properly confined to their own branches. Each impl agent should be hard-scoped to its iteration branch — no writing to other branches, no shared working directory.
 
-**CASE_LOGA_R01_REC_12: FEEDBACK.md should be a formal artifact.** It emerged organically during this run (8 entries about the plet process itself) and turned out to be valuable — it's already listed in the artifact taxonomy as "planned." This case study confirms it's needed. It captures a different audience than learnings: meta-observations about plet itself, not about the target project.
+**CASE_LOGA_R01_REC_12: FEEDBACK_FOO.md should be a formal artifact.** It emerged organically during this run (8 entries about the plet process itself) and turned out to be valuable — it's already listed in the artifact taxonomy as "planned." This case study confirms it's needed. It captures a different audience than learnings: meta-observations about plet itself, not about the target project.
 
 **CASE_LOGA_R01_REC_13: Standardize Co-Author tags.** Impl commits have `Co-Authored-By: Claude Opus 4.6`, verify and merge commits don't. Either all agent-authored commits get the tag or none do. Consistency matters for audit trails.
 
@@ -350,7 +350,7 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 **Spec / PRD changes**
 - **CASE_LOGA_R01_REC_11: Branch isolation** — may need a new requirement or update to parallel execution design
-- **CASE_LOGA_R01_REC_12: FEEDBACK.md formalization** — define format, audience, when to write; add to artifact taxonomy
+- **CASE_LOGA_R01_REC_12: FEEDBACK_FOO.md formalization** — define format, audience, when to write; add to artifact taxonomy
 - **CASE_LOGA_R01_REC_10: Artifact quality monitoring** — add verification checklist for artifact completeness
 - **CASE_LOGA_R01_REC_13: Co-Author tag convention** — standardize across all agent-authored commits
 

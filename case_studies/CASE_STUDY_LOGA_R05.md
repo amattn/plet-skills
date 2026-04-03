@@ -172,7 +172,7 @@ Run 6 started with v0.4.2, `bypassPermissions` mode. "Everything seems to just w
 ### CASE_LOGA_R05_R06O: Observations
 - Plan branch created correctly (`plet/LOGA/plan1/workstream`) — first time in 4 runs
 - Good red/green discipline on ID_001 (11 commits, per-AC red then green)
-- Subagent modified state.json in worktree (`loopSessionCount: 0→1`) — shouldn't touch it (SF_28, orchestrator-owned). Harmless with `merge=ours` but indicates the subagent doesn't know state.json is off-limits. (→ FB item: implement.md/verify.md should explicitly say "do NOT modify state.json")
+- Subagent modified state.json in worktree (`loopSessionCount: 0→1`) — shouldn't touch it (SF_28, orchestrator-owned). Harmless with `merge=ours` but indicates the subagent doesn't know state.json is off-limits. (→ FOO item: implement.md/verify.md should explicitly say "do NOT modify state.json")
 - Detailed case study pending.
 
 ---
@@ -187,7 +187,7 @@ Run 6 started with v0.4.2, `bypassPermissions` mode. "Everything seems to just w
 
 3. **(CASE_LOGA_R05_OBS_3) No sandbox, no auto mode, no bypassPermissions.** Running with bare permissions + allow list only. Every non-plet Bash command and every Write/Edit needs manual approval. This will block subagents in the loop phase.
 
-4. **(CASE_LOGA_R05_OBS_4) Plan committed to main — no plan branch.** Despite SKILL.md Step 2 saying "create plan branch," the agent committed directly to main. Same issue as Run 3 (#2) and Run 4 (#2). Third time — prose instructions don't work for this. Need a script to enforce branch creation, or accept that plan commits go to main. (→ FB item: plan branch creation needs enforcement, not prose)
+4. **(CASE_LOGA_R05_OBS_4) Plan committed to main — no plan branch.** Despite SKILL.md Step 2 saying "create plan branch," the agent committed directly to main. Same issue as Run 3 (#2) and Run 4 (#2). Third time — prose instructions don't work for this. Need a script to enforce branch creation, or accept that plan commits go to main. (→ FOO item: plan branch creation needs enforcement, not prose)
 
 5. **(CASE_LOGA_R05_OBS_5) Agent correctly instructed user to fix permissions.** Detected insufficient permissions (no auto mode, no bypassPermissions) and told the user what to add to settings.json. Bootstrap `check` permissions warning working as designed.
 

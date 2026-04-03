@@ -87,7 +87,7 @@ All notable changes to the plet skill are documented here.
 - **SPARKBOARD case study:** 23 iterations, identified state schema drift as the core problem. Validated that tooling solves what prose cannot.
 
 ### Improvements
-- **FEEDBACK.md pipeline:** Case study recommendations → FB entries → artifact changes → mark resolved → verify in next run.
+- **FEEDBACK_FOO.md pipeline:** Case study recommendations → FOO entries → artifact changes → mark resolved → verify in next run.
 - **Audit of existing scripts** against conventions — 22 findings documented.
 
 ## 0.1.0 (2026-03-08 – 2026-03-14)

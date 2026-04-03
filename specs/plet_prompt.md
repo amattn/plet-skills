@@ -8,14 +8,14 @@
 
 Assembles the prompt that gets sent to implement and verify subagents. Reads reference files, iteration context, requirements, learnings, and state from disk; outputs a complete prompt string. This is the bridge between plet's deterministic state and the non-deterministic subagent.
 
-**Why a script:** FB_38 showed that learnings and emergent items existed in files but weren't being injected into subagent prompts — agents didn't read them voluntarily. Making injection deterministic (via code) guarantees cross-iteration knowledge transfer. The script also ensures consistent prompt structure — every subagent gets the same sections in the same order, regardless of which orchestrator session spawned it.
+**Why a script:** FOO_38 showed that learnings and emergent items existed in files but weren't being injected into subagent prompts — agents didn't read them voluntarily. Making injection deterministic (via code) guarantees cross-iteration knowledge transfer. The script also ensures consistent prompt structure — every subagent gets the same sections in the same order, regardless of which orchestrator session spawned it.
 
 **Standalone rationale:** Prompt assembly is the highest-value command — the bridge between deterministic state reading and Claude invocation. Making it standalone means: (1) testable independently, (2) callable outside the orchestrator for debugging ("show me what prompt the implement agent would get"), (3) keeps the orchestrator focused on orchestration.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PRM_PUR_1 | Assembles a complete prompt for implement or verify subagents from files on disk. Deterministic — same state always produces the same prompt. | P0 |
-| PRM_PUR_2 | Guarantees learnings.md is always injected (FB_38). Cross-iteration knowledge transfer is not optional. | P0 |
+| PRM_PUR_2 | Guarantees learnings.md is always injected (FOO_38). Cross-iteration knowledge transfer is not optional. | P0 |
 | PRM_PUR_3 | Single command (`assemble`) with `--phase` controlling which reference file and sections are included. | P0 |
 
 ## 2. Agent Personas (PRM_AGT)
@@ -311,7 +311,7 @@ No subprocess calls to other plet scripts — PRM is a leaf that reads files dir
 |----|------|---------------|----------------------|
 | PRM_CRT_1 | Correct sections for implement | Missing sections → agent lacks context | Verify all 7 sections present |
 | PRM_CRT_2 | Correct sections for verify | Missing sections → agent lacks context | Verify all 7 sections present |
-| PRM_CRT_3 | Learnings always included | FB_38 not solved | Verify learnings section present even when empty |
+| PRM_CRT_3 | Learnings always included | FOO_38 not solved | Verify learnings section present even when empty |
 | PRM_CRT_4 | Iteration definition extracted | Wrong iteration → agent works on wrong task | Verify extracted block matches iter-id |
 | PRM_CRT_5 | State formatted readably | Raw JSON confuses agent | Verify human-readable formatting |
 | PRM_CRT_6 | Missing reference file | Silent failure → incomplete prompt | Verify error exit |
@@ -351,6 +351,6 @@ No subprocess calls to other plet scripts — PRM is a leaf that reads files dir
 | PRM_FUT_2 | Emergent injection | Include relevant emergent items (pending outcomes, design decisions) in prompt. Requires filtering by relevance. |
 | PRM_FUT_3 | Context budget | Accept a `--max-tokens` flag and truncate/prioritize sections to fit within a token budget. Useful for smaller models or large projects. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_38 — Cross-iteration knowledge transfer. Learnings.md is always injected into subagent prompts, deterministically. Agents no longer need to voluntarily read learnings.
+- FOO_38 — Cross-iteration knowledge transfer. Learnings.md is always injected into subagent prompts, deterministically. Agents no longer need to voluntarily read learnings.

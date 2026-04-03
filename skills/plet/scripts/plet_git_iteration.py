@@ -232,8 +232,8 @@ USAGE:
 
 PURPOSE:
     Creates an isolated working directory for an iteration. Each iteration
-    gets its own worktree, eliminating stashing (FB_30) and cross-branch
-    contamination (FB_35).
+    gets its own worktree, eliminating stashing (FOO_30) and cross-branch
+    contamination (FOO_35).
 
 Examples:
     plet_git_iteration.py worktree-create plet/ --iter-id ID_001
@@ -360,7 +360,7 @@ USAGE:
 
 PURPOSE:
     Cleans up worktrees after iteration completes, fails, or is retried.
-    Prevents orphaned worktrees from accumulating (FB_32).
+    Prevents orphaned worktrees from accumulating (FOO_32).
 
 Examples:
     plet_git_iteration.py worktree-remove plet/ --iter-id ID_001

@@ -214,7 +214,7 @@ def cmd_assemble(args):
 PITFALLS:
     - --iter-id and --phase are REQUIRED
     - Reference files are in the skill package (not plet_dir)
-    - Learnings are ALWAYS included (FB_38 — deterministic knowledge transfer)
+    - Learnings are ALWAYS included (FOO_38 — deterministic knowledge transfer)
     - Text output is pipe-friendly: suitable for `... | claude -p`
 
 USAGE:

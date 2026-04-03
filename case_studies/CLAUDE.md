@@ -26,7 +26,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 
 > **Skill:** Load `/session-kit:stable-label` for the full stable label convention, consistency pass approaches, and ID lifecycle rules.
 
-Every case study uses the `CASE_{PROJECT}_{RUN}_{N}` label convention for greppable cross-referencing with FEEDBACK.md and NOTES.md.
+Every case study uses the `CASE_{PROJECT}_{RUN}_{N}` label convention for greppable cross-referencing with FEEDBACK_FOO.md and NOTES.md.
 
 ### Label format
 
@@ -57,14 +57,14 @@ CASE_{PROJECT}_{RUN}_{QUALIFIER}
 
 ### Cross-referencing
 
-Every recommendation (`REC`) should have a corresponding `FB_N` entry in FEEDBACK.md. Add resolution status below the recommendation table:
+Every recommendation (`REC`) should have a corresponding `FOO_N` entry in FEEDBACK_FOO.md. Add resolution status below the recommendation table:
 
 ```
 - CASE_LOGA_R06_REC_1: `[resolved]` → plet_orchestrator.py 0.2.1
-- CASE_LOGA_R06_REC_3: open → FB_69
+- CASE_LOGA_R06_REC_3: open → FOO_69
 ```
 
-FEEDBACK.md entries reference back: `Source: CASE_LOGA_R06_REC_3`
+FEEDBACK_FOO.md entries reference back: `Source: CASE_LOGA_R06_REC_3`
 
 ---
 
@@ -158,7 +158,7 @@ Track **trends** — improved, regressed, no change.
 - **What worked well** — with evidence
 - **What didn't work well** — with evidence
 - **Surprises** — unexpected behaviors or outcomes
-- **Recommendations** — labeled (`CASE_{PROJECT}_{RUN}_REC1`, etc.) with concrete options where applicable. **Every recommendation must have a corresponding FB entry in FEEDBACK.md.** This is the pipeline: case study recommendation → FB entry → artifact changes → mark resolved → verify in next run. No recommendation should live only in the case study.
+- **Recommendations** — labeled (`CASE_{PROJECT}_{RUN}_REC1`, etc.) with concrete options where applicable. **Every recommendation must have a corresponding FOO entry in FEEDBACK_FOO.md.** This is the pipeline: case study recommendation → FOO entry → artifact changes → mark resolved → verify in next run. No recommendation should live only in the case study.
 - **Open questions** — things we still don't know
 
 ### Meta
@@ -248,4 +248,4 @@ Sources for timing data:
 
 6. **Preserve all artifacts.** Ensure requirements.md and iterations.md survive into the plet/ directory. LIBT lost them — this needs to be caught early.
 
-7. **Include user feedback.** LOGA had a dedicated "User Feedback" section (FB_1 through FB_8) that was valuable. LIBT folded this into findings. Both approaches work, but direct user observations during the run are worth capturing separately.
+7. **Include user feedback.** LOGA had a dedicated "User Feedback" section (FOO_1 through FOO_8) that was valuable. LIBT folded this into findings. Both approaches work, but direct user observations during the run are worth capturing separately.

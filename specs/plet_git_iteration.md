@@ -4,7 +4,7 @@
 
 ## 1. Purpose (GTI_PUR)
 
-Branch naming was inconsistent across case studies — agents invented their own conventions, used wrong project IDs, forgot session numbers, or created branches in the wrong namespace. Worktree isolation was identified in FB_13/FB_30/FB_35 as the solution to stash abuse and lost commits during parallel execution.
+Branch naming was inconsistent across case studies — agents invented their own conventions, used wrong project IDs, forgot session numbers, or created branches in the wrong namespace. Worktree isolation was identified in FOO_13/FOO_30/FOO_35 as the solution to stash abuse and lost commits during parallel execution.
 
 **Iteration lifecycle (where GTI fits):**
 
@@ -33,7 +33,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 |----|-------------|----------|
 | GTI_PUR_1 | **Git history is never lost.** Worktree operations manage on-disk working directories only — branches, commits, and tags are always preserved in git. `worktree-remove` cleans up the working directory; the branch and all its commits remain fully intact and reachable. Branch deletion is only performed when explicitly requested (`--delete-branch`) or when `cleanupBranchesAutomatically` is true, and only after the orchestrator has merge-squashed the work onto the workstream. Audit tags mark phase boundaries on the iteration branch. | P0 |
 | GTI_PUR_2 | Branch naming convention enforcement. Agents call this instead of constructing branch names, eliminating naming drift across iterations. | P0 |
-| GTI_PUR_3 | Worktree lifecycle management. Each iteration gets an isolated working directory — eliminates stashing (FB_30) and prevents cross-branch contamination (FB_35). | P0 |
+| GTI_PUR_3 | Worktree lifecycle management. Each iteration gets an isolated working directory — eliminates stashing (FOO_30) and prevents cross-branch contamination (FOO_35). | P0 |
 | GTI_PUR_4 | Enforces the branch/tag conventions defined in `prd.md` § Branch and tag conventions. | P0 |
 
 ## 2. Agent Personas (GTI_AGT)
@@ -154,7 +154,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTC_JUS_1 | Why: creates an isolated working directory for an iteration. Without worktrees, parallel agents share one working directory, requiring stashing to switch branches. SPARK produced 42 stashes (FB_30) and lost commits during branch switching (FB_35). Worktrees eliminate both problems. | P0 |
+| GTI_WTC_JUS_1 | Why: creates an isolated working directory for an iteration. Without worktrees, parallel agents share one working directory, requiring stashing to switch branches. SPARK produced 42 stashes (FOO_30) and lost commits during branch switching (FOO_35). Worktrees eliminate both problems. | P0 |
 | GTI_WTC_JUS_2 | When: called by the orchestrator before spawning an implement subagent. The worktree path is passed to the subagent as its working directory. | P0 |
 | GTI_WTC_JUS_3 | Deprecation signal: if Claude Code natively supports worktree isolation for subagents (e.g., Agent tool's `isolation: "worktree"` parameter), this command may become unnecessary. | P1 |
 
@@ -238,7 +238,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTI_WTR_JUS_1 | Why: cleans up worktrees after an iteration completes, fails, or is retried. FB_32 showed orphaned worktrees from retried iterations. Without cleanup, worktrees accumulate and consume disk space. | P0 |
+| GTI_WTR_JUS_1 | Why: cleans up worktrees after an iteration completes, fails, or is retried. FOO_32 showed orphaned worktrees from retried iterations. Without cleanup, worktrees accumulate and consume disk space. | P0 |
 | GTI_WTR_JUS_2 | When: called by the orchestrator after an iteration reaches `complete`, `blocked`, or `withdrawn` lifecycle, and during session cleanup. | P0 |
 | GTI_WTR_JUS_3 | Deprecation signal: same as worktree-create — if native isolation handles cleanup. | P1 |
 
@@ -542,9 +542,9 @@ See `specs/conventions.md` for universal requirements.
 | GTI_FUT_4 | Worktree path lookup | A `worktree-path` command that returns the worktree path for a given iteration ID (inverse of worktree-create). If subagents have trouble locating their worktree directory, this gives them a reliable way to query it from state.json + convention. |
 | GTI_FUT_5 | Monitor auto-resume edge cases | The branch-exists = resume, branch-absent = fresh heuristic covers all known scenarios (blocked→unblocked, interrupted/crashed, verify cycle-back, refine re-open). Monitor during PLAN_9 comparison runs and future case studies for edge cases where this heuristic produces the wrong behavior — e.g., stale branches from abandoned sessions, branch name collisions from session counter bugs. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_13 — Branch isolation via worktrees (decided, now implemented)
-- FB_30 — 42 git stashes despite ban (worktrees eliminate stashing need)
-- FB_32 — Orphaned worktree after retry (worktree-remove handles cleanup)
-- FB_35 — Agent lost commits during implementation (worktree isolation prevents cross-branch contamination)
+- FOO_13 — Branch isolation via worktrees (decided, now implemented)
+- FOO_30 — 42 git stashes despite ban (worktrees eliminate stashing need)
+- FOO_32 — Orphaned worktree after retry (worktree-remove handles cleanup)
+- FOO_35 — Agent lost commits during implementation (worktree isolation prevents cross-branch contamination)

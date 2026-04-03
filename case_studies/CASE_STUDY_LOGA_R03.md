@@ -10,7 +10,7 @@
 
 1. **(CASE_LOGA_R03_OBS_1) Same starting inputs as Run 2.** Requirements doc and iterations doc provided. Only difference is new project-level settings.json with `defaultMode: "auto"` and marketplace plugin v0.3.0.
 
-2. **(CASE_LOGA_R03_OBS_2) Plan session: one mega commit at end, no branch.** Should have committed incrementally per section approval (PL_12, FB_28). Also did not create a plan branch — committed directly to main. Many repos tie main to CI/CD and other automations, so "plet does everything in a branch" is probably the right model. Plan session should create `plet/{projectId}/plan1/workstream` before making any commits.
+2. **(CASE_LOGA_R03_OBS_2) Plan session: one mega commit at end, no branch.** Should have committed incrementally per section approval (PL_12, FOO_28). Also did not create a plan branch — committed directly to main. Many repos tie main to CI/CD and other automations, so "plet does everything in a branch" is probably the right model. Plan session should create `plet/{projectId}/plan1/workstream` before making any commits.
 
 3. **(CASE_LOGA_R03_OBS_3) Skill auto-launched the loop without being asked.** After plan completed, the agent immediately tried to run plet_orchestrator.py. Plan and loop should be separate invocations — the user should explicitly say `/plet loop` or the agent should ask "Ready to start the loop?" before launching.
 

@@ -84,7 +84,7 @@ Artifact analysis, code analysis, timing reconstruction, comparison with prior c
   1. Phoenix 1.8 scaffolding produces clean credo output (ID_001)
   2. Injectable HTTP client more idiomatic than ExVCR for API testing (ID_007)
 - **Cross-iteration references:** Both correctly reference source iterations.
-- **Assessment:** 2 learnings from 23 iterations (0.09 per iteration). Dramatically lower than LIBT (11 from 5 = 2.2 per iteration). Either the mandatory entry rule (R_7/FB_10) regressed, or agents found genuinely little worth noting. Given the novelty of Elixir/Phoenix for plet, the low count is surprising.
+- **Assessment:** 2 learnings from 23 iterations (0.09 per iteration). Dramatically lower than LIBT (11 from 5 = 2.2 per iteration). Either the mandatory entry rule (R_7/FOO_10) regressed, or agents found genuinely little worth noting. Given the novelty of Elixir/Phoenix for plet, the low count is surprising.
 
 #### CASE_SPARK_R01_EMER: emergent.md
 
@@ -95,10 +95,10 @@ Artifact analysis, code analysis, timing reconstruction, comparison with prior c
 #### CASE_SPARK_R01_STFL: State files (plet/state/ID_*.json)
 
 - **Schema consistency:** Perfect. All 23 files use identical 18 top-level keys, identical AC structure, consistent lifecycle values. **Zero schema drift** — a dramatic improvement over LOGA (5 schemas in 5 iterations) and LIBT (similar drift).
-- **Timestamps:** Realistic, non-fabricated. No round numbers, varied seconds values. Improvement over LIBT (FB_19).
+- **Timestamps:** Realistic, non-fabricated. No round numbers, varied seconds values. Improvement over LIBT (FOO_19).
 - **Fingerprint integrity:** Global state.json fingerprint accurately reflects all 23 iterations across 7 milestones. Dependency map is internally consistent.
 - **Lifecycle accuracy:** 10 of 23 state files have incorrect lifecycle values. 7 are stuck at `verifying` (ID_003, 008, 014, 015, 017, 018, 020) and 3 at `ineligible` (ID_006, 016, 019) despite all iterations completing successfully. Progress.md and the orchestrator both report 23/23 complete. The orchestrator never transitioned these state files after work finished — the schema is correct but the data is stale.
-- **Assessment:** State schema is the single biggest improvement in this run. The plet_state.py tool (FB_12) appears to be working as intended. However, lifecycle transitions are incomplete — the tool enforces correct *format* but doesn't enforce correct *transitions*. See FB_40.
+- **Assessment:** State schema is the single biggest improvement in this run. The plet_state.py tool (FOO_12) appears to be working as intended. However, lifecycle transitions are incomplete — the tool enforces correct *format* but doesn't enforce correct *transitions*. See FOO_40.
 
 #### CASE_SPARK_R01_TRAC: Trace files (plet/trace/)
 
@@ -109,7 +109,7 @@ Artifact analysis, code analysis, timing reconstruction, comparison with prior c
 
 - **requirements.md:** Present and complete (605 lines, 112 requirements across 14 categories). Fingerprint intact.
 - **iterations.md:** Present and complete (23 iterations across 7 milestones).
-- **Assessment:** No spec artifact loss — FB_16 fix (plan checkpoint + execute pre-flight) appears effective.
+- **Assessment:** No spec artifact loss — FOO_16 fix (plan checkpoint + execute pre-flight) appears effective.
 
 ### CASE_SPARK_R01_TIME: Timing Analysis
 
@@ -185,10 +185,10 @@ The AI subsystem design (injectable HTTP client over ExVCR) was a learning captu
 
 **Regressed:**
 - Learnings/emergent capture — dramatically lower than LIBT despite more iterations. The R_7 mandatory entry rule is not being enforced. This is the most concerning regression.
-- Git stashes — 42 stashes despite the FB_9 ban. Agents are still using `git stash` heavily during parallel execution.
+- Git stashes — 42 stashes despite the FOO_9 ban. Agents are still using `git stash` heavily during parallel execution.
 
 **New issue:**
-- Orphaned worktree from ID_015 retry — needs cleanup. Worktree isolation (FB_13) is being used but cleanup is incomplete.
+- Orphaned worktree from ID_015 retry — needs cleanup. Worktree isolation (FOO_13) is being used but cleanup is incomplete.
 
 ---
 
@@ -196,7 +196,7 @@ The AI subsystem design (injectable HTTP client over ExVCR) was a learning captu
 
 ### CASE_SPARK_R01_WELL: What Worked Well
 
-1. **(CASE_SPARK_R01_W_1) State schema consistency is solved.** Zero drift across 23 iterations. The plet_state.py tool (FB_12) is the clear winner over prose-only enforcement (FB_17). This was the most persistent issue in LOGA and LIBT.
+1. **(CASE_SPARK_R01_W_1) State schema consistency is solved.** Zero drift across 23 iterations. The plet_state.py tool (FOO_12) is the clear winner over prose-only enforcement (FOO_17). This was the most persistent issue in LOGA and LIBT.
 2. **(CASE_SPARK_R01_W_2) Progress format consistency is solved.** The inline template + "match exactly" language works.
 3. **(CASE_SPARK_R01_W_3) Spec artifacts survived.** The two-layer fix (plan checkpoint + execute pre-flight) prevented the LIBT loss scenario.
 4. **(CASE_SPARK_R01_W_4) Trace generation is reliable.** 51 trace files across 23 iterations — dramatically better than LOGA (1 file) and LIBT (4 files).
@@ -207,7 +207,7 @@ The AI subsystem design (injectable HTTP client over ExVCR) was a learning captu
 ### CASE_SPARK_R01_FAIL: What Didn't Work Well
 
 1. **(CASE_SPARK_R01_F_1) Learnings/emergent capture regressed badly.** 2 learnings and 1 emergent from 23 iterations — worse than LOGA (3/1) and dramatically worse than LIBT (11/6). The R_7 mandatory entry rule is not being enforced.
-2. **(CASE_SPARK_R01_F_2) 42 git stashes despite the ban.** FB_9 explicitly banned `git stash` in agents. Agents are ignoring this rule during parallel execution, likely using stashes to switch between branches. This is a compliance failure.
+2. **(CASE_SPARK_R01_F_2) 42 git stashes despite the ban.** FOO_9 explicitly banned `git stash` in agents. Agents are ignoring this rule during parallel execution, likely using stashes to switch between branches. This is a compliance failure.
 3. **(CASE_SPARK_R01_F_3) Final commit required human prompting.** The loop completed but the final commit (consolidating trace/state artifacts) didn't happen automatically.
 4. **(CASE_SPARK_R01_F_4) Orphaned worktree.** The ID_015 retry left behind a worktree at `.claude/worktrees/ID_015-impl2` that was never cleaned up.
 5. **(CASE_SPARK_R01_F_5) Only 6 progress entries for 23 iterations.** Progress.md is incomplete — most iterations have no individual entry.
@@ -227,12 +227,12 @@ The mandatory entry rule (R_7) is not being followed. State schema enforcement s
 #### CASE_SPARK_R01_REC_2: Address git stash usage in parallel execution
 
 42 stashes despite the ban. Two options:
-- A. **Enforce worktree isolation** — if every parallel agent works in its own worktree, stashing becomes unnecessary. The worktree approach (FB_13) needs to be the default, not optional.
+- A. **Enforce worktree isolation** — if every parallel agent works in its own worktree, stashing becomes unnecessary. The worktree approach (FOO_13) needs to be the default, not optional.
 - B. **Accept stashes but require cleanup** — if stashing is unavoidable during parallel work, add a post-iteration cleanup step that applies or drops all stashes and logs what happened.
 
 #### CASE_SPARK_R01_REC_3: Automate final loop commit
 
-The final commit required human prompting. The orchestrator should automatically commit all outstanding trace/state/runtime artifacts when the loop completes. This is the same class of issue as FB_8 (uncommitted progress.md at end of run).
+The final commit required human prompting. The orchestrator should automatically commit all outstanding trace/state/runtime artifacts when the loop completes. This is the same class of issue as FOO_8 (uncommitted progress.md at end of run).
 
 #### CASE_SPARK_R01_REC_4: Worktree cleanup after retries
 
@@ -250,7 +250,7 @@ LIBT had 11 learnings from 5 iterations; SPARK had 2 from 23. Possible causes:
 - Elixir/Phoenix being familiar territory for the agent (less to learn)
 - Project size dilutes the per-iteration learning rate
 
-This connects to FB_21 (investigate what made learnings/emergent better in LIBT).
+This connects to FOO_21 (investigate what made learnings/emergent better in LIBT).
 
 ### CASE_SPARK_R01_OPEN: Open Questions
 
@@ -269,7 +269,7 @@ First refine session for any plet case study.
 - **Emergent items:** 1 triaged (EM_1 → approved with changes → DX_18)
 - **Spec changes:** +2 requirements (DX_18, NT_10), +1 milestone (MS_8)
 - **New iterations:** 3 (ID_024, ID_025, ID_026) — all can run in parallel
-- **State fixes:** 10 stale state files corrected to `complete` (FB_40)
+- **State fixes:** 10 stale state files corrected to `complete` (FOO_40)
 - **Learnings:** 2 reviewed, no spec changes needed
 - **Test suite:** 276 tests, 0 failures
 
@@ -294,9 +294,9 @@ First refine session for any plet case study.
 
 ### CASE_SPARK_R01_ROBS: Refine Phase Observations
 
-- Refine agent surfaced the state file lifecycle discrepancy unprompted — good diagnostic behavior (FB_40)
-- Re-decomposition happened before all review items were triaged (FB_41)
-- State files for new iterations were created during decomposition rather than at Step 8 (FB_42)
+- Refine agent surfaced the state file lifecycle discrepancy unprompted — good diagnostic behavior (FOO_40)
+- Re-decomposition happened before all review items were triaged (FOO_41)
+- State files for new iterations were created during decomposition rather than at Step 8 (FOO_42)
 - The options presented for state file fixes (A/B/C/D) were well-structured — the refine agent used numbers-letters style naturally
 
 ---

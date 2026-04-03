@@ -145,7 +145,7 @@ Generate a structured requirements document saved to `plet/requirements.md`. Fol
 [Numbered step-by-step flows for primary use cases]
 
 ## 9. Release Milestones
-[Deferred — finalize after section-by-section review (Step 4) is complete. Requirements change during review, so milestones defined before review are based on stale input. (FB_26)]
+[Deferred — finalize after section-by-section review (Step 4) is complete. Requirements change during review, so milestones defined before review are based on stale input. (FOO_26)]
 
 ## 10. Resolved Questions
 [Table: #, question, decision]
@@ -213,8 +213,8 @@ Present each feature area's requirements to the user for review. For each sectio
 2. **Recommendations** — surface any concerns, gaps, or alternative approaches before asking for approval
 3. Ask: "Anything to add, change, or remove? Or ok to approve."
 4. If the user approves, **write the section to disk immediately** (PL_12)
-5. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until the approved text is confirmed on disk. (FB_24)
-6. **Commit** — `plet: [plan] approve {section_name}`. Each approved section gets its own commit for crash recovery and inspectable history. (FB_28)
+5. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until the approved text is confirmed on disk. (FOO_24)
+6. **Commit** — `plet: [plan] approve {section_name}`. Each approved section gets its own commit for crash recovery and inspectable history. (FOO_28)
 7. **Consistency pass** — verify the approved section is consistent with previously approved sections
 8. Move to the next section
 
@@ -222,7 +222,7 @@ The user may batch answers or go one-by-one — follow their lead.
 
 ---
 
-## Step 5: Finalize Milestones (FB_26)
+## Step 5: Finalize Milestones (FOO_26)
 
 After all requirement sections are reviewed and approved, finalize §9 Release Milestones in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
 
@@ -303,8 +303,8 @@ Present each iteration definition to the user for review:
 3. Go through each one-by-one for detailed review
 4. For each: "Anything to add, change, or remove? Or ok to approve."
 5. Write approved iterations to disk immediately
-6. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until confirmed. (FB_24)
-7. **Commit** — `plet: [plan] approve iterations`. (FB_28)
+6. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until confirmed. (FOO_24)
+7. **Commit** — `plet: [plan] approve iterations`. (FOO_28)
 8. **Consistency pass** — verify iterations are consistent with requirements (all requirements covered, dependencies valid, sizing appropriate)
 
 ---

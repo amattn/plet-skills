@@ -350,7 +350,7 @@ Instructions and schemas that guide subagent behavior, stored as bundled referen
 | PT_4 | Refine phase instructions are defined in `references/refine.md` | P0 |
 | PT_5 | Runtime artifact format specifications are defined in `references/formats.md` and referenced by subagent prompts | P0 |
 | PT_6 | State file JSON schema and trace NDJSON schema are defined in `references/state-schema.md` (all JSON schemas grouped together) | P0 |
-| PT_7 | `plet_prompt.py assemble` deterministically assembles the subagent prompt from reference files + project state. The prompt is the bridge between plet's deterministic state and the non-deterministic subagent. Learnings are always injected (FB_38). | P0 |
+| PT_7 | `plet_prompt.py assemble` deterministically assembles the subagent prompt from reference files + project state. The prompt is the bridge between plet's deterministic state and the non-deterministic subagent. Learnings are always injected (FOO_38). | P0 |
 
 ### 3.9 Enforcement Scripts (ES)
 
@@ -367,7 +367,7 @@ Python scripts shipped in `skills/plet/scripts/` that enforce compliance determi
 | ES_5 | Runtime artifacts (progress.md, learnings.md, emergent.md, trace NDJSON) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. (UNV_NFR_10) | P0 |
 | ES_6 | `plet_invoke.py` logs the full assembled prompt and invocation context to both a trace event (`invocation` type) and a progress entry before launching. Essential for eval — can't measure prompt effectiveness without knowing what the agent received. | P0 |
 | ES_7 | `plet_gate_phase.py` runs pre/post checks at phase boundaries. The subagent runs `post` before exiting and self-corrects until it passes — its exit signals "I passed my own gate." | P0 |
-| ES_8 | Subagent subprocesses use `--permission-mode auto` (default) or `--permission-mode bypassPermissions` (fallback). Sandboxing is configured at the environment level (FB_50), not per-invocation. | P0 |
+| ES_8 | Subagent subprocesses use `--permission-mode auto` (default) or `--permission-mode bypassPermissions` (fallback). Sandboxing is configured at the environment level (FOO_50), not per-invocation. | P0 |
 
 #### Script Inventory
 
@@ -794,7 +794,7 @@ Testing and verification requirements that the plan session should include in ta
 | 10 | Smart test suite execution strategy | Revisit the green-step test execution strategy as projects grow. Current approach: tier by suite speed (fast = full suite every green step, slow = targeted tests per criterion + full suite at phase end). Future options to explore: batched full runs every N criteria, checkpoint-based runs when switching modules/subsystems, test impact analysis to run only affected tests, parallel test execution, and letting the agent learn optimal thresholds per project. |
 | 11 | Self-improvement via runtime artifact analysis | A separate skill or mode that analyzes plet's own runtime artifacts (progress, learnings, emergent, trace) to identify patterns, bottlenecks, and skill deficiencies — then proposes improvements to the plet PRD itself. Approved changes get implemented and plet receives a version bump. As models improve, the skill's instructions and heuristics go stale; this closes the feedback loop so plet evolves alongside the models it runs on. |
 | 12 | Eval system | Formalize how we measure prompt effectiveness across planner, implementer, and verifier roles. Track both synthetic and emergent test cases. Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework. See PLAN_11. |
-| 13 | Sandboxing integration | Recommend or require Claude Code sandboxing for autonomous loop sessions. Sandbox provides OS-level filesystem/network isolation. `--permission-mode bypassPermissions` + sandbox = safe autonomous execution. See FB_50. |
+| 13 | Sandboxing integration | Recommend or require Claude Code sandboxing for autonomous loop sessions. Sandbox provides OS-level filesystem/network isolation. `--permission-mode bypassPermissions` + sandbox = safe autonomous execution. See FOO_50. |
 | 14 | Script-as-orchestrator | Replace the SKILL.md prompt-based orchestrator with `plet_orchestrator.py` — a deterministic Python script that manages session lifecycle, dependency graph, retry logic, and the main loop. Eliminates compaction risk. See PLAN_9. |
 
 ---

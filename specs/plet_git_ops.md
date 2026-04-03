@@ -455,6 +455,6 @@ None.
 | GTO_FUT_3 | ~~Commit body customization~~ | Promoted to requirement — body auto-generated from iter_state (lifecycle + criteria summaries). See GTO_MSQ_BHV_5. |
 | GTO_FUT_4 | ~~Merge conflict handling~~ | Promoted to EDG_14 + ERR_17. Error and abort on conflict — orchestrator decides resolution. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_31 — Final loop commit required human prompting. Squash is now deterministic via script.
+- FOO_31 — Final loop commit required human prompting. Squash is now deterministic via script.

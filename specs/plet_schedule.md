@@ -479,8 +479,8 @@ See `specs/conventions.md` for requirements common to all scripts.
 | SCH_FUT_3 | Parallel group awareness | `eligible` could group results by `parallelGroups` membership to help the orchestrator batch spawns. |
 | SCH_FUT_4 | evaluate-verdict command | Consolidate verdict reading + retry decision into one command: `evaluate-verdict --phase verify` returns "merge", "retry", "block", or "crash". Orchestrator makes one call instead of reading verdict + conditionally calling check-retry. Same for implement phase. Reduces orchestrator routing logic to a single subprocess call per phase. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-No direct FB items — this script is new infrastructure for the orchestrator (PLAN_9d). Indirectly supports:
-- FB_40 (State lifecycle not transitioned) — deterministic eligibility prevents orchestrator from losing track
-- FB_31 (Final loop commit required human prompting) — retry logic prevents infinite loops that require manual intervention
+No direct FOO items — this script is new infrastructure for the orchestrator (PLAN_9d). Indirectly supports:
+- FOO_40 (State lifecycle not transitioned) — deterministic eligibility prevents orchestrator from losing track
+- FOO_31 (Final loop commit required human prompting) — retry logic prevents infinite loops that require manual intervention

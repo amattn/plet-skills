@@ -159,7 +159,7 @@ project (LOGA)
 - `CLAUDE.md` — project-specific instructions
 - `PLET.md` — plet-specific instructions
 - `NOTES.md` — decisions, rationale, open questions
-- `FEEDBACK.md` — meta-observations about plet itself (process issues, instruction gaps, tooling friction)
+- `FEEDBACK_FOO.md` — meta-observations about plet itself (process issues, instruction gaps, tooling friction)
 
 **7. Configuration** (per-project behavior modification)
 - Modify planner, refiner, implement agent, verify agent behavior
@@ -255,7 +255,7 @@ Design principle: commands match agent workflow, not JSON structure. `start-phas
 | Prefix | Artifact type | Where used |
 |--------|--------------|------------|
 | `PLAN` | Build plan parts | PLAN.md |
-| `FB` | Feedback observations | FEEDBACK.md |
+| `FOO` | Feedback/Observation/Oversight | FEEDBACK_FOO.md |
 | `FR` | Functional requirements | prd.md |
 | `NF` | Non-functional requirements | prd.md |
 | `ID` | Iterations | iterations.md |
@@ -570,7 +570,7 @@ Comprehensive rename to unify phase terminology across the entire repo.
 - `i1`/`v1` — plet ID segments (already abbreviated)
 - `EX` prefix in EXTRACTABLE.md (different meaning)
 - Historical NOTES.md entries describing old names
-- Case studies and FEEDBACK.md (historical artifacts from actual runs)
+- Case studies and FEEDBACK_FOO.md (historical artifacts from actual runs)
 - Generic English uses of "execute" ("execute the user's decisions", "Code executes the same way")
 
 **Rationale:** Three grammatical forms serve three different roles:
@@ -582,14 +582,14 @@ Each form is unambiguous in context. `impl` was the only abbreviation among four
 
 **Scope:** 25+ files across scripts, tests, specs, reference files, PRD, PLET.md, NOTES.md, README.md, SKILL.md, guide/. 533 tests, 0 failures.
 
-#### Artifact format enforcement — A/B test (FB_12 vs FB_17)
-- **FB_17 (progress.md):** stronger prose — "match exactly" language + inline templates in execute.md/verify.md
-- **FB_12 (state files):** tooling — Python helper script shipped via `${CLAUDE_SKILL_DIR}/scripts/` that validates/writes state files. Agents call the tool instead of writing JSON freehand.
+#### Artifact format enforcement — A/B test (FOO_12 vs FOO_17)
+- **FOO_17 (progress.md):** stronger prose — "match exactly" language + inline templates in execute.md/verify.md
+- **FOO_12 (state files):** tooling — Python helper script shipped via `${CLAUDE_SKILL_DIR}/scripts/` that validates/writes state files. Agents call the tool instead of writing JSON freehand.
 - Comparing the two approaches in the next case study run will tell us whether tooling or prose is more effective at preventing drift. (2026-03-12)
 - `${CLAUDE_SKILL_DIR}` resolves to the skill directory at runtime, giving agents a known path to bundled tools. python3 is always available; jq requires external install.
 - Agents drifted from the defined format in both LOGA and LIBT — div markers, fenced code blocks, plain headers all appeared in one run
 - Fix: inline template + "match exactly" language in execute.md and verify.md. formats.md remains source of truth.
-- **Next step if agents still drift:** validator tool (grep for div markers, check required fields) or generator tool (shell helper that outputs correctly-formatted entries from args). jq-style enforcement is also an option for state files (FB_12). Decided to try the lighter-weight approach first. (2026-03-12)
+- **Next step if agents still drift:** validator tool (grep for div markers, check required fields) or generator tool (shell helper that outputs correctly-formatted entries from args). jq-style enforcement is also an option for state files (FOO_12). Decided to try the lighter-weight approach first. (2026-03-12)
 
 #### Unified entry format — KV metadata + Content block (2026-03-16)
 
@@ -603,17 +603,17 @@ All three runtime artifact entries (progress, learning, emergent) now share the 
 
 See `specs/NOTES.md` for full cascading changes list.
 
-#### Spec artifacts must survive plan → loop → refine (FB_16)
+#### Spec artifacts must survive plan → loop → refine (FOO_16)
 - LIBT lost requirements.md and iterations.md — project unresumable
 - Two-layer fix: (1) plan.md Step 8.4 checkpoint verifies files exist on disk and are committed, (2) execute.md pre-flight blocks if spec artifacts are missing
 - Root cause ambiguous (never written vs lost during loop) — both layers needed (2026-03-12)
 
-#### Post-merge file verification (FB_18)
+#### Post-merge file verification (FOO_18)
 - LIBT lost a test file during parallel branch rebase+merge — required manual restoration
 - Added post-merge verification step in verify.md: run full test suite + compare file list from iteration branch against workstream after ff-merge
 - Catches silent file drops from both merge and rebase conflict resolution (2026-03-12)
 
-#### Real timestamps via `date -u`, never fabricate (FB_19)
+#### Real timestamps via `date -u`, never fabricate (FOO_19)
 - LIBT state.json had synthetic round-number timestamps (00:01:00Z, 21:00:00Z) — useless for timing analysis
 - SKILL.md loop start, loop end, and refine start now require `date -u +%Y-%m-%dT%H:%M:%SZ`
 - Explicit "never fabricate or round timestamps" language added (2026-03-12)
@@ -622,12 +622,12 @@ See `specs/NOTES.md` for full cascading changes list.
 - `${CLAUDE_SKILL_DIR}` resolves to the skill's directory at runtime — agents can call bundled scripts by absolute path
 - plet_state.py is the first tool shipped this way
 - SKILL.md frontmatter `allowed-tools: "Bash(python3 *)"` grants permission in target projects
-- Target projects should also set `bypassPermissions` in `.claude/settings.local.json` for full autonomous operation (FB_22) (2026-03-12)
+- Target projects should also set `bypassPermissions` in `.claude/settings.local.json` for full autonomous operation (FOO_22) (2026-03-12)
 
 #### PRD traceability tags are permanent, not build scaffolding
 - Parenthetical PRD references like `(IMP_17)`, `(VF_9)` in skill files are kept permanently — not stripped before release
 - Originally treated as build scaffolding with "will be stripped" notes in every file
-- FB_20 made them semantic (e.g., "per PL_DX_2" in exception text) — stripping would break cross-references
+- FOO_20 made them semantic (e.g., "per PL_DX_2" in exception text) — stripping would break cross-references
 - Removed all 7 "Build note" blocks from SKILL.md and reference files (2026-03-12)
 
 #### Subprocess invocations for subagents, not native Agent tool (2026-03-20)
@@ -1143,7 +1143,7 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 
 #### Logalyzer run 2 setup and run 1 archival (2026-03-10)
 
-**Context:** All FEEDBACK.md items (FB_1–FB_8) resolved. Ready for comparison run 2 with improved plet.
+**Context:** All FEEDBACK_FOO.md items (FOO_1–FOO_8) resolved. Ready for comparison run 2 with improved plet.
 
 **Key decisions:**
 
@@ -1187,18 +1187,18 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 - **execute.md**: added "never create merge commits" critical rule
 - **SKILL.md** and **PLET.md**: already correct, no changes needed
 
-#### FEEDBACK.md formalization (CASE_LOGA_R01_REC_12) — DECIDED (2026-03-10)
+#### FEEDBACK_FOO.md formalization (CASE_LOGA_R01_REC_12) — DECIDED (2026-03-10)
 
-FEEDBACK.md captures meta-observations about plet itself (process issues, instruction gaps, tooling friction). Distinct from learnings.md (target project) and emergent.md (execution discoveries).
+FEEDBACK_FOO.md captures meta-observations about plet itself (process issues, instruction gaps, tooling friction). Distinct from learnings.md (target project) and emergent.md (execution discoveries).
 
 Key decisions:
-- **Who writes:** Humans only. Agents write to emergent.md; humans recognize which items are plet-process issues and promote them to FEEDBACK.md.
+- **Who writes:** Humans only. Agents write to emergent.md; humans recognize which items are plet-process issues and promote them to FEEDBACK_FOO.md.
 - **When:** During refine sessions or anytime the human notices a plet-process issue.
-- **Format:** Tagged — `FB_N: Title [tag1] [tag2]` + description paragraph. Seeded tags: autonomy, state, git, artifacts, timing, prompting, config. New tags welcome.
+- **Format:** Tagged — `FOO_N: Title [tag1] [tag2]` + description paragraph. Seeded tags: autonomy, state, git, artifacts, timing, prompting, config. New tags welcome.
 - **Mutability:** Editable. Resolved entries marked `[resolved]` with promotion target. Kept for history.
 - **Promotion path:** Depends on the item — CLAUDE.md/PLET.md (rule), config artifact (setting), PRD (requirement), reference files (agent behavior).
 - **Location:** Project root alongside CLAUDE.md, PLET.md, NOTES.md.
-- **Rejected:** Agents writing directly to FEEDBACK.md — they can't reliably distinguish plet-process issues from project issues. The human is the filter.
+- **Rejected:** Agents writing directly to FEEDBACK_FOO.md — they can't reliably distinguish plet-process issues from project issues. The human is the filter.
 
 #### Notes skill spec update (2026-03-12)
 
@@ -1388,7 +1388,7 @@ State file management — `init`, `update-criterion`, `update-field`, `validate`
 
 ### plet_entries.py (shipped)
 
-Runtime artifact entry writer. Addresses FB_29 (learnings/emergent regression) and FB_33 (progress.md incomplete). Same pattern as plet_state.py — agents call a tool instead of composing markdown freehand.
+Runtime artifact entry writer. Addresses FOO_29 (learnings/emergent regression) and FOO_33 (progress.md incomplete). Same pattern as plet_state.py — agents call a tool instead of composing markdown freehand.
 
 **Commands:**
 - `add-progress <dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json]`
@@ -1434,15 +1434,15 @@ PRD refs: RT_11, Plet ID Scheme
 
 ### plet_preflight.py (candidate) ★ strong
 
-Pre-flight validation before implementation starts. Currently prose — agents can skip steps. FB_16 (LIBT lost spec artifacts) proved the cost of missing a check.
+Pre-flight validation before implementation starts. Currently prose — agents can skip steps. FOO_16 (LIBT lost spec artifacts) proved the cost of missing a check.
 
-PRD refs: IMP_19, FB_16
+PRD refs: IMP_19, FOO_16
 
 **What it would do:**
 - `check` — run all pre-flight checks: project builds, tests pass, working tree clean, spec artifacts exist on disk (requirements.md, iterations.md), state files parseable
 - `check --skip-tests` — fast mode (spec + state only, for quick validation)
 - Returns structured pass/fail with specific failure reasons
-- Could also check bypassPermissions (FB_22) and CLAUDE.md existence (FB_23)
+- Could also check bypassPermissions (FOO_22) and CLAUDE.md existence (FOO_23)
 
 **Why it matters:** Pre-flight is a checklist — exactly the kind of thing agents skip under time pressure. Making it a single tool call means compliance is easier than non-compliance.
 
@@ -1498,11 +1498,11 @@ PRD ref: RF_16
 
 ### plet_git.py (candidate) △ light
 
-Git operations wrapper. FB_30 (42 stashes despite ban), FB_32 (orphaned worktrees), FB_35 (lost commits) all point to agents improvising git operations. A constrained git helper could:
+Git operations wrapper. FOO_30 (42 stashes despite ban), FOO_32 (orphaned worktrees), FOO_35 (lost commits) all point to agents improvising git operations. A constrained git helper could:
 - Branch creation/switching without stash (use worktrees instead)
 - Post-iteration cleanup (drop stashes, remove worktrees)
 - Audit tag creation before squash
-- Final loop commit automation (FB_31)
+- Final loop commit automation (FOO_31)
 
 **Caution:** Git is complex and agents need flexibility. This tool should wrap common operations with guardrails, not replace git entirely. Start with the narrowest pain point (worktree lifecycle) and expand only if needed.
 
@@ -1521,10 +1521,10 @@ PRD ref: SF_24
 ### Prioritization
 
 **★ Strong** — complex format + repetitive + case-study-validated drift:
-1. **plet_entries.py** — ✅ SHIPPED. Addresses FB_29 (learnings/emergent regression) and FB_33 (progress.md incomplete).
+1. **plet_entries.py** — ✅ SHIPPED. Addresses FOO_29 (learnings/emergent regression) and FOO_33 (progress.md incomplete).
 2. **plet_fingerprint.py** — silent drift across 3 files. Fingerprint errors cascade.
 3. **plet_id.py** — Crockford Base32 is uncommon enough that agents will get it wrong.
-4. **plet_preflight.py** — checklist compliance. FB_16 proved the cost of skipping.
+4. **plet_preflight.py** — checklist compliance. FOO_16 proved the cost of skipping.
 5. **plet_report.py** — most structured output in the verify phase. Scaffolding separates judgment from format.
 
 **○ Medium** — would help, less urgent or less proven drift:
@@ -1533,7 +1533,7 @@ PRD ref: SF_24
 8. **plet_consistency.py** — partially automatable; refine phase not yet tested in case studies.
 
 **△ Light** — useful but better as subcommands of other tools:
-9. **plet_git.py** — real issues but may be solved by worktree isolation (FB_13) instead.
+9. **plet_git.py** — real issues but may be solved by worktree isolation (FOO_13) instead.
 10. **Canary write helper** — bundle into plet_entries.py.
 11. **Schema migration** — bundle into plet_state.py.
 
@@ -1604,7 +1604,7 @@ During parallel execution, each iteration has its own `plet/` directory in its w
 - **Iteration dashboard** — each worktree `plet/` (`.plet/worktrees/{projectId}/{iter_id}/plet/`). Shows live agent state: activity, criterion updates, progress entries. Disappears after merge-squash.
 - **Discovery** — `git worktree list --porcelain` to find active worktrees.
 
-See FB_49 for full context.
+See FOO_49 for full context.
 
 ### State file formats designed for external consumers
 
@@ -1636,17 +1636,17 @@ Key questions:
 
 **Decision (2026-03-11):** The case study methodology/template file is agent directives (primary audience: agents producing case studies), not a human-facing directory index. Renamed to CLAUDE.md so Claude Code auto-loads it when agents work in the `case_studies/` directory. No separate README.md needed — the existing case studies table is in CLAUDE.md and agents get the instructions automatically without needing to be told "go read this file."
 
-#### Case study → FEEDBACK.md pipeline formalized (2026-03-12)
+#### Case study → FEEDBACK_FOO.md pipeline formalized (2026-03-12)
 
-**Decision:** Every case study recommendation (CASE_LOGA_R01_REC_1, CASE_LIBT_R01_REC_1, etc.) must have a corresponding FB entry in FEEDBACK.md. FEEDBACK.md is the single intake queue — no recommendation lives only in a case study.
+**Decision:** Every case study recommendation (CASE_LOGA_R01_REC_1, CASE_LIBT_R01_REC_1, etc.) must have a corresponding FOO entry in FEEDBACK_FOO.md. FEEDBACK_FOO.md is the single intake queue — no recommendation lives only in a case study.
 
 **Resolution states:** `[resolved]` (committed), `[resolved, unverified]` (committed but not validated in a run), `[resolved, verified]` (confirmed working in a subsequent case study).
 
-**Pipeline:** case study recommendation → FB entry → artifact changes → mark resolved → verify in next run.
+**Pipeline:** case study recommendation → FOO entry → artifact changes → mark resolved → verify in next run.
 
-**Where documented:** Brief rule in FEEDBACK.md intro, detailed process in case_studies/CLAUDE.md.
+**Where documented:** Brief rule in FEEDBACK_FOO.md intro, detailed process in case_studies/CLAUDE.md.
 
-**Observation:** LOGA CASE_LOGA_R01_REC_7, REC8, REC10, REC11, REC12, REC13 bypassed FEEDBACK.md — went directly from case study to NOTES.md decisions to PLAN.md status. This left them with less tracking visibility. The new convention prevents this.
+**Observation:** LOGA CASE_LOGA_R01_REC_7, REC8, REC10, REC11, REC12, REC13 bypassed FEEDBACK_FOO.md — went directly from case study to NOTES.md decisions to PLAN.md status. This left them with less tracking visibility. The new convention prevents this.
 
 #### PLAN.md uses stable labels (PLAN_N prefix) — DECIDED (2026-03-14)
 
@@ -1654,25 +1654,25 @@ Positional "Part N" numbering caused cascading renumbers whenever a new part was
 
 #### Bootstrap phase before plan — DECIDED (2026-03-14)
 
-plet's core workflow changes from **Plan → Loop → Refine** to **Bootstrap → Plan → Loop → Refine**. The bootstrap phase runs before plan and ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK.md exists, `bypassPermissions` is configured. Same pattern as /warmup and /notes bootstrap flows in session-kit. Resolves FB_22 and FB_23.
+plet's core workflow changes from **Plan → Loop → Refine** to **Bootstrap → Plan → Loop → Refine**. The bootstrap phase runs before plan and ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK_FOO.md exists, `bypassPermissions` is configured. Same pattern as /warmup and /notes bootstrap flows in session-kit. Resolves FOO_22 and FOO_23.
 
 #### Git stash policy revised — allow with cleanup (2026-03-14)
 
-Revises the ban from FB_9. SPARK run showed 42 stashes despite the ban — stashing is fundamental to how agents handle parallel branch work, not an occasional shortcut. New policy: stashes are OK to use, but the agent/subagent that creates a stash must be the same agent/subagent that cleans it up. No orphaning stashes for someone else to handle. Worktree-as-default (FB_13) should reduce stash usage naturally. Future consideration: the orchestrator creates worktrees and passes paths to subagents, rather than subagents managing their own.
+Revises the ban from FOO_9. SPARK run showed 42 stashes despite the ban — stashing is fundamental to how agents handle parallel branch work, not an occasional shortcut. New policy: stashes are OK to use, but the agent/subagent that creates a stash must be the same agent/subagent that cleans it up. No orphaning stashes for someone else to handle. Worktree-as-default (FOO_13) should reduce stash usage naturally. Future consideration: the orchestrator creates worktrees and passes paths to subagents, rather than subagents managing their own.
 
 #### Verify retry rate Goldilocks framing (2026-03-14)
 
-Withdrawing FB_36 (24% retry overhead) and FB_37 (83% first-pass rate). A 0% retry rate means verify might not be catching anything (rubber-stamping). A very high retry rate (50%+) means implement is consistently producing bad work. Somewhere in the middle is healthy — verify catching real issues is the system working as designed. Only non-verify retries (git issues, crashes) are worth investigating. The user's framing: "there is a Goldilocks zone where we want verify to find problems because that's what it's there for, but if verify is constantly finding problems in every iteration then something is wrong."
+Withdrawing FOO_36 (24% retry overhead) and FOO_37 (83% first-pass rate). A 0% retry rate means verify might not be catching anything (rubber-stamping). A very high retry rate (50%+) means implement is consistently producing bad work. Somewhere in the middle is healthy — verify catching real issues is the system working as designed. Only non-verify retries (git issues, crashes) are worth investigating. The user's framing: "there is a Goldilocks zone where we want verify to find problems because that's what it's there for, but if verify is constantly finding problems in every iteration then something is wrong."
 
 #### Refine decomposition must happen after triage — DECIDED (2026-03-14)
 
-Resolves FB_41 and FB_42. In SPARK, the refine agent created iterations on a per-feedback-item basis during triage, resulting in artificially small 1:1 FB-to-iteration mappings. The fix: (1) triage ALL feedback/emergent items first (resolve, defer, or withdraw each), (2) look at the resolved items as a group, (3) THEN decompose into iterations with natural groupings and Goldilocks-sized chunks, (4) create state files in Step 8 after the full iteration list is reviewed and approved. No creating iterations or state files during triage.
+Resolves FOO_41 and FOO_42. In SPARK, the refine agent created iterations on a per-feedback-item basis during triage, resulting in artificially small 1:1 FOO-to-iteration mappings. The fix: (1) triage ALL feedback/emergent items first (resolve, defer, or withdraw each), (2) look at the resolved items as a group, (3) THEN decompose into iterations with natural groupings and Goldilocks-sized chunks, (4) create state files in Step 8 after the full iteration list is reviewed and approved. No creating iterations or state files during triage.
 
 #### Tooling decisions migrated to specs/NOTES.md (2026-03-15)
 
 Script tooling decisions (coding standards, orchestrator analysis, script inventory, script-as-orchestrator architecture, spec file location, PLAN_7 triage analysis) moved to `specs/NOTES.md`. See that file for all tooling design rationale.
 
-#### Ban git stash in agents (FB_9) — DECIDED (2026-03-11), REVISED (2026-03-14)
+#### Ban git stash in agents (FOO_9) — DECIDED (2026-03-11), REVISED (2026-03-14)
 
 **Problem:** LIBT run agents used `git stash` during execution. Stashes are local-only, invisible to the orchestrator/other agents/external tools, and vulnerable to garbage collection. The case study archival process didn't capture them.
 
@@ -1680,26 +1680,26 @@ Script tooling decisions (coding standards, orchestrator analysis, script invent
 
 **Alternative rejected:** Allow stashes but require cleanup or archival — adds complexity for zero benefit over incremental commits.
 
-**Changes:** execute.md (critical rule), verify.md (critical rule), prd.md (IMP_17 clarification), case_studies/CLAUDE.md (checklist item retained for older runs), FEEDBACK.md (FB_9 resolved).
+**Changes:** execute.md (critical rule), verify.md (critical rule), prd.md (IMP_17 clarification), case_studies/CLAUDE.md (checklist item retained for older runs), FEEDBACK_FOO.md (FOO_9 resolved).
 
 #### Stable labels for case studies — DECIDED (2026-04-03)
 
 Adopted `CASE_{PROJECT}_{RUN}_{QUALIFIER}` as the stable label convention for all case study items. Qualifiers: section mnemonics (ARCH, TRAC), findings (W_1, F_3, S_2), recommendations (REC_1), open questions (OQ_1). Replaces ad-hoc prefixes (R_, S_, SP_, R6_) that were inconsistent across studies and impossible to grep reliably.
 
-All 8 case studies relabeled. Files renamed from `*_CASE_STUDY.md` → `CASE_STUDY_{PROJECT}_{RUN}.md` for consistent, greppable naming. Old labels replaced in FEEDBACK.md, NOTES.md, and PLAN.md. Convention documented in `case_studies/CLAUDE.md` and `NOTES.md` prefix table.
+All 8 case studies relabeled. Files renamed from `*_CASE_STUDY.md` → `CASE_STUDY_{PROJECT}_{RUN}.md` for consistent, greppable naming. Old labels replaced in FEEDBACK_FOO.md, NOTES.md, and PLAN.md. Convention documented in `case_studies/CLAUDE.md` and `NOTES.md` prefix table.
 
-#### FEEDBACK.md 5-phase overhaul (2026-04-03)
+#### FEEDBACK_FOO.md 5-phase overhaul (2026-04-03)
 
-Systematic cleanup of FEEDBACK.md to bring cross-referencing, resolution status, and coverage up to date after Run 6:
+Systematic cleanup of FEEDBACK_FOO.md to bring cross-referencing, resolution status, and coverage up to date after Run 6:
 
 - **Phase 0:** Label format decision (CASE_ prefix)
 - **Phase 1:** Label all case studies + rename files
-- **Phase 2:** Cross-reference every REC ↔ FB item. Found 8 orphaned RECs (6 from R02 resolved-without-FB, 2 from R06).
-- **Phase 3:** Resolution pass — audit every FB item against current code. Many PLAN_8 deferrals (FB_11, FB_13, FB_22, FB_23, FB_29–FB_33, FB_35, FB_38, FB_40) updated to `[resolved, verified]` based on Run 6 results.
-- **Phase 4:** New FB items filed (FB_69–FB_72: parallel scheduling, milestone refactor, phase "unknown" CLI, worktree cleanup).
+- **Phase 2:** Cross-reference every REC ↔ FOO item. Found 8 orphaned RECs (6 from R02 resolved-without-FOO, 2 from R06).
+- **Phase 3:** Resolution pass — audit every FOO item against current code. Many PLAN_8 deferrals (FOO_11, FOO_13, FOO_22, FOO_23, FOO_29–FOO_33, FOO_35, FOO_38, FOO_40) updated to `[resolved, verified]` based on Run 6 results.
+- **Phase 4:** New FOO items filed (FOO_69–FOO_72: parallel scheduling, milestone refactor, phase "unknown" CLI, worktree cleanup).
 - **Phase 5:** Final consistency pass — no stale labels, no old filenames, all RECs covered.
 
-**Result:** FB_1–FB_72. 55 resolved, 4 withdrawn, 2 deferred, 11 open.
+**Result:** FOO_1–FOO_72. 55 resolved, 4 withdrawn, 2 deferred, 11 open.
 
 ### Case study timing analysis
 
@@ -1789,8 +1789,8 @@ What goes in PLET.md vs CLAUDE.md? PLET.md is plet-specific instructions that ap
 
 **Draft (2026-03-09):** PLET.md created and populated with initial content. Sections copied (generalized, not moved) from CLAUDE.md: Common Misspellings (plet-specific subset), Decision Discipline, Consistency Passes. New sections added that belong only in PLET.md (not CLAUDE.md): What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (incorporating the full 7-category taxonomy from NOTES.md with a directory tree showing the full target project root), Commit Conventions (target projects), and a placeholder Critical Requirements & Invariants section. Overlap between CLAUDE.md and PLET.md is expected and acceptable per the existing rule.
 
-### FEEDBACK.md shape and workflow — RESOLVED
-Resolved 2026-03-10. See Key Design Decisions § FEEDBACK.md formalization.
+### FEEDBACK_FOO.md shape and workflow — RESOLVED
+Resolved 2026-03-10. See Key Design Decisions § FEEDBACK_FOO.md formalization.
 
 ### Skills need a Quick Reference / help mechanism
 

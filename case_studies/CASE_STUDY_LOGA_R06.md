@@ -275,7 +275,7 @@ Both completed 13/13 iterations on the same spec. The comparison isolates the ef
 | Audit tags | 0 | 26 |
 | Human intervention | 1 (permission block → 5h stall) | 0 |
 
-Run 1 was faster per iteration when actively running (~8 min vs ~13 min) — no script overhead, no IST/GST calls, no trace writing, no auto-logging. But a single permission prompt caused a ~5 hour overnight stall (FB_3). The scripted orchestrator with bypassPermissions eliminates that failure mode entirely.
+Run 1 was faster per iteration when actively running (~8 min vs ~13 min) — no script overhead, no IST/GST calls, no trace writing, no auto-logging. But a single permission prompt caused a ~5 hour overnight stall (FOO_3). The scripted orchestrator with bypassPermissions eliminates that failure mode entirely.
 
 **The tradeoff:** ~5 min/iter overhead for full observability (traces, audit tags, structured state, auto-logged progress) and zero human-blocking risk. Net result: Run 6 finishes in 2h 48min unattended vs Run 1's 6h 42min with a sleeping human in the loop.
 
@@ -351,8 +351,8 @@ Run 1 was faster per iteration when actively running (~8 min vs ~13 min) — no 
 **Resolution status:**
 - CASE_LOGA_R06_REC_1: `[resolved]` → plet_orchestrator.py 0.2.1
 - CASE_LOGA_R06_REC_2: `[resolved]` → implement.md, verify.md updated
-- CASE_LOGA_R06_REC_3: open → FB_69
-- CASE_LOGA_R06_REC_4: open → FB_70
+- CASE_LOGA_R06_REC_3: open → FOO_69
+- CASE_LOGA_R06_REC_4: open → FOO_70
 - CASE_LOGA_R06_REC_5: deferred (language-specific, low priority)
 
 ### Open Questions

@@ -356,6 +356,6 @@ See `specs/conventions.md` for requirements common to all scripts.
 | SES_FUT_1 | Plan session support | Currently only loop and refine. Plan sessions don't modify state.json today but might need tracking in sessionHistory for audit/observability. |
 | SES_FUT_2 | Session metadata | Additional fields in sessionHistory entries: iteration count at start/end, reason for ending (all complete, all blocked, user stopped, etc.). |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_31 (partially) — Final loop commit required human prompting. `end-session` provides a clean session close point for the orchestrator.
+- FOO_31 (partially) — Final loop commit required human prompting. `end-session` provides a clean session close point for the orchestrator.

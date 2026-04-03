@@ -211,7 +211,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_JUS_1 | Why: detects staleness across the fingerprint chain. When requirements change but iterations haven't been regenerated, or iterations change but state hasn't been updated, this command catches it. Without a machine check, agents operate on stale specs — the failure mode is silent and expensive (FB_16). | P0 |
+| FPR_CHK_JUS_1 | Why: detects staleness across the fingerprint chain. When requirements change but iterations haven't been regenerated, or iterations change but state hasn't been updated, this command catches it. Without a machine check, agents operate on stale specs — the failure mode is silent and expensive (FOO_16). | P0 |
 | FPR_CHK_JUS_2 | When: called by the orchestrator before starting a loop session, by the router during preflight, and by humans to inspect consistency. The primary staleness gate. | P0 |
 | FPR_CHK_JUS_3 | Deprecation signal: only if the fingerprint scheme is replaced or if staleness checking moves entirely into the orchestrator. | P1 |
 

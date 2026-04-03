@@ -299,7 +299,7 @@ plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
 | 2 | `--cwd` flag or `cd` before launch? | `--cwd` is an INV flag, not a claude flag. INV passes it to `subprocess.run(cwd=...)`. Claude has no --cwd flag. |
 | 3 | Prompt delivery mechanism? | Direct command-line argument to `-p`. The full prompt string is passed as a single positional arg: `claude -p "{prompt}"`. Not piped via stdin, not read from a file. |
 | 4 | Session persistence? | Off — `--no-session-persistence`. Subagents are ephemeral. |
-| 5 | Should INV control sandboxing? | No — sandboxing is environment-level config (`/sandbox` or settings.json), not per-invocation. See FB_50. |
+| 5 | Should INV control sandboxing? | No — sandboxing is environment-level config (`/sandbox` or settings.json), not per-invocation. See FOO_50. |
 | 6 | Capture stderr? | No — stderr goes to INV's own stderr (visible to orchestrator). Only stdout (stream-json) goes to transcript. |
 | 7 | Increment attempt counter? | No — orchestrator's job. INV reads attempt for filename but doesn't write state. |
 | 8 | Transcript on retry? | Append with separator — never overwrite, never lose data. Each attempt normally gets a unique filename. If same attempt retries, append. |
@@ -317,6 +317,6 @@ plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
 | INV_FUT_2 | Streaming event parsing | Parse the stream-json output during capture to extract progress signals (tool calls, errors) for real-time orchestrator awareness. |
 | INV_FUT_3 | Retry logic | Built-in retry on transient failures (API errors, rate limits). Currently the orchestrator handles retries. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_22 — bypassPermissions. Resolved: `--permission-mode auto` on subprocess invocations (requires one-time `claude --enable-auto-mode` setup). No project-level config needed.
+- FOO_22 — bypassPermissions. Resolved: `--permission-mode auto` on subprocess invocations (requires one-time `claude --enable-auto-mode` setup). No project-level config needed.

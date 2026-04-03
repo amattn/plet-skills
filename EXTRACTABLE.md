@@ -62,16 +62,16 @@ This suggests session-kit's bootstrap should produce a CLAUDE.md structurally si
 
 **Pattern:** Track meta-observations about a process or tool — distinct from project-level notes (NOTES.md). Tagged entries with IDs, resolution states (`resolved`, `resolved/unverified`, `resolved/verified`), promotion paths to other artifacts.
 
-**Where it lives now:** PLET.md § FEEDBACK.md, FEEDBACK.md, PLAN.md PLAN_6
+**Where it lives now:** PLET.md § FEEDBACK_FOO.md, FEEDBACK_FOO.md, PLAN.md PLAN_6
 
 **Why extractable:** Any team using AI tools accumulates process observations that don't belong in project notes. "The agent keeps doing X wrong" or "this workflow has friction at step Y" — these are meta-observations about the process, not the project. Without a dedicated place, they get lost in conversation or pollute NOTES.md.
 
 **Scope:**
-- Bootstrap: create FEEDBACK.md with format conventions
+- Bootstrap: create FEEDBACK_FOO.md with format conventions
 - Entry format: ID, title, category tags, description
 - Resolution lifecycle: open → resolved → verified
 - Promotion paths: → CLAUDE.md, → config, → PRD, → reference files
-- Intake pipeline: observation → FB entry → artifact changes → resolve → verify
+- Intake pipeline: observation → FOO entry → artifact changes → resolve → verify
 
 **Relationship to /notes:** Complementary. /notes captures project decisions; /feedback captures process observations. Different audiences, different lifecycles.
 
@@ -164,9 +164,9 @@ Any important workflow can be made reliable by expressing it as a discipline wit
 
 ## EX_7: Labeling (`/label`)
 
-**Pattern:** Give every referenceable thing a greppable ID using the `XX_N` convention (e.g., `FR_1`, `FB_3`, `EX_7`). Sub-groups use `XX_YY_N`. Append-only numbering — deleted items leave gaps, never renumber or reuse. The result: any ID returns exactly one definition and all its references across the project.
+**Pattern:** Give every referenceable thing a greppable ID using the `XX_N` convention (e.g., `FR_1`, `FOO_3`, `EX_7`). Sub-groups use `XX_YY_N`. Append-only numbering — deleted items leave gaps, never renumber or reuse. The result: any ID returns exactly one definition and all its references across the project.
 
-**Where it lives now:** CLAUDE.md § Preferences (underscore format), PLET.md § ID and Filename Conventions, PLET.md § Consistency Passes, throughout all artifacts (FR_*, PL_*, FB_*, EX_*, etc.)
+**Where it lives now:** CLAUDE.md § Preferences (underscore format), PLET.md § ID and Filename Conventions, PLET.md § Consistency Passes, throughout all artifacts (FR_*, PL_*, FOO_*, EX_*, etc.)
 
 **Why extractable:** Greppable IDs are the foundation of machine-verifiable projects. Without them, cross-referencing is fuzzy text matching. With them, an agent can trace a requirement from PRD → iteration → state → progress → notes in seconds. The convention is trivial to adopt but transforms how both humans and agents navigate a project.
 
@@ -182,7 +182,7 @@ Any important workflow can be made reliable by expressing it as a discipline wit
   - **Structural** — full semantic scan across all files. Expensive, confirm before running
 - Passes are guidelines, not rigid procedure — the core value is the labeling convention itself
 
-**Relationship to other skills:** Enables /consistency-style verification for free. /feedback uses `FB_N`, /notes references labeled decisions, everything becomes greppable.
+**Relationship to other skills:** Enables /consistency-style verification for free. /feedback uses `FOO_N`, /notes references labeled decisions, everything becomes greppable.
 
 **Size estimate:** Small — a CLAUDE.md directive + bootstrap logic for defining prefixes. The consistency pass guidelines are lightweight addendum.
 
@@ -208,5 +208,5 @@ EX_1 (/chatux)        — standalone, but disciplines can formalize it
 EX_4 (/improve)       — standalone, benefits from discipline framing
   ↓
 EX_3 (/dictation)     — benefits from /improve for learning new corrections
-EX_2 (/feedback)      — benefits from /notes, /discipline, and /label (FB_N)
+EX_2 (/feedback)      — benefits from /notes, /discipline, and /label (FOO_N)
 ```

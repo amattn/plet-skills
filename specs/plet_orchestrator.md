@@ -538,8 +538,8 @@ During an iteration, per-iteration state files exist in two copies: the global c
 | ORC_FUT_3 | Refine session support | `plet_orchestrator.py run --type refine` for automated refine session steps (fingerprint updates, state file creation). Human decisions still interactive. |
 | ORC_FUT_4 | CI/CD integration | The orchestrator as a CI step: `plet_orchestrator.py run --output ndjson` in a GitHub Action or similar. Exit code signals success/failure. Parse the final `result` line for summary. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_31 — Final loop commit required human prompting. Orchestrator manages session lifecycle and merge-squash deterministically.
-- FB_34 — Recommend user stays for first iterations. Orchestrator can print a message before first iteration.
-- FB_40 — State lifecycle not transitioned. Orchestrator transitions deterministically after each phase.
+- FOO_31 — Final loop commit required human prompting. Orchestrator manages session lifecycle and merge-squash deterministically.
+- FOO_34 — Recommend user stays for first iterations. Orchestrator can print a message before first iteration.
+- FOO_40 — State lifecycle not transitioned. Orchestrator transitions deterministically after each phase.

@@ -10,12 +10,12 @@ Gate script for the verify phase. Same architecture as GIM (implement gate) — 
 
 **Simpler than GIM:** Pre-gate only checks git and state (no fingerprints, no spec-artifacts — those can't change mid-session). Post-gate is identical to GIM: git, state, entries, trace.
 
-**Same FB motivation:** FB_29 (learnings/emergent not written), FB_33 (progress entries incomplete), FB_11 (trace files missing). Verify phase had the same compliance gaps as implement.
+**Same FOO motivation:** FOO_29 (learnings/emergent not written), FOO_33 (progress entries incomplete), FOO_11 (trace files missing). Verify phase had the same compliance gaps as implement.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GVR_PUR_1 | Pre-verify gate: verifies git state, state file validity, and lifecycle before the verify subagent starts. Simpler than GIM pre — no fingerprint or spec-artifact checks. | P0 |
-| GVR_PUR_2 | Post-verify gate: verifies git state, state file validity, and mandatory runtime artifact entries after verify finishes. Identical checks to GIM post. Addresses FB_29, FB_33, FB_11. | P0 |
+| GVR_PUR_2 | Post-verify gate: verifies git state, state file validity, and mandatory runtime artifact entries after verify finishes. Identical checks to GIM post. Addresses FOO_29, FOO_33, FOO_11. | P0 |
 | GVR_PUR_3 | Delegates to existing tools — GTC (git), STA (state), ENT (entries). Same delegation pattern as GIM. | P0 |
 
 ## 2. Agent Personas (GVR_AGT)
@@ -134,7 +134,7 @@ Simpler than GIM pre — only git and state, plus lifecycle check.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GVR_PST_JUS_1 | Why: enforces mandatory artifact completeness after verify finishes. Same motivation as GIM post (FB_29, FB_33, FB_11). | P0 |
+| GVR_PST_JUS_1 | Why: enforces mandatory artifact completeness after verify finishes. Same motivation as GIM post (FOO_29, FOO_33, FOO_11). | P0 |
 | GVR_PST_JUS_2 | When: called by verify subagent before exiting. Self-corrects until passes. | P0 |
 | GVR_PST_JUS_3 | Deprecation signal: only if mandatory entry rules are removed. | P1 |
 
@@ -379,7 +379,7 @@ See `specs/conventions.md` for universal requirements.
 |----|------|---------------|----------------------|
 | GVR_CRT_1 | Pre-gate passes on clean state | Gate blocks valid verifications | Create valid state + git repo, verify exit 0 |
 | GVR_CRT_2 | Pre-gate fails on invalid state | Invalid state not caught | Create invalid state, verify exit 1 |
-| GVR_CRT_3 | Post-gate fails on missing progress | Missing entries not caught (FB_33) | No progress entry, verify exit 1 |
+| GVR_CRT_3 | Post-gate fails on missing progress | Missing entries not caught (FOO_33) | No progress entry, verify exit 1 |
 | GVR_CRT_4 | Post-gate warns on missing learnings | Missing learnings not surfaced | No learnings, verify exit 2 |
 | GVR_CRT_5 | Post-gate passes with all entries | Complete iteration blocked | All entries present, verify exit 0 |
 | GVR_CRT_6 | GTC integration | Git checks missing | Verify git:* checks in output |
@@ -427,8 +427,8 @@ See `specs/conventions.md` for universal requirements.
 | ~~GVR_FUT_2~~ | ~~Full verification report check~~ | Promoted to GVR_PST_BHV_10. FAIL if verificationReports empty or missing required fields. |
 | ~~GVR_FUT_3~~ | ~~Shared gate library~~ | Promoted to RQ_4 / implementation plan. Extract to `util_gate_phase.py` during GVR implementation. GIM retrofitted. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_29 — Learnings/emergent not written. Post-gate WARNs if count is 0.
-- FB_33 — Progress entries incomplete. Post-gate FAILs if count is 0.
-- FB_11 — Trace files missing. Post-gate WARNs if trace events file missing/empty.
+- FOO_29 — Learnings/emergent not written. Post-gate WARNs if count is 0.
+- FOO_33 — Progress entries incomplete. Post-gate FAILs if count is 0.
+- FOO_11 — Trace files missing. Post-gate WARNs if trace events file missing/empty.

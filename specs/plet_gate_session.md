@@ -20,7 +20,7 @@ The `/plet` entry point needs to know which phase the project is in, what the cu
 |----|-------------|----------|
 | GSS_PUR_1 | Phase detection from project state. Reads plet artifacts on disk and determines the correct session type (plan, loop, refine). Implements the OR_2–OR_6 routing logic as deterministic code. | P0 |
 | GSS_PUR_2 | Project status summary. Machine-readable snapshot of iteration counts, lifecycle distribution, blockers, active agents, and fingerprint consistency. Implements OR_12. | P0 |
-| GSS_PUR_3 | Pre-session environment checks. Verifies the project is ready for plet work: scripts installed, git health (via GTC check-session), CLAUDE.md exists, .gitignore includes .plet/, spec artifacts exist, state valid, fingerprints consistent. Addresses FB_16, FB_23. | P0 |
+| GSS_PUR_3 | Pre-session environment checks. Verifies the project is ready for plet work: scripts installed, git health (via GTC check-session), CLAUDE.md exists, .gitignore includes .plet/, spec artifacts exist, state valid, fingerprints consistent. Addresses FOO_16, FOO_23. | P0 |
 
 ## 2. Agent Personas (GSS_AGT)
 
@@ -240,7 +240,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PRF_JUS_1 | Why: verifies the project environment is ready for plet work. FB_16 (spec artifacts lost), FB_22 (bypassPermissions not configured), FB_23 (CLAUDE.md missing) all showed that plet assumed a ready environment but didn't check. This command checks. | P0 |
+| GSS_PRF_JUS_1 | Why: verifies the project environment is ready for plet work. FOO_16 (spec artifacts lost), FOO_22 (bypassPermissions not configured), FOO_23 (CLAUDE.md missing) all showed that plet assumed a ready environment but didn't check. This command checks. | P0 |
 | GSS_PRF_JUS_2 | When: called before entering any session (plan, loop, refine). The orchestrator and SKILL.md both run preflight before doing work. | P0 |
 | GSS_PRF_JUS_3 | Deprecation signal: if project setup becomes fully automated (unlikely — some checks are environment-specific). | P1 |
 
@@ -308,10 +308,10 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PRF_BHV_1 | **claude-md-exists**: Checks `CLAUDE.md` exists in project root. WARN if missing (FB_23). plet works without it but institutional memory is lost. | P0 |
+| GSS_PRF_BHV_1 | **claude-md-exists**: Checks `CLAUDE.md` exists in project root. WARN if missing (FOO_23). plet works without it but institutional memory is lost. | P0 |
 | GSS_PRF_BHV_2 | **gitignore-plet**: Checks `.gitignore` includes `.plet/` or `.plet`. WARN if missing. `.plet/` is local working state (worktrees, caches) — shouldn't be committed. | P0 |
 | GSS_PRF_BHV_3 | ~~**bypass-permissions**~~: Dropped. `plet_invoke.py` launches subprocesses with `claude --enable-auto-mode` — project-level permission settings don't matter for subprocess invocations. The invoke script owns the permission model. | — |
-| GSS_PRF_BHV_4 | **spec-artifacts**: If `plet_dir` exists, checks `requirements.md` and `iterations.md` exist. FAIL if plet_dir exists but spec artifacts are missing (FB_16 — lost artifacts make the project unresumable). PASS if plet_dir doesn't exist (fresh project, plan will create them). | P0 |
+| GSS_PRF_BHV_4 | **spec-artifacts**: If `plet_dir` exists, checks `requirements.md` and `iterations.md` exist. FAIL if plet_dir exists but spec artifacts are missing (FOO_16 — lost artifacts make the project unresumable). PASS if plet_dir doesn't exist (fresh project, plan will create them). | P0 |
 | GSS_PRF_BHV_5 | **state-valid**: If `plet/state.json` exists, validates it via `util_state.load_and_validate_global_state()`. FAIL if invalid. PASS if doesn't exist (fresh project). | P0 |
 | GSS_PRF_BHV_6 | **fingerprints-consistent**: Severity depends on session type (from `--session-type`): **plan** → SKIPPED (plan creates/overwrites spec artifacts, fingerprint check is irrelevant). **loop** → calls `plet_fingerprint.py check` via subprocess; PASS if consistent, FAIL if stale (agents would implement against stale requirements — wasted work). **refine** → calls `plet_fingerprint.py check`; PASS if consistent, WARN if stale (refine is where you fix staleness). Fingerprint script's own errors bubble up as-is. If `plet_fingerprint.py` itself is missing, caught by scripts-installed check. | P0 |
 | GSS_PRF_BHV_7 | **git-check**: Calls `plet_git_check.py check-session` via subprocess. Preflight IS a session boundary — CKS was designed for this. FAIL/WARN results from CKS are included in preflight output (each CKS check becomes a preflight check with its original name prefixed: `git:in-progress-operation`, `git:orphaned-worktrees`, etc). Replaces the standalone git-repo check — CKS already checks for git repo internally. If `plet_git_check.py` is missing, caught by scripts-installed. | P0 |
@@ -518,7 +518,7 @@ See `specs/conventions.md` for universal requirements.
 | GSS_CRT_4 | status blockers listed | Blockers not surfaced | Create blocked iterations, verify listed |
 | GSS_CRT_5 | preflight fresh project | Fresh project fails preflight | Run preflight on empty dir, verify passes (no artifacts to check) |
 | GSS_CRT_6 | preflight missing CLAUDE.md | Missing CLAUDE.md not caught | Remove CLAUDE.md, verify WARN |
-| GSS_CRT_7 | preflight missing spec artifacts | Lost artifacts not caught (FB_16) | Create plet/ with state but no requirements, verify FAIL |
+| GSS_CRT_7 | preflight missing spec artifacts | Lost artifacts not caught (FOO_16) | Create plet/ with state but no requirements, verify FAIL |
 | GSS_CRT_8 | ~~preflight bypass-permissions~~ | Dropped — plet_invoke.py uses `claude --enable-auto-mode`. |  |
 | GSS_CRT_9 | preflight exit codes | Wrong exit code for warn vs fail | Verify 0/1/2 mapping |
 | GSS_CRT_10 | detect bare output | Extra text breaks shell capture | Verify output is exactly one word |
@@ -547,7 +547,7 @@ See `specs/conventions.md` for universal requirements.
 | 2 | Should detect output `status` as a session type? | No — `status` is a command, not a session type. detect returns `plan`, `loop`, or `refine`. The user can force `/plet status` via the SKILL.md command parsing, not via detect. |
 | 3 | Should preflight auto-fix issues (create CLAUDE.md, add .gitignore entry)? | No — preflight is read-only. It diagnoses, the caller fixes. Same principle as GTC (check but don't fix). |
 | 4 | Should status call fingerprint check? | Yes but as P1 — it's the most expensive operation. detect deliberately avoids it for speed. |
-| 5 | Should preflight check bypassPermissions? | No — dropped. `plet_invoke.py` launches subprocesses with `claude --enable-auto-mode` (see https://claude.com/blog/auto-mode). Project-level permission settings don't affect subprocess invocations. The invoke script owns the permission model. FB_22 resolved by architecture, not by preflight checks. |
+| 5 | Should preflight check bypassPermissions? | No — dropped. `plet_invoke.py` launches subprocesses with `claude --enable-auto-mode` (see https://claude.com/blog/auto-mode). Project-level permission settings don't affect subprocess invocations. The invoke script owns the permission model. FOO_22 resolved by architecture, not by preflight checks. |
 
 ## Open Questions
 
@@ -563,8 +563,8 @@ See `specs/conventions.md` for universal requirements.
 | GSS_FUT_2 | Health score | A composite health score (0-100) combining preflight, GTC checks, and status into one number for dashboard display. |
 | GSS_FUT_3 | Detailed fingerprint diff | Instead of just "consistent/stale", include which artifacts drifted and what IDs changed. Currently deferred to `plet_fingerprint.py check --output json`. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_16 — Spec artifacts not preserved. `preflight` checks requirements.md and iterations.md exist when plet directory is present.
-- FB_22 — bypassPermissions not configured. Resolved by architecture: `plet_invoke.py` uses `claude --enable-auto-mode` for subprocesses (see https://claude.com/blog/auto-mode). Preflight check dropped — project-level permission settings don't affect subprocess invocations.
-- FB_23 — CLAUDE.md missing. `preflight` checks CLAUDE.md exists.
+- FOO_16 — Spec artifacts not preserved. `preflight` checks requirements.md and iterations.md exist when plet directory is present.
+- FOO_22 — bypassPermissions not configured. Resolved by architecture: `plet_invoke.py` uses `claude --enable-auto-mode` for subprocesses (see https://claude.com/blog/auto-mode). Preflight check dropped — project-level permission settings don't affect subprocess invocations.
+- FOO_23 — CLAUDE.md missing. `preflight` checks CLAUDE.md exists.

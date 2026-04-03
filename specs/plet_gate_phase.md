@@ -10,7 +10,7 @@
 
 Phase gate script for the implement and verify phases. The primary purpose is to give the orchestrator, subagent, or subprocess a clear signal: **you're not done yet — clean up or block.** Runs pre and post each phase, enforcing compliance checks and mandatory artifact completeness. The subagent runs `post` before exiting and self-corrects until it passes — its exit means "I passed my own gate."
 
-Case study evidence: SPARK produced 0.09 learnings and 0.04 emergent entries per iteration despite a prose mandate (FB_29). Only 6 of 23 iterations had explicit progress entries (FB_33). Trace files were missing (FB_11). Prose rules failed consistently — tooling enforcement is the fix.
+Case study evidence: SPARK produced 0.09 learnings and 0.04 emergent entries per iteration despite a prose mandate (FOO_29). Only 6 of 23 iterations had explicit progress entries (FOO_33). Trace files were missing (FOO_11). Prose rules failed consistently — tooling enforcement is the fix.
 
 **Responsibility boundary:** GPH orchestrates other tools (GTC, STA, ENT, TRC, FPR) at phase boundaries. It does NOT implement checks itself — it delegates to existing scripts and aggregates their results.
 
@@ -164,7 +164,7 @@ All pre-gates run git-check and state-valid. Additional checks depend on `--phas
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PST_JUS_1 | Why: enforces mandatory artifact completeness after the subagent finishes. FB_29, FB_33, FB_11. | P0 |
+| GPH_PST_JUS_1 | Why: enforces mandatory artifact completeness after the subagent finishes. FOO_29, FOO_33, FOO_11. | P0 |
 | GPH_PST_JUS_2 | When: called by the subagent before exiting. Self-corrects until passes. | P0 |
 | GPH_PST_JUS_3 | Deprecation signal: only if mandatory entry rules are removed. | P1 |
 
@@ -246,7 +246,7 @@ Post-gate re-verifies git and state, then checks artifacts. Verify adds verdict 
 | GPH_PST_BHV_10 | Check order: git-check → state-valid → implement-verdict (impl only) → audit-tag → progress → learnings → emergent → trace → verify-verdict (verify only) → verification-report (verify only) → verdict-consistency (verify only). | P0 |
 | GPH_PST_BHV_11 | **implement-verdict**: Reads `implementVerdict` from per-iteration state. **implement post only**: FAIL if null — the implement subagent must call `set-verdict --phase implement` before exiting. Self-correction: subagent sets verdict and re-runs post gate. | P0 |
 | GPH_PST_BHV_12 | **verdict-consistency**: **verify post only**: WARN if `verifyVerdict` doesn't match the last entry in `verificationReports[].verdict`. Catches "report says X, verdict field says Y" inconsistency. Not FAIL — the subagent can fix it, but the data is technically present either way. | P0 |
-| GPH_PST_BHV_13 | **audit-tag**: Checks git tag exists for current phase: `plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`. FAIL if missing — the subagent must create the audit tag before exiting (FB_55). Both phases. | P0 |
+| GPH_PST_BHV_13 | **audit-tag**: Checks git tag exists for current phase: `plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`. FAIL if missing — the subagent must create the audit tag before exiting (FOO_55). Both phases. | P0 |
 
 ---
 
@@ -432,7 +432,7 @@ Note: implement post includes `implement-verdict` but not `verify-verdict`, `ver
 |----|------|---------------|----------------------|
 | GPH_CRT_1 | Pre-gate passes (both phases) | Gate blocks valid work | Clean state + git, verify exit 0 |
 | GPH_CRT_2 | Pre-gate fails on invalid state | Invalid state not caught | Invalid state.json, verify exit 1 |
-| GPH_CRT_3 | Post-gate fails on missing progress | FB_33 not enforced | No progress entry, verify exit 1 |
+| GPH_CRT_3 | Post-gate fails on missing progress | FOO_33 not enforced | No progress entry, verify exit 1 |
 | GPH_CRT_4 | Post-gate warns on missing learnings | Missing learnings not surfaced | No learnings, verify exit 2 |
 | GPH_CRT_5 | Post-gate passes with all entries | Complete iteration blocked | All entries, verify exit 0 |
 | GPH_CRT_6 | GTC integration | Git checks missing | Verify git:* checks in output |
@@ -480,9 +480,9 @@ Note: implement post includes `implement-verdict` but not `verify-verdict`, `ver
 | GPH_FUT_1 | Entry quality check | Beyond count > 0, check entries have meaningful content. |
 | GPH_FUT_2 | Configurable severity | Allow per-project override of WARN/FAIL severity per check. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_29 — Learnings/emergent not written. Post-gate WARNs if count is 0.
-- FB_33 — Progress entries incomplete. Post-gate FAILs if count is 0.
-- FB_11 — Trace files missing/corrupt. Post-gate WARNs.
-- FB_40 — State lifecycle. Validates schema, defers transitions to orchestrator.
+- FOO_29 — Learnings/emergent not written. Post-gate WARNs if count is 0.
+- FOO_33 — Progress entries incomplete. Post-gate FAILs if count is 0.
+- FOO_11 — Trace files missing/corrupt. Post-gate WARNs.
+- FOO_40 — State lifecycle. Validates schema, defers transitions to orchestrator.

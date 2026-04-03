@@ -6,7 +6,7 @@
 
 ## 1. Purpose (STA_PUR)
 
-State schema drift was the most persistent issue across three case studies (LOGA, LIBT, SPARK). Each iteration's agent invented its own JSON structure — five iterations, five schemas. `plet_state.py` fully solved it by making schema compliance automatic. This was the A/B test winner: tooling (FB_12) vs stronger prose (FB_17). Prose continued to fail in the same runs where this tool succeeded.
+State schema drift was the most persistent issue across three case studies (LOGA, LIBT, SPARK). Each iteration's agent invented its own JSON structure — five iterations, five schemas. `plet_state.py` fully solved it by making schema compliance automatic. This was the A/B test winner: tooling (FOO_12) vs stronger prose (FOO_17). Prose continued to fail in the same runs where this tool succeeded.
 
 This script's success led to two key insights: "Skills for Judgment, Code for Compliance" (the governing principle for all plet tooling — see `specs/NOTES.md`) and "Agent-First CLI Design" (these are agent tools, not developer tools — see NOTES.md § Important Concepts & Insights).
 
@@ -737,7 +737,7 @@ See `specs/conventions.md` for universal requirements.
 
 | # | Question | Decision |
 |---|----------|----------|
-| 1 | Tool vs prose for schema enforcement? | Tool — A/B test winner (FB_12 vs FB_17). |
+| 1 | Tool vs prose for schema enforcement? | Tool — A/B test winner (FOO_12 vs FOO_17). |
 | 2 | Validate before or after write in `init`? | Before — generate data, validate, then write. |
 | 3 | Positional args for update-criterion? | Named args only — agent-first CLI design. |
 | 4 | Alternating pairs for update-field? | `--data` JSON object — one format, zero ambiguity. |
@@ -766,9 +766,9 @@ See `specs/conventions.md` for universal requirements.
 | STA_FUT_6 | Schema version check | `validate` outputs machine-readable schema version comparison (file version vs script version) to detect files written by a newer plet version |
 | STA_FUT_7 | Global state.json ownership | Currently `plet_state.py` handles per-iteration files only, and `util_state.py` reads common global fields. As the system matures, global state.json may need its own CRUD commands (update dependency map, update milestones, update session history). Options: (1) absorb into `plet_state.py` (rename to handle both), (2) new `plet_global_state.py`, (3) rename current to `plet_state_iter.py` and add `plet_state_global.py`. Evaluate after orchestrator spec — the orchestrator is the primary writer of global state. |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_12 — state file schema drift across iterations (the motivating issue, A/B test winner)
+- FOO_12 — state file schema drift across iterations (the motivating issue, A/B test winner)
 
 ## Audit Findings
 

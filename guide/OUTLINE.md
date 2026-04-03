@@ -92,7 +92,7 @@ How to make Claude Code get better every session — and keep the gains.
 - **Auto-memory bootstrap** (MEMORY.md) — loads before CLAUDE.md, ensures critical rules survive from message one
 - **CLAUDE.md** — project-level policy. "This is how we do things."
 - **NOTES.md** — institutional memory. Decisions, rationale, rejected alternatives.
-- **FEEDBACK.md** — meta-observations about the process itself
+- **FEEDBACK_FOO.md** — meta-observations about the process itself
 - **State files** — structured runtime state (for autonomous agents)
 - *Talking point:* Each layer serves a different audience and persistence need. The stack is ordered by "how early does this need to be in context?"
 
@@ -266,7 +266,7 @@ What happens when you take Part 1's patterns seriously enough to automate them.
 
 **Slide 11.1 — "The System That Builds Itself"**
 - plet runs generate learnings (learnings.md)
-- Learnings feed back into the system (FEEDBACK.md → requirements → implementation)
+- Learnings feed back into the system (FEEDBACK_FOO.md → requirements → implementation)
 - The ratchet from Part 1, now turning automatically
 - But prose-only feedback loops have limits — agents drift on prose rules over many iterations
 - The virtuous cycle *needs* tooling: prose captures the intent, code enforces it, the skill ships both

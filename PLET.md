@@ -79,7 +79,7 @@ my-project/                             # target project root
 ├── CLAUDE.md                           # memory: project-specific instructions
 ├── PLET.md                             # memory: plet-specific instructions
 ├── NOTES.md                            # memory: decisions, rationale, open questions
-├── FEEDBACK.md                         # memory: meta-observations about plet itself
+├── FEEDBACK_FOO.md                         # memory: meta-observations about plet itself
 ├── src/                                # target project source (whatever structure the project uses)
 ├── tests/                              # target project tests
 ├── ...                                 # other target project files
@@ -131,7 +131,7 @@ my-project/                             # target project root
 - `CLAUDE.md` — project-specific instructions
 - `PLET.md` — plet-specific instructions
 - `NOTES.md` — decisions, rationale, open questions
-- `FEEDBACK.md` — meta-observations about plet itself (process issues, instruction gaps, tooling friction)
+- `FEEDBACK_FOO.md` — meta-observations about plet itself (process issues, instruction gaps, tooling friction)
 
 **7. Configuration** (per-project behavior modification)
 - Modify planner, refiner, implement agent, and verify agent behavior
@@ -242,16 +242,16 @@ plet ships enforcement tools inside the skill package via `${CLAUDE_SKILL_DIR}/s
 
 This was validated across three case studies: state schema drift (the most persistent issue) was fully solved by `plet_state.py`, while prose-only rules for learnings/emergent capture continued to be ignored by agents in the same run.
 
-## FEEDBACK.md
+## FEEDBACK_FOO.md
 
-`FEEDBACK.md` captures meta-observations about plet itself — process issues, instruction gaps, tooling friction. It is distinct from `learnings.md` (which captures knowledge about the *target project*) and `emergent.md` (which captures items discovered during execution for human triage).
+`FEEDBACK_FOO.md` captures meta-observations about plet itself — process issues, instruction gaps, tooling friction. It is distinct from `learnings.md` (which captures knowledge about the *target project*) and `emergent.md` (which captures items discovered during execution for human triage).
 
-**Who writes:** Humans only. Agents write to `emergent.md` when they encounter issues; the human recognizes which emergent items are plet-process issues (vs. project issues) and promotes them to `FEEDBACK.md` during refine sessions or anytime they notice a pattern.
+**Who writes:** Humans only. Agents write to `emergent.md` when they encounter issues; the human recognizes which emergent items are plet-process issues (vs. project issues) and promotes them to `FEEDBACK_FOO.md` during refine sessions or anytime they notice a pattern.
 
 **Entry format:** Tagged — ID, title, category tags, description.
 
 ```
-### FB_3: Autonomous agents asked for confirmation [autonomy] [blocking]
+### FOO_3: Autonomous agents asked for confirmation [autonomy] [blocking]
 
 Autonomous subagents asked "should I proceed?" once or twice during
 execution. This is effectively blocking — autonomous agents should
@@ -270,7 +270,7 @@ unattended execution.
 - → PRD (becomes a requirement change)
 - → reference files (becomes agent behavior)
 
-**ID convention:** `FB_N` — append-only numbering, never reuse.
+**ID convention:** `FOO_N` — append-only numbering, never reuse.
 
 ## Presenting Options
 

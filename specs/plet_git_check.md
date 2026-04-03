@@ -8,7 +8,7 @@
 
 Git compliance checks called by gate scripts and the orchestrator at phase and session boundaries. Read-only — verifies git state without modifying it.
 
-Case study evidence: agents used 42 git stashes despite an explicit ban (FB_30), orphaned worktrees after retries (FB_32), agents on wrong branches, merge commits in supposedly linear history, and unmerged completed iterations left behind at session end. These checks exist to catch compliance violations that prose rules failed to prevent.
+Case study evidence: agents used 42 git stashes despite an explicit ban (FOO_30), orphaned worktrees after retries (FOO_32), agents on wrong branches, merge commits in supposedly linear history, and unmerged completed iterations left behind at session end. These checks exist to catch compliance violations that prose rules failed to prevent.
 
 **Split from:** Originally `plet_git.py` (8 commands, 4 concerns). Split into three scripts by audience — GTI (lifecycle), GTO (workflow ops), GTC (compliance checks). See `specs/NOTES.md` § "plet_git.py split into three scripts" for rationale.
 
@@ -139,7 +139,7 @@ Each check verifies one git invariant. All checks are always run — no short-ci
 | GTC_CKI_BHV_1 | **correct-branch**: Derives expected branch `plet/{projectId}/loop{N}/{iter_id}` from global and iteration state. Checks `git branch --show-current` matches. FAIL if on wrong branch or detached HEAD. | P0 |
 | GTC_CKI_BHV_2 | **clean-worktree**: Checks `git status --porcelain` is empty. FAIL if there are uncommitted changes. Detail includes count of modified/untracked files. | P0 |
 | GTC_CKI_BHV_3 | **linear-history**: Checks for merge commits on the iteration branch since it diverged from the workstream. Uses `git log --merges {workstream}..HEAD`. FAIL if any merge commits found. Detail includes count and first merge commit hash. Linear history is required for clean `git bisect` and audit trails (IMP_16). | P0 |
-| GTC_CKI_BHV_4 | **no-stashes**: Checks `git stash list` is empty. WARN (not FAIL) if stashes exist. Stashes are banned (FB_30) but their presence doesn't block execution — it's a compliance signal. Detail includes stash count. | P0 |
+| GTC_CKI_BHV_4 | **no-stashes**: Checks `git stash list` is empty. WARN (not FAIL) if stashes exist. Stashes are banned (FOO_30) but their presence doesn't block execution — it's a compliance signal. Detail includes stash count. | P0 |
 | GTC_CKI_BHV_5 | **branch-exists**: Verifies the iteration branch exists (`git rev-parse --verify refs/heads/{branch}`). FAIL if the branch doesn't exist. This catches cases where the branch was accidentally deleted or never created. Runs before correct-branch — if the branch doesn't exist, correct-branch would also fail, but this gives a more specific error. | P0 |
 | GTC_CKI_BHV_6 | Check order: in-progress-operation → branch-exists → correct-branch → clean-worktree → linear-history → no-stashes. Broken git state first (blocks everything), branch existence next, stashes last (least severe — warn only). | P0 |
 | GTC_CKI_BHV_8 | **in-progress-operation**: Checks for interrupted git operations — rebase (`.git/rebase-merge` or `.git/rebase-apply`), merge (`MERGE_HEAD`), cherry-pick (`CHERRY_PICK_HEAD`), bisect (`BISECT_LOG`). FAIL if any detected. Detail names which operation is in progress. More actionable than clean-worktree alone (explains *why* the tree is dirty). | P0 |
@@ -151,11 +151,11 @@ Each check verifies one git invariant. All checks are always run — no short-ci
 
 #### Justification (GTC_CKS_JUS)
 
-At session boundaries (start and end), the orchestrator needs a global health check across the entire loop session. FB_32 showed orphaned worktrees surviving across retries. The plan references GTC check-session for scanning worktrees at session start (GTI_AFL_3 in plet_git_iteration.md). Session-end checks verify that all completed iterations have been merged and no resources are left behind.
+At session boundaries (start and end), the orchestrator needs a global health check across the entire loop session. FOO_32 showed orphaned worktrees surviving across retries. The plan references GTC check-session for scanning worktrees at session start (GTI_AFL_3 in plet_git_iteration.md). Session-end checks verify that all completed iterations have been merged and no resources are left behind.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_JUS_1 | Why: session-level git health check. Catches orphaned worktrees (FB_32), unmerged completed iterations, and lingering stashes across the entire loop session — problems that per-iteration checks can't detect. | P0 |
+| GTC_CKS_JUS_1 | Why: session-level git health check. Catches orphaned worktrees (FOO_32), unmerged completed iterations, and lingering stashes across the entire loop session — problems that per-iteration checks can't detect. | P0 |
 | GTC_CKS_JUS_2 | When: called by orchestrator at session start (preflight — discover stale state) and session end (cleanup verification — nothing left behind). Also callable by GUI tools for health display or by humans for manual health checks. | P0 |
 | GTC_CKS_JUS_3 | Deprecation signal: if the orchestrator becomes deterministic enough that these issues can't arise. Unlikely — external factors (crashes, manual intervention) always leave residue. | P1 |
 
@@ -228,8 +228,8 @@ Session-level checks scan across all iterations and git state for the current lo
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_BHV_1 | **orphaned-worktrees**: Lists git worktrees (`git worktree list --porcelain`), identifies any under the plet namespace that don't correspond to a non-complete, non-withdrawn iteration per `state.json.lifecycles` (SF_28). A worktree is orphaned if its iteration's lifecycle is `complete`, `withdrawn`, or missing from lifecycles entirely. WARN for each orphaned worktree found. Detail includes worktree path and branch. Addresses FB_32. | P0 |
-| GTC_CKS_BHV_2 | **no-stashes**: Checks `git stash list` is empty. WARN if stashes exist. Same as the per-iteration check but at session scope — stashes may have been created outside any iteration context. Detail includes stash count. Addresses FB_30. | P0 |
+| GTC_CKS_BHV_1 | **orphaned-worktrees**: Lists git worktrees (`git worktree list --porcelain`), identifies any under the plet namespace that don't correspond to a non-complete, non-withdrawn iteration per `state.json.lifecycles` (SF_28). A worktree is orphaned if its iteration's lifecycle is `complete`, `withdrawn`, or missing from lifecycles entirely. WARN for each orphaned worktree found. Detail includes worktree path and branch. Addresses FOO_32. | P0 |
+| GTC_CKS_BHV_2 | **no-stashes**: Checks `git stash list` is empty. WARN if stashes exist. Same as the per-iteration check but at session scope — stashes may have been created outside any iteration context. Detail includes stash count. Addresses FOO_30. | P0 |
 | GTC_CKS_BHV_3 | **unmerged-complete**: Reads `state.json.lifecycles` (SF_28) to find iterations with lifecycle `"complete"`. For each, checks if its iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) is an ancestor of the workstream branch. FAIL for any complete iteration whose branch is not merged (work was declared done but never integrated). Detail lists the unmerged iteration IDs. | P0 |
 | GTC_CKS_BHV_4 | **workstream-exists**: Verifies the workstream branch `plet/{projectId}/loop{N}/workstream` exists. FAIL if it doesn't exist and there are iterations in non-ineligible states per `state.json.lifecycles` (SF_28) — any lifecycle other than `ineligible` means work has started or is planned. PASS if it doesn't exist and all iterations are ineligible (loop hasn't started yet). Queued counts as non-ineligible (work is planned). | P0 |
 | GTC_CKS_BHV_5 | Check order: in-progress-operation → workstream-exists → orphaned-worktrees → orphaned-branches → no-stashes → unmerged-complete. Broken repo first, then workstream (structural), cleanup checks next, merge verification last. | P0 |
@@ -476,7 +476,7 @@ See `specs/conventions.md` for universal requirements.
 
 | # | Question | Decision |
 |---|----------|----------|
-| 1 | Should stash violations be FAIL or WARN? | WARN. Stashes are banned (FB_30) but their presence doesn't block execution — they're a compliance signal. Exit code 2 (warnings only) gives callers a distinct signal without forcing a block. The caller (gate script, orchestrator) decides how to handle exit 2. |
+| 1 | Should stash violations be FAIL or WARN? | WARN. Stashes are banned (FOO_30) but their presence doesn't block execution — they're a compliance signal. Exit code 2 (warnings only) gives callers a distinct signal without forcing a block. The caller (gate script, orchestrator) decides how to handle exit 2. |
 | 2 | Should check-iteration verify audit tags exist? | No. Audit tags are GTO's responsibility and are created after each phase ends. check-iteration runs at phase boundaries (before/after) — tags may not exist yet at pre-phase check. Tag verification belongs in a hypothetical post-merge check, not phase-boundary checks. |
 | 3 | Should the script take `--checks` to run only specific checks? | No for now (YAGNI). All checks are fast (git operations). If a use case emerges for selective checking, add it then. Gate scripts can already filter by parsing the JSON output. |
 | 4 | check-session: scan state files or take explicit iteration list? | Scan state files. The state directory is the source of truth for which iterations exist. Taking an explicit list requires the caller to know all iterations — redundant with the state directory. |
@@ -494,7 +494,7 @@ See `specs/conventions.md` for universal requirements.
 | GTC_FUT_2 | `--checks` flag | Selective check execution — run only named checks. Useful if specific checks become expensive or if callers want to skip known-failing checks. |
 | ~~GTC_FUT_3~~ | ~~`--fix` mode~~ | Withdrawn. GTC is read-only by design. Fixes belong in the caller (orchestrator calls GTI worktree-remove, etc.). |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_30 — Agents used 42 git stashes despite ban. `check-iteration` and `check-session` detect stashes at phase and session boundaries.
-- FB_32 — Orphaned worktree after retry. `check-session` detects orphaned worktrees that don't correspond to active iterations.
+- FOO_30 — Agents used 42 git stashes despite ban. `check-iteration` and `check-session` detect stashes at phase and session boundaries.
+- FOO_32 — Orphaned worktree after retry. `check-session` detects orphaned worktrees that don't correspond to active iterations.

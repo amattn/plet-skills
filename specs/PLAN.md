@@ -13,9 +13,9 @@ Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved
 5. **Orchestrator last** — depends on almost everything else
 6. **Refine conventions, CLAUDE.md, and template along the way** — each spec may surface improvements to shared infrastructure
 
-## FB Traceability
+## FOO Traceability
 
-These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_git.py` → FB_30, FB_31, FB_32, FB_35 (git stashes, lost commits, orphaned worktrees). `plet_gate_session.py` → FB_16, FB_22, FB_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FB_11 (trace schema standardization). `plet_gate_phase.py` → FB_29, FB_33, FB_11, FB_40 (learnings/emergent enforcement, progress completeness, trace validation, lifecycle transitions). `plet_prompt.py` → FB_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FB_31, FB_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FB_17, FB_29, FB_44 (runtime artifact formatting, multiline content).
+These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_git.py` → FOO_30, FOO_31, FOO_32, FOO_35 (git stashes, lost commits, orphaned worktrees). `plet_gate_session.py` → FOO_16, FOO_22, FOO_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FOO_11 (trace schema standardization). `plet_gate_phase.py` → FOO_29, FOO_33, FOO_11, FOO_40 (learnings/emergent enforcement, progress completeness, trace validation, lifecycle transitions). `plet_prompt.py` → FOO_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FOO_31, FOO_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FOO_17, FOO_29, FOO_44 (runtime artifact formatting, multiline content).
 
 ## Build Order
 
@@ -56,10 +56,10 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 31 | Standardize NDJSON — rename .jsonl → .ndjson across repo | Sweep pass: transcript paths in util_io, plet_invoke, state-schema, tests, specs, references. ~51 references in 16 files. NDJSON for plet-produced files; preserve source format for copied files. |
 | 32 | Retrofit UNV_CMD_29 (unknown flags error) across existing scripts | Extract `validate_flags` into `util_cli`, retrofit all 11 existing scripts + 3 new scripts. Pattern proven during plet_schedule + plet_session implementation. |
 | 33 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Toolkit + run model. Calls plet_schedule, plet_session, plet_invoke, and all existing scripts. |
-| 34 | Implement ORC-emergent script updates | 3 scripts need code changes from ORC spec review: (1) plet_gate_phase.py — lifecycle-handoff check, lifecycle-unchanged check, audit-tag existence check (GPH_PST_BHV_11-13, FB_55). (2) plet_gate_session.py — new postflight command (FB_56). (3) plet_schedule.py — stuck iteration detection in eligible (SCH_ELG_BHV_5). Red/green for each. |
+| 34 | Implement ORC-emergent script updates | 3 scripts need code changes from ORC spec review: (1) plet_gate_phase.py — lifecycle-handoff check, lifecycle-unchanged check, audit-tag existence check (GPH_PST_BHV_11-13, FOO_55). (2) plet_gate_session.py — new postflight command (FOO_56). (3) plet_schedule.py — stuck iteration detection in eligible (SCH_ELG_BHV_5). Red/green for each. |
 | 35 | Cascade lifecycle ownership model | Sweep: update implement.md, verify.md, SKILL.md, state-schema.md, prd.md, PLET.md, plet_state.md with handoffs-vs-decisions model. Must complete before ORC implementation — subagents read these during work. |
 | 36 | Implement `plet_orchestrator.py` | Build from spec. |
-| 37 | Make plet_dir required positional (FB_57) | Less invasive than --plet-dir flag: keep positional, remove default. `get_plet_dir` errors if missing instead of falling back to `plet/`. Update tests that rely on default. Eliminates ordering confusion + supports subplet nested paths. Plan with PLAN_10 (subplets). |
+| 37 | Make plet_dir required positional (FOO_57) | Less invasive than --plet-dir flag: keep positional, remove default. `get_plet_dir` errors if missing instead of falling back to `plet/`. Update tests that rely on default. Eliminates ordering confusion + supports subplet nested paths. Plan with PLAN_10 (subplets). |
 | 38 | Worktree state invariants | Orchestrator writes ZERO per-iteration state during iteration. Subagent is sole writer (worktree). Orchestrator writes final lifecycle to global_plet_dir ONLY after verdict. Reservation write eliminated. Spec before implementation. |
 | 38a | Rename plet_dir → global_plet_dir / worktree_plet_dir across scripts + skills | Establishes vocabulary first. Consistency sweep: orchestrator, util_io, SKILL.md, reference files, specs. No "root" prefix — breaks for subplets. |
 | 38b | `prd.md` — add worktree state invariants as requirements | New requirement(s) under SF or IMP: two-copy model, sole writer rule, verdict handoff. Reference from IMP_8 (lifecycle ownership). |
@@ -97,7 +97,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 44 | Script discovery — include PLET_SCRIPTS_DIR in subagent prompt | `plet_prompt.py` assembles subagent prompt with absolute path to scripts. Fallback chain: `CLAUDE_SKILL_DIR` → `CLAUDE_CONFIG_DIR` + plugin cache path → `~/.claude` + plugin cache path. Fixes LOGA Run 4 8-minute script search. One-line fix in prompt assembly. |
 | 45 | Fix loopSessionCount / branch name mismatch | Gate checks expect `loop{N}` from `loopSessionCount` but branch was created with a different N (stale from failed sessions). Either: (a) gate uses the branch name from session history (not loopSessionCount), or (b) loopSessionCount is always correct. LOGA Run 4: loopSessionCount=0 but branch was loop3. |
 | 46 | Flag name discoverability — rename --phase-activity | `--phase-activity` confused the verify subagent (tried `--activity` first). Consider renaming to `--activity` for simplicity, or ensure help text is prominent. Related to seq 43 audit. |
-| 47 | Plan phase UX improvements (FB_64–FB_68) | Confirm before initializing (FB_64). Create planning branch (FB_65). Don't auto-launch loop (FB_66). Create CLAUDE.md + .gitignore via bootstrap (FB_67). Fix .gitignore preflight check (FB_68). |
+| 47 | Plan phase UX improvements (FOO_64–FOO_68) | Confirm before initializing (FOO_64). Create planning branch (FOO_65). Don't auto-launch loop (FOO_66). Create CLAUDE.md + .gitignore via bootstrap (FOO_67). Fix .gitignore preflight check (FOO_68). |
 
 ## Status
 
@@ -175,5 +175,5 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 44 | Script discovery — PLET_SCRIPTS_DIR in prompt | ✓ complete |
 | 45 | loopSessionCount / branch name mismatch | ✓ complete |
 | 46 | Flag naming (--phase-activity) | ✓ no change — name is explicit, env header solves discovery |
-| 47 | Plan phase UX (FB_64-68) | ✓ complete |
+| 47 | Plan phase UX (FOO_64-68) | ✓ complete |
 | -- | all other steps not yet started |

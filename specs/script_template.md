@@ -234,6 +234,6 @@ Script-specific non-functional requirements (if any):
 |----|------|-------------|
 | PRE_FUT_1 | ... | ... |
 
-## 16. FB Items Addressed
+## 16. FOO Items Addressed
 
-- FB_XX — brief description of what this script resolves
+- FOO_XX — brief description of what this script resolves
