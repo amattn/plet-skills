@@ -1682,6 +1682,25 @@ Script tooling decisions (coding standards, orchestrator analysis, script invent
 
 **Changes:** execute.md (critical rule), verify.md (critical rule), prd.md (IMP_17 clarification), case_studies/CLAUDE.md (checklist item retained for older runs), FEEDBACK.md (FB_9 resolved).
 
+#### Stable labels for case studies — DECIDED (2026-04-03)
+
+Adopted `CASE_{PROJECT}_{RUN}_{QUALIFIER}` as the stable label convention for all case study items. Qualifiers: section mnemonics (ARCH, TRAC), findings (W_1, F_3, S_2), recommendations (REC_1), open questions (OQ_1). Replaces ad-hoc prefixes (R_, S_, SP_, R6_) that were inconsistent across studies and impossible to grep reliably.
+
+All 8 case studies relabeled. Files renamed from `*_CASE_STUDY.md` → `CASE_STUDY_{PROJECT}_{RUN}.md` for consistent, greppable naming. Old labels replaced in FEEDBACK.md, NOTES.md, and PLAN.md. Convention documented in `case_studies/CLAUDE.md` and `NOTES.md` prefix table.
+
+#### FEEDBACK.md 5-phase overhaul (2026-04-03)
+
+Systematic cleanup of FEEDBACK.md to bring cross-referencing, resolution status, and coverage up to date after Run 6:
+
+- **Phase 0:** Label format decision (CASE_ prefix)
+- **Phase 1:** Label all case studies + rename files
+- **Phase 2:** Cross-reference every REC ↔ FB item. Found 8 orphaned RECs (6 from R02 resolved-without-FB, 2 from R06).
+- **Phase 3:** Resolution pass — audit every FB item against current code. Many PLAN_8 deferrals (FB_11, FB_13, FB_22, FB_23, FB_29–FB_33, FB_35, FB_38, FB_40) updated to `[resolved, verified]` based on Run 6 results.
+- **Phase 4:** New FB items filed (FB_69–FB_72: parallel scheduling, milestone refactor, phase "unknown" CLI, worktree cleanup).
+- **Phase 5:** Final consistency pass — no stale labels, no old filenames, all RECs covered.
+
+**Result:** FB_1–FB_72. 55 resolved, 4 withdrawn, 2 deferred, 11 open.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).

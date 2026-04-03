@@ -52,35 +52,24 @@ Plugin metadata and distribution scaffolding.
 
 ## PLAN_4: Case Study Feedback Loop ✓ COMPLETE
 
-Two case studies completed. All feedback tracked in `FEEDBACK.md` (FB_1–FB_22).
+8 case studies across 3 projects. All feedback tracked in `FEEDBACK.md` (FB_1–FB_72). Stable labels: `CASE_{PROJECT}_{RUN}_{N}` convention (adopted 2026-04-03).
 
-### LOGA Run 1 (logalyzer, Go, 13 iterations)
+### Case study inventory
 
-**Analysis:** `case_studies/CASE_STUDY_LOGA_R01.md`
+| Case Study | Project | Iterations | Key Finding | Recs |
+|-----------|---------|-----------|-------------|------|
+| `CASE_STUDY_LOGA_R01.md` | LOGA (Go) | 13/13 | Baseline — learnings/emergent underutilized | REC_1–13 |
+| `CASE_STUDY_LIBT_R01.md` | LIBT (Python) | 5/5 | Learnings/emergent improved; state schema drifts | REC_1–8 |
+| `CASE_STUDY_SPARK_R01.md` | SPARK (Elixir) | 23/23 | State schema solved; 42 stashes despite ban | REC_1–6 |
+| `CASE_STUDY_LOGA_R02.md` | LOGA (Go) | 1/13 | First PLAN_9 scripts; plugin conflict | — |
+| `CASE_STUDY_LOGA_R03.md` | LOGA (Go) | 0/13 | First orchestrator+invoke; worktree merge conflict | — |
+| `CASE_STUDY_LOGA_R04.md` | LOGA (Go) | 1/13 | Sandbox incompatibility; script discovery issue | — |
+| `CASE_STUDY_LOGA_R05.md` | LOGA (Go) | 3/13 | Env var injection works; dependency promotion bug | — |
+| `CASE_STUDY_LOGA_R06.md` | LOGA (Go) | 13/13 | First fully successful scripted run; zero human intervention | REC_1–5 |
 
-Produced CASE_LOGA_R01_REC_1–REC13 (formerly R_1–R_13). Status:
+### FEEDBACK.md overhaul (2026-04-03)
 
-| Rec | Description | Status |
-|-----|-------------|--------|
-| CASE_LOGA_R01_REC_1 | Intermediate commits during implement | ✓ Done (`e25e952`) |
-| CASE_LOGA_R01_REC_2 | Intermediate state writes | ✓ Done (`e25e952`) |
-| CASE_LOGA_R01_REC_3 | One verify = one commit | ✓ Done (`037a2ab`) |
-| CASE_LOGA_R01_REC_4 | Tag lifecycle — always tag, `cleanupTagsAutomatically` | ✓ Done |
-| CASE_LOGA_R01_REC_5 | Workstream branch conventions | ✓ Done (`bad4261`) |
-| CASE_LOGA_R01_REC_6 | Short project ID | ✓ Done (`bad4261`) |
-| CASE_LOGA_R01_REC_7 | Mandatory learnings/emergent entries | ✓ Done (`e25e952`) |
-| CASE_LOGA_R01_REC_8 | Trace file generation — decided, not fully implemented | → FB_11 |
-| CASE_LOGA_R01_REC_9 | Subagent non-blocking | ✓ Done |
-| CASE_LOGA_R01_REC_10 | Artifact quality monitoring | ✓ Done → FB_12 (plet_state.py tool) |
-| CASE_LOGA_R01_REC_11 | Branch isolation — decided, not validated | → FB_13 (open) |
-| CASE_LOGA_R01_REC_12 | FEEDBACK.md formalization | ✓ Done → FB_14 |
-| CASE_LOGA_R01_REC_13 | Co-Author tag convention — decided, not validated | → FB_15 |
-
-### LIBT Run 1 (todo-cli, Python, 5 iterations)
-
-**Analysis:** `case_studies/CASE_STUDY_LIBT_R01.md`
-
-Produced CASE_LIBT_R01_REC_1–REC8 (formerly S_1–S_8). All tracked as FB_10–FB_21 in FEEDBACK.md. Key improvements over LOGA: learnings/emergent dramatically better, zero orchestrator stalls, 100% first-pass verify rate. Recurring issues: state schema drift, progress format drift, trace inconsistency.
+5-phase cleanup: (0) stable label format decision, (1) label all case studies + rename files `*_CASE_STUDY.md` → `CASE_STUDY_*.md`, (2) cross-reference every REC ↔ FB item, (3) resolution pass — mark PLAN_8 deferrals resolved/verified after Run 6, (4) new FB items (FB_69–72), (5) coverage check + cleanup. All phases complete.
 
 ### Additional work done during PLAN_4
 
@@ -107,11 +96,17 @@ Produced CASE_LIBT_R01_REC_1–REC8 (formerly S_1–S_8). All tracked as FB_10�
 - `allowed-tools` added to SKILL.md frontmatter for plet_state.py
 - FB_22 filed: bypassPermissions pre-flight check needed
 
-### Remaining open FB items (deferred)
+### Remaining open FB items
 
-- FB_11: Trace schema standardization (open — needs design work)
-- FB_13: Branch isolation via worktrees (decided, not validated)
-- FB_21: Research — why learnings/emergent improved (triage in PLAN_7, validate in PLAN_9)
+As of 2026-04-03: 72 total FB items. 55 resolved, 4 withdrawn, 2 deferred, 11 open (FB_58–68, FB_69–72 filed during FEEDBACK.md overhaul).
+
+Key open items:
+- FB_25: Priority histogram at end of plan session (deferred)
+- FB_64–68: Plan phase UX improvements (confirm before init, create branch, don't auto-launch loop, bootstrap CLAUDE.md, fix .gitignore check)
+- FB_69: Parallel scheduling in orchestrator
+- FB_70: Milestone boundary refactor step
+- FB_71: Phase "unknown" in trace files — CLI design
+- FB_72: Worktree cleanup after iteration completion
 
 ---
 
@@ -143,7 +138,7 @@ Generalizable patterns extracted as standalone skills, implemented and published
 
 ---
 
-## PLAN_7: Feedback Triage
+## PLAN_7: Feedback Triage ✓ COMPLETE
 
 Review and resolve open FB items. Each item gets one of: resolve (artifact changes), defer (with rationale), or withdraw (not worth fixing).
 
@@ -200,7 +195,7 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 
 ## PLAN_8: Python Tooling ✓ COMPLETE
 
-Built 14 enforcement scripts + 6 utility modules in `skills/plet/scripts/`. 1507 tests across 19 files (~22s parallel). Follows "Skills for Judgment, Code for Compliance" principle.
+Built 14 enforcement scripts + 6 utility modules in `skills/plet/scripts/`. 2189 tests across 31 files. 85% coverage. Ruff with 9 rule sets. Follows "Skills for Judgment, Code for Compliance" principle.
 
 **Detailed build plan:** `specs/PLAN.md` — all 37 tasks complete (seq 0–37).
 
@@ -210,9 +205,9 @@ Built 14 enforcement scripts + 6 utility modules in `skills/plet/scripts/`. 1507
 
 ---
 
-## PLAN_9: PRD + ORC + SKILL.md + Reference Files Rewrite
+## PLAN_9: PRD + ORC + SKILL.md + Reference Files Rewrite ✓ COMPLETE
 
-The scripts are built. Prose caught up. Orchestrator built and tested. Remaining: plet_prompt.py update (9e), SKILL.md Loop Phase simplification to delegate to orchestrator, final consistency pass.
+Scripts, prose, and orchestrator all complete. LOGA Run 6 validated the full pipeline end-to-end (13/13, zero human intervention).
 
 ### Phases
 

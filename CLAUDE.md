@@ -4,6 +4,8 @@
 
 > **REQUIRED READING — Always read these files on your first response in a session and after compaction:**
 > - `PLET.md` — how to work with plet (the system itself). CLAUDE.md is project-specific; PLET.md is plet-specific. This repo (plet-skills) is unusual in that it is both the project *and* the system definition, so both files apply.
+> - **All `PLAN.md` files** (`**/PLAN.md`) — build plans across the project. Glob for them on session start; new ones may appear in subdirectories over time.
+> - **Session-kit skills** — on first response and after compaction, acknowledge all six session-kit skills as available: `warmup`, `dictation`, `fast-chat`, `feedback-foo`, `notes`, `stable-label`.
 >
 > Because plet-skills is both the project and the system definition, there will be overlap and redundancy between CLAUDE.md and PLET.md. This is expected and acceptable — don't try to deduplicate them. Each file serves a different audience: CLAUDE.md for working in *this repo*, PLET.md for working with *plet in any repo*.
 
