@@ -161,6 +161,18 @@ All tests pass (35 tests, 2 packages). Code is idiomatic Go — proper package s
 
 ---
 
+## LOGA Run 6 (2026-04-02) — Quick Note
+
+Run 6 started with v0.4.2, `bypassPermissions` mode. "Everything seems to just work." — first run with no permission/sandbox/discovery issues.
+
+Observations:
+- Plan branch created correctly (`plet/LOGA/plan1/workstream`) — first time in 4 runs
+- Good red/green discipline on ID_001 (11 commits, per-AC red then green)
+- Subagent modified state.json in worktree (`loopSessionCount: 0→1`) — shouldn't touch it (SF_28, orchestrator-owned). Harmless with `merge=ours` but indicates the subagent doesn't know state.json is off-limits. (→ FB item: implement.md/verify.md should explicitly say "do NOT modify state.json")
+- Detailed case study pending.
+
+---
+
 ## Observations (live, during run)
 
 ### Plan phase

@@ -291,6 +291,15 @@ def _setup_session(global_plet_dir, counts, allow_stale, output_ndjson):
     else:
         subprocess.run(["git", "checkout", branch], capture_output=True)
 
+    # Commit state.json with updated loopSessionCount + session history
+    # BEFORE any worktrees are created. Worktrees snapshot state.json at
+    # creation time — the count must be correct by then.
+    subprocess.run(["git", "add", "-A"], capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"plet: [loop{session_number}] session start", "--allow-empty"],
+        capture_output=True,
+    )
+
     _run_script(
         "plet_entries.py",
         [
