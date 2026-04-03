@@ -34,7 +34,7 @@ from util_io import (
 )
 from util_state import load_and_validate_iter_state
 
-SCRIPT_VERSION = "0.2.0"
+SCRIPT_VERSION = "0.2.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -359,6 +359,13 @@ def _end_session(global_plet_dir, session_number, completed_this_run, counts, st
     all_complete = counts.get("complete", 0) + counts.get("withdrawn", 0)
     total = sum(counts.get(k, 0) for k in counts if k != "eligible")
     reason = "all_complete" if all_complete == total else "all_blocked_or_complete"
+
+    # Commit end-session state (lifecycle updates, session endedAt, progress entry)
+    subprocess.run(["git", "add", "-A"], capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"plet: [loop{session_number}] session end", "--allow-empty"],
+        capture_output=True,
+    )
 
     result = _make_result(
         reason,

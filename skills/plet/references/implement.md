@@ -18,7 +18,7 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in a worktree. Do NOT create a new branch.
 
-**State file context (SF_26, SF_28):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. You set `implementVerdict` when done (via `plet_iter_state.py set-verdict`). **You do NOT set lifecycle** — the orchestrator manages all lifecycle transitions in `state.json` (SF_28).
+**State file context (SF_26, SF_28):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. You set `implementVerdict` when done (via `plet_iter_state.py set-verdict`). **You do NOT set lifecycle** — the orchestrator manages all lifecycle transitions in `state.json` (SF_28). **Do NOT modify `plet/state.json`** — it is orchestrator-owned. Your worktree copy may be stale; that is expected and not your concern to fix.
 
 ---
 
