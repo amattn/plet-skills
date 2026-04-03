@@ -86,7 +86,7 @@ Every case study recommendation (`CASE_{PROJECT}_{RUN}_{N}`) gets a correspondin
 
 ### FB_1: State JSON files not updated incrementally [state] [timing]
 
-Source: LOGA Run 1 user observation
+Source: CASE_LOGA_R01_FB_1
 
 Intermediate writes to the JSON state files didn't happen — they were typically only written at the end. Expected: state files updated as work progresses so that a crashed or interrupted agent leaves recoverable state.
 
@@ -94,7 +94,7 @@ Intermediate writes to the JSON state files didn't happen — they were typicall
 
 ### FB_2: No intermediate commits [git] [timing]
 
-Source: LOGA Run 1 user observation
+Source: CASE_LOGA_R01_FB_2
 
 Similarly, intermediate commits didn't happen during iteration execution. Work was only committed at the end. Expected: incremental commits during implementation so progress isn't lost on interruption.
 
@@ -102,7 +102,7 @@ Similarly, intermediate commits didn't happen during iteration execution. Work w
 
 ### FB_3: Autonomous agents asked for confirmation [autonomy] [blocking]
 
-Source: LOGA Run 1 user observation
+Source: CASE_LOGA_R01_FB_3
 
 Autonomous subagents asked "should I proceed?" once or twice during execution. This is effectively blocking — autonomous agents should never prompt for human input. The whole point of the loop is unattended execution. Caused a ~5 hour stall.
 
@@ -110,7 +110,7 @@ Autonomous subagents asked "should I proceed?" once or twice during execution. T
 
 ### FB_4: tagBeforeSquash should be always-on [git] [config]
 
-Source: LOGA Run 1 user observation
+Source: CASE_LOGA_R01_FB_4
 
 `tagBeforeSquash` as an opt-in flag is the wrong default. Tags should always be created before squash. Replace with `cleanupTagAutomatically` — the question isn't whether to tag, it's whether to clean up the tag afterward. When cleaning up, note the commit hash in progress.md and log that the tag was removed.
 
@@ -118,7 +118,7 @@ Source: LOGA Run 1 user observation
 
 ### FB_5: Project needs a short project ID [config] [naming]
 
-Source: LOGA Run 1 user observation
+Source: CASE_LOGA_R01_FB_5
 
 There needs to be a project ID in short form (e.g., `LOGA` for log analyzer). Used for namespacing branches, tags, and potentially state files across projects or subplets.
 
@@ -126,7 +126,7 @@ There needs to be a project ID in short form (e.g., `LOGA` for log analyzer). Us
 
 ### FB_6: Agents should not work on main branch [git] [autonomy]
 
-Source: LOGA Run 1 user observation
+Source: CASE_LOGA_R01_FB_5
 
 Agents worked directly on `main`. The `logalyzer_workstream` branch was created manually. There should be a naming convention for workstream branches, and agents should never commit to main directly.
 
@@ -134,7 +134,7 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 ### FB_7: Batched verify commits too coarse [git] [artifacts]
 
-Source: LOGA Run 1 user observation
+Source: CASE_LOGA_R01_FB_7
 
 One commit contained four iterations verified together — a rejection and three passes sharing a single commit. Each verify should be its own commit for clean revert, bisect, and audit.
 
@@ -142,7 +142,7 @@ One commit contained four iterations verified together — a rejection and three
 
 ### FB_8: Uncommitted progress.md at end of run [artifacts] [timing]
 
-Source: LOGA Run 1 user observation
+Source: CASE_LOGA_R01_FB_8
 
 The orchestrator left progress.md uncommitted at end of run, requiring manual cleanup. The system should auto-commit all runtime artifacts at the end of each phase and at loop completion.
 
@@ -150,7 +150,7 @@ The orchestrator left progress.md uncommitted at end of run, requiring manual cl
 
 ### FB_9: Agents used git stashes — not captured in case study archival [git] [artifacts]
 
-Source: LIBT Run 1 user observation
+Source: LIBT Run 1 (pre-case-study user observation)
 
 During the LIBT run, agents made use of `git stash` during execution (visible in `git stash list` post-run). The case study archival process currently preserves branches and tags but does not account for stashes. Stashes are local-only git objects that can be garbage collected — if not explicitly preserved, they are silently lost. The archival checklist should include: (1) `git stash list` to inventory stashes, (2) convert relevant stashes to commits or tags before deleting branches, (3) document stash contents in the case study artifact analysis.
 
@@ -671,7 +671,7 @@ Observations from first live run with PLAN_9 tooling on the logalyzer project. T
 
 ### FB_59: Phase name drift — "implementation" vs "implement" in traces [state] [prompting]
 
-Source: LOGA Run 2 trace analysis
+Source: CASE_LOGA_R02_F_5
 
 LOGA Run 2 trace files show both `implement-1` and `implementation-1` filenames for the same iteration. The agent used "implementation" as the phase name in some plet_trace.py calls. `VALID_PHASES = ["implement", "verify"]` should reject "implementation", but the universal invocation logging (`util_cli._log_script_invocation`) may use whatever phase was passed to the calling script (e.g., `plet_state.py update-criterion --phase implementation` is valid for criterion phases but wrong for trace filenames).
 
@@ -681,7 +681,7 @@ Fix: ensure trace file naming always uses "implement"/"verify" regardless of wha
 
 ### FB_60: Runtime artifacts not committed during implement/verify [git] [prompting]
 
-Source: LOGA Run 2 observation
+Source: CASE_LOGA_R02_F_3
 
 LOGA Run 2: `plet/progress.md`, `plet/learnings.md`, `plet/emergent.md`, `plet/state/`, and `plet/trace/` were all modified/created but never committed. Only source code was committed.
 
@@ -691,19 +691,19 @@ implement.md says "commit after every red/green step" but agents interpret this 
 
 ### FB_61: Implement attempt counter never incremented [state] [prompting]
 
-Source: LOGA Run 2 observation
+Source: CASE_LOGA_R02_F_4
 
 LOGA Run 2: `attempts.implement` stayed 0 despite implementation clearly happening. The agent updated criteria, wrote artifacts, and set lifecycle → verifying, but never incremented the attempt counter. implement.md should make this a critical early step.
 
 ### FB_62: lastVerdict not set despite completion [state] [prompting]
 
-Source: LOGA Run 2 observation
+Source: CASE_LOGA_R02_STFL (lastVerdict null)
 
 LOGA Run 2: ID_001 has `lifecycle: "complete"` but `lastVerdict: null`. The verify agent set lifecycle directly (violating ownership model) without setting lastVerdict. The post-verify gate (GPH_PST_BHV_7, BHV_12) should have caught both issues — but gate scripts weren't called.
 
 ### FB_63: Verification report schema drift — "decision" vs "verdict" [state]
 
-Source: LOGA Run 2 observation
+Source: CASE_LOGA_R02_F_6
 
 LOGA Run 2: Verification report uses `"decision": "pass"` instead of `"verdict": "passed"`. The state-schema.md defines `verdict` as the field name with values `passed`/`rejected`/`blocked`. Agent used wrong field name and wrong value format.
 
@@ -713,31 +713,31 @@ LOGA Run 2: Verification report uses `"decision": "pass"` instead of `"verdict":
 
 ### FB_64: Plan phase should confirm before initializing [plan] [ux]
 
-Source: LOGA Run 4 observations
+Source: CASE_LOGA_R04_OBS_6
 
 Plan phase detected existing requirements.md + iterations.md and silently bootstrapped state from them. User expected an interactive confirmation ("Found 13 iterations across 3 milestones. Proceed?"). Even on the resume path, plan should show what it found and ask before writing state files. The auto-initialization was surprising.
 
 ### FB_65: Plan phase should create a branch [plan] [git]
 
-Source: LOGA Run 3/4 observations
+Source: CASE_LOGA_R03_OBS_2, CASE_LOGA_R04_OBS_2, CASE_LOGA_R04_OBS_7
 
 All plan work commits directly to main. Many repos tie main to CI/CD and automations. Plan should create `plet/{projectId}/plan{N}/workstream` before making any commits, same as loop does. Keeps main clean until the plan is approved.
 
 ### FB_66: Plan should not auto-launch loop [plan] [ux]
 
-Source: LOGA Run 3 observation
+Source: CASE_LOGA_R03_OBS_3
 
 After plan completed, the agent immediately tried to launch the orchestrator without being asked. Plan and loop should be separate invocations. The agent should either stop and tell the user "Ready — run `/plet loop` to start" or ask "Ready to start the loop?" before launching.
 
 ### FB_67: Plan/bootstrap should create CLAUDE.md and .gitignore [plan] [bootstrap]
 
-Source: LOGA Run 4 observation
+Source: CASE_LOGA_R04_OBS_8
 
 Preflight detects CLAUDE.md and .gitignore are missing but only warns. Plan phase or bootstrap should offer to create them: a CLAUDE.md stub with plet project instructions, and .gitignore with `.plet/` exclusion. The agent shouldn't wait until ID_001 to create project infrastructure. Specced in plet_bootstrap.py (seq 42).
 
 ### FB_68: .gitignore preflight check is wrong — should ignore .plet/ not plet/ [preflight] [git]
 
-Source: LOGA Run 4 observation
+Source: CASE_LOGA_R04_OBS_18
 
 Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be committed (state files, progress.md, requirements.md, etc. are project state tracked in git). What should be gitignored is `.plet/` (worktrees, copied scripts — infrastructure, not artifacts). The preflight check needs to be fixed to check for `.plet/` instead. Specced in plet_bootstrap.py (seq 42).
 
@@ -745,10 +745,10 @@ Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be
 
 ### Noted (not yet FB items)
 
-**Theme 1 — Permissions/Sandbox (8 observations):** R3#4,6,7 + R4#13,19,21,22,23,27. Sandbox mode insufficient, auto mode disappeared, no preflight permission check, no fast-fail on permission errors. Partially addressed by bootstrap spec (42a) permissions check. The rest depend on Claude Code platform features.
+**Theme 1 — Permissions/Sandbox (8 observations):** CASE_LOGA_R03_OBS_4, CASE_LOGA_R03_OBS_6, CASE_LOGA_R03_OBS_7, CASE_LOGA_R04_OBS_13, CASE_LOGA_R04_OBS_19, CASE_LOGA_R04_OBS_21, CASE_LOGA_R04_OBS_22, CASE_LOGA_R04_OBS_23, CASE_LOGA_R04_OBS_27. Sandbox mode insufficient, auto mode disappeared, no preflight permission check, no fast-fail on permission errors. Partially addressed by bootstrap spec (42a) permissions check. The rest depend on Claude Code platform features.
 
-**Theme 3 — Script Discovery (3 observations):** R4#25,26,28. CLAUDE_SKILL_DIR not available to subagents. Addressed by bootstrap spec (42a) — copies scripts to `.plet/scripts/`.
+**Theme 3 — Script Discovery (3 observations):** CASE_LOGA_R04_OBS_25, CASE_LOGA_R04_OBS_26, CASE_LOGA_R04_OBS_28. CLAUDE_SKILL_DIR not available to subagents. `[resolved]` — env var injection (plet_invoke.py) + bootstrap. Validated in Runs 5-6.
 
-**Theme 4 — Progress.md Auto-Logger (4 observations):** R4#9,10,11,12. Phase defaults wrong, failed invocations logged as COMPLETE, files changed empty. Covered by seq 43 (argument defaults audit).
+**Theme 4 — Progress.md Auto-Logger (4 observations):** CASE_LOGA_R04_OBS_9, CASE_LOGA_R04_OBS_10, CASE_LOGA_R04_OBS_11, CASE_LOGA_R04_OBS_12. Phase defaults wrong, failed invocations logged as COMPLETE, files changed empty. `[resolved]` — seq 43 (argument defaults audit) + compact progress entries.
 
-**Theme 7 — Subagent Behavior (4 observations):** R3#5,11,12 + R4#20. Agent behavioral issues — directory escape (R3#11) is a security concern. Rest are prompting issues.
+**Theme 7 — Subagent Behavior (4 observations):** CASE_LOGA_R03_OBS_5, CASE_LOGA_R03_OBS_11, CASE_LOGA_R03_OBS_12, CASE_LOGA_R04_OBS_20. Agent behavioral issues — CASE_LOGA_R03_OBS_11 (directory escape) is a security concern. Rest are prompting issues.
