@@ -266,7 +266,7 @@ If issues are minor and obvious to fix — missing edge case tests, small correc
    - Update activity: `"running_checks"` / `"fix-in-place: green — verifying fix"`
    - Run the full test suite — confirm no regressions
    - Update both `implementation` and `verification` objects on the new criterion
-   - Commit: `git commit -m "wip: [ID_xxx] AC_N - fix-in-place: {description}"`
+   - Commit: `git add [specific files] plet/ && git commit -m "wip: [ID_xxx] AC_N - fix-in-place: {description}"`
 3. After all fix-in-place issues are resolved, proceed to Completing the Phase below
 
 **Use this path sparingly.** If you find yourself doing more than 2-3 fix-in-place corrections, or if any fix touches core logic, use Path C instead.
@@ -434,6 +434,13 @@ plet_gate_phase.py post plet/ --iter-id ID_001 --phase verify --output json
 ```
 
 The verify post-gate checks everything the implement post-gate checks PLUS: `verifyVerdict` must not be null (FAIL), `verificationReports` must have an entry with `verdict` and `criteriaResults` (FAIL), `verifyVerdict` must match last report verdict (WARN). Your exit signals "I passed my own gate."
+
+8. **Commit all work including plet/ artifacts:**
+   ```
+   git add [specific files] plet/
+   git commit -m "plet: [ID_xxx] verify-{attempt} - {passed|rejected|blocked}"
+   ```
+   **Always include `plet/` in commits** — state files, progress entries, learnings, emergent items, and trace events must be committed or they're lost on worktree cleanup.
 
 ---
 

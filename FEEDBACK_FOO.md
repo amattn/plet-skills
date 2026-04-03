@@ -521,7 +521,7 @@ Source: GTC spec review (UNV_NFR_10)
 
 Runtime artifacts (progress.md, learnings.md, emergent.md) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. This is a load-bearing assumption across multiple specs (GTC clean-worktree, GTO merge-squash, gate scripts) but is not explicitly stated in the PRD. Added to `specs/conventions.md` as UNV_NFR_10 during GTC review. PRD and reference files (implement.md, verify.md) should also be explicit about this.
 
-**Status:** PRD ES_5 updated. `implement.md` includes `plet/` in git add. **Remaining:** `verify.md` does not explicitly state that runtime artifacts should be committed on the iteration branch.
+`[resolved]` → PRD ES_5 updated. `implement.md` and `verify.md` both include `plet/` in git add. verify.md updated: (1) Completing the Phase step 8 adds explicit commit with `plet/`, (2) fix-in-place commit includes `plet/`.
 
 ### FOO_49: GUI must discover and monitor worktree plet/ directories [gui] [worktrees]
 
