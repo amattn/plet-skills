@@ -351,8 +351,8 @@ Run 1 was faster per iteration when actively running (~8 min vs ~13 min) — no 
 **Resolution status:**
 - CASE_LOGA_R06_REC_1: `[resolved]` → plet_orchestrator.py 0.2.1
 - CASE_LOGA_R06_REC_2: `[resolved]` → implement.md, verify.md updated
-- CASE_LOGA_R06_REC_3: open → FB item needed
-- CASE_LOGA_R06_REC_4: open → FB item needed
+- CASE_LOGA_R06_REC_3: open → FB_69
+- CASE_LOGA_R06_REC_4: open → FB_70
 - CASE_LOGA_R06_REC_5: deferred (language-specific, low priority)
 
 ### Open Questions

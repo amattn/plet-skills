@@ -197,6 +197,14 @@ Yes — this is clean scaffolding code. No over-engineering, no unnecessary pack
 | CASE_LOGA_R02_REC_5 | **Gate enforcement live.** The post-gate checks (lifecycle ownership, audit-tag) weren't called. Need to verify gate scripts are called as part of the subagent flow. | P1 |
 | CASE_LOGA_R02_REC_6 | **Schema version propagation.** New state files should use the SCHEMA_VERSION from util_constants, not a hardcoded "0.1.0". | P1 |
 
+**Resolution status (all resolved without FB items — fixes predated the FB pipeline for R02):**
+- CASE_LOGA_R02_REC_1: `[resolved, verified]` — SKILL.md Loop Phase delegates to plet_orchestrator.py. Run 6 validated.
+- CASE_LOGA_R02_REC_2: `[resolved, verified]` — documented in CLAUDE.md § Testing with Local Skill vs Published Plugin.
+- CASE_LOGA_R02_REC_3: `[resolved, verified]` — plet_trace.py VALID_PHASES enforces. FB_59.
+- CASE_LOGA_R02_REC_4: `[resolved, verified]` — implement.md/verify.md say `git add plet/`. FB_60.
+- CASE_LOGA_R02_REC_5: `[resolved, verified]` — gate scripts called by orchestrator. Run 6: all gates fired.
+- CASE_LOGA_R02_REC_6: `[resolved]` — GST/IST use SCHEMA_VERSION from util_constants.
+
 ---
 
 ## Meta

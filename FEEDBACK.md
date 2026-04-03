@@ -36,17 +36,17 @@ Files to sweep: case studies (definitions), FEEDBACK.md (references), NOTES.md (
 - [x] LIBT Run 1 — labeled + S_1–S_8 → CASE_LIBT_R01_REC_1–8
 - [x] SPARK Run 1 — labeled + SP_1–SP_6 → CASE_SPARK_R01_REC_1–6
 - [x] LOGA Runs 2, 3, 5 — section labels added
-- [ ] LOGA Run 4 — section labels (in progress)
+- [x] LOGA Run 4 — section labels added
 - [x] Rename old labels in FEEDBACK.md
 - [x] Rename old labels in NOTES.md + PLAN.md
 - [x] Rename files: `*_CASE_STUDY.md` → `CASE_STUDY_{PROJECT}_{RUN}.md`
 - [x] Update file references in CLAUDE.md, FEEDBACK.md, NOTES.md, PLAN.md
-- [ ] Final grep for remaining old-format refs
+- [x] Final grep for remaining old-format refs — clean
 
 ### Phase 2: Cross-references
-- [ ] Every case study recommendation gets a `→ FB_N` note (or "no FB item")
+- [x] Every case study recommendation has an FB item or is marked resolved-without-FB
 - [x] Every FB item with a case study source gets a `Source: CASE_..._N` line
-- [ ] Identify case study recs that never got FB items → create them in Phase 4
+- [x] Identified 8 orphaned RECs — 6 R02 (resolved-without-FB, noted in case study), 2 R06 (REC_2 resolved, REC_5 deferred)
 
 ### Phase 3: Resolution pass
 - [x] Audit every FB item against current code
@@ -62,8 +62,8 @@ Files to sweep: case studies (definitions), FEEDBACK.md (references), NOTES.md (
 - [x] No additional gaps found in Phase 2
 
 ### Phase 5: Cleanup
-- [ ] Final consistency pass (grep old labels, verify all cross-refs)
-- [ ] Remove this miniplan section
+- [x] Final consistency pass — no old labels, no old filenames, all RECs covered
+- [ ] Remove this miniplan section (keep until user confirms)
 
 ---
 
