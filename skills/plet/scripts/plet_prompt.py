@@ -14,6 +14,7 @@ Commands:
     assemble    Build complete prompt from files on disk
 """
 
+import json
 import os
 import re
 import sys
@@ -22,8 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
-    emit_json,
-    emit_json_error,
+    filter_fields,
+    now_iso,
     parse_command,
     validate_enum,
 )
@@ -344,8 +345,14 @@ Examples:
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
-            return (1, "", "")
+            data = {
+                "status": "error",
+                "command": cmd_name,
+                "error": err,
+                "scriptVersion": SCRIPT_VERSION,
+                "timestamp": now_iso(),
+            }
+            return (1, json.dumps(data, indent=2 if pretty else None), "")
         else:
             return (1, "", err)
 
@@ -353,8 +360,14 @@ Examples:
     sections, err = _build_prompt_sections(plet_dir, iter_id, phase)
     if err:
         if output_json:
-            emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
-            return (1, "", "")
+            data = {
+                "status": "error",
+                "command": cmd_name,
+                "error": err,
+                "scriptVersion": SCRIPT_VERSION,
+                "timestamp": now_iso(),
+            }
+            return (1, json.dumps(data, indent=2 if pretty else None), "")
         else:
             return (1, "", err)
 
@@ -362,20 +375,19 @@ Examples:
     total_length = sum(len(s["content"]) for s in sections)
 
     if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": cmd_name,
-                "iterationId": iter_id,
-                "phase": phase,
-                "sections": sections,
-                "totalLength": total_length,
-            },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
-        )
-        return (0, "", "")
+        data = {
+            "status": "ok",
+            "command": cmd_name,
+            "iterationId": iter_id,
+            "phase": phase,
+            "sections": sections,
+            "totalLength": total_length,
+            "scriptVersion": SCRIPT_VERSION,
+            "timestamp": now_iso(),
+        }
+        if fields:
+            data = filter_fields(data, fields)
+        return (0, json.dumps(data, indent=2 if pretty else None), "")
     else:
         # Text mode — sections with markdown headers
         parts = []
