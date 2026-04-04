@@ -148,7 +148,7 @@ The three plan artifacts (`requirements.md`, `iterations.md`, `state.json`) stay
 
 Skills are prompt-interpreted every invocation — each time, the model re-reads instructions and makes fresh decisions about how to comply. Over many iterations, these independent interpretations drift. Code executes the same way every time.
 
-This means tasks requiring regularity and consistency (schema enforcement, state management, format compliance) must be delegated to deterministic code, not prose instructions. plet ships enforcement tools (like `plet_state.py` for state file validation) inside the skill package via `${CLAUDE_SKILL_DIR}/scripts/`. The agent calls a tool that guarantees correctness rather than interpreting prose about what "correct" looks like.
+This means tasks requiring regularity and consistency (schema enforcement, state management, format compliance) must be delegated to deterministic code, not prose instructions. plet ships 16 enforcement scripts + 7 utility modules inside the skill package via `${CLAUDE_SKILL_DIR}/scripts/`. The agent calls a tool that guarantees correctness rather than interpreting prose about what "correct" looks like.
 
 The escalation pattern: (1) define the rule in prose, (2) if agents drift, build a tool that makes compliance automatic, (3) ship the tool inside the skill.
 
@@ -158,7 +158,7 @@ Agents prefer making a decision and documenting it in `emergent.md` over blockin
 
 ### Git Branch Strategy
 
-All branches are namespaced under `plet/{projectId}/`. Agents never commit to main.
+All branches are namespaced under `plet/{projectId}/`. Agents never commit or merge to main — merging requires direct, explicit, confirmed human instruction.
 
 | Purpose | Pattern | Example |
 |---------|---------|---------|

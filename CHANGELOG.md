@@ -2,6 +2,36 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.4.3 (2026-04-03)
+
+### New Script
+- **plet_phase.py:** Composite end-of-phase command. `plet_phase.py end` replaces 6 separate CLI calls (set-verdict, add-progress, append-event, audit-tag, git commit) with one. Fail-fast on first error. Uses direct imports (no subprocess).
+
+### PLAN_HLP — Subagent CLI Re-learning
+Addressing ~150 `--help` lookups per run from LOGA Run 6 timing analysis.
+- **`--usage` flag:** All 16 scripts support `--usage` — compact invocation syntax + description + copy-pasteable example per command. 45 cmd_* functions with .usage/.example attributes.
+- **CLI cheat sheet:** `references/cli-cheatsheet.md` shipped with the skill. Organized by caller (subagent vs orchestrator).
+- **Prompt CLI quick reference:** `plet_prompt.py assemble` injects a cli-quick-reference section with iter_id, phase, and attempt pre-filled. Zero discovery needed.
+- **PLET_CLI_REF env var:** `plet_invoke.py` injects path to cheat sheet. Prompt header tells subagent about escalation path.
+- **--help footer:** All scripts show "Tip: --usage for compact syntax. cat $PLET_CLI_REF for full cheat sheet."
+- **Redundant start-phase removed:** implement.md/verify.md no longer tell subagents to call start-phase (orchestrator owns it since 0.4.2).
+
+### Correctness Fixes
+- **FOO_61:** Orchestrator calls `start-phase` before spawning subagents. Attempt counters are deterministic.
+- **FOO_63:** Gate validates verdict values (completed/blocked for implement, passed/rejected/blocked for verify), not just null checks.
+- **State.json validation:** Orchestrator validates state.json as first step before preflight or fingerprint checks.
+- **Never merge to main:** Strengthened rule in SKILL.md — three locations now prohibit merging without explicit human instruction.
+- **Orchestrator phase:** Added `orchestrator` as valid trace/entry phase value for orchestrator-level calls.
+
+### Plan Session Improvements
+- **Gap Analysis (FOO_52):** New step in plan.md (Step 6) and refine.md (Step 4). Probes for underspecified requirements, missing edge cases, implicit dependencies, ambiguous criteria, and unmade architecture decisions.
+- **Project Type Guidance (FOO_53):** Plan template adapts to project type — CLI tools, web apps, APIs, libraries. CLI section references shipped `references/cli-spec-template.md`.
+- **verify.md artifact commits (FOO_48):** Explicit `git add plet/` in all commit steps.
+
+### Infrastructure
+- **Ruff gate:** test_all.py runs ruff before tests — fails immediately if lint or format check fails. No auto-fix. Missing ruff is a hard error.
+- **coverage_all.sh:** Existing subprocess coverage tracking documented in CLAUDE.md and scripts/CLAUDE.md.
+
 ## 0.4.2 (2026-04-02)
 
 ### Bug Fixes

@@ -1772,6 +1772,14 @@ Documented in: UNV_CMD_30 (conventions.md), script_template.md, scripts/CLAUDE.m
 
 Ruff runs before any tests — if lint or format check fails, tests are skipped entirely. Previously ruff ran after tests and auto-formatted files silently. Fixed: (1) ruff check (lint) first, (2) ruff format --check (verify, no auto-fix) second, (3) suggest fix command on format failure. Missing ruff is a hard error, not a silent skip.
 
+#### HLP_1B + 3B + 3C — cheat sheet + env var + --help footer (2026-04-03)
+
+Shipped `references/cli-cheatsheet.md` organized by caller (subagent commands vs orchestrator commands). `plet_invoke.py` injects `PLET_CLI_REF` env var pointing to the file. Prompt header tells subagents about the escalation path. `--help` footer on all scripts (both top-level and per-command) says "Tip: --usage for compact syntax. cat $PLET_CLI_REF for full cheat sheet."
+
+Complete escalation path: cheat sheet → `--usage` → `--help`.
+
+HLP_1A (inline examples in reference files) deferred — HLP_1C (prompt assembler pre-fills) may make it redundant. Will validate in the next run.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
