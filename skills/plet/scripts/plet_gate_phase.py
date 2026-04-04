@@ -25,10 +25,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     UNIVERSAL_FLAGS_READ,
     dispatch,
-    emit_json,
-    emit_json_error,
     extract_output_flags,
+    filter_fields,
     get_plet_dir,
+    now_iso,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -604,8 +604,14 @@ Examples:
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(cmd, err, SCRIPT_VERSION, pretty)
-            return (1, "", "")
+            data = {
+                "status": "error",
+                "command": cmd,
+                "error": err,
+                "scriptVersion": SCRIPT_VERSION,
+                "timestamp": now_iso(),
+            }
+            return (1, json.dumps(data, indent=2 if pretty else None), "")
         else:
             return (1, "", err)
 
@@ -633,20 +639,20 @@ Examples:
     _log_gate_to_progress(cmd, checks, plet_dir, iter_id, iter_state, phase, overall, counts, exit_code)
 
     if output_json:
-        emit_json(
-            {
-                "status": overall,
-                "command": cmd,
-                "iterationId": iter_id,
-                "phase": phase,
-                "checks": checks,
-                "summary": counts,
-            },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
-        )
-        return (exit_code, "", "")
+        data = {
+            "status": overall,
+            "command": cmd,
+            "iterationId": iter_id,
+            "phase": phase,
+            "checks": checks,
+            "summary": counts,
+            "scriptVersion": SCRIPT_VERSION,
+            "timestamp": now_iso(),
+        }
+        if fields:
+            data = filter_fields(data, fields)
+        out = json.dumps(data, indent=2 if pretty else None)
+        return (exit_code, out, "")
     else:
         out = format_text_output(cmd, checks, overall, counts)
         return (exit_code, out, "")
