@@ -164,13 +164,13 @@ def help_hint(command):
 
 
 def json_response(data, flags):
-    """Format and print a JSON response, applying --pretty and --fields."""
+    """Format a JSON response string, applying --pretty and --fields. Returns string."""
     data["scriptVersion"] = SCRIPT_VERSION
     data["timestamp"] = now_iso()
     if flags["fields"] is not None:
         data = filter_fields(data, flags["fields"])
     indent = 2 if flags["pretty"] else None
-    print(json.dumps(data, indent=indent))
+    return json.dumps(data, indent=indent)
 
 
 def derive_events_path(plet_dir, iter_id, phase, attempt):
@@ -309,43 +309,32 @@ def validate_event(event, line_num):
 
 
 def _validate_trace_context(kwargs, hint):
-    """Validate iter_id, phase, attempt from kwargs. Returns (iter_id, phase, attempt) or None."""
+    """Validate iter_id, phase, attempt from kwargs. Returns (result, err_str).
+    result is (iter_id, phase, attempt) on success, None on failure."""
     iter_id = kwargs["iter_id"]
     if not ITERATION_ID_PATTERN.match(iter_id):
-        print(
-            f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)",
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)\n{hint}"
 
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return None
+        return None, hint
 
     attempt, ok = validate_int(kwargs["attempt"], "--attempt")
     if not ok:
-        print(hint, file=sys.stderr)
-        return None
+        return None, hint
     if attempt < 1:
-        print(
-            "Error: --attempt must be a positive integer, got '{}'".format(kwargs["attempt"]),
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return None
+        return None, "Error: --attempt must be a positive integer, got '{}'\n{}".format(kwargs["attempt"], hint)
 
-    return iter_id, phase, attempt
+    return (iter_id, phase, attempt), ""
 
 
 def _parse_trace_args(args, help_text, command, known_flags, required, is_mutating, supports_raw):
     """Parse args for trace commands (shared boilerplate).
 
-    Returns "help" | None | (plet_dir, kwargs, flags) on success.
+    Returns ("help", "") | (None, err_str) | ((plet_dir, kwargs, flags), "").
     """
     if "-h" in args or "--help" in args:
-        return "help"
+        return "help", ""
 
     hint = help_hint(command)
     clean_args, flags = parse_universal_flags(args)
@@ -354,76 +343,57 @@ def _parse_trace_args(args, help_text, command, known_flags, required, is_mutati
 
     err = check_flag_dependencies(flags, command_is_mutating=is_mutating, supports_raw=supports_raw)
     if err:
-        print(err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"{err}\n{hint}"
 
     plet_dir, remaining = get_plet_dir(clean_args)
     if plet_dir is None:
-        return None
+        return None, "Error: plet_dir is required"
 
-    # Check plet_dir exists and is a directory
     if not os.path.exists(plet_dir):
-        print(f"Error: {plet_dir} does not exist", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"Error: {plet_dir} does not exist\n{hint}"
     if not os.path.isdir(plet_dir):
-        print(f"Error: {plet_dir} is not a directory", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"Error: {plet_dir} is not a directory\n{hint}"
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"{e}\n{hint}"
     if not validate_known_flags(kwargs, known_flags, hint):
-        return None
+        return None, ""
 
     if not require_kwargs(kwargs, required, help_text):
-        return None
+        return None, ""
 
-    return plet_dir, kwargs, flags
+    return (plet_dir, kwargs, flags), ""
 
 
 def _parse_event_data(kwargs, hint):
-    """Parse --data or --data-file into a dict. Returns None on error."""
+    """Parse --data or --data-file into a dict. Returns (data_obj, err_str)."""
     has_data = "data" in kwargs
     has_data_file = "data_file" in kwargs
 
     if has_data and has_data_file:
-        print("Error: --data and --data-file are mutually exclusive", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"Error: --data and --data-file are mutually exclusive\n{hint}"
     if not has_data and not has_data_file:
-        print("Error: --data or --data-file is required", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"Error: --data or --data-file is required\n{hint}"
 
     if has_data_file:
         raw = load_text(kwargs["data_file"])
         if raw is None:
-            return None
+            return None, f"Error: could not read --data-file\n{hint}"
         try:
             data_obj = json.loads(raw)
         except json.JSONDecodeError as e:
-            print(f"Error: --data-file must contain valid JSON: {e}", file=sys.stderr)
-            print(hint, file=sys.stderr)
-            return None
+            return None, f"Error: --data-file must contain valid JSON: {e}\n{hint}"
     else:
         try:
             data_obj = json.loads(kwargs["data"])
         except json.JSONDecodeError as e:
-            print(f"Error: --data must be valid JSON: {e}", file=sys.stderr)
-            print(hint, file=sys.stderr)
-            return None
+            return None, f"Error: --data must be valid JSON: {e}\n{hint}"
 
     if not isinstance(data_obj, dict):
-        print(f"Error: --data must be a JSON object, got {type(data_obj).__name__}", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
-    return data_obj
+        return None, f"Error: --data must be a JSON object, got {type(data_obj).__name__}\n{hint}"
+    return data_obj, ""
 
 
 def cmd_append_event(args):
@@ -470,7 +440,7 @@ Examples:
         --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}'
 """
     hint = help_hint("append-event")
-    result = _parse_trace_args(
+    parsed, parse_err = _parse_trace_args(
         args,
         help_text,
         "append-event",
@@ -479,24 +449,24 @@ Examples:
         is_mutating=True,
         supports_raw=False,
     )
-    if result == "help":
+    if parsed == "help":
         return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
-    plet_dir, kwargs, flags = result
+    if parsed is None:
+        return (1, "", parse_err)
+    plet_dir, kwargs, flags = parsed
 
-    ctx = _validate_trace_context(kwargs, hint)
+    ctx, ctx_err = _validate_trace_context(kwargs, hint)
     if ctx is None:
-        return (1, "", "")
+        return (1, "", ctx_err)
     iter_id, phase, attempt = ctx
 
     event_type = kwargs["event_type"]
     if not validate_enum(event_type, VALID_EVENT_TYPES, "--event-type"):
         return (1, "", hint)
 
-    data_obj = _parse_event_data(kwargs, hint)
+    data_obj, data_err = _parse_event_data(kwargs, hint)
     if data_obj is None:
-        return (1, "", "")
+        return (1, "", data_err)
 
     data_errors = validate_data_fields(event_type, data_obj)
     if data_errors:
@@ -519,7 +489,7 @@ Examples:
 
     if flags["dry_run"]:
         if flags["output"] == "json":
-            json_response(
+            out = json_response(
                 {
                     "status": "ok",
                     "command": "append-event",
@@ -531,7 +501,7 @@ Examples:
                 },
                 flags,
             )
-            return (0, "", "")
+            return (0, out, "")
         else:
             return (0, f"DRY RUN — would append {event_type} event to {events_path}", "")
 
@@ -540,7 +510,7 @@ Examples:
     atomic_append(events_path, line)
 
     if flags["output"] == "json":
-        json_response(
+        out = json_response(
             {
                 "status": "ok",
                 "command": "append-event",
@@ -551,7 +521,7 @@ Examples:
             },
             flags,
         )
-        return (0, "", "")
+        return (0, out, "")
     else:
         return (0, f"OK — {plet_id} appended {event_type} event to {events_path}", "")
 
@@ -615,7 +585,7 @@ Examples:
     plet_trace.py validate --iter-id ID_001 --phase implement --attempt 1 --output json
 """
     hint = help_hint("validate")
-    result = _parse_trace_args(
+    parsed, parse_err = _parse_trace_args(
         args,
         help_text,
         "validate",
@@ -624,15 +594,15 @@ Examples:
         is_mutating=False,
         supports_raw=False,
     )
-    if result == "help":
+    if parsed == "help":
         return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
-    plet_dir, kwargs, flags = result
+    if parsed is None:
+        return (1, "", parse_err)
+    plet_dir, kwargs, flags = parsed
 
-    ctx = _validate_trace_context(kwargs, hint)
+    ctx, ctx_err = _validate_trace_context(kwargs, hint)
     if ctx is None:
-        return (1, "", "")
+        return (1, "", ctx_err)
     iter_id, phase, attempt = ctx
 
     path = derive_events_path(plet_dir, iter_id, phase, attempt)
@@ -642,7 +612,7 @@ Examples:
     errors, event_count, counts_by_type = _validate_events_file(path)
 
     if flags["output"] == "json":
-        json_response(
+        out = json_response(
             {
                 "status": "error" if errors else "ok",
                 "command": "validate",
@@ -654,7 +624,7 @@ Examples:
             },
             flags,
         )
-        return (1 if errors else 0, "", "")
+        return (1 if errors else 0, out, "")
 
     if errors:
         type_str = ", ".join(f"{v} {k}" for k, v in sorted(counts_by_type.items()))
@@ -671,42 +641,46 @@ cmd_validate.example = "plet_trace.py validate plet/ --iter-id ID_001 --phase im
 
 
 def _validate_query_filters(kwargs, hint):
-    """Validate and extract query filters. Returns (event_type_filter, criterion_filter, last_n, error_flag)."""
+    """Validate and extract query filters. Returns (event_type, criterion, last_n, err_str)."""
     event_type_filter = kwargs.get("event_type")
     criterion_filter = kwargs.get("criterion")
     last_n = kwargs.get("last")
 
     if event_type_filter is not None and not validate_enum(event_type_filter, VALID_EVENT_TYPES, "--event-type"):
-        print(hint, file=sys.stderr)
-        return None, None, None, True
+        return None, None, None, hint
 
     if criterion_filter is not None:
         if event_type_filter is not None and event_type_filter != "criterion_update":
-            print(
-                "Error: --criterion implies --event-type criterion_update,"
-                f" but --event-type '{event_type_filter}' was specified",
-                file=sys.stderr,
+            return (
+                None,
+                None,
+                None,
+                (
+                    "Error: --criterion implies --event-type criterion_update,"
+                    f" but --event-type '{event_type_filter}' was specified\n{hint}"
+                ),
             )
-            print(hint, file=sys.stderr)
-            return None, None, None, True
         event_type_filter = "criterion_update"
 
     if last_n is not None:
         last_n, ok = validate_int(last_n, "--last")
         if not ok:
-            print(hint, file=sys.stderr)
-            return None, None, None, True
+            return None, None, None, hint
         if last_n < 1:
-            print("Error: --last must be a positive integer, got '{}'".format(kwargs["last"]), file=sys.stderr)
-            print(hint, file=sys.stderr)
-            return None, None, None, True
+            return (
+                None,
+                None,
+                None,
+                "Error: --last must be a positive integer, got '{}'\n{}".format(kwargs["last"], hint),
+            )
 
-    return event_type_filter, criterion_filter, last_n, None
+    return event_type_filter, criterion_filter, last_n, ""
 
 
 def _read_and_filter_events(path, event_type_filter, criterion_filter, last_n):
-    """Read NDJSON events from path, apply filters, return matching events."""
+    """Read NDJSON events from path, apply filters. Returns (matches, warnings)."""
     matches = []
+    warnings = []
     with open(path) as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
@@ -715,7 +689,7 @@ def _read_and_filter_events(path, event_type_filter, criterion_filter, last_n):
             try:
                 event = json.loads(line)
             except json.JSONDecodeError:
-                print(f"Warning: line {line_num} is not valid JSON, skipping", file=sys.stderr)
+                warnings.append(f"Warning: line {line_num} is not valid JSON, skipping")
                 continue
             if not isinstance(event, dict):
                 continue
@@ -729,7 +703,7 @@ def _read_and_filter_events(path, event_type_filter, criterion_filter, last_n):
 
     if last_n is not None and len(matches) > last_n:
         matches = matches[-last_n:]
-    return matches
+    return matches, "\n".join(warnings) if warnings else ""
 
 
 def cmd_query(args):
@@ -762,7 +736,7 @@ Examples:
     plet_trace.py query --iter-id ID_001 --phase implement --attempt 1 --event-type decision --raw
 """
     hint = help_hint("query")
-    result = _parse_trace_args(
+    parsed, parse_err = _parse_trace_args(
         args,
         help_text,
         "query",
@@ -771,15 +745,15 @@ Examples:
         is_mutating=False,
         supports_raw=True,
     )
-    if result == "help":
+    if parsed == "help":
         return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
-    plet_dir, kwargs, flags = result
+    if parsed is None:
+        return (1, "", parse_err)
+    plet_dir, kwargs, flags = parsed
 
-    ctx = _validate_trace_context(kwargs, hint)
+    ctx, ctx_err = _validate_trace_context(kwargs, hint)
     if ctx is None:
-        return (1, "", "")
+        return (1, "", ctx_err)
     iter_id, phase, attempt = ctx
 
     path = derive_events_path(plet_dir, iter_id, phase, attempt)
@@ -787,15 +761,15 @@ Examples:
     if not os.path.exists(path):
         return (1, "", f"Error: {path} does not exist\n{hint}")
 
-    event_type_filter, criterion_filter, last_n, err = _validate_query_filters(kwargs, hint)
-    if err:
-        return (1, "", "")
+    event_type_filter, criterion_filter, last_n, filter_err = _validate_query_filters(kwargs, hint)
+    if filter_err:
+        return (1, "", filter_err)
 
-    matches = _read_and_filter_events(path, event_type_filter, criterion_filter, last_n)
+    matches, read_warnings = _read_and_filter_events(path, event_type_filter, criterion_filter, last_n)
 
     # Output
     if flags["output"] == "json":
-        json_response(
+        out = json_response(
             {
                 "status": "ok",
                 "command": "query",
@@ -805,13 +779,13 @@ Examples:
             },
             flags,
         )
-        return (0, "", "")
+        return (0, out, read_warnings)
     elif flags["raw"]:
         out = "\n".join(json.dumps(event, separators=(",", ":")) for event in matches)
-        return (0, out, "")
+        return (0, out, read_warnings)
     else:
         out = "\n".join(json.dumps(event, indent=2) for event in matches)
-        return (0, out, "")
+        return (0, out, read_warnings)
 
 
 cmd_query.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1"  # noqa: E501
