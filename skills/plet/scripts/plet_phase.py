@@ -29,7 +29,6 @@ import sys
 SCRIPT_VERSION = "0.1.0"
 from util_cli import (  # noqa: E402
     dispatch,
-    emit_error,
     parse_command,
     validate_enum,
 )
@@ -113,8 +112,7 @@ def cmd_end(args):
     if phase == "verify" and not kwargs.get("summary") and not kwargs.get("report_file"):
         return (1, "", "Error: verify phase requires --summary (for auto-report) or --report-file\n" + hint)
 
-    rc = _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields)
-    return (rc, "", "")
+    return _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields)
 
 
 def _build_criteria_results(ist):
@@ -154,6 +152,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
 
     status = VERDICT_TO_STATUS.get(verdict, "COMPLETE")
     steps_done = []
+    step_err = ""
 
     # Read iter state to get attempt number and title
     from util_io import iter_state_path, load_json
@@ -177,7 +176,8 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
         result = func(func_args)
         rc = result[0] if isinstance(result, tuple) else result
         if rc != 0:
-            emit_error("end", f"{name} failed (exit {rc})", SCRIPT_VERSION, output_json, pretty)
+            nonlocal step_err
+            step_err = f"{name} failed (exit {rc})"
             return False
         steps_done.append(name)
         return True
@@ -198,7 +198,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             "plet_phase",
         ],
     ):
-        return 1
+        return (1, "", step_err)
 
     # Step 1.5: add-report (verify phase only)
     if phase == "verify" and (summary or report_file):
@@ -245,7 +245,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             ]
 
         if not _step("add-report", cmd_add_report, report_args):
-            return 1
+            return (1, "", step_err)
 
     # Step 2: add-progress
     if not _step(
@@ -267,7 +267,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             progress_content,
         ],
     ):
-        return 1
+        return (1, "", step_err)
 
     # Step 3: append-event (decision — phase_end)
     event_data = json.dumps(
@@ -293,7 +293,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             event_data,
         ],
     ):
-        return 1
+        return (1, "", step_err)
 
     # Step 4: audit-tag
     if not _step(
@@ -307,7 +307,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             phase,
         ],
     ):
-        return 1
+        return (1, "", step_err)
 
     # Step 5: git add + commit
     project_root = os.path.dirname(os.path.abspath(plet_dir))
@@ -320,30 +320,27 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
         cwd=project_root,
     )
     if commit_result.returncode != 0:
-        emit_error("end", f"git commit failed: {commit_result.stderr[:200]}", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", f"git commit failed: {commit_result.stderr[:200]}")
     steps_done.append("git-commit")
 
     if output_json:
-        from util_cli import emit_json
+        from util_cli import filter_fields, now_iso
 
-        emit_json(
-            {
-                "status": "ok",
-                "command": "end",
-                "phase": phase,
-                "verdict": verdict,
-                "iterationId": iter_id,
-                "steps": steps_done,
-            },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
-        )
+        data = {
+            "status": "ok",
+            "command": "end",
+            "phase": phase,
+            "verdict": verdict,
+            "iterationId": iter_id,
+            "steps": steps_done,
+            "scriptVersion": SCRIPT_VERSION,
+            "timestamp": now_iso(),
+        }
+        if fields:
+            data = filter_fields(data, fields)
+        return (0, json.dumps(data, indent=2 if pretty else None), "")
     else:
-        print(f"OK — {phase} phase ended: {verdict} ({', '.join(steps_done)})")
-
-    return 0
+        return (0, f"OK — {phase} phase ended: {verdict} ({', '.join(steps_done)})", "")
 
 
 cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict VALUE --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501
