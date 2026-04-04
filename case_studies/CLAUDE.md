@@ -21,6 +21,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `CASE_STUDY_LOGA_R04.md` | LOGA (logalyzer) | Go | 1/13 | Sandbox incompatibility; script discovery issue; plan phase UX problems |
 | `CASE_STUDY_LOGA_R05.md` | LOGA (logalyzer) | Go | 3/13 | Env var injection works; dependency promotion bug found; state.json merge conflict |
 | `CASE_STUDY_LOGA_R06.md` | LOGA (logalyzer) | Go | 13/13 | First fully successful scripted run; zero human intervention; validates v0.4.x architecture |
+| `CASE_STUDY_LOGA_R07.md` | LOGA (logalyzer) | Go | 13/13 | First post-PLAN_HLP run; --help down 35%; plet_phase.py 100% adoption; gaps collapsed 89% |
 
 ## Stable Labels
 
