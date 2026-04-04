@@ -36,6 +36,7 @@ The orchestrator already called `start-phase` before spawning you — attempt co
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
     --agent-id $PLET_AGENT_ID
+git add plet/ && git commit -m "plet: [{iteration_id}] implement-start"
 ```
 
 `$PLET_AGENT_ID` is set by the orchestrator — a unique ID for this subagent session. Use it for all `--agent-id` flags. Do not use shell variable aliases for script paths — call scripts directly via `$PLET_SCRIPTS_DIR`.

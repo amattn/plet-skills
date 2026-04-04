@@ -35,7 +35,10 @@ The orchestrator already called `start-phase` before spawning you — attempt co
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
     --agent-id $PLET_AGENT_ID
+git add plet/ && git commit -m "plet: [{iteration_id}] verify-start"
 ```
+
+The verify-start commit marks the exact beginning of verification in git history. Without it, the git tree shows no activity between implement completion and verify completion — making timing analysis harder and the verify phase invisible to external tools.
 
 ### Read Context (VF_3, RT_6, RT_7)
 
