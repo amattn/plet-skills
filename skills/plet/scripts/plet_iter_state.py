@@ -126,17 +126,14 @@ def _parse_init_data(plet_dir, iter_id, kwargs):
 
 
 def _load_state(plet_dir, iter_id, hint):
-    """Load per-iteration state file. Returns (data, path) or (None, path) on error."""
+    """Load per-iteration state file. Returns (data, path, err)."""
     path = iter_state_path(plet_dir, iter_id)
     if not os.path.isfile(path):
-        print(f"Error: state file not found at {path}", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None, path
+        return None, path, f"Error: state file not found at {path}\n{hint}"
     data = load_json(path)
     if data is None:
-        print(hint, file=sys.stderr)
-        return None, path
-    return data, path
+        return None, path, f"Error: invalid JSON in {path}\n{hint}"
+    return data, path, ""
 
 
 # ---------------------------------------------------------------------------
@@ -171,7 +168,7 @@ Exit 0 if valid, exit 1 if invalid or error.
         return (1, "", "")
 
     iter_id = kwargs["iter_id"]
-    data, path = _load_state(plet_dir, iter_id, hint)
+    data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
         out = ""
         if output_json:
@@ -186,7 +183,7 @@ Exit 0 if valid, exit 1 if invalid or error.
                     "timestamp": now_iso(),
                 }
             )
-        return (1, out, f"Error: could not load {path}")
+        return (1, out, load_err)
 
     errors = validate_iter_state(data)
     valid = len(errors) == 0
@@ -415,9 +412,9 @@ Examples:
     if not validate_enum(phase, VALID_PHASES, "phase"):
         return (1, "", hint)
 
-    data, path = _load_state(plet_dir, iter_id, hint)
+    data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return (1, "", hint)
+        return (1, "", load_err)
 
     # Increment attempt counter
     if "attempts" not in data:
@@ -533,9 +530,9 @@ Examples:
     if not validate_enum(phase_activity, PHASE_ACTIVITIES, "phase-activity"):
         return (1, "", hint)
 
-    data, path = _load_state(plet_dir, iter_id, hint)
+    data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return (1, "", hint)
+        return (1, "", load_err)
 
     ts = now_iso()
     data["phaseActivity"] = phase_activity
@@ -586,15 +583,11 @@ def _find_criterion(criteria, criterion_id, iter_id, hint):
     """Find a criterion by ID. Returns target or None (error printed)."""
     for c in criteria:
         if c.get("id") == criterion_id:
-            return c
-    print(
-        "Error: criterion '{}' not found in {} (available: {})".format(
-            criterion_id, iter_id, ", ".join(c.get("id", "?") for c in criteria)
-        ),
-        file=sys.stderr,
+            return c, ""
+    err = "Error: criterion '{}' not found in {} (available: {})\n{}".format(
+        criterion_id, iter_id, ", ".join(c.get("id", "?") for c in criteria), hint
     )
-    print(hint, file=sys.stderr)
-    return None
+    return None, err
 
 
 def _build_phase_obj(phase, status, evidence, ts, elapsed, one_liner, red_test, no_test_rationale):
@@ -700,13 +693,13 @@ Examples:
     if err:
         return (1, "", f"{err}\n{hint}")
 
-    data, path = _load_state(plet_dir, iter_id, hint)
+    data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return (1, "", hint)
+        return (1, "", load_err)
 
-    target = _find_criterion(data.get("criteria", []), kwargs["criterion"], iter_id, hint)
+    target, find_err = _find_criterion(data.get("criteria", []), kwargs["criterion"], iter_id, hint)
     if target is None:
-        return (1, "", hint)
+        return (1, "", find_err)
 
     ts = now_iso()
     target[phase] = _build_phase_obj(
@@ -825,9 +818,9 @@ Examples:
         err_msg = "Error: invalid verdict '{}' for {} (valid: {})".format(verdict, phase, ", ".join(valid_verdicts))
         return (1, "", f"{err_msg}\n{hint}")
 
-    data, path = _load_state(plet_dir, iter_id, hint)
+    data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return (1, "", hint)
+        return (1, "", load_err)
 
     ts = now_iso()
     verdict_field = "implementVerdict" if phase == "implement" else "verifyVerdict"
@@ -900,9 +893,9 @@ Examples:
     iter_id = kwargs["iter_id"]
     agent_id = kwargs["agent_id"]
 
-    data, path = _load_state(plet_dir, iter_id, hint)
+    data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return (1, "", hint)
+        return (1, "", load_err)
 
     ts = now_iso()
     data["lastHeartbeat"] = ts
@@ -1054,9 +1047,9 @@ Examples:
     if err:
         return (1, "", err)
 
-    data, path = _load_state(plet_dir, iter_id, hint)
+    data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return (1, "", hint)
+        return (1, "", load_err)
 
     # Build report
     attempt = data.get("attempts", {}).get("verify", 1)

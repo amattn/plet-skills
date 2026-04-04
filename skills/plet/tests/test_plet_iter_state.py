@@ -1184,13 +1184,9 @@ def test_build_phase_obj_direct():
 
 def test_find_criterion_missing():
     print("\n## _find_criterion — not found (direct import)")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
-    result = ist_mod._find_criterion([], "AC_99", "ID_001", "hint")
-    sys.stderr = old_stderr
+    result, err = ist_mod._find_criterion([], "AC_99", "ID_001", "hint")
     check("returns None", result is None)
+    check("has error msg", "not found" in err.lower())
 
 
 def test_validate_criteria_results_direct():
