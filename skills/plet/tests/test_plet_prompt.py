@@ -158,7 +158,7 @@ def test_impl_text_output():
 
 
 def test_impl_all_sections():
-    print("\n## assemble — implement has all 7 sections")
+    print("\n## assemble — implement has all 8 sections")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
@@ -166,13 +166,14 @@ def test_impl_all_sections():
         data = json.loads(stdout)
         names = [s["name"] for s in data["sections"]]
         check("reference-file", "reference-file" in names)
+        check("cli-quick-reference", "cli-quick-reference" in names)
         check("iteration-definition", "iteration-definition" in names)
         check("formats", "formats" in names)
         check("state-schema", "state-schema" in names)
         check("requirements", "requirements" in names)
         check("learnings", "learnings" in names)
         check("iteration-state", "iteration-state" in names)
-        check("7 sections", len(data["sections"]) == 7)
+        check("8 sections", len(data["sections"]) == 8)
     finally:
         shutil.rmtree(tmpdir)
 
@@ -196,15 +197,16 @@ def test_impl_reference_file():
 
 
 def test_verify_all_sections():
-    print("\n## assemble — verify has all 7 sections")
+    print("\n## assemble — verify has all 8 sections")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
         stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"])
         data = json.loads(stdout)
         names = [s["name"] for s in data["sections"]]
-        check("7 sections", len(data["sections"]) == 7)
+        check("8 sections", len(data["sections"]) == 8)
         check("reference-file", "reference-file" in names)
+        check("cli-quick-reference", "cli-quick-reference" in names)
         check("learnings", "learnings" in names)
     finally:
         shutil.rmtree(tmpdir)

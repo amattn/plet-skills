@@ -139,6 +139,54 @@ def _load_required(content, error_msg):
     return None
 
 
+def _build_cli_quick_ref(iter_id, phase, attempt):
+    """Build CLI quick reference with iter_id and phase pre-filled."""
+    ist = "plet_iter_state.py"
+    ent = "plet_entries.py"
+    phs = "plet_phase.py"
+    gph = "plet_gate_phase.py"
+    p = "plet/"
+    a = str(attempt)
+    crit_phase = "implementation" if phase == "implement" else "verification"
+
+    lines = [
+        "# CLI Quick Reference",
+        f"# Pre-filled for {iter_id}, phase={phase}, attempt={a}",
+        "# Run any script with --usage for all commands, --help for full details.",
+        "",
+        "# State updates (during work):",
+        f'{ist} update-activity {p} --iter-id {iter_id} --phase-activity coding --activity-detail "..." --agent-id $AGENT_ID',  # noqa: E501
+        f'{ist} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status pass --evidence "..." --agent-id $AGENT_ID',  # noqa: E501
+        f"{ist} heartbeat {p} --iter-id {iter_id} --agent-id $AGENT_ID",
+        "",
+        "# Runtime artifacts (during work):",
+        f'{ent} add-progress {p} --iter-id {iter_id} --iter-title "$TITLE" --phase {phase} --attempt {a} --status IN_PROGRESS --content "..."',  # noqa: E501
+        f'{ent} add-learning {p} --iter-id {iter_id} --iter-title "$TITLE" --category pattern --title "..." --content "..." --phase {phase} --attempt {a}',  # noqa: E501
+        f'{ent} add-emergent {p} --iter-id {iter_id} --iter-title "$TITLE" --title "..." --phase {phase} --category "design decision" --content "..." --attempt {a}',  # noqa: E501
+        "",
+        "# End of phase (replaces 6 separate calls):",
+    ]
+
+    if phase == "implement":
+        lines.append(
+            f'{phs} end {p} --iter-id {iter_id} --phase implement --verdict completed --progress-content "..."'  # noqa: E501
+        )
+    else:
+        lines.append(
+            f'{phs} end {p} --iter-id {iter_id} --phase verify --verdict passed --progress-content "..." --report-file /tmp/report.json'  # noqa: E501
+        )
+
+    lines.extend(
+        [
+            "",
+            "# Post-gate (run after plet_phase.py end, self-correct if fails):",
+            f"{gph} post {p} --iter-id {iter_id} --phase {phase} --output json",
+        ]
+    )
+
+    return "\n".join(lines)
+
+
 def _build_prompt_sections(plet_dir, iter_id, phase):
     """Build all prompt sections. Returns (sections, error_msg)."""
     sections = []
@@ -149,6 +197,14 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
     if ref_content is None:
         return None, f"Error: reference file not found: {ref_path}"
     sections.append({"name": "reference-file", "source": f"references/{ref_filename}", "content": ref_content})
+
+    # 1.5. CLI quick reference (pre-filled with iter_id and phase)
+    state_for_attempt = load_iter_state_json(plet_dir, iter_id)
+    attempt = 1
+    if state_for_attempt:
+        attempt = state_for_attempt.get("attempts", {}).get(phase, 1) or 1
+    cli_ref = _build_cli_quick_ref(iter_id, phase, attempt)
+    sections.append({"name": "cli-quick-reference", "source": "generated", "content": cli_ref})
 
     # 2. Iteration definition
     iter_file = iterations_path(plet_dir)
