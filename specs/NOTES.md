@@ -55,6 +55,7 @@ This was validated across three case studies: state schema drift (the most persi
 | INV | `plet_invoke.py` | INVoke |
 | GST | `plet_global_state.py` | Global STate (state.json — lifecycles, session) |
 | IST | `plet_iter_state.py` | Iteration STate (per-iteration files) |
+| PHS | `plet_phase.py` | PHaSe lifecycle (composite end-of-phase) |
 | ~~STA~~ | ~~`plet_state.py`~~ | Split into GST + IST (seq 39d) |
 
 ### Section abbreviations
