@@ -164,14 +164,12 @@ def _run_ruff_checks(quiet):
     ruff_path = _find_ruff()
 
     if not ruff_path:
-        if not quiet:
-            print("  ruff not found — skipping lint/format checks")
-            print()
-        return False
+        print("  ERROR: ruff not found — install with: uv pip install ruff", file=sys.stderr)
+        return True
 
     failed = False
 
-    # Lint check
+    # 1. Lint check
     if not quiet:
         print("  ruff check ...", end="", flush=True)
     rc = subprocess.run([ruff_path, "check"] + ruff_dirs, capture_output=True).returncode
@@ -183,16 +181,15 @@ def _run_ruff_checks(quiet):
     elif not quiet:
         print(" ok")
 
-    # Format: auto-fix then verify (prevents cross-machine version mismatches)
+    # 2. Format check (no auto-fix — just verify)
     if not quiet:
-        print("  ruff format ...", end="", flush=True)
-    subprocess.run([ruff_path, "format"] + ruff_dirs, capture_output=True)
+        print("  ruff format --check ...", end="", flush=True)
     rc = subprocess.run([ruff_path, "format", "--check"] + ruff_dirs, capture_output=True).returncode
     if rc != 0:
         failed = True
         if not quiet:
-            print(" FAIL (format --check failed after format)")
-            subprocess.run([ruff_path, "format", "--check"] + ruff_dirs)
+            print(" FAIL")
+            print("  To auto-fix: uv run ruff format {}".format(" ".join(ruff_dirs)))
     elif not quiet:
         print(" ok")
 
@@ -223,6 +220,13 @@ def main():
         print()
 
     ruff_failed = _run_ruff_checks(quiet)
+
+    if ruff_failed:
+        print()
+        print("=" * 50)
+        print("  ruff check failed — skipping tests")
+        print("=" * 50)
+        return 1
 
     if sequential:
         total_passed, total_failed, failures, elapsed = _run_sequential(test_files, verbose, quiet)
