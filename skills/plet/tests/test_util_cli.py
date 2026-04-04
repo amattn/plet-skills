@@ -401,6 +401,87 @@ def test_dispatch_valid_command():
     check("args passed through", received == ["--flag", "value"])
 
 
+def test_dispatch_tuple_return():
+    print("\n## dispatch — tuple return routes stdout/stderr")
+    import io
+
+    def tuple_cmd(args):
+        return (0, "success output", "warning output")
+
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout = io.StringIO()
+    sys.stderr = io.StringIO()
+    code = util_cli.dispatch(
+        {"run": tuple_cmd},
+        "test",
+        "1.0",
+        "0.1.0",
+        "doc",
+        argv=["test", "run"],
+    )
+    out = sys.stdout.getvalue()
+    err = sys.stderr.getvalue()
+    sys.stdout, sys.stderr = old_out, old_err
+
+    check("exit code 0", code == 0)
+    check("stdout has output", "success output" in out)
+    check("stderr has warning", "warning output" in err)
+
+
+def test_dispatch_tuple_return_error():
+    print("\n## dispatch — tuple return with error code")
+    import io
+
+    def error_cmd(args):
+        return (1, "", "Error: something failed")
+
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout = io.StringIO()
+    sys.stderr = io.StringIO()
+    code = util_cli.dispatch(
+        {"run": error_cmd},
+        "test",
+        "1.0",
+        "0.1.0",
+        "doc",
+        argv=["test", "run"],
+    )
+    out = sys.stdout.getvalue()
+    err = sys.stderr.getvalue()
+    sys.stdout, sys.stderr = old_out, old_err
+
+    check("exit code 1", code == 1)
+    check("stdout empty", out.strip() == "")
+    check("stderr has error", "something failed" in err)
+
+
+def test_dispatch_tuple_empty_strings():
+    print("\n## dispatch — tuple with empty strings doesn't print")
+    import io
+
+    def quiet_cmd(args):
+        return (0, "", "")
+
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout = io.StringIO()
+    sys.stderr = io.StringIO()
+    code = util_cli.dispatch(
+        {"run": quiet_cmd},
+        "test",
+        "1.0",
+        "0.1.0",
+        "doc",
+        argv=["test", "run"],
+    )
+    out = sys.stdout.getvalue()
+    err = sys.stderr.getvalue()
+    sys.stdout, sys.stderr = old_out, old_err
+
+    check("exit code 0", code == 0)
+    check("no stdout", out == "")
+    check("no stderr", err == "")
+
+
 def test_dispatch_no_args():
     print("\n## dispatch — no arguments")
     import io
@@ -932,6 +1013,9 @@ def main():
     test_dispatch_version()
     test_dispatch_unknown_command()
     test_dispatch_valid_command()
+    test_dispatch_tuple_return()
+    test_dispatch_tuple_return_error()
+    test_dispatch_tuple_empty_strings()
     test_dispatch_no_args()
     test_dispatch_usage()
     test_dispatch_help_footer()

@@ -178,6 +178,23 @@ def now_iso():
     return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _handle_command_result(result):
+    """Route command result to stdout/stderr. Returns exit code.
+
+    Supports two return patterns:
+    - int: bare exit code (legacy, function printed directly)
+    - (int, str, str): (code, stdout, stderr) — function returns output, dispatch prints
+    """
+    if isinstance(result, tuple) and len(result) == 3:
+        code, out, err = result
+        if out:
+            sys.stdout.write(out if out.endswith("\n") else out + "\n")
+        if err:
+            sys.stderr.write(err if err.endswith("\n") else err + "\n")
+        return code
+    return result
+
+
 def dispatch(commands, script_name, script_version, skill_version, doc, argv=None, no_log_commands=None):
     """Standard main() entry point for plet scripts.
 
@@ -254,7 +271,8 @@ def dispatch(commands, script_name, script_version, skill_version, doc, argv=Non
         )
         return 1
 
-    exit_code = commands[cmd](args)
+    result = commands[cmd](args)
+    exit_code = _handle_command_result(result)
 
     # Log invocation (unless excluded or --no-log)
     if not no_log and cmd not in no_log_commands:

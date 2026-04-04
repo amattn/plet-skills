@@ -443,85 +443,81 @@ Restructure scripts from 16 standalone CLI tools into one importable Python pack
 
 The library pattern fixes this permanently. Once logic is importable, `test_all.py` simultaneously tests and measures coverage in a single fast run (~30s). Coverage becomes a **byproduct of testing, not a separate activity**. No more `coverage_all.sh` as a gate. No more backsliding. Every new function is automatically covered by the tests that call it.
 
-**Current architecture:**
-```
-scripts/
-  plet_iter_state.py    # cmd_set_verdict(args) does: parse → validate → work → format
-  plet_entries.py       # cmd_add_progress(args) does: parse → validate → work → format
-  ...                   # 16 standalone scripts, each with dispatch()
-```
+**Core idea: tuple returns.**
 
-**Target architecture:**
-```
-scripts/
-  plet_cli.py           # single CLI entry point, thin dispatch
-  plet/                 # importable package
-    __init__.py
-    iter_state.py       # set_verdict(plet_dir, iter_id, ...) → result dict
-    entries.py          # add_progress(plet_dir, iter_id, ...) → result dict
-    phase.py            # end_phase(plet_dir, iter_id, ...) → result dict
-    ...
-  util/                 # importable utilities (renamed from util_*)
-    cli.py
-    io.py
-    ...
-```
-
-**Constraints:**
-- `allowed-tools` in SKILL.md must still work — agents call scripts via `Bash(${CLAUDE_SKILL_DIR}/scripts/*)`. Either keep individual script shims or update to one entry point.
-- Existing tests (2261) must keep passing — migration is incremental, not big-bang.
-- Each script's `--help`, `--usage`, `--version` behavior must be preserved.
-
-### Build order (incremental — do alongside other work)
-
-| Step | What | When |
-|------|------|------|
-| COV_1 | Auto-logger test (util_cli._log_script_invocation) | First — survives any restructure, covers 90 lines |
-| COV_2 | Extract logic from plet_iter_state.py | Next time iter_state is modified. Highest test count, most error paths. |
-| COV_3 | Extract logic from plet_entries.py | Next time entries is modified. Second highest coverage gap. |
-| COV_4 | Extract logic from plet_fingerprint.py | Lowest coverage (79%), many dry-run + error paths. |
-| COV_5 | Extract logic from plet_gate_session.py | 83% coverage, postflight is new. |
-| COV_6 | Extract logic from remaining scripts | As touched — gate_phase, git_check, git_ops, etc. |
-| COV_7 | Create `plet/` package directory | When enough scripts are extracted. Move logic files, add `__init__.py`. |
-| COV_8 | Thin CLI shims or single entry point | Replace standalone scripts with shims that import from package. |
-| COV_9 | Update allowed-tools + reference files | Point to new CLI structure. |
-| COV_10 | Remove coverage_all.sh dependency | `pytest --cov` covers everything in-process. coverage_all.sh becomes optional. |
-
-**Key principle:** Each extraction (COV_2 through COV_6) is independently valuable — it improves coverage for that script immediately. The package restructure (COV_7-10) is the final step that pays off the incremental work. No step is wasted.
-
-**Pattern for each extraction:**
+Currently `cmd_*` functions print directly to stdout/stderr and return an int exit code. This tangles logic with output — tests can only validate exit codes, not what the agent sees. The fix: functions return `(code, stdout, stderr)` and **never call print()**. Dispatch is the only thing that touches real stdout/stderr.
 
 ```python
-# Before: one function does everything
+# Before: prints directly, returns int
 def cmd_set_verdict(args):
-    parsed = parse_command(args, ...)       # CLI parsing
-    # ... validation ...
-    data = _load_state(plet_dir, iter_id)   # work
-    data[phase] = {"status": verdict, ...}  # work
-    atomic_write_json(path, data)           # work
-    emit_json(result, ...)                  # output
+    # ... logic ...
+    if error:
+        print("Error: invalid verdict", file=sys.stderr)  # side effect
+        return 1
+    print(f"OK — {iter_id} {verdict_field}: {verdict}")   # side effect
+    return 0
 
-# After: logic separated from CLI
-def set_verdict(plet_dir, iter_id, phase, verdict, agent_id):
-    """Pure logic — testable via import, coverage-visible."""
-    data = _load_state(plet_dir, iter_id)
-    data[phase] = {"status": verdict, ...}
-    atomic_write_json(path, data)
-    return {"status": "ok", "iterationId": iter_id, ...}
-
+# After: returns tuple, no printing
 def cmd_set_verdict(args):
-    """Thin CLI wrapper."""
-    parsed = parse_command(args, ...)
-    result = set_verdict(**parsed)
-    emit_output(result, ...)
+    # ... logic ...
+    if error:
+        return (1, "", "Error: invalid verdict")
+    return (0, f"OK — {iter_id} {verdict_field}: {verdict}", "")
+
+# Dispatch routes tuple to real streams (backward-compatible)
+def dispatch(commands, ...):
+    result = commands[cmd](args)
+    if isinstance(result, tuple):
+        code, out, err = result
+        if out: sys.stdout.write(out + "\n")
+        if err: sys.stderr.write(err + "\n")
+        return code
+    return result  # bare int for unmigrated functions
 ```
 
-Tests import `set_verdict()` directly. Subprocess tests verify the CLI contract only.
+Tests validate everything the agent sees:
+```python
+code, out, err = cmd_set_verdict([plet_dir, "--iter-id", "ID_001", ...])
+assert code == 0
+assert "verifyVerdict" in out
+assert err == ""
+```
+
+**Why tuple returns, not logic extraction:**
+- One refactor step per function, not two (extract + wrapper)
+- The function still does the work AND formats the output — just returns it instead of printing
+- Backward compatible — dispatch handles both `int` and `(int, str, str)` returns
+- Each function migrated independently — no coordination needed
+- stdout/stderr content becomes a first-class testable output
+- ~3x faster than subprocess tests (no process spawn)
+
+**Constraints:**
+- `allowed-tools` in SKILL.md must still work — scripts stay as standalone files, dispatch handles the routing
+- Existing tests (2323) must keep passing — migration is incremental via backward-compatible dispatch
+- Each script's `--help`, `--usage`, `--version` behavior preserved — dispatch handles these before calling cmd_*
+
+### Build order
+
+| Step | What | Status |
+|------|------|--------|
+| COV_1 | Auto-logger direct import test | ✓ done (util_cli 67→92%) |
+| COV_2 | Direct import tests for plet_iter_state internals | ✓ done (81→83%) |
+| COV_3 | Direct import tests for plet_entries internals | ✓ done (91→93%) |
+| COV_4 | Direct import tests for plet_fingerprint internals | ✓ done (79→81%) |
+| COV_5 | Update dispatch() to handle tuple returns | Next — the foundation |
+| COV_6 | Migrate plet_iter_state.py cmd_* to tuple returns | Highest value — most commands |
+| COV_7 | Migrate plet_entries.py cmd_* to tuple returns | Second highest |
+| COV_8 | Migrate plet_fingerprint.py cmd_* to tuple returns | Lowest coverage |
+| COV_9 | Migrate remaining scripts | As touched |
+| COV_10 | Package restructure (optional) | When all scripts return tuples, moving to a package is a rename |
+| COV_11 | test_all.py runs coverage in-process | Endgame — no more coverage_all.sh dependency |
+
+**Key principle:** COV_5 (dispatch update) is the foundation — once dispatch handles tuples, each function can be migrated independently. Every migration immediately unlocks tuple-based testing for that function. The package restructure (COV_10) becomes optional — the real win is the tuple return pattern.
 
 **What NOT to do:**
-- Don't add `# pragma: no cover` to dry-run blocks — they become testable after extraction
-- Don't write dual-mode tests for scripts not yet extracted — import paths will change
-- Don't do a big-bang migration — extract incrementally as scripts are touched
+- Don't add `# pragma: no cover` to dry-run blocks — they become testable after migration
+- Don't do a big-bang migration — migrate one function at a time, dispatch handles both patterns
+- Don't break existing subprocess tests — they keep working via dispatch's stdout/stderr routing
 
 ---
 
