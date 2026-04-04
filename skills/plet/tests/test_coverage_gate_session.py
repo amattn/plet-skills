@@ -102,17 +102,14 @@ def test_cmd_detect_refine():
 
 
 def test_cmd_detect_json():
-    import io
 
     import plet_gate_session
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
     try:
-        old_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-        rc = exit_code(plet_gate_session.cmd_detect([plet_dir, "--output", "json"]))
-        output = sys.stdout.getvalue()
-        sys.stdout = old_stdout
+        result = plet_gate_session.cmd_detect([plet_dir, "--output", "json"])
+        rc = result[0] if isinstance(result, tuple) else result
+        output = result[1] if isinstance(result, tuple) else ""
 
         check("json = 0", rc == 0)
         data = json.loads(output)
@@ -146,17 +143,14 @@ def test_cmd_status_basic():
 
 
 def test_cmd_status_json():
-    import io
 
     import plet_gate_session
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "complete", "ID_002": "blocked"})
     try:
-        old_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-        rc = exit_code(plet_gate_session.cmd_status([plet_dir, "--output", "json"]))
-        output = sys.stdout.getvalue()
-        sys.stdout = old_stdout
+        result = plet_gate_session.cmd_status([plet_dir, "--output", "json"])
+        rc = result[0] if isinstance(result, tuple) else result
+        output = result[1] if isinstance(result, tuple) else ""
 
         check("json = 0", rc == 0)
         data = json.loads(output)
@@ -273,7 +267,6 @@ def test_cmd_preflight_detect():
 
 
 def test_cmd_preflight_json():
-    import io
 
     import plet_gate_session
 
@@ -282,11 +275,9 @@ def test_cmd_preflight_json():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            old_stdout = sys.stdout
-            sys.stdout = io.StringIO()
-            rc = exit_code(plet_gate_session.cmd_preflight([plet_dir, "--session-type", "plan", "--output", "json"]))
-            output = sys.stdout.getvalue()
-            sys.stdout = old_stdout
+            result = plet_gate_session.cmd_preflight([plet_dir, "--session-type", "plan", "--output", "json"])
+            rc = result[0] if isinstance(result, tuple) else result
+            output = result[1] if isinstance(result, tuple) else ""
 
             check("json runs", rc in (0, 2))
             data = json.loads(output)
@@ -447,7 +438,6 @@ def test_cmd_postflight_transient():
 
 
 def test_cmd_postflight_json():
-    import io
 
     import plet_gate_session
 
@@ -456,11 +446,9 @@ def test_cmd_postflight_json():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            old_stdout = sys.stdout
-            sys.stdout = io.StringIO()
-            rc = exit_code(plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop", "--output", "json"]))
-            output = sys.stdout.getvalue()
-            sys.stdout = old_stdout
+            result = plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop", "--output", "json"])
+            rc = result[0] if isinstance(result, tuple) else result
+            output = result[1] if isinstance(result, tuple) else ""
 
             check("json runs", rc in (0, 2))
             data = json.loads(output)

@@ -31,10 +31,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     UNIVERSAL_FLAGS_READ,
     dispatch,
-    emit_json,
-    emit_json_error,
     extract_output_flags,
+    filter_fields,
     get_plet_dir,
+    now_iso,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -57,6 +57,24 @@ from util_subprocess import run, run_git
 
 SCRIPT_VERSION = "0.2.0"
 from util_constants import SKILL_VERSION  # noqa: E402
+
+
+def _to_json(data, pretty=False, fields=None):
+    """Build JSON output string with version/timestamp. Returns string."""
+    data["scriptVersion"] = SCRIPT_VERSION
+    data["timestamp"] = now_iso()
+    if fields:
+        data = filter_fields(data, fields)
+    return json.dumps(data, indent=2 if pretty else None)
+
+
+def _err_json(cmd, msg, pretty=False):
+    """Build JSON error output string. Returns string."""
+    return json.dumps(
+        {"status": "error", "command": cmd, "error": msg, "scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()},
+        indent=2 if pretty else None,
+    )
+
 
 VALID_SESSION_TYPES = ["detect", "plan", "loop", "refine"]
 LOOP_LIFECYCLES = {"queued", "implementing", "verifying"}
@@ -212,7 +230,7 @@ Examples:
     session_type, reason, artifacts = detect_session_type(plet_dir)
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": "ok",
                 "command": cmd_name,
@@ -220,11 +238,10 @@ Examples:
                 "reason": reason,
                 "artifacts": artifacts,
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (0, "", "")
+        return (0, out, "")
     else:
         # Bare output for shell capture (GSS_DXP_3)
         return (0, session_type, "")
@@ -447,8 +464,7 @@ Examples:
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(cmd_name, err_msg, SCRIPT_VERSION, pretty)
-            return (1, "", "")
+            return (1, _err_json(cmd_name, err_msg, pretty), "")
         else:
             return (1, "", err_msg)
 
@@ -460,8 +476,7 @@ Examples:
     if not os.path.isdir(sd):
         msg = f"Error: state directory not found: {sd}"
         if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-            return (1, "", "")
+            return (1, _err_json(cmd_name, msg, pretty), "")
         else:
             return (1, "", msg)
 
@@ -469,7 +484,7 @@ Examples:
     d = _collect_status_data(plet_dir, global_state, iter_states)
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": "ok",
                 "command": cmd_name,
@@ -484,11 +499,10 @@ Examples:
                 "fingerprints": d["fingerprints"],
                 "warnings": warnings,
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (0, "", "")
+        return (0, out, "")
     else:
         out = _format_status_text(
             d["project_id"],
@@ -799,19 +813,12 @@ Examples:
     counts, overall, exit_code = _summarize_checks(checks)
 
     if output_json:
-        emit_json(
-            {
-                "status": overall,
-                "command": cmd_name,
-                "sessionType": session_type,
-                "checks": checks,
-                "summary": counts,
-            },
-            SCRIPT_VERSION,
+        out = _to_json(
+            {"status": overall, "command": cmd_name, "sessionType": session_type, "checks": checks, "summary": counts},
             pretty,
             fields,
         )
-        return (exit_code, "", "")
+        return (exit_code, out, "")
     else:
         out = _format_preflight_text(checks, counts, overall)
         return (exit_code, out, "")
@@ -914,7 +921,7 @@ def _emit_postflight_result(checks, session_type, output_json, pretty, fields):
     exit_code = 0 if warn_count == 0 else 2
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": overall,
                 "command": "postflight",
@@ -922,11 +929,10 @@ def _emit_postflight_result(checks, session_type, output_json, pretty, fields):
                 "checks": checks,
                 "summary": {"total": total, "passed": passed_count, "warnings": warn_count, "skipped": skip_count},
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (exit_code, "", "")
+        return (exit_code, out, "")
     else:
         lines = []
         label = "OK" if overall == "ok" else "WARN"
