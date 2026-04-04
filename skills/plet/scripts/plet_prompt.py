@@ -156,9 +156,9 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
         "# If you need more commands: cat $PLET_CLI_REF > --usage > --help (escalation path).",
         "",
         "# State updates (during work):",
-        f'{ist} update-activity {p} --iter-id {iter_id} --phase-activity coding --activity-detail "..." --agent-id $AGENT_ID',  # noqa: E501
-        f'{ist} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status pass --evidence "..." --agent-id $AGENT_ID',  # noqa: E501
-        f"{ist} heartbeat {p} --iter-id {iter_id} --agent-id $AGENT_ID",
+        f'{ist} update-activity {p} --iter-id {iter_id} --phase-activity coding --activity-detail "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
+        f'{ist} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status pass --evidence "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
+        f"{ist} heartbeat {p} --iter-id {iter_id} --agent-id $PLET_AGENT_ID",
         "",
         "# Runtime artifacts (during work):",
         f'{ent} add-progress {p} --iter-id {iter_id} --iter-title "$TITLE" --phase {phase} --attempt {a} --status IN_PROGRESS --content "..."',  # noqa: E501
@@ -174,7 +174,7 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
                 "# Verify-specific — write BEFORE calling plet_phase.py end:",
                 f"{ist} validate {p} --iter-id {iter_id}",
                 '#   add-report criteria-results JSON shape: [{"id":"AC_1","status":"pass","oneLiner":"Tests pass","redTest":"none","noTestRationale":"","relatedEntries":[]}]',  # noqa: E501
-                f'{ist} add-report {p} --iter-id {iter_id} --verdict passed --summary "All criteria pass." --criteria-results \'[{{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"","relatedEntries":[]}}]\' --findings \'[]\' --related-entries \'[]\' --agent-id $AGENT_ID',  # noqa: E501
+                f'{ist} add-report {p} --iter-id {iter_id} --verdict passed --summary "All criteria pass." --criteria-results \'[{{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"","relatedEntries":[]}}]\' --findings \'[]\' --related-entries \'[]\' --agent-id $PLET_AGENT_ID',  # noqa: E501
                 "",
                 "# Trace events (event-type: decision, criterion_update, lifecycle_change, error):",
                 f'{trc} append-event {p} --iter-id {iter_id} --phase verify --attempt {a} --event-type decision --data \'{{"description":"...","rationale":"..."}}\'',  # noqa: E501

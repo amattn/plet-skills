@@ -35,10 +35,10 @@ The orchestrator already called `start-phase` before spawning you — attempt co
 ```bash
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
-    --agent-id impl_agent
+    --agent-id $PLET_AGENT_ID
 ```
 
-For `--agent-id`: use any stable identifier — `impl_agent`, `verify_agent`, or a generated ID. Do not use shell variable aliases for script paths — call scripts directly via `$PLET_SCRIPTS_DIR`.
+`$PLET_AGENT_ID` is set by the orchestrator — a unique ID for this subagent session. Use it for all `--agent-id` flags. Do not use shell variable aliases for script paths — call scripts directly via `$PLET_SCRIPTS_DIR`.
 
 ### Read Context (IMP_18, RT_6, RT_7)
 
@@ -115,7 +115,7 @@ After the green step, update the criterion in the per-iteration state file using
 
 ```bash
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
-    --criterion AC_1 --phase implementation --status pass --agent-id impl_agent \
+    --criterion AC_1 --phase implementation --status pass --agent-id $PLET_AGENT_ID \
     --evidence "Test test_FR_1_valid_request passes — asserts 200 status and correct body. All 12 tests pass. Full suite green (8s)."
 ```
 
@@ -146,16 +146,16 @@ Call scripts directly — do not use shell variable aliases (they fail silently 
 # Update activity
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id ID_001 \
     --phase-activity implementing --activity-detail "red: writing failing test for AC_3" \
-    --agent-id impl_agent
+    --agent-id $PLET_AGENT_ID
 
 # Update criterion status in real time (IMP_6)
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
     --criterion AC_1 --phase implementation --status pass \
-    --evidence "All 12 tests pass (3.2s)" --agent-id impl_agent
+    --evidence "All 12 tests pass (3.2s)" --agent-id $PLET_AGENT_ID
 
 # Heartbeat — update at regular intervals (IMP_23)
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
-    --agent-id impl_agent
+    --agent-id $PLET_AGENT_ID
 ```
 
 ### Activity Updates (IMP_7)

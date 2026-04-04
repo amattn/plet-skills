@@ -154,7 +154,8 @@ def _build_prompt_with_env(prompt_text, plet_env):
     for key, val in sorted(plet_env.items()):
         env_lines.append(f"- `{key}={val}`")
     env_lines.append("")
-    env_lines.append("Call scripts as: `$PLET_SCRIPTS_DIR/plet_iter_state.py ...`")
+    env_lines.append('Call scripts as: `python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" ...`')
+    env_lines.append("Your agent ID: `$PLET_AGENT_ID` — use for all `--agent-id` flags.")
     env_lines.append("CLI cheat sheet: `cat $PLET_CLI_REF` for all commands with examples.")
     env_lines.append("Escalation: cheat sheet → `--usage` → `--help`.")
     env_lines.append("")
@@ -434,9 +435,14 @@ def _build_plet_env(plet_dir, cwd, iter_id, phase, attempt):
     # cli-cheatsheet.md is in references/ (sibling to scripts/)
     ref_dir = os.path.join(os.path.dirname(sd), "references")
     cli_ref = os.path.join(ref_dir, "cli-cheatsheet.md")
+    # Generate a unique agent ID for this subagent session
+    import hashlib
+
+    agent_id = "{}_{}".format(phase, hashlib.md5(f"{iter_id}{phase}{attempt}{os.getpid()}".encode()).hexdigest()[:8])
     env = {
         "PLET_SCRIPTS_DIR": sd,
         "PLET_CLI_REF": cli_ref,
+        "PLET_AGENT_ID": agent_id,
         "PLET_DIR": os.path.abspath(plet_dir) if plet_dir else "",
         "PLET_PROJECT_DIR": os.path.abspath(cwd),
         "PLET_WORKTREE_BASE": os.path.abspath(os.path.join(os.path.dirname(plet_dir), ".plet", "worktrees")),

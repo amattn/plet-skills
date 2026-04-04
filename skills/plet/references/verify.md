@@ -34,7 +34,7 @@ The orchestrator already called `start-phase` before spawning you — attempt co
 ```bash
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
-    --agent-id verify_agent
+    --agent-id $PLET_AGENT_ID
 ```
 
 ### Read Context (VF_3, RT_6, RT_7)
@@ -175,7 +175,7 @@ After verifying each criterion, update the `verification` object using the state
 
 ```bash
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
-    --criterion AC_1 --phase verification --status pass --agent-id verify_agent \
+    --criterion AC_1 --phase verification --status pass --agent-id $PLET_AGENT_ID \
     --evidence "Independently ran test_FR_1_valid_request — passes, correctly asserts 200 status and JSON body structure. Read the handler code: validates input, queries DB, returns correct shape. Spec says 'return user profile on valid request' — implementation matches. No tautological tests found."
 ```
 
@@ -190,7 +190,7 @@ The tool enforces the two-state model automatically and derives the top-level `s
 For failures:
 ```bash
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
-    --criterion AC_1 --phase verification --status fail --agent-id verify_agent \
+    --criterion AC_1 --phase verification --status fail --agent-id $PLET_AGENT_ID \
     --evidence "Test test_FR_1_valid_request passes but only asserts status code, not response body. The spec requires returning a user profile with name and email fields. Implementation returns {ok: true} — does not match spec."
 ```
 
@@ -206,16 +206,16 @@ Use `plet_iter_state.py` for all per-iteration state modifications. Call scripts
 # Update activity and heartbeat
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id ID_001 \
     --phase-activity running_checks --activity-detail "verifying AC_1: API returns 200" \
-    --agent-id verify_agent
+    --agent-id $PLET_AGENT_ID
 
 # Update criterion verification status (VF_6)
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
     --criterion AC_1 --phase verification --status pass \
-    --evidence "All API endpoints return correct status codes" --agent-id verify_agent
+    --evidence "All API endpoints return correct status codes" --agent-id $PLET_AGENT_ID
 
 # Heartbeat
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
-    --agent-id verify_agent
+    --agent-id $PLET_AGENT_ID
 ```
 
 ### Activity Updates
