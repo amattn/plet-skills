@@ -28,21 +28,22 @@ from util_fixture import (
 from util_io import events_path, iter_state_path, load_json, progress_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_phase.py")
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from plet_phase import cmd_end  # noqa: E402 — direct import for coverage visibility
+
+# Suppress auto-logger globally for tests
+os.environ["PLET_NO_LOG"] = "1"
 
 passed = 0
 failed = 0
 
 
-def run(args, expect_exit=0, cwd=None):
-    """Run plet_phase.py with args via subprocess."""
-    env = os.environ.copy()
-    env["PLET_NO_LOG"] = "1"  # suppress auto-logger (writes after git commit)
+def run_subprocess(args, expect_exit=0):
+    """Run plet_phase.py via subprocess (for --help/--version tests only)."""
     result = subprocess.run(
         [sys.executable, TOOL] + args,
         capture_output=True,
         text=True,
-        cwd=cwd,
-        env=env,
     )
     if result.returncode != expect_exit:
         raise AssertionError(
@@ -50,6 +51,22 @@ def run(args, expect_exit=0, cwd=None):
             f"stdout: {result.stdout[:500]}\nstderr: {result.stderr[:500]}"
         )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
+
+
+def run(args, expect_exit=0, cwd=None):
+    """Call cmd_end directly (coverage-visible). Strips 'end' prefix."""
+    if args and args[0] == "end":
+        args = args[1:]
+    old_cwd = os.getcwd()
+    if cwd:
+        os.chdir(cwd)
+    try:
+        rc = cmd_end(args)
+    finally:
+        os.chdir(old_cwd)
+    if rc != expect_exit:
+        raise AssertionError(f"Exit code {rc}, expected {expect_exit}.")
+    return "", "", rc
 
 
 def check(name, condition, detail=""):
@@ -129,10 +146,10 @@ def setup_project(tmpdir, phase="implement", verdict_field=None, verdict_value=N
 
 def test_help():
     print("## help")
-    out, _, _ = run(["--help"])
+    out, _, _ = run_subprocess(["--help"])
     check("top-level help", "plet_phase" in out.lower() or "end" in out)
 
-    out, _, _ = run(["end", "--help"])
+    out, _, _ = run_subprocess(["end", "--help"])
     check("end help", "verdict" in out.lower() or "phase" in out.lower())
 
 

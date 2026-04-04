@@ -47,22 +47,6 @@ VERDICT_TO_STATUS = {
 }
 
 
-def _scripts_dir():
-    """Return the directory containing plet scripts."""
-    return os.path.dirname(os.path.abspath(__file__))
-
-
-def _run_script(name, args):
-    """Run a sibling plet script. Returns (stdout, stderr, returncode)."""
-    script = os.path.join(_scripts_dir(), name)
-    result = subprocess.run(
-        [sys.executable, script] + args,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
-
-
 def cmd_end(args):
     """End a phase: set verdict, write progress, emit trace, audit tag, commit.
 
@@ -116,13 +100,17 @@ def cmd_end(args):
         print(hint, file=sys.stderr)
         return 1
 
+    return _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields)
+
+
+def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields):
+    """Execute the end-of-phase step sequence. Returns exit code."""
     iter_id = kwargs["iter_id"]
     progress_content = kwargs["progress_content"]
     report_file = kwargs.get("report_file")
 
     status = VERDICT_TO_STATUS.get(verdict, "COMPLETE")
     steps_done = []
-    errors = []
 
     # Read iter state to get attempt number and title
     from util_io import iter_state_path, load_json
@@ -135,11 +123,26 @@ def cmd_end(args):
         attempt = attempts.get(phase, 1) or 1  # 0 → 1 (phase must have started)
         iter_title = ist.get("title", iter_id)
 
+    # Import sibling cmd functions directly (no subprocess, coverage-visible)
+    from plet_entries import cmd_add_progress
+    from plet_git_ops import cmd_audit_tag
+    from plet_iter_state import cmd_add_report, cmd_set_verdict
+    from plet_trace import cmd_append_event
+
+    def _step(name, func, func_args):
+        """Run a step, fail fast on error."""
+        rc = func(func_args)
+        if rc != 0:
+            emit_error("end", f"{name} failed (exit {rc})", SCRIPT_VERSION, output_json, pretty)
+            return False
+        steps_done.append(name)
+        return True
+
     # Step 1: set-verdict
-    _, err, rc = _run_script(
-        "plet_iter_state.py",
+    if not _step(
+        "set-verdict",
+        cmd_set_verdict,
         [
-            "set-verdict",
             plet_dir,
             "--iter-id",
             iter_id,
@@ -150,38 +153,32 @@ def cmd_end(args):
             "--agent-id",
             "plet_phase",
         ],
-    )
-    if rc != 0:
-        errors.append(f"set-verdict failed: {err[:200]}")
-    else:
-        steps_done.append("set-verdict")
+    ):
+        return 1
 
     # Step 1.5: add-report (verify phase only, if report file provided)
     if phase == "verify" and report_file and os.path.isfile(report_file):
         with open(report_file) as f:
             report_data = json.load(f)
         report_json = json.dumps(report_data)
-        _, err, rc = _run_script(
-            "plet_iter_state.py",
+        if not _step(
+            "add-report",
+            cmd_add_report,
             [
-                "add-report",
                 plet_dir,
                 "--iter-id",
                 iter_id,
                 "--report",
                 report_json,
             ],
-        )
-        if rc != 0:
-            errors.append(f"add-report failed: {err[:200]}")
-        else:
-            steps_done.append("add-report")
+        ):
+            return 1
 
     # Step 2: add-progress
-    _, err, rc = _run_script(
-        "plet_entries.py",
+    if not _step(
+        "add-progress",
+        cmd_add_progress,
         [
-            "add-progress",
             plet_dir,
             "--iter-id",
             iter_id,
@@ -196,11 +193,8 @@ def cmd_end(args):
             "--content",
             progress_content,
         ],
-    )
-    if rc != 0:
-        errors.append(f"add-progress failed: {err[:200]}")
-    else:
-        steps_done.append("add-progress")
+    ):
+        return 1
 
     # Step 3: append-event (decision — phase_end)
     event_data = json.dumps(
@@ -209,10 +203,10 @@ def cmd_end(args):
             "rationale": progress_content,
         }
     )
-    _, err, rc = _run_script(
-        "plet_trace.py",
+    if not _step(
+        "append-event",
+        cmd_append_event,
         [
-            "append-event",
             plet_dir,
             "--iter-id",
             iter_id,
@@ -225,30 +219,24 @@ def cmd_end(args):
             "--data",
             event_data,
         ],
-    )
-    if rc != 0:
-        errors.append(f"append-event failed: {err[:200]}")
-    else:
-        steps_done.append("append-event")
+    ):
+        return 1
 
     # Step 4: audit-tag
-    _, err, rc = _run_script(
-        "plet_git_ops.py",
+    if not _step(
+        "audit-tag",
+        cmd_audit_tag,
         [
-            "audit-tag",
             plet_dir,
             "--iter-id",
             iter_id,
             "--phase",
             phase,
         ],
-    )
-    if rc != 0:
-        errors.append(f"audit-tag failed: {err[:200]}")
-    else:
-        steps_done.append("audit-tag")
+    ):
+        return 1
 
-    # Step 5: git add (all plet artifacts + any source changes) && git commit
+    # Step 5: git add + commit
     project_root = os.path.dirname(os.path.abspath(plet_dir))
     subprocess.run(["git", "add", "-A"], capture_output=True, cwd=project_root)
     commit_msg = f"plet: [{iter_id}] {phase} - {verdict}"
@@ -258,16 +246,10 @@ def cmd_end(args):
         text=True,
         cwd=project_root,
     )
-    if commit_result.returncode == 0:
-        steps_done.append("git-commit")
-    else:
-        errors.append(f"git commit failed: {commit_result.stderr[:200]}")
-
-    # Report
-    if errors:
-        msg = "Phase end partially failed: {}. Completed: {}.".format("; ".join(errors), ", ".join(steps_done))
-        emit_error("end", msg, SCRIPT_VERSION, output_json, pretty)
+    if commit_result.returncode != 0:
+        emit_error("end", f"git commit failed: {commit_result.stderr[:200]}", SCRIPT_VERSION, output_json, pretty)
         return 1
+    steps_done.append("git-commit")
 
     if output_json:
         from util_cli import emit_json

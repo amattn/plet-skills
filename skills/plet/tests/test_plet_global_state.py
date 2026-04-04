@@ -383,6 +383,55 @@ def test_init_json_output():
         check("iterationCount", data["iterationCount"] == 1)
 
 
+def test_init_dry_run():
+    print("\n## init — dry-run does not create file")
+    with tempfile.TemporaryDirectory() as d:
+        out, _, _ = run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                '{"ID_001":[]}',
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+                "--dry-run",
+            ]
+        )
+        check("prints DRY RUN", "DRY RUN" in out)
+        check("no state.json created", not os.path.isfile(os.path.join(d, "state.json")))
+
+        # Also test dry-run with JSON output
+        out, _, _ = run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test",
+                "--dependency-map",
+                '{"ID_001":[]}',
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+                "--dry-run",
+                "--output",
+                "json",
+            ]
+        )
+        data = json.loads(out)
+        check("json dryRun true", data.get("dryRun") is True)
+        check("json status ok", data["status"] == "ok")
+        check("still no state.json", not os.path.isfile(os.path.join(d, "state.json")))
+
+
 def test_init_plet_dir_missing():
     print("\n## init — plet_dir does not exist")
     _, err, _ = run(
@@ -624,6 +673,7 @@ def main():
     test_init_invalid_project_id()
     test_init_invalid_json_arg()
     test_init_json_output()
+    test_init_dry_run()
     test_init_plet_dir_missing()
     test_update_lifecycle_basic()
     test_update_lifecycle_same_value()

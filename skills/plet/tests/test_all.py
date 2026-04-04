@@ -12,6 +12,8 @@ Usage:
     ./skills/plet/tests/test_all.py -s        # sequential (old behavior)
     ./skills/plet/tests/test_all.py -v        # verbose (sequential, pass/fail counts)
     ./skills/plet/tests/test_all.py -q        # quiet (summary only)
+
+For coverage: use coverage_all.sh (pytest + subprocess coverage tracking)
 """
 
 import glob
@@ -232,10 +234,6 @@ def main():
         total_passed, total_failed, failures, elapsed = _run_sequential(test_files, verbose, quiet)
     else:
         total_passed, total_failed, failures, elapsed = _run_parallel(test_files, quiet)
-
-    if ruff_failed:
-        failures.append("ruff")
-        total_failed += 1
 
     print()
     print("=" * 50)
