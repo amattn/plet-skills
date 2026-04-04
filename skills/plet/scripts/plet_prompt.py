@@ -152,7 +152,8 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
     lines = [
         "# CLI Quick Reference",
         f"# Pre-filled for {iter_id}, phase={phase}, attempt={a}",
-        "# Run any script with --usage for all commands, --help for full details.",
+        "# IMPORTANT: Use these commands directly. Do NOT call --help first.",
+        "# If you need more commands: cat $PLET_CLI_REF > --usage > --help (escalation path).",
         "",
         "# State updates (during work):",
         f'{ist} update-activity {p} --iter-id {iter_id} --phase-activity coding --activity-detail "..." --agent-id $AGENT_ID',  # noqa: E501
@@ -183,6 +184,19 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
             f"{gph} post {p} --iter-id {iter_id} --phase {phase} --output json",
         ]
     )
+
+    if phase == "verify":
+        lines.extend(
+            [
+                "",
+                "# Verify-specific — read state and validate:",
+                f"{ist} validate {p} --iter-id {iter_id}",
+                f"{ist} add-report {p} --iter-id {iter_id} --verdict passed --summary \"...\" --criteria-results '[...]' --findings '[]' --related-entries '[]' --agent-id $AGENT_ID",  # noqa: E501
+                "",
+                "# Full CLI reference (all scripts, all commands):",
+                "cat $PLET_CLI_REF",
+            ]
+        )
 
     return "\n".join(lines)
 
