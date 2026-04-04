@@ -164,9 +164,29 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
         f'{ent} add-progress {p} --iter-id {iter_id} --iter-title "$TITLE" --phase {phase} --attempt {a} --status IN_PROGRESS --content "..."',  # noqa: E501
         f'{ent} add-learning {p} --iter-id {iter_id} --iter-title "$TITLE" --category pattern --title "..." --content "..." --phase {phase} --attempt {a}',  # noqa: E501
         f'{ent} add-emergent {p} --iter-id {iter_id} --iter-title "$TITLE" --title "..." --phase {phase} --category "design decision" --content "..." --attempt {a}',  # noqa: E501
-        "",
-        "# End of phase (replaces 6 separate calls):",
     ]
+
+    if phase == "verify":
+        trc = "plet_trace.py"
+        lines.extend(
+            [
+                "",
+                "# Verify-specific — write BEFORE calling plet_phase.py end:",
+                f"{ist} validate {p} --iter-id {iter_id}",
+                '#   add-report criteria-results JSON shape: [{"id":"AC_1","status":"pass","oneLiner":"Tests pass","redTest":"none","noTestRationale":"","relatedEntries":[]}]',  # noqa: E501
+                f'{ist} add-report {p} --iter-id {iter_id} --verdict passed --summary "All criteria pass." --criteria-results \'[{{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"","relatedEntries":[]}}]\' --findings \'[]\' --related-entries \'[]\' --agent-id $AGENT_ID',  # noqa: E501
+                "",
+                "# Trace events (event-type: decision, criterion_update, lifecycle_change, error):",
+                f'{trc} append-event {p} --iter-id {iter_id} --phase verify --attempt {a} --event-type decision --data \'{{"description":"...","rationale":"..."}}\'',  # noqa: E501
+            ]
+        )
+
+    lines.extend(
+        [
+            "",
+            "# End of phase — call AFTER all artifacts are written:",
+        ]
+    )
 
     if phase == "implement":
         lines.append(
@@ -180,23 +200,14 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
     lines.extend(
         [
             "",
-            "# Post-gate (run after plet_phase.py end, self-correct if fails):",
+            "# Post-gate — call AFTER plet_phase.py end (it commits, gate checks the commit):",
             f"{gph} post {p} --iter-id {iter_id} --phase {phase} --output json",
         ]
     )
 
     if phase == "verify":
-        trc = "plet_trace.py"
         lines.extend(
             [
-                "",
-                "# Verify-specific — validate and report:",
-                f"{ist} validate {p} --iter-id {iter_id}",
-                '#   add-report criteria-results JSON shape: [{"id":"AC_1","status":"pass","oneLiner":"Tests pass","redTest":"none","noTestRationale":"","relatedEntries":[]}]',  # noqa: E501
-                f'{ist} add-report {p} --iter-id {iter_id} --verdict passed --summary "All criteria pass." --criteria-results \'[{{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"","relatedEntries":[]}}]\' --findings \'[]\' --related-entries \'[]\' --agent-id $AGENT_ID',  # noqa: E501
-                "",
-                "# Trace events (event-type: decision, criterion_update, lifecycle_change, error):",
-                f'{trc} append-event {p} --iter-id {iter_id} --phase verify --attempt {a} --event-type decision --data \'{{"description":"...","rationale":"..."}}\'',  # noqa: E501
                 "",
                 "# Full CLI reference: cat $PLET_CLI_REF",
             ]
