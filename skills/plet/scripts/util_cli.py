@@ -220,6 +220,7 @@ def dispatch(commands, script_name, script_version, skill_version, doc, argv=Non
 
     if cmd in ("-h", "--help"):
         print(doc)
+        print("\nTip: --usage for compact syntax. cat $PLET_CLI_REF for full cheat sheet.")
         return 0
 
     if cmd == "--usage":
@@ -512,6 +513,7 @@ def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
 
     if "-h" in args or "--help" in args:
         print(help_text)
+        print("\nTip: --usage for compact syntax. cat $PLET_CLI_REF for full cheat sheet.")
         return "help"
 
     plet_dir, remaining = get_plet_dir(args)
