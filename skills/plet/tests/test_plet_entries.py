@@ -1824,6 +1824,101 @@ def test_version():
 
 
 # ---------------------------------------------------------------------------
+# Direct import tests (COV_3 — coverage-visible internal helpers)
+# ---------------------------------------------------------------------------
+
+import plet_entries as ent_mod  # noqa: E402
+
+
+def test_next_em_number_no_file():
+    print("\n## next_em_number — no emergent.md (direct import)")
+    d = tempfile.mkdtemp()
+    try:
+        result = ent_mod.next_em_number(d)
+        check("returns 1 when no file", result == 1)
+    finally:
+        import shutil
+
+        shutil.rmtree(d)
+
+
+def test_next_em_number_with_entries():
+    print("\n## next_em_number — existing entries (direct import)")
+    d = tempfile.mkdtemp()
+    try:
+        em_path = os.path.join(d, "emergent.md")
+        with open(em_path, "w") as f:
+            f.write("### EM_1: First\n### EM_3: Third\n")
+        result = ent_mod.next_em_number(d)
+        check("returns 4 (max+1)", result == 4)
+    finally:
+        import shutil
+
+        shutil.rmtree(d)
+
+
+def test_resolve_content_missing():
+    print("\n## resolve_content — no content or file (direct import)")
+    import io
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    text, ok = ent_mod.resolve_content({})
+    sys.stderr = old_stderr
+    check("returns None", text is None)
+    check("returns False", ok is False)
+
+
+def test_resolve_content_both():
+    print("\n## resolve_content — both content and file (direct import)")
+    import io
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    text, ok = ent_mod.resolve_content({"content": "hello", "content_file": "/tmp/x"})
+    sys.stderr = old_stderr
+    check("returns None (exclusive)", text is None)
+
+
+def test_validate_check_iter_id_proj():
+    print("\n## _validate_check_iter_id — rejects proj (direct import)")
+    import io
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    result = ent_mod._validate_check_iter_id("proj", "check", False, False, "hint")
+    sys.stderr = old_stderr
+    check("proj rejected", result is False)
+
+
+def test_validate_check_iter_id_bad_format():
+    print("\n## _validate_check_iter_id — bad format (direct import)")
+    import io
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    result = ent_mod._validate_check_iter_id("bad", "check", False, False, "hint")
+    sys.stderr = old_stderr
+    check("bad format rejected", result is False)
+
+
+def test_validate_check_iter_id_json_error():
+    print("\n## _validate_check_iter_id — JSON error output (direct import)")
+    import io
+
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    result = ent_mod._validate_check_iter_id("proj", "check", True, False, "hint")
+    out = sys.stdout.getvalue()
+    sys.stdout = old_stdout
+    sys.stderr = old_stderr
+    check("proj rejected json", result is False)
+    check("json output", "error" in out.lower())
+
+
+# ---------------------------------------------------------------------------
 # Run all tests
 # ---------------------------------------------------------------------------
 
@@ -1881,6 +1976,13 @@ def main():
     test_multiple_appends()
     test_fencing_structure()
     test_version()
+    test_next_em_number_no_file()
+    test_next_em_number_with_entries()
+    test_resolve_content_missing()
+    test_resolve_content_both()
+    test_validate_check_iter_id_proj()
+    test_validate_check_iter_id_bad_format()
+    test_validate_check_iter_id_json_error()
 
     print("\n" + "=" * 40)
     print(f"  {passed} passed, {failed} failed")
