@@ -100,6 +100,8 @@ Tests live at `skills/plet/tests/` (sibling to `scripts/`, not inside it).
 
 **Run all:** `./skills/plet/tests/test_all.py` — runs all test files in parallel with progress (default, ~27s). Tell the user the expected duration before running. Use `-s` for sequential (~68s), `-v` for verbose (sequential with pass/fail counts), or `-q` for quiet summary only.
 
+**Coverage:** `bash skills/plet/tests/coverage_all.sh` — runs all tests under coverage with subprocess tracking (~120s). Uses `coverage run -m pytest` + `COVERAGE_PROCESS_START` + `coverage combine`. Reports per-file coverage with missing lines. Threshold: 85% (`fail_under` in pyproject.toml). Use `--html` for an HTML report. **Always run coverage_all.sh after adding new scripts or making significant changes** — test_all.py does not measure coverage.
+
 **Test harness pattern** (consistent across all test files):
 
 ```python
