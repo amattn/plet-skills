@@ -186,15 +186,19 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
     )
 
     if phase == "verify":
+        trc = "plet_trace.py"
         lines.extend(
             [
                 "",
-                "# Verify-specific — read state and validate:",
+                "# Verify-specific — validate and report:",
                 f"{ist} validate {p} --iter-id {iter_id}",
-                f"{ist} add-report {p} --iter-id {iter_id} --verdict passed --summary \"...\" --criteria-results '[...]' --findings '[]' --related-entries '[]' --agent-id $AGENT_ID",  # noqa: E501
+                '#   add-report criteria-results JSON shape: [{"id":"AC_1","status":"pass","oneLiner":"Tests pass","redTest":"none","noTestRationale":"","relatedEntries":[]}]',  # noqa: E501
+                f'{ist} add-report {p} --iter-id {iter_id} --verdict passed --summary "All criteria pass." --criteria-results \'[{{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"","relatedEntries":[]}}]\' --findings \'[]\' --related-entries \'[]\' --agent-id $AGENT_ID',  # noqa: E501
                 "",
-                "# Full CLI reference (all scripts, all commands):",
-                "cat $PLET_CLI_REF",
+                "# Trace events (event-type: decision, criterion_update, lifecycle_change, error):",
+                f'{trc} append-event {p} --iter-id {iter_id} --phase verify --attempt {a} --event-type decision --data \'{{"description":"...","rationale":"..."}}\'',  # noqa: E501
+                "",
+                "# Full CLI reference: cat $PLET_CLI_REF",
             ]
         )
 
