@@ -508,27 +508,20 @@ def test_cmd_check_iteration_json_output():
         os.chdir(d)
 
         # Capture stdout
-        import io
 
-        old_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-        try:
-            rc = exit_code(
-                plet_git_check.cmd_check_iteration(
-                    [
-                        plet_dir,
-                        "--iter-id",
-                        "ID_001",
-                        "--phase",
-                        "implement",
-                        "--output",
-                        "json",
-                    ]
-                )
-            )
-            output = sys.stdout.getvalue()
-        finally:
-            sys.stdout = old_stdout
+        result = plet_git_check.cmd_check_iteration(
+            [
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--output",
+                "json",
+            ]
+        )
+        rc = result[0] if isinstance(result, tuple) else result
+        output = result[1] if isinstance(result, tuple) else ""
 
         check("json exits 0", rc == 0)
         data = json.loads(output)
@@ -751,23 +744,16 @@ def test_cmd_check_session_json_output():
     old_cwd = os.getcwd()
     try:
         os.chdir(d)
-        import io
 
-        old_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-        try:
-            rc = exit_code(
-                plet_git_check.cmd_check_session(
-                    [
-                        plet_dir,
-                        "--output",
-                        "json",
-                    ]
-                )
-            )
-            output = sys.stdout.getvalue()
-        finally:
-            sys.stdout = old_stdout
+        result = plet_git_check.cmd_check_session(
+            [
+                plet_dir,
+                "--output",
+                "json",
+            ]
+        )
+        rc = result[0] if isinstance(result, tuple) else result
+        output = result[1] if isinstance(result, tuple) else ""
 
         check("session json exits 0", rc == 0)
         data = json.loads(output)
@@ -809,23 +795,15 @@ def test_cmd_check_session_stashes_detected():
         subprocess.run(["git", "-C", d, "add", "stash_file.txt"], capture_output=True)
         subprocess.run(["git", "-C", d, "stash"], capture_output=True)
 
-        import io
-
-        old_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-        try:
-            rc = exit_code(
-                plet_git_check.cmd_check_session(
-                    [
-                        plet_dir,
-                        "--output",
-                        "json",
-                    ]
-                )
-            )
-            output = sys.stdout.getvalue()
-        finally:
-            sys.stdout = old_stdout
+        result = plet_git_check.cmd_check_session(
+            [
+                plet_dir,
+                "--output",
+                "json",
+            ]
+        )
+        rc = result[0] if isinstance(result, tuple) else result
+        output = result[1] if isinstance(result, tuple) else ""
 
         # Stashes produce a warning, exit code 2
         check("stashes detected exits 2", rc == 2)
@@ -856,21 +834,8 @@ def test_cmd_check_session_orphaned_worktree():
             capture_output=True,
         )
 
-        import io
-
-        old_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-        try:
-            plet_git_check.cmd_check_session(
-                [
-                    plet_dir,
-                    "--output",
-                    "json",
-                ]
-            )
-            output = sys.stdout.getvalue()
-        finally:
-            sys.stdout = old_stdout
+        result = plet_git_check.cmd_check_session([plet_dir, "--output", "json"])
+        output = result[1] if isinstance(result, tuple) else ""
 
         data = json.loads(output)
         orphan_checks = [c for c in data["checks"] if c["name"] == "orphaned-worktrees"]

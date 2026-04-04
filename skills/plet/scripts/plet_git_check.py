@@ -16,6 +16,7 @@ Commands:
 """
 
 import glob
+import json
 import os
 import sys
 
@@ -25,10 +26,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     UNIVERSAL_FLAGS_READ,
     dispatch,
-    emit_json,
-    emit_json_error,
     extract_output_flags,
+    filter_fields,
     get_plet_dir,
+    now_iso,
     parse_kwargs,
     require_kwargs,
     validate_enum,
@@ -48,6 +49,23 @@ SCRIPT_VERSION = "0.1.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
+
+
+def _to_json(data, pretty=False, fields=None):
+    """Build JSON output string with version/timestamp."""
+    data["scriptVersion"] = SCRIPT_VERSION
+    data["timestamp"] = now_iso()
+    if fields:
+        data = filter_fields(data, fields)
+    return json.dumps(data, indent=2 if pretty else None)
+
+
+def _err_json(cmd, msg, pretty=False):
+    """Build JSON error output string."""
+    return json.dumps(
+        {"status": "error", "command": cmd, "error": msg, "scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()},
+        indent=2 if pretty else None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -325,8 +343,7 @@ Examples:
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
-            emit_json_error(cmd_name, err_msg, SCRIPT_VERSION, pretty)
-            return (1, "", hint)
+            return (1, _err_json(cmd_name, err_msg, pretty), "")
         else:
             return (1, "", err_msg + "\n" + hint)
 
@@ -343,8 +360,7 @@ Examples:
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
-            emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-            return (1, "", "")
+            return (1, _err_json(cmd_name, msg, pretty), "")
         else:
             return (1, "", msg)
 
@@ -365,7 +381,7 @@ Examples:
     status, summary, exit_code = compute_result(checks)
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": status,
                 "command": cmd_name,
@@ -374,11 +390,10 @@ Examples:
                 "checks": checks,
                 "summary": summary,
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (exit_code, "", "")
+        return (exit_code, out, "")
     else:
         out = format_text_output(cmd_name, checks, status, summary)
         return (exit_code, out, "")
@@ -394,13 +409,11 @@ cmd_check_iteration.example = "plet_git_check.py check-iteration plet/ --iter-id
 
 
 def _check_session_error(cmd_name, msg, output_json, pretty, hint):
-    """Emit an error for check-session and return exit code 1."""
+    """Build error output for check-session. Returns (code, out, err)."""
     if output_json:
-        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
+        return (1, _err_json(cmd_name, msg, pretty), "")
     else:
-        print(msg, file=sys.stderr)
-    print(hint, file=sys.stderr)
-    return 1
+        return (1, "", f"{msg}\n{hint}")
 
 
 def _check_session_validate_env(plet_dir, sd_path, cmd_name, output_json, pretty, hint):
@@ -411,8 +424,7 @@ def _check_session_validate_env(plet_dir, sd_path, cmd_name, output_json, pretty
 
     global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
-        print(hint, file=sys.stderr)
-        return None, 1
+        return None, (1, "", hint)
 
     if not os.path.exists(sd_path):
         msg = f"Error: directory not found: {sd_path}"
@@ -623,9 +635,9 @@ Examples:
 
     # Validate environment (plet_dir, state_dir, git repo)
     sd_path = state_dir_path(plet_dir)
-    global_state, err = _check_session_validate_env(plet_dir, sd_path, cmd_name, output_json, pretty, hint)
-    if err is not None:
-        return (err, "", "")
+    global_state, err_result = _check_session_validate_env(plet_dir, sd_path, cmd_name, output_json, pretty, hint)
+    if err_result is not None:
+        return err_result  # already a (code, out, err) tuple
 
     # Load iteration states and derive naming
     iter_states = _load_iter_states(sd_path, plet_dir)
@@ -648,7 +660,7 @@ Examples:
     status, summary, exit_code = compute_result(checks)
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": status,
                 "command": cmd_name,
@@ -657,11 +669,10 @@ Examples:
                 "checks": checks,
                 "summary": summary,
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (exit_code, "", "")
+        return (exit_code, out, "")
     else:
         out = format_text_output(cmd_name, checks, status, summary)
         return (exit_code, out, "")
