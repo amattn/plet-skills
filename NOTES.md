@@ -1780,6 +1780,48 @@ Complete escalation path: cheat sheet → `--usage` → `--help`.
 
 HLP_1A (inline examples in reference files) deferred — HLP_1C (prompt assembler pre-fills) may make it redundant. Will validate in the next run.
 
+#### LOGA Run 7 — PLAN_HLP validation (2026-04-04)
+
+First run with 0.4.3 HLP improvements. Key results vs Run 6:
+- --help lookups: 150 → 98 (-35%). Implement agents nearly eliminated (1.2 avg). Verify agents still heavy (82 of 98).
+- plet_phase.py end: 100% adoption (26/26). Impl→verify gaps collapsed 89% (1:47 → 0:17).
+- Total wall-clock: 3:04 → 2:49 (-15 min). Code 16% more compact.
+- --usage flag: 49 uses. Cheat sheet: 16 references (verify agents only).
+
+Post-R7 improvements based on transcript analysis:
+- Verify --help dominated by 2 commands: `add-report` (JSON shape) and `append-event` (event types). Added both to prompt quick ref.
+- Strengthened CLI escalation in verify.md to Critical block.
+- Reordered prompt quick ref to match workflow (write artifacts → phase end → gate post).
+- Injected `PLET_AGENT_ID` env var so agents don't invent IDs.
+- Added phase-start commits to both implement.md and verify.md for git timeline visibility.
+
+#### Reference file bug sweep (2026-04-04)
+
+Found and fixed 8 bugs in verify.md + implement.md examples that caused CLI errors every run:
+1. Wrong flag names (`--activity` → `--phase-activity`, `--detail` → `--activity-detail`)
+2. Non-existent `--elapsed` flag on update-criterion + missing `--agent-id`
+3. Removed `--files` flag on add-progress
+4. Invalid `--event-type verdict_set` (use `decision`)
+5. Invalid `--category "requirement gap"` (use `"spec gap"`)
+6. Shell variable aliases (`$IST`, `$ENTRIES`) fail silently → direct `$PLET_SCRIPTS_DIR` calls
+7. JSON state example → CLI invocation for failure evidence
+8. Hardcoded agent IDs → `$PLET_AGENT_ID` env var
+
+These bugs were likely causing a significant portion of the --help lookups — agents encountered errors from the examples and fell back to --help to learn the real syntax.
+
+#### Auto-build verification report from state (2026-04-04)
+
+`plet_phase.py end --summary "..."` auto-builds the verification report from criteria in the state file. Agents never construct criteriaResults JSON manually. The only new inputs are `--summary` (prose headline) and optionally `--findings` (JSON array of observation strings). Everything else is derived from `update-criterion` calls already in the state file.
+
+#### Verification report fields on update-criterion (2026-04-04)
+
+Added `oneLiner`, `redTest`, `noTestRationale` fields to the verification object in the state file, written by `update-criterion`. Conditional requirements:
+- `--red-test` required when `--phase verification --status fail`
+- `--no-test-rationale` required when `--red-test none` AND `--status fail`
+- Pass path: all fields auto-default (oneLiner from first sentence of evidence)
+
+`_build_criteria_results` in plet_phase.py reads these from state instead of hardcoding. SCHEMA_VERSION bumped to 0.4.0 (additive fields).
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
