@@ -188,7 +188,7 @@ plet_SCRIPTNAME.py validate plet/state/ID_001.json
 
 ## 10. Non-Functional Requirements (NFR)
 
-See `specs/conventions.md` for requirements common to all scripts (zero external deps, no interactive input, --help, --version, atomic I/O, etc.).
+See `specs/conventions.md` for requirements common to all scripts (zero external deps, no interactive input, --help, --version, atomic I/O, etc.) and quality gates (McCabe ≤15, coverage ≥85%, ruff lint + format).
 
 Script-specific non-functional requirements (if any):
 

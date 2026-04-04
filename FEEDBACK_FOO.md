@@ -831,6 +831,16 @@ Run 5 OQ_2: "ID_002 worktree not cleaned up (still exists). Is worktree cleanup 
 
 `[resolved]` → `plet_orchestrator.py` calls `worktree-remove` after both normal completion and block paths.
 
+### FOO_73: Quality ratchets should be a standard PRD section [planning] [quality]
+
+Source: Coverage analysis session (2026-04-04)
+
+Quality metrics that can never go backwards — coverage, complexity, lint errors — should be a standard section in every PRD, not an afterthought. plet's own coverage drifted below 85% three times in one session because new code diluted the percentage. Each time required manual intervention to claw it back.
+
+Ratchets formalize the floor: once a quality level is achieved, it becomes the new minimum. The enforcement mechanism (test runner gate, CI check) makes backsliding impossible. Added to plan.md requirements template as §4.5 Quality Ratchets, conventions.md as UNV_QG_1-5, and cli-spec-template.md as §10.5.
+
+`[resolved]` → Added to plan.md template, conventions.md (UNV_QG_1-5), cli-spec-template.md, script_template.md.
+
 ---
 
 ### Noted (not yet FOO items)

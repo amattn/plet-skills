@@ -134,6 +134,9 @@ Generate a structured requirements document saved to `plet/requirements.md`. Fol
 ## 4. Non-Functional Requirements
 [Reliability, performance, compatibility, security as appropriate]
 
+## 4.5 Quality Ratchets
+[Metrics that must never go backwards. Each ratchet has a current value, a threshold, and an enforcement mechanism. Examples: test coverage (≥ threshold, enforced by CI or test runner), cyclomatic complexity (≤ threshold, enforced by linter), lint errors (zero, enforced by linter gate), test count (≥ current, tracked per release). Ratchets prevent backsliding — once a quality level is achieved, it becomes the new floor. Projects may not need all of these, but every project benefits from at least coverage + lint.]
+
 ## 5. Developer Experience (DX)
 [See DX Template below]
 

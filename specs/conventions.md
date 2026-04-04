@@ -105,6 +105,16 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_TST_7 | Test `--help` on every command — verify exit 0 and non-empty output | P0 |
 | UNV_TST_8 | `util_*.py` modules get their own test files (`test_util_*.py`) with the same harness pattern. Since util modules are imported (not CLI tools), tests call functions directly rather than via subprocess. Each new util function added per UNV_IPR_1 must have tests written first (red/green). | P0 |
 
+## Quality Gates
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| UNV_QG_1 | McCabe cyclomatic complexity ≤15 per function. Enforced by ruff C90 rule. Functions exceeding threshold must be decomposed — extract helpers, not raise the limit. | P0 |
+| UNV_QG_2 | Test coverage ≥85% across all scripts. Measured by `coverage_all.sh` (subprocess tracking). Threshold in `pyproject.toml` `fail_under = 85`. | P0 |
+| UNV_QG_3 | Ruff lint (9 rule sets: E, F, W, I, N, UP, B, SIM, C90) must pass with zero errors before tests run. `test_all.py` enforces this as a gate — tests are skipped if ruff fails. | P0 |
+| UNV_QG_4 | Ruff format must pass (`ruff format --check`). No auto-fix in the test runner — developer fixes manually. | P0 |
+| UNV_QG_5 | All quality gates run in a single command: `test_all.py` (ruff + tests, ~30s) for development, `coverage_all.sh` (ruff + tests + coverage, ~120s) for pre-publish. | P0 |
+
 ## Implementation Prerequisites
 
 | ID | Requirement | Priority |
