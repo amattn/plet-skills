@@ -29,8 +29,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
-    emit_json,
     extract_output_flags,
+    filter_fields,
+    now_iso,
     parse_kwargs,
     validate_known_flags,
 )
@@ -98,11 +99,10 @@ def _help_hint(cmd):
 
 
 def _get_project_dir(args):
-    """Extract project_dir from args. Returns (project_dir, remaining) or (None, [])."""
+    """Extract project_dir from args. Returns (project_dir, remaining, err)."""
     if not args:
-        print("Error: project_dir is required", file=sys.stderr)
-        return None, []
-    return args[0], args[1:]
+        return None, [], "Error: project_dir is required"
+    return args[0], args[1:], ""
 
 
 def _is_git_repo(project_dir):
@@ -342,9 +342,9 @@ Examples:
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    project_dir, remaining = _get_project_dir(args)
+    project_dir, remaining, dir_err = _get_project_dir(args)
     if project_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
 
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"force"} | UNIVERSAL_FLAGS_WRITE, _help_hint("setup")):
@@ -397,24 +397,24 @@ Examples:
     errors = sum(1 for a in all_actions if a["action"] == "error")
 
     if output_json:
-        emit_json(
-            {
-                "status": "error" if errors else ("warn" if warnings else "ok"),
-                "command": "setup",
-                "actions": all_actions,
-                "summary": {
-                    "created": created,
-                    "configured": configured,
-                    "skipped": skipped,
-                    "warnings": warnings,
-                    "errors": errors,
-                },
+        data = {
+            "status": "error" if errors else ("warn" if warnings else "ok"),
+            "command": "setup",
+            "actions": all_actions,
+            "summary": {
+                "created": created,
+                "configured": configured,
+                "skipped": skipped,
+                "warnings": warnings,
+                "errors": errors,
             },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
-        )
-        return (1 if errors else 0, "", "")
+            "scriptVersion": SCRIPT_VERSION,
+            "timestamp": now_iso(),
+        }
+        if fields:
+            data = filter_fields(data, fields)
+        out = json.dumps(data, indent=2 if pretty else None)
+        return (1 if errors else 0, out, "")
     else:
         lines = []
         for a in all_actions:
@@ -598,9 +598,9 @@ Examples:
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    project_dir, remaining = _get_project_dir(args)
+    project_dir, remaining, dir_err = _get_project_dir(args)
     if project_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
 
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("check")):
@@ -623,22 +623,19 @@ Examples:
 
     if output_json:
         status = "fail" if failed else ("warn" if warnings else "ok")
-        emit_json(
-            {
-                "status": status,
-                "command": "check",
-                "checks": checks,
-                "summary": {"passed": passed, "failed": failed, "warnings": warnings},
-            },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
-        )
-        if failed:
-            return (1, "", "")
-        elif warnings:
-            return (2, "", "")
-        return (0, "", "")
+        data = {
+            "status": status,
+            "command": "check",
+            "checks": checks,
+            "summary": {"passed": passed, "failed": failed, "warnings": warnings},
+            "scriptVersion": SCRIPT_VERSION,
+            "timestamp": now_iso(),
+        }
+        if fields:
+            data = filter_fields(data, fields)
+        out = json.dumps(data, indent=2 if pretty else None)
+        code = 1 if failed else (2 if warnings else 0)
+        return (code, out, "")
     else:
         lines = []
         for c in checks:
