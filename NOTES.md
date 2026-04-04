@@ -1844,7 +1844,11 @@ Migrated 46 cmd_* functions across 15 scripts to return `(code, stdout, stderr)`
 
 **Skipped:** plet_invoke.py and plet_orchestrator.py (streaming output — can't collect into tuple). Marked with TODO comments.
 
-**Test conversion:** 22 subprocess-to-script calls in test `run()` helpers converted to direct import with command dispatch. Subprocess fallback only for --help/--version. 223 git subprocess calls are unavoidable (tests need real repos).
+**Test conversion attempted, reverted:** Converted 14 test `run()` helpers from subprocess to direct import. All 14 failed — the cmd_* functions return tuples but internal helpers (`emit_json`, `json_response`, `_parse_*`, `_validate_*`) still print directly. The tuple migration was incomplete: cmd_* functions wrap their own output in tuples, but helper calls inside them leak to real stdout/stderr. The direct import tests see empty `out` strings because JSON went to real stdout, not the tuple.
+
+**COV_9 — fix incomplete migrations (in progress):** Each script's internal helpers need to return strings instead of printing. Pattern: helper returns `(result, err_str)`, cmd_* function unpacks and includes in its tuple. plet_trace.py completed (5 helpers, 3 cmd functions, 0 remaining print calls). 14 scripts remaining.
+
+**Subprocess audit:** 271 subprocess calls in test files. 223 are git operations (unavoidable — need real repos). 22 are script calls via sys.executable (eliminable after COV_9). 16 are mock claude / orchestrator infrastructure. COV_10 (package restructure) skipped — tuple returns already solved the coverage problem.
 
 ### Case study timing analysis
 
