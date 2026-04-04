@@ -67,16 +67,27 @@ def _make_project(iter_id="ID_001", criteria=None, with_phase=None, **iter_kwarg
     return d, plet_dir
 
 
+def _rc(result):
+    """Extract exit code from tuple or int result."""
+    return result[0] if isinstance(result, tuple) else result
+
+
 def _capture(fn, args):
-    """Call fn(args) while capturing stdout. Returns (rc, output_str)."""
+    """Call fn(args) while capturing stdout. Returns (rc, output_str).
+
+    Handles both legacy int returns and new tuple (code, stdout, stderr) returns.
+    """
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
     try:
-        rc = fn(args)
-        output = sys.stdout.getvalue()
+        result = fn(args)
+        printed = sys.stdout.getvalue()
     finally:
         sys.stdout = old_stdout
-    return rc, output
+    if isinstance(result, tuple) and len(result) == 3:
+        code, out, _err = result
+        return code, out or printed
+    return result, printed
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +98,7 @@ def _capture(fn, args):
 def test_cmd_init_help():
     import plet_iter_state
 
-    rc = plet_iter_state.cmd_init(["--help"])
+    rc = _rc(plet_iter_state.cmd_init(["--help"]))
     check("init help = 0", rc == 0)
 
 
@@ -98,18 +109,20 @@ def test_cmd_init_basic():
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        rc = plet_iter_state.cmd_init(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--title",
-                "Scaffolding",
-                "--dependencies",
-                "[]",
-                "--criteria",
-                '[{"id":"AC_1","description":"Tests pass"}]',
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_init(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--title",
+                    "Scaffolding",
+                    "--dependencies",
+                    "[]",
+                    "--criteria",
+                    '[{"id":"AC_1","description":"Tests pass"}]',
+                ]
+            )
         )
         check("init basic = 0", rc == 0)
         data = read_iter_state(plet_dir, "ID_001")
@@ -126,18 +139,20 @@ def test_cmd_init_exists_error():
 
     d, plet_dir = _make_project()
     try:
-        rc = plet_iter_state.cmd_init(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--title",
-                "Dup",
-                "--dependencies",
-                "[]",
-                "--criteria",
-                '[{"id":"AC_1","description":"x"}]',
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_init(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--title",
+                    "Dup",
+                    "--dependencies",
+                    "[]",
+                    "--criteria",
+                    '[{"id":"AC_1","description":"x"}]',
+                ]
+            )
         )
         check("init exists = 1", rc == 1)
     finally:
@@ -151,18 +166,20 @@ def test_cmd_init_invalid_iter_id():
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        rc = plet_iter_state.cmd_init(
-            [
-                plet_dir,
-                "--iter-id",
-                "bad_id",
-                "--title",
-                "Bad",
-                "--dependencies",
-                "[]",
-                "--criteria",
-                '[{"id":"AC_1","description":"x"}]',
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_init(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "bad_id",
+                    "--title",
+                    "Bad",
+                    "--dependencies",
+                    "[]",
+                    "--criteria",
+                    '[{"id":"AC_1","description":"x"}]',
+                ]
+            )
         )
         check("init bad id = 1", rc == 1)
     finally:
@@ -222,18 +239,20 @@ def test_cmd_init_with_deps_and_criteria():
                 '[{"id":"AC_1","description":"x"}]',
             ]
         )
-        rc = plet_iter_state.cmd_init(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_002",
-                "--title",
-                "Dependent",
-                "--dependencies",
-                '["ID_001"]',
-                "--criteria",
-                '[{"id":"AC_1","description":"a"},{"id":"AC_2","description":"b"}]',
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_init(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_002",
+                    "--title",
+                    "Dependent",
+                    "--dependencies",
+                    '["ID_001"]',
+                    "--criteria",
+                    '[{"id":"AC_1","description":"a"},{"id":"AC_2","description":"b"}]',
+                ]
+            )
         )
         check("init deps = 0", rc == 0)
         data = read_iter_state(plet_dir, "ID_002")
@@ -251,7 +270,7 @@ def test_cmd_init_with_deps_and_criteria():
 def test_cmd_start_phase_help():
     import plet_iter_state
 
-    rc = plet_iter_state.cmd_start_phase(["--help"])
+    rc = _rc(plet_iter_state.cmd_start_phase(["--help"]))
     check("start-phase help = 0", rc == 0)
 
 
@@ -260,14 +279,16 @@ def test_cmd_start_phase_implement():
 
     d, plet_dir = _make_project()
     try:
-        rc = plet_iter_state.cmd_start_phase(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "implement",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_start_phase(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                ]
+            )
         )
         check("start implement = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -283,14 +304,16 @@ def test_cmd_start_phase_verify():
 
     d, plet_dir = _make_project(implement_verdict="completed", attempts={"implement": 1, "verify": 0})
     try:
-        rc = plet_iter_state.cmd_start_phase(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "verify",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_start_phase(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "verify",
+                ]
+            )
         )
         check("start verify = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -307,14 +330,16 @@ def test_cmd_start_phase_already_started():
     d, plet_dir = _make_project(with_phase="implement")
     try:
         # Starting again increments attempt
-        rc = plet_iter_state.cmd_start_phase(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "implement",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_start_phase(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                ]
+            )
         )
         check("start again = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -357,7 +382,7 @@ def test_cmd_start_phase_json():
 def test_cmd_update_activity_help():
     import plet_iter_state
 
-    rc = plet_iter_state.cmd_update_activity(["--help"])
+    rc = _rc(plet_iter_state.cmd_update_activity(["--help"]))
     check("update-activity help = 0", rc == 0)
 
 
@@ -366,18 +391,20 @@ def test_cmd_update_activity_basic():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_update_activity(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase-activity",
-                "writing_tests",
-                "--activity-detail",
-                "writing failing test for AC_1",
-                "--agent-id",
-                "agent_abc123",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_update_activity(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase-activity",
+                    "writing_tests",
+                    "--activity-detail",
+                    "writing failing test for AC_1",
+                    "--agent-id",
+                    "agent_abc123",
+                ]
+            )
         )
         check("update-activity = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -423,16 +450,18 @@ def test_cmd_update_activity_missing_args():
     d, plet_dir = _make_project(with_phase="implement")
     try:
         # Missing --phase-activity
-        rc = plet_iter_state.cmd_update_activity(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--activity-detail",
-                "x",
-                "--agent-id",
-                "a",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_update_activity(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--activity-detail",
+                    "x",
+                    "--agent-id",
+                    "a",
+                ]
+            )
         )
         check("update-activity missing args = 1", rc == 1)
     finally:
@@ -444,18 +473,20 @@ def test_cmd_update_activity_invalid_activity():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_update_activity(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase-activity",
-                "bogus_activity",
-                "--activity-detail",
-                "x",
-                "--agent-id",
-                "a",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_update_activity(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase-activity",
+                    "bogus_activity",
+                    "--activity-detail",
+                    "x",
+                    "--agent-id",
+                    "a",
+                ]
+            )
         )
         check("update-activity bad enum = 1", rc == 1)
     finally:
@@ -470,7 +501,7 @@ def test_cmd_update_activity_invalid_activity():
 def test_cmd_update_criterion_help():
     import plet_iter_state
 
-    rc = plet_iter_state.cmd_update_criterion(["--help"])
+    rc = _rc(plet_iter_state.cmd_update_criterion(["--help"]))
     check("update-criterion help = 0", rc == 0)
 
 
@@ -479,22 +510,24 @@ def test_cmd_update_criterion_pass():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_update_criterion(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--criterion",
-                "AC_1",
-                "--phase",
-                "implementation",
-                "--status",
-                "pass",
-                "--evidence",
-                "pytest exits 0",
-                "--agent-id",
-                "agent_abc123",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_update_criterion(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--criterion",
+                    "AC_1",
+                    "--phase",
+                    "implementation",
+                    "--status",
+                    "pass",
+                    "--evidence",
+                    "pytest exits 0",
+                    "--agent-id",
+                    "agent_abc123",
+                ]
+            )
         )
         check("update-criterion pass = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -511,24 +544,26 @@ def test_cmd_update_criterion_fail():
 
     d, plet_dir = _make_project(with_phase="verify")
     try:
-        rc = plet_iter_state.cmd_update_criterion(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--criterion",
-                "AC_1",
-                "--phase",
-                "verification",
-                "--status",
-                "fail",
-                "--evidence",
-                "assertion error on line 42",
-                "--agent-id",
-                "agent_v1",
-                "--red-test",
-                "test_line_42_fix",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_update_criterion(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--criterion",
+                    "AC_1",
+                    "--phase",
+                    "verification",
+                    "--status",
+                    "fail",
+                    "--evidence",
+                    "assertion error on line 42",
+                    "--agent-id",
+                    "agent_v1",
+                    "--red-test",
+                    "test_line_42_fix",
+                ]
+            )
         )
         check("update-criterion fail = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -545,22 +580,24 @@ def test_cmd_update_criterion_missing_criterion():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_update_criterion(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--criterion",
-                "AC_999",
-                "--phase",
-                "implementation",
-                "--status",
-                "pass",
-                "--evidence",
-                "n/a",
-                "--agent-id",
-                "agent_x",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_update_criterion(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--criterion",
+                    "AC_999",
+                    "--phase",
+                    "implementation",
+                    "--status",
+                    "pass",
+                    "--evidence",
+                    "n/a",
+                    "--agent-id",
+                    "agent_x",
+                ]
+            )
         )
         check("update-criterion missing = 1", rc == 1)
     finally:
@@ -606,22 +643,24 @@ def test_cmd_update_criterion_invalid_phase():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_update_criterion(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--criterion",
-                "AC_1",
-                "--phase",
-                "bogus",
-                "--status",
-                "pass",
-                "--evidence",
-                "x",
-                "--agent-id",
-                "agent_x",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_update_criterion(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--criterion",
+                    "AC_1",
+                    "--phase",
+                    "bogus",
+                    "--status",
+                    "pass",
+                    "--evidence",
+                    "x",
+                    "--agent-id",
+                    "agent_x",
+                ]
+            )
         )
         check("update-criterion bad phase = 1", rc == 1)
     finally:
@@ -636,7 +675,7 @@ def test_cmd_update_criterion_invalid_phase():
 def test_cmd_set_verdict_help():
     import plet_iter_state
 
-    rc = plet_iter_state.cmd_set_verdict(["--help"])
+    rc = _rc(plet_iter_state.cmd_set_verdict(["--help"]))
     check("set-verdict help = 0", rc == 0)
 
 
@@ -645,18 +684,20 @@ def test_cmd_set_verdict_implement():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_set_verdict(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "implement",
-                "--verdict",
-                "completed",
-                "--agent-id",
-                "agent_abc123",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_set_verdict(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                    "--verdict",
+                    "completed",
+                    "--agent-id",
+                    "agent_abc123",
+                ]
+            )
         )
         check("set-verdict implement = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -675,18 +716,20 @@ def test_cmd_set_verdict_verify():
         attempts={"implement": 1, "verify": 0},
     )
     try:
-        rc = plet_iter_state.cmd_set_verdict(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "verify",
-                "--verdict",
-                "passed",
-                "--agent-id",
-                "agent_v1",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_set_verdict(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "verify",
+                    "--verdict",
+                    "passed",
+                    "--agent-id",
+                    "agent_v1",
+                ]
+            )
         )
         check("set-verdict verify = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -729,18 +772,20 @@ def test_cmd_set_verdict_invalid_verdict():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_set_verdict(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "implement",
-                "--verdict",
-                "passed",  # passed is verify-only
-                "--agent-id",
-                "agent_x",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_set_verdict(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                    "--verdict",
+                    "passed",  # passed is verify-only
+                    "--agent-id",
+                    "agent_x",
+                ]
+            )
         )
         check("set-verdict bad verdict = 1", rc == 1)
     finally:
@@ -755,7 +800,7 @@ def test_cmd_set_verdict_invalid_verdict():
 def test_cmd_heartbeat_help():
     import plet_iter_state
 
-    rc = plet_iter_state.cmd_heartbeat(["--help"])
+    rc = _rc(plet_iter_state.cmd_heartbeat(["--help"]))
     check("heartbeat help = 0", rc == 0)
 
 
@@ -764,14 +809,16 @@ def test_cmd_heartbeat_basic():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_heartbeat(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--agent-id",
-                "agent_abc123",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_heartbeat(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--agent-id",
+                    "agent_abc123",
+                ]
+            )
         )
         check("heartbeat = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -811,12 +858,14 @@ def test_cmd_heartbeat_missing_agent_id():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = plet_iter_state.cmd_heartbeat(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_heartbeat(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                ]
+            )
         )
         check("heartbeat missing agent = 1", rc == 1)
     finally:
@@ -831,7 +880,7 @@ def test_cmd_heartbeat_missing_agent_id():
 def test_cmd_add_report_help():
     import plet_iter_state
 
-    rc = plet_iter_state.cmd_add_report(["--help"])
+    rc = _rc(plet_iter_state.cmd_add_report(["--help"]))
     check("add-report help = 0", rc == 0)
 
 
@@ -854,24 +903,26 @@ def test_cmd_add_report_basic():
                 }
             ]
         )
-        rc = plet_iter_state.cmd_add_report(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--verdict",
-                "passed",
-                "--summary",
-                "All criteria pass.",
-                "--criteria-results",
-                criteria_results,
-                "--findings",
-                "[]",
-                "--related-entries",
-                "[]",
-                "--agent-id",
-                "agent_v1",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_add_report(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--verdict",
+                    "passed",
+                    "--summary",
+                    "All criteria pass.",
+                    "--criteria-results",
+                    criteria_results,
+                    "--findings",
+                    "[]",
+                    "--related-entries",
+                    "[]",
+                    "--agent-id",
+                    "agent_v1",
+                ]
+            )
         )
         check("add-report = 0", rc == 0)
         data = read_iter_state(plet_dir)
@@ -940,24 +991,26 @@ def test_cmd_add_report_invalid_verdict():
         with_phase="verify", implement_verdict="completed", attempts={"implement": 1, "verify": 0}
     )
     try:
-        rc = plet_iter_state.cmd_add_report(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--verdict",
-                "completed",  # not valid for reports
-                "--summary",
-                "x",
-                "--criteria-results",
-                "[]",
-                "--findings",
-                "[]",
-                "--related-entries",
-                "[]",
-                "--agent-id",
-                "agent_v1",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_add_report(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--verdict",
+                    "completed",  # not valid for reports
+                    "--summary",
+                    "x",
+                    "--criteria-results",
+                    "[]",
+                    "--findings",
+                    "[]",
+                    "--related-entries",
+                    "[]",
+                    "--agent-id",
+                    "agent_v1",
+                ]
+            )
         )
         check("add-report bad verdict = 1", rc == 1)
     finally:
@@ -972,20 +1025,22 @@ def test_cmd_add_report_missing_findings():
     )
     try:
         # Missing --findings and --related-entries
-        rc = plet_iter_state.cmd_add_report(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--verdict",
-                "passed",
-                "--summary",
-                "x",
-                "--criteria-results",
-                "[]",
-                "--agent-id",
-                "agent_v1",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_add_report(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--verdict",
+                    "passed",
+                    "--summary",
+                    "x",
+                    "--criteria-results",
+                    "[]",
+                    "--agent-id",
+                    "agent_v1",
+                ]
+            )
         )
         check("add-report missing findings = 1", rc == 1)
     finally:
@@ -1000,7 +1055,7 @@ def test_cmd_add_report_missing_findings():
 def test_cmd_validate_help():
     import plet_iter_state
 
-    rc = plet_iter_state.cmd_validate(["--help"])
+    rc = _rc(plet_iter_state.cmd_validate(["--help"]))
     check("validate help = 0", rc == 0)
 
 
@@ -1009,12 +1064,14 @@ def test_cmd_validate_valid():
 
     d, plet_dir = _make_project()
     try:
-        rc = plet_iter_state.cmd_validate(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_validate(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                ]
+            )
         )
         check("validate valid = 0", rc == 0)
     finally:
@@ -1034,12 +1091,14 @@ def test_cmd_validate_invalid():
         with open(path, "w") as f:
             json.dump({"schemaVersion": "0.2.0", "iterationId": "ID_001"}, f)
             f.write("\n")
-        rc = plet_iter_state.cmd_validate(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_validate(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                ]
+            )
         )
         check("validate invalid = 1", rc == 1)
     finally:
@@ -1107,12 +1166,14 @@ def test_cmd_validate_missing_file():
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        rc = plet_iter_state.cmd_validate(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_999",
-            ]
+        rc = _rc(
+            plet_iter_state.cmd_validate(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_999",
+                ]
+            )
         )
         check("validate missing = 1", rc == 1)
     finally:

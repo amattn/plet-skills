@@ -1859,63 +1859,43 @@ def test_next_em_number_with_entries():
 
 def test_resolve_content_missing():
     print("\n## resolve_content — no content or file (direct import)")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
-    text, ok = ent_mod.resolve_content({})
-    sys.stderr = old_stderr
+    result = ent_mod.resolve_content({})
+    text = result[0]
+    ok = result[1]
     check("returns None", text is None)
     check("returns False", ok is False)
 
 
 def test_resolve_content_both():
     print("\n## resolve_content — both content and file (direct import)")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
-    text, ok = ent_mod.resolve_content({"content": "hello", "content_file": "/tmp/x"})
-    sys.stderr = old_stderr
+    result = ent_mod.resolve_content({"content": "hello", "content_file": "/tmp/x"})
+    text = result[0]
     check("returns None (exclusive)", text is None)
 
 
 def test_validate_check_iter_id_proj():
     print("\n## _validate_check_iter_id — rejects proj (direct import)")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = ent_mod._validate_check_iter_id("proj", "check", False, False, "hint")
-    sys.stderr = old_stderr
-    check("proj rejected", result is False)
+    valid = result[0] if isinstance(result, tuple) else result
+    check("proj rejected", valid is False)
 
 
 def test_validate_check_iter_id_bad_format():
     print("\n## _validate_check_iter_id — bad format (direct import)")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = ent_mod._validate_check_iter_id("bad", "check", False, False, "hint")
-    sys.stderr = old_stderr
-    check("bad format rejected", result is False)
+    valid = result[0] if isinstance(result, tuple) else result
+    check("bad format rejected", valid is False)
 
 
 def test_validate_check_iter_id_json_error():
     print("\n## _validate_check_iter_id — JSON error output (direct import)")
-    import io
-
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = ent_mod._validate_check_iter_id("proj", "check", True, False, "hint")
-    out = sys.stdout.getvalue()
-    sys.stdout = old_stdout
-    sys.stderr = old_stderr
-    check("proj rejected json", result is False)
-    check("json output", "error" in out.lower())
+    if isinstance(result, tuple):
+        valid, out, err = result
+    else:
+        valid, out = result, ""
+    check("proj rejected json", valid is False)
+    check("json output", "error" in (out + str(err)).lower())
 
 
 # ---------------------------------------------------------------------------

@@ -1231,6 +1231,40 @@ def test_validate_criteria_results_direct():
 
 
 # ---------------------------------------------------------------------------
+# COV_6 — tuple return tests (validate stdout/stderr content)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_tuple_return_valid():
+    print("\n## cmd_validate — tuple return, valid file (direct import)")
+    d = make_plet_dir()
+    init_iter(d)
+    code, out, err = ist_mod.cmd_validate([d, "--iter-id", "ID_001"])
+    check("code 0", code == 0)
+    check("stdout has OK", "OK" in out)
+    check("stdout has path", "ID_001" in out)
+    check("stderr empty", err == "")
+
+
+def test_validate_tuple_return_invalid():
+    print("\n## cmd_validate — tuple return, invalid file (direct import)")
+    d = make_plet_dir()
+    write_iter_state(d, {"not": "valid"})
+    code, out, err = ist_mod.cmd_validate([d, "--iter-id", "ID_001"])
+    check("code 1", code == 1)
+    check("stdout has INVALID", "INVALID" in out)
+    check("stderr has errors", len(err) > 0)
+
+
+def test_validate_tuple_return_missing():
+    print("\n## cmd_validate — tuple return, missing file (direct import)")
+    d = make_plet_dir()
+    code, out, err = ist_mod.cmd_validate([d, "--iter-id", "ID_099"])
+    check("code 1", code == 1)
+    check("stderr has error", len(err) > 0)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1280,6 +1314,11 @@ def main():
     test_build_phase_obj_direct()
     test_find_criterion_missing()
     test_validate_criteria_results_direct()
+
+    # COV_6 — tuple return tests (direct import, validate stdout/stderr)
+    test_validate_tuple_return_valid()
+    test_validate_tuple_return_invalid()
+    test_validate_tuple_return_missing()
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

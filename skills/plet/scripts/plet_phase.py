@@ -176,8 +176,9 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     from plet_trace import cmd_append_event
 
     def _step(name, func, func_args):
-        """Run a step, fail fast on error."""
-        rc = func(func_args)
+        """Run a step, fail fast on error. Handles both int and tuple returns."""
+        result = func(func_args)
+        rc = result[0] if isinstance(result, tuple) else result
         if rc != 0:
             emit_error("end", f"{name} failed (exit {rc})", SCRIPT_VERSION, output_json, pretty)
             return False

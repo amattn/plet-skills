@@ -37,7 +37,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
-    emit_json,
     extract_output_flags,
     get_plet_dir,
     now_iso,
@@ -156,66 +155,61 @@ Accumulates all errors before reporting.
 Exit 0 if valid, exit 1 if invalid or error.
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "Error: plet_dir is required")
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("validate")):
-        return 1
+    hint = _help_hint("validate")
+    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, hint):
+        return (1, "", hint)
     if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return 1
-
+        return (1, "", "")
     output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs["iter_id"]
-    data, path = _load_state(plet_dir, iter_id, _help_hint("validate"))
+    data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
+        out = ""
         if output_json:
-            emit_json(
+            out = json.dumps(
                 {
                     "status": "error",
                     "command": "validate",
                     "path": path,
                     "errors": ["file not found or invalid JSON"],
                     "errorCount": 1,
-                },
-                SCRIPT_VERSION,
-                pretty,
-                fields,
+                    "scriptVersion": SCRIPT_VERSION,
+                    "timestamp": now_iso(),
+                }
             )
-        return 1
+        return (1, out, f"Error: could not load {path}")
 
     errors = validate_iter_state(data)
     valid = len(errors) == 0
 
     if output_json:
-        emit_json(
+        out = json.dumps(
             {
                 "status": "ok" if valid else "error",
                 "command": "validate",
                 "path": path,
                 "errors": errors,
                 "errorCount": len(errors),
-            },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
+                "scriptVersion": SCRIPT_VERSION,
+                "timestamp": now_iso(),
+            }
         )
-        return 0 if valid else 1
+        return (0 if valid else 1, out, "")
 
     if valid:
-        print(f"OK — {path} is valid")
-        return 0
+        return (0, f"OK — {path} is valid", "")
     else:
-        print(f"INVALID — {len(errors)} error(s) in {path}:")
-        for err in errors:
-            print(f"  {err}", file=sys.stderr)
-        return 1
+        err_lines = [f"  {e}" for e in errors]
+        return (1, f"INVALID — {len(errors)} error(s) in {path}:", "\n".join(err_lines))
 
 
 cmd_validate.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
@@ -264,9 +258,9 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
@@ -277,27 +271,19 @@ Examples:
 
     err = _validate_init_inputs(plet_dir, iter_id, kwargs, no_verify_deps)
     if err:
-        print(err, file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
+        return (1, "", f"{err}\n{_help_hint('init')}")
 
     dependencies, criteria_input, path, err = _parse_init_data(plet_dir, iter_id, kwargs)
     if err:
-        print(err, file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
+        return (1, "", f"{err}\n{_help_hint('init')}")
 
     # Verify dependencies exist (unless --no-verify-deps)
     if not no_verify_deps and dependencies:
         for dep_id in dependencies:
             dep_path = iter_state_path(plet_dir, dep_id)
             if not os.path.exists(dep_path):
-                print(
-                    f"Error: dependency '{dep_id}' not found — expected {dep_path}. Use --no-verify-deps to skip.",
-                    file=sys.stderr,
-                )
-                print(_help_hint("init"), file=sys.stderr)
-                return 1
+                dep_err = f"Error: dependency '{dep_id}' not found — expected {dep_path}. Use --no-verify-deps to skip."
+                return (1, "", f"{dep_err}\n{_help_hint('init')}")
 
     # Build criteria with two-state model
     criteria = []
@@ -337,31 +323,26 @@ Examples:
     # Validate before writing
     errors = validate_iter_state(data)
     if errors:
-        print("Error: generated state file is invalid:", file=sys.stderr)
-        for e in errors:
-            print(f"  {e}", file=sys.stderr)
-        return 1
+        err_lines = "\n".join(f"  {e}" for e in errors)
+        return (1, "", f"Error: generated state file is invalid:\n{err_lines}")
 
     criteria_count = len(criteria)
 
     if dry_run:
         if output_json:
-            emit_json(
-                {
-                    "status": "ok",
-                    "command": "init",
-                    "path": path,
-                    "iterationId": iter_id,
-                    "criteriaCount": criteria_count,
-                    "dryRun": True,
-                },
-                SCRIPT_VERSION,
-                pretty,
-                fields_filter,
-            )
+            payload = {
+                "status": "ok",
+                "command": "init",
+                "path": path,
+                "iterationId": iter_id,
+                "criteriaCount": criteria_count,
+                "dryRun": True,
+                "scriptVersion": SCRIPT_VERSION,
+                "timestamp": now_iso(),
+            }
+            return (0, json.dumps(payload), "")
         else:
-            print(f"DRY RUN — would create {path} ({iter_id}, {criteria_count} criteria)")
-        return 0
+            return (0, f"DRY RUN — would create {path} ({iter_id}, {criteria_count} criteria)", "")
 
     # Create state/ dir if needed
     sd = os.path.join(plet_dir, "state")
@@ -370,15 +351,18 @@ Examples:
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        emit_json(
-            {"status": "ok", "command": "init", "path": path, "iterationId": iter_id, "criteriaCount": criteria_count},
-            SCRIPT_VERSION,
-            pretty,
-            fields_filter,
-        )
+        payload = {
+            "status": "ok",
+            "command": "init",
+            "path": path,
+            "iterationId": iter_id,
+            "criteriaCount": criteria_count,
+            "scriptVersion": SCRIPT_VERSION,
+            "timestamp": now_iso(),
+        }
+        return (0, json.dumps(payload), "")
     else:
-        print(f"OK — initialized {path} ({iter_id}, {criteria_count} criteria)")
-    return 0
+        return (0, f"OK — initialized {path} ({iter_id}, {criteria_count} criteria)", "")
 
 
 cmd_init.usage = (
@@ -409,32 +393,31 @@ Examples:
   plet_iter_state.py start-phase plet --iter-id ID_001 --phase verify
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-phase")):
-        return 1
+    hint = _help_hint("start-phase")
+    if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_WRITE, hint):
+        return (1, "", hint)
     if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
 
     if not validate_enum(phase, VALID_PHASES, "phase"):
-        print(_help_hint("start-phase"), file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
-    data, path = _load_state(plet_dir, iter_id, _help_hint("start-phase"))
+    data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return 1
+        return (1, "", hint)
 
     # Increment attempt counter
     if "attempts" not in data:
@@ -463,7 +446,7 @@ Examples:
     ts_key = f"{phase}_{attempt}_start"
     data["phaseTimestamps"][ts_key] = ts
 
-    result = {
+    res = {
         "status": "ok",
         "command": "start-phase",
         "iterationId": iter_id,
@@ -472,20 +455,22 @@ Examples:
     }
 
     if dry_run:
-        result["dryRun"] = True
+        res["dryRun"] = True
         if output_json:
-            emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+            res["scriptVersion"] = SCRIPT_VERSION
+            res["timestamp"] = now_iso()
+            return (0, json.dumps(res), "")
         else:
-            print(f"DRY RUN — {iter_id} start-phase {phase} (attempt {attempt})")
-        return 0
+            return (0, f"DRY RUN — {iter_id} start-phase {phase} (attempt {attempt})", "")
 
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+        res["scriptVersion"] = SCRIPT_VERSION
+        res["timestamp"] = now_iso()
+        return (0, json.dumps(res), "")
     else:
-        print(f"OK — {iter_id} start-phase {phase} (attempt {attempt})")
-    return 0
+        return (0, f"OK — {iter_id} start-phase {phase} (attempt {attempt})", "")
 
 
 cmd_start_phase.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
@@ -514,13 +499,13 @@ Examples:
     --agent-id agent_abc123
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
+    hint = _help_hint("update-activity")
     if not validate_known_flags(
         kwargs,
         {
@@ -530,15 +515,15 @@ Examples:
             "agent_id",
         }
         | UNIVERSAL_FLAGS_WRITE,
-        _help_hint("update-activity"),
+        hint,
     ):
-        return 1
+        return (1, "", hint)
     if not require_kwargs(kwargs, ["iter_id", "phase_activity", "activity_detail", "agent_id"], help_text):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs["iter_id"]
     phase_activity = kwargs["phase_activity"]
@@ -546,12 +531,11 @@ Examples:
     agent_id = kwargs["agent_id"]
 
     if not validate_enum(phase_activity, PHASE_ACTIVITIES, "phase-activity"):
-        print(_help_hint("update-activity"), file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
-    data, path = _load_state(plet_dir, iter_id, _help_hint("update-activity"))
+    data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return 1
+        return (1, "", hint)
 
     ts = now_iso()
     data["phaseActivity"] = phase_activity
@@ -560,7 +544,7 @@ Examples:
     data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
-    result = {
+    res = {
         "status": "ok",
         "command": "update-activity",
         "iterationId": iter_id,
@@ -569,20 +553,22 @@ Examples:
     }
 
     if dry_run:
-        result["dryRun"] = True
+        res["dryRun"] = True
         if output_json:
-            emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+            res["scriptVersion"] = SCRIPT_VERSION
+            res["timestamp"] = now_iso()
+            return (0, json.dumps(res), "")
         else:
-            print(f"DRY RUN — {iter_id} activity: {phase_activity}")
-        return 0
+            return (0, f"DRY RUN — {iter_id} activity: {phase_activity}", "")
 
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+        res["scriptVersion"] = SCRIPT_VERSION
+        res["timestamp"] = now_iso()
+        return (0, json.dumps(res), "")
     else:
-        print(f"OK — {iter_id} activity: {phase_activity}")
-    return 0
+        return (0, f"OK — {iter_id} activity: {phase_activity}", "")
 
 
 cmd_update_activity.usage = (
@@ -685,9 +671,9 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
@@ -695,20 +681,16 @@ Examples:
     status = kwargs["status"]
 
     if not validate_enum(phase, ["implementation", "verification"], "phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
     if not validate_enum(status, ["not_started", "fail", "pass", "error", "skipped"], "status"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     elapsed = kwargs.get("elapsed")
     if elapsed is not None:
         try:
             elapsed = int(elapsed)
         except (ValueError, TypeError):
-            print(f"Error: --elapsed must be an integer, got '{elapsed}'", file=sys.stderr)
-            print(hint, file=sys.stderr)
-            return 1
+            return (1, "", f"Error: --elapsed must be an integer, got '{elapsed}'\n{hint}")
 
     # Verify report fields
     one_liner = kwargs.get("one_liner")
@@ -716,17 +698,15 @@ Examples:
     no_test_rationale = kwargs.get("no_test_rationale")
     err = _validate_report_fields(phase, status, red_test, no_test_rationale)
     if err:
-        print(err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", f"{err}\n{hint}")
 
     data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return 1
+        return (1, "", hint)
 
     target = _find_criterion(data.get("criteria", []), kwargs["criterion"], iter_id, hint)
     if target is None:
-        return 1
+        return (1, "", hint)
 
     ts = now_iso()
     target[phase] = _build_phase_obj(
@@ -754,17 +734,19 @@ Examples:
     if dry_run:
         res["dryRun"] = True
         if output_json:
-            emit_json(res, SCRIPT_VERSION, pretty, fields_filter)
+            res["scriptVersion"] = SCRIPT_VERSION
+            res["timestamp"] = now_iso()
+            return (0, json.dumps(res), "")
         else:
-            print(f"DRY RUN — {iter_id} {kwargs['criterion']} {phase}: {status}")
-        return 0
+            return (0, f"DRY RUN — {iter_id} {kwargs['criterion']} {phase}: {status}", "")
 
     atomic_write_json(path, data, update_timestamp=False)
     if output_json:
-        emit_json(res, SCRIPT_VERSION, pretty, fields_filter)
+        res["scriptVersion"] = SCRIPT_VERSION
+        res["timestamp"] = now_iso()
+        return (0, json.dumps(res), "")
     else:
-        print(f"OK — {iter_id} {kwargs['criterion']} {phase}: {status}")
-    return 0
+        return (0, f"OK — {iter_id} {kwargs['criterion']} {phase}: {status}", "")
 
 
 cmd_update_criterion.usage = '<plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." --agent-id ID [--red-test "test_name" for verify+fail]'  # noqa: E501
@@ -826,9 +808,9 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
@@ -836,21 +818,16 @@ Examples:
     verdict = kwargs["verdict"]
 
     if not validate_enum(phase, VALID_PHASES, "phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     valid_verdicts = IMPLEMENT_VERDICTS if phase == "implement" else VERIFY_VERDICTS
     if verdict not in valid_verdicts:
-        print(
-            "Error: invalid verdict '{}' for {} (valid: {})".format(verdict, phase, ", ".join(valid_verdicts)),
-            file=sys.stderr,
-        )
-        print(hint, file=sys.stderr)
-        return 1
+        err_msg = "Error: invalid verdict '{}' for {} (valid: {})".format(verdict, phase, ", ".join(valid_verdicts))
+        return (1, "", f"{err_msg}\n{hint}")
 
     data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return 1
+        return (1, "", hint)
 
     ts = now_iso()
     verdict_field = "implementVerdict" if phase == "implement" else "verifyVerdict"
@@ -868,17 +845,19 @@ Examples:
     if dry_run:
         res["dryRun"] = True
         if output_json:
-            emit_json(res, SCRIPT_VERSION, pretty, fields_filter)
+            res["scriptVersion"] = SCRIPT_VERSION
+            res["timestamp"] = now_iso()
+            return (0, json.dumps(res), "")
         else:
-            print(f"DRY RUN — {iter_id} {verdict_field}: {verdict}")
-        return 0
+            return (0, f"DRY RUN — {iter_id} {verdict_field}: {verdict}", "")
 
     atomic_write_json(path, data, update_timestamp=False)
     if output_json:
-        emit_json(res, SCRIPT_VERSION, pretty, fields_filter)
+        res["scriptVersion"] = SCRIPT_VERSION
+        res["timestamp"] = now_iso()
+        return (0, json.dumps(res), "")
     else:
-        print(f"OK — {iter_id} {verdict_field}: {verdict}")
-    return 0
+        return (0, f"OK — {iter_id} {verdict_field}: {verdict}", "")
 
 
 cmd_set_verdict.usage = "<plet_dir> --iter-id ID_xxx --phase implement --verdict completed --agent-id AGENT_ID"  # noqa: E501
@@ -902,28 +881,28 @@ Examples:
   plet_iter_state.py heartbeat plet --iter-id ID_001 --agent-id agent_abc123
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id", "agent_id"} | UNIVERSAL_FLAGS_READ, _help_hint("heartbeat")):
-        return 1
+    hint = _help_hint("heartbeat")
+    if not validate_known_flags(kwargs, {"iter_id", "agent_id"} | UNIVERSAL_FLAGS_READ, hint):
+        return (1, "", hint)
     if not require_kwargs(kwargs, ["iter_id", "agent_id"], help_text):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields_filter, _, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs["iter_id"]
     agent_id = kwargs["agent_id"]
 
-    data, path = _load_state(plet_dir, iter_id, _help_hint("heartbeat"))
+    data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return 1
+        return (1, "", hint)
 
     ts = now_iso()
     data["lastHeartbeat"] = ts
@@ -933,15 +912,17 @@ Examples:
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        emit_json(
-            {"status": "ok", "command": "heartbeat", "iterationId": iter_id, "lastHeartbeat": ts},
-            SCRIPT_VERSION,
-            pretty,
-            fields_filter,
-        )
+        payload = {
+            "status": "ok",
+            "command": "heartbeat",
+            "iterationId": iter_id,
+            "lastHeartbeat": ts,
+            "scriptVersion": SCRIPT_VERSION,
+            "timestamp": now_iso(),
+        }
+        return (0, json.dumps(payload), "")
     else:
-        print(f"OK — {iter_id} heartbeat")
-    return 0
+        return (0, f"OK — {iter_id} heartbeat", "")
 
 
 cmd_heartbeat.usage = "<plet_dir> --iter-id ID_xxx --agent-id AGENT_ID"  # noqa: E501
@@ -1052,9 +1033,9 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
@@ -1063,23 +1044,19 @@ Examples:
     agent_id = kwargs["agent_id"]
 
     if not validate_enum(verdict, ["passed", "rejected", "blocked"], "verdict"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     criteria_results, findings, related_entries, err = _parse_report_json_args(kwargs)
     if err:
-        print(err, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", f"{err}\n{hint}")
 
     err = _validate_criteria_results(criteria_results)
     if err:
-        print(err, file=sys.stderr)
-        return 1
+        return (1, "", err)
 
-    data, path = _load_state(plet_dir, iter_id, _help_hint("add-report"))
+    data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
-        return 1
+        return (1, "", hint)
 
     # Build report
     attempt = data.get("attempts", {}).get("verify", 1)
@@ -1108,7 +1085,7 @@ Examples:
     data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
-    result = {
+    res = {
         "status": "ok",
         "command": "add-report",
         "iterationId": iter_id,
@@ -1117,20 +1094,22 @@ Examples:
     }
 
     if dry_run:
-        result["dryRun"] = True
+        res["dryRun"] = True
         if output_json:
-            emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+            res["scriptVersion"] = SCRIPT_VERSION
+            res["timestamp"] = now_iso()
+            return (0, json.dumps(res), "")
         else:
-            print(f"DRY RUN — {iter_id} report added (attempt {attempt}, verdict: {verdict})")
-        return 0
+            return (0, f"DRY RUN — {iter_id} report added (attempt {attempt}, verdict: {verdict})", "")
 
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        emit_json(result, SCRIPT_VERSION, pretty, fields_filter)
+        res["scriptVersion"] = SCRIPT_VERSION
+        res["timestamp"] = now_iso()
+        return (0, json.dumps(res), "")
     else:
-        print(f"OK — {iter_id} report added (attempt {attempt}, verdict: {verdict})")
-    return 0
+        return (0, f"OK — {iter_id} report added (attempt {attempt}, verdict: {verdict})", "")
 
 
 cmd_add_report.usage = "<plet_dir> --iter-id ID_xxx --verdict passed --summary \"...\" --criteria-results '[...]' --findings '[...]' --related-entries '[...]' --agent-id AGENT_ID"  # noqa: E501

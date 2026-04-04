@@ -112,114 +112,103 @@ def next_em_number(artifact_dir):
 
 
 def validate_iter_id(value):
-    """Validate --iter-id matches ID_N+ or 'proj'. Returns True/False."""
+    """Validate --iter-id matches ID_N+ or 'proj'. Returns (True, "") or (False, error_msg)."""
     if not ITER_ID_PATTERN.match(value):
-        print(
-            f"Error: --iter-id '{value}' does not match expected pattern ID_N+ or 'proj'",
-            file=sys.stderr,
-        )
-        return False
-    return True
+        return False, f"Error: --iter-id '{value}' does not match expected pattern ID_N+ or 'proj'"
+    return True, ""
 
 
 def validate_positive_int(value, field_name):
-    """Validate that value is a positive integer (> 0). Returns (int, True) or (None, False)."""
+    """Validate that value is a positive integer (> 0). Returns (int, True, "") or (None, False, error_msg).
+
+    Note: validate_int already prints to stderr on type error; this function only adds its own
+    message for the > 0 constraint.
+    """
     parsed, ok = validate_int(value, field_name)
     if not ok:
-        return None, False
+        # validate_int already printed the error; return empty msg to avoid duplication
+        return None, False, ""
     if parsed <= 0:
-        print(
-            f"Error: {field_name} must be a positive integer, got '{value}'",
-            file=sys.stderr,
-        )
-        return None, False
-    return parsed, True
+        return None, False, f"Error: {field_name} must be a positive integer, got '{value}'"
+    return parsed, True, ""
 
 
 def validate_content(content_text, allow_fences=False):
-    """Validate content: not empty, no fence patterns (unless allowed). Returns True/False."""
+    """Validate content: not empty, no fence patterns (unless allowed). Returns (True, "") or (False, error_msg)."""
     if not content_text or not content_text.strip():
-        print("Error: content must not be empty", file=sys.stderr)
-        return False
+        return False, "Error: content must not be empty"
     if not allow_fences and FENCE_PATTERN.search(content_text):
-        print(
+        return (
+            False,
             "Error: content must not contain plet fence markers "
             '(<div id="plet-..." or <div id="END-plet-...">). '
             "Use --allow-fences if the content legitimately contains fence patterns.",
-            file=sys.stderr,
         )
-        return False
-    return True
+    return True, ""
 
 
 def resolve_content(kwargs, allow_fences=False):
-    """Resolve content from --content or --content-file. Returns (text, True) or (None, False)."""
+    """Resolve content from --content or --content-file. Returns (text, True, "") or (None, False, error_msg)."""
     has_content = "content" in kwargs and kwargs["content"] is not True
     has_file = "content_file" in kwargs
 
     if has_content and has_file:
-        print(
-            "Error: --content and --content-file are mutually exclusive",
-            file=sys.stderr,
-        )
-        return None, False
+        return None, False, "Error: --content and --content-file are mutually exclusive"
 
     if not has_content and not has_file:
-        print("Error: --content is required", file=sys.stderr)
-        return None, False
+        return None, False, "Error: --content is required"
 
     if has_file:
         path = kwargs["content_file"]
         text = load_text(path)
         if text is None:
-            return None, False
+            return None, False, f"Error: could not read content file '{path}'"
     else:
         text = kwargs["content"]
 
-    if not validate_content(text, allow_fences=allow_fences):
-        return None, False
+    ok, err = validate_content(text, allow_fences=allow_fences)
+    if not ok:
+        return None, False, err
 
-    return text, True
+    return text, True, ""
 
 
 def extract_universal_flags(kwargs):
     """Extract and validate universal flags (--output, --pretty, --fields, --dry-run).
 
-    Returns (output_json, pretty, fields, dry_run, ok) where ok is False if validation failed.
+    Returns (output_json, pretty, fields, dry_run, ok, err) where ok is False if validation failed.
     """
     output_json = kwargs.pop("output", None) == "json"
     pretty = kwargs.pop("pretty", False)
     if pretty is True and not output_json:
-        print("Error: --pretty requires --output json", file=sys.stderr)
-        return False, False, None, False, False
+        return False, False, None, False, False, "Error: --pretty requires --output json"
 
     fields_raw = kwargs.pop("fields", None)
     if fields_raw and not output_json:
-        print("Error: --fields requires --output json", file=sys.stderr)
-        return False, False, None, False, False
+        return False, False, None, False, False, "Error: --fields requires --output json"
     fields = fields_raw.split(",") if fields_raw else None
 
     dry_run = kwargs.pop("dry_run", False)
     if dry_run is True:
         dry_run = True
 
-    return output_json, pretty, fields, dry_run, True
+    return output_json, pretty, fields, dry_run, True, ""
 
 
 def emit_json(data, pretty=False, fields=None):
-    """Print JSON output to stdout."""
+    """Return JSON string for output."""
     data["scriptVersion"] = SCRIPT_VERSION
     data["timestamp"] = now_iso()
     if fields is not None:
         data = filter_fields(data, fields)
     if pretty:
-        print(json.dumps(data, indent=2))
+        return json.dumps(data, indent=2)
     else:
-        print(json.dumps(data))
+        return json.dumps(data)
 
 
 def emit_json_error(command, message, pretty=False, extra=None):
-    """Print JSON error to stdout, text to stderr."""
+    """Return (out_str, err_str) for a JSON error response."""
     data = {
         "status": "error",
         "command": command,
@@ -229,11 +218,8 @@ def emit_json_error(command, message, pretty=False, extra=None):
     }
     if extra:
         data.update(extra)
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-    print(message, file=sys.stderr)
+    out = json.dumps(data, indent=2) if pretty else json.dumps(data)
+    return out, message
 
 
 # ---------------------------------------------------------------------------
@@ -253,50 +239,45 @@ def emit_json_error(command, message, pretty=False, extra=None):
 def _parse_entry_args(args, help_text, cmd_name, known_flags, required):
     """Parse args for an add-* entry command.
 
-    Returns (artifact_dir, kwargs, output_json, pretty, fields, dry_run) or None.
+    Returns ("help", "") on --help, (None, err_str) on error,
+    or ((artifact_dir, kwargs, output_json, pretty, fields, dry_run), "") on success.
     """
     hint = help_hint(cmd_name)
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return "help"
+        return "help", ""
     if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return None
+        return None, help_text
 
     artifact_dir = args[0]
     try:
         kwargs = parse_kwargs(args[1:])
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"{e}\n{hint}"
 
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok, flag_err = extract_universal_flags(kwargs)
     if not ok:
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"{flag_err}\n{hint}"
     if not validate_known_flags(kwargs, known_flags, hint):
-        return None
+        return None, hint
     if not require_kwargs(kwargs, required, help_text):
-        return None
-    if not validate_iter_id(kwargs["iter_id"]):
-        print(hint, file=sys.stderr)
-        return None
+        return None, ""
 
-    attempt, ok = validate_positive_int(kwargs["attempt"], "--attempt")
+    id_ok, id_err = validate_iter_id(kwargs["iter_id"])
+    if not id_ok:
+        return None, f"{id_err}\n{hint}"
+
+    attempt, ok, attempt_err = validate_positive_int(kwargs["attempt"], "--attempt")
     if not ok:
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"{attempt_err}\n{hint}" if attempt_err else hint
 
     allow_fences = kwargs.pop("allow_fences", False) is True
-    content_text, ok = resolve_content(kwargs, allow_fences=allow_fences)
+    content_text, ok, content_err = resolve_content(kwargs, allow_fences=allow_fences)
     if not ok:
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"{content_err}\n{hint}"
 
     kwargs["_attempt_int"] = attempt
     kwargs["_content_text"] = content_text
-    return artifact_dir, kwargs, output_json, pretty, fields, dry_run
+    return (artifact_dir, kwargs, output_json, pretty, fields, dry_run), ""
 
 
 def _ensure_artifact_file(file_path):
@@ -308,7 +289,7 @@ def _ensure_artifact_file(file_path):
 
 
 def _emit_entry_result(cmd_name, plet_id, file_path, extra_data, dry_run, output_json, pretty, fields, text_suffix=""):
-    """Emit dry-run or final result for an add-* command. Returns 0."""
+    """Build (code, out, err) for an add-* command result."""
     if dry_run:
         msg = f"DRY RUN — would append {cmd_name.replace('add-', '')} entry {plet_id}{text_suffix} to {file_path}"
         if output_json:
@@ -320,18 +301,16 @@ def _emit_entry_result(cmd_name, plet_id, file_path, extra_data, dry_run, output
                 "dryRun": True,
                 "message": msg,
             }
-            emit_json(data, pretty, fields)
+            return (0, emit_json(data, pretty, fields), "")
         else:
-            print(msg)
-        return 0
+            return (0, msg, "")
 
     if output_json:
         data = {"status": "ok", "command": cmd_name, "pletId": plet_id, "path": file_path}
         data.update(extra_data)
-        emit_json(data, pretty, fields)
+        return (0, emit_json(data, pretty, fields), "")
     else:
-        print(f"OK — {plet_id}{text_suffix}")
-    return 0
+        return (0, f"OK — {plet_id}{text_suffix}", "")
 
 
 # ---------------------------------------------------------------------------
@@ -377,24 +356,24 @@ Examples:
     cmd_name = "add-progress"
     known = {"iter_id", "iter_title", "phase", "attempt", "status", "content", "content_file", "allow_fences"}
     required = ["iter_id", "iter_title", "phase", "attempt", "status"]
-    result = _parse_entry_args(args, help_text, cmd_name, known, required)
-    if result == "help":
-        return 0
-    if result is None:
-        return 1
-    artifact_dir, kwargs, output_json, pretty, fields, dry_run = result
+    parsed, parse_err = _parse_entry_args(args, help_text, cmd_name, known, required)
+    if parsed == "help":
+        return (0, help_text, "")
+    if parsed is None:
+        return (1, "", parse_err)
+    artifact_dir, kwargs, output_json, pretty, fields, dry_run = parsed
 
     hint = help_hint(cmd_name)
     if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
         if output_json:
-            emit_json_error(cmd_name, "invalid --phase '{}'".format(kwargs["phase"]), pretty)
-        print(hint, file=sys.stderr)
-        return 1
+            out, _ = emit_json_error(cmd_name, "invalid --phase '{}'".format(kwargs["phase"]), pretty)
+            return (1, out, hint)
+        return (1, "", hint)
     if not validate_enum(kwargs["status"], VALID_PROGRESS_STATUSES, "--status"):
         if output_json:
-            emit_json_error(cmd_name, "invalid --status '{}'".format(kwargs["status"]), pretty)
-        print(hint, file=sys.stderr)
-        return 1
+            out, _ = emit_json_error(cmd_name, "invalid --status '{}'".format(kwargs["status"]), pretty)
+            return (1, out, hint)
+        return (1, "", hint)
 
     attempt = kwargs["_attempt_int"]
     content_text = kwargs["_content_text"]
@@ -479,20 +458,18 @@ Examples:
         "allow_fences",
     }
     required = ["iter_id", "iter_title", "category", "title", "phase", "attempt"]
-    result = _parse_entry_args(args, help_text, cmd_name, known, required)
-    if result == "help":
-        return 0
-    if result is None:
-        return 1
-    artifact_dir, kwargs, output_json, pretty, fields, dry_run = result
+    parsed, parse_err = _parse_entry_args(args, help_text, cmd_name, known, required)
+    if parsed == "help":
+        return (0, help_text, "")
+    if parsed is None:
+        return (1, "", parse_err)
+    artifact_dir, kwargs, output_json, pretty, fields, dry_run = parsed
 
     hint = help_hint(cmd_name)
     if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
     if not validate_enum(kwargs["category"], VALID_LEARNING_CATEGORIES, "--category"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     attempt = kwargs["_attempt_int"]
     content_text = kwargs["_content_text"]
@@ -576,20 +553,18 @@ Examples:
         "allow_fences",
     }
     required = ["iter_id", "iter_title", "title", "phase", "category", "attempt"]
-    result = _parse_entry_args(args, help_text, cmd_name, known, required)
-    if result == "help":
-        return 0
-    if result is None:
-        return 1
-    artifact_dir, kwargs, output_json, pretty, fields, dry_run = result
+    parsed, parse_err = _parse_entry_args(args, help_text, cmd_name, known, required)
+    if parsed == "help":
+        return (0, help_text, "")
+    if parsed is None:
+        return (1, "", parse_err)
+    artifact_dir, kwargs, output_json, pretty, fields, dry_run = parsed
 
     hint = help_hint(cmd_name)
     if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
     if not validate_enum(kwargs["category"], VALID_EMERGENT_CATEGORIES, "--category"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     attempt = kwargs["_attempt_int"]
     content_text = kwargs["_content_text"]
@@ -632,60 +607,55 @@ cmd_add_emergent.example = 'plet_entries.py add-emergent plet/ --iter-id ID_001 
 
 
 def _parse_check_args(args, help_text):
-    """Parse args for the check command. Returns (artifact_dir, kwargs, output_json, pretty, fields) or None."""
+    """Parse args for the check command.
+
+    Returns ("help", "") on --help, (None, err_str) on error,
+    or ((artifact_dir, kwargs, output_json, pretty, fields), "") on success.
+    """
     cmd_name = "check"
     hint = help_hint(cmd_name)
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return "help"
+        return "help", ""
     if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return None
+        return None, help_text
 
     artifact_dir = args[0]
     try:
         kwargs = parse_kwargs(args[1:])
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"{e}\n{hint}"
 
     if "dry_run" in kwargs:
-        print("Error: --dry-run is not available on the check command (read-only)", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"Error: --dry-run is not available on the check command (read-only)\n{hint}"
 
-    output_json, pretty, fields, _, ok = extract_universal_flags(kwargs)
+    output_json, pretty, fields, _, ok, flag_err = extract_universal_flags(kwargs)
     if not ok:
-        print(hint, file=sys.stderr)
-        return None
+        return None, f"{flag_err}\n{hint}"
     if not validate_known_flags(kwargs, {"iter_id"}, hint):
-        return None
+        return None, hint
     if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return None
+        return None, ""
 
-    return artifact_dir, kwargs, output_json, pretty, fields
+    return (artifact_dir, kwargs, output_json, pretty, fields), ""
 
 
 def _validate_check_iter_id(iteration, cmd_name, output_json, pretty, hint):
-    """Validate iter-id for the check command. Returns True if valid."""
+    """Validate iter-id for the check command. Returns (True, "", "") or (False, out_str, err_str)."""
     if iteration.lower() == "proj":
         msg = "Error: --iter-id 'proj' is not accepted by check — R_7 is per-iteration only"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
+            out, err = emit_json_error(cmd_name, msg, pretty)
+            return False, out, f"{err}\n{hint}"
         else:
-            print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return False
+            return False, "", f"{msg}\n{hint}"
     if not ITER_ID_PATTERN.match(iteration):
         msg = f"Error: --iter-id '{iteration}' does not match expected pattern ID_N+"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
+            out, err = emit_json_error(cmd_name, msg, pretty)
+            return False, out, f"{err}\n{hint}"
         else:
-            print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return False
-    return True
+            return False, "", f"{msg}\n{hint}"
+    return True, "", ""
 
 
 def cmd_check(args):
@@ -712,18 +682,19 @@ Examples:
     plet_entries.py check plet/ --iter-id ID_001
     plet_entries.py check plet/ --iter-id ID_002 --output json
 """
-    parsed = _parse_check_args(args, help_text)
+    parsed, parse_err = _parse_check_args(args, help_text)
     if parsed == "help":
-        return 0
+        return (0, help_text, "")
     if parsed is None:
-        return 1
+        return (1, "", parse_err)
     artifact_dir, kwargs, output_json, pretty, fields = parsed
 
     cmd_name = "check"
     hint = help_hint(cmd_name)
     iteration = kwargs["iter_id"]
-    if not _validate_check_iter_id(iteration, cmd_name, output_json, pretty, hint):
-        return 1
+    id_ok, id_out, id_err = _validate_check_iter_id(iteration, cmd_name, output_json, pretty, hint)
+    if not id_ok:
+        return (1, id_out, id_err)
 
     results = {}
     for artifact, filename in [
@@ -752,26 +723,25 @@ Examples:
             "artifacts": results,
             "allPresent": all_present,
         }
-        emit_json(data, pretty, fields)
+        return (0 if all_present else 1, emit_json(data, pretty, fields), "")
     else:
+        out_lines = []
+        err_lines = []
         for artifact, info in results.items():
             if not info["initialized"]:
-                print(f"  NOT_INITIALIZED — {artifact}: file does not exist")
+                out_lines.append(f"  NOT_INITIALIZED — {artifact}: file does not exist")
             elif info["count"] == 0:
-                print(f"  MISSING — {artifact}: 0 entry(ies) for {iteration}")
+                out_lines.append(f"  MISSING — {artifact}: 0 entry(ies) for {iteration}")
             else:
-                print("  OK — {}: {} entry(ies) for {}".format(artifact, info["count"], iteration))
+                out_lines.append("  OK — {}: {} entry(ies) for {}".format(artifact, info["count"], iteration))
 
         if all_present:
-            print(f"OK — all artifacts have entries for {iteration}")
+            out_lines.append(f"OK — all artifacts have entries for {iteration}")
         else:
             missing = [a for a, r in results.items() if r["count"] == 0]
-            print(
-                "INCOMPLETE — missing entries in: {}".format(", ".join(missing)),
-                file=sys.stderr,
-            )
+            err_lines.append("INCOMPLETE — missing entries in: {}".format(", ".join(missing)))
 
-    return 0 if all_present else 1
+        return (0 if all_present else 1, "\n".join(out_lines), "\n".join(err_lines))
 
 
 cmd_check.usage = "<artifact_dir> --iter-id ID_xxx"  # noqa: E501

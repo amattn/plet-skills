@@ -88,41 +88,40 @@ def help_hint(command):
 def extract_universal_flags(kwargs):
     """Extract and validate universal flags (--output, --pretty, --fields, --dry-run).
 
-    Returns (output_json, pretty, fields, dry_run, ok) where ok is False if validation failed.
+    Returns (output_json, pretty, fields, dry_run, ok, err) where ok is False and
+    err is non-empty if validation failed.
     """
     output_json = kwargs.pop("output", None) == "json"
     pretty = kwargs.pop("pretty", False)
     if pretty is True and not output_json:
-        print("Error: --pretty requires --output json", file=sys.stderr)
-        return False, False, None, False, False
+        return False, False, None, False, False, "Error: --pretty requires --output json"
 
     fields_raw = kwargs.pop("fields", None)
     if fields_raw and not output_json:
-        print("Error: --fields requires --output json", file=sys.stderr)
-        return False, False, None, False, False
+        return False, False, None, False, False, "Error: --fields requires --output json"
     fields = fields_raw.split(",") if fields_raw else None
 
     dry_run = kwargs.pop("dry_run", False)
     if dry_run is True:
         dry_run = True
 
-    return output_json, pretty, fields, dry_run, True
+    return output_json, pretty, fields, dry_run, True, ""
 
 
 def emit_json(data, pretty=False, fields=None):
-    """Print JSON output to stdout."""
+    """Return JSON output string (does not print)."""
     data["scriptVersion"] = SCRIPT_VERSION
     data["timestamp"] = now_iso()
     if fields is not None:
         data = filter_fields(data, fields)
     if pretty:
-        print(json.dumps(data, indent=2))
+        return json.dumps(data, indent=2)
     else:
-        print(json.dumps(data))
+        return json.dumps(data)
 
 
 def emit_json_error(command, message, pretty=False, extra=None):
-    """Print JSON error to stdout, text to stderr."""
+    """Return (json_str, err_msg) for a JSON error (does not print)."""
     data = {
         "status": "error",
         "command": command,
@@ -133,41 +132,43 @@ def emit_json_error(command, message, pretty=False, extra=None):
     if extra:
         data.update(extra)
     if pretty:
-        print(json.dumps(data, indent=2))
+        return json.dumps(data, indent=2), message
     else:
-        print(json.dumps(data))
-    print(message, file=sys.stderr)
+        return json.dumps(data), message
 
 
 def validate_artifact_dir(artifact_dir, command, output_json, pretty):
-    """Validate artifact_dir exists and is a directory. Returns True if valid."""
+    """Validate artifact_dir exists and is a directory.
+
+    Returns (out, err) where err is non-empty on failure, both empty on success.
+    """
     if not os.path.exists(artifact_dir):
         msg = f"Error: {artifact_dir} does not exist"
         if output_json:
-            emit_json_error(command, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return False
+            out, err = emit_json_error(command, msg, pretty)
+            return out, err
+        return "", msg
     if not os.path.isdir(artifact_dir):
         msg = f"Error: {artifact_dir} is not a directory"
         if output_json:
-            emit_json_error(command, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return False
-    return True
+            out, err = emit_json_error(command, msg, pretty)
+            return out, err
+        return "", msg
+    return "", ""
 
 
 def validate_file_exists(path, command, output_json, pretty, context=""):
-    """Validate a file exists. Returns True if it does."""
+    """Validate a file exists.
+
+    Returns (out, err) where err is non-empty on failure, both empty on success.
+    """
     if not os.path.exists(path):
         msg = f"Error: {path} does not exist — needed to {context}" if context else f"Error: {path} does not exist"
         if output_json:
-            emit_json_error(command, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return False
-    return True
+            out, err = emit_json_error(command, msg, pretty)
+            return out, err
+        return "", msg
+    return "", ""
 
 
 # ---------------------------------------------------------------------------
@@ -487,40 +488,39 @@ def compare_fingerprints(current, stored, id_field):
 def _parse_fpr_args(args, help_text, cmd_name, valid_types):
     """Parse args for a fingerprint command.
 
-    Returns (artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val) or None.
+    Returns:
+        ("help", "", "")       — caller should return (0, help_text, "")
+        (None, "", err)        — caller should return (1, "", err)
+        (artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val)
     """
     hint = help_hint(cmd_name)
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return "help"
+        return "help", "", ""
     if len(args) < 1:
-        print(help_text, file=sys.stderr)
-        return None
+        return None, "", help_text
 
     artifact_dir = args[0]
     try:
         kwargs = parse_kwargs(args[1:])
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return None, "", f"{e}\n{hint}"
 
-    output_json, pretty, fields, dry_run, ok = extract_universal_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok, flag_err = extract_universal_flags(kwargs)
     if not ok:
-        print(hint, file=sys.stderr)
-        return None
+        return None, "", f"{flag_err}\n{hint}"
     if not validate_known_flags(kwargs, {"type", "bump"}, hint):
-        return None
+        # validate_known_flags prints to stderr directly; we cannot intercept it here,
+        # so we signal failure — the caller returns (1, "", "")
+        return None, "", ""
     if not require_kwargs(kwargs, ["type"], help_text):
-        return None
+        return None, "", ""
 
     type_val = kwargs["type"]
     if not validate_enum(type_val, valid_types, "--type"):
-        print(hint, file=sys.stderr)
-        return None
-    if not validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty):
-        print(hint, file=sys.stderr)
-        return None
+        return None, "", hint
+    vout, verr = validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty)
+    if verr:
+        return None, vout, f"{verr}\n{hint}"
 
     return artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val
 
@@ -559,40 +559,37 @@ Examples:
     cmd_name = "extract"
     hint = help_hint(cmd_name)
     parsed = _parse_fpr_args(args, help_text, cmd_name, VALID_EXTRACT_TYPES)
-    if parsed == "help":
-        return 0
-    if parsed is None:
-        return 1
+    if parsed[0] == "help":
+        return 0, help_text, ""
+    if parsed[0] is None:
+        _pout, perr = parsed[1], parsed[2]
+        return 1, _pout, perr
     artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val = parsed
 
     # --dry-run not valid on extract (read-only)
     if dry_run:
         msg = "Error: --dry-run is not available on the extract command (read-only)"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            return 1, eout, f"{eerr}\n{hint}"
+        return 1, "", f"{msg}\n{hint}"
 
     # --bump not valid on extract
     if "bump" in kwargs:
         msg = "Error: --bump is only valid on the embed command"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            return 1, eout, f"{eerr}\n{hint}"
+        return 1, "", f"{msg}\n{hint}"
 
     target_path = requirements_path(artifact_dir) if type_val == "requirements" else iterations_path(artifact_dir)
-    if not validate_file_exists(target_path, cmd_name, output_json, pretty):
-        print(hint, file=sys.stderr)
-        return 1
+    vout, verr = validate_file_exists(target_path, cmd_name, output_json, pretty)
+    if verr:
+        return 1, vout, f"{verr}\n{hint}"
 
     text = load_text(target_path)
     if text is None:
-        return 1
+        return 1, "", ""
 
     try:
         if type_val == "requirements":
@@ -602,21 +599,20 @@ Examples:
     except ValueError as e:
         msg = f"Error: malformed fingerprint in {target_path}: {e}"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            return 1, eout, eerr
+        return 1, "", msg
 
     if output_json:
-        emit_json(
+        out = emit_json(
             {"status": "ok", "command": cmd_name, "type": type_val, "path": target_path, "fingerprint": fingerprint},
             pretty,
             fields,
         )
     else:
-        print(json.dumps(fingerprint, indent=2))
+        out = json.dumps(fingerprint, indent=2)
 
-    return 0
+    return 0, out, ""
 
 
 cmd_extract.usage = "<plet_dir> --type requirements|iterations"  # noqa: E501
@@ -669,10 +665,11 @@ Examples:
 """
     cmd_name = "embed"
     parsed = _parse_fpr_args(args, help_text, cmd_name, VALID_EMBED_TYPES)
-    if parsed == "help":
-        return 0
-    if parsed is None:
-        return 1
+    if parsed[0] == "help":
+        return 0, help_text, ""
+    if parsed[0] is None:
+        _pout, perr = parsed[1], parsed[2]
+        return 1, _pout, perr
     artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val = parsed
 
     force_bump = kwargs.pop("bump", False) is True
@@ -688,26 +685,31 @@ def _dispatch_embed(type_val, artifact_dir, cmd_name, force_bump, dry_run, outpu
     """Route embed to the correct type-specific handler."""
     if type_val == "requirements":
         target_path = requirements_path(artifact_dir)
-        if not validate_file_exists(target_path, cmd_name, output_json, pretty):
-            return 1
+        vout, verr = validate_file_exists(target_path, cmd_name, output_json, pretty)
+        if verr:
+            return 1, vout, verr
         return _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_json, pretty, fields)
 
     if type_val == "iterations":
         target_path = iterations_path(artifact_dir)
         req_path = requirements_path(artifact_dir)
-        if not validate_file_exists(target_path, cmd_name, output_json, pretty):
-            return 1
-        if not validate_file_exists(req_path, cmd_name, output_json, pretty, "embed iterations fingerprint"):
-            return 1
+        vout, verr = validate_file_exists(target_path, cmd_name, output_json, pretty)
+        if verr:
+            return 1, vout, verr
+        vout, verr = validate_file_exists(req_path, cmd_name, output_json, pretty, "embed iterations fingerprint")
+        if verr:
+            return 1, vout, verr
         return _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, output_json, pretty, fields)
 
     # state
     target_path = state_json_path(artifact_dir)
     iter_path = iterations_path(artifact_dir)
-    if not validate_file_exists(target_path, cmd_name, output_json, pretty):
-        return 1
-    if not validate_file_exists(iter_path, cmd_name, output_json, pretty, "embed state fingerprint"):
-        return 1
+    vout, verr = validate_file_exists(target_path, cmd_name, output_json, pretty)
+    if verr:
+        return 1, vout, verr
+    vout, verr = validate_file_exists(iter_path, cmd_name, output_json, pretty, "embed state fingerprint")
+    if verr:
+        return 1, vout, verr
     return _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, output_json, pretty, fields)
 
 
@@ -741,7 +743,7 @@ def _emit_embed_result(
     pretty,
     fields,
 ):
-    """Apply bump, emit dry-run or write+emit for embed commands."""
+    """Apply bump, emit dry-run or write+emit for embed commands. Returns (code, out, err)."""
     if auto_bumped or force_bump:
         fingerprint["lastNonTrivialUpdate"] = now_iso()
 
@@ -768,10 +770,8 @@ def _emit_embed_result(
             msg += f" (timestamp would be {bump_desc})"
         result_data["dryRun"] = True
         if output_json:
-            emit_json(result_data, pretty, fields)
-        else:
-            print(msg)
-        return 0
+            return 0, emit_json(result_data, pretty, fields), ""
+        return 0, msg, ""
 
     updated_text = write_fingerprint_block(text, fingerprint)
     with open(target_path, "w") as f:
@@ -782,38 +782,35 @@ def _emit_embed_result(
         msg += f" (timestamp {bump_desc})"
 
     if output_json:
-        emit_json(result_data, pretty, fields)
-    else:
-        print(msg)
-    return 0
+        return 0, emit_json(result_data, pretty, fields), ""
+    return 0, msg, ""
 
 
 def _extract_fingerprint_safe(extract_fn, text, output_json, pretty):
-    """Extract fingerprint, handling errors. Returns (fingerprint, error_code)."""
+    """Extract fingerprint, handling errors. Returns (fingerprint, out, err)."""
     try:
-        return extract_fn(text), 0
+        return extract_fn(text), "", ""
     except ValueError as e:
         msg = f"Error: {e}"
         if output_json:
-            emit_json_error("embed", msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return None, 1
+            eout, eerr = emit_json_error("embed", msg, pretty)
+            return None, eout, eerr
+        return None, "", msg
 
 
 def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_json, pretty, fields):
-    """Embed fingerprint in requirements.md."""
+    """Embed fingerprint in requirements.md. Returns (code, out, err)."""
     text = load_text(target_path)
     if text is None:
-        return 1
+        return 1, "", ""
 
     previous = None
     with contextlib.suppress(ValueError):
         previous, _, _ = parse_fingerprint_block(text)
 
-    fingerprint, err = _extract_fingerprint_safe(extract_requirements_fingerprint, text, output_json, pretty)
+    fingerprint, fp_out, fp_err = _extract_fingerprint_safe(extract_requirements_fingerprint, text, output_json, pretty)
     if fingerprint is None:
-        return err
+        return 1, fp_out, fp_err
 
     auto_bumped = _check_auto_bump(fingerprint, previous, "requirements", check_milestones=True)
     return _emit_embed_result(
@@ -831,14 +828,14 @@ def _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_j
 
 
 def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, output_json, pretty, fields):
-    """Embed fingerprint in iterations.md."""
+    """Embed fingerprint in iterations.md. Returns (code, out, err)."""
     text = load_text(target_path)
     if text is None:
-        return 1
+        return 1, "", ""
 
     req_text = load_text(req_path)
     if req_text is None:
-        return 1
+        return 1, "", ""
 
     try:
         req_fingerprint, _, _ = parse_fingerprint_block(req_text)
@@ -848,18 +845,17 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
     if req_fingerprint is None:
         msg = f"Error: no valid fingerprint found in {req_path} — run embed --type requirements first"
         if output_json:
-            emit_json_error("embed", msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+            eout, eerr = emit_json_error("embed", msg, pretty)
+            return 1, eout, eerr
+        return 1, "", msg
 
     previous = None
     with contextlib.suppress(ValueError):
         previous, _, _ = parse_fingerprint_block(text)
 
-    fingerprint, err = _extract_fingerprint_safe(extract_iterations_fingerprint, text, output_json, pretty)
+    fingerprint, fp_out, fp_err = _extract_fingerprint_safe(extract_iterations_fingerprint, text, output_json, pretty)
     if fingerprint is None:
-        return err
+        return 1, fp_out, fp_err
 
     fingerprint["requirementsFingerprint"] = req_fingerprint
     auto_bumped = _check_auto_bump(fingerprint, previous, "iterations")
@@ -875,18 +871,16 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
         pretty,
         fields,
     )
-    return 0
 
 
 def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, output_json, pretty, fields):
-    """Embed iterations fingerprint in state.json."""
+    """Embed iterations fingerprint in state.json. Returns (code, out, err)."""
     cmd_name = "embed"
-    help_hint(cmd_name)
 
     # Read iterations fingerprint from iterations.md
     iter_text = load_text(iter_path)
     if iter_text is None:
-        return 1
+        return 1, "", ""
 
     try:
         iter_fingerprint, _, _ = parse_fingerprint_block(iter_text)
@@ -896,20 +890,19 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
     if iter_fingerprint is None:
         msg = f"Error: no valid fingerprint found in {iter_path} — run embed --type iterations first"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return 1
+            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            return 1, eout, eerr
+        return 1, "", msg
 
     # Load state.json
     state = load_json(target_path)
     if state is None:
-        return 1
+        return 1, "", ""
 
     if dry_run:
         msg = f"DRY RUN — would embed state fingerprint in {target_path}"
         if output_json:
-            emit_json(
+            out = emit_json(
                 {
                     "status": "ok",
                     "command": cmd_name,
@@ -923,9 +916,8 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
                 pretty,
                 fields,
             )
-        else:
-            print(msg)
-        return 0
+            return 0, out, ""
+        return 0, msg, ""
 
     # Write iterationsFingerprint field
     state["iterationsFingerprint"] = iter_fingerprint
@@ -934,7 +926,7 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
     msg = f"OK — embedded state fingerprint in {target_path}"
 
     if output_json:
-        emit_json(
+        out = emit_json(
             {
                 "status": "ok",
                 "command": cmd_name,
@@ -947,27 +939,28 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
             pretty,
             fields,
         )
-    else:
-        print(msg)
-    return 0
+        return 0, out, ""
+    return 0, msg, ""
 
 
 def _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty):
-    """Check requirements-level fingerprint consistency. Returns (result_dict, consistent) or (None, None) on error."""
+    """Check requirements-level fingerprint consistency.
+
+    Returns (result_dict, consistent, out, err) or (None, None, out, err) on error.
+    """
     req_text = load_text(req_path)
     iter_text = load_text(iter_path)
     if req_text is None or iter_text is None:
-        return None, None
+        return None, None, "", ""
 
     try:
         current_req_fp = extract_requirements_fingerprint(req_text)
     except ValueError as e:
         msg = f"Error: malformed fingerprint in {req_path}: {e}"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return None, None
+            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            return None, None, eout, eerr
+        return None, None, "", msg
 
     stored_req_fp = None
     try:
@@ -978,46 +971,49 @@ def _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty
         pass
 
     if stored_req_fp is None:
-        return {"consistent": False, "details": f"no fingerprint found in {iter_path}"}, False
+        return {"consistent": False, "details": f"no fingerprint found in {iter_path}"}, False, "", ""
 
     consistent, details = compare_fingerprints(current_req_fp, stored_req_fp, "requirements")
-    return details, consistent
+    return details, consistent, "", ""
 
 
 def _check_iterations_level(iter_path, state_path, iter_text_cached, cmd_name, output_json, pretty):
-    """Check iterations-level fingerprint consistency. Returns (result_dict, consistent) or (None, None) on error."""
+    """Check iterations-level fingerprint consistency.
+
+    Returns (result_dict, consistent, out, err) or (None, None, out, err) on error.
+    """
     iter_text = iter_text_cached
     if iter_text is None:
         iter_text = load_text(iter_path)
         if iter_text is None:
-            return None, None
+            return None, None, "", ""
 
     try:
         current_iter_fp = extract_iterations_fingerprint(iter_text)
     except ValueError as e:
         msg = f"Error: malformed fingerprint in {iter_path}: {e}"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return None, None
+            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            return None, None, eout, eerr
+        return None, None, "", msg
 
     state = load_json(state_path)
     if state is None:
-        return None, None
+        return None, None, "", ""
 
     stored_iter_fp = state.get("iterationsFingerprint")
     if stored_iter_fp is None:
-        return {"consistent": False, "details": f"no iterationsFingerprint field in {state_path}"}, False
+        return {"consistent": False, "details": f"no iterationsFingerprint field in {state_path}"}, False, "", ""
 
     consistent, details = compare_fingerprints(current_iter_fp, stored_iter_fp, "iterations")
-    return details, consistent
+    return details, consistent, "", ""
 
 
 def _run_level_checks(check_req, check_iter, req_path, iter_path, state_path, cmd_name, output_json, pretty):
     """Run requirements and/or iterations level checks.
 
-    Returns (levels_result, all_consistent) on success, or (None, None) on error.
+    Returns (levels_result, all_consistent, out, err) on success,
+    or (None, None, out, err) on error.
     """
     required_files = []
     if check_req:
@@ -1029,17 +1025,18 @@ def _run_level_checks(check_req, check_iter, req_path, iter_path, state_path, cm
     for f in required_files:
         if f not in seen:
             seen.add(f)
-            if not validate_file_exists(f, cmd_name, output_json, pretty):
-                return None, None
+            vout, verr = validate_file_exists(f, cmd_name, output_json, pretty)
+            if verr:
+                return None, None, vout, verr
 
     levels_result = {}
     all_consistent = True
     iter_text_cached = None
 
     if check_req:
-        result, consistent = _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty)
+        result, consistent, rout, rerr = _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty)
         if result is None:
-            return None, None
+            return None, None, rout, rerr
         levels_result["requirements"] = result
         if not consistent:
             all_consistent = False
@@ -1047,31 +1044,32 @@ def _run_level_checks(check_req, check_iter, req_path, iter_path, state_path, cm
             iter_text_cached = load_text(iter_path)
 
     if check_iter:
-        result, consistent = _check_iterations_level(
+        result, consistent, rout, rerr = _check_iterations_level(
             iter_path, state_path, iter_text_cached, cmd_name, output_json, pretty
         )
         if result is None:
-            return None, None
+            return None, None, rout, rerr
         levels_result["iterations"] = result
         if not consistent:
             all_consistent = False
 
-    return levels_result, all_consistent
+    return levels_result, all_consistent, "", ""
 
 
 def _format_check_text_output(levels_result, all_consistent):
-    """Print text output for the check command."""
+    """Build text output string for the check command."""
+    lines = []
     for level_name, details in levels_result.items():
         if details["consistent"]:
-            print("  OK — {}: {}".format(level_name, details["details"]))
+            lines.append("  OK — {}: {}".format(level_name, details["details"]))
         else:
-            print("  STALE — {}: {}".format(level_name, details["details"]))
+            lines.append("  STALE — {}: {}".format(level_name, details["details"]))
             if "added" in details and details["added"]:
-                print("    added: {}".format(", ".join(details["added"])))
+                lines.append("    added: {}".format(", ".join(details["added"])))
             if "removed" in details and details["removed"]:
-                print("    removed: {}".format(", ".join(details["removed"])))
+                lines.append("    removed: {}".format(", ".join(details["removed"])))
             if "currentTimestamp" in details:
-                print(
+                lines.append(
                     "    timestamp mismatch: stored has {}, current has {}".format(
                         details.get("storedTimestamp", "?"),
                         details.get("currentTimestamp", "?"),
@@ -1079,9 +1077,10 @@ def _format_check_text_output(levels_result, all_consistent):
                 )
 
     if all_consistent:
-        print("OK — all fingerprints consistent")
+        lines.append("OK — all fingerprints consistent")
     else:
-        print("STALE — run refine or re-embed to fix")
+        lines.append("STALE — run refine or re-embed to fix")
+    return "\n".join(lines)
 
 
 def cmd_check(args):
@@ -1127,29 +1126,26 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return 0, help_text, ""
     if result is None:
-        return 1
+        return 1, "", ""
     artifact_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     # --bump not valid on check
     if "bump" in kwargs:
         msg = "Error: --bump is only valid on the embed command"
         if output_json:
-            emit_json_error(cmd_name, msg, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            return 1, eout, f"{eerr}\n{hint}"
+        return 1, "", f"{msg}\n{hint}"
 
     level = kwargs.get("level", "all")
     if not validate_enum(level, VALID_CHECK_LEVELS, "--level"):
-        print(hint, file=sys.stderr)
-        return 1
+        return 1, "", hint
 
-    if not validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty):
-        print(hint, file=sys.stderr)
-        return 1
+    vout, verr = validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty)
+    if verr:
+        return 1, vout, f"{verr}\n{hint}"
 
     # Check required files based on level
     req_path = requirements_path(artifact_dir)
@@ -1159,16 +1155,16 @@ Examples:
     check_req = level in ("requirements", "all")
     check_iter = level in ("iterations", "all")
 
-    levels_result, all_consistent = _run_level_checks(
+    levels_result, all_consistent, lout, lerr = _run_level_checks(
         check_req, check_iter, req_path, iter_path, state_path, cmd_name, output_json, pretty
     )
     if levels_result is None:
-        return 1
+        return 1, lout, lerr
 
     # Emit results
     if output_json:
         status = "ok" if all_consistent else "stale"
-        emit_json(
+        out = emit_json(
             {
                 "status": status,
                 "command": cmd_name,
@@ -1180,9 +1176,9 @@ Examples:
             fields,
         )
     else:
-        _format_check_text_output(levels_result, all_consistent)
+        out = _format_check_text_output(levels_result, all_consistent)
 
-    return 0 if all_consistent else 1
+    return (0 if all_consistent else 1), out, ""
 
 
 cmd_check.usage = "<plet_dir>"  # noqa: E501
