@@ -18,6 +18,7 @@ Commands:
     check-retry         Evaluate whether a failed iteration should retry
 """
 
+import json
 import os
 import sys
 
@@ -27,9 +28,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     UNIVERSAL_FLAGS_READ,
     dispatch,
-    emit_json,
     extract_output_flags,
+    filter_fields,
     get_plet_dir,
+    now_iso,
     parse_command,
     parse_kwargs,
     require_kwargs,
@@ -191,8 +193,12 @@ def cmd_eligible(args):
             "stuckIterations": stuck_iterations,
             "counts": counts,
         }
-        emit_json(data, SCRIPT_VERSION, pretty, fields)
-        return (0, "", "")
+        data["scriptVersion"] = SCRIPT_VERSION
+        data["timestamp"] = now_iso()
+        if fields:
+            data = filter_fields(data, fields)
+        out = json.dumps(data, indent=2 if pretty else None)
+        return (0, out, "")
     else:
         lines = []
         if eligible:
@@ -279,8 +285,12 @@ def cmd_check_breakpoints(args):
             "position": position,
             "result": result,
         }
-        emit_json(data, SCRIPT_VERSION, pretty, fields)
-        return (0, "", "")
+        data["scriptVersion"] = SCRIPT_VERSION
+        data["timestamp"] = now_iso()
+        if fields:
+            data = filter_fields(data, fields)
+        out = json.dumps(data, indent=2 if pretty else None)
+        return (0, out, "")
     else:
         return (0, result, "")
 
@@ -395,8 +405,12 @@ def cmd_check_retry(args):
             "failureTrend": failure_trend,
             "trendDirection": trend_direction,
         }
-        emit_json(data, SCRIPT_VERSION, pretty, fields)
-        return (0, "", "")
+        data["scriptVersion"] = SCRIPT_VERSION
+        data["timestamp"] = now_iso()
+        if fields:
+            data = filter_fields(data, fields)
+        out = json.dumps(data, indent=2 if pretty else None)
+        return (0, out, "")
     else:
         return (0, decision, "")
 

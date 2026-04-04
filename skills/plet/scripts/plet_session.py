@@ -14,6 +14,7 @@ Commands:
     end-session     End the active session (set endedAt timestamp)
 """
 
+import json
 import os
 import subprocess
 import sys
@@ -24,8 +25,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     UNIVERSAL_FLAGS_WRITE,
     dispatch,
-    emit_json,
     extract_output_flags,
+    filter_fields,
     get_plet_dir,
     now_iso,
     parse_kwargs,
@@ -272,21 +273,20 @@ def _check_active_sessions(active, session_type):
 def _emit_session_result(session_number, branch, session_type, project_id, resumed, output_json, pretty, fields):
     """Emit start-session result. Returns (code, out, err) tuple."""
     if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": "start-session",
-                "sessionType": session_type,
-                "sessionNumber": session_number,
-                "branch": branch,
-                "projectId": project_id,
-                "resumed": resumed,
-            },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
-        )
-        return (0, "", "")
+        data = {
+            "status": "ok",
+            "command": "start-session",
+            "sessionType": session_type,
+            "sessionNumber": session_number,
+            "branch": branch,
+            "projectId": project_id,
+            "resumed": resumed,
+            "scriptVersion": SCRIPT_VERSION,
+            "timestamp": now_iso(),
+        }
+        if fields:
+            data = filter_fields(data, fields)
+        return (0, json.dumps(data, indent=2 if pretty else None), "")
     else:
         lines = [
             f"Session: {session_type} {session_number}",
@@ -373,8 +373,10 @@ def cmd_end_session(args):
                 "endedAt": last["endedAt"],
                 "alreadyEnded": True,
             }
-            emit_json(data, SCRIPT_VERSION, pretty, fields)
-            return (0, "", "")
+            data.update({"scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()})
+            if fields:
+                data = filter_fields(data, fields)
+            return (0, json.dumps(data, indent=2 if pretty else None), "")
         else:
             lines = [
                 "Ended: {} {} (already ended)".format(last["type"], last["session"]),
@@ -404,8 +406,10 @@ def cmd_end_session(args):
             "endedAt": end_time,
             "alreadyEnded": False,
         }
-        emit_json(data, SCRIPT_VERSION, pretty, fields)
-        return (0, "", "")
+        data.update({"scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()})
+        if fields:
+            data = filter_fields(data, fields)
+        return (0, json.dumps(data, indent=2 if pretty else None), "")
     else:
         lines = [
             "Ended: {} {} ({})".format(active_entry["type"], active_entry["session"], duration_str),
