@@ -32,10 +32,9 @@ You are a verification subagent. Your job is to independently verify one iterati
 The orchestrator already called `start-phase` before spawning you — attempt counters, phase timestamps, and verdict clearing are done. Your first state action is to announce your presence:
 
 ```bash
-IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
-$IST update-activity plet/ --iter-id {iteration_id} \
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
-    --agent-id "{your_agent_id}"
+    --agent-id verify_agent
 ```
 
 ### Read Context (VF_3, RT_6, RT_7)
@@ -175,12 +174,9 @@ If your remaining findings are all cosmetic, the iteration has converged — app
 After verifying each criterion, update the `verification` object using the state tool:
 
 ```bash
-IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
-
-$IST update-criterion plet/ --iter-id {iteration_id} --criterion AC_1 \
-    --phase verification --status pass --evidence \
-    "Independently ran test_FR_1_valid_request — passes, correctly asserts 200 status and JSON body structure. Read the handler code: validates input, queries DB, returns correct shape. Spec says 'return user profile on valid request' — implementation matches. No tautological tests found." \
-    --elapsed 30
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
+    --criterion AC_1 --phase verification --status pass --agent-id verify_agent \
+    --evidence "Independently ran test_FR_1_valid_request — passes, correctly asserts 200 status and JSON body structure. Read the handler code: validates input, queries DB, returns correct shape. Spec says 'return user profile on valid request' — implementation matches. No tautological tests found."
 ```
 
 The tool enforces the two-state model automatically and derives the top-level `status` — verification wins when present, overriding the implementation agent's self-assessment.
@@ -192,15 +188,10 @@ The tool enforces the two-state model automatically and derives the top-level `s
 - Any concerns or caveats
 
 For failures:
-```json
-{
-  "verification": {
-    "status": "fail",
-    "evidence": "Test test_FR_1_valid_request passes but only asserts status code, not response body. The spec requires returning a user profile with name and email fields. Implementation returns {\"ok\": true} — does not match spec.",
-    "timestamp": "2026-03-07T16:10:00Z",
-    "elapsedSeconds": 30
-  }
-}
+```bash
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
+    --criterion AC_1 --phase verification --status fail --agent-id verify_agent \
+    --evidence "Test test_FR_1_valid_request passes but only asserts status code, not response body. The spec requires returning a user profile with name and email fields. Implementation returns {ok: true} — does not match spec."
 ```
 
 Update criterion statuses in real time — as soon as you've verified a criterion, write it to the state file. Don't wait until the end.
@@ -209,21 +200,22 @@ Update criterion statuses in real time — as soon as you've verified a criterio
 
 ## State Updates During Work
 
-Use `plet_iter_state.py` (IST) for all per-iteration state modifications:
+Use `plet_iter_state.py` for all per-iteration state modifications. Call scripts directly — do not use shell variable aliases (they fail silently in some environments).
 
 ```bash
-IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
-
 # Update activity and heartbeat
-$IST update-activity plet/ --iter-id ID_001 --agent-id {your_agent_id} \
-    --activity running_checks --detail "verifying AC_1: API returns 200 for valid requests"
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id ID_001 \
+    --phase-activity running_checks --activity-detail "verifying AC_1: API returns 200" \
+    --agent-id verify_agent
 
 # Update criterion verification status (VF_6)
-$IST update-criterion plet/ --iter-id ID_001 --criterion AC_1 \
-    --phase verification --status pass --evidence "All API endpoints return correct status codes"
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
+    --criterion AC_1 --phase verification --status pass \
+    --evidence "All API endpoints return correct status codes" --agent-id verify_agent
 
 # Heartbeat
-$IST heartbeat plet/ --iter-id ID_001 --agent-id {your_agent_id}
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
+    --agent-id verify_agent
 ```
 
 ### Activity Updates
@@ -322,24 +314,24 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 **Use the entry tool for all runtime artifact entries.** Do not compose entries by hand.
 
 ```bash
-ENTRIES="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py"
-
 # Progress entry
-$ENTRIES add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \
+python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-progress plet/ \
+    --iter-id ID_001 --iter-title "Project scaffolding" \
     --phase verify --attempt 1 --status COMPLETE \
-    --content "All acceptance criteria independently verified. Tests pass, code is idiomatic." \
-    --files '["tests/test_sanity.py — verified sanity check"]'
+    --content "All acceptance criteria independently verified. Tests pass, code is idiomatic."
 
 # Learning entry
-$ENTRIES add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \
+python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-learning plet/ \
+    --iter-id ID_002 --iter-title "Core data model" \
     --category gotcha --title "Test mocks DB layer too aggressively" \
     --content "Tests mock the entire DB, missing real query issues. Needs integration tests." \
     --phase verify --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
-$ENTRIES add-emergent plet/ --iter-id ID_003 --iter-title "API endpoints" \
+python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-emergent plet/ \
+    --iter-id ID_003 --iter-title "API endpoints" \
     --title "API rate limiting not specified" --phase verify \
-    --category "requirement gap" \
+    --category "spec gap" \
     --content "No rate limiting implemented. Requirements don't mention it." \
     --attempt 1
 ```
@@ -360,7 +352,7 @@ Trace capture is split into two files per phase:
 Write semantic event entries (via `plet_trace.py append-event`) for:
 - Verification decisions and their rationale (`--event-type decision`)
 - Criterion status changes (each `verification` object update) (`--event-type criterion_update`)
-- Verdict decisions (verifyVerdict set to passed, rejected, or blocked) (`--event-type verdict_set`)
+- Verdict decisions (verifyVerdict set to passed, rejected, or blocked) (`--event-type decision`)
 - Activity changes (`--event-type activity_change`)
 - Issues found and severity assessment (minor fix-in-place vs substantial cycle-back) (`--event-type decision`)
 - Errors encountered and recovery actions (`--event-type error`)

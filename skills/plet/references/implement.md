@@ -33,13 +33,12 @@ You are an implementation subagent. Your job is to implement one iteration — w
 The orchestrator already called `start-phase` before spawning you — attempt counters, phase timestamps, and verdict clearing are done. Your first state action is to announce your presence:
 
 ```bash
-IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
-$IST update-activity plet/ --iter-id {iteration_id} \
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
-    --agent-id "{your_agent_id}"
+    --agent-id impl_agent
 ```
 
-For `agentId`: prefer the Claude Code session ID if accessible (e.g., from environment or transcript metadata). If unavailable, generate a random ID (e.g., `agent_` + 12 random hex chars).
+For `--agent-id`: use any stable identifier — `impl_agent`, `verify_agent`, or a generated ID. Do not use shell variable aliases for script paths — call scripts directly via `$PLET_SCRIPTS_DIR`.
 
 ### Read Context (IMP_18, RT_6, RT_7)
 
@@ -115,9 +114,9 @@ This is the core implementation loop. For each acceptance criterion:
 After the green step, update the criterion in the per-iteration state file using the state tool:
 
 ```bash
-$TOOL update-criterion "$STATE" AC_1 implementation pass \
-    "Test test_FR_1_valid_request passes — asserts 200 status and correct body. All 12 tests in test_api_endpoints.py pass. Full suite green (fast suite, 8s)." \
-    --elapsed 45
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
+    --criterion AC_1 --phase implementation --status pass --agent-id impl_agent \
+    --evidence "Test test_FR_1_valid_request passes — asserts 200 status and correct body. All 12 tests pass. Full suite green (8s)."
 ```
 
 The tool enforces the two-state model automatically — it creates the correct `implementation`/`verification` sub-objects with all required fields (status, evidence, timestamp, elapsedSeconds) and derives the top-level status.
@@ -141,19 +140,22 @@ git commit -m "wip: [ID_xxx] AC_N - [short description]"
 
 Use `plet_iter_state.py` (IST) for all per-iteration state modifications:
 
-```bash
-IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
+Call scripts directly — do not use shell variable aliases (they fail silently in some environments).
 
-# Update activity (IST update-activity)
-$IST update-activity plet/ --iter-id ID_001 --agent-id {your_agent_id} \
-    --activity implementing --detail "red: writing failing test for AC_3"
+```bash
+# Update activity
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id ID_001 \
+    --phase-activity implementing --activity-detail "red: writing failing test for AC_3" \
+    --agent-id impl_agent
 
 # Update criterion status in real time (IMP_6)
-$IST update-criterion plet/ --iter-id ID_001 --criterion AC_1 \
-    --phase implementation --status pass --evidence "All 12 tests pass (3.2s)"
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
+    --criterion AC_1 --phase implementation --status pass \
+    --evidence "All 12 tests pass (3.2s)" --agent-id impl_agent
 
 # Heartbeat — update at regular intervals (IMP_23)
-$IST heartbeat plet/ --iter-id ID_001 --agent-id {your_agent_id}
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
+    --agent-id impl_agent
 ```
 
 ### Activity Updates (IMP_7)
@@ -208,22 +210,22 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 **Use the entry tool for all runtime artifact entries.** Do not compose entries by hand.
 
 ```bash
-ENTRIES="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py"
-
 # Progress entry
-$ENTRIES add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \
+python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-progress plet/ \
+    --iter-id ID_001 --iter-title "Project scaffolding" \
     --phase implement --attempt 1 --status COMPLETE \
-    --content "Initialized project with pytest, ruff. All checks pass." \
-    --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
+    --content "Initialized project with pytest, ruff. All checks pass."
 
 # Learning entry
-$ENTRIES add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \
+python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-learning plet/ \
+    --iter-id ID_002 --iter-title "Core data model" \
     --category gotcha --title "SQLite WAL mode required" \
     --content "Default journal mode blocks readers during writes." \
     --phase implement --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
-$ENTRIES add-emergent plet/ --iter-id ID_002 --iter-title "Core data model" \
+python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-emergent plet/ \
+    --iter-id ID_002 --iter-title "Core data model" \
     --title "Chose SQLite over PostgreSQL" --phase implement \
     --category "design decision" \
     --content "Requirements say persistent storage without specifying engine." \
@@ -250,7 +252,7 @@ Trace capture is split into two files per phase:
 Write semantic event entries (via `plet_trace.py append-event`) for:
 - Decisions made and their rationale (`--event-type decision`)
 - Criterion status changes (`--event-type criterion_update`)
-- Verdict decisions (`--event-type verdict_set`)
+- Verdict decisions (`--event-type decision`)
 - Activity changes (`--event-type activity_change`)
 - Errors encountered and recovery actions (`--event-type error`)
 
