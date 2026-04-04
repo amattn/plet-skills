@@ -8,7 +8,7 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Critical:** You are running autonomously. Never ask for user confirmation. Never prompt "should I proceed?" or wait for human input. If you encounter ambiguity, make your best judgment and document it in `plet/emergent.md`. The only way to pause execution is the Blocker Protocol — and that is a last resort.
 
-**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) for all per-iteration state operations. Commands: `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Run `plet_iter_state.py --help` for full usage.
+**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) for all per-iteration state operations. Commands: `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Run `plet_iter_state.py --help` for full usage. Note: `start-phase` is called by the orchestrator before you spawn — do not call it yourself.
 
 **Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
 
@@ -26,15 +26,13 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 ### Set Up State (IMP_8)
 
-Update the per-iteration state file immediately — this announces your presence to external consumers:
+The orchestrator already called `start-phase` before spawning you — attempt counters, phase timestamps, and verdict clearing are done. Your first state action is to announce your presence:
 
 ```bash
 IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
-
-# Set up state for this phase — the orchestrator already set lifecycle → implementing
-$IST start-phase plet/ --iter-id {iteration_id} --phase implement \
+$IST update-activity plet/ --iter-id {iteration_id} \
+    --phase-activity setup --activity-detail "reading context" \
     --agent-id "{your_agent_id}"
-    lastHeartbeat "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 
 For `agentId`: prefer the Claude Code session ID if accessible (e.g., from environment or transcript metadata). If unavailable, generate a random ID (e.g., `agent_` + 12 random hex chars).

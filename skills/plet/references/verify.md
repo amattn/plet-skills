@@ -11,7 +11,7 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (IMP_17).
 
-**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) for all per-iteration state operations. Commands: `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Run `plet_iter_state.py --help` for full usage.
+**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) for all per-iteration state operations. Commands: `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Run `plet_iter_state.py --help` for full usage. Note: `start-phase` is called by the orchestrator before you spawn — do not call it yourself.
 
 **Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
 
@@ -25,11 +25,12 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 ### Set Up State (VF_3)
 
-Set up state for this phase — the orchestrator already set lifecycle → `verifying`:
+The orchestrator already called `start-phase` before spawning you — attempt counters, phase timestamps, and verdict clearing are done. Your first state action is to announce your presence:
 
 ```bash
 IST="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py"
-$IST start-phase plet/ --iter-id {iteration_id} --phase verify \
+$IST update-activity plet/ --iter-id {iteration_id} \
+    --phase-activity setup --activity-detail "reading context" \
     --agent-id "{your_agent_id}"
 ```
 
