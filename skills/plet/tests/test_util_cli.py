@@ -793,6 +793,108 @@ def test_nolog_cascades():
 
 
 # ---------------------------------------------------------------------------
+# Direct import tests for _log_script_invocation (COV_1)
+# ---------------------------------------------------------------------------
+
+
+def test_log_script_invocation_direct():
+    print("\n## _log_script_invocation — direct import (coverage-visible)")
+    tmpdir, plet_dir = make_test_plet_dir()
+    try:
+        # Ensure PLET_NO_LOG is NOT set
+        old_val = os.environ.pop("PLET_NO_LOG", None)
+
+        util_cli._log_script_invocation(
+            "plet_test", "validate", [plet_dir, "--iter-id", "ID_001", "--phase", "implement"], 0, "0.1.0"
+        )
+
+        # Check progress entry
+        from util_io import progress_path
+
+        with open(progress_path(plet_dir)) as f:
+            progress = f.read()
+        check("progress written", len(progress.strip()) > 0)
+        check("has fencing", "plet-" in progress)
+        check("has trace ref", "tev_" in progress)
+        check("has script name", "plet_test" in progress)
+
+        # Check trace event
+        from util_io import trace_dir_path
+
+        tdir = trace_dir_path(plet_dir)
+        trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")] if os.path.isdir(tdir) else []
+        check("trace file created", len(trace_files) >= 1)
+        if trace_files:
+            with open(os.path.join(tdir, trace_files[0])) as f:
+                line = f.readline()
+            event = json.loads(line)
+            check("event type invocation", event.get("type") == "invocation")
+            check("event has data", "script" in event.get("data", {}))
+            check("exit code 0", event["data"]["exitCode"] == 0)
+
+        if old_val is not None:
+            os.environ["PLET_NO_LOG"] = old_val
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_log_script_invocation_phase_normalization():
+    print("\n## _log_script_invocation — phase normalization")
+    tmpdir, plet_dir = make_test_plet_dir()
+    try:
+        old_val = os.environ.pop("PLET_NO_LOG", None)
+
+        # "implementation" should normalize to "implement"
+        util_cli._log_script_invocation(
+            "plet_test", "update", [plet_dir, "--iter-id", "ID_001", "--phase", "implementation"], 0, "0.1.0"
+        )
+
+        from util_io import trace_dir_path
+
+        tdir = trace_dir_path(plet_dir)
+        trace_files = [f for f in os.listdir(tdir) if "implement" in f] if os.path.isdir(tdir) else []
+        check("phase normalized to implement", len(trace_files) >= 1)
+
+        # Invalid phase should skip logging
+        util_cli._log_script_invocation(
+            "plet_test", "update", [plet_dir, "--iter-id", "ID_001", "--phase", "invalid_phase"], 0, "0.1.0"
+        )
+        all_files = os.listdir(tdir) if os.path.isdir(tdir) else []
+        invalid_files = [f for f in all_files if "invalid" in f]
+        check("invalid phase skipped", len(invalid_files) == 0)
+
+        if old_val is not None:
+            os.environ["PLET_NO_LOG"] = old_val
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_extract_plet_dir():
+    print("\n## _extract_plet_dir — finds plet dir from args")
+    tmpdir, plet_dir = make_test_plet_dir()
+    try:
+        result = util_cli._extract_plet_dir([plet_dir, "--iter-id", "ID_001"])
+        check("finds dir arg", result == plet_dir)
+
+        result = util_cli._extract_plet_dir(["--flag", "value"])
+        check("falls back to default", result is not None)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_extract_from_args():
+    print("\n## _extract_from_args — extracts flag values")
+    result = util_cli._extract_from_args(["--iter-id", "ID_001", "--phase", "implement"], "iter_id")
+    check("finds iter_id", result == "ID_001")
+
+    result = util_cli._extract_from_args(["--iter-id", "ID_001", "--phase", "implement"], "phase")
+    check("finds phase", result == "implement")
+
+    result = util_cli._extract_from_args(["--iter-id", "ID_001"], "phase")
+    check("missing returns None", result is None)
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -854,6 +956,10 @@ def main():
     test_invocation_logging_enabled()
     test_invocation_logging_suppressed()
     test_nolog_cascades()
+    test_log_script_invocation_direct()
+    test_log_script_invocation_phase_normalization()
+    test_extract_plet_dir()
+    test_extract_from_args()
 
     print("\n{}".format("=" * 40))
     print(f"  {passed} passed, {failed} failed")
