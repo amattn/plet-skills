@@ -19,6 +19,7 @@
 | PLAN_SUB | Subplets | |
 | PLAN_EVL | Eval System + Comparison Runs | |
 | PLAN_RFT | Refactor Loop | |
+| PLAN_COV | Library + CLI Pattern | |
 | PLAN_EX | Examples | unscheduled |
 
 ---
@@ -431,6 +432,96 @@ Wire up parallel iteration execution in `plet_orchestrator.py`. The design and i
 **Implementation:** Replace the serial `for iter_id in actionable` loop with `concurrent.futures.ProcessPoolExecutor` or multiple `subprocess.Popen` calls. Merge-squash must remain sequential (one at a time to workstream). Key concern: merge conflicts between parallel iterations modifying the same files.
 
 **Depends on:** FOO_69.
+
+---
+
+## PLAN_COV: Library + CLI Pattern
+
+Restructure scripts from 16 standalone CLI tools into one importable Python package with a thin CLI dispatch layer. Eliminates the subprocess coverage gap — all logic is testable via direct import. Currently at 85% coverage with `coverage_all.sh` (slow, 120s); after this, `pytest --cov` covers everything in-process (~30s).
+
+**Why this matters now:** Every other coverage improvement (pragmas, dual-mode tests, auto-logger tests) treats symptoms. The root cause is that our scripts are only callable via subprocess, which is invisible to in-process coverage. As long as this architecture persists, coverage will drift below threshold after every new script or feature, requiring manual intervention to claw it back. We've already hit this three times in one session (plet_phase.py dropped us below 85%, then the report fields, then again after the spec audit).
+
+The library pattern fixes this permanently. Once logic is importable, `test_all.py` simultaneously tests and measures coverage in a single fast run (~30s). Coverage becomes a **byproduct of testing, not a separate activity**. No more `coverage_all.sh` as a gate. No more backsliding. Every new function is automatically covered by the tests that call it.
+
+**Current architecture:**
+```
+scripts/
+  plet_iter_state.py    # cmd_set_verdict(args) does: parse → validate → work → format
+  plet_entries.py       # cmd_add_progress(args) does: parse → validate → work → format
+  ...                   # 16 standalone scripts, each with dispatch()
+```
+
+**Target architecture:**
+```
+scripts/
+  plet_cli.py           # single CLI entry point, thin dispatch
+  plet/                 # importable package
+    __init__.py
+    iter_state.py       # set_verdict(plet_dir, iter_id, ...) → result dict
+    entries.py          # add_progress(plet_dir, iter_id, ...) → result dict
+    phase.py            # end_phase(plet_dir, iter_id, ...) → result dict
+    ...
+  util/                 # importable utilities (renamed from util_*)
+    cli.py
+    io.py
+    ...
+```
+
+**Constraints:**
+- `allowed-tools` in SKILL.md must still work — agents call scripts via `Bash(${CLAUDE_SKILL_DIR}/scripts/*)`. Either keep individual script shims or update to one entry point.
+- Existing tests (2261) must keep passing — migration is incremental, not big-bang.
+- Each script's `--help`, `--usage`, `--version` behavior must be preserved.
+
+### Build order (incremental — do alongside other work)
+
+| Step | What | When |
+|------|------|------|
+| COV_1 | Auto-logger test (util_cli._log_script_invocation) | First — survives any restructure, covers 90 lines |
+| COV_2 | Extract logic from plet_iter_state.py | Next time iter_state is modified. Highest test count, most error paths. |
+| COV_3 | Extract logic from plet_entries.py | Next time entries is modified. Second highest coverage gap. |
+| COV_4 | Extract logic from plet_fingerprint.py | Lowest coverage (79%), many dry-run + error paths. |
+| COV_5 | Extract logic from plet_gate_session.py | 83% coverage, postflight is new. |
+| COV_6 | Extract logic from remaining scripts | As touched — gate_phase, git_check, git_ops, etc. |
+| COV_7 | Create `plet/` package directory | When enough scripts are extracted. Move logic files, add `__init__.py`. |
+| COV_8 | Thin CLI shims or single entry point | Replace standalone scripts with shims that import from package. |
+| COV_9 | Update allowed-tools + reference files | Point to new CLI structure. |
+| COV_10 | Remove coverage_all.sh dependency | `pytest --cov` covers everything in-process. coverage_all.sh becomes optional. |
+
+**Key principle:** Each extraction (COV_2 through COV_6) is independently valuable — it improves coverage for that script immediately. The package restructure (COV_7-10) is the final step that pays off the incremental work. No step is wasted.
+
+**Pattern for each extraction:**
+
+```python
+# Before: one function does everything
+def cmd_set_verdict(args):
+    parsed = parse_command(args, ...)       # CLI parsing
+    # ... validation ...
+    data = _load_state(plet_dir, iter_id)   # work
+    data[phase] = {"status": verdict, ...}  # work
+    atomic_write_json(path, data)           # work
+    emit_json(result, ...)                  # output
+
+# After: logic separated from CLI
+def set_verdict(plet_dir, iter_id, phase, verdict, agent_id):
+    """Pure logic — testable via import, coverage-visible."""
+    data = _load_state(plet_dir, iter_id)
+    data[phase] = {"status": verdict, ...}
+    atomic_write_json(path, data)
+    return {"status": "ok", "iterationId": iter_id, ...}
+
+def cmd_set_verdict(args):
+    """Thin CLI wrapper."""
+    parsed = parse_command(args, ...)
+    result = set_verdict(**parsed)
+    emit_output(result, ...)
+```
+
+Tests import `set_verdict()` directly. Subprocess tests verify the CLI contract only.
+
+**What NOT to do:**
+- Don't add `# pragma: no cover` to dry-run blocks — they become testable after extraction
+- Don't write dual-mode tests for scripts not yet extracted — import paths will change
+- Don't do a big-bang migration — extract incrementally as scripts are touched
 
 ---
 
