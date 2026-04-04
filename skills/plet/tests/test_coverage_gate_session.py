@@ -20,6 +20,11 @@ passed = 0
 failed = 0
 
 
+def exit_code(result):
+    """Extract exit code from tuple (code, out, err) or bare int result."""
+    return result[0] if isinstance(result, tuple) else result
+
+
 def check(name, condition, detail=""):
     global passed, failed
     if condition:
@@ -58,7 +63,7 @@ def _make_project(lifecycles=None, with_specs=True, with_git=True):
 def test_cmd_detect_help():
     import plet_gate_session
 
-    rc = plet_gate_session.cmd_detect(["--help"])
+    rc = exit_code(plet_gate_session.cmd_detect(["--help"]))
     check("detect help = 0", rc == 0)
 
 
@@ -68,7 +73,7 @@ def test_cmd_detect_fresh():
     d = tempfile.mkdtemp()
     try:
         nonexistent = os.path.join(d, "plet")
-        rc = plet_gate_session.cmd_detect([nonexistent])
+        rc = exit_code(plet_gate_session.cmd_detect([nonexistent]))
         check("fresh = 0 (plan)", rc == 0)
     finally:
         shutil.rmtree(d)
@@ -79,7 +84,7 @@ def test_cmd_detect_loop():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
     try:
-        rc = plet_gate_session.cmd_detect([plet_dir])
+        rc = exit_code(plet_gate_session.cmd_detect([plet_dir]))
         check("queued = 0 (loop)", rc == 0)
     finally:
         shutil.rmtree(d)
@@ -90,7 +95,7 @@ def test_cmd_detect_refine():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "complete"})
     try:
-        rc = plet_gate_session.cmd_detect([plet_dir])
+        rc = exit_code(plet_gate_session.cmd_detect([plet_dir]))
         check("complete = 0 (refine)", rc == 0)
     finally:
         shutil.rmtree(d)
@@ -105,7 +110,7 @@ def test_cmd_detect_json():
     try:
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
-        rc = plet_gate_session.cmd_detect([plet_dir, "--output", "json"])
+        rc = exit_code(plet_gate_session.cmd_detect([plet_dir, "--output", "json"]))
         output = sys.stdout.getvalue()
         sys.stdout = old_stdout
 
@@ -125,7 +130,7 @@ def test_cmd_detect_json():
 def test_cmd_status_help():
     import plet_gate_session
 
-    rc = plet_gate_session.cmd_status(["--help"])
+    rc = exit_code(plet_gate_session.cmd_status(["--help"]))
     check("status help = 0", rc == 0)
 
 
@@ -134,7 +139,7 @@ def test_cmd_status_basic():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "complete", "ID_002": "implementing", "ID_003": "blocked"})
     try:
-        rc = plet_gate_session.cmd_status([plet_dir])
+        rc = exit_code(plet_gate_session.cmd_status([plet_dir]))
         check("status = 0", rc == 0)
     finally:
         shutil.rmtree(d)
@@ -149,7 +154,7 @@ def test_cmd_status_json():
     try:
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
-        rc = plet_gate_session.cmd_status([plet_dir, "--output", "json"])
+        rc = exit_code(plet_gate_session.cmd_status([plet_dir, "--output", "json"]))
         output = sys.stdout.getvalue()
         sys.stdout = old_stdout
 
@@ -168,7 +173,7 @@ def test_cmd_status_json():
 def test_cmd_status_missing_plet_dir():
     import plet_gate_session
 
-    rc = plet_gate_session.cmd_status(["/nonexistent/plet"])
+    rc = exit_code(plet_gate_session.cmd_status(["/nonexistent/plet"]))
     check("missing dir = 1", rc == 1)
 
 
@@ -181,7 +186,7 @@ def test_cmd_status_missing_state_dir():
         os.makedirs(plet_dir)
         make_global_state(plet_dir)
         # No state/ dir
-        rc = plet_gate_session.cmd_status([plet_dir])
+        rc = exit_code(plet_gate_session.cmd_status([plet_dir]))
         check("missing state dir = 1", rc == 1)
     finally:
         shutil.rmtree(d)
@@ -195,7 +200,7 @@ def test_cmd_status_missing_state_dir():
 def test_cmd_preflight_help():
     import plet_gate_session
 
-    rc = plet_gate_session.cmd_preflight(["--help"])
+    rc = exit_code(plet_gate_session.cmd_preflight(["--help"]))
     check("preflight help = 0", rc == 0)
 
 
@@ -204,7 +209,7 @@ def test_cmd_preflight_missing_session_type():
 
     d, plet_dir = _make_project()
     try:
-        rc = plet_gate_session.cmd_preflight([plet_dir])
+        rc = exit_code(plet_gate_session.cmd_preflight([plet_dir]))
         check("missing session-type = 1", rc == 1)
     finally:
         shutil.rmtree(d)
@@ -218,7 +223,7 @@ def test_cmd_preflight_plan():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_gate_session.cmd_preflight([plet_dir, "--session-type", "plan"])
+            rc = exit_code(plet_gate_session.cmd_preflight([plet_dir, "--session-type", "plan"]))
             # 0 or 2 (warnings for missing CLAUDE.md etc)
             check("plan preflight runs", rc in (0, 2))
         finally:
@@ -243,7 +248,7 @@ def test_cmd_preflight_loop():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_gate_session.cmd_preflight([plet_dir, "--session-type", "loop"])
+            rc = exit_code(plet_gate_session.cmd_preflight([plet_dir, "--session-type", "loop"]))
             check("loop preflight runs", rc in (0, 2))
         finally:
             os.chdir(old_cwd)
@@ -259,7 +264,7 @@ def test_cmd_preflight_detect():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_gate_session.cmd_preflight([plet_dir, "--session-type", "detect"])
+            rc = exit_code(plet_gate_session.cmd_preflight([plet_dir, "--session-type", "detect"]))
             check("detect session-type runs", rc in (0, 2))
         finally:
             os.chdir(old_cwd)
@@ -279,7 +284,7 @@ def test_cmd_preflight_json():
         try:
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
-            rc = plet_gate_session.cmd_preflight([plet_dir, "--session-type", "plan", "--output", "json"])
+            rc = exit_code(plet_gate_session.cmd_preflight([plet_dir, "--session-type", "plan", "--output", "json"]))
             output = sys.stdout.getvalue()
             sys.stdout = old_stdout
 
@@ -299,7 +304,7 @@ def test_cmd_preflight_invalid_session_type():
 
     d, plet_dir = _make_project()
     try:
-        rc = plet_gate_session.cmd_preflight([plet_dir, "--session-type", "bogus"])
+        rc = exit_code(plet_gate_session.cmd_preflight([plet_dir, "--session-type", "bogus"]))
         check("invalid type = 1", rc == 1)
     finally:
         shutil.rmtree(d)
@@ -404,7 +409,7 @@ def test_run_preflight_missing_specs():
 def test_cmd_postflight_help():
     import plet_gate_session
 
-    rc = plet_gate_session.cmd_postflight(["--help"])
+    rc = exit_code(plet_gate_session.cmd_postflight(["--help"]))
     check("postflight help = 0", rc == 0)
 
 
@@ -416,7 +421,7 @@ def test_cmd_postflight_basic():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop"])
+            rc = exit_code(plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop"]))
             # 0 or 2 (warnings expected in temp dir)
             check("postflight runs", rc in (0, 2))
         finally:
@@ -433,7 +438,7 @@ def test_cmd_postflight_transient():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop"])
+            rc = exit_code(plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop"]))
             check("transient = 2 (warn)", rc == 2)
         finally:
             os.chdir(old_cwd)
@@ -453,7 +458,7 @@ def test_cmd_postflight_json():
         try:
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
-            rc = plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop", "--output", "json"])
+            rc = exit_code(plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop", "--output", "json"]))
             output = sys.stdout.getvalue()
             sys.stdout = old_stdout
 
@@ -472,7 +477,7 @@ def test_cmd_postflight_missing_session_type():
 
     d, plet_dir = _make_project()
     try:
-        rc = plet_gate_session.cmd_postflight([plet_dir])
+        rc = exit_code(plet_gate_session.cmd_postflight([plet_dir]))
         check("missing type = 1", rc == 1)
     finally:
         shutil.rmtree(d)
@@ -486,7 +491,7 @@ def test_cmd_postflight_never_fails():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop"])
+            rc = exit_code(plet_gate_session.cmd_postflight([plet_dir, "--session-type", "loop"]))
             check("postflight never exits 1", rc != 1)
         finally:
             os.chdir(old_cwd)

@@ -168,18 +168,18 @@ def cmd_eligible(args):
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     global_state, dep_map, err = _load_eligible_state(plet_dir, hint)
     if err:
-        return 1
+        return (1, "", "")
 
     lifecycles, err = _resolve_lifecycles(dep_map, global_state, hint)
     if err:
-        return 1
+        return (1, "", "")
 
     eligible, stuck_iterations, counts = _evaluate_eligibility(dep_map, lifecycles)
 
@@ -192,15 +192,16 @@ def cmd_eligible(args):
             "counts": counts,
         }
         emit_json(data, SCRIPT_VERSION, pretty, fields)
+        return (0, "", "")
     else:
+        lines = []
         if eligible:
-            print("\n".join(eligible))
+            lines.append("\n".join(eligible))
         else:
-            print("none")
+            lines.append("none")
         for si in stuck_iterations:
-            print("stuck: {} (blocked dep: {})".format(si["iterationId"], ", ".join(si["unsatisfiableDeps"])))
-
-    return 0
+            lines.append("stuck: {} (blocked dep: {})".format(si["iterationId"], ", ".join(si["unsatisfiableDeps"])))
+        return (0, "\n".join(lines), "")
 
 
 cmd_eligible.usage = "<plet_dir>"  # noqa: E501
@@ -234,40 +235,36 @@ def cmd_check_breakpoints(args):
     """
     help_text = cmd_check_breakpoints.__doc__
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(
         kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ, _help_hint("check-breakpoints")
     ):
-        return 1
+        return (1, "", "")
 
     # Require --iter-id and --position
     if not require_kwargs(kwargs, ["iter_id", "position"], help_text):
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs["iter_id"]
     position = kwargs["position"]
 
     if not validate_enum(position, ["before", "after"], "position"):
-        print(_help_hint("check-breakpoints"), file=sys.stderr)
-        return 1
+        return (1, "", _help_hint("check-breakpoints"))
 
     output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     # Load global state
     gs_path = state_json_path(plet_dir)
     global_state = load_json(gs_path)
     if global_state is None:
-        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
-        print(_help_hint("check-breakpoints"), file=sys.stderr)
-        return 1
+        return (1, "", f"Error: state.json not found at {gs_path}\n{_help_hint('check-breakpoints')}")
 
     # Check breakpoints
     breakpoints = global_state.get("breakpoints", {})
@@ -283,10 +280,9 @@ def cmd_check_breakpoints(args):
             "result": result,
         }
         emit_json(data, SCRIPT_VERSION, pretty, fields)
+        return (0, "", "")
     else:
-        print(result)
-
-    return 0
+        return (0, result, "")
 
 
 cmd_check_breakpoints.usage = "<plet_dir> --iter-id ID_xxx --position before|after"  # noqa: E501
@@ -320,31 +316,28 @@ def cmd_check_retry(args):
     """
     help_text = cmd_check_retry.__doc__
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("check-retry")):
-        return 1
+        return (1, "", "")
 
     if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs["iter_id"]
     output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     # Load per-iteration state
     ip = iter_state_path(plet_dir, iter_id)
     iter_state = load_json(ip)
     if iter_state is None:
-        print(f"Error: state file not found for {iter_id} at {ip}", file=sys.stderr)
-        print(_help_hint("check-retry"), file=sys.stderr)
-        return 1
+        return (1, "", f"Error: state file not found for {iter_id} at {ip}\n{_help_hint('check-retry')}")
 
     reports = iter_state.get("verificationReports", None)
     attempts = iter_state.get("attempts", {"implement": 0, "verify": 0})
@@ -403,10 +396,9 @@ def cmd_check_retry(args):
             "trendDirection": trend_direction,
         }
         emit_json(data, SCRIPT_VERSION, pretty, fields)
+        return (0, "", "")
     else:
-        print(decision)
-
-    return 0
+        return (0, decision, "")
 
 
 cmd_check_retry.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501

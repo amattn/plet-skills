@@ -637,6 +637,9 @@ def cmd_run(args):
         spawns subagents, processes verdicts, handles retry and merge.
         Returns structured output so SKILL.md knows why it stopped.
     """
+    # TODO: COV migration — _emit_event and _emit_text stream NDJSON/text incrementally
+    # throughout the long-running loop. Collecting all output and returning as a tuple
+    # would break real-time streaming. Keeping int return for the live loop path.
     parsed = _parse_run_args(args)
     if parsed == "help":
         return 0

@@ -330,34 +330,33 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Validate plet_dir
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
             emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
+            return (1, "", "")
         else:
-            print(err, file=sys.stderr)
-        return 1
+            return (1, "", err)
 
     # Build sections
     sections, err = _build_prompt_sections(plet_dir, iter_id, phase)
     if err:
         if output_json:
             emit_json_error(cmd_name, err, SCRIPT_VERSION, pretty)
+            return (1, "", "")
         else:
-            print(err, file=sys.stderr)
-        return 1
+            return (1, "", err)
 
     # Output
     total_length = sum(len(s["content"]) for s in sections)
@@ -376,6 +375,7 @@ Examples:
             pretty,
             fields,
         )
+        return (0, "", "")
     else:
         # Text mode — sections with markdown headers
         parts = []
@@ -384,9 +384,7 @@ Examples:
             parts.append("")
             parts.append(s["content"])
             parts.append("")
-        print("\n".join(parts).strip())
-
-    return 0
+        return (0, "\n".join(parts).strip(), "")
 
 
 cmd_assemble.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501

@@ -23,6 +23,11 @@ passed = 0
 failed = 0
 
 
+def exit_code(result):
+    """Extract exit code from tuple (code, out, err) or bare int result."""
+    return result[0] if isinstance(result, tuple) else result
+
+
 def check(name, condition, detail=""):
     global passed, failed
     if condition:
@@ -461,7 +466,7 @@ def _make_iteration_project(lifecycles=None, loop_session=1):
 def test_cmd_check_iteration_help():
     import plet_git_check
 
-    rc = plet_git_check.cmd_check_iteration(["--help"])
+    rc = exit_code(plet_git_check.cmd_check_iteration(["--help"]))
     check("help exits 0", rc == 0)
 
 
@@ -475,14 +480,16 @@ def test_cmd_check_iteration_basic_pass():
         iter_branch = "plet/TEST/loop1/ID_001"
         subprocess.run(["git", "-C", d, "checkout", iter_branch], capture_output=True)
         os.chdir(d)
-        rc = plet_git_check.cmd_check_iteration(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "implement",
-            ]
+        rc = exit_code(
+            plet_git_check.cmd_check_iteration(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                ]
+            )
         )
         check("basic pass exits 0", rc == 0)
     finally:
@@ -506,16 +513,18 @@ def test_cmd_check_iteration_json_output():
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
-            rc = plet_git_check.cmd_check_iteration(
-                [
-                    plet_dir,
-                    "--iter-id",
-                    "ID_001",
-                    "--phase",
-                    "implement",
-                    "--output",
-                    "json",
-                ]
+            rc = exit_code(
+                plet_git_check.cmd_check_iteration(
+                    [
+                        plet_dir,
+                        "--iter-id",
+                        "ID_001",
+                        "--phase",
+                        "implement",
+                        "--output",
+                        "json",
+                    ]
+                )
             )
             output = sys.stdout.getvalue()
         finally:
@@ -540,11 +549,11 @@ def test_cmd_check_iteration_missing_args():
     try:
         os.chdir(d)
         # Missing --iter-id and --phase
-        rc = plet_git_check.cmd_check_iteration([plet_dir])
+        rc = exit_code(plet_git_check.cmd_check_iteration([plet_dir]))
         check("missing args exits 1", rc == 1)
 
         # Missing --phase only
-        rc = plet_git_check.cmd_check_iteration([plet_dir, "--iter-id", "ID_001"])
+        rc = exit_code(plet_git_check.cmd_check_iteration([plet_dir, "--iter-id", "ID_001"]))
         check("missing phase exits 1", rc == 1)
     finally:
         os.chdir(old_cwd)
@@ -558,14 +567,16 @@ def test_cmd_check_iteration_invalid_phase():
     old_cwd = os.getcwd()
     try:
         os.chdir(d)
-        rc = plet_git_check.cmd_check_iteration(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "build",
-            ]
+        rc = exit_code(
+            plet_git_check.cmd_check_iteration(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "build",
+                ]
+            )
         )
         check("invalid phase exits 1", rc == 1)
     finally:
@@ -584,14 +595,16 @@ def test_cmd_check_iteration_not_git_repo():
         make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
         make_iter_state(plet_dir, "ID_001")
         os.chdir(d)
-        rc = plet_git_check.cmd_check_iteration(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "implement",
-            ]
+        rc = exit_code(
+            plet_git_check.cmd_check_iteration(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                ]
+            )
         )
         check("not git repo exits 1", rc == 1)
     finally:
@@ -608,14 +621,16 @@ def test_cmd_check_iteration_missing_state():
     try:
         os.chdir(d)
         # plet_dir doesn't exist
-        rc = plet_git_check.cmd_check_iteration(
-            [
-                os.path.join(d, "plet"),
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "implement",
-            ]
+        rc = exit_code(
+            plet_git_check.cmd_check_iteration(
+                [
+                    os.path.join(d, "plet"),
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                ]
+            )
         )
         check("missing state exits 1", rc == 1)
     finally:
@@ -631,14 +646,16 @@ def test_cmd_check_iteration_missing_iter_state():
     try:
         os.chdir(d)
         # Ask for an iteration that doesn't have state
-        rc = plet_git_check.cmd_check_iteration(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_999",
-                "--phase",
-                "implement",
-            ]
+        rc = exit_code(
+            plet_git_check.cmd_check_iteration(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_999",
+                    "--phase",
+                    "implement",
+                ]
+            )
         )
         check("missing iter state exits 1", rc == 1)
     finally:
@@ -656,14 +673,16 @@ def test_cmd_check_iteration_wrong_branch():
         # Stay on workstream, not the iteration branch
         subprocess.run(["git", "-C", d, "checkout", "plet/TEST/loop1/workstream"], capture_output=True)
         os.chdir(d)
-        rc = plet_git_check.cmd_check_iteration(
-            [
-                plet_dir,
-                "--iter-id",
-                "ID_001",
-                "--phase",
-                "implement",
-            ]
+        rc = exit_code(
+            plet_git_check.cmd_check_iteration(
+                [
+                    plet_dir,
+                    "--iter-id",
+                    "ID_001",
+                    "--phase",
+                    "implement",
+                ]
+            )
         )
         # Should exit non-zero because correct-branch check fails
         check("wrong branch exits non-zero", rc != 0)
@@ -707,7 +726,7 @@ def _make_session_project(lifecycles=None, loop_session=1):
 def test_cmd_check_session_help():
     import plet_git_check
 
-    rc = plet_git_check.cmd_check_session(["--help"])
+    rc = exit_code(plet_git_check.cmd_check_session(["--help"]))
     check("session help exits 0", rc == 0)
 
 
@@ -718,7 +737,7 @@ def test_cmd_check_session_basic_pass():
     old_cwd = os.getcwd()
     try:
         os.chdir(d)
-        rc = plet_git_check.cmd_check_session([plet_dir])
+        rc = exit_code(plet_git_check.cmd_check_session([plet_dir]))
         check("session basic pass exits 0", rc == 0)
     finally:
         os.chdir(old_cwd)
@@ -737,12 +756,14 @@ def test_cmd_check_session_json_output():
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
-            rc = plet_git_check.cmd_check_session(
-                [
-                    plet_dir,
-                    "--output",
-                    "json",
-                ]
+            rc = exit_code(
+                plet_git_check.cmd_check_session(
+                    [
+                        plet_dir,
+                        "--output",
+                        "json",
+                    ]
+                )
             )
             output = sys.stdout.getvalue()
         finally:
@@ -768,7 +789,7 @@ def test_cmd_check_session_missing_state_dir():
     try:
         os.chdir(d)
         # plet_dir doesn't exist at all
-        rc = plet_git_check.cmd_check_session([os.path.join(d, "plet")])
+        rc = exit_code(plet_git_check.cmd_check_session([os.path.join(d, "plet")]))
         check("missing state dir exits 1", rc == 1)
     finally:
         os.chdir(old_cwd)
@@ -793,12 +814,14 @@ def test_cmd_check_session_stashes_detected():
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
-            rc = plet_git_check.cmd_check_session(
-                [
-                    plet_dir,
-                    "--output",
-                    "json",
-                ]
+            rc = exit_code(
+                plet_git_check.cmd_check_session(
+                    [
+                        plet_dir,
+                        "--output",
+                        "json",
+                    ]
+                )
             )
             output = sys.stdout.getvalue()
         finally:
@@ -874,7 +897,7 @@ def test_cmd_check_session_not_git_repo():
         make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
         make_iter_state(plet_dir, "ID_001")
         os.chdir(d)
-        rc = plet_git_check.cmd_check_session([plet_dir])
+        rc = exit_code(plet_git_check.cmd_check_session([plet_dir]))
         check("session not git repo exits 1", rc == 1)
     finally:
         os.chdir(old_cwd)
@@ -885,7 +908,7 @@ def test_cmd_check_session_missing_plet_dir():
     """cmd_check_session with no plet_dir arg."""
     import plet_git_check
 
-    rc = plet_git_check.cmd_check_session([])
+    rc = exit_code(plet_git_check.cmd_check_session([]))
     check("session no plet_dir exits 1", rc == 1)
 
 

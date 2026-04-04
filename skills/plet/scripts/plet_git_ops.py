@@ -135,44 +135,40 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Validate plet_dir
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         emit_error(cmd_name, err, SCRIPT_VERSION, output_json, pretty)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Load and validate both state files
     global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     iter_state = load_and_validate_iter_state(plet_dir, iter_id)
     if iter_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     attempt = iter_state["attempts"].get(phase, 0)
     if attempt < 1:
         msg = f"Error: attempts.{phase} is {attempt} — phase has not been attempted"
         emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", "")
 
     if not is_git_repo():
         emit_error(cmd_name, "Error: not inside a git repository", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", "")
 
     return _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run)
 
@@ -182,7 +178,7 @@ cmd_audit_tag.example = "plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phas
 
 
 def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run):
-    """Create or update the audit tag."""
+    """Create or update the audit tag. Returns (code, out, err) tuple."""
     tag_name = derive_tag_name(global_state, iter_state, phase)
     commit_hash = get_head_short()
     replaced = tag_exists(tag_name)
@@ -204,27 +200,27 @@ def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, outpu
         result_data["dryRun"] = True
         if output_json:
             emit_json(result_data, SCRIPT_VERSION, pretty, fields)
+            return (0, "", "")
         else:
-            print(f"DRY RUN — would create audit tag {tag_name} at {commit_hash}")
-        return 0
+            return (0, f"DRY RUN — would create audit tag {tag_name} at {commit_hash}", "")
 
     r = run_git("tag", "-f", tag_name) if replaced else run_git("tag", tag_name)
     if r.returncode != 0:
         emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", "")
 
+    err_out = ""
     if replaced:
         msg = f"OK — updated audit tag {tag_name} at {commit_hash} (was at {previous_hash})"
-        print(f"Warning: tag {tag_name} already existed at {previous_hash}, updated to {commit_hash}", file=sys.stderr)
+        err_out = f"Warning: tag {tag_name} already existed at {previous_hash}, updated to {commit_hash}"
     else:
         msg = f"OK — created audit tag {tag_name} at {commit_hash}"
 
     if output_json:
         emit_json(result_data, SCRIPT_VERSION, pretty, fields)
+        return (0, "", err_out)
     else:
-        print(msg)
-
-    return 0
+        return (0, msg, err_out)
 
 
 # ---------------------------------------------------------------------------
@@ -398,29 +394,27 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
 
     global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     iter_state = load_and_validate_iter_state(plet_dir, iter_id)
     if iter_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     ws_branch = derive_workstream_branch(global_state)
     iter_branch = derive_iteration_branch(global_state, iter_state)
 
     git_err = _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty)
     if git_err is not None:
-        return git_err
+        return (git_err, "", "")
 
     commit_title, full_message = _build_merge_squash_message(iter_state)
 
@@ -439,13 +433,13 @@ Examples:
                 pretty,
                 fields,
             )
+            return (0, "", "")
         else:
-            print(f"DRY RUN — would merge-squash {iter_branch} to {ws_branch}: {commit_title}")
-        return 0
+            return (0, f"DRY RUN — would merge-squash {iter_branch} to {ws_branch}: {commit_title}", "")
 
     commit_hash, err = _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pretty)
     if err != 0:
-        return err
+        return (err, "", "")
 
     tags_cleaned, branch_deleted = _merge_squash_cleanup(
         global_state, iter_state, iter_state["iterationId"], iter_branch
@@ -467,6 +461,7 @@ Examples:
             pretty,
             fields,
         )
+        return (0, "", "")
     else:
         msg = f"OK — merged to workstream: {commit_title} ({commit_hash})"
         if tags_cleaned:
@@ -474,9 +469,7 @@ Examples:
                 msg += "\n  Tag {} deleted (was at {})".format(tc["tag"], tc["hash"])
         if branch_deleted:
             msg += f"\n  Branch {iter_branch} deleted"
-        print(msg)
-
-    return 0
+        return (0, msg, "")
 
 
 cmd_merge_squash.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501

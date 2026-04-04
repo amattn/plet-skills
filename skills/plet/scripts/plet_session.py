@@ -164,37 +164,35 @@ def cmd_start_session(args):
     """
     help_text = cmd_start_session.__doc__
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-session")):
-        return 1
+        return (1, "", "")
     if not require_kwargs(kwargs, ["type"], help_text):
-        return 1
+        return (1, "", "")
 
     session_type = kwargs["type"]
     if not validate_enum(session_type, ["loop", "refine"], "type"):
-        print(_help_hint("start-session"), file=sys.stderr)
-        return 1
+        return (1, "", _help_hint("start-session"))
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return 1
+        return (1, "", "")
 
     state, gs_path = _load_session_state(plet_dir, session_type)
     if state is None:
-        return 1
+        return (1, "", "")
 
     history = state["sessionHistory"]
     active = _find_active_sessions(history)
 
     err = _check_active_sessions(active, session_type)
     if err is not None:
-        return err
+        return (err, "", "")
 
     # Resume detection: same type already active
     if len(active) == 1:
@@ -272,7 +270,7 @@ def _check_active_sessions(active, session_type):
 
 
 def _emit_session_result(session_number, branch, session_type, project_id, resumed, output_json, pretty, fields):
-    """Emit start-session result."""
+    """Emit start-session result. Returns (code, out, err) tuple."""
     if output_json:
         emit_json(
             {
@@ -288,11 +286,14 @@ def _emit_session_result(session_number, branch, session_type, project_id, resum
             pretty,
             fields,
         )
+        return (0, "", "")
     else:
-        print(f"Session: {session_type} {session_number}")
-        print(f"Branch: {branch}")
-        print("Resumed: {}".format("yes" if resumed else "no"))
-    return 0
+        lines = [
+            f"Session: {session_type} {session_number}",
+            f"Branch: {branch}",
+            "Resumed: {}".format("yes" if resumed else "no"),
+        ]
+        return (0, "\n".join(lines), "")
 
 
 # ---------------------------------------------------------------------------
@@ -325,43 +326,38 @@ def cmd_end_session(args):
     """
     help_text = cmd_end_session.__doc__
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_WRITE, _help_hint("end-session")):
-        return 1
+        return (1, "", "")
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return 1
+        return (1, "", "")
 
     # Load state
     gs_path = state_json_path(plet_dir)
     state = load_json(gs_path)
     if state is None:
-        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
-        print(_help_hint("end-session"), file=sys.stderr)
-        return 1
+        return (1, "", f"Error: state.json not found at {gs_path}\n{_help_hint('end-session')}")
 
     history = state.get("sessionHistory")
     if not history:
-        print("Error: no session history found — nothing to end", file=sys.stderr)
-        print(_help_hint("end-session"), file=sys.stderr)
-        return 1
+        return (1, "", f"Error: no session history found — nothing to end\n{_help_hint('end-session')}")
 
     # Corruption check
     active = _find_active_sessions(history)
     if len(active) > 1:
         indices = [str(i) for i, _ in active]
-        print(
+        return (
+            1,
+            "",
             "Error: corrupt sessionHistory — multiple active sessions "
             "found (entries {}). Manual repair required.".format(", ".join(indices)),
-            file=sys.stderr,
         )
-        return 1
 
     # Already ended (idempotent)
     if len(active) == 0:
@@ -378,10 +374,13 @@ def cmd_end_session(args):
                 "alreadyEnded": True,
             }
             emit_json(data, SCRIPT_VERSION, pretty, fields)
+            return (0, "", "")
         else:
-            print("Ended: {} {} (already ended)".format(last["type"], last["session"]))
-            print("Branch: {}".format(last["branch"]))
-        return 0
+            lines = [
+                "Ended: {} {} (already ended)".format(last["type"], last["session"]),
+                "Branch: {}".format(last["branch"]),
+            ]
+            return (0, "\n".join(lines), "")
 
     # Close the active session
     _, active_entry = active[0]
@@ -406,11 +405,13 @@ def cmd_end_session(args):
             "alreadyEnded": False,
         }
         emit_json(data, SCRIPT_VERSION, pretty, fields)
+        return (0, "", "")
     else:
-        print("Ended: {} {} ({})".format(active_entry["type"], active_entry["session"], duration_str))
-        print("Branch: {}".format(active_entry["branch"]))
-
-    return 0
+        lines = [
+            "Ended: {} {} ({})".format(active_entry["type"], active_entry["session"], duration_str),
+            "Branch: {}".format(active_entry["branch"]),
+        ]
+        return (0, "\n".join(lines), "")
 
 
 cmd_end_session.usage = "<plet_dir>"  # noqa: E501

@@ -82,25 +82,23 @@ Accumulates all errors before reporting.
 Exit 0 if valid, exit 1 if invalid or error.
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("validate")):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     # Load and validate
     sjp = state_json_path(plet_dir)
     if not os.path.isfile(sjp):
         msg = f"Error: state.json not found at {sjp}"
-        print(msg, file=sys.stderr)
         if output_json:
             emit_json(
                 {"status": "error", "command": "validate", "path": sjp, "errors": [msg], "errorCount": 1},
@@ -108,12 +106,12 @@ Exit 0 if valid, exit 1 if invalid or error.
                 pretty,
                 fields,
             )
-        return 1
+            return (1, "", "")
+        return (1, "", msg)
 
     data = load_json(sjp)
     if data is None:
         msg = f"Error: invalid JSON in {sjp}"
-        print(msg, file=sys.stderr)
         if output_json:
             emit_json(
                 {"status": "error", "command": "validate", "path": sjp, "errors": [msg], "errorCount": 1},
@@ -121,7 +119,8 @@ Exit 0 if valid, exit 1 if invalid or error.
                 pretty,
                 fields,
             )
-        return 1
+            return (1, "", "")
+        return (1, "", msg)
 
     errors = validate_global_state(data)
     valid = len(errors) == 0
@@ -139,16 +138,15 @@ Exit 0 if valid, exit 1 if invalid or error.
             pretty,
             fields,
         )
-        return 0 if valid else 1
+        return (0 if valid else 1, "", "")
 
     if valid:
-        print(f"OK — {sjp} is valid")
-        return 0
+        return (0, f"OK — {sjp} is valid", "")
     else:
-        print(f"INVALID — {len(errors)} error(s) in {sjp}:")
-        for err in errors:
-            print(f"  {err}", file=sys.stderr)
-        return 1
+        err_lines = [f"INVALID — {len(errors)} error(s) in {sjp}:"]
+        for e in errors:
+            err_lines.append(f"  {e}")
+        return (1, "", "\n".join(err_lines))
 
 
 cmd_validate.usage = "<plet_dir>"  # noqa: E501
@@ -216,12 +214,11 @@ Examples:
     --iterations-fingerprint '{}'
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(
         kwargs,
@@ -239,13 +236,13 @@ Examples:
         | UNIVERSAL_FLAGS_WRITE,
         _help_hint("init"),
     ):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return 1
+        return (1, "", "")
     if not require_kwargs(kwargs, ["project_id", "project_name"], help_text):
-        return 1
+        return (1, "", "")
 
     project_id = kwargs.pop("project_id")
     project_name = kwargs.pop("project_name")
@@ -253,15 +250,11 @@ Examples:
 
     err = _validate_init_preconditions(plet_dir, project_id)
     if err:
-        print(err, file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
+        return (1, "", err + "\n" + _help_hint("init"))
 
     dep_map, milestones, iter_fp, err = _load_init_json_args(kwargs)
     if err:
-        print(err, file=sys.stderr)
-        print(_help_hint("init"), file=sys.stderr)
-        return 1
+        return (1, "", err + "\n" + _help_hint("init"))
 
     lifecycles = {iter_id: ("queued" if not deps else "ineligible") for iter_id, deps in dep_map.items()}
 
@@ -305,9 +298,9 @@ Examples:
                 pretty,
                 fields,
             )
+            return (0, "", "")
         else:
-            print(f"DRY RUN — would create {sjp} ({project_id}, {iteration_count} iterations)")
-        return 0
+            return (0, f"DRY RUN — would create {sjp} ({project_id}, {iteration_count} iterations)", "")
 
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     atomic_write_json(sjp, state)
@@ -325,9 +318,9 @@ Examples:
             pretty,
             fields,
         )
+        return (0, "", "")
     else:
-        print(f"OK — created {sjp} ({project_id}, {iteration_count} iterations)")
-    return 0
+        return (0, f"OK — created {sjp} ({project_id}, {iteration_count} iterations)", "")
 
 
 cmd_init.usage = "<plet_dir> --project-id PROJ --project-name \"Name\" --dependency-map '{...}' --milestones '{...}' --iterations-fingerprint '{...}'"  # noqa: E501
@@ -378,32 +371,30 @@ Examples:
   plet_global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle verifying --output json
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     hint = _help_hint("update-lifecycle")
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"iter_id", "lifecycle"} | UNIVERSAL_FLAGS_WRITE, hint):
-        return 1
+        return (1, "", "")
     if not require_kwargs(kwargs, ["iter_id", "lifecycle"], help_text):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs["iter_id"]
     new_lifecycle = kwargs["lifecycle"]
     if not validate_enum(new_lifecycle, VALID_LIFECYCLES, "lifecycle"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     state, sjp = _load_and_validate_for_update(plet_dir, hint)
     if state is None:
-        return 1
+        return (1, "", "")
 
     old_lifecycle = state["lifecycles"].get(iter_id)
     changed = old_lifecycle != new_lifecycle
@@ -421,10 +412,10 @@ Examples:
         result["dryRun"] = True
         if output_json:
             emit_json(result, SCRIPT_VERSION, pretty, fields)
+            return (0, "", "")
         else:
             label = f"{old_lifecycle} → {new_lifecycle}" if changed else f"already {new_lifecycle}"
-            print(f"DRY RUN — {iter_id}: {label}")
-        return 0
+            return (0, f"DRY RUN — {iter_id}: {label}", "")
 
     if changed:
         state["lifecycles"][iter_id] = new_lifecycle
@@ -433,10 +424,10 @@ Examples:
 
     if output_json:
         emit_json(result, SCRIPT_VERSION, pretty, fields)
+        return (0, "", "")
     else:
         label = f"{old_lifecycle} → {new_lifecycle}" if changed else f"already {new_lifecycle}"
-        print(f"OK — {iter_id}: {label}")
-    return 0
+        return (0, f"OK — {iter_id}: {label}", "")
 
 
 cmd_update_lifecycle.usage = "<plet_dir> --iter-id ID_xxx --lifecycle implementing"  # noqa: E501
@@ -466,33 +457,29 @@ Examples:
   plet_global_state.py get-lifecycle plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("get-lifecycle")):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs.get("iter_id")
 
     # Load state
     sjp = state_json_path(plet_dir)
     if not os.path.isfile(sjp):
-        print(f"Error: state.json not found at {sjp}", file=sys.stderr)
-        print(_help_hint("get-lifecycle"), file=sys.stderr)
-        return 1
+        return (1, "", f"Error: state.json not found at {sjp}\n{_help_hint('get-lifecycle')}")
 
     state = load_json(sjp)
     if state is None:
-        print(f"Error: invalid JSON in {sjp}", file=sys.stderr)
-        return 1
+        return (1, "", f"Error: invalid JSON in {sjp}")
 
     lifecycles = state.get("lifecycles", {})
 
@@ -500,10 +487,10 @@ Examples:
     if iter_id is not None:
         if iter_id not in lifecycles:
             msg = f"Error: {iter_id} not found in lifecycles"
-            print(msg, file=sys.stderr)
             if output_json:
                 emit_json({"status": "error", "command": "get-lifecycle", "error": msg}, SCRIPT_VERSION, pretty, fields)
-            return 1
+                return (1, "", "")
+            return (1, "", msg)
 
         filtered = {iter_id: lifecycles[iter_id]}
         counts = _lifecycle_counts(filtered)
@@ -521,9 +508,9 @@ Examples:
                 pretty,
                 fields,
             )
+            return (0, "", "")
         else:
-            print(f"{iter_id}: {lifecycles[iter_id]}")
-        return 0
+            return (0, f"{iter_id}: {lifecycles[iter_id]}", "")
 
     # All iterations — sorted by ID (GST_GLC_BHV_5)
     sorted_lc = dict(sorted(lifecycles.items()))
@@ -543,16 +530,18 @@ Examples:
             pretty,
             fields,
         )
+        return (0, "", "")
     else:
+        lines = []
         for iid in sorted(lifecycles.keys()):
-            print(f"{iid}: {lifecycles[iid]}")
+            lines.append(f"{iid}: {lifecycles[iid]}")
         # Summary line
         parts = []
         for lc in VALID_LIFECYCLES:
             if counts[lc] > 0:
                 parts.append(f"{counts[lc]} {lc}")
-        print("{} total: {}".format(total, ", ".join(parts) if parts else "none"))
-    return 0
+        lines.append("{} total: {}".format(total, ", ".join(parts) if parts else "none"))
+        return (0, "\n".join(lines), "")
 
 
 cmd_get_lifecycle.usage = "<plet_dir>"  # noqa: E501

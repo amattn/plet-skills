@@ -293,68 +293,60 @@ Examples:
     plet_git_check.py check-iteration /path/to/plet --iter-id ID_001 --phase verify --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     cmd_name = "check-iteration"
     hint = help_hint(cmd_name)
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", str(e) + "\n" + hint)
     if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_READ, hint):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
     if not ok:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
-        return 1
+        return (1, "", "")
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Validate plet_dir
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
             emit_json_error(cmd_name, err_msg, SCRIPT_VERSION, pretty)
+            return (1, "", hint)
         else:
-            print(err_msg, file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+            return (1, "", err_msg + "\n" + hint)
 
     # Load state
     global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     iter_state = load_and_validate_iter_state(plet_dir, iter_id)
     if iter_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Check git repo
     if not is_git_repo():
         msg = "Error: not inside a git repository"
         if output_json:
             emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
+            return (1, "", "")
         else:
-            print(msg, file=sys.stderr)
-        return 1
+            return (1, "", msg)
 
     # Derive branch names
     iter_branch = derive_iteration_branch(global_state, iter_state)
@@ -386,10 +378,10 @@ Examples:
             pretty,
             fields,
         )
+        return (exit_code, "", "")
     else:
-        print(format_text_output(cmd_name, checks, status, summary))
-
-    return exit_code
+        out = format_text_output(cmd_name, checks, status, summary)
+        return (exit_code, out, "")
 
 
 cmd_check_iteration.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
@@ -609,35 +601,31 @@ Examples:
     plet_git_check.py check-session /path/to/plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     cmd_name = "check-session"
     hint = help_hint(cmd_name)
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", str(e) + "\n" + hint)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
     if not ok:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Validate environment (plet_dir, state_dir, git repo)
     sd_path = state_dir_path(plet_dir)
     global_state, err = _check_session_validate_env(plet_dir, sd_path, cmd_name, output_json, pretty, hint)
     if err is not None:
-        return err
+        return (err, "", "")
 
     # Load iteration states and derive naming
     iter_states = _load_iter_states(sd_path, plet_dir)
@@ -673,10 +661,10 @@ Examples:
             pretty,
             fields,
         )
+        return (exit_code, "", "")
     else:
-        print(format_text_output(cmd_name, checks, status, summary))
-
-    return exit_code
+        out = format_text_output(cmd_name, checks, status, summary)
+        return (exit_code, out, "")
 
 
 cmd_check_session.usage = "<plet_dir>"  # noqa: E501

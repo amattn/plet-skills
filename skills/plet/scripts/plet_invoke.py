@@ -332,6 +332,9 @@ Examples:
     plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd /tmp/wt --dry-run
     plet_invoke.py run --iter-id ID_001 --phase verify --cwd /tmp/wt --output json
 """
+    # TODO: COV migration — streaming output prevents tuple return for the live subprocess path.
+    # The dry-run path could return a tuple, but the live path uses _launch_and_capture which
+    # streams stdout line-by-line to a transcript file. Keeping int return for consistency.
     cmd_name = "run"
     hint = help_hint(cmd_name)
     result = parse_command(

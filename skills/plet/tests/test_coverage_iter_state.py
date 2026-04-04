@@ -67,8 +67,8 @@ def _make_project(iter_id="ID_001", criteria=None, with_phase=None, **iter_kwarg
     return d, plet_dir
 
 
-def _rc(result):
-    """Extract exit code from tuple or int result."""
+def exit_code(result):
+    """Extract exit code from tuple (code, out, err) or bare int result."""
     return result[0] if isinstance(result, tuple) else result
 
 
@@ -98,7 +98,7 @@ def _capture(fn, args):
 def test_cmd_init_help():
     import plet_iter_state
 
-    rc = _rc(plet_iter_state.cmd_init(["--help"]))
+    rc = exit_code(plet_iter_state.cmd_init(["--help"]))
     check("init help = 0", rc == 0)
 
 
@@ -109,7 +109,7 @@ def test_cmd_init_basic():
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_init(
                 [
                     plet_dir,
@@ -139,7 +139,7 @@ def test_cmd_init_exists_error():
 
     d, plet_dir = _make_project()
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_init(
                 [
                     plet_dir,
@@ -166,7 +166,7 @@ def test_cmd_init_invalid_iter_id():
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_init(
                 [
                     plet_dir,
@@ -239,7 +239,7 @@ def test_cmd_init_with_deps_and_criteria():
                 '[{"id":"AC_1","description":"x"}]',
             ]
         )
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_init(
                 [
                     plet_dir,
@@ -270,7 +270,7 @@ def test_cmd_init_with_deps_and_criteria():
 def test_cmd_start_phase_help():
     import plet_iter_state
 
-    rc = _rc(plet_iter_state.cmd_start_phase(["--help"]))
+    rc = exit_code(plet_iter_state.cmd_start_phase(["--help"]))
     check("start-phase help = 0", rc == 0)
 
 
@@ -279,7 +279,7 @@ def test_cmd_start_phase_implement():
 
     d, plet_dir = _make_project()
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_start_phase(
                 [
                     plet_dir,
@@ -304,7 +304,7 @@ def test_cmd_start_phase_verify():
 
     d, plet_dir = _make_project(implement_verdict="completed", attempts={"implement": 1, "verify": 0})
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_start_phase(
                 [
                     plet_dir,
@@ -330,7 +330,7 @@ def test_cmd_start_phase_already_started():
     d, plet_dir = _make_project(with_phase="implement")
     try:
         # Starting again increments attempt
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_start_phase(
                 [
                     plet_dir,
@@ -382,7 +382,7 @@ def test_cmd_start_phase_json():
 def test_cmd_update_activity_help():
     import plet_iter_state
 
-    rc = _rc(plet_iter_state.cmd_update_activity(["--help"]))
+    rc = exit_code(plet_iter_state.cmd_update_activity(["--help"]))
     check("update-activity help = 0", rc == 0)
 
 
@@ -391,7 +391,7 @@ def test_cmd_update_activity_basic():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_update_activity(
                 [
                     plet_dir,
@@ -450,7 +450,7 @@ def test_cmd_update_activity_missing_args():
     d, plet_dir = _make_project(with_phase="implement")
     try:
         # Missing --phase-activity
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_update_activity(
                 [
                     plet_dir,
@@ -473,7 +473,7 @@ def test_cmd_update_activity_invalid_activity():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_update_activity(
                 [
                     plet_dir,
@@ -501,7 +501,7 @@ def test_cmd_update_activity_invalid_activity():
 def test_cmd_update_criterion_help():
     import plet_iter_state
 
-    rc = _rc(plet_iter_state.cmd_update_criterion(["--help"]))
+    rc = exit_code(plet_iter_state.cmd_update_criterion(["--help"]))
     check("update-criterion help = 0", rc == 0)
 
 
@@ -510,7 +510,7 @@ def test_cmd_update_criterion_pass():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_update_criterion(
                 [
                     plet_dir,
@@ -544,7 +544,7 @@ def test_cmd_update_criterion_fail():
 
     d, plet_dir = _make_project(with_phase="verify")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_update_criterion(
                 [
                     plet_dir,
@@ -580,7 +580,7 @@ def test_cmd_update_criterion_missing_criterion():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_update_criterion(
                 [
                     plet_dir,
@@ -643,7 +643,7 @@ def test_cmd_update_criterion_invalid_phase():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_update_criterion(
                 [
                     plet_dir,
@@ -675,7 +675,7 @@ def test_cmd_update_criterion_invalid_phase():
 def test_cmd_set_verdict_help():
     import plet_iter_state
 
-    rc = _rc(plet_iter_state.cmd_set_verdict(["--help"]))
+    rc = exit_code(plet_iter_state.cmd_set_verdict(["--help"]))
     check("set-verdict help = 0", rc == 0)
 
 
@@ -684,7 +684,7 @@ def test_cmd_set_verdict_implement():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_set_verdict(
                 [
                     plet_dir,
@@ -716,7 +716,7 @@ def test_cmd_set_verdict_verify():
         attempts={"implement": 1, "verify": 0},
     )
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_set_verdict(
                 [
                     plet_dir,
@@ -772,7 +772,7 @@ def test_cmd_set_verdict_invalid_verdict():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_set_verdict(
                 [
                     plet_dir,
@@ -800,7 +800,7 @@ def test_cmd_set_verdict_invalid_verdict():
 def test_cmd_heartbeat_help():
     import plet_iter_state
 
-    rc = _rc(plet_iter_state.cmd_heartbeat(["--help"]))
+    rc = exit_code(plet_iter_state.cmd_heartbeat(["--help"]))
     check("heartbeat help = 0", rc == 0)
 
 
@@ -809,7 +809,7 @@ def test_cmd_heartbeat_basic():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_heartbeat(
                 [
                     plet_dir,
@@ -858,7 +858,7 @@ def test_cmd_heartbeat_missing_agent_id():
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_heartbeat(
                 [
                     plet_dir,
@@ -880,7 +880,7 @@ def test_cmd_heartbeat_missing_agent_id():
 def test_cmd_add_report_help():
     import plet_iter_state
 
-    rc = _rc(plet_iter_state.cmd_add_report(["--help"]))
+    rc = exit_code(plet_iter_state.cmd_add_report(["--help"]))
     check("add-report help = 0", rc == 0)
 
 
@@ -903,7 +903,7 @@ def test_cmd_add_report_basic():
                 }
             ]
         )
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_add_report(
                 [
                     plet_dir,
@@ -991,7 +991,7 @@ def test_cmd_add_report_invalid_verdict():
         with_phase="verify", implement_verdict="completed", attempts={"implement": 1, "verify": 0}
     )
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_add_report(
                 [
                     plet_dir,
@@ -1025,7 +1025,7 @@ def test_cmd_add_report_missing_findings():
     )
     try:
         # Missing --findings and --related-entries
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_add_report(
                 [
                     plet_dir,
@@ -1055,7 +1055,7 @@ def test_cmd_add_report_missing_findings():
 def test_cmd_validate_help():
     import plet_iter_state
 
-    rc = _rc(plet_iter_state.cmd_validate(["--help"]))
+    rc = exit_code(plet_iter_state.cmd_validate(["--help"]))
     check("validate help = 0", rc == 0)
 
 
@@ -1064,7 +1064,7 @@ def test_cmd_validate_valid():
 
     d, plet_dir = _make_project()
     try:
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_validate(
                 [
                     plet_dir,
@@ -1091,7 +1091,7 @@ def test_cmd_validate_invalid():
         with open(path, "w") as f:
             json.dump({"schemaVersion": "0.2.0", "iterationId": "ID_001"}, f)
             f.write("\n")
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_validate(
                 [
                     plet_dir,
@@ -1166,7 +1166,7 @@ def test_cmd_validate_missing_file():
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        rc = _rc(
+        rc = exit_code(
             plet_iter_state.cmd_validate(
                 [
                     plet_dir,

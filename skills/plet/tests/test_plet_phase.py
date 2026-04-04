@@ -53,6 +53,11 @@ def run_subprocess(args, expect_exit=0):
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
+def exit_code(result):
+    """Extract exit code from tuple (code, out, err) or bare int result."""
+    return result[0] if isinstance(result, tuple) else result
+
+
 def run(args, expect_exit=0, cwd=None):
     """Call cmd_end directly (coverage-visible). Strips 'end' prefix."""
     if args and args[0] == "end":
@@ -61,7 +66,7 @@ def run(args, expect_exit=0, cwd=None):
     if cwd:
         os.chdir(cwd)
     try:
-        rc = cmd_end(args)
+        rc = exit_code(cmd_end(args))
     finally:
         os.chdir(old_cwd)
     if rc != expect_exit:

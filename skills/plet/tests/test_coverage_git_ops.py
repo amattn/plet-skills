@@ -29,6 +29,11 @@ passed = 0
 failed = 0
 
 
+def exit_code(result):
+    """Extract exit code from tuple (code, out, err) or bare int result."""
+    return result[0] if isinstance(result, tuple) else result
+
+
 def check(name, condition, detail=""):
     global passed, failed
     if condition:
@@ -219,7 +224,9 @@ def test_execute_audit_tag_create():
         try:
             gs = {"projectId": "TEST", "loopSessionCount": 1}
             ist = {"iterationId": "ID_001", "attempts": {"implement": 1, "verify": 0}}
-            rc = plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", False, False, None, False)
+            rc = exit_code(
+                plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", False, False, None, False)
+            )
             check("audit tag create rc=0", rc == 0)
             check("tag created", plet_git_ops.tag_exists("plet/TEST/loop1/audit/ID_001/implement-1", cwd=d))
         finally:
@@ -247,7 +254,9 @@ def test_execute_audit_tag_replace():
         try:
             gs = {"projectId": "TEST", "loopSessionCount": 1}
             ist = {"iterationId": "ID_001", "attempts": {"implement": 1, "verify": 0}}
-            rc = plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", False, False, None, False)
+            rc = exit_code(
+                plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", False, False, None, False)
+            )
             check("audit tag replace rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -266,7 +275,9 @@ def test_execute_audit_tag_dry_run():
         try:
             gs = {"projectId": "TEST", "loopSessionCount": 1}
             ist = {"iterationId": "ID_001", "attempts": {"implement": 1, "verify": 0}}
-            rc = plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", False, False, None, True)
+            rc = exit_code(
+                plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", False, False, None, True)
+            )
             check("dry run rc=0", rc == 0)
             check("dry run no tag", not plet_git_ops.tag_exists("plet/TEST/loop1/audit/ID_001/implement-1", cwd=d))
         finally:
@@ -287,10 +298,14 @@ def test_execute_audit_tag_json_output():
             gs = {"projectId": "TEST", "loopSessionCount": 1}
             ist = {"iterationId": "ID_001", "attempts": {"implement": 1, "verify": 0}}
             # JSON output, not dry run
-            rc = plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", True, False, None, False)
+            rc = exit_code(
+                plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", True, False, None, False)
+            )
             check("json output rc=0", rc == 0)
             # JSON output, dry run
-            rc2 = plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", True, True, None, True)
+            rc2 = exit_code(
+                plet_git_ops._execute_audit_tag(gs, ist, "implement", 1, "audit-tag", True, True, None, True)
+            )
             check("json dry run rc=0", rc2 == 0)
         finally:
             os.chdir(old_cwd)
@@ -437,7 +452,7 @@ def test_merge_squash_error():
     import plet_git_ops
 
     # Text mode
-    rc = plet_git_ops._merge_squash_error("merge-squash", "test error", False, False, hint="try --help")
+    rc = exit_code(plet_git_ops._merge_squash_error("merge-squash", "test error", False, False, hint="try --help"))
     check("error returns 1", rc == 1)
 
     # JSON mode
@@ -639,7 +654,7 @@ def test_cmd_merge_squash_dry_run():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001", "--dry-run"])
+            rc = exit_code(plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001", "--dry-run"]))
             check("cmd merge-squash dry run rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -674,7 +689,7 @@ def test_cmd_merge_squash_full():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001"])
+            rc = exit_code(plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001"]))
             check("cmd merge-squash full rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -707,7 +722,9 @@ def test_cmd_merge_squash_json_output():
         os.chdir(d)
         try:
             # JSON dry run
-            rc = plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001", "--dry-run", "--output", "json"])
+            rc = exit_code(
+                plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001", "--dry-run", "--output", "json"])
+            )
             check("json dry run rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -745,7 +762,9 @@ def test_cmd_merge_squash_full_json_with_cleanup():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty"])
+            rc = exit_code(
+                plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty"])
+            )
             check("json full with cleanup rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -780,7 +799,7 @@ def test_cmd_merge_squash_text_with_cleanup():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001"])
+            rc = exit_code(plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001"]))
             check("text full with cleanup rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -796,7 +815,7 @@ def test_cmd_merge_squash_text_with_cleanup():
 def test_cmd_audit_tag_missing_args():
     import plet_git_ops
 
-    rc = plet_git_ops.cmd_audit_tag([])
+    rc = exit_code(plet_git_ops.cmd_audit_tag([]))
     check("audit-tag missing args rc=1", rc == 1)
 
 
@@ -805,7 +824,7 @@ def test_cmd_audit_tag_invalid_phase():
 
     d, plet_dir = _make_project(loop_session=1)
     try:
-        rc = plet_git_ops.cmd_audit_tag([plet_dir, "--iter-id", "ID_001", "--phase", "invalid"])
+        rc = exit_code(plet_git_ops.cmd_audit_tag([plet_dir, "--iter-id", "ID_001", "--phase", "invalid"]))
         check("audit-tag invalid phase rc=1", rc == 1)
     finally:
         shutil.rmtree(d)
@@ -830,7 +849,7 @@ def test_cmd_audit_tag_integration():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_audit_tag([plet_dir, "--iter-id", "ID_001", "--phase", "implement"])
+            rc = exit_code(plet_git_ops.cmd_audit_tag([plet_dir, "--iter-id", "ID_001", "--phase", "implement"]))
             check("audit-tag integration rc=0", rc == 0)
         finally:
             os.chdir(old_cwd)
@@ -850,7 +869,7 @@ def test_cmd_audit_tag_zero_attempts():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_audit_tag([plet_dir, "--iter-id", "ID_001", "--phase", "implement"])
+            rc = exit_code(plet_git_ops.cmd_audit_tag([plet_dir, "--iter-id", "ID_001", "--phase", "implement"]))
             check("zero attempts rc=1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -871,7 +890,7 @@ def test_cmd_audit_tag_not_git_repo():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_audit_tag([plet_dir, "--iter-id", "ID_001", "--phase", "implement"])
+            rc = exit_code(plet_git_ops.cmd_audit_tag([plet_dir, "--iter-id", "ID_001", "--phase", "implement"]))
             check("not git repo rc=1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -887,7 +906,7 @@ def test_cmd_audit_tag_not_git_repo():
 def test_cmd_merge_squash_missing_args():
     import plet_git_ops
 
-    rc = plet_git_ops.cmd_merge_squash([])
+    rc = exit_code(plet_git_ops.cmd_merge_squash([]))
     check("merge-squash missing args rc=1", rc == 1)
 
 
@@ -908,7 +927,7 @@ def test_cmd_merge_squash_bad_global_state():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001"])
+            rc = exit_code(plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001"]))
             check("bad global state rc=1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -928,7 +947,7 @@ def test_cmd_merge_squash_bad_iter_state():
         os.chdir(d)
         try:
             # Request an iter that doesn't exist
-            rc = plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_999"])
+            rc = exit_code(plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_999"]))
             check("bad iter state rc=1", rc == 1)
         finally:
             os.chdir(old_cwd)
@@ -956,7 +975,7 @@ def test_cmd_merge_squash_git_validation_fails():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            rc = plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001"])
+            rc = exit_code(plet_git_ops.cmd_merge_squash([plet_dir, "--iter-id", "ID_001"]))
             check("git validation fails rc != 0", rc != 0)
         finally:
             os.chdir(old_cwd)

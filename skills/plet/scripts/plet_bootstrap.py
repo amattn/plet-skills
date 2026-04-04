@@ -336,43 +336,49 @@ Examples:
   plet_bootstrap.py setup /path/to/project --force
   plet_bootstrap.py setup . --output json --pretty
 """
+    out = ""
+    err = ""
+
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     project_dir, remaining = _get_project_dir(args)
     if project_dir is None:
-        return 1
+        return (1, "", "")
 
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"force"} | UNIVERSAL_FLAGS_WRITE, _help_hint("setup")):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return 1
+        return (1, "", "")
 
     # Preconditions
     if not os.path.isdir(project_dir):
-        print(f"Error: directory does not exist: {project_dir}", file=sys.stderr)
-        return 1
+        err += f"Error: directory does not exist: {project_dir}\n"
+        return (1, "", err)
 
     if not _is_git_repo(project_dir):
-        print(f"Error: not inside a git repository: {project_dir}", file=sys.stderr)
-        print("Run 'git init' first.", file=sys.stderr)
-        return 1
+        err += f"Error: not inside a git repository: {project_dir}\n"
+        err += "Run 'git init' first.\n"
+        return (1, "", err)
 
     if dry_run:
         if output_json:
-            emit_json(
-                {"status": "ok", "command": "setup", "dryRun": True, "actions": [], "summary": {}},
-                SCRIPT_VERSION,
-                pretty,
-                fields,
+            out = json.dumps(
+                {
+                    "status": "ok",
+                    "command": "setup",
+                    "dryRun": True,
+                    "actions": [],
+                    "summary": {},
+                    "scriptVersion": SCRIPT_VERSION,
+                }
             )
         else:
-            print(f"DRY RUN — would configure project at {project_dir}")
-        return 0
+            out = f"DRY RUN — would configure project at {project_dir}"
+        return (0, out, "")
 
     # Run all setup actions
     all_actions = []
@@ -408,14 +414,17 @@ Examples:
             pretty,
             fields,
         )
+        return (1 if errors else 0, "", "")
     else:
+        lines = []
         for a in all_actions:
-            print("{}: {} — {}".format(a["action"], a["target"], a["detail"]))
-        print(f"\nBootstrap complete: {created} created, {configured} configured, {skipped} skipped")
+            lines.append("{}: {} — {}".format(a["action"], a["target"], a["detail"]))
+        lines.append(f"\nBootstrap complete: {created} created, {configured} configured, {skipped} skipped")
         if warnings:
-            print(f"{warnings} warning(s)")
+            lines.append(f"{warnings} warning(s)")
+        out = "\n".join(lines)
 
-    return 1 if errors else 0
+    return (1 if errors else 0, out, "")
 
 
 cmd_setup.usage = "<project_dir>"  # noqa: E501
@@ -583,25 +592,27 @@ Examples:
   plet_bootstrap.py check .
   plet_bootstrap.py check /path/to/project --output json --pretty
 """
+    out = ""
+    err = ""
+
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     project_dir, remaining = _get_project_dir(args)
     if project_dir is None:
-        return 1
+        return (1, "", "")
 
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("check")):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     if not os.path.isdir(project_dir):
-        print(f"Error: directory does not exist: {project_dir}", file=sys.stderr)
-        return 1
+        err = f"Error: directory does not exist: {project_dir}\n"
+        return (1, "", err)
 
     checks = _gather_checks(project_dir)
 
@@ -623,16 +634,23 @@ Examples:
             pretty,
             fields,
         )
+        if failed:
+            return (1, "", "")
+        elif warnings:
+            return (2, "", "")
+        return (0, "", "")
     else:
+        lines = []
         for c in checks:
-            print("{}: {} — {}".format(c["status"], c["name"], c["detail"]))
-        print(f"\n{passed} passed, {failed} failed, {warnings} warnings")
+            lines.append("{}: {} — {}".format(c["status"], c["name"], c["detail"]))
+        lines.append(f"\n{passed} passed, {failed} failed, {warnings} warnings")
+        out = "\n".join(lines)
 
     if failed:
-        return 1
+        return (1, out, "")
     elif warnings:
-        return 2
-    return 0
+        return (2, out, "")
+    return (0, out, "")
 
 
 cmd_check.usage = "<project_dir>"  # noqa: E501

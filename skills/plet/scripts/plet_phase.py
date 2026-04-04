@@ -95,29 +95,26 @@ def cmd_end(args):
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields, _ = result
 
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     verdict = kwargs["verdict"]
     valid_verdicts = IMPLEMENT_VERDICTS if phase == "implement" else VERIFY_VERDICTS
     if not validate_enum(verdict, valid_verdicts, "--verdict"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Verify phase requires --summary (for auto-report) or --report-file
     if phase == "verify" and not kwargs.get("summary") and not kwargs.get("report_file"):
-        print("Error: verify phase requires --summary (for auto-report) or --report-file", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", "Error: verify phase requires --summary (for auto-report) or --report-file\n" + hint)
 
-    return _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields)
+    rc = _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields)
+    return (rc, "", "")
 
 
 def _build_criteria_results(ist):

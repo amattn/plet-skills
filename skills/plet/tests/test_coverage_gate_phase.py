@@ -459,6 +459,11 @@ def _make_gated_project(phase="implement"):
     return d, plet_dir
 
 
+def exit_code(result):
+    """Extract exit code from tuple (code, out, err) or bare int result."""
+    return result[0] if isinstance(result, tuple) else result
+
+
 def _capture_cmd(fn, args):
     """Call a cmd_* function, capturing stdout. Returns (exit_code, stdout_str)."""
     import contextlib
@@ -466,8 +471,11 @@ def _capture_cmd(fn, args):
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        code = fn(args)
-    return code, buf.getvalue()
+        result = fn(args)
+    if isinstance(result, tuple) and len(result) == 3:
+        code, out, _err = result
+        return code, out or buf.getvalue()
+    return result, buf.getvalue()
 
 
 def test_cmd_pre_implement():

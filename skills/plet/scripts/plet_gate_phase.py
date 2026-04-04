@@ -576,53 +576,46 @@ Examples:
     help_text = help_pre if cmd == "pre" else help_post
 
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     hint = help_hint(cmd)
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", str(e) + "\n" + hint)
     if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_READ, hint):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
     if not ok:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
-        return 1
+        return (1, "", "")
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
             emit_json_error(cmd, err, SCRIPT_VERSION, pretty)
+            return (1, "", "")
         else:
-            print(err, file=sys.stderr)
-        return 1
+            return (1, "", err)
 
     global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     iter_state = load_and_validate_iter_state(plet_dir, iter_id)
     if iter_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Shared checks
     checks = []
@@ -653,10 +646,10 @@ Examples:
             pretty,
             fields,
         )
+        return (exit_code, "", "")
     else:
-        print(format_text_output(cmd, checks, overall, counts))
-
-    return exit_code
+        out = format_text_output(cmd, checks, overall, counts)
+        return (exit_code, out, "")
 
 
 def pre_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state):

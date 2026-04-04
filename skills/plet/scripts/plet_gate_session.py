@@ -190,28 +190,24 @@ Examples:
     plet_gate_session.py detect /path/to/project/plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     cmd_name = "detect"
     hint = help_hint(cmd_name)
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", str(e) + "\n" + hint)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
     if not ok:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     session_type, reason, artifacts = detect_session_type(plet_dir)
 
@@ -228,11 +224,10 @@ Examples:
             pretty,
             fields,
         )
+        return (0, "", "")
     else:
         # Bare output for shell capture (GSS_DXP_3)
-        print(session_type)
-
-    return 0
+        return (0, session_type, "")
 
 
 cmd_detect.usage = "<plet_dir>"  # noqa: E501
@@ -299,7 +294,7 @@ def _format_status_text(
     warnings,
     milestones_data,
 ):
-    """Format text output for the status command."""
+    """Format text output for the status command. Returns string."""
     lines = []
     lines.append(f"Project: {project_id}")
     lines.append(f"Session: {session_type} (loop {loop_session})")
@@ -335,7 +330,7 @@ def _format_status_text(
         for ms_id, ms in milestones_data.items():
             lines.append("  {} ({}): {}/{} complete".format(ms_id, ms["name"], ms["complete"], ms["total"]))
 
-    print("\n".join(lines))
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -430,50 +425,45 @@ Examples:
     plet_gate_session.py status plet/ --output json --pretty
 """
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     cmd_name = "status"
     hint = help_hint(cmd_name)
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", str(e) + "\n" + hint)
     if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint):
-        return 1
+        return (1, "", "")
 
     output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
     if not ok:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
         if output_json:
             emit_json_error(cmd_name, err_msg, SCRIPT_VERSION, pretty)
+            return (1, "", "")
         else:
-            print(err_msg, file=sys.stderr)
-        return 1
+            return (1, "", err_msg)
 
     global_state = load_and_validate_global_state(plet_dir)
     if global_state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     sd = state_dir_path(plet_dir)
     if not os.path.isdir(sd):
         msg = f"Error: state directory not found: {sd}"
         if output_json:
             emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
+            return (1, "", "")
         else:
-            print(msg, file=sys.stderr)
-        return 1
+            return (1, "", msg)
 
     iter_states, warnings = scan_iter_states(plet_dir)
     d = _collect_status_data(plet_dir, global_state, iter_states)
@@ -498,8 +488,9 @@ Examples:
             pretty,
             fields,
         )
+        return (0, "", "")
     else:
-        _format_status_text(
+        out = _format_status_text(
             d["project_id"],
             d["session_type"],
             d["loop_session"],
@@ -513,8 +504,7 @@ Examples:
             warnings,
             d["milestones_data"],
         )
-
-    return 0
+        return (0, out, "")
 
 
 cmd_status.usage = "<plet_dir>"  # noqa: E501
@@ -722,7 +712,8 @@ def _summarize_checks(checks):
 
 
 def _format_preflight_text(checks, counts, overall):
-    """Print human-readable preflight output."""
+    """Format human-readable preflight output. Returns string."""
+    lines = []
     if overall == "ok":
         title_detail = "{} passed".format(counts["passed"])
     elif overall == "fail":
@@ -734,17 +725,18 @@ def _format_preflight_text(checks, counts, overall):
         title_detail = ", ".join(parts)
     else:
         title_detail = "{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else "")
-    print(f"{overall.upper()}: preflight — {title_detail}")
+    lines.append(f"{overall.upper()}: preflight — {title_detail}")
 
     for c in checks:
-        print("{}: {} — {}".format(c["status"].upper(), c["name"], c["detail"]))
+        lines.append("{}: {} — {}".format(c["status"].upper(), c["name"], c["detail"]))
 
     parts = ["{} passed".format(counts["passed"])]
     parts.append("{} failed".format(counts["failed"]))
     parts.append("{} warning{}".format(counts["warnings"], "s" if counts["warnings"] != 1 else ""))
     if counts["skipped"] > 0:
         parts.append("{} skipped".format(counts["skipped"]))
-    print("{} checks: {}".format(counts["total"], ", ".join(parts)))
+    lines.append("{} checks: {}".format(counts["total"], ", ".join(parts)))
+    return "\n".join(lines)
 
 
 def cmd_preflight(args):
@@ -779,28 +771,26 @@ Examples:
     cmd_name = "preflight"
     hint = help_hint(cmd_name)
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     # NOTE: do NOT validate plet_dir exists — preflight checks fresh projects
     # where plet/ may not exist yet. parse_command would reject this.
 
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"session_type", "output", "pretty", "fields"}, hint):
-        return 1
+        return (1, "", "")
     if not require_kwargs(kwargs, ["session_type"], help_text):
-        return 1
+        return (1, "", "")
     output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     session_type_raw = kwargs["session_type"]
     if not validate_enum(session_type_raw, VALID_SESSION_TYPES, "--session-type"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Resolve "detect" to actual session type
     session_type = detect_session_type(plet_dir)[0] if session_type_raw == "detect" else session_type_raw
@@ -821,10 +811,10 @@ Examples:
             pretty,
             fields,
         )
+        return (exit_code, "", "")
     else:
-        _format_preflight_text(checks, counts, overall)
-
-    return exit_code
+        out = _format_preflight_text(checks, counts, overall)
+        return (exit_code, out, "")
 
 
 cmd_preflight.usage = "<plet_dir> --session-type loop"  # noqa: E501
@@ -859,26 +849,24 @@ def cmd_postflight(args):
     """
     help_text = cmd_postflight.__doc__
     if "-h" in args or "--help" in args:
-        print(help_text)
-        return 0
+        return (0, help_text, "")
 
     plet_dir, remaining = get_plet_dir(args)
     if plet_dir is None:
-        return 1
+        return (1, "", "")
     kwargs = parse_kwargs(remaining)
     if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ, help_hint("postflight")):
-        return 1
+        return (1, "", "")
 
     if not require_kwargs(kwargs, ["session_type"], help_text):
-        return 1
+        return (1, "", "")
     session_type = kwargs["session_type"]
     if not validate_enum(session_type, ["detect", "plan", "loop", "refine"], "session-type"):
-        print(help_hint("postflight"), file=sys.stderr)
-        return 1
+        return (1, "", help_hint("postflight"))
 
     output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
     if not ok:
-        return 1
+        return (1, "", "")
 
     checks = run_preflight_checks(plet_dir, session_type)
     _append_transient_lifecycle_check(checks, plet_dir)
@@ -916,7 +904,7 @@ def _append_transient_lifecycle_check(checks, plet_dir):
 
 
 def _emit_postflight_result(checks, session_type, output_json, pretty, fields):
-    """Summarize and emit postflight results."""
+    """Summarize and emit postflight results. Returns (exit_code, out, err) tuple."""
     total = len(checks)
     passed_count = sum(1 for c in checks if c["status"] == "pass")
     warn_count = sum(1 for c in checks if c["status"] == "warn")
@@ -938,20 +926,21 @@ def _emit_postflight_result(checks, session_type, output_json, pretty, fields):
             pretty,
             fields,
         )
+        return (exit_code, "", "")
     else:
+        lines = []
         label = "OK" if overall == "ok" else "WARN"
-        print(f"{label}: postflight — {total} checks")
+        lines.append(f"{label}: postflight — {total} checks")
         for c in checks:
-            print("  {}: {:30s} {}".format(c["status"].upper(), c["name"], c.get("detail", "")))
+            lines.append("  {}: {:30s} {}".format(c["status"].upper(), c["name"], c.get("detail", "")))
         counts = {"total": total, "passed": passed_count, "warnings": warn_count, "skipped": skip_count}
         parts = ["{} passed".format(counts["passed"])]
         if counts["warnings"] > 0:
             parts.append("{} warnings".format(counts["warnings"]))
         if counts["skipped"] > 0:
             parts.append("{} skipped".format(counts["skipped"]))
-        print("{} checks: {}".format(counts["total"], ", ".join(parts)))
-
-    return exit_code
+        lines.append("{} checks: {}".format(counts["total"], ", ".join(parts)))
+        return (exit_code, "\n".join(lines), "")
 
 
 cmd_postflight.usage = "<plet_dir> --session-type loop"  # noqa: E501

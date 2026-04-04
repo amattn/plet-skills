@@ -345,7 +345,6 @@ def _parse_trace_args(args, help_text, command, known_flags, required, is_mutati
     Returns "help" | None | (plet_dir, kwargs, flags) on success.
     """
     if "-h" in args or "--help" in args:
-        print(help_text)
         return "help"
 
     hint = help_hint(command)
@@ -481,31 +480,28 @@ Examples:
         supports_raw=False,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, flags = result
 
     ctx = _validate_trace_context(kwargs, hint)
     if ctx is None:
-        return 1
+        return (1, "", "")
     iter_id, phase, attempt = ctx
 
     event_type = kwargs["event_type"]
     if not validate_enum(event_type, VALID_EVENT_TYPES, "--event-type"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     data_obj = _parse_event_data(kwargs, hint)
     if data_obj is None:
-        return 1
+        return (1, "", "")
 
     data_errors = validate_data_fields(event_type, data_obj)
     if data_errors:
-        for e in data_errors:
-            print(f"Error: {e}", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        err_lines = "\n".join(f"Error: {e}" for e in data_errors) + "\n" + hint
+        return (1, "", err_lines)
 
     # Build event
     plet_id = generate_plet_id("tev", iter_id, phase, attempt)
@@ -535,9 +531,9 @@ Examples:
                 },
                 flags,
             )
+            return (0, "", "")
         else:
-            print(f"DRY RUN — would append {event_type} event to {events_path}")
-        return 0
+            return (0, f"DRY RUN — would append {event_type} event to {events_path}", "")
 
     # Serialize and append
     line = json.dumps(event, separators=(",", ":")) + "\n"
@@ -555,9 +551,9 @@ Examples:
             },
             flags,
         )
+        return (0, "", "")
     else:
-        print(f"OK — {plet_id} appended {event_type} event to {events_path}")
-    return 0
+        return (0, f"OK — {plet_id} appended {event_type} event to {events_path}", "")
 
 
 cmd_append_event.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1 --event-type TYPE --data '{...}'"  # noqa: E501
@@ -629,21 +625,19 @@ Examples:
         supports_raw=False,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, flags = result
 
     ctx = _validate_trace_context(kwargs, hint)
     if ctx is None:
-        return 1
+        return (1, "", "")
     iter_id, phase, attempt = ctx
 
     path = derive_events_path(plet_dir, iter_id, phase, attempt)
     if not os.path.exists(path):
-        print(f"Error: {path} does not exist", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", f"Error: {path} does not exist\n{hint}")
 
     errors, event_count, counts_by_type = _validate_events_file(path)
 
@@ -660,18 +654,16 @@ Examples:
             },
             flags,
         )
-        return 1 if errors else 0
+        return (1 if errors else 0, "", "")
 
     if errors:
-        for e in errors:
-            print(f"  {e}", file=sys.stderr)
         type_str = ", ".join(f"{v} {k}" for k, v in sorted(counts_by_type.items()))
-        print(f"ERROR — {len(errors)} error(s) in {path} ({event_count} events: {type_str})", file=sys.stderr)
-        return 1
+        err_lines = "\n".join(f"  {e}" for e in errors)
+        err_lines += f"\nERROR — {len(errors)} error(s) in {path} ({event_count} events: {type_str})"
+        return (1, "", err_lines)
 
     type_str = ", ".join(f"{v} {k}" for k, v in sorted(counts_by_type.items()))
-    print(f"OK — {path} is valid ({event_count} events: {type_str})")
-    return 0
+    return (0, f"OK — {path} is valid ({event_count} events: {type_str})", "")
 
 
 cmd_validate.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1"  # noqa: E501
@@ -780,26 +772,24 @@ Examples:
         supports_raw=True,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, flags = result
 
     ctx = _validate_trace_context(kwargs, hint)
     if ctx is None:
-        return 1
+        return (1, "", "")
     iter_id, phase, attempt = ctx
 
     path = derive_events_path(plet_dir, iter_id, phase, attempt)
 
     if not os.path.exists(path):
-        print(f"Error: {path} does not exist", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", f"Error: {path} does not exist\n{hint}")
 
     event_type_filter, criterion_filter, last_n, err = _validate_query_filters(kwargs, hint)
     if err:
-        return 1
+        return (1, "", "")
 
     matches = _read_and_filter_events(path, event_type_filter, criterion_filter, last_n)
 
@@ -815,14 +805,13 @@ Examples:
             },
             flags,
         )
+        return (0, "", "")
     elif flags["raw"]:
-        for event in matches:
-            print(json.dumps(event, separators=(",", ":")))
+        out = "\n".join(json.dumps(event, separators=(",", ":")) for event in matches)
+        return (0, out, "")
     else:
-        for event in matches:
-            print(json.dumps(event, indent=2))
-
-    return 0
+        out = "\n".join(json.dumps(event, indent=2) for event in matches)
+        return (0, out, "")
 
 
 cmd_query.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1"  # noqa: E501

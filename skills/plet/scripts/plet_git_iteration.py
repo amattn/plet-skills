@@ -150,20 +150,18 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     state = load_and_validate_global_state(plet_dir)
     if state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     branch_type = kwargs.get("type", "iteration")
     if not validate_enum(branch_type, VALID_TYPES, "--type"):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     iter_id = kwargs.get("iter_id")
     if branch_type == "iteration":
@@ -171,11 +169,9 @@ Examples:
             emit_error(
                 cmd_name, "Error: --iter-id is required for --type iteration", SCRIPT_VERSION, output_json, pretty
             )
-            print(hint, file=sys.stderr)
-            return 1
+            return (1, "", hint)
         if not validate_iter_id(iter_id, cmd_name, output_json, pretty):
-            print(hint, file=sys.stderr)
-            return 1
+            return (1, "", hint)
 
     branch = derive_branch_name(state, branch_type, iter_id)
     session_num = _branch_session_num(state, branch_type)
@@ -194,10 +190,9 @@ Examples:
             pretty,
             fields,
         )
+        return (0, "", "")
     else:
-        print(branch)
-
-    return 0
+        return (0, branch, "")
 
 
 cmd_branch_name.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
@@ -256,25 +251,23 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     cmd_name = "worktree-create"
     iter_id = kwargs["iter_id"]
     if not validate_iter_id(iter_id, cmd_name, output_json, pretty):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     err = _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint)
     if err is not None:
-        return err
+        return (err, "", "")
 
     state = load_and_validate_global_state(plet_dir)
     if state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Derive paths
     branch = derive_branch_name(state, "iteration", iter_id)
@@ -285,13 +278,13 @@ Examples:
     if os.path.exists(wt_path):
         msg = f"Error: worktree path already exists: {wt_path}. Remove with worktree-remove first."
         emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", "")
 
     resumed = branch_exists(branch)
     if not resumed and not branch_exists(base):
         msg = f"Error: base branch not found: {base}. Create the workstream branch first."
         emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", "")
 
     result_data = {
         "status": "ok",
@@ -311,9 +304,9 @@ Examples:
         result_data["dryRun"] = True
         if output_json:
             emit_json(result_data, SCRIPT_VERSION, pretty, fields)
+            return (0, "", "")
         else:
-            print(msg)
-        return 0
+            return (0, msg, "")
 
     return _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_json, pretty, fields, result_data)
 
@@ -323,7 +316,7 @@ cmd_worktree_create.example = "plet_git_iteration.py worktree-create plet/ --ite
 
 
 def _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_json, pretty, fields, result_data):
-    """Execute the actual worktree creation."""
+    """Execute the actual worktree creation. Returns (code, out, err) tuple."""
     parent = os.path.dirname(wt_path)
     if parent and not os.path.exists(parent):
         os.makedirs(parent, exist_ok=True)
@@ -334,16 +327,16 @@ def _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_js
         r = run_git("worktree", "add", "-b", branch, wt_path, base)
     if r.returncode != 0:
         emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", "")
 
     action = "resumed" if resumed else "created"
     prefix = "existing " if resumed else ""
     msg = f"OK — {action} worktree at {wt_path} on {prefix}branch {branch}"
     if output_json:
         emit_json(result_data, SCRIPT_VERSION, pretty, fields)
+        return (0, "", "")
     else:
-        print(msg)
-    return 0
+        return (0, msg, "")
 
 
 def cmd_worktree_remove(args):
@@ -389,26 +382,24 @@ Examples:
         hint=hint,
     )
     if result == "help":
-        return 0
+        return (0, help_text, "")
     if result is None:
-        return 1
+        return (1, "", "")
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
     if not validate_iter_id(iter_id, cmd_name, output_json, pretty):
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     delete_branch = kwargs.get("delete_branch", False) is True
 
     err = _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint)
     if err is not None:
-        return err
+        return (err, "", "")
 
     state = load_and_validate_global_state(plet_dir)
     if state is None:
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", hint)
 
     # Derive paths
     branch = derive_branch_name(state, "iteration", iter_id)
@@ -417,7 +408,7 @@ Examples:
 
     if not os.path.exists(wt_path):
         emit_error(cmd_name, f"Error: no worktree at {wt_path}", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", "")
 
     result_data = {
         "status": "ok",
@@ -435,9 +426,9 @@ Examples:
         result_data["dryRun"] = True
         if output_json:
             emit_json(result_data, SCRIPT_VERSION, pretty, fields)
+            return (0, "", "")
         else:
-            print(msg)
-        return 0
+            return (0, msg, "")
 
     return _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_json, pretty, fields, result_data)
 
@@ -447,11 +438,11 @@ cmd_worktree_remove.example = "plet_git_iteration.py worktree-remove plet/ --ite
 
 
 def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_json, pretty, fields, result_data):
-    """Execute the actual worktree removal and optional branch deletion."""
+    """Execute the actual worktree removal and optional branch deletion. Returns (code, out, err) tuple."""
     r = run_git("worktree", "remove", "--force", wt_path)
     if r.returncode != 0:
         emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        return (1, "", "")
 
     run_git("worktree", "prune")
 
@@ -461,7 +452,7 @@ def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_js
         if r.returncode != 0:
             msg = f"Error: git command failed while deleting branch: {r.stderr}"
             emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
-            return 1
+            return (1, "", "")
         branch_deleted = True
 
     result_data["branchDeleted"] = branch_deleted
@@ -471,10 +462,9 @@ def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_js
 
     if output_json:
         emit_json(result_data, SCRIPT_VERSION, pretty, fields)
+        return (0, "", "")
     else:
-        print(msg)
-
-    return 0
+        return (0, msg, "")
 
 
 # ---------------------------------------------------------------------------
