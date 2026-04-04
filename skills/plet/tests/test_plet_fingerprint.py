@@ -585,6 +585,85 @@ def test_withdrawn_section_exclusion():
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Direct import tests (COV_4 — coverage-visible pure functions)
+# ---------------------------------------------------------------------------
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+import plet_fingerprint as fpr_mod  # noqa: E402
+
+
+def test_filter_excluded_sections_direct():
+    print("\n## filter_excluded_sections — excludes future/open (direct import)")
+    text = """# Doc
+## 3. Requirements
+| FR_1 | Do thing | P0 |
+## 13. Future Considerations
+| FUT_1 | Maybe later | |
+## 14. Success Metrics
+| SM_1 | Users happy | |
+"""
+    result = fpr_mod.filter_excluded_sections(text, fpr_mod.REQUIREMENTS_EXCLUDED_HEADINGS)
+    check("keeps requirements", "FR_1" in result)
+    check("excludes future", "FUT_1" not in result)
+    check("keeps success", "SM_1" in result)
+
+
+def test_parse_fingerprint_block_direct():
+    print("\n## parse_fingerprint_block — parses markers (direct import)")
+    marker = fpr_mod.FINGERPRINT_START
+    text = f'# Doc\n{marker}\n{{"test": true}}\n{marker}\n'
+    fp, start, end = fpr_mod.parse_fingerprint_block(text)
+    check("parses json", fp is not None and fp.get("test") is True)
+    check("start > 0", start > 0)
+    check("end > start", end > start)
+
+    # No markers
+    fp, start, end = fpr_mod.parse_fingerprint_block("no markers here")
+    check("no markers returns None", fp is None)
+    check("start -1", start == -1)
+
+    # Single marker only
+    fp, start, end = fpr_mod.parse_fingerprint_block(f"only one {marker} marker")
+    check("single marker returns None", fp is None)
+
+
+def test_write_fingerprint_block_direct():
+    print("\n## write_fingerprint_block — creates and replaces (direct import)")
+    # No existing block — appends
+    result = fpr_mod.write_fingerprint_block("# Doc\nContent", {"version": 1})
+    check("appends block", "version" in result)
+    check("has markers", fpr_mod.FINGERPRINT_START in result)
+
+    # Existing block — replaces
+    marker = fpr_mod.FINGERPRINT_START
+    text = f'# Doc\n{marker}\n{{"old": true}}\n{marker}\n'
+    result = fpr_mod.write_fingerprint_block(text, {"new": True})
+    check("replaces content", '"new": true' in result)
+    check("no old content", '"old"' not in result)
+
+
+def test_write_fingerprint_malformed_block():
+    print("\n## write_fingerprint_block — malformed block recovery (direct import)")
+    marker = fpr_mod.FINGERPRINT_START
+    text = f"# Doc\n{marker}\nnot valid json\n{marker}\n"
+    result = fpr_mod.write_fingerprint_block(text, {"fixed": True})
+    check("recovers from malformed", '"fixed": true' in result)
+
+
+def test_compare_fingerprints_direct():
+    print("\n## compare_fingerprints — comparison logic (direct import)")
+    fp1 = {"lastNonTrivialUpdate": "2026-01-01", "requirements": {"FR": ["FR_1"]}}
+    fp2 = {"lastNonTrivialUpdate": "2026-01-01", "requirements": {"FR": ["FR_1"]}}
+    consistent, details = fpr_mod.compare_fingerprints(fp1, fp2, "requirements")
+    check("identical consistent", consistent is True)
+
+    fp3 = {"lastNonTrivialUpdate": "2026-01-02", "requirements": {"FR": ["FR_1", "FR_2"]}}
+    consistent, details = fpr_mod.compare_fingerprints(fp1, fp3, "requirements")
+    check("different inconsistent", consistent is False)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -617,6 +696,11 @@ def main():
     test_error_fields_without_json()
     test_error_missing_file()
     test_withdrawn_section_exclusion()
+    test_filter_excluded_sections_direct()
+    test_parse_fingerprint_block_direct()
+    test_write_fingerprint_block_direct()
+    test_write_fingerprint_malformed_block()
+    test_compare_fingerprints_direct()
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
