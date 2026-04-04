@@ -321,6 +321,42 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 
 ---
 
+### 3.4 postflight (PSF)
+
+#### Justification (GSS_PSF_JUS)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| GSS_PSF_JUS_1 | Why: post-session health checks run after loop/refine completes. Internally calls preflight for shared checks, then adds end-of-session checks (transient lifecycle detection — iterations stuck in `implementing`/`verifying` per `state.json.lifecycles`, SF_28). | P0 |
+| GSS_PSF_JUS_2 | When: called by orchestrator before closing the session. Separate command for discoverability and symmetry with preflight; may diverge in the future. Warnings only — never blocks session end. | P0 |
+
+#### Definition (GSS_PSF_CMD)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| GSS_PSF_CMD_1 | Usage: `plet_gate_session.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
+
+**Properties:** read-only, idempotent, non-atomic (no writes)
+
+**Concurrency:** safe — read-only
+
+#### Inputs (GSS_PSF_INP)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| GSS_PSF_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
+| GSS_PSF_INP_2 | `--session-type` — required. `loop` or `refine`. Controls which session-end checks apply. | P0 |
+
+#### Outputs (GSS_PSF_OUT)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| GSS_PSF_OUT_1 | Text mode: title line `PASS/WARN: postflight — {summary}`, then one line per check, then summary line. | P0 |
+| GSS_PSF_OUT_2 | JSON mode: structured postflight results. Same output model as preflight. | P0 |
+| GSS_PSF_OUT_3 | Exit codes: 0 (all pass), 2 (warn only). Postflight never returns exit 1 — warnings only, never blocks session end. | P0 |
+
+---
+
 ## 4. Edge Cases (GSS_EDG)
 
 | ID | Requirement | Priority |
@@ -554,7 +590,7 @@ See `specs/conventions.md` for universal requirements.
 
 | # | Question | Context |
 |---|----------|---------|
-| 1 | Should SES have a `postflight` command? | GTC `check-session` handles git compliance at session end. But there may be non-git concerns that gate session end: all progress entries written, all emergent items logged, fingerprints re-embedded after refine changes, state.json sessionHistory updated. A SES `postflight` could orchestrate these checks (calling GTC + ENT check + FPR check + state validation) as a single session-end gate. Evaluate during orchestrator spec — the orchestrator is the primary caller of session-end checks. |
+| 1 | ~~Should SES have a `postflight` command?~~ | **Resolved:** command exists. See §3.4 postflight (PSF). |
 
 ## 15. Future Considerations (GSS_FUT)
 

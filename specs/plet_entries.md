@@ -68,7 +68,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <plet_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <plet_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -85,7 +85,6 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_INP_5 | `--attempt` — attempt number (positive integer) | P0 |
 | ENT_APR_INP_6 | `--status` — `IN_PROGRESS`, `COMPLETE`, `BLOCKED`, `FAILED`, `SKIPPED`, or `MIGRATED`. Required — agent must always specify. | P0 |
 | ENT_APR_INP_7 | `--content` — freeform content block. For BLOCKED entries, include "Work completed:" and "Work remaining:" sections. | P0 |
-| ENT_APR_INP_8 | `--files` — (optional) JSON array of `"path — description"` strings | P1 |
 | ENT_APR_INP_9 | `--content-file` — (optional) path to a file containing the content text. Mutually exclusive with `--content`. Use for long content that's awkward as a shell argument (e.g., plan session milestones, blocker details). | P1 |
 | ENT_APR_INP_10 | `--allow-fences` — Optional. Bypasses fence pattern validation. Use when content legitimately contains plet fence markers (e.g., logging full prompts that include format examples). | P1 |
 
@@ -121,7 +120,6 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_PRE_4 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_APR_PRE_5 | `--status` is a valid progress status | P0 |
 | ENT_APR_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
-| ENT_APR_PRE_7 | `--files` is a valid JSON array if provided | P0 |
 | ENT_APR_PRE_8 | Exactly one of `--content` or `--content-file` must be provided | P0 |
 | ENT_APR_PRE_9 | If `--content-file` is provided, the file must exist and be readable | P0 |
 
@@ -143,7 +141,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_BHV_2 | Build formatted entry matching `references/formats.md` RT_1: div markers, horizontal rule, header, metadata fields, summary, files list | P0 |
 | ENT_APR_BHV_3 | Atomically append to `{plet_dir}/progress.md` | P0 |
 | ENT_APR_BHV_4 | File must already exist — will not create it | P0 |
-| ENT_APR_BHV_5 | If `--files` omitted or empty array, produce `- (none)` in files list | P1 |
+| ENT_APR_BHV_5 | If no files changed, produce `- (none)` in files list | P1 |
 | ENT_APR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
 | ENT_APR_BHV_7 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). Bypassed when `--allow-fences` is set. | P0 |
 | ENT_APR_BHV_8 | When `--status IN_PROGRESS`, suppress status from the header line. Header becomes `### [ID_xxx] phase-N` instead of `### [ID_xxx] phase-N — IN_PROGRESS`. All other statuses are printed. | P0 |
@@ -434,7 +432,7 @@ Missing artifact files are distinguished from "initialized but no entries" — s
 | ENT_EDG_2 | Artifact file doesn't exist for `add-*` — error with specific message, will not create it | P0 |
 | ENT_EDG_3 | Artifact file doesn't exist for `check` — distinguished from "0 entries" with `NOT_INITIALIZED` status. Both contribute to exit 1. JSON includes `initialized` boolean per artifact. | P0 |
 | ENT_EDG_4 | No existing emergent entries — `EM_1` assigned as first number | P0 |
-| ENT_EDG_5 | `--files` as empty JSON array `'[]'` — produce `- (none)` in entry | P1 |
+| ENT_EDG_5 | No files changed (flag removed) — produce `- (none)` in entry | P1 |
 | ENT_EDG_6 | Multiple entries for same iteration — each gets a unique plet ID (timestamp-based uniqueness) | P0 |
 | ENT_EDG_7 | Concurrent appends from parallel agents — `atomic_append` prevents interleaving but entries may appear out of order. EM_N numbering has a race condition — duplicate EM_N possible. Plet IDs remain unique. Duplicates detected and renumbered during refine. | P0 |
 | ENT_EDG_8 | Non-integer `--attempt` — clean error message (not Python traceback) | P0 |
@@ -446,7 +444,7 @@ Missing artifact files are distinguished from "initialized but no entries" — s
 | ENT_EDG_14 | Both `--content` and `--content-file` provided — mutually exclusive error | P0 |
 | ENT_EDG_15 | `--content-file` exists but is empty — error: "content must not be empty" | P0 |
 | ENT_EDG_16 | `--content` is empty string — error: "content must not be empty" | P0 |
-| ENT_EDG_17 | `--files` with non-array JSON (string, object, number) — error: "--files must be a JSON array" | P0 |
+| ENT_EDG_17 | ~~`--files` with non-array JSON~~ — `--files` flag removed. | — |
 | ENT_EDG_18 | `--content-file` exists but not readable (permissions) — error with specific message | P0 |
 
 ## 5. Error Handling (ENT_ERR)
@@ -460,7 +458,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ENT_ERR_3 | Invalid status (progress) → `Error: invalid --status '{status}' (valid: IN_PROGRESS, COMPLETE, BLOCKED, FAILED, SKIPPED, MIGRATED)` | P0 |
 | ENT_ERR_4 | Invalid category (learning) → `Error: invalid --category '{category}' (valid: pattern, gotcha, technique, tool, debug, context)` | P0 |
 | ENT_ERR_5 | Invalid category (emergent) → `Error: invalid --category '{category}' (valid: design decision, requirement gap, assumption, scope question, edge case, blocker)` | P0 |
-| ENT_ERR_6 | Invalid JSON in `--files` → `Error: --files must be valid JSON array: {parse_error}` | P0 |
+| ENT_ERR_6 | ~~Invalid JSON in `--files`~~ — `--files` flag removed. | — |
 | ENT_ERR_7 | Non-integer `--attempt` → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
 | ENT_ERR_8 | ~~Artifact file not found~~ — add-* commands now auto-create. Only applies to `check` command (reports NOT_INITIALIZED). | P0 |
 | ENT_ERR_9 | `--pretty` without `--output json` → `Error: --pretty requires --output json` | P0 |
@@ -470,7 +468,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ENT_ERR_13 | Both `--content` and `--content-file` provided → `Error: --content and --content-file are mutually exclusive` | P0 |
 | ENT_ERR_14 | `--content-file` path not found → `Error: content file not found: {path}` | P0 |
 | ENT_ERR_15 | Empty content → `Error: content must not be empty` (applies to both `--content ""` and empty `--content-file`) | P0 |
-| ENT_ERR_16 | `--files` is not a JSON array → `Error: --files must be a JSON array, got {type}` | P0 |
+| ENT_ERR_16 | ~~`--files` is not a JSON array~~ — `--files` flag removed. | — |
 | ENT_ERR_17 | `--content-file` not readable → `Error: cannot read content file: {path}: {reason}` | P0 |
 | ENT_ERR_18 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ID_N+ or 'proj'` | P0 |
 | ENT_ERR_19 | `--attempt` zero or negative → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
@@ -536,8 +534,7 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 plet_entries.py add-progress plet/ \
     --iter-id ID_001 --iter-title "Project scaffolding" \
     --phase implement --attempt 1 --status COMPLETE \
-    --content "Initialized project with pytest, ruff. All checks pass." \
-    --files '["pyproject.toml — project metadata", "src/main.py — entry point"]'
+    --content "Initialized project with pytest, ruff. All checks pass."
 # OK — epr_01JD8X3K7M_id001_i1
 
 # Record what was learned
@@ -602,8 +599,7 @@ plet_entries.py add-progress plet/ \
 plet_entries.py add-progress plet/ \
     --iter-id ID_002 --iter-title "Core data model" \
     --phase implement --attempt 1 --status IN_PROGRESS \
-    --content "SQLite schema created, CRUD operations implemented. Still working on migration logic." \
-    --files '["src/db/schema.py — table definitions", "src/db/crud.py — insert/select/update"]'
+    --content "SQLite schema created, CRUD operations implemented. Still working on migration logic."
 # OK — epr_01JD8X3KCS_id002_i1
 # Header in progress.md: ### [ID_002] implement-1
 # (no " — IN_PROGRESS" suffix per ENT_APR_BHV_8)

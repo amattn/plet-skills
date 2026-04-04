@@ -1,6 +1,6 @@
 # plet_bootstrap.py (BST)
 
-> Status: not started
+> Status: complete
 
 ## 1. Purpose (BST_PUR)
 

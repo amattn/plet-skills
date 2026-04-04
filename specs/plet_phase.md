@@ -19,7 +19,7 @@
 | Step | Script | Subcommand |
 |------|--------|-----------|
 | 1 | `plet_iter_state.py` | `set-verdict --phase verify --verdict {passed\|rejected\|blocked}` |
-| 1.5 | `plet_iter_state.py` | `add-report` (only if `--report-file` provided) |
+| 1.5 | `plet_iter_state.py` | `add-report` (verify only — auto-built from criteria via --summary, or from --report-file) |
 | 2 | `plet_entries.py` | `add-progress --status {COMPLETE\|FAILED\|BLOCKED}` |
 | 3 | `plet_trace.py` | `append-event --event-type decision` |
 | 4 | `plet_git_ops.py` | `audit-tag --phase verify` |
@@ -83,6 +83,8 @@ plet_phase.py end <plet_dir> --iter-id ID_xxx --phase implement|verify
 | PHS_END_INP_4 | `--verdict` — required. Implement: `completed` or `blocked`. Verify: `passed`, `rejected`, or `blocked`. | P0 |
 | PHS_END_INP_5 | `--progress-content` — required. Freeform content for the completion progress entry. | P0 |
 | PHS_END_INP_6 | `--report-file` — optional. Path to verification report JSON file (verify phase only). If provided and file exists, calls `plet_iter_state.py add-report` before the progress entry. | P1 |
+| PHS_END_INP_7 | `--summary` — required for verify phase. Verification report headline (1-3 sentences). If provided without --report-file, auto-builds report from criteria in state file. | P0 |
+| PHS_END_INP_8 | `--findings` — optional. JSON array of finding strings for cross-cutting observations. Default '[]'. | P1 |
 
 #### Outputs (OUT)
 
@@ -118,7 +120,7 @@ This is a composite command — preconditions, postconditions, and behaviors are
 | Step | Script called | What it does |
 |------|--------------|--------------|
 | 1 | `plet_iter_state.py set-verdict` | Set implement/verify verdict, clear phaseActivity |
-| 1.5 | `plet_iter_state.py add-report` | (verify only, if --report-file provided) Append verification report |
+| 1.5 | `plet_iter_state.py add-report` | (verify only — auto-built from criteria via --summary, or from --report-file) Append verification report |
 | 2 | `plet_entries.py add-progress` | Write COMPLETE/BLOCKED/FAILED progress entry |
 | 3 | `plet_trace.py append-event` | Emit decision event (phase ended with verdict) |
 | 4 | `plet_git_ops.py audit-tag` | Create audit tag preserving commit history |

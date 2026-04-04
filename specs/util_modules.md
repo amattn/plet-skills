@@ -21,6 +21,8 @@ Argument parsing, validation, timestamps, dispatch, output filtering. The founda
 | `extract_output_flags(kwargs, allow_dry_run=False)` | Extract `--output`, `--pretty`, `--fields`, optionally `--dry-run` from kwargs. Returns `(output_json, pretty, fields, dry_run, ok)`. Validates flag dependencies. |
 | `emit_json(data, script_version, pretty, fields)` | Print structured JSON to stdout. Adds `scriptVersion` and `timestamp`. Applies field filtering. |
 | `emit_json_error(command, message, script_version, pretty)` | Print structured JSON error to stdout + text to stderr. |
+| `emit_error(cmd, msg, version, output_json, pretty)` | Unified error emitter — prints to stderr (text) or stdout (JSON error envelope) depending on output mode. |
+| `parse_command(args, help_text, known_flags, required, allow_dry_run, hint)` | Parse command args with known flags, required field validation, optional dry-run support, and a hint string for unknown-flag error messages. |
 
 ## util_io.py
 
@@ -130,13 +132,12 @@ State file validation and validated loading for both global (`plet/state.json`) 
 | `iterationId` | string | Required. Matches `ID_\d+`. |
 | `title` | string | Required. |
 | `lastUpdated` | string | Required. |
-| `lifecycle` | string | Required. Valid lifecycle enum. |
 | `dependencies` | array | Required. |
 | `agentId` | string or null | Required (may be null). |
 | `attempts` | object | Required. Contains `implement` (int ≥ 0) and `verify` (int ≥ 0). |
 | `criteria` | array | Required. |
 
-Optional fields (returned with defaults if absent): `agentActivity` ("idle"), `activityDetail` (null), `phaseTimestamps` ({}), `elapsedSeconds` ({"total": 0}), `summary` (null), `filesChanged` ([]), `cleanupTagsAutomatically` (false), `cleanupBranchesAutomatically` (false), `verificationReports` ([]), `lastVerdict` (null), `lastHeartbeat` (null).
+Optional fields (returned with defaults if absent): `phaseActivity` ("idle"), `activityDetail` (null), `phaseTimestamps` ({}), `elapsedSeconds` ({"total": 0}), `summary` (null), `filesChanged` ([]), `cleanupTagsAutomatically` (false), `cleanupBranchesAutomatically` (false), `verificationReports` ([]), `implementVerdict` (null), `verifyVerdict` (null), `lastHeartbeat` (null).
 
 Full schemas in `references/state-schema.md`.
 
