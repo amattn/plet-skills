@@ -1822,6 +1822,18 @@ Added `oneLiner`, `redTest`, `noTestRationale` fields to the verification object
 
 `_build_criteria_results` in plet_phase.py reads these from state instead of hardcoding. SCHEMA_VERSION bumped to 0.4.0 (additive fields).
 
+#### PLAN_COV — library pattern for coverage (2026-04-04)
+
+**Root cause analysis:** Coverage keeps drifting below 85% because scripts are only callable via subprocess, which is invisible to pytest-cov. Every new script or feature dilutes the percentage, requiring manual intervention. This happened three times in one session. The root cause is architectural, not test-count.
+
+**Decision:** Restructure scripts into an importable package (PLAN_COV, 10 incremental steps). Logic functions are testable via direct import — coverage becomes a byproduct of testing, not a separate activity. `test_all.py` simultaneously tests and measures coverage. No more backsliding.
+
+**COV_1 (auto-logger test):** Direct import tests for `_log_script_invocation`, `_extract_plet_dir`, `_extract_from_args`. util_cli.py: 67% → 92%. Confirmed: direct imports are ~3x faster than subprocess per test.
+
+**COV_2 start (iter_state internals):** Direct import tests for `_validate_init_inputs`, `_parse_init_data`, `_validate_report_fields`, `_build_phase_obj`, `_find_criterion`, `_validate_criteria_results`. plet_iter_state.py: 81% → 83%. Full extraction (separating logic from CLI wrapper) deferred to the library restructure.
+
+**Quality ratchets:** Formalized as UNV_QG_1-5 in conventions.md. Added §4.5 Quality Ratchets to plan.md requirements template and §10.5 to cli-spec-template.md. Metrics that must never go backwards: coverage ≥85%, McCabe ≤15, ruff lint zero errors, ruff format clean. FOO_73 filed and resolved.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
