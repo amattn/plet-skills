@@ -14,7 +14,7 @@
 | PLAN_PY | Python Tooling | ✓ COMPLETE |
 | PLAN_RW | PRD + ORC + SKILL.md + Reference Files Rewrite | ✓ COMPLETE |
 | PLAN_HLP | Subagent CLI Re-learning | |
-| PLAN_OVH | Plet Infrastructure Overhead | |
+| PLAN_OVH | Plet Infrastructure Overhead | deferred (after HLP) |
 | PLAN_PAR | Parallel Orchestrator | |
 | PLAN_SUB | Subplets | |
 | PLAN_EVL | Eval System + Comparison Runs | |
@@ -396,18 +396,24 @@ Reshape the surface first, then make it discoverable, then pre-fill it, then doc
 
 ---
 
-## PLAN_OVH: Plet Infrastructure Overhead
+## PLAN_OVH: Plet Infrastructure Overhead (deferred — re-evaluate after PLAN_HLP)
 
-LOGA Run 6 timing analysis found that **53% of implement-phase Bash calls are plet infrastructure** (state updates, progress entries, trace events, gate checks, audit tags), not application code. The agent spends more time managing plet artifacts than writing and testing the actual software.
+LOGA Run 6 timing analysis found that **53% of implement-phase Bash calls are plet infrastructure** (state updates, progress entries, trace events, gate checks, audit tags), not application code.
 
-**Investigation areas:**
-- Are all artifact writes necessary per iteration, or can some be batched/deferred?
-- Can gate checks be consolidated (one post-phase call instead of multiple)?
-- Is the auto-logger adding overhead without proportional observability value?
-- Could the orchestrator handle more artifact writes on behalf of the subagent (like it now handles `start-phase`)?
-- What's the minimum viable artifact footprint per iteration?
+**Detailed breakdown (all 13 implement phases, 745 total Bash calls):**
+- `update-activity`: 118 calls (28%) — heartbeat per red/green step
+- `start-phase`: 54 calls (13%) — already moved to orchestrator (FOO_61), should be ~0 next run
+- `update-criterion`: 53 calls (13%) — essential, tracks AC pass/fail
+- `add-progress`: 45 calls (11%) — essential for observability
+- `append-event`: 37 calls (9%) — auto-logger handles most
+- `--help` lookups: 80 calls (19%) — addressed by PLAN_HLP
+- audit-tag, gate, merge-squash, etc.: remainder
 
-**Data:** 396 of 743 implement Bash calls are plet infrastructure. Estimated ~46 min of a 86 min total implement time.
+**Key insight:** The overhead is dominated by *discovery cost* (80 --help lookups, agents retrying start-phase 3-5x per iteration), not by the calls themselves. The actual artifact writes are fast and essential — runtime artifacts are what make plet plet. Earlier runs had the opposite problem (artifacts not written often enough).
+
+**Decision:** Defer investigation. Implement PLAN_HLP first (especially HLP_2B orchestrator bookkeeping), then re-run and re-analyze. Between start-phase moving to orchestrator (54 calls eliminated), --help elimination (~80 calls), and HLP_2B moving gate/audit-tag to orchestrator, the ratio should shift significantly without cutting any artifacts.
+
+**Re-evaluate trigger:** After a post-PLAN_HLP run, if plet infrastructure is still >40% of Bash calls, revisit with fresh data.
 
 ---
 
