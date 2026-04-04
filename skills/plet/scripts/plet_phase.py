@@ -128,12 +128,16 @@ def _build_criteria_results(ist):
     """
     results = []
     for c in ist.get("criteria", []):
-        v = c.get("verification", {})
+        v = c.get("verification") or {}
         evidence = v.get("evidence", "")
+        crit_status = v.get("status", "not_started")
+        # add-report rejects "not_started" — map to "skipped" for unverified criteria
+        if crit_status == "not_started":
+            crit_status = "skipped"
         results.append(
             {
                 "id": c["id"],
-                "status": v.get("status", "not_started"),
+                "status": crit_status,
                 "oneLiner": v.get("oneLiner") or evidence.split(".")[0][:120] or c.get("description", ""),
                 "redTest": v.get("redTest", "none"),
                 "noTestRationale": v.get("noTestRationale", ""),

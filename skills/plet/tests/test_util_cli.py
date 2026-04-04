@@ -422,6 +422,60 @@ def test_dispatch_no_args():
     check("prints doc to stderr", "Test doc" in err)
 
 
+def test_dispatch_usage():
+    print("\n## dispatch — --usage shows command summaries")
+    import io
+
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+
+    def cmd_foo(args):
+        """Do foo things."""
+        return 0
+
+    cmd_foo.usage = "<plet_dir> --flag VALUE"
+    cmd_foo.example = "test.py foo plet/ --flag bar"
+
+    code = util_cli.dispatch(
+        {"foo": cmd_foo},
+        "test",
+        "1.0",
+        "0.1.0",
+        "Test doc",
+        argv=["test", "--usage"],
+    )
+    out = sys.stdout.getvalue()
+    sys.stdout = old_stdout
+
+    check("exit 0", code == 0)
+    check("shows command name", "foo" in out)
+    check("shows usage", "--flag VALUE" in out)
+    check("shows description", "Do foo things" in out)
+    check("shows example", "test.py foo" in out)
+
+
+def test_dispatch_help_footer():
+    print("\n## dispatch — --help includes usage tip")
+    import io
+
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+    code = util_cli.dispatch(
+        {"test": lambda args: 0},
+        "test",
+        "1.0",
+        "0.1.0",
+        "Test doc",
+        argv=["test", "--help"],
+    )
+    out = sys.stdout.getvalue()
+    sys.stdout = old_stdout
+
+    check("exit 0", code == 0)
+    check("has usage tip", "--usage" in out)
+    check("has cheat sheet ref", "PLET_CLI_REF" in out)
+
+
 # ---------------------------------------------------------------------------
 # filter_fields
 # ---------------------------------------------------------------------------
@@ -777,6 +831,8 @@ def main():
     test_dispatch_unknown_command()
     test_dispatch_valid_command()
     test_dispatch_no_args()
+    test_dispatch_usage()
+    test_dispatch_help_footer()
     test_filter_fields_none()
     test_filter_fields_subset()
     test_filter_fields_nonexistent()

@@ -105,7 +105,17 @@ def setup_project(tmpdir, phase="implement", verdict_field=None, verdict_value=N
     lifecycle = "implementing" if phase == "implement" else "verifying"
     make_global_state(plet_dir, lifecycles={"ID_001": lifecycle})
 
-    iter_kwargs = {}
+    iter_kwargs = {
+        "criteria": [
+            {
+                "id": "AC_1",
+                "description": "Test criterion",
+                "status": "not_started",
+                "implementation": None,
+                "verification": None,
+            }
+        ],
+    }
     if verdict_field and verdict_value:
         iter_kwargs[verdict_field] = verdict_value
     make_iter_state(plet_dir, **iter_kwargs)
@@ -387,6 +397,100 @@ def test_end_blocked_verdict():
         shutil.rmtree(tmpdir)
 
 
+def test_end_verify_missing_summary():
+    print("\n## end — verify without --summary or --report-file")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_project(tmpdir, phase="verify")
+        out, err, rc = run(
+            [
+                "end",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "verify",
+                "--verdict",
+                "passed",
+                "--progress-content",
+                "test",
+            ],
+            expect_exit=1,
+            cwd=tmpdir,
+        )
+        check("exit 1", rc == 1)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_end_verify_auto_report():
+    print("\n## end — verify with --summary auto-builds report")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_project(tmpdir, phase="verify")
+
+        # First update a criterion so the report has something to read
+        scripts_dir = os.path.join(os.path.dirname(__file__), "..", "scripts")
+        subprocess.run(
+            [
+                sys.executable,
+                os.path.join(scripts_dir, "plet_iter_state.py"),
+                "update-criterion",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--criterion",
+                "AC_1",
+                "--phase",
+                "verification",
+                "--status",
+                "pass",
+                "--evidence",
+                "Tests pass. All green.",
+                "--agent-id",
+                "test",
+            ],
+            capture_output=True,
+        )
+        # Commit the criterion update so it's on disk for plet_phase.py end
+        subprocess.run(["git", "-C", tmpdir, "add", "-A"], capture_output=True)
+        subprocess.run(["git", "-C", tmpdir, "commit", "-m", "criterion update"], capture_output=True)
+
+        out, err, rc = run(
+            [
+                "end",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "verify",
+                "--verdict",
+                "passed",
+                "--progress-content",
+                "Verified.",
+                "--summary",
+                "All criteria verified independently.",
+            ],
+            cwd=tmpdir,
+        )
+        check("exit 0", rc == 0)
+
+        # Check report was written
+        ist = load_json(iter_state_path(plet_dir, "ID_001"))
+        reports = ist.get("verificationReports", [])
+        check("report exists", len(reports) >= 1)
+        if reports:
+            check("report verdict", reports[-1].get("verdict") == "passed")
+            check("report summary", "All criteria" in reports[-1].get("summary", ""))
+            cr = reports[-1].get("criteriaResults", [])
+            check("criteriaResults has entries", len(cr) >= 1)
+            if cr:
+                check("criterion from state", cr[0]["id"] == "AC_1")
+                check("oneLiner auto-derived", "Tests pass" in cr[0].get("oneLiner", ""))
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 # ===========================================================================
 # main
 # ===========================================================================
@@ -397,6 +501,8 @@ def main():
     test_end_implement_happy_path()
     test_end_verify_happy_path()
     test_end_missing_args()
+    test_end_verify_missing_summary()
+    test_end_verify_auto_report()
     test_end_invalid_verdict()
     test_end_blocked_verdict()
 

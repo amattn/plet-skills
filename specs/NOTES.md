@@ -1755,3 +1755,35 @@ Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree co
 **Coverage threshold set: 85%.** `fail_under = 85` in pyproject.toml. `coverage_all.sh` exits non-zero if coverage drops.
 
 **Final test counts:** 2189 harness, 1002 pytest. 85% overall coverage (was 57% at session start). 31 test files across the test suite.
+
+### Coverage difficulty analysis (2026-04-04)
+
+**The core tension:** We test the CLI interface (subprocess) because that's what agents experience. But pytest-cov only measures in-process coverage. These are fundamentally incompatible. `coverage_all.sh` bridges this with `COVERAGE_PROCESS_START` + subprocess tracking, but it's slow (~120s vs ~30s) and a separate tool developers forget to run.
+
+**Coverage gap by cause:**
+
+| Cause | Missing lines | Scripts affected |
+|-------|-------------|-----------------|
+| Subprocess invisibility | ~200 | All scripts via test_all.py |
+| Auto-logger suppression (PLET_NO_LOG) | ~90 | util_cli.py |
+| Error path branches | ~300 | iter_state, fingerprint, gate_session |
+| Dry-run paths | ~100 | fingerprint, global_state, entries |
+| Mock complexity (needs mock claude) | ~130 | orchestrator |
+
+**Improvement strategies (ranked by effort):**
+
+1. **`# pragma: no cover` on dry-run blocks** — ~100 lines, 10 min. Low risk code.
+2. **Test auto-logger once** — One test without PLET_NO_LOG covers ~90 lines of util_cli.py.
+3. **Dual-mode tests** — Import cmd_* directly (like plet_phase.py does) for remaining scripts.
+4. **Extract logic from CLI** — Split each cmd_* into: pure logic function (testable via import) + thin CLI wrapper (parse, validate, format). This is the incremental path to #6.
+5. **Inline coverage heuristic** — After tests, check which functions lack direct test counterparts.
+6. **Library + CLI pattern** — All scripts become one importable package. CLI is a thin dispatch layer. Eliminates the subprocess coverage gap entirely.
+
+**Waste analysis if doing #6:**
+- #1 (pragma): wasted — dry-run becomes importable
+- #2 (auto-logger test): **not wasted** — logger stays in util_cli regardless
+- #3 (dual-mode tests): partially wasted — test logic survives, import paths change
+- #4 (extract logic): **not wasted — it IS step 1 of #6**. Each extraction moves one script toward the library pattern
+- #5 (heuristic): wasted — unnecessary when everything is importable
+
+**Recommended path:** Do #4 incrementally as scripts are touched for other reasons. Each logic extraction is one step toward #6. When enough scripts are extracted, the final step (package directory + single entry point) is a rename + import fixup, not a logic rewrite. Skip #1/#3/#5 since they're wasted by #6. Do #2 once (auto-logger test) since it survives any restructure.
