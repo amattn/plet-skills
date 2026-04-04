@@ -1740,6 +1740,16 @@ Detailed per-iteration timing analysis from transcript files. Key findings:
 - Later iterations trend longer (growing codebase)
 - 43 min (23%) is pure orchestrator overhead (subagent spawn/teardown)
 
+#### PLAN_HLP strategy — multi-angle approach (2026-04-03)
+
+8 strategies across 3 categories to eliminate ~150 `--help` lookups/run. Key decisions:
+
+- **Reshape first, document last.** Orchestrator takes over more bookkeeping (HLP_2B) and a phase-complete composite command reduces the surface (HLP_2A) *before* creating cheat sheets or inlining examples — no point documenting commands that will change.
+- **Pre-fill context in prompts.** plet_prompt.py assembles CLI examples with iter_id/phase already filled in (HLP_1C). Zero discovery needed for the most common calls.
+- **Make discovery cheap.** `--usage` for terse help (HLP_3A), cheat sheet reference in `--help` output (HLP_3C).
+- **Excluded:** 2C (batch artifact writes — sacrifices crash recovery). Strategy 4 options (unified CLI, Python API, SDK) — architectural changes beyond scope.
+- **3B clarification:** env var points to cheat sheet file path, not inline content.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).

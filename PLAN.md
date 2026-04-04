@@ -341,9 +341,58 @@ Autonomous agents accumulate tech debt iteration by iteration — each subagent 
 
 LOGA Run 6 timing analysis found ~150 `--help` lookups per run — every fresh subagent (26 total: 13 implement + 13 verify) calls `--help` 5-8 times to learn the plet CLI invocation syntax. The prompts provide script paths but not exact usage strings.
 
-**Fix:** Include copy-pasteable invocation examples directly in the implement.md and verify.md prompts so subagents don't need to discover syntax at runtime. The `--help` text is already well-structured — extract the most common invocations and inline them.
-
 **Data:** ~5-7 minutes wasted per run on help lookups. Small per-invocation cost but adds up across 26 subagent spawns.
+
+**Strategy:** Attack from multiple angles — reduce what subagents need to learn, pre-fill what they do need, and make discovery cheap when it happens. Strategies are complementary, not exclusive.
+
+### HLP_1A: Inline examples in reference files
+
+Add copy-pasteable command examples directly in implement.md and verify.md where scripts are referenced. Simplest fix — no code changes.
+
+### HLP_1B: CLI cheat sheet reference file
+
+Create `references/cli-cheatsheet.md` with the top ~15 most-called invocations. Injected alongside implement.md/verify.md. Keeps reference files from bloating while giving subagents a single lookup source.
+
+### HLP_1C: Prompt assembler fills in iter_id/phase
+
+`plet_prompt.py assemble` already builds the subagent prompt. Add a "CLI Quick Reference" section with the current `--iter-id` and `--phase` pre-filled from orchestrator context. The subagent gets exact commands like `plet_iter_state.py set-verdict plet/ --iter-id ID_007 --phase implement --verdict completed` — zero discovery needed.
+
+### HLP_2A: Phase-complete composite command
+
+A single `plet_phase.py complete` (or new command on an existing script) that calls set-verdict, add-progress (completion entry), append-event, audit-tag, and post-gate internally. One call replaces five. Massively reduces learning surface.
+
+### HLP_2B: Orchestrator does more bookkeeping
+
+Extend the start-phase pattern. The orchestrator already handles lifecycle transitions and start-phase. Also take over: post-gate check, audit tag creation, completion progress entry. The subagent's CLI surface shrinks to: update-criterion, update-activity, set-verdict, add-learning, add-emergent, add-progress. Everything structural becomes orchestrator infrastructure.
+
+### HLP_3A: Terse --usage flag
+
+Add `--usage` flag to all scripts that returns just the usage line + required flags in one line. When agents do call help, it's cheap.
+
+### HLP_3B: Env var with cheat sheet file path
+
+`plet_invoke.py` already injects `PLET_SCRIPTS_DIR`. Also inject `PLET_CLI_REF` pointing to the cheat sheet file from HLP_1B. Subagent can read it once at startup.
+
+### HLP_3C: Embed cheat sheet in --help output
+
+When a subagent calls `--help` on any plet script, include a "See also" section with the path to the cheat sheet file and/or the top 3-5 related commands from other scripts. One `--help` call teaches more than just that script.
+
+### Build order
+
+Reshape the surface first, then make it discoverable, then pre-fill it, then document it.
+
+| Step | Task | Rationale |
+|------|------|-----------|
+| 1 | HLP_2B — orchestrator takes over more bookkeeping | Removes commands from subagent surface |
+| 2 | HLP_2A — phase-complete composite command | Further reduces surface |
+| 3 | HLP_3A — add --usage flag | Cheap help for remaining commands |
+| 4 | HLP_3C — embed cheat sheet reference in --help | Requires knowing final command set |
+| 5 | HLP_1C — prompt assembler fills in iter_id/phase | Requires knowing final command set |
+| 6 | HLP_1A — inline examples in implement.md/verify.md | Requires knowing final command set |
+| 7 | HLP_1B — create cheat sheet | Written last — captures the final CLI surface |
+| 8 | HLP_3B — inject cheat sheet path via env var | Requires HLP_1B |
+
+**Excluded:** 2C (batch artifact writes — sacrifices crash recovery granularity). 3B is a file path reference, not the full cheat sheet content. Strategy 4 options (unified CLI, Python API, SDK, NL interface) are architectural changes beyond scope.
 
 ---
 
