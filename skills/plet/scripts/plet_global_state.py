@@ -151,6 +151,10 @@ Exit 0 if valid, exit 1 if invalid or error.
         return 1
 
 
+cmd_validate.usage = "<plet_dir>"  # noqa: E501
+cmd_validate.example = "plet_global_state.py validate plet/"  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # init
 # ---------------------------------------------------------------------------
@@ -326,6 +330,10 @@ Examples:
     return 0
 
 
+cmd_init.usage = "<plet_dir> --project-id PROJ --project-name \"Name\" --dependency-map '{...}' --milestones '{...}' --iterations-fingerprint '{...}'"  # noqa: E501
+cmd_init.example = 'plet_global_state.py init plet/ --project-id LOGA --project-name "Log Analyzer" --dependency-map \'{"ID_001":[]}\' --milestones \'{"MS_1":{"name":"MVP","iterations":["ID_001"]}}\' --iterations-fingerprint \'{}\''  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # update-lifecycle
 # ---------------------------------------------------------------------------
@@ -429,6 +437,10 @@ Examples:
         label = f"{old_lifecycle} → {new_lifecycle}" if changed else f"already {new_lifecycle}"
         print(f"OK — {iter_id}: {label}")
     return 0
+
+
+cmd_update_lifecycle.usage = "<plet_dir> --iter-id ID_xxx --lifecycle implementing"  # noqa: E501
+cmd_update_lifecycle.example = "plet_global_state.py update-lifecycle plet/ --iter-id ID_001 --lifecycle implementing"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -541,6 +553,10 @@ Examples:
                 parts.append(f"{counts[lc]} {lc}")
         print("{} total: {}".format(total, ", ".join(parts) if parts else "none"))
     return 0
+
+
+cmd_get_lifecycle.usage = "<plet_dir>"  # noqa: E501
+cmd_get_lifecycle.example = "plet_global_state.py get-lifecycle plet/"  # noqa: E501
 
 
 def _lifecycle_counts(lifecycles):

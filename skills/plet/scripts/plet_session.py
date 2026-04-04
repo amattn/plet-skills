@@ -223,6 +223,10 @@ def cmd_start_session(args):
     )
 
 
+cmd_start_session.usage = "<plet_dir> --type loop|refine"  # noqa: E501
+cmd_start_session.example = "plet_session.py start-session plet/ --type loop"  # noqa: E501
+
+
 def _load_session_state(plet_dir, session_type):
     """Load and prepare state for start-session. Returns (state, path) or (None, None)."""
     gs_path = state_json_path(plet_dir)
@@ -407,6 +411,10 @@ def cmd_end_session(args):
         print("Branch: {}".format(active_entry["branch"]))
 
     return 0
+
+
+cmd_end_session.usage = "<plet_dir>"  # noqa: E501
+cmd_end_session.example = "plet_session.py end-session plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

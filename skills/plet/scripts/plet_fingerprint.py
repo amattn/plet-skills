@@ -526,6 +526,7 @@ def _parse_fpr_args(args, help_text, cmd_name, valid_types):
 
 
 def cmd_extract(args):
+    """Extract a fingerprint from a plan artifact by scanning its content."""
     help_text = """IMPORTANT:
     extract is read-only — it produces a fingerprint from file content without
     modifying anything. Use embed to write fingerprints into files.
@@ -618,7 +619,12 @@ Examples:
     return 0
 
 
+cmd_extract.usage = "<plet_dir> --type requirements|iterations"  # noqa: E501
+cmd_extract.example = "plet_fingerprint.py extract plet/ --type requirements"  # noqa: E501
+
+
 def cmd_embed(args):
+    """Write the extracted fingerprint into the correct location in a plan artifact."""
     help_text = """IMPORTANT:
     embed modifies files — use --dry-run first to preview changes.
     embed auto-extracts the fingerprint from file content and writes it in-place.
@@ -672,6 +678,10 @@ Examples:
     force_bump = kwargs.pop("bump", False) is True
 
     return _dispatch_embed(type_val, artifact_dir, cmd_name, force_bump, dry_run, output_json, pretty, fields)
+
+
+cmd_embed.usage = "<plet_dir> --type requirements|iterations|state"  # noqa: E501
+cmd_embed.example = "plet_fingerprint.py embed plet/ --type requirements"  # noqa: E501
 
 
 def _dispatch_embed(type_val, artifact_dir, cmd_name, force_bump, dry_run, output_json, pretty, fields):
@@ -1075,6 +1085,7 @@ def _format_check_text_output(levels_result, all_consistent):
 
 
 def cmd_check(args):
+    """Detect staleness across the fingerprint chain."""
     help_text = """IMPORTANT:
     check is read-only — it detects staleness without modifying files.
     Exit code 0 = all consistent, exit code 1 = stale or error.
@@ -1172,6 +1183,10 @@ Examples:
         _format_check_text_output(levels_result, all_consistent)
 
     return 0 if all_consistent else 1
+
+
+cmd_check.usage = "<plet_dir>"  # noqa: E501
+cmd_check.example = "plet_fingerprint.py check plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

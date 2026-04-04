@@ -418,6 +418,10 @@ Examples:
     return 1 if errors else 0
 
 
+cmd_setup.usage = "<project_dir>"  # noqa: E501
+cmd_setup.example = "plet_bootstrap.py setup ."  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # check
 # ---------------------------------------------------------------------------
@@ -629,6 +633,10 @@ Examples:
     elif warnings:
         return 2
     return 0
+
+
+cmd_check.usage = "<project_dir>"  # noqa: E501
+cmd_check.example = "plet_bootstrap.py check ."  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

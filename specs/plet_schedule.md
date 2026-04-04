@@ -35,6 +35,7 @@ Loop scheduling decisions — determines which iterations are eligible for work,
 | `--output json` | all commands | Structured JSON output |
 | `--pretty` | all commands | Indented JSON (requires `--output json`) |
 | `--fields f1,f2` | all commands | Limit JSON fields (requires `--output json`) |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 No commands support `--dry-run` — all are read-only.
 

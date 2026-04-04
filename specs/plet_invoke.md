@@ -39,6 +39,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 | `--pretty` | run | Indent JSON (requires `--output json`) |
 | `--fields f1,f2` | run | Limit JSON fields (requires `--output json`) |
 | `--dry-run` | run | Preview the command that would be executed without launching |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 **JSON error behavior:** Per UNV_ERR_4.
 

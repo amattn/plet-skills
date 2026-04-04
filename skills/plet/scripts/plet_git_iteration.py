@@ -107,6 +107,7 @@ from util_git import derive_branch_name  # noqa: E402 — shared naming logic
 
 
 def cmd_branch_name(args):
+    """Generate the correct branch name from project state."""
     help_text = """IMPORTANT:
     branch-name is read-only — it prints the branch name, no git operations.
     Text output is bare (no "OK —" prefix) for shell capture:
@@ -199,6 +200,10 @@ Examples:
     return 0
 
 
+cmd_branch_name.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_branch_name.example = "plet_git_iteration.py branch-name plet/ --iter-id ID_001"  # noqa: E501
+
+
 def _branch_session_num(state, branch_type):
     """Determine session number for branch-name output."""
     if branch_type in ("iteration", "workstream"):
@@ -209,6 +214,7 @@ def _branch_session_num(state, branch_type):
 
 
 def cmd_worktree_create(args):
+    """Create an isolated worktree for an iteration on its own branch."""
     help_text = """IMPORTANT:
     worktree-create modifies git state — use --dry-run first to preview.
     If the iteration branch already exists (blocked/interrupted iteration),
@@ -312,6 +318,10 @@ Examples:
     return _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_json, pretty, fields, result_data)
 
 
+cmd_worktree_create.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_worktree_create.example = "plet_git_iteration.py worktree-create plet/ --iter-id ID_001"  # noqa: E501
+
+
 def _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_json, pretty, fields, result_data):
     """Execute the actual worktree creation."""
     parent = os.path.dirname(wt_path)
@@ -337,6 +347,7 @@ def _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_js
 
 
 def cmd_worktree_remove(args):
+    """Clean up an iteration's worktree after work completes or is abandoned."""
     help_text = """IMPORTANT:
     worktree-remove cleans up on-disk working directories only. Git history
     (branches, commits, tags) is preserved unless --delete-branch is passed.
@@ -429,6 +440,10 @@ Examples:
         return 0
 
     return _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_json, pretty, fields, result_data)
+
+
+cmd_worktree_remove.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_worktree_remove.example = "plet_git_iteration.py worktree-remove plet/ --iter-id ID_001"  # noqa: E501
 
 
 def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_json, pretty, fields, result_data):

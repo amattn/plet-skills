@@ -218,6 +218,10 @@ Exit 0 if valid, exit 1 if invalid or error.
         return 1
 
 
+cmd_validate.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_validate.example = "plet_iter_state.py validate plet/ --iter-id ID_001"  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # init
 # ---------------------------------------------------------------------------
@@ -377,6 +381,12 @@ Examples:
     return 0
 
 
+cmd_init.usage = (
+    '<plet_dir> --iter-id ID_xxx --title "..." --dependencies \'[]\' --criteria \'[{"id":"AC_1","description":"..."}]\''  # noqa: E501
+)
+cmd_init.example = 'plet_iter_state.py init plet/ --iter-id ID_001 --title "Scaffolding" --dependencies \'[]\' --criteria \'[{"id":"AC_1","description":"Tests pass"}]\''  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # start-phase
 # ---------------------------------------------------------------------------
@@ -478,6 +488,10 @@ Examples:
     return 0
 
 
+cmd_start_phase.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
+cmd_start_phase.example = "plet_iter_state.py start-phase plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # update-activity
 # ---------------------------------------------------------------------------
@@ -569,6 +583,12 @@ Examples:
     else:
         print(f"OK — {iter_id} activity: {phase_activity}")
     return 0
+
+
+cmd_update_activity.usage = (
+    '<plet_dir> --iter-id ID_xxx --phase-activity implementing --activity-detail "..." --agent-id AGENT_ID'  # noqa: E501
+)
+cmd_update_activity.example = 'plet_iter_state.py update-activity plet/ --iter-id ID_001 --phase-activity implementing --activity-detail "writing tests for AC_1" --agent-id agent_abc123'  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -687,6 +707,10 @@ Examples:
     return 0
 
 
+cmd_update_criterion.usage = '<plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation --status pass --evidence "..." --agent-id AGENT_ID'  # noqa: E501
+cmd_update_criterion.example = 'plet_iter_state.py update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase implementation --status pass --evidence "pytest exits 0" --agent-id agent_abc123'  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # set-verdict
 # ---------------------------------------------------------------------------
@@ -797,6 +821,10 @@ Examples:
     return 0
 
 
+cmd_set_verdict.usage = "<plet_dir> --iter-id ID_xxx --phase implement --verdict completed --agent-id AGENT_ID"  # noqa: E501
+cmd_set_verdict.example = "plet_iter_state.py set-verdict plet/ --iter-id ID_001 --phase implement --verdict completed --agent-id agent_abc123"  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # heartbeat
 # ---------------------------------------------------------------------------
@@ -854,6 +882,10 @@ Examples:
     else:
         print(f"OK — {iter_id} heartbeat")
     return 0
+
+
+cmd_heartbeat.usage = "<plet_dir> --iter-id ID_xxx --agent-id AGENT_ID"  # noqa: E501
+cmd_heartbeat.example = "plet_iter_state.py heartbeat plet/ --iter-id ID_001 --agent-id agent_abc123"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -1039,6 +1071,10 @@ Examples:
     else:
         print(f"OK — {iter_id} report added (attempt {attempt}, verdict: {verdict})")
     return 0
+
+
+cmd_add_report.usage = "<plet_dir> --iter-id ID_xxx --verdict passed --summary \"...\" --criteria-results '[...]' --findings '[...]' --related-entries '[...]' --agent-id AGENT_ID"  # noqa: E501
+cmd_add_report.example = 'plet_iter_state.py add-report plet/ --iter-id ID_001 --verdict passed --summary "All criteria pass." --criteria-results \'[{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"read-only","relatedEntries":[]}]\' --findings \'[]\' --related-entries \'[]\' --agent-id agent_abc123'  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

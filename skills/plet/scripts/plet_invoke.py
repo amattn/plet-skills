@@ -291,6 +291,7 @@ def _launch_and_capture(claude_cmd, cwd, plet_env, t_path):
 
 
 def cmd_run(args):
+    """Assemble prompt, launch Claude Code subprocess, and capture streaming transcript."""
     help_text = """IMPORTANT:
     run launches a Claude Code subprocess. Use --dry-run to preview the
     command without launching. Transcript is captured line by line.
@@ -419,6 +420,10 @@ Examples:
         pretty,
         fields,
     )
+
+
+cmd_run.usage = "<plet_dir> --iter-id ID_xxx --phase implement --cwd <worktree_path>"  # noqa: E501
+cmd_run.example = "plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd .plet/worktrees/PROJ/ID_001"  # noqa: E501
 
 
 def _build_plet_env(plet_dir, cwd, iter_id, phase, attempt):

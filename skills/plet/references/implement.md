@@ -8,11 +8,13 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Critical:** You are running autonomously. Never ask for user confirmation. Never prompt "should I proceed?" or wait for human input. If you encounter ambiguity, make your best judgment and document it in `plet/emergent.md`. The only way to pause execution is the Blocker Protocol — and that is a last resort.
 
-**State file tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) for all per-iteration state operations. Commands: `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Run `plet_iter_state.py --help` for full usage. Note: `start-phase` is called by the orchestrator before you spawn — do not call it yourself.
+**CLI lookup:** Run `script.py --usage` for compact invocation syntax with examples. Use `--help` only if you need more detail. Escalation: cheat sheet → `--usage` → `--help`.
 
-**Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
+**State file tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) — per-iteration state operations. Commands: `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Note: `start-phase` is called by the orchestrator before you spawn — do not call it yourself.
 
-**Phase end tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` to complete any phase exit (pass, block, retry). One call handles: set-verdict, progress entry, trace event, audit tag, and git commit. See § Completing the Phase, Blocker Protocol, and Failed Attempt Protocol for usage.
+**Entry tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` — runtime artifact entries (progress.md, learnings.md, emergent.md). Enforces formats, generates plet IDs, handles fencing. Commands: `add-progress`, `add-learning`, `add-emergent`.
+
+**Phase end tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` — complete any phase exit (pass, block, retry). One call handles: set-verdict, progress entry, trace event, audit tag, and git commit. See § Completing the Phase, Blocker Protocol, and Failed Attempt Protocol.
 
 **Critical:** Never create merge commits. plet requires linear history for clean `git bisect` and audit trails. The verify agent handles rebase and fast-forward merge to the workstream after verification passes (IMP_16).
 

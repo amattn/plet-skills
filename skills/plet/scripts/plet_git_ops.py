@@ -97,6 +97,7 @@ def derive_iteration_branch(global_state, iter_state):
 
 
 def cmd_audit_tag(args):
+    """Create an audit tag marking a phase boundary on the iteration branch."""
     help_text = """IMPORTANT:
     audit-tag creates a git tag marking a phase boundary. Use --dry-run first.
     Tags are idempotent — re-running updates the tag (git tag -f).
@@ -174,6 +175,10 @@ Examples:
         return 1
 
     return _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run)
+
+
+cmd_audit_tag.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
+cmd_audit_tag.example = "plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run):
@@ -358,6 +363,7 @@ def _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pret
 
 
 def cmd_merge_squash(args):
+    """Merge all iteration work into a single squashed commit on the workstream branch."""
     help_text = """IMPORTANT:
     merge-squash creates one commit per iteration on the workstream.
     Must be run FROM the workstream branch. Use --dry-run first.
@@ -471,6 +477,10 @@ Examples:
         print(msg)
 
     return 0
+
+
+cmd_merge_squash.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_merge_squash.example = "plet_git_ops.py merge-squash plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

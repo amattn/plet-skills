@@ -71,6 +71,7 @@ The orchestrator has a single command — a systematic, methodical implementatio
 | `--output ndjson` | `run` | Streaming NDJSON — one JSON line per major event, final line is the result. Different from `--output json` (single object) used by other scripts. |
 | `--pretty` | `run` | Not supported — NDJSON is one object per line, pretty-printing breaks the format. |
 | `--fields f1,f2` | N/A | Not supported — NDJSON events are already small and structured. Callers filter in code. |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 No `--output json` — the orchestrator's output is inherently streaming (events over time), not a single result. Use `--output ndjson` for structured output. Text mode is the default (human-readable phase announcements).
 

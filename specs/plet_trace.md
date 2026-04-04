@@ -44,6 +44,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 | `--pretty` | all commands | Indent JSON output (requires `--output json`) |
 | `--fields f1,f2` | all commands | Limit JSON output to named fields (requires `--output json`) |
 | `--dry-run` | `append-event` only | Preview what would be appended without modifying files. NOT available on `validate` or `query` (read-only). |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 **JSON error behavior:** When `--output json` is active, errors produce structured JSON to stdout with `"status":"error"` plus a text message to stderr. Exit code is still 1. Both modes always emit text to stderr for human debugging. Per UNV_ERR_4.
 

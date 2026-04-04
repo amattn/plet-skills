@@ -340,6 +340,7 @@ def _emit_entry_result(cmd_name, plet_id, file_path, extra_data, dry_run, output
 
 
 def cmd_add_progress(args):
+    """Append a progress entry to progress.md."""
     help_text = """IMPORTANT:
     Use --dry-run to preview before writing. Status is REQUIRED — use
     IN_PROGRESS for interim checkpoints, COMPLETE/BLOCKED/FAILED for terminal.
@@ -422,7 +423,14 @@ Examples:
     )
 
 
+cmd_add_progress.usage = (
+    '<artifact_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..."'  # noqa: E501
+)
+cmd_add_progress.example = 'plet_entries.py add-progress plet/ --iter-id ID_001 --iter-title "Scaffolding" --phase implement --attempt 1 --status COMPLETE --content "All checks pass."'  # noqa: E501
+
+
 def cmd_add_learning(args):
+    """Append a learning entry to learnings.md."""
     help_text = """IMPORTANT:
     Use --dry-run to preview before writing. At least one learning per
     iteration is mandatory (R_7 rule).
@@ -513,7 +521,12 @@ Examples:
     )
 
 
+cmd_add_learning.usage = '<artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." --phase implement --attempt 1'  # noqa: E501
+cmd_add_learning.example = 'plet_entries.py add-learning plet/ --iter-id ID_001 --iter-title "Scaffolding" --category gotcha --title "WAL mode required" --content "Default mode blocks readers." --phase implement --attempt 1'  # noqa: E501
+
+
 def cmd_add_emergent(args):
+    """Append an emergent item entry to emergent.md."""
     help_text = """IMPORTANT:
     Use --dry-run to preview before writing. EM_N number is auto-assigned.
     Outcome is always set to "pending" (triaged during refine).
@@ -614,6 +627,10 @@ Examples:
     )
 
 
+cmd_add_emergent.usage = '<artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." --attempt 1'  # noqa: E501
+cmd_add_emergent.example = 'plet_entries.py add-emergent plet/ --iter-id ID_001 --iter-title "Scaffolding" --title "Chose SQLite" --phase implement --category "design decision" --content "Chose SQLite for simplicity." --attempt 1'  # noqa: E501
+
+
 def _parse_check_args(args, help_text):
     """Parse args for the check command. Returns (artifact_dir, kwargs, output_json, pretty, fields) or None."""
     cmd_name = "check"
@@ -672,6 +689,7 @@ def _validate_check_iter_id(iteration, cmd_name, output_json, pretty, hint):
 
 
 def cmd_check(args):
+    """Check runtime artifact entries for completeness."""
     help_text = """IMPORTANT:
     Exit code 0 = all three artifacts have entries, 1 = any missing.
     Use as a pre-verify gate to enforce the R_7 mandatory entry rule.
@@ -754,6 +772,10 @@ Examples:
             )
 
     return 0 if all_present else 1
+
+
+cmd_check.usage = "<artifact_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_check.example = "plet_entries.py check plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

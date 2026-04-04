@@ -1758,6 +1758,20 @@ New composite command that bundles end-of-phase bookkeeping into one call: set-v
 
 Attempted to add `plet_gate_phase.py pre` calls to the orchestrator before spawning subagents. Failed: the auto-logger writes progress.md and trace entries to the worktree, creating dirty files that conflict during merge-squash. Tried `--no-log` but that's a test-only flag agents don't know about. Reverted. Gate-pre stays as an optional subagent action. HLP_2B reduced to just removing redundant start-phase instructions from reference files.
 
+#### HLP_3A — --usage flag with invocation syntax + examples (2026-04-03)
+
+Added `--usage` to all 16 plet scripts via `dispatch()` in util_cli.py. Shows compact invocation syntax + one-line description + copy-pasteable example for each command. Three-level escalation path: cheat sheet → `--usage` → `--help`.
+
+Implementation: each `cmd_*` function has a one-line docstring, a `.usage` attribute (required flags with placeholders), and an `.example` attribute (realistic invocation). `dispatch()` reads these to build the output. 45 functions across 16 scripts.
+
+**Design decision:** Initially `--usage` was just one-liner descriptions (like a compact `--help`). Expanded to include invocation syntax + examples because agents still needed a second `--help` lookup for flags. The full format eliminates the second lookup — one `--usage` call teaches every command's exact syntax.
+
+Documented in: UNV_CMD_30 (conventions.md), script_template.md, scripts/CLAUDE.md, implement.md/verify.md tool listings, all 19 spec Universal Flags tables.
+
+#### test_all ruff gate (2026-04-03)
+
+Ruff runs before any tests — if lint or format check fails, tests are skipped entirely. Previously ruff ran after tests and auto-formatted files silently. Fixed: (1) ruff check (lint) first, (2) ruff format --check (verify, no auto-fix) second, (3) suggest fix command on format failure. Missing ruff is a hard error, not a silent skip.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).

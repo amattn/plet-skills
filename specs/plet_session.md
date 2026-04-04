@@ -35,6 +35,7 @@ Session lifecycle management — starts and ends loop and refine sessions. Mutat
 | `--pretty` | all commands | Indented JSON (requires `--output json`) |
 | `--fields f1,f2` | all commands | Limit JSON fields (requires `--output json`) |
 | `--dry-run` | all commands | Preview changes without writing |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (per UNV_ERR_4).
 

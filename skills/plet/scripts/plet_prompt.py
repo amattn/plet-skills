@@ -207,6 +207,7 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
 
 
 def cmd_assemble(args):
+    """Build a complete subagent prompt from reference files and project state on disk."""
     help_text = """IMPORTANT:
     assemble is read-only — it reads files and outputs a prompt.
     Safe to run anytime. Great for debugging "what would the agent see?"
@@ -302,6 +303,10 @@ Examples:
         print("\n".join(parts).strip())
 
     return 0
+
+
+cmd_assemble.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
+cmd_assemble.example = "plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

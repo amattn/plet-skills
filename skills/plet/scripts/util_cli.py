@@ -222,6 +222,25 @@ def dispatch(commands, script_name, script_version, skill_version, doc, argv=Non
         print(doc)
         return 0
 
+    if cmd == "--usage":
+        # Compact command reference: invocation + description + example per command
+        for i, name in enumerate(sorted(commands.keys())):
+            func = commands[name]
+            desc = (func.__doc__ or "").strip().split("\n")[0]
+            usage_line = getattr(func, "usage", None)
+            example = getattr(func, "example", None)
+            if i > 0:
+                print()
+            if usage_line:
+                print(f"{name} {usage_line}")
+            else:
+                print(f"{name}")
+            if desc:
+                print(f"  {desc}")
+            if example:
+                print(f"  Ex: {example}")
+        return 0
+
     if cmd == "--version":
         print(f"{script_name} {script_version} (built against plet skill {skill_version})")
         return 0

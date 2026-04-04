@@ -36,6 +36,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_CMD_11 | No argparse — manual parsing via `parse_kwargs()` pattern | P0 |
 | UNV_CMD_12 | Complex values (arrays, objects) passed as JSON strings | P0 |
 | UNV_CMD_13 | Every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)` | P0 |
+| UNV_CMD_30 | Every script supports `--usage`, printing compact invocation syntax + one-line description + copy-pasteable example for each command. Each `cmd_*` function must have a one-line docstring, a `.usage` attribute (required flags with placeholders), and an `.example` attribute (realistic invocation). Escalation path: cheat sheet → `--usage` → `--help`. | P0 |
 | UNV_CMD_14 | Exit codes: 0 = success, 1 = error. Check/gate commands additionally use 2 = warnings only (no failures). Scripts document their exit codes in OUT sections. | P0 |
 | UNV_CMD_15 | Output: results to stdout, errors to stderr. Default is human-readable text. `--output json` produces structured machine-readable output with metadata (status, command, path, scriptVersion, timestamp). Both formats must include the same information. | P0 |
 | UNV_CMD_27 | Each `cmd_*` function defines a `HELP` variable at the top with usage, arguments, and examples | P0 |

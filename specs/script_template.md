@@ -34,7 +34,9 @@ A prose paragraph before the list is welcome when commands share context — com
 
 ### Universal Flags
 
-List universal flags (`--output json`, `--pretty`, `--fields`, `--dry-run`) in a table here, noting which commands each applies to and explicitly stating which commands do NOT support `--dry-run` (read-only commands). Per-command INP/OUT sections then list only command-specific inputs and outputs, avoiding repetition. Include JSON error behavior note (structured JSON to stdout with `status:"error"` + text to stderr, per UNV_ERR_4).
+List universal flags (`--output json`, `--pretty`, `--fields`, `--dry-run`, `--usage`) in a table here, noting which commands each applies to and explicitly stating which commands do NOT support `--dry-run` (read-only commands). Per-command INP/OUT sections then list only command-specific inputs and outputs, avoiding repetition. Include JSON error behavior note (structured JSON to stdout with `status:"error"` + text to stderr, per UNV_ERR_4).
+
+**`--usage` (UNV_CMD_30):** Every script supports `--usage` at the top level. It prints compact invocation syntax + one-line description + example for each command. Each `cmd_*` function must define: a one-line docstring, a `.usage` attribute (required flags with placeholders), and an `.example` attribute (realistic copy-pasteable invocation). Agents use this as the first lookup before `--help`.
 
 ### 3.X command-name (XXX)
 

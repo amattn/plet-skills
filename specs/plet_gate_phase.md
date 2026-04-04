@@ -66,6 +66,7 @@ Case study evidence: SPARK produced 0.09 learnings and 0.04 emergent entries per
 | `--pretty` | all commands | Indent JSON (requires `--output json`) |
 | `--fields f1,f2` | all commands | Limit JSON fields (requires `--output json`) |
 | `--phase` | all commands | Required. `implement` or `verify`. Controls which checks run. |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 Both commands are read-only — `--dry-run` is NOT applicable.
 

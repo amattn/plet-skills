@@ -428,6 +428,7 @@ def _parse_event_data(kwargs, hint):
 
 
 def cmd_append_event(args):
+    """Append a validated semantic event to the trace NDJSON file."""
     help_text = """append-event — append a semantic event to a trace NDJSON file.
 
 IMPORTANT: Use --dry-run to preview events before appending. Timestamp is
@@ -559,6 +560,10 @@ Examples:
     return 0
 
 
+cmd_append_event.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1 --event-type TYPE --data '{...}'"  # noqa: E501
+cmd_append_event.example = 'plet_trace.py append-event plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type decision --data \'{"description":"Using pytest","rationale":"Requirements specify pytest"}\''  # noqa: E501
+
+
 def _validate_events_file(path):
     """Read and validate all events in a trace file. Returns (errors, event_count, counts_by_type)."""
     errors = []
@@ -587,6 +592,7 @@ def _validate_events_file(path):
 
 
 def cmd_validate(args):
+    """Check a trace events file against the NDJSON schema, reporting all errors."""
     help_text = """validate — check a trace events file against the schema.
 
 IMPORTANT: Read-only. Safe to run freely. Accumulates ALL errors before
@@ -668,6 +674,10 @@ Examples:
     return 0
 
 
+cmd_validate.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1"  # noqa: E501
+cmd_validate.example = "plet_trace.py validate plet/ --iter-id ID_001 --phase implement --attempt 1"  # noqa: E501
+
+
 def _validate_query_filters(kwargs, hint):
     """Validate and extract query filters. Returns (event_type_filter, criterion_filter, last_n, error_flag)."""
     event_type_filter = kwargs.get("event_type")
@@ -731,6 +741,7 @@ def _read_and_filter_events(path, event_type_filter, criterion_filter, last_n):
 
 
 def cmd_query(args):
+    """Filter and extract events from a trace file by type, criterion, or count."""
     help_text = """query — filter and extract events from a trace file.
 
 IMPORTANT: Read-only. Returns exit 0 even with no matches (no matches is
@@ -812,6 +823,10 @@ Examples:
             print(json.dumps(event, indent=2))
 
     return 0
+
+
+cmd_query.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1"  # noqa: E501
+cmd_query.example = "plet_trace.py query plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type decision"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

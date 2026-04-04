@@ -164,6 +164,7 @@ def detect_session_type(plet_dir):
 
 
 def cmd_detect(args):
+    """Determine which session type to enter based on project state on disk."""
     help_text = """IMPORTANT:
     detect is read-only — it checks project state and prints the session type.
     Text output is bare (plan, loop, or refine) for shell capture:
@@ -232,6 +233,10 @@ Examples:
         print(session_type)
 
     return 0
+
+
+cmd_detect.usage = "<plet_dir>"  # noqa: E501
+cmd_detect.example = "plet_gate_session.py detect plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -399,6 +404,7 @@ def _collect_status_data(plet_dir, global_state, iter_states):
 
 
 def cmd_status(args):
+    """Produce a project status summary with iteration counts, blockers, and fingerprint health."""
     help_text = """IMPORTANT:
     status is read-only — it reads project state and prints a summary.
     Safe to run anytime. No modifications.
@@ -509,6 +515,10 @@ Examples:
         )
 
     return 0
+
+
+cmd_status.usage = "<plet_dir>"  # noqa: E501
+cmd_status.example = "plet_gate_session.py status plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -738,6 +748,7 @@ def _format_preflight_text(checks, counts, overall):
 
 
 def cmd_preflight(args):
+    """Verify the project environment is ready for a plet session (go/no-go check)."""
     help_text = """IMPORTANT:
     preflight is read-only — it checks the environment, never modifies it.
     Run before starting any session. Includes GTC check-session for git health.
@@ -814,6 +825,10 @@ Examples:
         _format_preflight_text(checks, counts, overall)
 
     return exit_code
+
+
+cmd_preflight.usage = "<plet_dir> --session-type loop"  # noqa: E501
+cmd_preflight.example = "plet_gate_session.py preflight plet/ --session-type loop"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -937,6 +952,10 @@ def _emit_postflight_result(checks, session_type, output_json, pretty, fields):
         print("{} checks: {}".format(counts["total"], ", ".join(parts)))
 
     return exit_code
+
+
+cmd_postflight.usage = "<plet_dir> --session-type loop"  # noqa: E501
+cmd_postflight.example = "plet_gate_session.py postflight plet/ --session-type loop"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

@@ -52,6 +52,7 @@
 | `--fields` | Filter output fields | end |
 | `--help` / `-h` | Show help | all |
 | `--version` | Show version | top-level |
+| `--usage` | Compact invocation syntax with examples for all commands (UNV_CMD_30) | top-level |
 
 ### 3.1 end (END)
 

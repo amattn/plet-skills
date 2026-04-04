@@ -265,6 +265,7 @@ def check_no_stashes(cwd=None):
 
 
 def cmd_check_iteration(args):
+    """Check per-iteration git invariants at phase boundaries."""
     help_text = """IMPORTANT:
     check-iteration is read-only — safe to run anytime. No --dry-run needed.
     Reports all violations (no short-circuit on first failure).
@@ -389,6 +390,10 @@ Examples:
         print(format_text_output(cmd_name, checks, status, summary))
 
     return exit_code
+
+
+cmd_check_iteration.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
+cmd_check_iteration.example = "plet_git_check.py check-iteration plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -582,6 +587,7 @@ def _check_unmerged_complete(lifecycles, project_id, loop_n, ws_branch, ws_exist
 
 
 def cmd_check_session(args):
+    """Check session-level git health including orphaned worktrees and unmerged iterations."""
     help_text = """IMPORTANT:
     check-session is read-only — safe to run anytime. No --dry-run needed.
     Scans all iteration state files and cross-references against git state.
@@ -671,6 +677,10 @@ Examples:
         print(format_text_output(cmd_name, checks, status, summary))
 
     return exit_code
+
+
+cmd_check_session.usage = "<plet_dir>"  # noqa: E501
+cmd_check_session.example = "plet_git_check.py check-session plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

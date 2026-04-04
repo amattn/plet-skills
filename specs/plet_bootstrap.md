@@ -42,6 +42,7 @@ All commands take `<project_dir>` as required first positional arg (the project 
 | `--pretty` | both | Indent JSON (requires `--output json`) |
 | `--fields f1,f2` | both | Limit JSON fields (requires `--output json`) |
 | `--force` | `setup` only | Overwrite existing files (scripts, CLAUDE.md). Default: skip existing. |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 ---
 

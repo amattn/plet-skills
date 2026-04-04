@@ -53,6 +53,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 | `--pretty` | all commands | Pretty-print JSON (requires `--output json`) |
 | `--fields f1,f2` | all commands | Filter JSON output to specific fields (requires `--output json`) |
 | `--dry-run` | `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `add-report` | Preview changes without writing. `heartbeat` and `validate` do not support `--dry-run`. |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 ---
 

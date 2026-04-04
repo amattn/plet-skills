@@ -694,11 +694,21 @@ def post_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state
 
 
 def cmd_pre(args):
+    """Run pre-phase gate checks before the subagent starts work."""
     return run_gate("pre", args, pre_phase_checks, post_phase_checks)
 
 
+cmd_pre.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
+cmd_pre.example = "plet_gate_phase.py pre plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+
+
 def cmd_post(args):
+    """Run post-phase gate checks to verify artifact completeness before the subagent exits."""
     return run_gate("post", args, pre_phase_checks, post_phase_checks)
+
+
+cmd_post.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
+cmd_post.example = "plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

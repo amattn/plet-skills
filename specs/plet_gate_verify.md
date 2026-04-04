@@ -40,6 +40,7 @@ Command abbreviations: `PRE` (pre), `PST` (post).
 | `--output json` | all commands | Structured JSON output |
 | `--pretty` | all commands | Indent JSON (requires `--output json`) |
 | `--fields f1,f2` | all commands | Limit JSON fields (requires `--output json`) |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 Both commands are read-only — `--dry-run` is NOT applicable.
 

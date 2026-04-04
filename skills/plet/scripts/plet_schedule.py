@@ -203,6 +203,10 @@ def cmd_eligible(args):
     return 0
 
 
+cmd_eligible.usage = "<plet_dir>"  # noqa: E501
+cmd_eligible.example = "plet_schedule.py eligible plet/"  # noqa: E501
+
+
 # ---------------------------------------------------------------------------
 # check-breakpoints
 # ---------------------------------------------------------------------------
@@ -283,6 +287,10 @@ def cmd_check_breakpoints(args):
         print(result)
 
     return 0
+
+
+cmd_check_breakpoints.usage = "<plet_dir> --iter-id ID_xxx --position before|after"  # noqa: E501
+cmd_check_breakpoints.example = "plet_schedule.py check-breakpoints plet/ --iter-id ID_001 --position before"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -399,6 +407,10 @@ def cmd_check_retry(args):
         print(decision)
 
     return 0
+
+
+cmd_check_retry.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_check_retry.example = "plet_schedule.py check-retry plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

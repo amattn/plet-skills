@@ -39,6 +39,7 @@ Assembles the prompt that gets sent to implement and verify subagents. Reads ref
 | `--output json` | assemble | Structured JSON with sections array instead of raw text |
 | `--pretty` | assemble | Indent JSON (requires `--output json`) |
 | `--fields f1,f2` | assemble | Limit JSON fields (requires `--output json`) |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 Assemble is read-only — `--dry-run` is NOT applicable.
 

@@ -291,6 +291,10 @@ def cmd_end(args):
     return 0
 
 
+cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement --verdict completed --progress-content "..."'  # noqa: E501
+cmd_end.example = 'plet_phase.py end plet/ --iter-id ID_001 --phase implement --verdict completed --progress-content "Implemented: scaffolding. All checks pass."'  # noqa: E501
+
+
 def main():
     commands = {
         "end": cmd_end,

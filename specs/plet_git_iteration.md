@@ -63,6 +63,7 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 | `--pretty` | all commands | Indent JSON output (requires `--output json`) |
 | `--fields f1,f2` | all commands | Limit JSON output to named fields (requires `--output json`) |
 | `--dry-run` | `worktree-create`, `worktree-remove` only | Preview what would be done without modifying git state. NOT available on `branch-name` (read-only). |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 **JSON error behavior:** When `--output json` is active, errors produce structured JSON to stdout with `"status":"error"` plus a text message to stderr. Exit code is still 1. Both modes always emit text to stderr for human debugging. Per UNV_ERR_4.
 

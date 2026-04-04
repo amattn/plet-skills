@@ -45,6 +45,7 @@ All commands take `<global_plet_dir>` as required first positional arg per UNV_C
 | `--pretty` | all commands | Pretty-print JSON (requires `--output json`) |
 | `--fields f1,f2` | all commands | Filter JSON output to specific fields (requires `--output json`) |
 | `--dry-run` | `init`, `update-lifecycle` | Preview changes without writing. Read-only commands do not support `--dry-run`. |
+| `--usage` | top-level only | Compact invocation syntax with examples for all commands (UNV_CMD_30) |
 
 JSON error behavior: structured JSON to stdout with `status:"error"` + text to stderr (UNV_ERR_4).
 
