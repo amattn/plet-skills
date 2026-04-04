@@ -252,7 +252,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_UPC_CMD_1 | Usage: `plet_iter_state.py update-criterion <plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation|verification --status pass --evidence "..." [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_UPC_CMD_1 | Usage: `plet_iter_state.py update-criterion <plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." [--one-liner "..."] [--red-test TEST_NAME|none] [--no-test-rationale "..."] [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -268,6 +268,9 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 | IST_UPC_INP_6 | `--evidence` — evidence string. Required for `pass`, `fail`, `skipped`. | P0 |
 | IST_UPC_INP_7 | `--elapsed` — elapsed seconds (integer). Optional. | P1 |
 | IST_UPC_INP_8 | `--agent-id` — agent session ID. Required. Every state write identifies who wrote it. | P0 |
+| IST_UPC_INP_9 | `--one-liner` — one-line summary of the criterion result. Optional. Stored in the criterion phase sub-object. | P1 |
+| IST_UPC_INP_10 | `--red-test` — red test outcome for verification fail: `pass` (test written and fails as expected), `fail` (test was written but passes — finding not test-expressible via a failing test), `none` (no red test written), `na` (not applicable — e.g., implementation phase). Required when `--phase verification --status fail`. | P0 |
+| IST_UPC_INP_11 | `--no-test-rationale` — explanation for why no red test was written. Required when `--red-test none` AND `--status fail`. | P0 |
 
 #### Outputs (IST_UPC_OUT)
 

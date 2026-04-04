@@ -17,7 +17,7 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Entry tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` — runtime artifact entries (progress.md, learnings.md, emergent.md). Enforces formats, generates plet IDs, handles fencing. Commands: `add-progress`, `add-learning`, `add-emergent`.
 
-**Phase end tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` — complete any phase exit (pass, reject, block). One call handles: set-verdict, verification report, progress entry, trace event, audit tag, and git commit. See § Completing the Phase, Cycle Back, and Blocker Protocol.
+**Phase end tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` — complete any phase exit (pass, reject, block). One call handles: set-verdict, verification report (auto-built from criteria via `--summary`), progress entry, trace event, audit tag, and git commit. You never construct report JSON manually.
 
 **Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in the same worktree the implement agent used. Do NOT create a new branch. Your commits go on this branch alongside the implement agent's commits. Audit tags distinguish phases.
 
@@ -194,7 +194,17 @@ For failures:
 ```bash
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
     --criterion AC_1 --phase verification --status fail --agent-id $PLET_AGENT_ID \
-    --evidence "Test test_FR_1_valid_request passes but only asserts status code, not response body. The spec requires returning a user profile with name and email fields. Implementation returns {ok: true} — does not match spec."
+    --evidence "Test test_FR_1_valid_request passes but only asserts status code, not response body. The spec requires returning a user profile with name and email fields. Implementation returns {ok: true} — does not match spec." \
+    --red-test test_returns_profile
+```
+
+If a red test could not be written (e.g., not test-expressible), use `--red-test none` with a rationale:
+```bash
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
+    --criterion AC_1 --phase verification --status fail --agent-id $PLET_AGENT_ID \
+    --evidence "Wrong abstraction — auth check is baked into request handler instead of middleware. Test cannot demonstrate this structural concern." \
+    --red-test none \
+    --no-test-rationale "Structural coupling issue — no test can demonstrate that the abstraction boundary is wrong. Next implement agent should refactor auth into middleware."
 ```
 
 Update criterion statuses in real time — as soon as you've verified a criterion, write it to the state file. Don't wait until the end.
@@ -211,10 +221,16 @@ python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id I
     --phase-activity running_checks --activity-detail "verifying AC_1: API returns 200" \
     --agent-id $PLET_AGENT_ID
 
-# Update criterion verification status (VF_6)
+# Update criterion verification status (VF_6) — pass (all fields auto-default)
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
     --criterion AC_1 --phase verification --status pass \
     --evidence "All API endpoints return correct status codes" --agent-id $PLET_AGENT_ID
+
+# Update criterion verification status — fail (--red-test required)
+python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
+    --criterion AC_1 --phase verification --status fail \
+    --evidence "Response body missing required fields per spec." \
+    --red-test test_missing_fields --agent-id $PLET_AGENT_ID
 
 # Heartbeat
 python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
@@ -285,13 +301,12 @@ If issues cannot be fixed in this context — wrong abstractions, missing functi
    - **emergent.md** — entry explaining the issue for the human
    - **learnings.md** — entry explaining what the next implementation agent should do differently. For issues without red tests, include enough detail for the implement agent to understand the structural concern.
    - **progress.md** — `COMPLETE (rejected, cycle back)` entry listing what passed and what failed
-4. Write the verification report to a temp file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
-5. End the phase:
+4. End the phase (report auto-built from criteria):
 
    ```bash
    plet_phase.py end plet/ --iter-id {iter_id} --phase verify --verdict rejected \
        --progress-content "Rejected: {what failed}. Cycle back with failing tests." \
-       --report-file /tmp/report.json
+       --summary "Rejected: {N} criteria failed. Failing tests written for implement agent."
    ```
 
    The orchestrator reads `verifyVerdict` and decides whether to retry or block. **Do NOT set lifecycle** — the orchestrator owns all lifecycle transitions (SF_28).
@@ -364,18 +379,22 @@ Write semantic event entries (via `plet_trace.py append-event`) for:
 
 ## Verification Report (VF_21, VF_22, VF_23, VF_24)
 
-Before finishing (all paths — pass, cycle-back, and blocked), write a verification report to a temp file and pass it to `plet_phase.py end --report-file`. The end command calls `plet_iter_state.py add-report` and `set-verdict` internally. Each verification attempt gets its own report — reports are never overwritten. `verifyVerdict` is a top-level convenience field for quick access; the canonical source is the report array. Field-level schema is in `references/state-schema.md`.
+The verification report is **auto-built by `plet_phase.py end`** from your criteria updates in the state file. You do NOT need to construct the report JSON manually. Just pass `--summary` to `plet_phase.py end`:
 
-The report captures:
+```bash
+plet_phase.py end plet/ --iter-id {iter_id} --phase verify --verdict passed \
+    --progress-content "Verified: all AC independently confirmed." \
+    --summary "All 5 criteria independently verified. Tests pass, code idiomatic."
+```
 
-- **Your verdict and why** — did the iteration pass, cycle back, or block? A 1-3 sentence summary that gives readers the headline without digging into individual criteria.
-- **Findings** — observations, conclusions, and concerns that don't fit in the summary or per-criterion one-liners. Patterns you noticed across criteria, code quality observations, architectural concerns, risks for future iterations. Each finding is a discrete thought. Reference plet IDs inline as plain text when useful (e.g., "see eln_01JD8X3K7N_id001_v1 for details"). May overlap with learnings — that's fine; the report is self-contained while learnings persist across iterations.
-- **A scannable per-criterion index** — one-liner assessment of each criterion so readers can quickly see what passed, what failed, and why. For failures where you wrote a red test, name it so the implement agent can find it. For failures without a red test, explain why the issue wasn't test-expressible.
-- **Links to detailed artifacts** — plet IDs that let readers drill from the report into the specific progress, learnings, or emergent entries that have the full context. These references exist at two levels: per-criterion for findings about a single AC, and report-level for iteration-spanning concerns (the progress entry, cross-cutting learnings, etc.).
+`plet_phase.py end` reads each criterion's `verification.status` and `verification.evidence` from the state file and builds `criteriaResults` automatically. Your only inputs:
 
-The report is a compact index, not a duplication of evidence. Full criterion evidence stays in the `verification` objects. Full artifact detail stays in progress/learnings/emergent. The report connects them.
+- **`--summary`** (required for verify) — 1-3 sentence headline: did the iteration pass, cycle back, or block? Why?
+- **`--findings`** (optional, default `'[]'`) — JSON array of finding strings for cross-cutting observations that don't fit per-criterion. Patterns across criteria, architectural concerns, code quality observations.
 
-Write the report after all criteria are verified and all runtime artifact entries are written (so you have the plet IDs to reference).
+The report is a compact index, not a duplication of evidence. Full criterion evidence stays in the `verification` objects. Full artifact detail stays in progress/learnings/emergent.
+
+Each verification attempt gets its own report — reports are never overwritten. `verifyVerdict` is a top-level convenience field for quick access; the canonical source is the report array.
 
 ---
 
@@ -397,17 +416,18 @@ When all acceptance criteria pass verification (Path A or after all Path B fixes
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
 2. Write any remaining learnings via `plet_entries.py add-learning`
 3. Write any remaining emergent items via `plet_entries.py add-emergent`
-4. Write the verification report to a temp file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
 
 ### End Phase
 
-Use `plet_phase.py end` to handle verdict, progress entry, report, trace event, audit tag, and git commit in one call:
+Use `plet_phase.py end` to handle verdict, report (auto-built from criteria), progress entry, trace event, audit tag, and git commit in one call:
 
 ```bash
 plet_phase.py end plet/ --iter-id {iter_id} --phase verify --verdict passed \
     --progress-content "Verified: all AC independently confirmed." \
-    --report-file /tmp/report.json
+    --summary "All 5 criteria independently verified. Tests pass, code idiomatic."
 ```
+
+The report is auto-built from your `update-criterion` calls — no manual JSON construction needed. See § Verification Report above.
 
 This sets `verifyVerdict`, appends the verification report, writes a COMPLETE progress entry, emits a trace event, creates an audit tag, and commits all artifacts. **Do NOT set lifecycle** — the orchestrator sets lifecycle → `"complete"` after successful merge-squash (SF_28).
 
@@ -456,19 +476,17 @@ Append a diagnostic entry:
 - What you learned during verification so far
 - What the next agent should know about this iteration
 
-### Verification Report
-
-Append a verification report to `verificationReports` with `verdict: "blocked"`. Include `criteriaResults` for any criteria verified so far (with statuses and one-liners) and pending criteria as `status: "not_started"`. Reference the blocker emergent entry and any learnings in `relatedEntries`.
-
 ### End Phase
 
-After documenting across all four artifacts and writing the verification report:
+After documenting across all four artifacts:
 
 ```bash
 plet_phase.py end plet/ --iter-id {iter_id} --phase verify --verdict blocked \
     --progress-content "Blocked: {description of why human input is needed}" \
-    --report-file /tmp/report.json
+    --summary "Blocked: {N} criteria verified, {M} pending. Requires human input on {issue}."
 ```
+
+The report is auto-built from your criteria updates — verified criteria show their status, unverified criteria show `not_started`.
 
 **Do NOT set lifecycle.** The orchestrator reads `verifyVerdict: "blocked"` and transitions lifecycle → `"blocked"` (SF_28).
 

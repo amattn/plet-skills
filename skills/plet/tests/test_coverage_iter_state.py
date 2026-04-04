@@ -526,6 +526,8 @@ def test_cmd_update_criterion_fail():
                 "assertion error on line 42",
                 "--agent-id",
                 "agent_v1",
+                "--red-test",
+                "test_line_42_fix",
             ]
         )
         check("update-criterion fail = 0", rc == 0)
@@ -533,6 +535,7 @@ def test_cmd_update_criterion_fail():
         crit = data["criteria"][0]
         check("criterion verify status", crit["verification"]["status"] == "fail")
         check("criterion top-level from verify", crit["status"] == "fail")
+        check("redTest stored", crit["verification"]["redTest"] == "test_line_42_fix")
     finally:
         shutil.rmtree(d)
 

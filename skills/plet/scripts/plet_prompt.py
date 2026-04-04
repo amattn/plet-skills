@@ -158,6 +158,7 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
         "# State updates (during work):",
         f'{ist} update-activity {p} --iter-id {iter_id} --phase-activity coding --activity-detail "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
         f'{ist} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status pass --evidence "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
+        f'{ist} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status fail --evidence "..." --red-test test_AC_1_fix --agent-id $PLET_AGENT_ID',  # noqa: E501
         f"{ist} heartbeat {p} --iter-id {iter_id} --agent-id $PLET_AGENT_ID",
         "",
         "# Runtime artifacts (during work):",
@@ -173,8 +174,6 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
                 "",
                 "# Verify-specific — write BEFORE calling plet_phase.py end:",
                 f"{ist} validate {p} --iter-id {iter_id}",
-                '#   add-report criteria-results JSON shape: [{"id":"AC_1","status":"pass","oneLiner":"Tests pass","redTest":"none","noTestRationale":"","relatedEntries":[]}]',  # noqa: E501
-                f'{ist} add-report {p} --iter-id {iter_id} --verdict passed --summary "All criteria pass." --criteria-results \'[{{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"","relatedEntries":[]}}]\' --findings \'[]\' --related-entries \'[]\' --agent-id $PLET_AGENT_ID',  # noqa: E501
                 "",
                 "# Trace events (event-type: decision, criterion_update, lifecycle_change, error):",
                 f'{trc} append-event {p} --iter-id {iter_id} --phase verify --attempt {a} --event-type decision --data \'{{"description":"...","rationale":"..."}}\'',  # noqa: E501
@@ -194,7 +193,7 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
         )
     else:
         lines.append(
-            f'{phs} end {p} --iter-id {iter_id} --phase verify --verdict passed --progress-content "..." --report-file /tmp/report.json'  # noqa: E501
+            f'{phs} end {p} --iter-id {iter_id} --phase verify --verdict passed --progress-content "..." --summary "All criteria independently verified."'  # noqa: E501
         )
 
     lines.extend(

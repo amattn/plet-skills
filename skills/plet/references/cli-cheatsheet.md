@@ -23,6 +23,8 @@ Verify verdicts: `passed`, `rejected`, `blocked`
 ```
 plet_iter_state.py update-activity <plet_dir> --iter-id ID_xxx --phase-activity VALUE --activity-detail "..." --agent-id ID
 plet_iter_state.py update-criterion <plet_dir> --iter-id ID_xxx --criterion AC_N --phase implementation|verification --status pass|fail --evidence "..." --agent-id ID
+# verification fail: --red-test TEST_NAME|none  required; if --red-test none also requires --no-test-rationale "..."
+# optional: --one-liner "..."  (short summary stored on criterion)
 plet_iter_state.py set-verdict <plet_dir> --iter-id ID_xxx --phase implement|verify --verdict VALUE --agent-id ID
 plet_iter_state.py heartbeat <plet_dir> --iter-id ID_xxx --agent-id ID
 plet_iter_state.py add-report <plet_dir> --iter-id ID_xxx --verdict VALUE --summary "..." --criteria-results '[...]' --findings '[...]' --related-entries '[...]' --agent-id ID

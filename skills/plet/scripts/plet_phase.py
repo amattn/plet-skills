@@ -52,7 +52,9 @@ def cmd_end(args):
 
     USAGE:
         plet_phase.py end <plet_dir> --iter-id ID_xxx --phase implement|verify
-            --verdict VALUE --progress-content "..." [--report-file PATH]
+            --verdict VALUE --progress-content "..."
+            [--summary "..."] [--findings '[...]']
+            [--report-file PATH]
             [--output json [--pretty] [--fields f1,f2]]
 
         plet_dir            Path to plet directory (required)
@@ -60,17 +62,26 @@ def cmd_end(args):
         --phase             implement or verify
         --verdict           Verdict value (implement: completed|blocked, verify: passed|rejected|blocked)
         --progress-content  Content for the completion progress entry
-        --report-file       Path to verification report JSON (verify phase only)
+        --summary           Verification report summary (verify only). If provided without
+                            --report-file, auto-builds report from criteria in state file.
+        --findings          JSON array of finding strings (verify only, default '[]')
+        --report-file       Path to verification report JSON (verify only, overrides auto-build)
 
     WHAT IT DOES (in order):
         1. set-verdict via plet_iter_state.py
-        2. add-progress via plet_entries.py (COMPLETE/BLOCKED/FAILED entry)
-        3. append-event via plet_trace.py (phase_end event)
-        4. audit-tag via plet_git_ops.py
-        5. git add plet/ && git commit
+        2. add-report (verify only — auto-built from state or from --report-file)
+        3. add-progress via plet_entries.py (COMPLETE/BLOCKED/FAILED entry)
+        4. append-event via plet_trace.py (phase_end event)
+        5. audit-tag via plet_git_ops.py
+        6. git add plet/ && git commit
 
     The subagent still calls gate-post separately after this — gate-post is a
     quality check with a self-correction loop, not bookkeeping.
+
+    VERIFY EXAMPLE (auto-report from state — no --report-file needed):
+        plet_phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed \\
+            --progress-content "Verified: all AC confirmed." \\
+            --summary "All 5 criteria independently verified."
     """
     help_text = cmd_end.__doc__
     hint = "Run: plet_phase.py end --help"
@@ -78,7 +89,7 @@ def cmd_end(args):
     result = parse_command(
         args,
         help_text,
-        known_flags={"iter_id", "phase", "verdict", "progress_content", "report_file"},
+        known_flags={"iter_id", "phase", "verdict", "progress_content", "report_file", "summary", "findings"},
         required=["iter_id", "phase", "verdict", "progress_content"],
         allow_dry_run=False,
         hint=hint,
@@ -100,7 +111,36 @@ def cmd_end(args):
         print(hint, file=sys.stderr)
         return 1
 
+    # Verify phase requires --summary (for auto-report) or --report-file
+    if phase == "verify" and not kwargs.get("summary") and not kwargs.get("report_file"):
+        print("Error: verify phase requires --summary (for auto-report) or --report-file", file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
     return _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields)
+
+
+def _build_criteria_results(ist):
+    """Build criteriaResults array from per-iteration state criteria.
+
+    Reads verification object fields written by update-criterion.
+    Returns list of dicts ready for JSON serialization.
+    """
+    results = []
+    for c in ist.get("criteria", []):
+        v = c.get("verification", {})
+        evidence = v.get("evidence", "")
+        results.append(
+            {
+                "id": c["id"],
+                "status": v.get("status", "not_started"),
+                "oneLiner": v.get("oneLiner") or evidence.split(".")[0][:120] or c.get("description", ""),
+                "redTest": v.get("redTest", "none"),
+                "noTestRationale": v.get("noTestRationale", ""),
+                "relatedEntries": [],
+            }
+        )
+    return results
 
 
 def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields):
@@ -108,6 +148,8 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     iter_id = kwargs["iter_id"]
     progress_content = kwargs["progress_content"]
     report_file = kwargs.get("report_file")
+    summary = kwargs.get("summary")
+    findings_json = kwargs.get("findings")
 
     status = VERDICT_TO_STATUS.get(verdict, "COMPLETE")
     steps_done = []
@@ -156,22 +198,51 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     ):
         return 1
 
-    # Step 1.5: add-report (verify phase only, if report file provided)
-    if phase == "verify" and report_file and os.path.isfile(report_file):
-        with open(report_file) as f:
-            report_data = json.load(f)
-        report_json = json.dumps(report_data)
-        if not _step(
-            "add-report",
-            cmd_add_report,
-            [
+    # Step 1.5: add-report (verify phase only)
+    if phase == "verify" and (summary or report_file):
+        if report_file and os.path.isfile(report_file):
+            # Explicit report file — read and pass fields
+            with open(report_file) as f:
+                report_data = json.load(f)
+            report_args = [
                 plet_dir,
                 "--iter-id",
                 iter_id,
-                "--report",
-                report_json,
-            ],
-        ):
+                "--verdict",
+                report_data.get("verdict", verdict),
+                "--summary",
+                report_data.get("summary", ""),
+                "--criteria-results",
+                json.dumps(report_data.get("criteriaResults", [])),
+                "--findings",
+                json.dumps(report_data.get("findings", [])),
+                "--related-entries",
+                json.dumps(report_data.get("relatedEntries", [])),
+                "--agent-id",
+                "plet_phase",
+            ]
+        else:
+            # Auto-build from criteria in state file
+            criteria_results = _build_criteria_results(ist)
+            report_args = [
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--verdict",
+                verdict,
+                "--summary",
+                summary,
+                "--criteria-results",
+                json.dumps(criteria_results),
+                "--findings",
+                findings_json or "[]",
+                "--related-entries",
+                "[]",
+                "--agent-id",
+                "plet_phase",
+            ]
+
+        if not _step("add-report", cmd_add_report, report_args):
             return 1
 
     # Step 2: add-progress
@@ -273,8 +344,8 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     return 0
 
 
-cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement --verdict completed --progress-content "..."'  # noqa: E501
-cmd_end.example = 'plet_phase.py end plet/ --iter-id ID_001 --phase implement --verdict completed --progress-content "Implemented: scaffolding. All checks pass."'  # noqa: E501
+cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict VALUE --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501
+cmd_end.example = 'plet_phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed --progress-content "Verified: all AC confirmed." --summary "All 5 criteria independently verified."'  # noqa: E501
 
 
 def main():

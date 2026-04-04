@@ -59,7 +59,7 @@ from util_state import (
 )
 
 SCRIPT_NAME = "plet_iter_state"
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.2.0"
 
 UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
 UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run"}
@@ -611,6 +611,26 @@ def _find_criterion(criteria, criterion_id, iter_id, hint):
     return None
 
 
+def _build_phase_obj(phase, status, evidence, ts, elapsed, one_liner, red_test, no_test_rationale):
+    """Build the implementation/verification object for a criterion."""
+    obj = {"status": status, "evidence": evidence, "timestamp": ts, "elapsedSeconds": elapsed or 0}
+    if phase == "verification":
+        obj["oneLiner"] = one_liner or evidence.split(".")[0][:120]
+        obj["redTest"] = red_test or "none"
+        obj["noTestRationale"] = no_test_rationale or ""
+    return obj
+
+
+def _validate_report_fields(phase, status, red_test, no_test_rationale):
+    """Validate verification report fields. Returns error message or None."""
+    if phase == "verification" and status == "fail":
+        if not red_test:
+            return "Error: --red-test required for --phase verification --status fail"
+        if red_test == "none" and not no_test_rationale:
+            return "Error: --no-test-rationale required when --red-test none and --status fail"
+    return None
+
+
 def cmd_update_criterion(args):
     """Update a criterion's implementation or verification status."""
     help_text = """Usage: plet_iter_state.py update-criterion <plet_dir>
@@ -618,20 +638,48 @@ def cmd_update_criterion(args):
   --phase implementation|verification
   --status pass --evidence "..."
   --agent-id <id>
+  [--one-liner "..."] [--red-test "test_name"|"none"]
+  [--no-test-rationale "..."]
   [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Valid statuses: not_started, fail, pass, error, skipped
+
+Verification report fields (stored in verification object, read by plet_phase.py end):
+  --one-liner         One-line summary for report index. Default: first sentence of evidence.
+  --red-test          Required for --phase verification --status fail. Test name or "none".
+  --no-test-rationale Required when --red-test none AND --status fail. Why no test was written.
 
 Examples:
   plet_iter_state.py update-criterion plet --iter-id ID_001 \\
     --criterion AC_1 --phase implementation --status pass \\
     --evidence "pytest exits 0" --agent-id agent_abc123
+
+  plet_iter_state.py update-criterion plet --iter-id ID_001 \\
+    --criterion AC_1 --phase verification --status fail \\
+    --evidence "Returns {ok:true} not user profile" --agent-id verify_agent \\
+    --red-test test_returns_profile --one-liner "Wrong response shape"
+
+  plet_iter_state.py update-criterion plet --iter-id ID_001 \\
+    --criterion AC_2 --phase verification --status fail \\
+    --evidence "Too much coupling between modules" --agent-id verify_agent \\
+    --red-test none --no-test-rationale "Architectural concern, not test-expressible"
 """
     hint = _help_hint("update-criterion")
     result = parse_command(
         args,
         help_text,
-        known_flags={"iter_id", "criterion", "phase", "status", "evidence", "agent_id", "elapsed"},
+        known_flags={
+            "iter_id",
+            "criterion",
+            "phase",
+            "status",
+            "evidence",
+            "agent_id",
+            "elapsed",
+            "one_liner",
+            "red_test",
+            "no_test_rationale",
+        },  # noqa: E501
         required=["iter_id", "criterion", "phase", "status", "evidence", "agent_id"],
         allow_dry_run=True,
         hint=hint,
@@ -662,6 +710,16 @@ Examples:
             print(hint, file=sys.stderr)
             return 1
 
+    # Verify report fields
+    one_liner = kwargs.get("one_liner")
+    red_test = kwargs.get("red_test")
+    no_test_rationale = kwargs.get("no_test_rationale")
+    err = _validate_report_fields(phase, status, red_test, no_test_rationale)
+    if err:
+        print(err, file=sys.stderr)
+        print(hint, file=sys.stderr)
+        return 1
+
     data, path = _load_state(plet_dir, iter_id, hint)
     if data is None:
         return 1
@@ -671,7 +729,9 @@ Examples:
         return 1
 
     ts = now_iso()
-    target[phase] = {"status": status, "evidence": kwargs["evidence"], "timestamp": ts, "elapsedSeconds": elapsed or 0}
+    target[phase] = _build_phase_obj(
+        phase, status, kwargs["evidence"], ts, elapsed, one_liner, red_test, no_test_rationale
+    )
 
     if target.get("verification") is not None:
         target["status"] = target["verification"]["status"]
@@ -707,8 +767,8 @@ Examples:
     return 0
 
 
-cmd_update_criterion.usage = '<plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation --status pass --evidence "..." --agent-id AGENT_ID'  # noqa: E501
-cmd_update_criterion.example = 'plet_iter_state.py update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase implementation --status pass --evidence "pytest exits 0" --agent-id agent_abc123'  # noqa: E501
+cmd_update_criterion.usage = '<plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." --agent-id ID [--red-test "test_name" for verify+fail]'  # noqa: E501
+cmd_update_criterion.example = 'plet_iter_state.py update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase verification --status fail --evidence "Wrong response shape" --agent-id verify_agent --red-test test_returns_profile'  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

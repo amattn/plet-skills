@@ -266,7 +266,7 @@ def test_cli_ref_verify_content():
         check("phase=verify header", "phase=verify" in content)
         check("criterion phase is verification", "--phase verification" in content)
         check("verdict passed", "--verdict passed" in content)
-        check("has --report-file", "--report-file" in content)
+        check("has --summary", "--summary" in content)
         check("plet_phase.py end", "plet_phase.py end" in content)
         check("gate post verify", "--phase verify --output json" in content)
     finally:

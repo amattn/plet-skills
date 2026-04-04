@@ -464,10 +464,21 @@ Each acceptance criterion has separate `implementation` and `verification` objec
     "status": "pass",
     "evidence": "Independently ran test suite — test_FR_1_valid_request passes. Also manually tested with curl: POST /api/data returns 200 with expected JSON structure.",
     "timestamp": "2026-03-07T16:10:00Z",
-    "elapsedSeconds": 30
+    "elapsedSeconds": 30,
+    "oneLiner": "Test passes, curl confirms correct JSON response",
+    "redTest": "none",
+    "noTestRationale": ""
   }
 }
 ```
+
+**Verification-specific fields (used by `plet_phase.py end` to auto-build reports):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `oneLiner` | string | optional | One-line summary for the report's scannable index. Defaults to first sentence of `evidence`. |
+| `redTest` | string | conditional | Name of the failing test written for cycle-back. `"none"` when status is pass. **Required when `--phase verification --status fail`.** |
+| `noTestRationale` | string | conditional | Why no red test was created. **Required when `redTest` is `"none"` AND `status` is `fail`** (e.g., "architectural concern, not test-expressible"). |
 
 **Status derivation:** The top-level `status` is derived — `verification.status` wins when present. If only `implementation` exists, use `implementation.status`.
 

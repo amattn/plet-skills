@@ -442,12 +442,122 @@ def test_update_criterion_verification_wins():
             "tautological mock",
             "--agent-id",
             AGENT_ID,
+            "--red-test",
+            "test_real_behavior",
         ]
     )
 
     data = read_iter_state(d)
     ac1 = data["criteria"][0]
     check("top-level is fail (verification wins)", ac1["status"] == "fail")
+    check("redTest stored", ac1["verification"]["redTest"] == "test_real_behavior")
+
+
+def test_update_criterion_verify_fail_requires_red_test():
+    print("\n## update-criterion — verify fail requires --red-test")
+    d = make_plet_dir()
+    init_iter(d)
+    # Missing --red-test on verification fail → error
+    _, err, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "verification",
+            "--status",
+            "fail",
+            "--evidence",
+            "bad",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
+    check("error mentions red-test", "red-test" in err.lower())
+
+    # --red-test none without --no-test-rationale → error
+    _, err, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "verification",
+            "--status",
+            "fail",
+            "--evidence",
+            "bad",
+            "--agent-id",
+            AGENT_ID,
+            "--red-test",
+            "none",
+        ],
+        expect_exit=1,
+    )
+    check("error mentions rationale", "rationale" in err.lower())
+
+    # --red-test none + --no-test-rationale → ok
+    run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "verification",
+            "--status",
+            "fail",
+            "--evidence",
+            "arch issue",
+            "--agent-id",
+            AGENT_ID,
+            "--red-test",
+            "none",
+            "--no-test-rationale",
+            "architectural concern",
+        ],
+    )
+    data = read_iter_state(d)
+    ac1 = data["criteria"][0]
+    check("noTestRationale stored", ac1["verification"]["noTestRationale"] == "architectural concern")
+
+
+def test_update_criterion_verify_pass_defaults():
+    print("\n## update-criterion — verify pass auto-defaults report fields")
+    d = make_plet_dir()
+    init_iter(d)
+    run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "verification",
+            "--status",
+            "pass",
+            "--evidence",
+            "Tests pass. All green.",
+            "--agent-id",
+            AGENT_ID,
+        ],
+    )
+    data = read_iter_state(d)
+    v = data["criteria"][0]["verification"]
+    check("oneLiner auto-derived", v["oneLiner"] == "Tests pass")
+    check("redTest defaults none", v["redTest"] == "none")
+    check("noTestRationale empty", v["noTestRationale"] == "")
 
 
 def test_update_criterion_not_found():
@@ -999,6 +1109,8 @@ def main():
     test_update_activity_missing_agent_id()
     test_update_criterion()
     test_update_criterion_verification_wins()
+    test_update_criterion_verify_fail_requires_red_test()
+    test_update_criterion_verify_pass_defaults()
     test_update_criterion_not_found()
     test_update_criterion_json()
     test_set_verdict_implement()

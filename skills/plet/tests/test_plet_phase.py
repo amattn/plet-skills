@@ -243,6 +243,8 @@ def test_end_verify_happy_path():
                 "passed",
                 "--progress-content",
                 "Verified: all AC independently confirmed.",
+                "--summary",
+                "All criteria independently verified.",
             ],
             cwd=tmpdir,
         )
