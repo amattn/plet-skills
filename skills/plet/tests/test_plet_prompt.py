@@ -226,6 +226,72 @@ def test_verify_reference_file():
 
 
 # ===========================================================================
+# CLI quick reference — content verification (HLP_1C)
+# ===========================================================================
+
+
+def _get_cli_ref(plet_dir, phase):
+    """Helper: get CLI quick reference content for a phase."""
+    stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", phase, "--output", "json"])
+    data = json.loads(stdout)
+    refs = [s for s in data["sections"] if s["name"] == "cli-quick-reference"]
+    return refs[0]["content"] if refs else ""
+
+
+def test_cli_ref_implement_content():
+    print("\n## cli-quick-reference — implement phase content")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        content = _get_cli_ref(plet_dir, "implement")
+        check("iter_id pre-filled", "ID_001" in content)
+        check("phase=implement header", "phase=implement" in content)
+        check("criterion phase is implementation", "--phase implementation" in content)
+        check("verdict completed", "--verdict completed" in content)
+        check("no --report-file", "--report-file" not in content)
+        check("plet_phase.py end", "plet_phase.py end" in content)
+        check("gate post", "plet_gate_phase.py post" in content)
+        check("attempt 1", "attempt=1" in content or "attempt 1" in content)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_cli_ref_verify_content():
+    print("\n## cli-quick-reference — verify phase content")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        content = _get_cli_ref(plet_dir, "verify")
+        check("iter_id pre-filled", "ID_001" in content)
+        check("phase=verify header", "phase=verify" in content)
+        check("criterion phase is verification", "--phase verification" in content)
+        check("verdict passed", "--verdict passed" in content)
+        check("has --report-file", "--report-file" in content)
+        check("plet_phase.py end", "plet_phase.py end" in content)
+        check("gate post verify", "--phase verify --output json" in content)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_cli_ref_attempt_from_state():
+    print("\n## cli-quick-reference — attempt number from state")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        # Update state to show attempt 2
+        state_file = os.path.join(plet_dir, "state", "ID_001.json")
+        with open(state_file) as f:
+            state = json.load(f)
+        state["attempts"]["implement"] = 2
+        with open(state_file, "w") as f:
+            json.dump(state, f)
+        content = _get_cli_ref(plet_dir, "implement")
+        check("attempt 2 in content", "attempt=2" in content or "attempt 2" in content)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
 # learnings — always present (FOO_38)
 # ===========================================================================
 
@@ -428,6 +494,9 @@ def main():
     test_impl_reference_file()
     test_verify_all_sections()
     test_verify_reference_file()
+    test_cli_ref_implement_content()
+    test_cli_ref_verify_content()
+    test_cli_ref_attempt_from_state()
     test_learnings_always_present()
     test_learnings_empty_file()
     test_learnings_missing_file()
