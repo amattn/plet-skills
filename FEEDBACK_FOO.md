@@ -50,7 +50,7 @@ Files to sweep: case studies (definitions), FEEDBACK_FOO.md (references), NOTES.
 
 ### Phase 3: Resolution pass
 - [x] Audit every FOO item against current code
-- [x] Mark items resolved that were fixed but never updated (especially PLAN_8 deferrals)
+- [x] Mark items resolved that were fixed but never updated (especially PLAN_PY deferrals)
 - [x] Withdraw items no longer relevant
 - [x] Update `[resolved, unverified]` → `[resolved, verified]` where Run 6 validated the fix
 
@@ -181,7 +181,7 @@ LOGA: traces for 1 of 13 iterations. LIBT: 4 of 5 iterations (improved but still
 
 Source: CASE_LOGA_R01_REC_8, CASE_LIBT_R01_REC_4
 
-`[resolved, verified]` → Decided: traces on by default, configurable. Schema standardization deferred → PLAN_8 (`plet_trace.py`). Run 6 had 100% trace coverage.
+`[resolved, verified]` → Decided: traces on by default, configurable. Schema standardization deferred → PLAN_PY (`plet_trace.py`). Run 6 had 100% trace coverage.
 
 `[resolved, verified]` — plet_trace.py enforces schema (VALID_PHASES, VALID_EVENT_TYPES, required fields per event type). validate command checks files.
 
@@ -301,7 +301,7 @@ Source: LIBT Run 1 user observation
 
 At the end of the plan session, show a histogram/summary of iteration priorities (P0, P1, P2, P3). Gives the user a quick sanity check on the distribution before starting the loop — too many P0s might mean priorities aren't differentiated enough, no P0s might mean nothing is critical.
 
-`[deferred]` — Nice to have but not blocking. Revisit after PLAN_9 comparison runs.
+`[deferred]` — Nice to have but not blocking. Revisit after PLAN_RW comparison runs.
 
 ### FOO_26: Milestones generated too early in plan session [planning] [sequencing]
 
@@ -383,7 +383,7 @@ SPARK ID_007 notes "impl-1 lost commits; re-impl as impl-2" — the agent lost i
 
 Source: SPARK case study, ID_007 iteration table
 
-`[deferred → PLAN_8]` — `plet_git.py` worktree isolation prevents cross-branch contamination.
+`[deferred → PLAN_PY]` — `plet_git.py` worktree isolation prevents cross-branch contamination.
 
 ### FOO_36: Retry overhead consumed 24% of active execution time [timing] [efficiency]
 
@@ -415,7 +415,7 @@ SP_6 (investigate learnings regression root cause) references FOO_21 but FOO_21 
 
 Source: CASE_SPARK_R01_REC_6
 
-`[withdrawn]` — Root cause is academic. The new tooling (`plet_prompt.py` for guaranteed learnings injection, `plet_gate_phase.py` for mandatory entry enforcement) should improve this regardless of why prose rules failed. PLAN_9 comparison runs will validate.
+`[withdrawn]` — Root cause is academic. The new tooling (`plet_prompt.py` for guaranteed learnings injection, `plet_gate_phase.py` for mandatory entry enforcement) should improve this regardless of why prose rules failed. PLAN_RW comparison runs will validate.
 
 ### FOO_40: State file lifecycle not transitioned to complete after iteration finishes [state] [orchestrator]
 
@@ -498,7 +498,7 @@ Arguments for: plan/refine decisions are some of the most consequential in a pro
 
 Arguments against: plan/refine run in the main conversation where the human is present and making decisions — the human IS the trace. NOTES.md captures these decisions in rich prose. Adding structured events would duplicate NOTES.md content in a less expressive format. Also, plan/refine don't run as subprocesses, so there's no transcript to pair with.
 
-Evaluate after PLAN_9 comparison runs — if post-run analysis would benefit from structured plan/refine events, add support.
+Evaluate after PLAN_RW comparison runs — if post-run analysis would benefit from structured plan/refine events, add support.
 
 `[resolved]` → Decided: no trace events for plan/refine sessions for now. The human is present and making decisions — NOTES.md and progress entries capture what happened. Revisit if post-run analysis or GUI work surfaces a need for structured plan/refine traces.
 
@@ -660,7 +660,7 @@ All plet scripts take `<plet_dir>` as an optional positional arg (default: `plet
 
 **Proposed fix:** Make `<plet_dir>` a required positional arg (no default). Less invasive than a `--plet-dir` named flag — keep the positional convention, just remove the fallback. `get_plet_dir` errors if missing instead of defaulting to `plet/`. Agents already pass it every time.
 
-**Impact:** Update `get_plet_dir` in util_cli + tests that rely on the default. Much smaller sweep than a named flag change. Plan with PLAN_10 (subplets).
+**Impact:** Update `get_plet_dir` in util_cli + tests that rely on the default. Much smaller sweep than a named flag change. Plan with PLAN_EVL (subplets).
 
 `[resolved]` — implemented in seq 37. `get_plet_dir` now returns None if missing.
 
@@ -670,7 +670,7 @@ All plet scripts take `<plet_dir>` as an optional positional arg (default: `plet
 
 Source: LOGA Run 2 observations
 
-Observations from first live run with PLAN_9 tooling on the logalyzer project. The orchestrator script exists but these issues surfaced during the run:
+Observations from first live run with PLAN_RW tooling on the logalyzer project. The orchestrator script exists but these issues surfaced during the run:
 
 1. **Plan session: no progress entries written.** plan.md had zero guidance on progress entries. `[fixed]` — added critical rule + examples to plan.md.
 
@@ -688,7 +688,7 @@ Observations from first live run with PLAN_9 tooling on the logalyzer project. T
 
 8. **Possible plugin conflict.** Published marketplace version and local repo both have the plet skill. Claude Code may pick up either one — version confusion. Need to uninstall published version for clean testing.
 
-**Root cause hypothesis:** Most issues trace back to #4 and #8 — the agent isn't using plet_orchestrator.py or the v0.3.0 SKILL.md. If it's running the old skill, all the PLAN_9 work (orchestrator, lifecycle ownership, NDJSON streaming, etc.) is invisible to it.
+**Root cause hypothesis:** Most issues trace back to #4 and #8 — the agent isn't using plet_orchestrator.py or the v0.3.0 SKILL.md. If it's running the old skill, all the PLAN_RW work (orchestrator, lifecycle ownership, NDJSON streaming, etc.) is invisible to it.
 
 **Next step:** Complete iter 01, do full case study. Verify which skill version the agent is actually loading.
 
@@ -807,7 +807,7 @@ Source: CASE_LOGA_R06_REC_4, CASE_LOGA_R06_F_5
 
 Run 6's main.go accumulated to 433 lines — each iteration added subcommand handling without extracting. This is the "excessive special cases" pattern from NOTES.md § Two-tier refactoring model. The Tier 2 milestone boundary refactor is designed but not implemented. The orchestrator should trigger a refactor analysis when all iterations in a milestone reach `complete`.
 
-`[deferred]` → Big change: needs a refactor→verify loop at milestone boundaries, possibly every iteration. Deferred to its own plan item (PLAN_13). See PLAN.md.
+`[deferred]` → Big change: needs a refactor→verify loop at milestone boundaries, possibly every iteration. Deferred to its own plan item (PLAN_RFT). See PLAN.md.
 
 ### FOO_71: Phase "unknown" in trace files — CLI design issue [cli] [trace]
 

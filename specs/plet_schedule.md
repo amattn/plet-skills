@@ -481,6 +481,6 @@ See `specs/conventions.md` for requirements common to all scripts.
 
 ## 16. FOO Items Addressed
 
-No direct FOO items — this script is new infrastructure for the orchestrator (PLAN_9d). Indirectly supports:
+No direct FOO items — this script is new infrastructure for the orchestrator (PLAN_RWd). Indirectly supports:
 - FOO_40 (State lifecycle not transitioned) — deterministic eligibility prevents orchestrator from losing track
 - FOO_31 (Final loop commit required human prompting) — retry logic prevents infinite loops that require manual intervention

@@ -152,7 +152,7 @@ Append-only, never renumber.
 
 Created `specs/` at project root with full infrastructure:
 - `CLAUDE.md` — how to work in specs/
-- `NOTES.md` — tooling decisions (migrated from root NOTES.md, which had grown to 12% tooling content and would grow more during PLAN_8)
+- `NOTES.md` — tooling decisions (migrated from root NOTES.md, which had grown to 12% tooling content and would grow more during PLAN_PY)
 - `conventions.md` — 30 universal requirements (UNV_*) derived from `scripts/CLAUDE.md`. The coding standards file defines *how* to build; conventions.md defines *what* to require. Requirement IDs make compliance auditable.
 - `script_template.md` — 15-section template adapted from plet's PRD template
 - `PLAN.md` — build order for 10 scripts
@@ -284,7 +284,7 @@ Template updated. Both retroactive specs (STA, ENT) updated with stable labels t
 
 Audited `plet_state.py` and `plet_entries.py` against `specs/conventions.md`. Combined: 55 PASS, 5 FAIL, 5 N/A. Results recorded in each script's spec file.
 
-**Key finding:** `plet_state.py` uses three different argument parsing patterns (inline kwarg parsing in `cmd_init`, 5 positional args in `update-criterion`, alternating pairs in `update-field`) while `plet_entries.py` consistently uses the shared `parse_kwargs()` function. The `parse_kwargs` pattern is what `scripts/CLAUDE.md` prescribes. Decision: document in specs, fix during PLAN_8 implementation — not worth a standalone fix pass.
+**Key finding:** `plet_state.py` uses three different argument parsing patterns (inline kwarg parsing in `cmd_init`, 5 positional args in `update-criterion`, alternating pairs in `update-field`) while `plet_entries.py` consistently uses the shared `parse_kwargs()` function. The `parse_kwargs` pattern is what `scripts/CLAUDE.md` prescribes. Decision: document in specs, fix during PLAN_PY implementation — not worth a standalone fix pass.
 
 #### Scripts coding standards — scripts/CLAUDE.md (2026-03-14)
 
@@ -355,8 +355,8 @@ Prompt assembly:
 - `check-fingerprints` can also be called by the routing logic (before phase dispatch), not just the loop
 - All commands are read-only except `start-session` and `end-session` — minimizes blast radius of bugs
 
-**Relationship to PLAN_8:**
-This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" candidates. `plet_orchestrator.py` covers the loop-specific orchestrator logic; the other PLAN_8 candidates (`plet_trace.py`, `plet_git_cleanup.py`, pre/post-phase checkpoints) remain separate scripts for their respective domains.
+**Relationship to PLAN_PY:**
+This is a superset of PLAN_PY's "pre-flight checker" and "lifecycle finalizer" candidates. `plet_orchestrator.py` covers the loop-specific orchestrator logic; the other PLAN_PY candidates (`plet_trace.py`, `plet_git_cleanup.py`, pre/post-phase checkpoints) remain separate scripts for their respective domains.
 
 #### Script-as-orchestrator architecture (2026-03-15)
 
@@ -377,7 +377,7 @@ This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" ca
 - **Error recovery:** must be explicitly coded vs Claude reasoning about failures
 - **Permissions:** `--dangerously-skip-permissions` bypasses all safety checks. Named that way for a reason. But plet subagents are already designed for full autonomy (FOO_3) — they need unrestricted tool access anyway.
 
-**Impact on PLAN_8:** This changes `plet_orchestrator.py` from "helper commands the skill calls" to potentially "the orchestrator itself." The `assemble-prompt` command becomes the bridge — it produces the exact prompt text that gets piped to `claude -p`.
+**Impact on PLAN_PY:** This changes `plet_orchestrator.py` from "helper commands the skill calls" to potentially "the orchestrator itself." The `assemble-prompt` command becomes the bridge — it produces the exact prompt text that gets piped to `claude -p`.
 
 **Open questions:**
 - Does `claude -p` support all the tools subagents need (Read, Write, Edit, Bash, Grep, etc.)? Need to verify capabilities in one-shot mode.
@@ -387,7 +387,7 @@ This is a superset of PLAN_8's "pre-flight checker" and "lifecycle finalizer" ca
 - How does the user set breakpoints, pause, or intervene? Current design uses `state.json` breakpoints read by the orchestrator — that still works since the script reads state.json too.
 - Cost/billing visibility — does `claude -p` usage show up in the same billing/usage tracking?
 
-**Not a v1 blocker** — the current skill-as-orchestrator design works. But this could be a v2 architectural shift that eliminates the entire compaction recovery protocol and most orchestrator drift categories. Worth prototyping after PLAN_9 (comparison runs validate the current architecture first).
+**Not a v1 blocker** — the current skill-as-orchestrator design works. But this could be a v2 architectural shift that eliminates the entire compaction recovery protocol and most orchestrator drift categories. Worth prototyping after PLAN_RW (comparison runs validate the current architecture first).
 
 #### Full script inventory for script-as-orchestrator (2026-03-15)
 
@@ -401,7 +401,7 @@ If the loop orchestrator becomes a Python script, the full inventory of plet scr
 | `plet_entries.py` | Runtime artifact entries | `add-progress`, `add-learning`, `add-emergent`, `check` | Exists |
 | `plet_fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` | New |
 | `plet_git.py` | Git compliance layer | `branch-name`, `create-branch`, `audit-tag`, `squash`, `worktree-create`, `worktree-remove`, `check-stashes`, `cleanup-stashes` | New (absorbs `plet_git_cleanup.py`) |
-| `plet_trace.py` | Trace NDJSON schema enforcement | `validate`, `append-event`, `query` | New (already in PLAN_8) |
+| `plet_trace.py` | Trace NDJSON schema enforcement | `validate`, `append-event`, `query` | New (already in PLAN_PY) |
 | `plet_router.py` | Phase detection + status | `detect`, `status`, `preflight` | New (absorbs pre-flight checker) |
 | `plet_inject_prompt.py` | Prompt assembly for subagents | `assemble` (given iteration ID + phase, reads reference files, iteration def, requirements, learnings, state; outputs complete prompt text) | New |
 | `plet_invoke.py` | Subprocess launch + transcript capture | `run` (assembles prompt via plet_inject_prompt, launches `claude -p --output-format stream-json`, tees JSONL to transcript file, returns exit code) | New |
@@ -431,7 +431,7 @@ If the loop orchestrator becomes a Python script, the full inventory of plet scr
 - Exists: 2 (`plet_state.py`, `plet_entries.py`)
 - New: 8
 - Total: 10
-- Absorbed from PLAN_8: `plet_git_cleanup.py` → `plet_git.py`, pre-flight checker → `plet_router.py`, post-implement/post-verify → `plet_gate_impl.py`/`plet_gate_verify.py`, pre-phase context → `plet_inject_prompt.py`
+- Absorbed from PLAN_PY: `plet_git_cleanup.py` → `plet_git.py`, pre-flight checker → `plet_router.py`, post-implement/post-verify → `plet_gate_impl.py`/`plet_gate_verify.py`, pre-phase context → `plet_inject_prompt.py`
 
 **Monitor:** `plet_git.py` has the most commands (8) across 4 concerns (branches, worktrees, tags, squash/stash). If it gets unwieldy during implementation, split into `plet_branch.py`, `plet_worktree.py`, `plet_tag.py`, `plet_stash.py`. Keep as-is for now — assess during build.
 
@@ -578,13 +578,13 @@ Decisions made during §3.4–§9 review of `plet_entries.md`:
 
 **Rationale:** `--content-file`, `--data` (plet_state), and similar file-reading flags all need the same error handling pattern. Centralizing in util_io eliminates drift across scripts for the common failure modes (not found, permissions, empty).
 
-#### PLAN_7 triage reshaped by script-as-orchestrator (2026-03-15)
+#### PLAN_FT triage reshaped by script-as-orchestrator (2026-03-15)
 
-The script-as-orchestrator architecture changes the resolution path for most PLAN_7 feedback items. Of 26 open items:
+The script-as-orchestrator architecture changes the resolution path for most PLAN_FT feedback items. Of 26 open items:
 
 - **5 already resolved** (FOO_36, FOO_37, FOO_41, FOO_42, FOO_45) — withdrawn or done in earlier sessions
-- **12 defer to PLAN_8 tooling** — problems caused by orchestrator drift or agent non-compliance that the scripts handle deterministically. No prose fixes needed.
-- **5 need PLAN_7 prose fixes** — all plan session issues (FOO_24–FOO_28) unaffected by the orchestrator change
+- **12 defer to PLAN_PY tooling** — problems caused by orchestrator drift or agent non-compliance that the scripts handle deterministically. No prose fixes needed.
+- **5 need PLAN_FT prose fixes** — all plan session issues (FOO_24–FOO_28) unaffected by the orchestrator change
 - **4 research/minor** — triage individually (FOO_21, FOO_34, FOO_39, FOO_43) plus FOO_44 as a `plet_entries.py` enhancement
 
 **Key insight:** The plan session is the only phase still fully skill-driven (interactive, judgment-heavy). Its feedback items are the only ones that need prose fixes. Loop and verify issues are almost entirely subsumed by the script orchestrator and gate scripts.
@@ -807,7 +807,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
   - `load_and_validate_iter_state(path)` / `load_iter_state` / `validate_iter_state`
 - **Convention established:** Scripts that need per-iteration context (GTO, GTC, GIM, GVR) take `<state_json> <iter_state>` as two positional args + `--phase` as the only flag for context. iter-id, attempt, title, cleanupTagsAutomatically all derived from files. Single source of truth — the state files decide, not the caller's memory.
 - **Why two positional args + --phase:** iter-id and attempt come from the file (can't pass wrong values). Phase must be explicit because lifecycle may be mid-transition when the script is called. Title comes from iter_state.title. This eliminates 3 flags (--iter-id, --attempt, --title) and prevents orchestrator bugs from silently producing wrong tag names or commit messages.
-- **Retrofit ENT/TRC deferred:** plet_entries.py and plet_trace.py use --iter-id, --phase, --attempt flags (called by subagents, not orchestrator). Retrofitting is expensive and the flag pattern works for agents. The two-state-file pattern applies to new orchestrator-called scripts (GTO, GTC, GIM, GVR). Evaluate retrofit after PLAN_9 — if case studies show agents passing wrong values, retrofit then.
+- **Retrofit ENT/TRC deferred:** plet_entries.py and plet_trace.py use --iter-id, --phase, --attempt flags (called by subagents, not orchestrator). Retrofitting is expensive and the flag pattern works for agents. The two-state-file pattern applies to new orchestrator-called scripts (GTO, GTC, GIM, GVR). Evaluate retrofit after PLAN_RW — if case studies show agents passing wrong values, retrofit then.
 
 #### Squash architecture redesign (2026-03-22)
 
@@ -916,11 +916,11 @@ CLEANUP (per-iteration state controls):
 
 #### Eval system design direction (2026-03-28)
 
-- **PLAN_9 redefined:** Was "comparison runs" (vague). Now "eval system + comparison runs" with per-role eval strategy (planner, implementer, verifier).
+- **PLAN_RW redefined:** Was "comparison runs" (vague). Now "eval system + comparison runs" with per-role eval strategy (planner, implementer, verifier).
 - **Key insight from prompt work:** Building plet_prompt.py surfaced that we have no way to measure whether prompt changes improve outcomes. Ad-hoc case studies (LOGA, LIBT) extracted feedback but didn't systematically compare before/after.
 - **Three failure modes by role:** Planner failures = implementer/verifier blocked by vague specs. Implementer failures = rubber-stamped tests, poor coverage. Verifier failures = false negatives (things that slipped through).
 - **Long-term goal:** Eval as a first-class plet feature, like skill-creator's eval framework. Metrics collection, comparison reports, trend tracking.
-- **Phased approach:** Formalize case study template first (cheap), then comparison runs (PLAN_9b), then broader testing (PLAN_9c), then eval tooling (PLAN_9d).
+- **Phased approach:** Formalize case study template first (cheap), then comparison runs (PLAN_RWb), then broader testing (PLAN_RWc), then eval tooling (PLAN_RWd).
 - **Both synthetic and emergent test cases needed.** Synthetic = deliberately vague criteria, injected bugs. Emergent = real failures from case study runs.
 
 #### INV spec + implementation (2026-03-28)
@@ -1042,7 +1042,7 @@ Retrofitting all specs first, then implementations.
 
 - **Decision:** Drop `cleanup-stashes` from `plet_git_ops.py`. GTO is now 2 commands: `squash`, `audit-tag`.
 - **Why:** Worktrees (GTI) eliminate the need to stash. The stash ban is in execute.md and verify.md. A cleanup command for a problem that shouldn't exist is backwards — the fix is enforcing the ban (worktrees), not cleaning up after violations.
-- **Monitor:** If PLAN_9 comparison runs or future case studies show stashes appearing despite worktrees, revisit. Until then, YAGNI.
+- **Monitor:** If PLAN_RW comparison runs or future case studies show stashes appearing despite worktrees, revisit. Until then, YAGNI.
 
 #### plet_git.py split into three scripts (2026-03-21)
 

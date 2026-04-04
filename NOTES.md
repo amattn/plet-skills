@@ -247,7 +247,7 @@ Design principle: commands match agent workflow, not JSON structure. `start-phas
 
 ### ID Conventions
 
-- All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`) — underscores over dashes so a double-click selects the entire ID for copy-paste. Slightly less aesthetic but worth the ergonomic trade. Longer prefixes (3-4 chars) are acceptable when they improve readability (e.g., `PLAN_1`).
+- All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`) — underscores over dashes so a double-click selects the entire ID for copy-paste. Slightly less aesthetic but worth the ergonomic trade. Longer prefixes (3-4 chars) are acceptable when they improve readability (e.g., `PLAN_SKL`).
 - Sub-groups use `XX_YY_N` (e.g., `UI_NAV_1`) when there is a logical grouping or large item count
 - Append-only with gaps — new items get the next available number, deleted items leave gaps, numbers don't imply ordering, IDs are stable once assigned (never renumber, never reuse)
 
@@ -255,7 +255,7 @@ Design principle: commands match agent workflow, not JSON structure. `start-phas
 
 | Prefix | Artifact type | Where used |
 |--------|--------------|------------|
-| `PLAN` | Build plan parts | PLAN.md |
+| `PLAN` | Build plan parts (2-3 letter codes: SKL, REF, PY, EVL, etc.) | PLAN.md |
 | `FOO` | Feedback/Observation/Oversight | FEEDBACK_FOO.md |
 | `FR` | Functional requirements | prd.md |
 | `NF` | Non-functional requirements | prd.md |
@@ -525,7 +525,7 @@ Read commands on those scripts (check, validate, query) DO log.
 
 #### Reference file rewrite — judgment vs compliance analysis (2026-03-28)
 
-PLAN_9c: rewriting implement.md and verify.md to delegate compliance to scripts while keeping judgment as prose. The principle: **agents call scripts for format/schema compliance, read prose for judgment calls.**
+PLAN_RWc: rewriting implement.md and verify.md to delegate compliance to scripts while keeping judgment as prose. The principle: **agents call scripts for format/schema compliance, read prose for judgment calls.**
 
 **implement.md section analysis:**
 
@@ -1244,13 +1244,13 @@ Reviewed SKILL.md against skill-creator best practices. Three changes made:
 Scanned CLAUDE.md, PLET.md, NOTES.md, and reference files for generalizable patterns. Seven standalone skills identified, tracked in `EXTRACTABLE.md`:
 
 - **EX_1: /chatux** — Chat UX ergonomics. Bundles 10 patterns: NL/NLR options, batch answers, 1b1 mode, single-decision letters, "ok" approval, standard review prompt (A-E with recommend option), always suggest options, show-then-recommend, ask when ambiguous, fenced code blocks. Renamed from /nl — NL is one pattern within the broader chat UX skill.
-- **EX_2: /feedback** — Meta-observation tracking. Replaces the old feedback skill plan item in PLAN.md — now part of the broader extractable skills effort (PLAN_6).
+- **EX_2: /feedback** — Meta-observation tracking. Replaces the old feedback skill plan item in PLAN.md — now part of the broader extractable skills effort (PLAN_XS).
 - **EX_3: /dictation** — Voice input correction with project-specific misspelling tables.
 - **EX_4: /improve** — Self-improvement / pattern detection. Agent proactively surfaces recurring patterns.
 - **EX_5: /bootstrap** — Session bootstrap and compaction recovery. Three-layer defense against context loss.
 - **EX_6: /discipline** — Meta-pattern for creating named behavioral disciplines. The framework that makes Notes Discipline, Decision Discipline, and Review Discipline work.
 
-**Key decision:** /feedback removed from PLAN.md as a standalone plan item — folded into the broader extractable skills inventory (PLAN_6).
+**Key decision:** /feedback removed from PLAN.md as a standalone plan item — folded into the broader extractable skills inventory (PLAN_XS).
 
 - **EX_7: /label** — Greppable ID convention (`XX_N`). Core is the labeling system; consistency passes included as lightweight guidelines, not rigid procedure. Reframed from "consistency pass skill" — the passes only work *because* of labels, so labels are the real skill.
 
@@ -1671,7 +1671,7 @@ Resolves FOO_41 and FOO_42. In SPARK, the refine agent created iterations on a p
 
 #### Tooling decisions migrated to specs/NOTES.md (2026-03-15)
 
-Script tooling decisions (coding standards, orchestrator analysis, script inventory, script-as-orchestrator architecture, spec file location, PLAN_7 triage analysis) moved to `specs/NOTES.md`. See that file for all tooling design rationale.
+Script tooling decisions (coding standards, orchestrator analysis, script inventory, script-as-orchestrator architecture, spec file location, PLAN_FT triage analysis) moved to `specs/NOTES.md`. See that file for all tooling design rationale.
 
 #### Ban git stash in agents (FOO_9) — DECIDED (2026-03-11), REVISED (2026-03-14)
 
@@ -1696,11 +1696,49 @@ Systematic cleanup of FEEDBACK_FOO.md to bring cross-referencing, resolution sta
 - **Phase 0:** Label format decision (CASE_ prefix)
 - **Phase 1:** Label all case studies + rename files
 - **Phase 2:** Cross-reference every REC ↔ FOO item. Found 8 orphaned RECs (6 from R02 resolved-without-FOO, 2 from R06).
-- **Phase 3:** Resolution pass — audit every FOO item against current code. Many PLAN_8 deferrals (FOO_11, FOO_13, FOO_22, FOO_23, FOO_29–FOO_33, FOO_35, FOO_38, FOO_40) updated to `[resolved, verified]` based on Run 6 results.
+- **Phase 3:** Resolution pass — audit every FOO item against current code. Many PLAN_PY deferrals (FOO_11, FOO_13, FOO_22, FOO_23, FOO_29–FOO_33, FOO_35, FOO_38, FOO_40) updated to `[resolved, verified]` based on Run 6 results.
 - **Phase 4:** New FOO items filed (FOO_69–FOO_72: parallel scheduling, milestone refactor, phase "unknown" CLI, worktree cleanup).
 - **Phase 5:** Final consistency pass — no stale labels, no old filenames, all RECs covered.
 
-**Result:** FOO_1–FOO_72. 55 resolved, 4 withdrawn, 2 deferred, 11 open.
+**Result:** FOO_1–FOO_72. After full triage (2026-04-03): 70 resolved, 5 withdrawn, 3 deferred, 2 open (FOO_25 deferred, FOO_69 pending timing analysis).
+
+#### FB → FOO rename — DECIDED (2026-04-03)
+
+Renamed `FEEDBACK.md` → `FEEDBACK_FOO.md` and all `FB_N` → `FOO_N` to align with the `/feedback-foo` skill convention (FOO = Feedback, Observation, Oversight). 342 `FB_N` occurrences across 35 files, 56 `FEEDBACK.md` references across 10 files, ~70 bare `FB` references. Prefix table updated: `FB` → `FOO`.
+
+#### Never-merge-to-main rule strengthened — DECIDED (2026-04-03)
+
+SKILL.md had contradicting directives: Git Strategy said "Agents never commit to main" but the plan phase STOP message said "Merge to main when you're ready." In LOGA Run 6, the agent quoted the rule correctly but had already violated it — the suggestion was read as an instruction. Fixed in three locations: plan phase STOP message (removed merge suggestion, added explicit prohibition), loop all_complete handler ("do not merge unless asked"), Git Strategy (added "or merge" + "requires direct, explicit, confirmed human instruction"). The loop branches from the plan workstream — merging to main is not required for any plet workflow.
+
+#### Orchestrator owns start-phase — DECIDED (2026-04-03)
+
+FOO_61: `plet_iter_state.py start-phase` was only called by subagents via prose instructions in implement.md/verify.md. In LOGA Run 2, the subagent never called it — attempt counters stayed at 0. Moved to the orchestrator: `_run_implement_phase` and `_run_verify_phase` now call `start-phase` before spawning the subagent. Attempt counting, phase timestamps, and verdict clearing are deterministic. Mock claude updated to not duplicate the increment.
+
+#### Gate validates verdict values — DECIDED (2026-04-03)
+
+FOO_63: `check_implement_verdict` and `check_verify_verdict` in gate_phase.py only checked for null, not valid values. Any non-null string (including typos like `"readyForVerification"`, `"complete"`) passed silently. Added value validation against `IMPLEMENT_VERDICTS` (completed, blocked) and `VERIFY_VERDICTS` (passed, rejected, blocked). Found invalid values in 4 test fixtures and the mock claude — exactly the class of bug FOO_63 described.
+
+#### Orchestrator validates state.json at startup — DECIDED (2026-04-03)
+
+Dead code audit found `plet_global_state.py validate` had zero production callers. Added as the first step in `_setup_session`, before preflight or fingerprint checks. If state.json is corrupt, the orchestrator exits immediately with a clear error rather than proceeding with invalid state. Also found `get-lifecycle` and `plet_trace.py query` have no production callers — kept as diagnostic/query tools for humans and GUI.
+
+#### Phase vocabulary exception — orchestrator and unknown — DECIDED (2026-04-03)
+
+FOO_71: Orchestrator-level script calls had no valid phase value, producing `*-unknown-1-events.ndjson` files. Added `orchestrator` as a valid phase in plet_trace.py, plet_entries.py, and util_cli.py dispatch logger. `unknown` remains the fallback when no `--phase` is provided. Documented the taxonomy exception: trace/entry phases (`plan`, `implement`, `verify`, `refine`, `orchestrator`, `unknown`) are broader than iteration lifecycle phases (`implement`, `verify`). The broader set labels "who did the work" for observability; the narrow set is where we are in the iteration lifecycle.
+
+#### PLAN stable codes — DECIDED (2026-04-03)
+
+Renamed `PLAN_N` numeric IDs to 2-3 letter mnemonic codes (PLAN_SKL, PLAN_REF, PLAN_PY, PLAN_EVL, etc.) so plan items never need reordering. Same principle as stable labels. Dropped the Seq column from the master table. 101 occurrences across 12 files.
+
+#### LOGA Run 6 timing analysis — key findings (2026-04-03)
+
+Detailed per-iteration timing analysis from transcript files. Key findings:
+- **53% of implement-phase Bash calls are plet infrastructure** (state updates, progress entries, trace events, gate checks), not application code. → PLAN_OVH
+- **~150 `--help` lookups per run** — fresh subagents re-learn CLI invocation syntax. → PLAN_HLP
+- **46% parallelism opportunity** — critical path 1h40m vs sequential 3h4m (1.86x speedup). → PLAN_PAR
+- Verify is 0.64x of implement time (avg 4:15 vs 6:36)
+- Later iterations trend longer (growing codebase)
+- 43 min (23%) is pure orchestrator overhead (subagent spawn/teardown)
 
 ### Case study timing analysis
 

@@ -2,33 +2,36 @@
 
 ## Master Table
 
-| Seq | ID | Title | Status |
-|-----|---------|------------------------|------------|
-| 1 | PLAN_1 | SKILL.md — Main Orchestrator | ✓ COMPLETE |
-| 2 | PLAN_2 | Reference Files | ✓ COMPLETE |
-| 3 | PLAN_3 | Packaging | ✓ COMPLETE |
-| 4 | PLAN_4 | Case Study Feedback Loop | ✓ COMPLETE |
-| 5 | PLAN_5 | Notes Skill | ✓ COMPLETE |
-| 6 | PLAN_6 | Extractable Skills | ✓ COMPLETE |
-| 7 | PLAN_7 | Feedback Triage | ✓ COMPLETE |
-| 8 | PLAN_8 | Python Tooling | ✓ COMPLETE |
-| 9 | PLAN_9 | PRD + ORC + SKILL.md + Reference Files Rewrite | ✓ COMPLETE |
-| 10 | PLAN_10 | Eval System + Comparison Runs | |
-| 11 | PLAN_11 | Subplets | |
-| 12 | PLAN_12 | Examples | deferred |
-| 13 | PLAN_13 | Refactor Loop | |
+| ID | Title | Status |
+|---------|------------------------|------------|
+| PLAN_SKL | SKILL.md — Main Orchestrator | ✓ COMPLETE |
+| PLAN_REF | Reference Files | ✓ COMPLETE |
+| PLAN_PKG | Packaging | ✓ COMPLETE |
+| PLAN_CS | Case Study Feedback Loop | ✓ COMPLETE |
+| PLAN_NOT | Notes Skill | ✓ COMPLETE |
+| PLAN_XS | Extractable Skills | ✓ COMPLETE |
+| PLAN_FT | Feedback Triage | ✓ COMPLETE |
+| PLAN_PY | Python Tooling | ✓ COMPLETE |
+| PLAN_RW | PRD + ORC + SKILL.md + Reference Files Rewrite | ✓ COMPLETE |
+| PLAN_HLP | Subagent CLI Re-learning | |
+| PLAN_OVH | Plet Infrastructure Overhead | |
+| PLAN_PAR | Parallel Orchestrator | |
+| PLAN_SUB | Subplets | |
+| PLAN_EVL | Eval System + Comparison Runs | |
+| PLAN_RFT | Refactor Loop | |
+| PLAN_EX | Examples | unscheduled |
 
 ---
 
-## PLAN_1–PLAN_3: Foundation ✓ COMPLETE
+## PLAN_SKL–PLAN_PKG: Foundation ✓ COMPLETE
 
-### PLAN_1: SKILL.md — Main Orchestrator ✓ COMPLETE
+### PLAN_SKL: SKILL.md — Main Orchestrator ✓ COMPLETE
 
 Single entry point `/plet` with routing logic based on state detection.
 
 **File:** `skills/plet/SKILL.md`
 
-### PLAN_2: Reference Files ✓ COMPLETE
+### PLAN_REF: Reference Files ✓ COMPLETE
 
 6 reference files injected into subagent prompts. Schemas first, then session prompts.
 
@@ -43,7 +46,7 @@ All reference files live under `skills/plet/references/`.
 | 2b.3 | `references/verify.md` | Verification subagent prompt |
 | 2b.4 | `references/refine.md` | Refine session instructions |
 
-### PLAN_3: Packaging ✓ COMPLETE
+### PLAN_PKG: Packaging ✓ COMPLETE
 
 Plugin metadata and distribution scaffolding.
 
@@ -51,7 +54,7 @@ Plugin metadata and distribution scaffolding.
 
 ---
 
-## PLAN_4: Case Study Feedback Loop ✓ COMPLETE
+## PLAN_CS: Case Study Feedback Loop ✓ COMPLETE
 
 8 case studies across 3 projects. All feedback tracked in `FEEDBACK_FOO.md` (FOO_1–FOO_72). Stable labels: `CASE_{PROJECT}_{RUN}_{N}` convention (adopted 2026-04-03).
 
@@ -62,7 +65,7 @@ Plugin metadata and distribution scaffolding.
 | `CASE_STUDY_LOGA_R01.md` | LOGA (Go) | 13/13 | Baseline — learnings/emergent underutilized | REC_1–13 |
 | `CASE_STUDY_LIBT_R01.md` | LIBT (Python) | 5/5 | Learnings/emergent improved; state schema drifts | REC_1–8 |
 | `CASE_STUDY_SPARK_R01.md` | SPARK (Elixir) | 23/23 | State schema solved; 42 stashes despite ban | REC_1–6 |
-| `CASE_STUDY_LOGA_R02.md` | LOGA (Go) | 1/13 | First PLAN_9 scripts; plugin conflict | — |
+| `CASE_STUDY_LOGA_R02.md` | LOGA (Go) | 1/13 | First PLAN_RW scripts; plugin conflict | — |
 | `CASE_STUDY_LOGA_R03.md` | LOGA (Go) | 0/13 | First orchestrator+invoke; worktree merge conflict | — |
 | `CASE_STUDY_LOGA_R04.md` | LOGA (Go) | 1/13 | Sandbox incompatibility; script discovery issue | — |
 | `CASE_STUDY_LOGA_R05.md` | LOGA (Go) | 3/13 | Env var injection works; dependency promotion bug | — |
@@ -70,9 +73,9 @@ Plugin metadata and distribution scaffolding.
 
 ### FEEDBACK_FOO.md overhaul (2026-04-03)
 
-5-phase cleanup: (0) stable label format decision, (1) label all case studies + rename files `*_CASE_STUDY.md` → `CASE_STUDY_*.md`, (2) cross-reference every REC ↔ FOO item, (3) resolution pass — mark PLAN_8 deferrals resolved/verified after Run 6, (4) new FOO items (FOO_69–72), (5) coverage check + cleanup. All phases complete.
+5-phase cleanup: (0) stable label format decision, (1) label all case studies + rename files `*_CASE_STUDY.md` → `CASE_STUDY_*.md`, (2) cross-reference every REC ↔ FOO item, (3) resolution pass — mark PLAN_PY deferrals resolved/verified after Run 6, (4) new FOO items (FOO_69–72), (5) coverage check + cleanup. All phases complete.
 
-### Additional work done during PLAN_4
+### Additional work done during PLAN_CS
 
 - Vocabulary cleanup: "X phase" → "X session" for Level 1 terms (~69 changes across 12 files)
 - Taxonomy consolidation in NOTES.md (vocabulary hierarchy, document terms, artifact categories)
@@ -114,7 +117,7 @@ Key open items:
 
 ---
 
-## PLAN_5: Notes Skill ✓ COMPLETE
+## PLAN_NOT: Notes Skill ✓ COMPLETE
 
 A standalone `/notes` skill that formalizes the living development notes pattern used during plet-skills development.
 
@@ -132,7 +135,7 @@ A standalone `/notes` skill that formalizes the living development notes pattern
 
 ---
 
-## PLAN_6: Extractable Skills ✓ COMPLETE
+## PLAN_XS: Extractable Skills ✓ COMPLETE
 
 Generalizable patterns extracted as standalone skills, implemented and published in the `session-kit` repo (github.com/amattn/session-kit).
 
@@ -142,7 +145,7 @@ Generalizable patterns extracted as standalone skills, implemented and published
 
 ---
 
-## PLAN_7: Feedback Triage ✓ COMPLETE
+## PLAN_FT: Feedback Triage ✓ COMPLETE
 
 Review and resolve open FOO items. Each item gets one of: resolve (artifact changes), defer (with rationale), or withdraw (not worth fixing).
 
@@ -158,7 +161,7 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 | FOO_42 | Refine created state files during redecomp | Resolved — same decision (NOTES.md) |
 | FOO_45 | Scripts CLAUDE.md | Done — `scripts/CLAUDE.md` exists |
 
-### Defer to PLAN_8 tooling (12) — script handles deterministically
+### Defer to PLAN_PY tooling (12) — script handles deterministically
 
 | ID | Summary | Script |
 |----|---------|--------|
@@ -175,7 +178,7 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 | FOO_38 | Cross-iteration knowledge transfer | `plet_inject_prompt.py` always injects learnings |
 | FOO_40 | State lifecycle not transitioned | `plet_orchestrator.py` transitions deterministically |
 
-### Resolve in PLAN_7 — plan session prose fixes (5)
+### Resolve in PLAN_FT — plan session prose fixes (5)
 
 | ID | Summary | Tags |
 |----|---------|------|
@@ -190,44 +193,44 @@ The script-as-orchestrator architecture (see NOTES.md § "Script-as-orchestrator
 | ID | Summary | Resolution |
 |----|---------|------------|
 | FOO_21 | Research — learnings/emergent improvement factors | Withdrawn — tooling makes root cause moot |
-| FOO_34 | Recommend user stays for first iterations | Deferred → PLAN_8 (`plet_orchestrator.py` prints message) |
+| FOO_34 | Recommend user stays for first iterations | Deferred → PLAN_PY (`plet_orchestrator.py` prints message) |
 | FOO_39 | SP_6 root cause investigation | Withdrawn — same as FOO_21 |
 | FOO_43 | All refine status steps → progress entries | Resolved — progress entries added to refine.md Steps 5, 6, 8 |
-| FOO_44 | Progress entries need multiline content | Deferred → PLAN_8 (`plet_entries.py` enhancement) |
+| FOO_44 | Progress entries need multiline content | Deferred → PLAN_PY (`plet_entries.py` enhancement) |
 
 ---
 
-## PLAN_8: Python Tooling ✓ COMPLETE
+## PLAN_PY: Python Tooling ✓ COMPLETE
 
 Built 14 enforcement scripts + 6 utility modules in `skills/plet/scripts/`. 2189 tests across 31 files. 85% coverage. Ruff with 9 rule sets. Follows "Skills for Judgment, Code for Compliance" principle.
 
 **Detailed build plan:** `specs/PLAN.md` — all 37 tasks complete (seq 0–37).
 
-**Scripts built (14):** plet_state, plet_entries, plet_fingerprint, plet_trace, plet_git_iteration, plet_git_ops, plet_git_check, plet_gate_session (originally plet_session), plet_gate_phase, plet_prompt, plet_invoke, plet_schedule (PLAN_9), plet_session (PLAN_9, new — lifecycle management), plet_orchestrator (PLAN_9 — the capstone).
+**Scripts built (14):** plet_state, plet_entries, plet_fingerprint, plet_trace, plet_git_iteration, plet_git_ops, plet_git_check, plet_gate_session (originally plet_session), plet_gate_phase, plet_prompt, plet_invoke, plet_schedule (PLAN_RW), plet_session (PLAN_RW, new — lifecycle management), plet_orchestrator (PLAN_RW — the capstone).
 
-**Utilities built (6):** util_cli, util_io, util_id, util_state, util_subprocess, util_git (PLAN_9 — shared branch naming).
+**Utilities built (6):** util_cli, util_io, util_id, util_state, util_subprocess, util_git (PLAN_RW — shared branch naming).
 
 ---
 
-## PLAN_9: PRD + ORC + SKILL.md + Reference Files Rewrite ✓ COMPLETE
+## PLAN_RW: PRD + ORC + SKILL.md + Reference Files Rewrite ✓ COMPLETE
 
 Scripts, prose, and orchestrator all complete. LOGA Run 6 validated the full pipeline end-to-end (13/13, zero human intervention).
 
 ### Phases
 
-- **PLAN_9a:** ✓ PRD catch-up (`3082710`)
-- **PLAN_9b:** ✓ SKILL.md rewrite (`46c5a5d`)
-- **PLAN_9c:** ✓ Reference files rewrite (`456f929`)
-- **PLAN_9d:** ✓ ORC spec — toolkit + run model, NDJSON streaming, lifecycle ownership (handoffs vs decisions), 12 CRT areas
-- **PLAN_9e:** ✓ ORC implementation done (58 integration tests, real scripts + mock claude).
-- **PLAN_9f:** ✓ SKILL.md + artifact updates for ORC integration. Done:
+- **PLAN_RWa:** ✓ PRD catch-up (`3082710`)
+- **PLAN_RWb:** ✓ SKILL.md rewrite (`46c5a5d`)
+- **PLAN_RWc:** ✓ Reference files rewrite (`456f929`)
+- **PLAN_RWd:** ✓ ORC spec — toolkit + run model, NDJSON streaming, lifecycle ownership (handoffs vs decisions), 12 CRT areas
+- **PLAN_RWe:** ✓ ORC implementation done (58 integration tests, real scripts + mock claude).
+- **PLAN_RWf:** ✓ SKILL.md + artifact updates for ORC integration. Done:
   - SKILL.md Loop Phase: thin but informed — delegates execution to ORC but understands the model. Needs to interpret NDJSON pause reasons (breakpoint → ask user, blocked → recommend refine, error → surface details). Conceptual understanding stays, step-by-step prose removed.
   - SKILL.md allowed-tools: add plet_orchestrator.py, plet_schedule.py, plet_session.py, util_git.py
   - plet_prompt.py: may need updates for orchestrator's prompt assembly needs
   - scripts/CLAUDE.md: update inventory with 3 new scripts + 1 new util
   - Final consistency pass across all artifacts
 
-### Emergent work completed during PLAN_9
+### Emergent work completed during PLAN_RW
 
 - **Lifecycle ownership model** — handoffs (subagent) vs decisions (orchestrator). Cascaded to verify.md, implement.md, state-schema.md, PRD, SKILL.md. Gate scripts enforce.
 - **3 new scripts:** plet_schedule.py (scheduling), plet_session.py (lifecycle), plet_orchestrator.py (loop)
@@ -241,9 +244,9 @@ Scripts, prose, and orchestrator all complete. LOGA Run 6 validated the full pip
 
 ---
 
-## PLAN_10: Eval System + Comparison Runs
+## PLAN_EVL: Eval System + Comparison Runs
 
-Formalize how we measure whether plet's prompts and scripts actually improve outcomes. Currently we do ad-hoc case studies (LOGA, LIBT) — this makes evaluation systematic. Validate the tooling stack built in PLAN_8/9 before adding more features.
+Formalize how we measure whether plet's prompts and scripts actually improve outcomes. Currently we do ad-hoc case studies (LOGA, LIBT) — this makes evaluation systematic. Validate the tooling stack built in PLAN_PY/9 before adding more features.
 
 **Long-term goal:** Eval becomes a first-class feature of plet, similar to how skill-creator measures triggering accuracy and skill performance. plet's eval measures prompt effectiveness across three roles (planner, implementer, verifier).
 
@@ -273,14 +276,14 @@ Formalize how we measure whether plet's prompts and scripts actually improve out
 
 ### Phases
 
-- **PLAN_10a:** Formalize the case study template with eval metrics (enhance `case_studies/CLAUDE.md`). Define what gets measured per role.
-- **PLAN_10b:** Re-run logalyzer (from plan checkpoint `203c58a`) with PLAN_9 tooling + orchestrator. Produce a structured comparison: before/after on measurable dimensions.
-- **PLAN_10c:** Broader testing — harder project, refine session, edge cases.
-- **PLAN_10d:** Design the eval tooling (plet_eval.py or similar). Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework.
+- **PLAN_EVLa:** Formalize the case study template with eval metrics (enhance `case_studies/CLAUDE.md`). Define what gets measured per role.
+- **PLAN_EVLb:** Re-run logalyzer (from plan checkpoint `203c58a`) with PLAN_RW tooling + orchestrator. Produce a structured comparison: before/after on measurable dimensions.
+- **PLAN_EVLc:** Broader testing — harder project, refine session, edge cases.
+- **PLAN_EVLd:** Design the eval tooling (plet_eval.py or similar). Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework.
 
 ---
 
-## PLAN_11: Subplets
+## PLAN_SUB: Subplets
 
 Hierarchical decomposition — a plet loop can spawn sub-plets for iterations that are themselves complex enough to warrant their own plan→loop→refine cycle. Subplets have their own `plet/` directory, state files, and runtime artifacts, namespaced under the parent project.
 
@@ -292,15 +295,15 @@ Design thinking exists in NOTES.md (§ Multi-Developer Analysis, subplet branch 
 
 ### Phases
 
-- **PLAN_11a:** Formalize subplet requirements in PRD
-- **PLAN_11b:** Subplet lifecycle — how parent iterations spawn, monitor, and integrate subplets
-- **PLAN_11c:** State file extensions — subplet references in parent state, subplet directory layout
-- **PLAN_11d:** Script updates — GTI/GTO/GTC need subplet awareness for branch naming and compliance checks
-- **PLAN_11e:** SKILL.md + reference file updates for subplet support
+- **PLAN_SUBa:** Formalize subplet requirements in PRD
+- **PLAN_SUBb:** Subplet lifecycle — how parent iterations spawn, monitor, and integrate subplets
+- **PLAN_SUBc:** State file extensions — subplet references in parent state, subplet directory layout
+- **PLAN_SUBd:** Script updates — GTI/GTO/GTC need subplet awareness for branch naming and compliance checks
+- **PLAN_SUBe:** SKILL.md + reference file updates for subplet support
 
 ---
 
-## PLAN_12: Examples (deferred, trigger met)
+## PLAN_EX: Examples (unscheduled)
 
 Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/todo-cli/run1/*` tags. Examples can now be captured from real output rather than written speculatively.
 
@@ -317,7 +320,7 @@ Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/tod
 
 ---
 
-## PLAN_13: Refactor Loop
+## PLAN_RFT: Refactor Loop
 
 Autonomous agents accumulate tech debt iteration by iteration — each subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. LOGA Run 6 demonstrated this: main.go grew to 433 lines with repetitive subcommand handling across 13 iterations.
 
@@ -331,6 +334,48 @@ Autonomous agents accumulate tech debt iteration by iteration — each subagent 
 - What's the relationship between Tier 1 refactoring (within-iteration, handled by verify's fix-in-place) and Tier 2 (cross-iteration, this feature)?
 
 **Depends on:** FOO_70, NOTES.md § Two-tier refactoring model, NOTES.md § Refactor step or phase in the loop.
+
+---
+
+## PLAN_HLP: Subagent CLI Re-learning
+
+LOGA Run 6 timing analysis found ~150 `--help` lookups per run — every fresh subagent (26 total: 13 implement + 13 verify) calls `--help` 5-8 times to learn the plet CLI invocation syntax. The prompts provide script paths but not exact usage strings.
+
+**Fix:** Include copy-pasteable invocation examples directly in the implement.md and verify.md prompts so subagents don't need to discover syntax at runtime. The `--help` text is already well-structured — extract the most common invocations and inline them.
+
+**Data:** ~5-7 minutes wasted per run on help lookups. Small per-invocation cost but adds up across 26 subagent spawns.
+
+---
+
+## PLAN_OVH: Plet Infrastructure Overhead
+
+LOGA Run 6 timing analysis found that **53% of implement-phase Bash calls are plet infrastructure** (state updates, progress entries, trace events, gate checks, audit tags), not application code. The agent spends more time managing plet artifacts than writing and testing the actual software.
+
+**Investigation areas:**
+- Are all artifact writes necessary per iteration, or can some be batched/deferred?
+- Can gate checks be consolidated (one post-phase call instead of multiple)?
+- Is the auto-logger adding overhead without proportional observability value?
+- Could the orchestrator handle more artifact writes on behalf of the subagent (like it now handles `start-phase`)?
+- What's the minimum viable artifact footprint per iteration?
+
+**Data:** 396 of 743 implement Bash calls are plet infrastructure. Estimated ~46 min of a 86 min total implement time.
+
+---
+
+## PLAN_PAR: Parallel Orchestrator
+
+Wire up parallel iteration execution in `plet_orchestrator.py`. The design and infrastructure are complete — `plet_schedule.py eligible` returns full eligible lists, worktrees provide per-iteration isolation, SKILL.md documents round-based parallel execution, `--sequential` flag is reserved. The loop just needs to spawn multiple `plet_invoke.py run` calls concurrently per round.
+
+**LOGA Run 6 data:**
+- Sequential (actual): **3h 4min**
+- Parallel (critical path): **1h 40min** — **46% reduction** (1.86x speedup)
+- 7 parallel rounds instead of 13 sequential iterations
+- Round 6 runs 4 iterations concurrently (ID_008 + ID_009 + ID_010 + ID_012)
+- 43 min (23%) is orchestrator overhead (subagent spawn/teardown gaps)
+
+**Implementation:** Replace the serial `for iter_id in actionable` loop with `concurrent.futures.ProcessPoolExecutor` or multiple `subprocess.Popen` calls. Merge-squash must remain sequential (one at a time to workstream). Key concern: merge conflicts between parallel iterations modifying the same files.
+
+**Depends on:** FOO_69.
 
 ---
 

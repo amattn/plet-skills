@@ -434,7 +434,7 @@ See `specs/conventions.md` for universal requirements.
 
 | # | Question | Decision |
 |---|----------|----------|
-| 1 | cleanup-stashes command? | Dropped — worktrees (GTI) eliminate stashing. YAGNI. Monitor during PLAN_9. |
+| 1 | cleanup-stashes command? | Dropped — worktrees (GTI) eliminate stashing. YAGNI. Monitor during PLAN_RW. |
 | 2 | Per-phase squash or per-iteration? | Per-iteration. One `git merge --squash` at iteration completion. No per-phase squashing on the iteration branch. Incremental commits + audit tags preserve phase history. Simpler, eliminates post-rebase re-squash. |
 | 3 | Should audit-tag error on existing tag? | No — use `git tag -f` for idempotency. Handles re-runs after crash gracefully. |
 | 4 | Rebase or merge --squash? | `git merge --squash` — stages all iteration changes as one commit on workstream. No rebase needed. Linear history maintained (no merge commits). Simpler than rebase + ff-merge; eliminates conflict resolution re-squash scenario. |

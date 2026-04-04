@@ -1,6 +1,6 @@
 # specs/ Build Plan
 
-Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved before moving to the next. Implementation follows spec approval.
+Order of spec authoring for PLAN_PY. Each spec is written, reviewed, and approved before moving to the next. Implementation follows spec approval.
 
 > **MANDATORY: Red/green development for all implementation steps.** Write tests for one command first (red), implement the command (green), repeat. No writing script and tests together. No backfilling tests. See CLAUDE.md § Red/Green Development Discipline.
 
@@ -15,7 +15,7 @@ Order of spec authoring for PLAN_8. Each spec is written, reviewed, and approved
 
 ## FOO Traceability
 
-These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_git.py` → FOO_30, FOO_31, FOO_32, FOO_35 (git stashes, lost commits, orphaned worktrees). `plet_gate_session.py` → FOO_16, FOO_22, FOO_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FOO_11 (trace schema standardization). `plet_gate_phase.py` → FOO_29, FOO_33, FOO_11, FOO_40 (learnings/emergent enforcement, progress completeness, trace validation, lifecycle transitions). `plet_prompt.py` → FOO_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FOO_31, FOO_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FOO_17, FOO_29, FOO_44 (runtime artifact formatting, multiline content).
+These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_git.py` → FOO_30, FOO_31, FOO_32, FOO_35 (git stashes, lost commits, orphaned worktrees). `plet_gate_session.py` → FOO_16, FOO_22, FOO_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FOO_11 (trace schema standardization). `plet_gate_phase.py` → FOO_29, FOO_33, FOO_11, FOO_40 (learnings/emergent enforcement, progress completeness, trace validation, lifecycle transitions). `plet_prompt.py` → FOO_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FOO_31, FOO_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FOO_17, FOO_29, FOO_44 (runtime artifact formatting, multiline content).
 
 ## Build Order
 
@@ -59,7 +59,7 @@ These scripts resolve feedback items deferred from PLAN_7. Key mappings: `plet_g
 | 34 | Implement ORC-emergent script updates | 3 scripts need code changes from ORC spec review: (1) plet_gate_phase.py — lifecycle-handoff check, lifecycle-unchanged check, audit-tag existence check (GPH_PST_BHV_11-13, FOO_55). (2) plet_gate_session.py — new postflight command (FOO_56). (3) plet_schedule.py — stuck iteration detection in eligible (SCH_ELG_BHV_5). Red/green for each. |
 | 35 | Cascade lifecycle ownership model | Sweep: update implement.md, verify.md, SKILL.md, state-schema.md, prd.md, PLET.md, plet_state.md with handoffs-vs-decisions model. Must complete before ORC implementation — subagents read these during work. |
 | 36 | Implement `plet_orchestrator.py` | Build from spec. |
-| 37 | Make plet_dir required positional (FOO_57) | Less invasive than --plet-dir flag: keep positional, remove default. `get_plet_dir` errors if missing instead of falling back to `plet/`. Update tests that rely on default. Eliminates ordering confusion + supports subplet nested paths. Plan with PLAN_10 (subplets). |
+| 37 | Make plet_dir required positional (FOO_57) | Less invasive than --plet-dir flag: keep positional, remove default. `get_plet_dir` errors if missing instead of falling back to `plet/`. Update tests that rely on default. Eliminates ordering confusion + supports subplet nested paths. Plan with PLAN_EVL (subplets). |
 | 38 | Worktree state invariants | Orchestrator writes ZERO per-iteration state during iteration. Subagent is sole writer (worktree). Orchestrator writes final lifecycle to global_plet_dir ONLY after verdict. Reservation write eliminated. Spec before implementation. |
 | 38a | Rename plet_dir → global_plet_dir / worktree_plet_dir across scripts + skills | Establishes vocabulary first. Consistency sweep: orchestrator, util_io, SKILL.md, reference files, specs. No "root" prefix — breaks for subplets. |
 | 38b | `prd.md` — add worktree state invariants as requirements | New requirement(s) under SF or IMP: two-copy model, sole writer rule, verdict handoff. Reference from IMP_8 (lifecycle ownership). |

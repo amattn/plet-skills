@@ -62,7 +62,7 @@ This suggests session-kit's bootstrap should produce a CLAUDE.md structurally si
 
 **Pattern:** Track meta-observations about a process or tool — distinct from project-level notes (NOTES.md). Tagged entries with IDs, resolution states (`resolved`, `resolved/unverified`, `resolved/verified`), promotion paths to other artifacts.
 
-**Where it lives now:** PLET.md § FEEDBACK_FOO.md, FEEDBACK_FOO.md, PLAN.md PLAN_6
+**Where it lives now:** PLET.md § FEEDBACK_FOO.md, FEEDBACK_FOO.md, PLAN.md PLAN_XS
 
 **Why extractable:** Any team using AI tools accumulates process observations that don't belong in project notes. "The agent keeps doing X wrong" or "this workflow has friction at step Y" — these are meta-observations about the process, not the project. Without a dedicated place, they get lost in conversation or pollute NOTES.md.
 

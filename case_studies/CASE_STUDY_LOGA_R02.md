@@ -1,8 +1,8 @@
-# LOGA Run 2 Case Study — logalyzer with PLAN_9 Tooling
+# LOGA Run 2 Case Study — logalyzer with PLAN_RW Tooling
 
 ## Section 1: Plan
 
-**Goal:** First live run with PLAN_9 tooling (enforcement scripts, orchestrator spec, lifecycle ownership model). Validate whether the 14 scripts + 6 utilities + orchestrator architecture work in practice. Compare against LOGA Run 1 baseline.
+**Goal:** First live run with PLAN_RW tooling (enforcement scripts, orchestrator spec, lifecycle ownership model). Validate whether the 14 scripts + 6 utilities + orchestrator architecture work in practice. Compare against LOGA Run 1 baseline.
 
 **Methodology:** Artifact analysis of iter 01 (project scaffolding). Run stopped at breakpoint before ID_002. Partial run — only one iteration completed.
 

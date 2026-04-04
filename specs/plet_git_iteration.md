@@ -540,7 +540,7 @@ See `specs/conventions.md` for universal requirements.
 | GTI_FUT_2 | Worktree health check | A `worktree-status` command reporting the state of all active worktrees (branch, dirty/clean, last commit). May belong in plet_git_check.py instead. |
 | GTI_FUT_3 | Native Claude Code worktree support | If Claude Code's Agent tool adds native worktree isolation, this script may become a thin wrapper or unnecessary. Monitor `isolation: "worktree"` parameter. |
 | GTI_FUT_4 | Worktree path lookup | A `worktree-path` command that returns the worktree path for a given iteration ID (inverse of worktree-create). If subagents have trouble locating their worktree directory, this gives them a reliable way to query it from state.json + convention. |
-| GTI_FUT_5 | Monitor auto-resume edge cases | The branch-exists = resume, branch-absent = fresh heuristic covers all known scenarios (blocked→unblocked, interrupted/crashed, verify cycle-back, refine re-open). Monitor during PLAN_9 comparison runs and future case studies for edge cases where this heuristic produces the wrong behavior — e.g., stale branches from abandoned sessions, branch name collisions from session counter bugs. |
+| GTI_FUT_5 | Monitor auto-resume edge cases | The branch-exists = resume, branch-absent = fresh heuristic covers all known scenarios (blocked→unblocked, interrupted/crashed, verify cycle-back, refine re-open). Monitor during PLAN_RW comparison runs and future case studies for edge cases where this heuristic produces the wrong behavior — e.g., stale branches from abandoned sessions, branch name collisions from session counter bugs. |
 
 ## 16. FOO Items Addressed
 
