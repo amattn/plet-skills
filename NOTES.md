@@ -1750,6 +1750,14 @@ Detailed per-iteration timing analysis from transcript files. Key findings:
 - **Excluded:** 2C (batch artifact writes — sacrifices crash recovery). Strategy 4 options (unified CLI, Python API, SDK) — architectural changes beyond scope.
 - **3B clarification:** env var points to cheat sheet file path, not inline content.
 
+#### HLP_2A — plet_phase.py end (2026-04-03)
+
+New composite command that bundles end-of-phase bookkeeping into one call: set-verdict → add-progress → append-event → audit-tag → git commit. Replaces 5-6 separate CLI calls from the subagent. Wired into implement.md (Completing the Phase, Blocker Protocol, Failed Attempt, Missing Dependency) and verify.md (Completing the Phase, Cycle Back, Blocker Protocol). Gate-post stays as a separate subagent call — it's a quality check with a self-correction loop, not bookkeeping.
+
+#### HLP_2B — gate-pre NOT moved to orchestrator (2026-04-03)
+
+Attempted to add `plet_gate_phase.py pre` calls to the orchestrator before spawning subagents. Failed: the auto-logger writes progress.md and trace entries to the worktree, creating dirty files that conflict during merge-squash. Tried `--no-log` but that's a test-only flag agents don't know about. Reverted. Gate-pre stays as an optional subagent action. HLP_2B reduced to just removing redundant start-phase instructions from reference files.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).

@@ -12,6 +12,8 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
 
+**Phase end tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` to complete any phase exit (pass, block, retry). One call handles: set-verdict, progress entry, trace event, audit tag, and git commit. See § Completing the Phase, Blocker Protocol, and Failed Attempt Protocol for usage.
+
 **Critical:** Never create merge commits. plet requires linear history for clean `git bisect` and audit trails. The verify agent handles rebase and fast-forward merge to the workstream after verification passes (IMP_16).
 
 **Critical:** Never use `git stash`. Stashes are invisible to the orchestrator, other agents, and external tools — they are local-only, not committed, and vulnerable to garbage collection. Use incremental commits for crash recovery instead (IMP_17).
@@ -267,28 +269,28 @@ When all acceptance criteria pass:
 5. Run the full test suite — all tests must pass
 6. If any check fails, fix the issue and re-run
 
-### Tag (IMP_17)
-
-Create an audit tag to preserve your incremental commit history:
-
-```bash
-# Create audit tag preserving incremental commit history
-plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement
-```
-
-**Do NOT squash your commits.** Leave the incremental wip commits on the iteration branch. The orchestrator handles merge-squash to the workstream after verify completes. If you squash, it creates a forked branch history in the git graph.
-
-The audit tag preserves the pre-squash history so individual red/green steps are always recoverable.
-
-### Update State and Run Post-Gate
+### Write Remaining Artifacts
 
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
-2. Set `implementVerdict` via `plet_iter_state.py set-verdict --phase implement --verdict readyForVerification`. This is the **handoff signal** — tells the orchestrator you're done. The post-implement gate (GPH_PST_BHV_11) verifies this was set. **Do NOT set lifecycle** — the orchestrator manages all lifecycle transitions (SF_28).
-3. Set `phaseActivity`: `"idle"`, `activityDetail`: `null`, `agentId`: `null`
-3. Write a `COMPLETE` progress entry via `plet_entries.py add-progress`
-4. Write any remaining learnings and emergent items
-5. Write final trace entries via `plet_trace.py append-event`
-6. **Run post-gate and self-correct until it passes:**
+2. Write any remaining learnings via `plet_entries.py add-learning`
+3. Write any remaining emergent items via `plet_entries.py add-emergent`
+
+### End Phase
+
+Use `plet_phase.py end` to handle verdict, progress entry, trace event, audit tag, and git commit in one call:
+
+```bash
+plet_phase.py end plet/ --iter-id {iter_id} --phase implement --verdict completed \
+    --progress-content "Implemented: {title}. {N} AC, all green."
+```
+
+This sets `implementVerdict` (the handoff signal to the orchestrator), writes a COMPLETE progress entry, emits a trace event, creates an audit tag, and commits all artifacts. **Do NOT set lifecycle** — the orchestrator manages all lifecycle transitions (SF_28).
+
+**Do NOT squash your commits.** Leave the incremental wip commits on the iteration branch. The orchestrator handles merge-squash to the workstream after verify completes.
+
+### Run Post-Gate
+
+**Run post-gate and self-correct until it passes:**
 
 ```bash
 plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement --output json
@@ -333,13 +335,16 @@ Append a diagnostic entry:
 - What the next agent should try differently
 - Any codebase knowledge gained during the attempt
 
-### State Update
+### End Phase
 
 After documenting across all four artifacts:
-- Set `implementVerdict` to `"blocked"` via `plet_iter_state.py set-verdict --phase implement --verdict blocked`
-- `phaseActivity`: `"idle"`, `agentId`: `null`
-- **Do NOT set lifecycle** — the orchestrator reads `implementVerdict` and transitions lifecycle (SF_28)
-- Commit any work in progress
+
+```bash
+plet_phase.py end plet/ --iter-id {iter_id} --phase implement --verdict blocked \
+    --progress-content "Blocked: {description of why human input is needed}"
+```
+
+**Do NOT set lifecycle** — the orchestrator reads `implementVerdict` and transitions lifecycle (SF_28).
 
 ---
 
@@ -364,18 +369,14 @@ A failed attempt is different from a blocker. You're not saying "I need human he
    - What the next agent should try differently
    - What approaches are dead ends
    - Any codebase knowledge gained
-5. Write semantic event entries to the events trace file
-6. Create audit tag, log tag and commit hash in progress.md
-7. Do NOT squash — orchestrator handles merge-squash
-8. If `cleanupTagsAutomatically`, delete the tag and log deletion with commit hash in progress.md
+5. End the phase:
 
-### State Update
+```bash
+plet_phase.py end plet/ --iter-id {iter_id} --phase implement --verdict blocked \
+    --progress-content "Failed attempt: {what failed and what to try next}"
+```
 
-- Set `implementVerdict` to `"retry"` via `plet_iter_state.py set-verdict --phase implement --verdict retry`
-- `phaseActivity`: `"idle"`, `agentId`: `null`
-- **Do NOT set lifecycle** — the orchestrator reads the verdict and manages retry/queue (SF_28)
-
-The orchestrator evaluates retry limits (IMP_14) and decides whether to spawn another attempt.
+**Do NOT set lifecycle** — the orchestrator reads the verdict and manages retry/queue (SF_28). The orchestrator evaluates retry limits (IMP_14) and decides whether to spawn another attempt.
 
 ---
 
@@ -386,12 +387,18 @@ If you discover that prerequisite work does not exist (a dependency was missed d
 1. **Do not block.** This is a DAG correction, not a blocker.
 2. Add the missing dependency to `plet/state.json` `dependencyMap`
 3. Add the missing dependency to your per-iteration state file `dependencies` array
-4. Set `implementVerdict` to `"ineligible"` via `plet_iter_state.py set-verdict --phase implement --verdict ineligible`
-5. Document across all four runtime artifacts:
+4. Document across all four runtime artifacts:
    - **trace:** what was missing and how you discovered it
    - **progress.md:** `MIGRATED` status entry explaining the dependency correction
    - **emergent.md:** entry explaining the missing dependency for the human's awareness
    - **learnings.md:** entry so future agents know about this dependency
+5. End the phase:
+
+```bash
+plet_phase.py end plet/ --iter-id {iter_id} --phase implement --verdict blocked \
+    --progress-content "Dependency correction: {missing dep} added. Will re-queue when ready."
+```
+
 6. Return — the loop continues. Your iteration automatically becomes `queued` when the missing dependency completes.
 
 **This does not count against the retry limit.** It's a planning correction, not a failure.

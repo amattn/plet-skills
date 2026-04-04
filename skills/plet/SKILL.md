@@ -12,6 +12,7 @@ allowed-tools:
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_check.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_session.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_phase.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_phase.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_prompt.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_invoke.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_schedule.py *)"

@@ -15,6 +15,8 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Entry tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` for all runtime artifact entries (progress.md, learnings.md, emergent.md). This tool enforces the entry formats defined in `references/formats.md`, generates correct plet IDs (RT_11), and handles entry fencing (SF_25). Do not compose entries by hand — use `add-progress`, `add-learning`, and `add-emergent`. Run `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py --help` for full usage.
 
+**Phase end tool:** Use `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` to complete any phase exit (pass, reject, block). One call handles: set-verdict, verification report, progress entry, trace event, audit tag, and git commit. See § Completing the Phase, Cycle Back, and Blocker Protocol for usage.
+
 **Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in the same worktree the implement agent used. Do NOT create a new branch. Your commits go on this branch alongside the implement agent's commits. Audit tags distinguish phases.
 
 **State file context (SF_26, SF_28):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked). You set `verifyVerdict` via `plet_iter_state.py set-verdict --phase verify`. **You do NOT set lifecycle** — the orchestrator manages all lifecycle transitions in `state.json` (SF_28). **Do NOT modify `plet/state.json`** — it is orchestrator-owned. Your worktree copy may be stale; that is expected and not your concern to fix.
@@ -286,18 +288,16 @@ If issues cannot be fixed in this context — wrong abstractions, missing functi
    - **emergent.md** — entry explaining the issue for the human
    - **learnings.md** — entry explaining what the next implementation agent should do differently. For issues without red tests, include enough detail for the implement agent to understand the structural concern.
    - **progress.md** — `COMPLETE (rejected, cycle back)` entry listing what passed and what failed
-4. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
-5. Set verdict: `plet_iter_state.py set-verdict plet/ --iter-id {iter_id} --phase verify --verdict rejected`
-   - The orchestrator reads `verifyVerdict` and decides whether to retry or block.
-   - Set `phaseActivity`: `"idle"`, `agentId`: `null`
-   - **Do NOT set lifecycle.** The orchestrator owns all lifecycle transitions (SF_28).
-6. Write final trace entries
-7. Commit the failing tests, state updates, and runtime artifacts:
+4. Write the verification report to a temp file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
+5. End the phase:
+
+   ```bash
+   plet_phase.py end plet/ --iter-id {iter_id} --phase verify --verdict rejected \
+       --progress-content "Rejected: {what failed}. Cycle back with failing tests." \
+       --report-file /tmp/report.json
    ```
-   git add [specific files] plet/
-   git commit -m "plet: [ID_xxx] verify-{attempt} - cycle back: {summary}"
-   ```
-   **Always include `plet/` in commits** — state files, progress entries, learnings, emergent items, and trace events must be committed or they're lost on crash.
+
+   The orchestrator reads `verifyVerdict` and decides whether to retry or block. **Do NOT set lifecycle** — the orchestrator owns all lifecycle transitions (SF_28).
 
 **The branch is left with intentionally failing tests.** This is an explicit exception to the "all tests must pass" rule. The failing tests are the verify agent's handoff to the next implementation agent — they define exactly what needs to be fixed. The implementation agent's job is to make them green.
 
@@ -367,7 +367,7 @@ Write semantic event entries (via `plet_trace.py append-event`) for:
 
 ## Verification Report (VF_21, VF_22, VF_23, VF_24)
 
-Before finishing (all paths — complete, cycle-back, and blocked), append a verification report to the `verificationReports` array via `plet_iter_state.py add-report` and set `verifyVerdict` via `plet_iter_state.py set-verdict --phase verify --verdict <value>`. Each verification attempt gets its own report — reports are never overwritten. `verifyVerdict` is a top-level convenience field for quick access; the canonical source is the report array. Field-level schema is in `references/state-schema.md`.
+Before finishing (all paths — pass, cycle-back, and blocked), write a verification report to a temp file and pass it to `plet_phase.py end --report-file`. The end command calls `plet_iter_state.py add-report` and `set-verdict` internally. Each verification attempt gets its own report — reports are never overwritten. `verifyVerdict` is a top-level convenience field for quick access; the canonical source is the report array. Field-level schema is in `references/state-schema.md`.
 
 The report captures:
 
@@ -395,53 +395,36 @@ When all acceptance criteria pass verification (Path A or after all Path B fixes
 5. Run the full test suite — all tests must pass
 6. If any check fails, fix the issue (red/green if a code fix, commit, re-run)
 
-### Tag and Squash
-
-Use the git operations scripts:
-
-```bash
-# Create audit tag preserving incremental commit history
-plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase verify
-```
-
-**Do NOT squash your commits.** Leave incremental commits on the iteration branch. The orchestrator handles merge-squash after verification completes.
-
-### Rebase and Merge to Workstream (IMP_16)
-
-**Note:** The merge-squash to workstream is done by the **orchestrator** after verification completes, not by the verify agent. The orchestrator calls:
-
-```bash
-plet_git_ops.py merge-squash plet/ --iter-id ID_001
-```
-
-This handles: rebase onto workstream, squash into one commit (`plet: [ID_xxx] - {title}`), tag/branch cleanup, and conflict detection (aborts on conflict).
-
-**Green/rebase/green invariant:** Linear history required. Tests must pass before and after the rebase. If post-rebase tests fail, the orchestrator handles resolution.
-
-### Update State and Run Post-Gate
+### Write Remaining Artifacts
 
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
-2. Write a `COMPLETE (passed, frozen)` progress entry via `plet_entries.py add-progress`
-3. Write any remaining learnings and emergent items
-4. Append a verification report to `verificationReports` in the per-iteration state file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
-5. Set verdict: `plet_iter_state.py set-verdict plet/ --iter-id {iter_id} --phase verify --verdict passed`
-   - Set `phaseActivity`: `"idle"`, `agentId`: `null`
-   - **Do NOT set lifecycle.** The orchestrator sets lifecycle → `"complete"` after successful merge-squash (SF_28). An iteration isn't truly complete until its code is merged.
-6. Write final trace entries via `plet_trace.py append-event`
-7. **Run post-gate and self-correct until it passes:**
+2. Write any remaining learnings via `plet_entries.py add-learning`
+3. Write any remaining emergent items via `plet_entries.py add-emergent`
+4. Write the verification report to a temp file (see Verification Report above) — write after artifact entries so you have the plet IDs for `relatedEntries`
+
+### End Phase
+
+Use `plet_phase.py end` to handle verdict, progress entry, report, trace event, audit tag, and git commit in one call:
+
+```bash
+plet_phase.py end plet/ --iter-id {iter_id} --phase verify --verdict passed \
+    --progress-content "Verified: all AC independently confirmed." \
+    --report-file /tmp/report.json
+```
+
+This sets `verifyVerdict`, appends the verification report, writes a COMPLETE progress entry, emits a trace event, creates an audit tag, and commits all artifacts. **Do NOT set lifecycle** — the orchestrator sets lifecycle → `"complete"` after successful merge-squash (SF_28).
+
+**Do NOT squash your commits.** Leave incremental commits on the iteration branch. The orchestrator handles merge-squash after verification completes (rebase onto workstream, squash into one commit, tag/branch cleanup). **Green/rebase/green invariant:** tests must pass before and after the rebase.
+
+### Run Post-Gate
+
+**Run post-gate and self-correct until it passes:**
 
 ```bash
 plet_gate_phase.py post plet/ --iter-id ID_001 --phase verify --output json
 ```
 
 The verify post-gate checks everything the implement post-gate checks PLUS: `verifyVerdict` must not be null (FAIL), `verificationReports` must have an entry with `verdict` and `criteriaResults` (FAIL), `verifyVerdict` must match last report verdict (WARN). Your exit signals "I passed my own gate."
-
-8. **Commit all work including plet/ artifacts:**
-   ```
-   git add [specific files] plet/
-   git commit -m "plet: [ID_xxx] verify-{attempt} - {passed|rejected|blocked}"
-   ```
-   **Always include `plet/` in commits** — state files, progress entries, learnings, emergent items, and trace events must be committed or they're lost on worktree cleanup.
 
 ---
 
@@ -480,12 +463,17 @@ Append a diagnostic entry:
 
 Append a verification report to `verificationReports` with `verdict: "blocked"`. Include `criteriaResults` for any criteria verified so far (with statuses and one-liners) and pending criteria as `status: "not_started"`. Reference the blocker emergent entry and any learnings in `relatedEntries`.
 
-### State Update
+### End Phase
 
 After documenting across all four artifacts and writing the verification report:
-- Set verdict: `plet_iter_state.py set-verdict plet/ --iter-id {iter_id} --phase verify --verdict blocked`
-- `phaseActivity`: `"idle"`, `agentId`: `null`
-- **Do NOT set lifecycle.** The orchestrator reads `verifyVerdict: "blocked"` and transitions lifecycle → `"blocked"` (SF_28).
+
+```bash
+plet_phase.py end plet/ --iter-id {iter_id} --phase verify --verdict blocked \
+    --progress-content "Blocked: {description of why human input is needed}" \
+    --report-file /tmp/report.json
+```
+
+**Do NOT set lifecycle.** The orchestrator reads `verifyVerdict: "blocked"` and transitions lifecycle → `"blocked"` (SF_28).
 
 ---
 
