@@ -502,22 +502,23 @@ assert err == ""
 |------|------|--------|
 | COV_1 | Auto-logger direct import test | ✓ done (util_cli 67→92%) |
 | COV_2 | Direct import tests for plet_iter_state internals | ✓ done (81→83%) |
-| COV_3 | Direct import tests for plet_entries internals | ✓ done (91→93%) |
+| COV_3 | Direct import tests for plet_entries internals | ✓ done (91→93→95%) |
 | COV_4 | Direct import tests for plet_fingerprint internals | ✓ done (79→81%) |
-| COV_5 | Update dispatch() to handle tuple returns | Next — the foundation |
-| COV_6 | Migrate plet_iter_state.py cmd_* to tuple returns | Highest value — most commands |
-| COV_7 | Migrate plet_entries.py cmd_* to tuple returns | Second highest |
-| COV_8 | Migrate plet_fingerprint.py cmd_* to tuple returns | Lowest coverage |
-| COV_9 | Migrate remaining scripts | As touched |
-| COV_10 | Package restructure (optional) | When all scripts return tuples, moving to a package is a rename |
-| COV_11 | test_all.py runs coverage in-process | Endgame — no more coverage_all.sh dependency |
+| COV_5 | Update dispatch() to handle tuple returns | ✓ done — foundation |
+| COV_6 | Migrate plet_iter_state.py cmd_* to tuple returns | ✓ done (8 functions) |
+| COV_7 | Migrate plet_entries.py + plet_fingerprint.py cmd_* | ✓ done (7 functions) |
+| COV_8 | Migrate all remaining scripts cmd_* | ✓ done (31 functions, 2 skipped: invoke/orchestrator stream) |
+| COV_9 | Fix incomplete tuple migrations | **Next** — some scripts still print via emit_json() instead of returning in tuple. Discovered when test run() conversion found empty `out` strings. |
+| COV_10 | Convert 22 test subprocess calls to direct import | Blocked on COV_9. Each test run() helper calls cmd_* directly instead of subprocess. |
+| ~~COV_11~~ | ~~Package restructure~~ | **Skipped** — tuple returns already solved the coverage problem. Package restructure would be code organization (cleaner imports, `__init__.py`) not coverage. Not justified: no external consumers, flat directory is manageable, allowed-tools depends on script paths. |
+| COV_12 | Integrate coverage into test_all.py | Endgame — `test_all.py --cov` runs coverage in-process. No more separate coverage_all.sh. |
 
-**Key principle:** COV_5 (dispatch update) is the foundation — once dispatch handles tuples, each function can be migrated independently. Every migration immediately unlocks tuple-based testing for that function. The package restructure (COV_10) becomes optional — the real win is the tuple return pattern.
+**Key principle:** COV_5 (dispatch update) was the foundation. COV_6-8 migrated 46 functions to tuple returns. COV_9 is the cleanup — ensuring every return path uses the tuple, not print(). COV_10 converts tests to direct import. COV_12 is the payoff — coverage as a byproduct of testing.
 
 **What NOT to do:**
-- Don't add `# pragma: no cover` to dry-run blocks — they become testable after migration
-- Don't do a big-bang migration — migrate one function at a time, dispatch handles both patterns
-- Don't break existing subprocess tests — they keep working via dispatch's stdout/stderr routing
+- Don't add `# pragma: no cover` to dry-run blocks — they become testable after test conversion
+- Don't do big-bang test conversion — fix script tuple migrations first (COV_9), then convert tests (COV_10)
+- Don't break existing subprocess tests — they keep working via dispatch's stdout/stderr routing until converted
 
 ---
 

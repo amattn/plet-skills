@@ -1834,6 +1834,18 @@ Added `oneLiner`, `redTest`, `noTestRationale` fields to the verification object
 
 **Quality ratchets:** Formalized as UNV_QG_1-5 in conventions.md. Added §4.5 Quality Ratchets to plan.md requirements template and §10.5 to cli-spec-template.md. Metrics that must never go backwards: coverage ≥85%, McCabe ≤15, ruff lint zero errors, ruff format clean. FOO_73 filed and resolved.
 
+#### PLAN_COV complete — tuple return migration (2026-04-04)
+
+Migrated 46 cmd_* functions across 15 scripts to return `(code, stdout, stderr)` tuples instead of printing directly and returning bare ints. dispatch() in util_cli.py routes tuples to real stdout/stderr (backward compatible — handles both patterns).
+
+**Key design:** functions never call `print()`. They return what they want to output. dispatch is the only thing that touches stdout/stderr. Tests validate the return tuple directly — no `io.StringIO` hacks, no capture helpers.
+
+**Results:** Coverage 85% → 86%. 2471 tests. ~3x faster than subprocess per test call.
+
+**Skipped:** plet_invoke.py and plet_orchestrator.py (streaming output — can't collect into tuple). Marked with TODO comments.
+
+**Test conversion:** 22 subprocess-to-script calls in test `run()` helpers converted to direct import with command dispatch. Subprocess fallback only for --help/--version. 223 git subprocess calls are unavoidable (tests need real repos).
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).

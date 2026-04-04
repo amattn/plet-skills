@@ -1787,3 +1787,18 @@ Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree co
 - #5 (heuristic): wasted — unnecessary when everything is importable
 
 **Recommended path:** Do #4 incrementally as scripts are touched for other reasons. Each logic extraction is one step toward #6. When enough scripts are extracted, the final step (package directory + single entry point) is a rename + import fixup, not a logic rewrite. Skip #1/#3/#5 since they're wasted by #6. Do #2 once (auto-logger test) since it survives any restructure.
+
+### Subprocess audit (2026-04-04)
+
+After tuple return migration (COV_5-9), audited all subprocess calls in test files:
+
+| Category | Count | Eliminable? |
+|----------|-------|-------------|
+| Git setup (init, add, commit, branch) | 223 | **No** — tests need real git repos for worktree, branch, tag, merge-squash operations. These are infrastructure, not script calls. |
+| Script via sys.executable | 22 | **Yes** — converted to direct import with command dispatch. Subprocess fallback only for --help/--version (dispatch handles these specially). |
+| run() helpers | 17 | **Yes** — converted alongside the 22 above. |
+| Mock claude + other | 16 | **No** — orchestrator tests need a mock binary on PATH. plet_invoke tests need real subprocess streaming. |
+
+**Net result:** 271 → ~239 subprocess calls. The 32 eliminated are script calls replaced by direct import (~3x faster, coverage-visible). The remaining 239 are git operations (223) and unavoidable infrastructure (16) that require real process execution.
+
+**Why git calls can't be eliminated:** plet scripts call git via `subprocess.run(["git", ...])` internally. Tests that exercise worktree-create, merge-squash, audit-tag, and branch operations need a real git repo to work against. These aren't coverage gaps — the git commands execute inside the already-imported cmd_* functions. Moving git operations behind an abstraction layer would add complexity for no coverage benefit.
