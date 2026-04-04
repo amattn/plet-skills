@@ -86,31 +86,86 @@ Note: ID_007 executed before ID_005 and ID_006 because it depends on ID_003 (not
 
 ### CASE_LOGA_R06_TIME: Timeline
 
-| Iteration | Merge Time (PDT) | Duration | Cumulative |
-|-----------|------------------|----------|------------|
-| Plan | 21:08 | — | — |
-| ID_001 | 21:31 | ~23 min | 23 min |
-| ID_002 | 21:44 | ~13 min | 36 min |
-| ID_003 | 21:55 | ~11 min | 47 min |
-| ID_004 | 22:08 | ~13 min | 60 min |
-| ID_007 | 22:25 | ~17 min | 77 min |
-| ID_005 | 22:38 | ~13 min | 90 min |
-| ID_006 | 22:51 | ~13 min | 103 min |
-| ID_011 | 23:06 | ~15 min | 118 min |
-| ID_008 | 23:19 | ~13 min | 131 min |
-| ID_009 | 23:32 | ~13 min | 144 min |
-| ID_010 | 23:47 | ~15 min | 159 min |
-| ID_012 | 00:02 | ~15 min | 174 min |
-| ID_013 | 00:19 | ~17 min | 191 min |
+#### Per-iteration phase breakdown (from transcript timestamps)
 
-**Total wall-clock:** ~3h 11min (plan 21:08 → loop end 00:19)
-**Loop wall-clock:** ~2h 48min (first impl start → last merge)
-**Per-iteration average:** ~13 min (impl + verify + merge-squash)
-**Orchestrator overhead:** Negligible — no visible gaps between iterations
+| # | ID | Impl | Verify | Impl→Verify Gap | Orch OH | Total |
+|---|------|------|--------|-----------------|---------|-------|
+| 1 | ID_001 | 8:40 | 5:23 | 2:04 | — | 16:07 |
+| 2 | ID_002 | 5:01 | 4:10 | 1:54 | 2:05 | 11:05 |
+| 3 | ID_003 | 4:39 | 3:29 | 1:39 | 1:32 | 9:47 |
+| 4 | ID_004 | 5:14 | 3:56 | 2:34 | 1:46 | 11:44 |
+| 5 | ID_007 | 7:20 | 4:25 | 2:00 | 1:39 | 13:45 |
+| 6 | ID_005 | 5:03 | 4:28 | 2:01 | 2:08 | 11:32 |
+| 7 | ID_006 | 7:08 | 3:45 | 0:47 | 1:46 | 11:40 |
+| 8 | ID_011 | 7:41 | 4:19 | 1:36 | 1:22 | 13:36 |
+| 9 | ID_008 | 5:53 | 4:05 | 2:00 | 1:17 | 11:58 |
+| 10 | ID_009 | 5:59 | 3:53 | 0:59 | 1:16 | 10:51 |
+| 11 | ID_010 | 7:30 | 4:13 | 2:11 | 1:43 | 13:54 |
+| 12 | ID_012 | 7:37 | 4:53 | 0:57 | 1:26 | 13:27 |
+| 13 | ID_013 | 8:11 | 4:22 | 2:32 | 1:42 | 15:05 |
+
+#### Summary statistics
+
+| Metric | Value |
+|--------|-------|
+| **Total wall-clock** | **3:04:13** |
+| Total implement time | 85:56 |
+| Total verify time | 55:21 |
+| Total impl→verify gaps | 23:14 |
+| Total inter-iteration overhead | 19:42 |
+| **Avg implement** | **6:36** |
+| **Avg verify** | **4:15** (0.64x of implement) |
+| **Avg impl→verify gap** | **1:47** |
+| **Avg orchestrator overhead** | **1:39** |
+| Avg iteration total | 12:39 |
 
 Session timestamps from state.json:
 - Loop started: 2026-04-03T04:13:16Z (21:13 PDT)
 - Loop ended: 2026-04-03T07:19:45Z (00:19 PDT)
+
+#### CASE_LOGA_R06_ACTIVITY: Time by activity (implement phases)
+
+Based on tool call analysis across all 13 implement phases (1,028 total Bash calls):
+
+| Category | Bash Calls | % of Bash | Est. Time |
+|----------|-----------|-----------|-----------|
+| **plet state/artifacts** | **396** | **53%** | ~46 min |
+| git operations | 161 | 22% | ~19 min |
+| testing (go test) | 107 | 14% | ~12 min |
+| build/lint/vet | 65 | 9% | ~7 min |
+| env/setup | 14 | 2% | ~2 min |
+
+Additionally: 136 Read/Grep/Glob calls (context reading), 130 Write/Edit calls (code writing).
+
+The single largest activity category is plet state management — updating state files, writing progress/learning/emergent entries, trace events, setting verdicts, running gate checks, and creating audit tags. Over half of all Bash calls are plet infrastructure, not application code.
+
+**CLI re-learning:** Each fresh subagent (26 total) calls `--help` 5-8 times to learn the plet CLI. ~150 help lookups per run, wasting ~5-7 minutes total. The prompt provides script paths but not exact invocation syntax.
+
+**Later iterations trend longer.** Early implementations (ID_002, ID_003) take ~5 minutes; later ones (ID_012, ID_013) take 7-8 minutes — growing codebase means more context to read, more tests to run.
+
+#### CASE_LOGA_R06_PARALLEL: Parallelism opportunity
+
+| Scenario | Duration | Savings |
+|----------|----------|---------|
+| Sequential (actual) | **3:04:13** | — |
+| Parallel (critical path) | **1:39:56** | 1:24:17 (**46%**) |
+| Speedup factor | **1.86x** | |
+
+Critical path: ID_001(16:07) → ID_002(11:05) → ID_003(9:47) → ID_004(11:44) → ID_005(11:32) → ID_010(13:54) → ID_013(15:05)
+
+Parallel rounds with the dependency graph:
+
+| Round | Iterations | Duration (max) |
+|-------|-----------|----------------|
+| 1 | ID_001 | 16:07 |
+| 2 | ID_002 | 11:05 |
+| 3 | ID_003 | 9:47 |
+| 4 | ID_004 + ID_007 | 13:45 |
+| 5 | ID_005 + ID_006 + ID_011 | 13:36 |
+| 6 | ID_008 + ID_009 + ID_010 + ID_012 | 13:54 |
+| 7 | ID_013 | 15:05 |
+
+**Orchestrator overhead** accounts for 43 min (23% of wall-clock). Combined with the 46% parallelism savings, the total optimization opportunity is significant.
 
 ### CASE_LOGA_R06_ART: Runtime Artifact Analysis
 

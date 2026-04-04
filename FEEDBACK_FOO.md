@@ -790,7 +790,16 @@ Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be
 
 Source: CASE_LOGA_R06_REC_3, CASE_LOGA_R06_F_3
 
-The dependency graph has parallel opportunities (e.g., ID_005/ID_006/ID_007 could run concurrently after ID_004/ID_003 complete), but the orchestrator executes all iterations sequentially. For 13 iterations at ~13 min each, parallelism at the ID_005/006/007 point might save ~30-40 min. The worktree infrastructure already supports isolation — plet_git_iteration.py creates per-iteration worktrees. The missing piece is the orchestrator spawning multiple subagents concurrently and waiting for results.
+The dependency graph has parallel opportunities (e.g., ID_005/ID_006/ID_007 could run concurrently after ID_004/ID_003 complete), but the orchestrator executes all iterations sequentially. The worktree infrastructure already supports isolation — plet_git_iteration.py creates per-iteration worktrees. The missing piece is the orchestrator spawning multiple subagents concurrently and waiting for results.
+
+**Timing analysis (LOGA Run 6):**
+- Sequential (actual): **3h 4min**
+- Parallel (critical path): **1h 40min** — a **46% reduction** (1.86x speedup)
+- The dependency graph reduces to 7 rounds (from 13 sequential iterations)
+- Round 6 runs 4 iterations concurrently (ID_008 + ID_009 + ID_010 + ID_012)
+- Orchestrator overhead (subagent spawn/teardown gaps) adds 43 min (23% of wall-clock)
+
+**Additional finding:** 53% of implement-phase Bash calls are plet infrastructure (state updates, progress entries, trace events, gate checks), not application code. Reducing artifact overhead would compound with parallelism savings.
 
 ### FOO_70: Milestone boundary refactor step [orchestrator] [code-quality]
 
