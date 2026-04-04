@@ -1088,6 +1088,149 @@ def test_validate_missing():
 
 
 # ---------------------------------------------------------------------------
+# Direct import tests (COV_2 — coverage-visible internal helpers)
+# ---------------------------------------------------------------------------
+
+import plet_iter_state as ist_mod  # noqa: E402
+
+
+def test_validate_init_inputs_errors():
+    print("\n## _validate_init_inputs — error paths (direct import)")
+    # Non-existent plet_dir
+    err = ist_mod._validate_init_inputs("/nonexistent", "ID_001", {}, False)
+    check("nonexistent dir", err is not None and "does not exist" in err)
+
+    # Bad iter_id
+    d = make_plet_dir()
+    err = ist_mod._validate_init_inputs(d, "bad", {}, False)
+    check("bad iter_id", err is not None and "ID_" in err)
+
+
+def test_parse_init_data_errors():
+    print("\n## _parse_init_data — invalid JSON inputs (direct import)")
+    d = make_plet_dir()
+
+    # Bad dependencies JSON
+    deps, crit, title, err = ist_mod._parse_init_data(
+        d, "ID_001", {"dependencies": "not json", "criteria": "[]", "title": "T"}
+    )
+    check("bad deps", err is not None and "dependencies" in err.lower())
+
+    # Bad criteria JSON
+    deps, crit, title, err = ist_mod._parse_init_data(
+        d, "ID_001", {"dependencies": "[]", "criteria": "not json", "title": "T"}
+    )
+    check("bad criteria", err is not None and "criteria" in err.lower())
+
+    # Criteria not array
+    deps, crit, title, err = ist_mod._parse_init_data(
+        d, "ID_001", {"dependencies": "[]", "criteria": '{"not": "array"}', "title": "T"}
+    )
+    check("criteria not array", err is not None and "array" in err.lower())
+
+    # Criteria entry not object
+    deps, crit, title, err = ist_mod._parse_init_data(
+        d, "ID_001", {"dependencies": "[]", "criteria": '["string"]', "title": "T"}
+    )
+    check("criteria entry not object", err is not None and "object" in err.lower())
+
+    # Criteria entry missing required field
+    deps, crit, title, err = ist_mod._parse_init_data(
+        d, "ID_001", {"dependencies": "[]", "criteria": '[{"id": "AC_1"}]', "title": "T"}
+    )
+    check("criteria missing description", err is not None and "description" in err.lower())
+
+
+def test_validate_report_fields_direct():
+    print("\n## _validate_report_fields — all paths (direct import)")
+    # verify + pass → no error
+    err = ist_mod._validate_report_fields("verification", "pass", None, None)
+    check("pass no error", err is None)
+
+    # verify + fail + no red_test → error
+    err = ist_mod._validate_report_fields("verification", "fail", None, None)
+    check("fail needs red_test", err is not None)
+
+    # verify + fail + red_test none + no rationale → error
+    err = ist_mod._validate_report_fields("verification", "fail", "none", None)
+    check("none needs rationale", err is not None)
+
+    # verify + fail + red_test none + rationale → ok
+    err = ist_mod._validate_report_fields("verification", "fail", "none", "arch concern")
+    check("with rationale ok", err is None)
+
+    # verify + fail + red_test name → ok
+    err = ist_mod._validate_report_fields("verification", "fail", "test_foo", None)
+    check("with test name ok", err is None)
+
+    # implementation + fail → no error (not enforced for impl)
+    err = ist_mod._validate_report_fields("implementation", "fail", None, None)
+    check("impl not enforced", err is None)
+
+
+def test_build_phase_obj_direct():
+    print("\n## _build_phase_obj — verification adds report fields (direct import)")
+    obj = ist_mod._build_phase_obj(
+        "verification", "pass", "Tests pass. All green.", "2026-01-01T00:00:00Z", 30, None, None, None
+    )
+    check("has oneLiner", obj["oneLiner"] == "Tests pass")
+    check("has redTest", obj["redTest"] == "none")
+    check("has noTestRationale", obj["noTestRationale"] == "")
+
+    obj = ist_mod._build_phase_obj("implementation", "pass", "Done.", "2026-01-01T00:00:00Z", 10, None, None, None)
+    check("impl no oneLiner", "oneLiner" not in obj)
+    check("impl no redTest", "redTest" not in obj)
+
+
+def test_find_criterion_missing():
+    print("\n## _find_criterion — not found (direct import)")
+    import io
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    result = ist_mod._find_criterion([], "AC_99", "ID_001", "hint")
+    sys.stderr = old_stderr
+    check("returns None", result is None)
+
+
+def test_validate_criteria_results_direct():
+    print("\n## _validate_criteria_results — validation paths (direct import)")
+    # Valid
+    errs = ist_mod._validate_criteria_results(
+        [
+            {
+                "id": "AC_1",
+                "status": "pass",
+                "oneLiner": "ok",
+                "redTest": "none",
+                "noTestRationale": "n/a",
+                "relatedEntries": [],
+            }
+        ]
+    )
+    check("valid no errors", errs is None)
+
+    # Missing field
+    errs = ist_mod._validate_criteria_results([{"id": "AC_1", "status": "pass"}])
+    check("missing fields", errs is not None and "missing" in errs.lower())
+
+    # Invalid status
+    errs = ist_mod._validate_criteria_results(
+        [
+            {
+                "id": "AC_1",
+                "status": "done",
+                "oneLiner": "ok",
+                "redTest": "none",
+                "noTestRationale": "",
+                "relatedEntries": [],
+            }
+        ]
+    )
+    check("invalid status", errs is not None and "status" in errs.lower())
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1131,6 +1274,12 @@ def main():
     test_validate_invalid()
     test_validate_json()
     test_validate_missing()
+    test_validate_init_inputs_errors()
+    test_parse_init_data_errors()
+    test_validate_report_fields_direct()
+    test_build_phase_obj_direct()
+    test_find_criterion_missing()
+    test_validate_criteria_results_direct()
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
