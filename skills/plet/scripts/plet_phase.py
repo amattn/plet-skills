@@ -26,7 +26,7 @@ import os
 import subprocess
 import sys
 
-SCRIPT_VERSION = "0.3.1"
+SCRIPT_VERSION = "0.3.2"
 from util_cli import (  # noqa: E402
     dispatch,
     parse_command,

@@ -39,7 +39,7 @@ from util_cli import (
 from util_constants import SKILL_VERSION
 
 SCRIPT_NAME = "plet_bootstrap"
-SCRIPT_VERSION = "0.3.1"
+SCRIPT_VERSION = "0.3.2"
 
 UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
 UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run", "force"}

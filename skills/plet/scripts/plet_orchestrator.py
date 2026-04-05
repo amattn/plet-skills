@@ -37,7 +37,7 @@ from util_sink import FileSink, MultiplexSink, NdjsonSink, TextSink
 from util_state import load_and_validate_iter_state
 from util_subprocess import run_git
 
-SCRIPT_VERSION = "0.3.1"
+SCRIPT_VERSION = "0.4.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))

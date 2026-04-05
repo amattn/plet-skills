@@ -52,7 +52,7 @@ from util_state import (
 )
 
 SCRIPT_NAME = "plet_global_state"
-SCRIPT_VERSION = "0.3.1"
+SCRIPT_VERSION = "0.3.2"
 
 PROJECT_ID_RE = re.compile(r"^[A-Z][A-Z0-9]{2,5}$")
 

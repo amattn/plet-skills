@@ -49,7 +49,7 @@ from util_format import build_emergent_entry, build_learning_entry, build_progre
 from util_id import generate_plet_id, normalize_iteration
 from util_io import atomic_append, emergent_path, learnings_path, load_text, progress_path
 
-SCRIPT_VERSION = "0.3.1"
+SCRIPT_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PROGRESS_STATUSES = [

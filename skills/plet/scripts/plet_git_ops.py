@@ -40,7 +40,7 @@ from util_state import (
     load_and_validate_iter_state,
 )
 
-SCRIPT_VERSION = "0.3.1"
+SCRIPT_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]

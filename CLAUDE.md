@@ -118,6 +118,7 @@ This repo has multiple NOTES.md files. When writing notes, route to the correct 
 **Where versions live (single source of truth):**
 - `SKILL_VERSION` and `SCHEMA_VERSION`: `skills/plet/scripts/util_constants.py` — all scripts import from here
 - SKILL.md frontmatter `version:` — must match `SKILL_VERSION`
+- `pyproject.toml` `version:` — must match `SKILL_VERSION`. After changing, run `uv lock` to regenerate `uv.lock`
 - Per-script `SCRIPT_VERSION` — in each script file, independently versioned
 
 **Distribution versions (human-directed only):**
@@ -127,7 +128,7 @@ This repo has multiple NOTES.md files. When writing notes, route to the correct 
   - `plugins[0].version` — the plugin entry version. This should match `plugin.json` version when bumped.
 - Bump these ONLY when the human explicitly directs a publish/release. These are distribution artifacts, not development versions.
 
-**Don't forget:** When bumping `SKILL_VERSION`, update util_constants.py + SKILL.md frontmatter (2 locations). Do NOT bump plugin.json or marketplace.json unless the human asks. When the human asks to bump plugin version, update both `plugin.json` and `marketplace.json plugins[0].version` to match. When bumping `SCRIPT_VERSION`, check if tests assert the version string.
+**Don't forget:** When bumping `SKILL_VERSION`, update util_constants.py + SKILL.md frontmatter + pyproject.toml + `uv lock` (4 locations). Do NOT bump plugin.json or marketplace.json unless the human asks. When the human asks to bump plugin version, update both `plugin.json` and `marketplace.json plugins[0].version` to match. When bumping `SCRIPT_VERSION`, check if tests assert the version string.
 
 ## NOTES.md Discipline
 
