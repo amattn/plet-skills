@@ -1939,6 +1939,14 @@ Threshold raised: 85% → 87% → 88% → 90% → 91%. Coverage is now a ratchet
 
 **Principle confirmed:** dedup before refactor. If you know you're going to change an interface (like the 6-tuple), first ensure every consumer goes through one function. Then changing that one function changes everything. The alternative — refactoring with duplicates still in place — means fixing N+1 locations instead of 1.
 
+**PLAN_CLN_8 (parse_command adoption):** 11 of 16 commands converted across 5 scripts. Net -194 lines. 5 commands couldn't convert: gate_session (4 — fresh-project handling needs nonexistent plet_dir) and bootstrap (1 — custom `_get_project_dir`). These are legitimate specializations, not tech debt.
+
+**PLAN_CLN_9 deferred:** invoke's 18-param `_execute_run` — low value, only called from one place, all params consumed. Readability improvement but not a correctness or consistency win.
+
+**PLAN_CLN_10 (trace helper patterns):** Aligned 4 internal helpers with value/(1,"",err). `_validate_query_filters` now returns a dict on success — cleaner than the 4-tuple it replaced. `_read_and_filter_events` left as-is (no error case).
+
+**Principle: function inputs/outputs are the API's UX.** The return convention isn't just about consistency for its own sake. When a helper's return pattern is clean (value on success, error tuple on failure), the calling code becomes cleaner — no unpacking err strings, no None checks, no multi-variable error destructuring. The caller reads like a pipeline: call → check → use. Every function whose returns we cleaned up produced simpler, more readable callers. This is analogous to UI/UX design: the inputs and outputs of a function are the interface the caller experiences. Investing in clean function signatures pays back every time someone reads or modifies the calling code.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
