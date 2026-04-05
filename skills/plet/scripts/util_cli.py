@@ -5,59 +5,25 @@ Not listed in allowed-tools. Not executable.
 
 Provides argument parsing, validation, timestamp generation, and the
 standard main() dispatch pattern. Every plet script imports from here
-rather than reimplementing these patterns, eliminating drift across
-the 10-script inventory.
+rather than reimplementing these patterns.
 
-Functions:
-    parse_kwargs(args)
-        Parse --key value pairs from an args list. Bare --flag without
-        a value is treated as boolean True. Returns a dict. Keys have
-        leading -- stripped and hyphens converted to underscores
-        (e.g., --iter-id becomes iter_id).
-        Detects duplicate flags and raises ValueError.
+Key functions:
+    parse_kwargs(args)          Parse --key value pairs → dict
+    require_kwargs(kwargs, required)  None on success, (1,"",err) on missing
+    validate_enum(value, valid, name)  value on success, (1,"",err) on invalid
+    validate_int(value, name)   parsed_int on success, (1,"",err) on invalid
+    validate_known_flags(kwargs, known, hint)  None on success, (1,"",err) on unknown
+    get_plet_dir(args)          (dir, remaining, "") or (None, args, err)
+    extract_output_flags(kwargs)  (json, pretty, fields, dry_run, ok, err)
+    parse_command(args, ...)    (0,help,"") or (1,"",err) or 6-tuple success
+    dispatch(commands, ...)     Standard main() entry — handles --help/--version/routing
+    filter_fields(data, fields)  Filter dict to requested fields
+    now_iso()                   Current UTC as ISO 8601 string
 
-    require_kwargs(kwargs, required, command_help="")
-        Check that all required keys exist in a kwargs dict. On first
-        missing key, prints "Error: --{key} is required" to stderr.
-        If command_help is provided, prints it to stderr after the error.
-        Returns True if all present, False if any missing.
+Return convention: error = (1, "", error_msg), success = useful value or None.
+Callers: `if err: return err` or `if isinstance(result, tuple): return result`.
 
-    validate_enum(value, valid_values, field_name)
-        Check that value is in valid_values. On failure, prints
-        "Error: invalid {field_name} '{value}' (valid: ...)" to stderr.
-        Returns True if valid, False if not.
-
-    validate_int(value, field_name)
-        Parse a string as an integer. On failure, prints
-        "Error: {field_name} must be an integer, got '{value}'" to stderr.
-        Returns (parsed_int, True) on success, (None, False) on failure.
-
-    now_iso()
-        Returns the current UTC time as an ISO 8601 string with second
-        resolution: "YYYY-MM-DDTHH:MM:SSZ". Uses datetime.datetime.utcnow().
-
-    dispatch(commands, script_name, script_version, skill_version, doc, argv=None)
-        Standard main() entry point. Parses argv (defaults to sys.argv)
-        to extract the command name, then:
-        - --help / -h: prints doc (the module docstring) to stdout, returns 0
-        - --version: prints "{script_name} {script_version} (built against
-          plet skill {skill_version})" to stdout, returns 0
-        - unknown command: prints error + valid commands to stderr, returns 1
-        - valid command: calls commands[cmd](remaining_args), returns its
-          exit code
-
-        The commands dict maps command names (str) to callables that accept
-        a list of string args and return an int exit code.
-
-    filter_fields(data, fields)
-        Filter a dict to only requested fields. If fields is None, returns
-        data unchanged. When filtering, adds two metadata keys:
-        - "fieldsIncluded": list of fields that were requested and present
-        - "fieldsOmitted": list of fields that were available but filtered out
-        Used with --fields flag (UNV_CMD_19) to limit JSON output size for
-        agent context window protection.
-
-Dependencies: Python stdlib only (sys, datetime).
+Dependencies: Python stdlib only (sys, datetime, json).
 """
 
 import datetime
@@ -480,18 +446,6 @@ def extract_output_flags(kwargs, allow_dry_run=False):
     return output_json, pretty, fields, dry_run, True, ""
 
 
-def emit_error(cmd_name, msg, script_version, output_json, pretty):
-    """Print error in JSON or text mode.
-
-    Shared pattern — replaces identical _emit_error helpers in multiple scripts.
-    Always prints to stderr in text mode. In JSON mode, also emits structured error.
-    """
-    if output_json:
-        emit_json_error(cmd_name, msg, script_version, pretty)
-    else:
-        print(msg, file=sys.stderr)
-
-
 def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
     """Parse args for a standard plet command — boilerplate in one call.
 
@@ -549,47 +503,3 @@ def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
         return err
 
     return plet_dir, kwargs, output_json, pretty, fields, dry_run
-
-
-def emit_json(data, script_version, pretty=False, fields=None):
-    """Print structured JSON to stdout.
-
-    Adds scriptVersion and timestamp. Applies field filtering if requested.
-
-    Args:
-        data: dict to serialize
-        script_version: version string for this script
-        pretty: indent output
-        fields: list of field names to include, or None for all
-    """
-    data["scriptVersion"] = script_version
-    data["timestamp"] = now_iso()
-    if fields is not None:
-        data = filter_fields(data, fields)
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-
-
-def emit_json_error(command, message, script_version, pretty=False):
-    """Print structured JSON error to stdout + text to stderr.
-
-    Args:
-        command: command name
-        message: error message
-        script_version: version string for this script
-        pretty: indent output
-    """
-    data = {
-        "status": "error",
-        "command": command,
-        "error": message,
-        "scriptVersion": script_version,
-        "timestamp": now_iso(),
-    }
-    if pretty:
-        print(json.dumps(data, indent=2))
-    else:
-        print(json.dumps(data))
-    print(message, file=sys.stderr)

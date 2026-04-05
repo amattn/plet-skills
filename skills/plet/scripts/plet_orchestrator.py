@@ -34,6 +34,7 @@ from util_io import (
 )
 from util_sink import FileSink, MultiplexSink, NdjsonSink, TextSink
 from util_state import load_and_validate_iter_state
+from util_subprocess import run_git
 
 SCRIPT_VERSION = "0.3.1"
 from util_constants import SKILL_VERSION  # noqa: E402
@@ -200,14 +201,10 @@ def _handle_merge_conflict(iter_id, global_plet_dir, sink, completed_this_run):
     ws_branch = ws_data.get("branchName", "") if ws_data else ""
 
     # Rebase iteration branch onto current workstream
-    r = subprocess.run(
-        ["git", "rebase", ws_branch, iter_branch],
-        capture_output=True,
-        text=True,
-    )
+    r = run_git("rebase", ws_branch, iter_branch)
     if r.returncode != 0:
         # Rebase has conflicts — abort rebase, requeue for implement to resolve
-        subprocess.run(["git", "rebase", "--abort"], capture_output=True)
+        run_git("rebase", "--abort")
         _update_lifecycle(global_plet_dir, iter_id, "queued")
         sink.event(
             {
@@ -248,11 +245,8 @@ def _handle_merge_conflict(iter_id, global_plet_dir, sink, completed_this_run):
 def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts):
     """Handle a passed verify verdict: commit and merge-squash. Returns (new_completed, blocked)."""
     # Commit pending changes on workstream before merge-squash
-    subprocess.run(["git", "add", "-A"], capture_output=True)
-    subprocess.run(
-        ["git", "commit", "-m", f"plet: state before merge-squash {iter_id}", "--allow-empty"],
-        capture_output=True,
-    )
+    run_git("add", "-A")
+    run_git("commit", "-m", f"plet: state before merge-squash {iter_id}", "--allow-empty")
 
     ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", global_plet_dir, "--iter-id", iter_id])
     if ms_rc != 0:
@@ -348,18 +342,15 @@ def _setup_session(global_plet_dir, counts, allow_stale, sink):
     sink.text("Loop {} {} on {}".format(session_number, "resumed" if resumed else "started", branch))
 
     if not resumed:
-        subprocess.run(["git", "checkout", "-b", branch], capture_output=True)
+        run_git("checkout", "-b", branch)
     else:
-        subprocess.run(["git", "checkout", branch], capture_output=True)
+        run_git("checkout", branch)
 
     # Commit state.json with updated loopSessionCount + session history
     # BEFORE any worktrees are created. Worktrees snapshot state.json at
     # creation time — the count must be correct by then.
-    subprocess.run(["git", "add", "-A"], capture_output=True)
-    subprocess.run(
-        ["git", "commit", "-m", f"plet: [loop{session_number}] session start", "--allow-empty"],
-        capture_output=True,
-    )
+    run_git("add", "-A")
+    run_git("commit", "-m", f"plet: [loop{session_number}] session start", "--allow-empty")
 
     _run_script(
         "plet_entries.py",
@@ -422,11 +413,8 @@ def _end_session(global_plet_dir, session_number, completed_this_run, counts, st
     reason = "all_complete" if all_complete == total else "all_blocked_or_complete"
 
     # Commit end-session state (lifecycle updates, session endedAt, progress entry)
-    subprocess.run(["git", "add", "-A"], capture_output=True)
-    subprocess.run(
-        ["git", "commit", "-m", f"plet: [loop{session_number}] session end", "--allow-empty"],
-        capture_output=True,
-    )
+    run_git("add", "-A")
+    run_git("commit", "-m", f"plet: [loop{session_number}] session end", "--allow-empty")
 
     result = _make_result(
         reason,
@@ -553,11 +541,8 @@ def _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir
     verdict = iter_state.get("verifyVerdict") if iter_state else None
 
     if verdict == "passed" and worktree_path:
-        subprocess.run(["git", "-C", worktree_path, "add", "-A"], capture_output=True)
-        subprocess.run(
-            ["git", "-C", worktree_path, "commit", "-m", "plet: pre-merge commit", "--allow-empty"],
-            capture_output=True,
-        )
+        run_git("-C", worktree_path, "add", "-A")
+        run_git("-C", worktree_path, "commit", "-m", "plet: pre-merge commit", "--allow-empty")
     return verdict
 
 

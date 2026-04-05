@@ -245,7 +245,6 @@ def test_now_iso():
 
 def test_dispatch_help():
     print("\n## dispatch — --help")
-    import io
 
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
@@ -266,7 +265,6 @@ def test_dispatch_help():
 
 def test_dispatch_h_flag():
     print("\n## dispatch — -h")
-    import io
 
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
@@ -284,7 +282,6 @@ def test_dispatch_h_flag():
 
 def test_dispatch_version():
     print("\n## dispatch — --version")
-    import io
 
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
@@ -307,7 +304,6 @@ def test_dispatch_version():
 
 def test_dispatch_unknown_command():
     print("\n## dispatch — unknown command")
-    import io
 
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
@@ -349,7 +345,6 @@ def test_dispatch_valid_command():
 
 def test_dispatch_tuple_return():
     print("\n## dispatch — tuple return routes stdout/stderr")
-    import io
 
     def tuple_cmd(args):
         return (0, "success output", "warning output")
@@ -376,7 +371,6 @@ def test_dispatch_tuple_return():
 
 def test_dispatch_tuple_return_error():
     print("\n## dispatch — tuple return with error code")
-    import io
 
     def error_cmd(args):
         return (1, "", "Error: something failed")
@@ -403,7 +397,6 @@ def test_dispatch_tuple_return_error():
 
 def test_dispatch_tuple_empty_strings():
     print("\n## dispatch — tuple with empty strings doesn't print")
-    import io
 
     def quiet_cmd(args):
         return (0, "", "")
@@ -430,7 +423,6 @@ def test_dispatch_tuple_empty_strings():
 
 def test_dispatch_no_args():
     print("\n## dispatch — no arguments")
-    import io
 
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
@@ -451,7 +443,6 @@ def test_dispatch_no_args():
 
 def test_dispatch_usage():
     print("\n## dispatch — --usage shows command summaries")
-    import io
 
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
@@ -483,7 +474,6 @@ def test_dispatch_usage():
 
 def test_dispatch_help_footer():
     print("\n## dispatch — --help includes usage tip")
-    import io
 
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
@@ -632,63 +622,7 @@ def test_extract_output_flags_dry_run_rejected():
     check("ok False", ok is False)
 
 
-# ---------------------------------------------------------------------------
-# emit_json / emit_json_error
-# ---------------------------------------------------------------------------
-
-
-def test_emit_json_basic():
-    print("\n## emit_json — basic output")
-    import contextlib
-
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        util_cli.emit_json({"status": "ok", "command": "test"}, "0.1.0")
-    output = buf.getvalue().strip()
-    data = json.loads(output)
-    check("has status", data["status"] == "ok")
-    check("has scriptVersion", data["scriptVersion"] == "0.1.0")
-    check("has timestamp", "timestamp" in data)
-
-
-def test_emit_json_pretty():
-    print("\n## emit_json — pretty output")
-    import contextlib
-
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        util_cli.emit_json({"status": "ok"}, "0.1.0", pretty=True)
-    output = buf.getvalue()
-    check("indented", "\n  " in output)
-
-
-def test_emit_json_fields():
-    print("\n## emit_json — field filtering")
-    import contextlib
-
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        util_cli.emit_json({"status": "ok", "extra": "val"}, "0.1.0", fields=["status"])
-    data = json.loads(buf.getvalue().strip())
-    check("status included", "status" in data)
-    check("extra excluded", "extra" not in data)
-    check("fieldsIncluded present", "fieldsIncluded" in data)
-
-
-def test_emit_json_error_basic():
-    print("\n## emit_json_error — basic output")
-    import contextlib
-
-    stdout_buf = io.StringIO()
-    stderr_buf = io.StringIO()
-    with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
-        util_cli.emit_json_error("test-cmd", "something broke", "0.1.0")
-    data = json.loads(stdout_buf.getvalue().strip())
-    check("status error", data["status"] == "error")
-    check("command set", data["command"] == "test-cmd")
-    check("error message", data["error"] == "something broke")
-    check("stderr has message", "something broke" in stderr_buf.getvalue())
-
+# emit_json / emit_json_error — removed (dead code, PLAN_CLN_1)
 
 # ---------------------------------------------------------------------------
 # Invocation logging
@@ -979,10 +913,6 @@ def main():
     test_extract_output_flags_fields_without_json()
     test_extract_output_flags_dry_run()
     test_extract_output_flags_dry_run_rejected()
-    test_emit_json_basic()
-    test_emit_json_pretty()
-    test_emit_json_fields()
-    test_emit_json_error_basic()
     test_invocation_logging_enabled()
     test_invocation_logging_suppressed()
     test_nolog_cascades()

@@ -59,11 +59,9 @@ class CaptureSink(EventSink):
 
     def event(self, data):
         data["timestamp"] = now_iso()
-        self.events = list(self.events)  # ensure mutable
         self.events.append(dict(data))
 
     def text(self, msg):
-        self.messages = list(self.messages)  # ensure mutable
         self.messages.append(msg)
 
 
