@@ -96,7 +96,7 @@ Rules that must not be violated. An agent breaking these breaks the system.
 
 Canonical definitions for plet's vocabulary, document terms, artifact categories, and ID conventions. Decision rationale and rejected alternatives live in Key Design Decisions; this section is the reference.
 
-### Vocabulary Hierarchy
+### NOTES_TAX_1: Vocabulary Hierarchy
 
 ```
 project (LOGA)
@@ -140,7 +140,7 @@ project (LOGA)
 - Retry numbering (`implement-1`, `implement-2`) is a detail within phases, not a formal hierarchy level
 - "Cycle" is informal shorthand for one implement run + one verify run
 
-### Document Terms
+### NOTES_TAX_2: Document Terms
 
 | Term | Refers to | Scope |
 |------|-----------|-------|
@@ -150,7 +150,7 @@ project (LOGA)
 
 "The PRD" and "the requirements doc" are synonyms inside a plet project. "Spec" is broader — it includes iterations.
 
-### Artifact Categories
+### NOTES_TAX_3: Artifact Categories
 
 > Also in PLET.md (generalized for any target project, with full directory tree). This section is the canonical source for the taxonomy's evolution; PLET.md is the portable copy.
 
@@ -189,7 +189,7 @@ project (LOGA)
 - Modify planner, refiner, implement agent, verify agent behavior
 - *(No files defined yet — shape TBD, see Open Questions)*
 
-### Plet Directory Variables
+### NOTES_TAX_4: Plet Directory Variables
 
 During the loop phase, two copies of per-iteration state files exist. Variable names distinguish which copy:
 
@@ -203,7 +203,7 @@ During the loop phase, two copies of per-iteration state files exist. Variable n
 
 **Where the distinction matters:** Only the orchestrator needs both copies simultaneously. All other scripts receive one `plet_dir` and operate on it without knowing which copy it is. The orchestrator is the boundary where `plet_dir` (from CLI) becomes `global_plet_dir`, and where `derive_worktree_plet_dir()` produces `worktree_plet_dir`.
 
-### Two-Level Status Model
+### NOTES_TAX_5: Two-Level Status Model
 
 Iteration status is tracked at two levels with distinct ownership:
 
@@ -238,7 +238,7 @@ The `activityDetail` string is a human-readable description overwritten on every
 
 **Enum rename:** `red` → `writing_tests`, `green` → `implementing`. GUI consumers display phaseActivity as badges/labels — "red" and "green" are TDD jargon that doesn't communicate well as a UI element. "Writing Tests" and "Implementing" are self-descriptive. The red/green concept lives in activityDetail strings (e.g., "red: writing failing test for AC_3") and reference docs.
 
-### Phase Verdicts
+### NOTES_TAX_6: Phase Verdicts
 
 Each phase has an explicit verdict field written by the subagent as its final act. The orchestrator reads it and decides the next lifecycle transition. Replaces the old model where subagents wrote lifecycle directly (source of merge conflicts).
 
@@ -259,7 +259,7 @@ This refines SF_26: "During the subagent's execution, only the subagent writes t
 
 **phaseActivity is cosmetic, verdicts are load-bearing.** Only verdicts drive lifecycle transitions. Orchestrator must NEVER make decisions based on phaseActivity.
 
-### Script Split: plet_state.py → plet_global_state.py + plet_iter_state.py
+### NOTES_TAX_7: Script Split — plet_state.py → GST + IST
 
 The lifecycle extraction (seq 39) splits `plet_state.py` along the ownership boundary:
 
@@ -268,13 +268,13 @@ The lifecycle extraction (seq 39) splits `plet_state.py` along the ownership bou
 
 Design principle: commands match agent workflow, not JSON structure. `start-phase` replaces ~5 manual `update-field` calls. `set-verdict` auto-sets `phaseActivity` to `idle`. See specs/NOTES.md for full command design and rationale.
 
-### ID Conventions
+### NOTES_TAX_8: ID Conventions
 
 - All IDs use underscore format: `XX_N` (e.g., `FR_1`, `PL_3`, `MS_1`, `EM_5`) — underscores over dashes so a double-click selects the entire ID for copy-paste. Slightly less aesthetic but worth the ergonomic trade. Longer prefixes (3-4 chars) are acceptable when they improve readability (e.g., `PLAN_SKL`).
 - Sub-groups use `XX_YY_N` (e.g., `UI_NAV_1`) when there is a logical grouping or large item count
 - Append-only with gaps — new items get the next available number, deleted items leave gaps, numbers don't imply ordering, IDs are stable once assigned (never renumber, never reuse)
 
-### Prefix Table
+### NOTES_TAX_9: Prefix Table
 
 | Prefix | Artifact type | Where used |
 |--------|--------------|------------|
@@ -296,7 +296,7 @@ Design principle: commands match agent workflow, not JSON structure. `start-phas
 
 ## NOTES_INS: Important Concepts & Insights
 
-### Agent-First CLI Design (2026-03-16)
+### NOTES_INS_1: Agent-First CLI Design (2026-03-16)
 
 plet's enforcement scripts are **agent tools** that humans occasionally debug — not developer tools that agents happen to use. This inversion changes the entire CLI design philosophy:
 
@@ -310,37 +310,37 @@ plet's enforcement scripts are **agent tools** that humans occasionally debug �
 
 This complements "Skills for Judgment, Code for Compliance" — that principle says *what* to codify; agent-first CLI design says *how* to build the tools. Full details in `specs/NOTES.md` and `specs/conventions.md`.
 
-### Why state on disk matters
+### NOTES_INS_2: Why state on disk matters
 "We highly value the ability to start with a new agent for various reasons. One is parallelization. Another is the fresh context is important for things like independent verification." — user
 
-### Separation of artifacts by audience
+### NOTES_INS_3: Separation of artifacts by audience
 - **progress.md** — what was done (historical record, append-only)
 - **learnings.md** — agent-facing knowledge (helps future agents)
 - **emergent.md** — human-facing items (needs human decision)
 - **trace/** — two files per phase: `-transcript.ndjson` (raw I/O, captured by `plet_invoke.py`) and `-events.ndjson` (semantic events, subagent-written via `plet_trace.py`)
 
-### Runtime artifact write safety
+### NOTES_INS_4: Runtime artifact write safety
 - All three .md artifacts are single files (humans scan one file better than multiple)
 - Agents use POSIX atomic append semantics (O_APPEND) — complete self-contained blocks in a single write
 - ~4KB entry limit is a readability constraint, not a technical one. On local filesystems, O_APPEND is atomic at any reasonable size due to kernel-level inode locking. PIPE_BUF (4KB Linux, 512 bytes macOS) only applies to pipes/FIFOs, not regular files.
 - Per-iteration NDJSON trace files have no conflict risk (one file per phase)
 
-### Verification independence
+### NOTES_INS_5: Verification independence
 The verification agent verifies the *result*, not the *process*. It does not initially read implementation diffs. It reads the codebase as it stands, runs checks, and independently confirms acceptance criteria. If it needs to dig deeper later, it can read diffs, but never as a starting point. This prevents rubber-stamping.
 
-### Blockers are critical events
+### NOTES_INS_6: Blockers are critical events
 Every blocker represents loss of progress and requires human investigation. Blockers must be documented across ALL four artifact types: trace (full detail), progress (BLOCKED status), emergent (what human needs to resolve), learnings (diagnostic context). "The quality of blocker documentation determines whether the human can help." — user
 
-### Self-improvement is load-bearing
+### NOTES_INS_7: Self-improvement is load-bearing
 As models improve, skills like plet go out of date. plet needs the ability to improve itself. Two levels: micro (session-to-session via CLAUDE.md — agent notices something, offers to write it down) and macro (Future Consideration #11 — plet analyzing runtime artifacts to improve its own PRD). Both are human-gated. Without them, instructions calcify as the project evolves.
 
-### When in doubt, add the dependency
+### NOTES_INS_8: When in doubt, add the dependency
 Missing dependencies are dangerous (agent wastes a cycle, must self-correct). False dependencies are harmless (only reduce parallelism slightly). Always err on the side of adding a dependency.
 
-### No metrics that reward lousy verification
+### NOTES_INS_9: No metrics that reward lousy verification
 First-pass verification rate sounds useful but incentivizes rubber-stamping. Never use metrics that reward the verification agent for passing easily.
 
-### Tooling beats prose for enforcement — the plet_state.py insight
+### NOTES_INS_10: Tooling beats prose for enforcement — the plet_state.py insight
 
 "Ship enforcement tooling alongside the instructions, in the same package." — emergent principle confirmed by SPARK case study.
 
@@ -356,7 +356,7 @@ Meanwhile, learnings/emergent capture (enforced only via prose rule CASE_LOGA_R0
 
 **Implication:** Any plet rule that agents consistently violate should be a candidate for tooling enforcement, not stronger prose. The pattern: (1) define the rule in prose, (2) if agents drift, build a tool that makes compliance automatic, (3) ship the tool inside the skill.
 
-### Handoffs vs decisions — lifecycle transition ownership
+### NOTES_INS_11: Handoffs vs decisions — lifecycle transition ownership
 
 State transitions in a multi-agent system fall into two categories, and confusing them causes bugs:
 
@@ -370,7 +370,7 @@ State transitions in a multi-agent system fall into two categories, and confusin
 
 This principle applies beyond plet — any system where multiple agents modify shared state needs clear ownership of each transition.
 
-### Worktree state invariants — sole writer rule
+### NOTES_INS_12: Worktree state invariants — sole writer rule
 
 During an iteration, per-iteration state files exist in two copies: the global copy (`global_plet_dir`, on the workstream branch) and the worktree copy (`worktree_plet_dir`, on the iteration branch). The worktree copy is authoritative during the iteration. The global copy is stale.
 
@@ -382,7 +382,7 @@ During an iteration, per-iteration state files exist in two copies: the global c
 
 See specs/NOTES.md § Worktree state file invariants for the full 6-invariant list and implementation details. See NOTES.md § Plet Directory Variables for the naming taxonomy.
 
-### Defense in depth for load-bearing checks
+### NOTES_INS_13: Defense in depth for load-bearing checks
 
 Checking the same critical invariant in multiple places is acceptable and intentional — not redundancy. Each layer catches failures at a different point in the pipeline with different recovery options.
 
@@ -394,7 +394,7 @@ The layers are ordered by recovery power: earliest check has the most options (s
 
 This is distinct from accidental duplication (same check, same point, no additional recovery). Defense in depth is deliberate overlap across pipeline stages. Accidental duplication is waste.
 
-### Meaningful red vs meaningless red in red/green testing
+### NOTES_INS_14: Meaningful red vs meaningless red
 
 A test that fails because the thing it's testing doesn't exist yet is **meaningless red** — it proves nothing about the test's ability to catch bad behavior. Whether it's a missing script (`FileNotFoundError`), a missing class (`ImportError`), or a missing function (`AttributeError`), the test would fail identically regardless of what it asserts. Meaningless red gives false confidence that the red/green discipline was followed.
 
@@ -408,13 +408,13 @@ This applies at every level:
 
 The principle is the same everywhere: the test must fail because the answer is wrong, not because the infrastructure is missing. Without this, red/green is theater.
 
-### Use subagents to explore during design
+### NOTES_INS_15: Use subagents to explore during design
 During the execute.md build, we used subagents to research ridler2's trace mechanism, check Claude Code flags, test tool capabilities, and verify file paths. Subagents are cheap and fast for exploratory validation — use proactively during brainstorming, not just for delegated work.
 
-### NOTES.md as institutional memory
+### NOTES_INS_16: NOTES.md as institutional memory
 The notes file is the connective tissue between CLAUDE.md (project config) and the PRD (spec). It captures the "why" so the PRD can stay clean.
 
-### How Claude memory works
+### NOTES_INS_17: How Claude memory works
 Claude Code has three layers of memory:
 
 1. **Within a conversation** — full context of everything discussed in the current session. Subject to context window limits (older messages get compressed as the window fills).
@@ -431,7 +431,7 @@ Claude Code has three layers of memory:
 
 ## NOTES_DES: Key Design Decisions
 
-### Architecture & Routing
+### NOTES_DES_1: Architecture & Routing
 
 #### Subagent must NOT squash — orchestrator owns merge-squash (2026-04-02)
 
@@ -707,7 +707,7 @@ Created PLET.md as the portable plet-specific instruction file (vs CLAUDE.md whi
   - All three layers reference Required Reading files generically (not hardcoded names) so new files added to Required Reading are automatically covered
   - Rationale: agent was failing to prominently acknowledge reads despite the existing CLAUDE.md rule. Auto-memory provides the earliest possible reinforcement; PLET.md makes it portable; CLAUDE.md Session Bootstrap ensures auto-memory gets created in any repo.
 
-### State & Data
+### NOTES_DES_2: State & Data
 
 #### State file design (motivation and additions over ridl.json)
 
@@ -818,7 +818,7 @@ Practical sweet spots: prefix 4 (sprint/week), prefix 5 (session), prefix 3 (ann
 - (F) Single `plet-entry-` prefix: IDs not self-describing without file context. Replaced by 3-letter type prefixes.
 - (G) End fence as HTML comment: lacks visual symmetry with `<div>` start fence
 
-### Execution
+### NOTES_DES_3: Execution
 
 #### Git branch strategy (CASE_LOGA_R01_REC_5, CASE_LOGA_R01_REC_6)
 
@@ -898,7 +898,7 @@ Runtime artifacts grow unbounded, so subagents can't naively read everything. Ti
 
 Subagents don't self-log full I/O — that's impractical and wasteful of context. Trace is split into two files per phase: (1) raw I/O transcript (`{id}-{phase}-{attempt}-transcript.ndjson`) captured automatically by the orchestrator from Claude Code's `--output-format stream-json` output, and (2) semantic events (`{id}-{phase}-{attempt}-events.ndjson`) written by the subagent for decisions, criterion updates, lifecycle changes, activity changes, and errors. Both have timestamps; a GUI merges by time. `-transcript` suffix chosen over `-raw`/`-stream`/`-io`/`-session` because it describes what the file contains rather than how it was captured.
 
-### Verification
+### NOTES_DES_4: Verification
 
 #### Verification reports in per-iteration state (VF_21–VF_24)
 
@@ -924,7 +924,7 @@ When the verify agent rejects and retry limits are exhausted (IMP_14), the orche
 
 On cycle-back (Path C — substantial issues), the verify agent writes failing tests that demonstrate each finding. The next implement agent inherits these as green-step targets — red/green handoff across the agent boundary. For non-test-expressible issues (wrong abstraction, coupling), the verify agent skips the red test and documents the rationale. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule.
 
-### Refine
+### NOTES_DES_5: Refine
 
 #### Milestone assignment during refine (RF_14, RF_15)
 
@@ -1059,7 +1059,7 @@ Refine-phase entries that aren't tied to a specific iteration (stage summaries, 
 
 **Subplets note:** `proj` is unambiguous within a single plet directory. In a multi-subplet scenario, each subplet has its own artifacts, so `proj` stays scoped. See Multi-Developer Analysis open threads for cross-subplet plet ID considerations.
 
-### Cross-cutting
+### NOTES_DES_6: Cross-cutting
 
 #### Consistency passes
 
@@ -1286,7 +1286,7 @@ Scanned CLAUDE.md, PLET.md, NOTES.md, and reference files for generalizable patt
 - **Includes /notes** — the notes skill moves into this repo alongside the other extractable skills.
 - **EX_1 renamed /nl → /chatux** — NL is one of 10 bundled patterns. Added standard review prompt with lettered options (A. Add, B. Change, C. Remove, D. Recommendations, E. Ok). The "Recommendations" option lets the user ask the agent for suggestions with a single letter.
 
-### Vocabulary and taxonomy — DECIDED
+### NOTES_DES_7: Vocabulary and taxonomy — DECIDED
 
 Standardized hierarchy to eliminate overloaded terms. See **Taxonomy > Vocabulary Hierarchy** for the canonical definitions.
 
@@ -1306,7 +1306,7 @@ Key decisions:
 
 **Note:** In code/filenames, `{phase}` in `{phase}-{attempt}` patterns continues to refer to implement/verify (Level 3). This is consistent with the new vocabulary — no rename needed.
 
-### Branch Workflow
+### NOTES_DES_8: Branch Workflow
 
 #### Rebase before squash (not after)
 - Rebase onto main *before* squashing so merge conflicts can be resolved commit-by-commit
@@ -1611,7 +1611,7 @@ plet draws from three sources:
 2. RIDL (the author's opinionated implementation of Ralph loops)
 3. Plan mode as seen in Claude Code, Cursor, etc. (interactive refinement)
 
-### What Ralph loops get right
+### NOTES_LIN_1: What Ralph loops get right
 - Autonomous iterations — agents do real work, not just suggestions
 - Fresh context windows — each iteration starts clean, no contamination
 - Spec first — the PRD drives everything, not ad hoc prompting
@@ -1620,20 +1620,20 @@ plet draws from three sources:
 - State tracking via prd.json — machine-readable iteration status persisted to disk
 - Snarktank's numbers-letters Q&A system for interactive clarification — adopted by plet's plan session
 
-### Where Ralph loops fell short
+### NOTES_LIN_2: Where Ralph loops fell short
 - No verification phase — no independent check that work was done correctly
 - No refinement loop — spec is static, doesn't evolve from what agents learn
 - Fairly linear — no parallel iteration support
 - No multi-developer support — single developer, single session
 - Requires external scaffolding (runner, harness) that must stay in sync with the loop's formats — hard to iterate on one without breaking the other
 
-### What RIDL added over Ralph loops
+### NOTES_LIN_3: What RIDL added over Ralph loops
 - Two-phase iteration split (implementation → verification) — the key structural addition
 - Separate learnings.md from progress.md — agent-facing knowledge vs historical record, different audiences
 - Three-file pipeline (prd.md → ridl.md → ridl.json) — cleaner decomposition than alternatives, each file has a clear purpose
 - Trace logging for full execution traceability
 
-### Where RIDL loops fell short
+### NOTES_LIN_4: Where RIDL loops fell short
 - ridl.json too rigid (sequential ordering, no parallel iterations, no phase tracking, no agent activity state)
 - External harness dependency (Ridler.app required) — same scaffolding sync problem as Ralph loops
 - Too much logic in the runner — tight coupling between harness and loop behavior
@@ -1641,12 +1641,12 @@ plet draws from three sources:
 - Still fairly linear despite the DAG concept in ridl.json
 - Felt like using three separate tools (prd skill, ridl skill, Ridler.app) to accomplish one workflow
 
-### What plan mode brings
+### NOTES_LIN_5: What plan mode brings
 - Interactive, iterative spec refinement
 - The spec is a living document that improves as agents discover gaps
 - Human steering at natural checkpoints
 
-### What plet adds
+### NOTES_LIN_6: What plet adds
 - Self-sufficient orchestration — runs natively inside Claude Code, no external harness or runner
 - Single entry point (`/plet`) with state-driven routing — user never needs to remember which phase they're in
 - Interactive plan session with human steering built in — PRD creation and iteration decomposition in one flow
@@ -1663,7 +1663,7 @@ plet draws from three sources:
 
 All sections reviewed and approved. The PRD is the source of truth for requirement IDs and counts.
 
-### Key design annotations by section (not duplicated in PRD)
+### NOTES_PRD_1: Key design annotations by section (not duplicated in PRD)
 - **GC**: GC_2 — agents prefer making decisions + logging over blocking
 - **OR**: OR_4 includes `verifying` lifecycle. OR_11 removed (merged into `/plet loop`). OR_13 — skip scoped to individual acceptance criteria, not iterations
 - **PL**: Plan session intro is prose above the table (interactive, human-driven). PL_12 — write to disk on approval. PL_13–PL_14 are P1
@@ -1686,11 +1686,11 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 
 Tools shipped inside the skill package via `${CLAUDE_SKILL_DIR}/scripts/`. The pattern: prose rules that agents consistently violate → deterministic tooling that makes compliance automatic. See "Skills for Judgment, Code for Compliance" in § Important Concepts.
 
-### plet_state.py (shipped, validated)
+### NOTES_TBR_1: plet_state.py (shipped, validated)
 
 State file management — `init`, `update-criterion`, `update-field`, `validate`. Zero schema drift across 23 SPARK iterations. The success story that proved tooling > prose.
 
-### plet_entries.py (shipped)
+### NOTES_TBR_2: plet_entries.py (shipped)
 
 Runtime artifact entry writer. Addresses FOO_29 (learnings/emergent regression) and FOO_33 (progress.md incomplete). Same pattern as plet_state.py — agents call a tool instead of composing markdown freehand.
 
@@ -1708,7 +1708,7 @@ Runtime artifact entry writer. Addresses FOO_29 (learnings/emergent regression) 
 - Atomic appends (temp file + append, no read-then-overwrite)
 - Prints generated plet ID to stdout for cross-referencing
 
-### plet_fingerprint.py (candidate) ★ strong
+### NOTES_TBR_3: plet_fingerprint.py (candidate) ★ strong
 
 Fingerprint computation and drift detection. Fingerprints span 3 files (requirements.md → iterations.md → state.json) with nested ID arrays + `lastNonTrivialUpdate` timestamps. Computing, embedding, and comparing these is purely mechanical — agents doing this by hand across refine sessions will drift on structure, miss updates, or compute incorrectly.
 
@@ -1722,7 +1722,7 @@ PRD refs: SY_1–SY_8
 
 **Why it matters:** Fingerprint drift is silent — no one notices until an agent operates on stale spec. Currently enforced by prose only. The three-file chain makes hand-computation error-prone.
 
-### plet_id.py (candidate) ★ strong
+### NOTES_TBR_4: plet_id.py (candidate) ★ strong
 
 Plet ID generation. The composable ID scheme (type prefix + Crockford Base32 timestamp + context segments) is complex enough that agents will get it wrong across 23+ iterations.
 
@@ -1736,7 +1736,7 @@ PRD refs: RT_11, Plet ID Scheme
 
 **Why it matters:** Crockford Base32 is uncommon — agents will approximate with standard base32 or invent their own encoding. Incorrect IDs break cross-referencing and merge fencing (SF_25).
 
-### plet_preflight.py (candidate) ★ strong
+### NOTES_TBR_5: plet_preflight.py (candidate) ★ strong
 
 Pre-flight validation before implementation starts. Currently prose — agents can skip steps. FOO_16 (LIBT lost spec artifacts) proved the cost of missing a check.
 
@@ -1750,7 +1750,7 @@ PRD refs: IMP_19, FOO_16
 
 **Why it matters:** Pre-flight is a checklist — exactly the kind of thing agents skip under time pressure. Making it a single tool call means compliance is easier than non-compliance.
 
-### plet_report.py (candidate) ★ strong
+### NOTES_TBR_6: plet_report.py (candidate) ★ strong
 
 Verification report scaffolding. The report structure is detailed (VF_21–VF_24): vrp plet ID, verdict, criteriaResults array (one per criterion with status, summary, redTest, relatedEntries), report-level relatedEntries, findings array. This drifts across 23 verify phases when agents compose it from prose descriptions.
 
@@ -1763,7 +1763,7 @@ PRD refs: VF_21–VF_24
 
 **Why it matters:** The report is the most structured output the verify agent produces. It has nested arrays, cross-references, and a specific append-only contract. Scaffolding it means the agent fills in judgments (evidence, findings) while the tool handles structure.
 
-### plet_trace.py (candidate) ○ medium
+### NOTES_TBR_7: plet_trace.py (candidate) ○ medium
 
 Trace event writer. Trace coverage improved dramatically in SPARK (51 files) but event schemas still vary. A tool that writes events in the canonical NDJSON schema would prevent the field-naming drift seen in earlier runs (`timestamp` vs `ts`, `iterationId` vs `iteration`).
 
@@ -1774,7 +1774,7 @@ PRD refs: IMP_10, RT_4, RT_5
 - `emit --event criterion_start --iter-id ID_xxx --criterion AC_1` — track criterion-level timing
 - Enforces the event schema from formats.md automatically
 
-### plet_graph.py (candidate) ○ medium
+### NOTES_TBR_8: plet_graph.py (candidate) ○ medium
 
 Dependency graph evaluation. "Which iterations are eligible?" is a pure graph algorithm on the dependency map + lifecycle states. No judgment needed — currently the orchestrator reasons about this by reading state files, which is error-prone at scale.
 
@@ -1787,7 +1787,7 @@ PRD refs: IMP_1, IMP_5, IMP_21, SF_23
 
 **Why it matters:** At 23+ iterations with complex dependency chains, manual graph reasoning compounds errors. The SPARK run had no dependency-related failures, but as projects grow this becomes riskier.
 
-### plet_consistency.py (candidate) ○ medium
+### NOTES_TBR_9: plet_consistency.py (candidate) ○ medium
 
 Refine consistency pass automation. The cascading check at end of refine (RF_16) has three mechanical steps: (1) every decision reflected in requirements, (2) iterations reflect spec (all requirements covered, no dangling references, frozen iterations untouched), (3) state reflects iterations (dependency map, milestones, fingerprints).
 
@@ -1800,7 +1800,7 @@ PRD ref: RF_16
 
 **Why it matters:** Steps 2 and 3 are pure cross-referencing — exactly what tooling does better than prose. Step 1 (decisions → requirements) still needs judgment. Partial automation is still valuable.
 
-### plet_git.py (candidate) △ light
+### NOTES_TBR_10: plet_git.py (candidate) △ light
 
 Git operations wrapper. FOO_30 (42 stashes despite ban), FOO_32 (orphaned worktrees), FOO_35 (lost commits) all point to agents improvising git operations. A constrained git helper could:
 - Branch creation/switching without stash (use worktrees instead)
@@ -1810,19 +1810,19 @@ Git operations wrapper. FOO_30 (42 stashes despite ban), FOO_32 (orphaned worktr
 
 **Caution:** Git is complex and agents need flexibility. This tool should wrap common operations with guardrails, not replace git entirely. Start with the narrowest pain point (worktree lifecycle) and expand only if needed.
 
-### Canary write helper (candidate) △ light
+### NOTES_TBR_11: Canary write helper (candidate) △ light
 
 Structured canary entry generation (OR_14). Format: projectId, loopSessionCount, branch name, iteration lifecycle counts. Simple enough to bundle into plet_entries.py as a `add-canary` subcommand rather than its own tool.
 
 PRD ref: OR_14
 
-### Schema migration helper (candidate) △ light
+### NOTES_TBR_12: Schema migration helper (candidate) △ light
 
 Auto-migrate state files with older schemaVersion by adding new fields with defaults (SF_24). Deterministic and safe to automate. Could be a plet_state.py subcommand (`migrate`) rather than its own tool.
 
 PRD ref: SF_24
 
-### Prioritization
+### NOTES_TBR_13: Prioritization
 
 **★ Strong** — complex format + repetitive + case-study-validated drift:
 1. **plet_entries.py** — ✅ SHIPPED. Addresses FOO_29 (learnings/emergent regression) and FOO_33 (progress.md incomplete).
@@ -1845,7 +1845,7 @@ PRD ref: SF_24
 
 ## NOTES_MON: Things to Monitor
 
-### Injection payload sizes
+### NOTES_MON_1: Injection payload sizes
 
 Each subagent gets a phase-specific reference file plus shared context. Updated estimates as of Phase 2b.3:
 
@@ -1874,23 +1874,23 @@ Each subagent gets a phase-specific reference file plus shared context. Updated 
 
 Comfortable for now across all phases. If context pressure becomes an issue, edge case sections (blocker, failed attempt, missing dependency, skip) could be split into a separate reference file only injected when relevant. Monitor during real usage.
 
-### state-schema.md size
+### NOTES_MON_2: state-schema.md size
 
 549 lines as of Phase 2b.3. Largest reference file — it's injected in full to verify subagents (who need all sections). No split needed — the file is logically cohesive. Splitting would create cross-reference overhead without reducing injection size. Revisit if it grows past ~700 lines or verify agents show signs of context exhaustion. Also noted in PLAN.md under "Watch: combined injection size."
 
-### Consistency drift patterns
+### NOTES_MON_3: Consistency drift patterns
 
 As consistency passes are used, note what keeps drifting (which files, which patterns, which levels catch it). This data will inform whether to build a dedicated skill or subcommand.
 
-### Verify retry rate across runs
+### NOTES_MON_4: Verify retry rate across runs
 
 Track verify first-pass rate and retry causes across case study runs. Goldilocks framing: 0% = rubber-stamping, 50%+ = implement consistently broken, 15-25% may be healthy. Only non-verify retries (git issues, crashes) warrant investigation. Current data: LOGA 85%, LIBT 100%, SPARK 83%.
 
-### Extracted skills losing integration context (SPI_1)
+### NOTES_MON_5: Extracted skills losing integration context
 
 Observed when comparing /fast-chat (session-kit) against NL/NLR conventions in plet-skills. Extracted skills capture mechanics but lose integration with surrounding workflows (Notes Discipline, Decision Discipline, consistency passes). Tracked as SPI_1 in session-kit's SHARPEN.md. Worth auditing /stable-label and /sharpen for similar loss.
 
-### Post-compaction recovery effectiveness
+### NOTES_MON_6: Post-compaction recovery effectiveness
 
 The three-layer compaction defense (CLAUDE.md POST-COMPACTION RULE → PLET.md MANDATORY ACKNOWLEDGMENT → auto-memory MEMORY.md) appears to be working. Observed 2 compactions in a single session (2026-03-09) — both times, the agent immediately produced "I have just read CLAUDE.md and PLET.md." without prompting. This is the canary behaving as designed, not a false positive: the agent re-read the files and acknowledged before continuing work. Continue monitoring across sessions and across different repos to confirm reliability.
 
@@ -1900,7 +1900,7 @@ The three-layer compaction defense (CLAUDE.md POST-COMPACTION RULE → PLET.md M
 
 Central collection of GUI-relevant design decisions made across specs. The GUI is a separate project (see PRD §1 Overview) that reads plet's state files for visualization. These decisions shape what the GUI needs to handle.
 
-### Multi-directory model (worktrees)
+### NOTES_GUI_1: Multi-directory model (worktrees)
 
 During parallel execution, each iteration has its own `plet/` directory in its worktree. The GUI must watch multiple directories:
 
@@ -1910,15 +1910,15 @@ During parallel execution, each iteration has its own `plet/` directory in its w
 
 See FOO_49 for full context.
 
-### State file formats designed for external consumers
+### NOTES_GUI_2: State file formats for external consumers
 
 Per STA_AGT_8, ENT_AGT_7, FPR_AGT_6, GTC_AGT_7, GSS_AGT_6 — external GUI personas are documented across all script specs. State files use JSON for machine readability. `--output json` on every command enables programmatic consumption.
 
-### Transcript live-tail
+### NOTES_GUI_3: Transcript live-tail
 
 `plet_invoke.py` flushes after each line write to the transcript file. Filesystem watchers (fswatch, FSEvents, inotify) see changes within ~100ms. GUI can live-tail transcript and events files during execution.
 
-### Trace merge for unified view
+### NOTES_GUI_4: Trace merge for unified view
 
 GUI merges `-events.ndjson` and `-transcript.ndjson` by timestamp for a unified view. Raw transcript provides full fidelity; semantic events provide structure. See formats.md § GUI Integration.
 
@@ -1926,7 +1926,7 @@ GUI merges `-events.ndjson` and `-transcript.ndjson` by timestamp for a unified 
 
 ## NOTES_OPN: Open Questions
 
-### Consistency checking as a skill?
+### NOTES_OPN_1: Consistency checking as a skill?
 
 Could consistency passes become a standalone skill (`/consistency`) or plet subcommand (`/plet check`)? Premature for v1 — the CLAUDE.md instructions work well as agent conventions.
 
@@ -1936,7 +1936,7 @@ Key questions:
 - What recurring drift patterns emerge from real usage?
 - Should it compose with plet phases (auto-run after plan changes or refine)?
 
-### case_studies/README.md → case_studies/CLAUDE.md
+### NOTES_OPN_2: case_studies/README.md → CLAUDE.md
 
 **Decision (2026-03-11):** The case study methodology/template file is agent directives (primary audience: agents producing case studies), not a human-facing directory index. Renamed to CLAUDE.md so Claude Code auto-loads it when agents work in the `case_studies/` directory. No separate README.md needed — the existing case studies table is in CLAUDE.md and agents get the instructions automatically without needing to be told "go read this file."
 
@@ -2070,23 +2070,23 @@ Also cleaned up:
 - Zero `print(file=sys.stderr)` remaining in any validation path. Only dispatch() (the stdout/stderr boundary), orchestrator/invoke (streaming), and merge_driver (git-called) still print directly.
 - ~60 call sites updated across all 17 scripts. Coverage improved: 87.1% → 87.4%.
 
-### Case study timing analysis
+### NOTES_OPN_3: Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
 
-### PLET.md shape and content
+### NOTES_OPN_4: PLET.md shape and content
 What goes in PLET.md vs CLAUDE.md? PLET.md is plet-specific instructions that apply in *any* repo using plet; CLAUDE.md is project-specific. See Artifact Taxonomy § Memory.
 
 **Draft (2026-03-09):** PLET.md created and populated with initial content. Sections copied (generalized, not moved) from CLAUDE.md: Common Misspellings (plet-specific subset), Decision Discipline, Consistency Passes. New sections added that belong only in PLET.md (not CLAUDE.md): What is plet?, Core Workflow, Key Concepts glossary, Artifact Taxonomy (incorporating the full 7-category taxonomy from NOTES.md with a directory tree showing the full target project root), Commit Conventions (target projects), and a placeholder Critical Requirements & Invariants section. Overlap between CLAUDE.md and PLET.md is expected and acceptable per the existing rule.
 
-### FEEDBACK_FOO.md shape and workflow — RESOLVED
+### NOTES_OPN_5: FEEDBACK_FOO.md shape and workflow — RESOLVED
 Resolved 2026-03-10. See Key Design Decisions § FEEDBACK_FOO.md formalization.
 
-### Skills need a Quick Reference / help mechanism
+### NOTES_OPN_6: Skills need a Quick Reference
 
 If a user asks "how do I use /plet?" the agent reads the entire SKILL.md (hundreds of lines) — expensive and slow for a simple question. Python scripts solved this with `--help`. Skills could use the same pattern: a short Quick Reference section near the top of SKILL.md, or a convention where invoking `/plet help` or `/plet version` prints a summary. Not plet-specific — this is a skill-creator or session-kit convention worth proposing upstream.
 
-### Analyze OpenAI Symphony
+### NOTES_OPN_7: Analyze OpenAI Symphony
 
 OpenAI's [Symphony](https://github.com/openai/symphony) framework looks like it has significant overlap with plet's approach. Need to analyze it and understand:
 - What concepts/patterns overlap with plet?
@@ -2096,10 +2096,10 @@ OpenAI's [Symphony](https://github.com/openai/symphony) framework looks like it 
 
 Priority: informational — not blocking any current work, but worth understanding the competitive landscape and potentially learning from their design choices.
 
-### Configuration artifact shape
+### NOTES_OPN_8: Configuration artifact shape
 Per-project behavior modification for planner, refiner, implement agent, and verify agent. No files or format defined yet. Key questions: one file or per-phase files? Declarative (key-value) or prose instructions? How does it compose with reference files? See Artifact Taxonomy § Configuration.
 
-### PRD input and disambiguation
+### NOTES_OPN_9: PRD input and disambiguation
 
 plet's plan session should accept any existing PRD as input, regardless of which skill or tool created it, and use it to produce a `requirements.md`. The PRD generation step is upstream of plet — plet operationalizes whatever spec it's given.
 
@@ -2120,7 +2120,7 @@ Key questions:
 
 Example projects live in subdirectories of `plet-skills/`. Their purpose is to serve as real target projects for plet's first runs — exercising the full plan → loop → refine workflow against actual code, not speculative samples.
 
-### Log Analyzer CLI (Go)
+### NOTES_EXP_1: Log Analyzer CLI (Go)
 
 **Directory:** `examples/logalyzer/` (planned)
 **Language:** Go
@@ -2145,7 +2145,7 @@ Example projects live in subdirectories of `plet-skills/`. Their purpose is to s
 
 **Decision:** Go chosen over Python (also a good fit) for compiled binary, strong stdlib for JSON/CLI, and single-binary distribution. Shell + jq rejected — testing is clunky.
 
-### Elixir Phoenix LiveView UUID Generator (planned)
+### NOTES_EXP_2: Elixir Phoenix LiveView UUID Generator
 
 **Directory:** `examples/uuidgen/` (planned)
 **Language:** Elixir, Phoenix, LiveView
@@ -2167,7 +2167,7 @@ Example projects live in subdirectories of `plet-skills/`. Their purpose is to s
 6. Batch generation, format options (with/without hyphens, uppercase)
 7. UUID parsing/validation — paste one in, show its version and components
 
-### Meta-goal
+### NOTES_EXP_3: Meta-goal
 
 Run plet plan mode on each project and compare its iteration decomposition against these brainstormed iterations. This tests whether plet's interactive planning produces comparable or better decompositions. Differences are interesting data for refine.
 
@@ -2177,7 +2177,7 @@ Run plet plan mode on each project and compare its iteration decomposition again
 
 plet is currently designed for a single developer driving a single Claude Code session. Multi-developer workflows are planned for plet v2.x.y — not a v1 concern, but the state file architecture should not accidentally preclude it.
 
-### Scenarios identified
+### NOTES_SUB_1: Scenarios identified
 
 1. **Small team, single PRD (2-3 devs):** Low coupling. Each dev runs their own plet session on their own branch. Merge point is git. Mostly works already.
 2. **Large team, large PRD (10+ devs):** Natural decomposition is one PRD per feature. Hard part is the *seams* — when one dev's iteration changes an API another dev consumes.
@@ -2187,7 +2187,7 @@ plet is currently designed for a single developer driving a single Claude Code s
 6. **Refactor + feature collision:** Broad refactor vs deep feature — maximally painful merge conflicts.
 7. **Spec change mid-flight:** PRD updated while multiple devs are mid-loop. Each orchestrator reads `prd.md` at launch — mid-session change is invisible until restart.
 
-### Key insights
+### NOTES_SUB_2: Key insights
 
 **The pattern is coupling, not team size.** 2-3 devs on one PRD have high coupling. 10 devs with per-feature PRDs have low coupling *until they don't* (shared schemas, APIs). Handoff and spec-change are about *temporal* coupling.
 
@@ -2197,13 +2197,13 @@ plet is currently designed for a single developer driving a single Claude Code s
 
 **plet's split state architecture already does most of the heavy lifting.** The main gap is human-level coordination (who's working on what), not agent-level coordination (solved by the DAG + lifecycle states).
 
-### Three multi-developer modes
+### NOTES_SUB_3: Three multi-developer modes
 
 - **Fork mode** (easiest): Each developer forks the plet directory. Fully independent. Runtime artifacts conflict on merge but they're append-only — conflict resolution is straightforward.
 - **Claim mode** (medium): Shared plan, developers "claim" iterations. The `agentId` / lifecycle fields already support this — `implementing` with an agent ID is effectively a claim.
 - **Shared orchestration** (hardest): Single orchestrator aware of multiple humans. Probably not worth it — Claude Code sessions are single-user.
 
-### `subplets/` directory for hierarchical decomposition
+### NOTES_SUB_4: subplets/ directory for hierarchical decomposition
 
 A simpler multi-developer model could use `subplets/` containing multiple independent `plet/` directories:
 
@@ -2228,7 +2228,7 @@ Benefits: namespace isolation, each instance fully self-contained, cross-PRD vis
 | Claim | Shared plan, divided ownership | Locking/claim semantics |
 | Shared orchestration | Single plan, multiple humans | Multi-user orchestrator |
 
-### Open threads
+### NOTES_SUB_5: Open threads
 - Emergent/blocker ownership: `assignee` field on emergent entries (additive to current format)
 - Refine is naturally single-threaded — one human refines at a time, others consume updated spec
 - Does the orchestrator need to know about sibling `subplets/`?
@@ -2244,25 +2244,25 @@ Self-Improvement Analysis workflows are planned for plet v3.x.y — not a v1 con
 Future Consideration #11
 
 
-### Why this is load-bearing
+### NOTES_SIA_1: Why this is load-bearing
 
 Most skills are static instructions written for today's model capabilities. They accumulate workarounds that become dead weight as models improve. execute.md alone is ~430 lines — some will be unnecessary in 6 months. Without a feedback loop, plet calcifies.
 
-### Runtime artifacts are uniquely well-positioned
+### NOTES_SIA_2: Runtime artifacts are uniquely well-positioned
 
 plet already produces structured, categorized data about its own performance: learnings capture what tripped agents up, emergent items capture spec gaps, trace files capture the full decision chain, progress captures pass/fail patterns. That's exactly the telemetry needed for self-analysis. Most systems would have to bolt on instrumentation — plet already has it.
 
-### Design tension: meta-loop symmetry
+### NOTES_SIA_3: Design tension — meta-loop symmetry
 
 plet improving its own PRD is refine-on-refine. The refine session already analyzes runtime artifacts to improve the *target project's* spec. Self-improvement is the same pattern aimed inward. Elegant symmetry, but "improve the project" and "improve the tool" need a clear boundary. A separate skill or mode is the right approach.
 
-### Things to watch for
+### NOTES_SIA_4: Things to watch for
 
 - **Model-capability vs design-flaw distinction:** Remove guardrails no longer needed vs fix heuristics that were always wrong. Different remedies.
 - **Testability of version bumps:** PRD changes need validation against a reference project. Otherwise self-edits are flying blind.
 - **Bootstrapping question:** Can plet use plet to improve plet? Appealing but version consistency problem.
 
-### Case study as a self-improvement mechanism
+### NOTES_SIA_5: Case study as a self-improvement mechanism
 
 The logalyzer case study (CASE_STUDY_LOGA_R01.md) demonstrated a concrete self-improvement workflow: run plet on a real project → collect user feedback and autonomous branch analysis → synthesize into recommendations → apply improvements → re-run the same project from the same plan checkpoint to measure the delta. This is manual self-improvement, but the structure is clear and repeatable:
 
@@ -2274,7 +2274,7 @@ The logalyzer case study (CASE_STUDY_LOGA_R01.md) demonstrated a concrete self-i
 
 This pattern could eventually be automated as part of the self-improvement skill planned for v3.x.y. The case study format itself could become a template for post-loop retrospectives.
 
-### Consistency passes: a complete self-improvement cycle (2026-03-10)
+### NOTES_SIA_6: Consistency passes — a complete self-improvement cycle
 
 The consistency pass documentation went through a full draft → use → observe → redesign cycle:
 
@@ -2290,6 +2290,6 @@ Key insight: the "monitoring" was organic — a human observing that practice ha
 
 This validates the CLAUDE.md Self-Improvement policy: "If you've seen it twice, it's a pattern. If it's not written down, it will be forgotten by the next session." The consistency pass conventions *were* written down, but they calcified — the redesign came from noticing they no longer matched practice.
 
-### Why capturing this now matters
+### NOTES_SIA_7: Why capturing this now matters
 
 Thinking about self-improvement during v1 design means the artifacts won't accidentally make it hard later. The runtime artifact formats, structured trace data, and separation of concerns all serve double duty as operational output and self-improvement telemetry.
