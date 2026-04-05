@@ -1925,6 +1925,20 @@ The `FileSink` is specifically for orchestrator-level events (round_start, break
 
 Threshold raised: 85% → 87% → 88% → 90% → 91%. Coverage is now a ratchet — it goes up, never down.
 
+### PLAN_CLN: Script cleanup & consistency (2026-04-05)
+
+**PLAN_CLN_1-3 (quick wins):** Removed dead code (`emit_json`/`emit_error`/`emit_json_error` — ~40 lines, zero importers). Removed unnecessary defensive copy in CaptureSink. Replaced 7 raw `subprocess.run(["git", ...])` in orchestrator with `run_git` from util_subprocess.
+
+**PLAN_CLN_4 (validator return patterns):** Aligned 5 script-local validators with the `value/(1,"",err)` convention. `validate_iter_id` (git_iteration + entries), `validate_positive_int` (entries), `validate_artifact_dir` and `validate_file_exists` (fingerprint). The dir/file validators return the validated path on success (not None) — consistent with `validate_enum` returning the value.
+
+**PLAN_CLN_5 (util_state print-to-stderr):** `load_and_validate_global_state` and `load_and_validate_iter_state` now return `data/(1,"",err)` instead of `data/None+print`. Updated 16 callers across 6 scripts. Fixed a latent crash in orchestrator where `iter_state.get()` would fail on the error tuple (tuples are truthy, so `if iter_state` didn't catch errors).
+
+**PLAN_CLN_6 (help_hint deduplication):** Added `make_help_hint(script_name)` factory to util_cli. Replaced 16 identical 2-3 line functions across all scripts with one-liner assignments.
+
+**PLAN_CLN_7 (entries extract_universal_flags):** Replaced plet_entries.py's local `extract_universal_flags` (20 lines) with `extract_output_flags(kwargs, allow_dry_run=True)` from util_cli. Small change, high leverage: entries now uses the same shared function as every other script. When we eventually refactor the 6-tuple return (PLAN_CLN_11 — namedtuple), entries gets the improvement automatically instead of needing a separate migration. Eliminating duplicates before refactoring the shared abstraction prevents the "fix it in two places" problem.
+
+**Principle confirmed:** dedup before refactor. If you know you're going to change an interface (like the 6-tuple), first ensure every consumer goes through one function. Then changing that one function changes everything. The alternative — refactoring with duplicates still in place — means fixing N+1 locations instead of 1.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
