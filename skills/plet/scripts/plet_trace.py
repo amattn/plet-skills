@@ -308,34 +308,35 @@ def validate_event(event, line_num):
 
 
 def _validate_trace_context(kwargs, hint):
-    """Validate iter_id, phase, attempt from kwargs. Returns (result, err_str).
-    result is (iter_id, phase, attempt) on success, None on failure."""
+    """Validate iter_id, phase, attempt from kwargs.
+    Returns (iter_id, phase, attempt) on success, (1, "", err) on error."""
     iter_id = kwargs["iter_id"]
     if not ITERATION_ID_PATTERN.match(iter_id):
-        return None, f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)\n{hint}"
+        return (1, "", f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)\n{hint}")
 
     phase = kwargs["phase"]
     result = validate_enum(phase, VALID_PHASES, "--phase")
     if isinstance(result, tuple):
-        return None, result[2] or hint
+        return (1, "", result[2] or hint)
 
     attempt_result = validate_int(kwargs["attempt"], "--attempt")
     if isinstance(attempt_result, tuple):
-        return None, attempt_result[2] or hint
+        return (1, "", attempt_result[2] or hint)
     attempt = attempt_result
     if attempt < 1:
-        return None, "Error: --attempt must be a positive integer, got '{}'\n{}".format(kwargs["attempt"], hint)
+        return (1, "", "Error: --attempt must be a positive integer, got '{}'\n{}".format(kwargs["attempt"], hint))
 
-    return (iter_id, phase, attempt), ""
+    return (iter_id, phase, attempt)
 
 
 def _parse_trace_args(args, help_text, command, known_flags, required, is_mutating, supports_raw):
     """Parse args for trace commands (shared boilerplate).
 
-    Returns ("help", "") | (None, err_str) | ((plet_dir, kwargs, flags), "").
+    Returns (0, help_text, "") for help, (1, "", err) for error,
+    (plet_dir, kwargs, flags) for success. Callers check isinstance(result[0], int).
     """
     if "-h" in args or "--help" in args:
-        return "help", ""
+        return (0, help_text, "")
 
     hint = help_hint(command)
     clean_args, flags = parse_universal_flags(args)
@@ -344,59 +345,60 @@ def _parse_trace_args(args, help_text, command, known_flags, required, is_mutati
 
     err = check_flag_dependencies(flags, command_is_mutating=is_mutating, supports_raw=supports_raw)
     if err:
-        return None, f"{err}\n{hint}"
+        return (1, "", f"{err}\n{hint}")
 
     plet_dir, remaining, dir_err = get_plet_dir(clean_args)
     if plet_dir is None:
-        return None, dir_err
+        return (1, "", dir_err)
 
     if not os.path.exists(plet_dir):
-        return None, f"Error: {plet_dir} does not exist\n{hint}"
+        return (1, "", f"Error: {plet_dir} does not exist\n{hint}")
     if not os.path.isdir(plet_dir):
-        return None, f"Error: {plet_dir} is not a directory\n{hint}"
+        return (1, "", f"Error: {plet_dir} is not a directory\n{hint}")
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
-        return None, f"{e}\n{hint}"
+        return (1, "", f"{e}\n{hint}")
     err = validate_known_flags(kwargs, known_flags, hint)
     if err:
-        return None, err[2] or ""
+        return (1, "", err[2] or "")
 
     err = require_kwargs(kwargs, required, help_text)
     if err:
-        return None, err[2] or ""
+        return (1, "", err[2] or "")
 
-    return (plet_dir, kwargs, flags), ""
+    return (plet_dir, kwargs, flags)
 
 
 def _parse_event_data(kwargs, hint):
-    """Parse --data or --data-file into a dict. Returns (data_obj, err_str)."""
+    """Parse --data or --data-file into a dict.
+    Returns data_obj (dict) on success, (1, "", err) on error."""
     has_data = "data" in kwargs
     has_data_file = "data_file" in kwargs
 
     if has_data and has_data_file:
-        return None, f"Error: --data and --data-file are mutually exclusive\n{hint}"
+        return (1, "", f"Error: --data and --data-file are mutually exclusive\n{hint}")
     if not has_data and not has_data_file:
-        return None, f"Error: --data or --data-file is required\n{hint}"
+        return (1, "", f"Error: --data or --data-file is required\n{hint}")
 
     if has_data_file:
         raw = load_text(kwargs["data_file"])
         if raw is None:
-            return None, f"Error: could not read --data-file\n{hint}"
+            return (1, "", f"Error: could not read --data-file\n{hint}")
         try:
             data_obj = json.loads(raw)
         except json.JSONDecodeError as e:
-            return None, f"Error: --data-file must contain valid JSON: {e}\n{hint}"
+            return (1, "", f"Error: --data-file must contain valid JSON: {e}\n{hint}")
     else:
         try:
             data_obj = json.loads(kwargs["data"])
         except json.JSONDecodeError as e:
-            return None, f"Error: --data must be valid JSON: {e}\n{hint}"
+            return (1, "", f"Error: --data must be valid JSON: {e}\n{hint}")
 
     if not isinstance(data_obj, dict):
-        return None, f"Error: --data must be a JSON object, got {type(data_obj).__name__}\n{hint}"
-    return data_obj, ""
+        return (1, "", f"Error: --data must be a JSON object, got {type(data_obj).__name__}\n{hint}")
+    return data_obj
 
 
 def cmd_append_event(args):
@@ -443,7 +445,7 @@ Examples:
         --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}'
 """
     hint = help_hint("append-event")
-    parsed, parse_err = _parse_trace_args(
+    parsed = _parse_trace_args(
         args,
         help_text,
         "append-event",
@@ -452,15 +454,13 @@ Examples:
         is_mutating=True,
         supports_raw=False,
     )
-    if parsed == "help":
-        return (0, help_text, "")
-    if parsed is None:
-        return (1, "", parse_err)
+    if isinstance(parsed[0], int):
+        return parsed
     plet_dir, kwargs, flags = parsed
 
-    ctx, ctx_err = _validate_trace_context(kwargs, hint)
-    if ctx is None:
-        return (1, "", ctx_err)
+    ctx = _validate_trace_context(kwargs, hint)
+    if isinstance(ctx[0], int):
+        return ctx
     iter_id, phase, attempt = ctx
 
     event_type = kwargs["event_type"]
@@ -468,9 +468,9 @@ Examples:
     if isinstance(result, tuple):
         return (1, "", result[2] or hint)
 
-    data_obj, data_err = _parse_event_data(kwargs, hint)
-    if data_obj is None:
-        return (1, "", data_err)
+    data_obj = _parse_event_data(kwargs, hint)
+    if isinstance(data_obj, tuple):
+        return data_obj
 
     data_errors = validate_data_fields(event_type, data_obj)
     if data_errors:
@@ -589,7 +589,7 @@ Examples:
     plet_trace.py validate --iter-id ID_001 --phase implement --attempt 1 --output json
 """
     hint = help_hint("validate")
-    parsed, parse_err = _parse_trace_args(
+    parsed = _parse_trace_args(
         args,
         help_text,
         "validate",
@@ -598,15 +598,13 @@ Examples:
         is_mutating=False,
         supports_raw=False,
     )
-    if parsed == "help":
-        return (0, help_text, "")
-    if parsed is None:
-        return (1, "", parse_err)
+    if isinstance(parsed[0], int):
+        return parsed
     plet_dir, kwargs, flags = parsed
 
-    ctx, ctx_err = _validate_trace_context(kwargs, hint)
-    if ctx is None:
-        return (1, "", ctx_err)
+    ctx = _validate_trace_context(kwargs, hint)
+    if isinstance(ctx[0], int):
+        return ctx
     iter_id, phase, attempt = ctx
 
     path = derive_events_path(plet_dir, iter_id, phase, attempt)
@@ -645,7 +643,9 @@ cmd_validate.example = "plet_trace.py validate plet/ --iter-id ID_001 --phase im
 
 
 def _validate_query_filters(kwargs, hint):
-    """Validate and extract query filters. Returns (event_type, criterion, last_n, err_str)."""
+    """Validate and extract query filters.
+    Returns dict {"event_type": ..., "criterion": ..., "last_n": ...} on success,
+    (1, "", err) on error. Callers use isinstance(result, dict) to distinguish."""
     event_type_filter = kwargs.get("event_type")
     criterion_filter = kwargs.get("criterion")
     last_n = kwargs.get("last")
@@ -653,14 +653,13 @@ def _validate_query_filters(kwargs, hint):
     if event_type_filter is not None:
         result = validate_enum(event_type_filter, VALID_EVENT_TYPES, "--event-type")
         if isinstance(result, tuple):
-            return None, None, None, result[2] or hint
+            return (1, "", result[2] or hint)
 
     if criterion_filter is not None:
         if event_type_filter is not None and event_type_filter != "criterion_update":
             return (
-                None,
-                None,
-                None,
+                1,
+                "",
                 (
                     "Error: --criterion implies --event-type criterion_update,"
                     f" but --event-type '{event_type_filter}' was specified\n{hint}"
@@ -671,17 +670,16 @@ def _validate_query_filters(kwargs, hint):
     if last_n is not None:
         last_n_result = validate_int(last_n, "--last")
         if isinstance(last_n_result, tuple):
-            return None, None, None, last_n_result[2] or hint
+            return (1, "", last_n_result[2] or hint)
         last_n = last_n_result
         if last_n < 1:
             return (
-                None,
-                None,
-                None,
+                1,
+                "",
                 "Error: --last must be a positive integer, got '{}'\n{}".format(kwargs["last"], hint),
             )
 
-    return event_type_filter, criterion_filter, last_n, ""
+    return {"event_type": event_type_filter, "criterion": criterion_filter, "last_n": last_n}
 
 
 def _read_and_filter_events(path, event_type_filter, criterion_filter, last_n):
@@ -743,7 +741,7 @@ Examples:
     plet_trace.py query --iter-id ID_001 --phase implement --attempt 1 --event-type decision --raw
 """
     hint = help_hint("query")
-    parsed, parse_err = _parse_trace_args(
+    parsed = _parse_trace_args(
         args,
         help_text,
         "query",
@@ -752,15 +750,13 @@ Examples:
         is_mutating=False,
         supports_raw=True,
     )
-    if parsed == "help":
-        return (0, help_text, "")
-    if parsed is None:
-        return (1, "", parse_err)
+    if isinstance(parsed[0], int):
+        return parsed
     plet_dir, kwargs, flags = parsed
 
-    ctx, ctx_err = _validate_trace_context(kwargs, hint)
-    if ctx is None:
-        return (1, "", ctx_err)
+    ctx = _validate_trace_context(kwargs, hint)
+    if isinstance(ctx[0], int):
+        return ctx
     iter_id, phase, attempt = ctx
 
     path = derive_events_path(plet_dir, iter_id, phase, attempt)
@@ -768,9 +764,12 @@ Examples:
     if not os.path.exists(path):
         return (1, "", f"Error: {path} does not exist\n{hint}")
 
-    event_type_filter, criterion_filter, last_n, filter_err = _validate_query_filters(kwargs, hint)
-    if filter_err:
-        return (1, "", filter_err)
+    filters = _validate_query_filters(kwargs, hint)
+    if isinstance(filters, tuple):
+        return filters
+    event_type_filter = filters["event_type"]
+    criterion_filter = filters["criterion"]
+    last_n = filters["last_n"]
 
     matches, read_warnings = _read_and_filter_events(path, event_type_filter, criterion_filter, last_n)
 
