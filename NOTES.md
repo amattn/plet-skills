@@ -1947,6 +1947,31 @@ Threshold raised: 85% → 87% → 88% → 90% → 91%. Coverage is now a ratchet
 
 **Principle: function inputs/outputs are the API's UX.** The return convention isn't just about consistency for its own sake. When a helper's return pattern is clean (value on success, error tuple on failure), the calling code becomes cleaner — no unpacking err strings, no None checks, no multi-variable error destructuring. The caller reads like a pipeline: call → check → use. Every function whose returns we cleaned up produced simpler, more readable callers. This is analogous to UI/UX design: the inputs and outputs of a function are the interface the caller experiences. Investing in clean function signatures pays back every time someone reads or modifies the calling code.
 
+### PLAN_RFT: Refactor loop design decisions
+
+**Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.
+
+**Why milestone boundary (not per-iteration or periodic):**
+- Cross-cutting refactoring needs full codebase context — no single iteration's agent can see patterns like "16 scripts have duplicate helper functions"
+- Milestones are natural integration points — all pieces of a feature set are done
+- Avoids wasting time refactoring code that's still evolving
+- Matches how we actually did PLAN_CLN — waited for all scripts to be migrated, then swept
+
+**Why not part of verify:** Verify's job is checking correctness against acceptance criteria. Refactoring is about improving the codebase that's already correct. Different goals, different context needs. Verify sees one iteration; refactor needs to see everything.
+
+**Design sketch:**
+- Synthetic iteration: `ID_RFT_MS1`, `ID_RFT_MS2`, etc. — one per milestone
+- Not in the original dependency map — injected by orchestrator when milestone completes
+- Implement phase: agent audits codebase for patterns, inconsistencies, tech debt. Applies fixes. Runs tests.
+- Verify phase: agent checks that all tests pass, no regressions, refactoring was mechanical (no behavior changes)
+- Acceptance criteria: generated from emergent items tagged as tech-debt, plus automated quality checks (lint, complexity, coverage)
+- If refactor iteration fails verify: block it like any other — human reviews in refine
+
+**Open questions:**
+- Should the refactor agent have access to learnings.md and emergent.md to prioritize what to refactor?
+- Should there be a "refactor budget" (max time/iterations)?
+- How do we prevent the refactor from breaking things that later iterations depend on?
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
