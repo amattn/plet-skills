@@ -35,6 +35,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
+    extract_output_flags,
     filter_fields,
     make_help_hint,
     now_iso,
@@ -171,28 +172,6 @@ def resolve_content(kwargs, allow_fences=False):
     return text, True, ""
 
 
-def extract_universal_flags(kwargs):
-    """Extract and validate universal flags (--output, --pretty, --fields, --dry-run).
-
-    Returns (output_json, pretty, fields, dry_run, ok, err) where ok is False if validation failed.
-    """
-    output_json = kwargs.pop("output", None) == "json"
-    pretty = kwargs.pop("pretty", False)
-    if pretty is True and not output_json:
-        return False, False, None, False, False, "Error: --pretty requires --output json"
-
-    fields_raw = kwargs.pop("fields", None)
-    if fields_raw and not output_json:
-        return False, False, None, False, False, "Error: --fields requires --output json"
-    fields = fields_raw.split(",") if fields_raw else None
-
-    dry_run = kwargs.pop("dry_run", False)
-    if dry_run is True:
-        dry_run = True
-
-    return output_json, pretty, fields, dry_run, True, ""
-
-
 def _to_json(data, pretty=False, fields=None):
     """Return JSON string for output."""
     data["scriptVersion"] = SCRIPT_VERSION
@@ -252,7 +231,7 @@ def _parse_entry_args(args, help_text, cmd_name, known_flags, required):
     except ValueError as e:
         return None, f"{e}\n{hint}"
 
-    output_json, pretty, fields, dry_run, ok, flag_err = extract_universal_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok, flag_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
         return None, f"{flag_err}\n{hint}"
     err = validate_known_flags(kwargs, known_flags, hint)
@@ -635,7 +614,7 @@ def _parse_check_args(args, help_text):
     if "dry_run" in kwargs:
         return None, f"Error: --dry-run is not available on the check command (read-only)\n{hint}"
 
-    output_json, pretty, fields, _, ok, flag_err = extract_universal_flags(kwargs)
+    output_json, pretty, fields, _, ok, flag_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
         return None, f"{flag_err}\n{hint}"
     err = validate_known_flags(kwargs, {"iter_id"}, hint)
