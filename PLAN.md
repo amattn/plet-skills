@@ -17,8 +17,8 @@
 | PLAN_PAR | Parallel Orchestrator | ✓ COMPLETE |
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
-| PLAN_NTS | NOTES.md Reorganization | **Next** — stable labels, plan-chunk sections, PLAN.md→NOTES.md pointers |
-| PLAN_RFT | Refactor Loop (orchestrator feature) | After NTS — milestone barriers, synthetic iterations |
+| PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
+| PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -163,9 +163,9 @@ Both NOTES.md (2300 lines) and specs/NOTES.md (1900 lines) had design decisions 
 | NTS_2 | Stable labels + TOC on specs/NOTES.md (8 H2s) | ✓ done |
 | NTS_3 | specs/NOTES.md: reorganize into labeled sections | ✓ done — SPEC_INV (3), SPEC_TAX (4), SPEC_INS (3), SPEC_DES (4), SPEC_PLN (4: COV, CLN, HLP stub, PAR stub), SPEC_REV (15 scripts), SPEC_IMP (chronological, at bottom) |
 | NTS_4 | Root NOTES.md: move scattered plan decisions into NOTES_PLN_XXX sections | ✓ done — HLP, PAR, RFT moved. COV/CLN routed to specs/NOTES.md (content restored after premature deletion). |
-| NTS_5 | Update PLAN.md sections to reference NOTES.md / specs/NOTES.md | **Next** |
-| NTS_6 | Root NOTES.md: add time markers + label remaining H3s (NOTES_TAX has ~10 unlabeled) | |
-| NTS_7 | Final audit: both files, orphaned content, stale references | |
+| NTS_5 | Slim PLAN.md — move detail to NOTES.md, keep steps + pointers | ✓ done — 458→264 lines (-42%). 8 completed sections slimmed. |
+| NTS_6 | Label all H3s in root NOTES.md | ✓ done — 88 H3s labeled. 97 total. Time markers not needed (thematic sections, not chronological). |
+| NTS_7 | Final audit: both files, orphaned content, stale references | ✓ done — all clean. 0 unlabeled H3s, 0 stale pointers, 0 TODO stubs, all PLAN.md pointers resolve. |
 
 
 interim consistency finding:
