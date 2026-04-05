@@ -114,7 +114,7 @@ def _run_pytest(cov, html, quiet, verbose):
             [
                 "--cov=" + SCRIPTS_DIR,
                 "--cov-report=term-missing",
-                "--cov-fail-under=86",
+                "--cov-fail-under=88",
             ]
         )
         if html:
