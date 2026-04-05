@@ -71,19 +71,21 @@ def test_validate_iter_id():
     """Lines 66-73: validate_iter_id with valid and invalid IDs."""
     import plet_git_iteration
 
-    # Valid IDs
-    check("valid ID_001", plet_git_iteration.validate_iter_id("ID_001", "test", False, False)[0])
-    check("valid ID_999", plet_git_iteration.validate_iter_id("ID_999", "test", False, False)[0])
+    # Valid IDs — returns the iter_id string (not a tuple)
+    check("valid ID_001", plet_git_iteration.validate_iter_id("ID_001", "test", False, False) == "ID_001")
+    check("valid ID_999", plet_git_iteration.validate_iter_id("ID_999", "test", False, False) == "ID_999")
 
-    # Invalid IDs (text output)
-    check("invalid empty", not plet_git_iteration.validate_iter_id("", "test", False, False)[0])
-    check("invalid no prefix", not plet_git_iteration.validate_iter_id("001", "test", False, False)[0])
-    check("invalid bad prefix", not plet_git_iteration.validate_iter_id("XX_001", "test", False, False)[0])
-    check("invalid no digits", not plet_git_iteration.validate_iter_id("ID_", "test", False, False)[0])
+    # Invalid IDs (text output) — returns (1, "", err)
+    check("invalid empty", isinstance(plet_git_iteration.validate_iter_id("", "test", False, False), tuple))
+    check("invalid no prefix", isinstance(plet_git_iteration.validate_iter_id("001", "test", False, False), tuple))
+    check("invalid bad prefix", isinstance(plet_git_iteration.validate_iter_id("XX_001", "test", False, False), tuple))
+    check("invalid no digits", isinstance(plet_git_iteration.validate_iter_id("ID_", "test", False, False), tuple))
 
-    # Invalid ID with JSON output (exercises _err_out path)
-    check("invalid json output", not plet_git_iteration.validate_iter_id("bad", "test", True, False)[0])
-    check("invalid json pretty", not plet_git_iteration.validate_iter_id("bad", "test", True, True)[0])
+    # Invalid ID with JSON output (exercises _err_out path) — returns (1, json_str, "")
+    bad_json = plet_git_iteration.validate_iter_id("bad", "test", True, False)
+    check("invalid json output", isinstance(bad_json, tuple) and bad_json[0] == 1)
+    bad_json_pretty = plet_git_iteration.validate_iter_id("bad", "test", True, True)
+    check("invalid json pretty", isinstance(bad_json_pretty, tuple) and bad_json_pretty[0] == 1)
 
 
 def test_is_git_repo():

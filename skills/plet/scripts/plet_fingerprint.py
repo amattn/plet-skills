@@ -140,35 +140,35 @@ def _err_json(command, message, pretty=False, extra=None):
 def validate_artifact_dir(artifact_dir, command, output_json, pretty):
     """Validate artifact_dir exists and is a directory.
 
-    Returns (out, err) where err is non-empty on failure, both empty on success.
+    Returns artifact_dir on success, (1, out, err) on error.
     """
     if not os.path.exists(artifact_dir):
         msg = f"Error: {artifact_dir} does not exist"
         if output_json:
             out, err = _err_json(command, msg, pretty)
-            return out, err
-        return "", msg
+            return (1, out, err)
+        return (1, "", msg)
     if not os.path.isdir(artifact_dir):
         msg = f"Error: {artifact_dir} is not a directory"
         if output_json:
             out, err = _err_json(command, msg, pretty)
-            return out, err
-        return "", msg
-    return "", ""
+            return (1, out, err)
+        return (1, "", msg)
+    return artifact_dir
 
 
 def validate_file_exists(path, command, output_json, pretty, context=""):
     """Validate a file exists.
 
-    Returns (out, err) where err is non-empty on failure, both empty on success.
+    Returns path on success, (1, out, err) on error.
     """
     if not os.path.exists(path):
         msg = f"Error: {path} does not exist — needed to {context}" if context else f"Error: {path} does not exist"
         if output_json:
             out, err = _err_json(command, msg, pretty)
-            return out, err
-        return "", msg
-    return "", ""
+            return (1, out, err)
+        return (1, "", msg)
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -519,9 +519,9 @@ def _parse_fpr_args(args, help_text, cmd_name, valid_types):
     result = validate_enum(type_val, valid_types, "--type")
     if isinstance(result, tuple):
         return None, "", result[2] or hint
-    vout, verr = validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty)
-    if verr:
-        return None, vout, f"{verr}\n{hint}"
+    result = validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty)
+    if isinstance(result, tuple):
+        return None, result[1], f"{result[2]}\n{hint}"
 
     return artifact_dir, kwargs, output_json, pretty, fields, dry_run, type_val
 
@@ -584,9 +584,10 @@ Examples:
         return 1, "", f"{msg}\n{hint}"
 
     target_path = requirements_path(artifact_dir) if type_val == "requirements" else iterations_path(artifact_dir)
-    vout, verr = validate_file_exists(target_path, cmd_name, output_json, pretty)
-    if verr:
-        return 1, vout, f"{verr}\n{hint}"
+    result = validate_file_exists(target_path, cmd_name, output_json, pretty)
+    if isinstance(result, tuple):
+        code, eout, emsg = result
+        return 1, eout, f"{emsg}\n{hint}"
 
     text = load_text(target_path)
     if text is None:
@@ -686,31 +687,31 @@ def _dispatch_embed(type_val, artifact_dir, cmd_name, force_bump, dry_run, outpu
     """Route embed to the correct type-specific handler."""
     if type_val == "requirements":
         target_path = requirements_path(artifact_dir)
-        vout, verr = validate_file_exists(target_path, cmd_name, output_json, pretty)
-        if verr:
-            return 1, vout, verr
+        result = validate_file_exists(target_path, cmd_name, output_json, pretty)
+        if isinstance(result, tuple):
+            return result
         return _embed_requirements(artifact_dir, target_path, force_bump, dry_run, output_json, pretty, fields)
 
     if type_val == "iterations":
         target_path = iterations_path(artifact_dir)
         req_path = requirements_path(artifact_dir)
-        vout, verr = validate_file_exists(target_path, cmd_name, output_json, pretty)
-        if verr:
-            return 1, vout, verr
-        vout, verr = validate_file_exists(req_path, cmd_name, output_json, pretty, "embed iterations fingerprint")
-        if verr:
-            return 1, vout, verr
+        result = validate_file_exists(target_path, cmd_name, output_json, pretty)
+        if isinstance(result, tuple):
+            return result
+        result = validate_file_exists(req_path, cmd_name, output_json, pretty, "embed iterations fingerprint")
+        if isinstance(result, tuple):
+            return result
         return _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, output_json, pretty, fields)
 
     # state
     target_path = state_json_path(artifact_dir)
     iter_path = iterations_path(artifact_dir)
-    vout, verr = validate_file_exists(target_path, cmd_name, output_json, pretty)
-    if verr:
-        return 1, vout, verr
-    vout, verr = validate_file_exists(iter_path, cmd_name, output_json, pretty, "embed state fingerprint")
-    if verr:
-        return 1, vout, verr
+    result = validate_file_exists(target_path, cmd_name, output_json, pretty)
+    if isinstance(result, tuple):
+        return result
+    result = validate_file_exists(iter_path, cmd_name, output_json, pretty, "embed state fingerprint")
+    if isinstance(result, tuple):
+        return result
     return _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, output_json, pretty, fields)
 
 
@@ -1026,9 +1027,10 @@ def _run_level_checks(check_req, check_iter, req_path, iter_path, state_path, cm
     for f in required_files:
         if f not in seen:
             seen.add(f)
-            vout, verr = validate_file_exists(f, cmd_name, output_json, pretty)
-            if verr:
-                return None, None, vout, verr
+            result = validate_file_exists(f, cmd_name, output_json, pretty)
+            if isinstance(result, tuple):
+                code, eout, emsg = result
+                return None, None, eout, emsg
 
     levels_result = {}
     all_consistent = True
@@ -1143,9 +1145,9 @@ Examples:
     if isinstance(result, tuple):
         return 1, "", result[2] or hint
 
-    vout, verr = validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty)
-    if verr:
-        return 1, vout, f"{verr}\n{hint}"
+    result = validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty)
+    if isinstance(result, tuple):
+        return 1, result[1], f"{result[2]}\n{hint}"
 
     # Check required files based on level
     req_path = requirements_path(artifact_dir)

@@ -112,24 +112,24 @@ def next_em_number(artifact_dir):
 
 
 def validate_iter_id(value):
-    """Validate --iter-id matches ID_N+ or 'proj'. Returns (True, "") or (False, error_msg)."""
+    """Validate --iter-id matches ID_N+ or 'proj'. Returns iter_id string on success, (1, "", error_msg) on error."""
     if not ITER_ID_PATTERN.match(value):
-        return False, f"Error: --iter-id '{value}' does not match expected pattern ID_N+ or 'proj'"
-    return True, ""
+        return (1, "", f"Error: --iter-id '{value}' does not match expected pattern ID_N+ or 'proj'")
+    return value
 
 
 def validate_positive_int(value, field_name):
-    """Validate that value is a positive integer (> 0). Returns (int, True, "") or (None, False, error_msg).
+    """Validate that value is a positive integer (> 0). Returns parsed int on success, (1, "", error_msg) on error.
 
     Note: validate_int already prints to stderr on type error; this function only adds its own
     message for the > 0 constraint.
     """
     result = validate_int(value, field_name)
     if isinstance(result, tuple):
-        return None, False, result[2]
+        return (1, "", result[2])
     if result <= 0:
-        return None, False, f"Error: {field_name} must be a positive integer, got '{value}'"
-    return result, True, ""
+        return (1, "", f"Error: {field_name} must be a positive integer, got '{value}'")
+    return result
 
 
 def validate_content(content_text, allow_fences=False):
@@ -263,13 +263,14 @@ def _parse_entry_args(args, help_text, cmd_name, known_flags, required):
     if err:
         return None, err[2] or ""
 
-    id_ok, id_err = validate_iter_id(kwargs["iter_id"])
-    if not id_ok:
-        return None, f"{id_err}\n{hint}"
+    id_result = validate_iter_id(kwargs["iter_id"])
+    if isinstance(id_result, tuple):
+        return None, f"{id_result[2]}\n{hint}"
 
-    attempt, ok, attempt_err = validate_positive_int(kwargs["attempt"], "--attempt")
-    if not ok:
-        return None, f"{attempt_err}\n{hint}" if attempt_err else hint
+    attempt_result = validate_positive_int(kwargs["attempt"], "--attempt")
+    if isinstance(attempt_result, tuple):
+        return None, f"{attempt_result[2]}\n{hint}" if attempt_result[2] else hint
+    attempt = attempt_result
 
     allow_fences = kwargs.pop("allow_fences", False) is True
     content_text, ok, content_err = resolve_content(kwargs, allow_fences=allow_fences)

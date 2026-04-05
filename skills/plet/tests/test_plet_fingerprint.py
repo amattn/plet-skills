@@ -684,32 +684,59 @@ def test_err_json_direct():
 
 def test_validate_artifact_dir_json_error():
     print("\n## validate_artifact_dir — JSON error paths (direct import)")
-    # Missing dir, JSON output
-    out, err = fpr_mod.validate_artifact_dir("/no/such/dir", "extract", True, False)
-    data = json.loads(out)
+    # Missing dir, JSON output — returns (1, json_str, err_msg)
+    result = fpr_mod.validate_artifact_dir("/no/such/dir", "extract", True, False)
+    check("missing dir returns tuple", isinstance(result, tuple) and result[0] == 1)
+    data = json.loads(result[1])
     check("missing dir JSON status error", data["status"] == "error")
     check("missing dir JSON has error", "does not exist" in data["error"])
 
     # Not a directory, JSON output
     with tempfile.NamedTemporaryFile() as f:
-        out, err = fpr_mod.validate_artifact_dir(f.name, "extract", True, False)
-        data = json.loads(out)
+        result = fpr_mod.validate_artifact_dir(f.name, "extract", True, False)
+        check("not a dir returns tuple", isinstance(result, tuple) and result[0] == 1)
+        data = json.loads(result[1])
         check("not a dir JSON status error", data["status"] == "error")
         check("not a dir JSON has message", "not a directory" in data["error"])
 
-    # Not a directory, plain text
+    # Not a directory, plain text — returns (1, "", err_msg)
     with tempfile.NamedTemporaryFile() as f:
-        out, err = fpr_mod.validate_artifact_dir(f.name, "extract", False, False)
-        check("not a dir plain empty out", out == "")
-        check("not a dir plain err message", "not a directory" in err)
+        result = fpr_mod.validate_artifact_dir(f.name, "extract", False, False)
+        check("not a dir plain returns tuple", isinstance(result, tuple) and result[0] == 1)
+        check("not a dir plain empty out", result[1] == "")
+        check("not a dir plain err message", "not a directory" in result[2])
+
+    # Success — returns path string (truthy, not None)
+    import tempfile as _tf
+
+    d = _tf.mkdtemp()
+    try:
+        check(
+            "valid dir returns path string", isinstance(fpr_mod.validate_artifact_dir(d, "extract", False, False), str)
+        )
+    finally:
+        import shutil
+
+        shutil.rmtree(d)
 
 
 def test_validate_file_exists_json_error():
     print("\n## validate_file_exists — JSON error path (direct import)")
-    out, err = fpr_mod.validate_file_exists("/no/such/file.md", "embed", True, False, "embed fingerprint")
-    data = json.loads(out)
+    # Missing file, JSON output — returns (1, json_str, err_msg)
+    result = fpr_mod.validate_file_exists("/no/such/file.md", "embed", True, False, "embed fingerprint")
+    check("missing file returns tuple", isinstance(result, tuple) and result[0] == 1)
+    data = json.loads(result[1])
     check("missing file JSON status error", data["status"] == "error")
     check("missing file JSON has context", "embed fingerprint" in data["error"])
+
+    # Success — returns path string (truthy, not None)
+    import tempfile as _tf
+
+    with _tf.NamedTemporaryFile() as f:
+        check(
+            "existing file returns path string",
+            isinstance(fpr_mod.validate_file_exists(f.name, "embed", False, False), str),
+        )
 
 
 def test_parse_fingerprint_empty_json_between_markers():

@@ -81,12 +81,12 @@ def _err_out(cmd, msg, output_json, pretty):
 
 
 def validate_iter_id(value, command, output_json, pretty):
-    """Validate --iter-id format. Returns (True, "", "") or (False, out, err)."""
+    """Validate --iter-id format. Returns iter_id string on success, (1, out, err) on error."""
     if not ITER_ID_RE.match(value):
         msg = f"Error: --iter-id '{value}' does not match expected pattern ID_N+"
         out, err_str = _err_out(command, msg, output_json, pretty)
-        return False, out, err_str
-    return True, "", ""
+        return (1, out, err_str)
+    return value
 
 
 def _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint):
@@ -186,9 +186,9 @@ Examples:
         if not iter_id:
             out, err_str = _err_out(cmd_name, "Error: --iter-id is required for --type iteration", output_json, pretty)
             return (1, out, err_str or hint)
-        valid, v_out, v_err = validate_iter_id(iter_id, cmd_name, output_json, pretty)
-        if not valid:
-            return (1, v_out, v_err or hint)
+        result = validate_iter_id(iter_id, cmd_name, output_json, pretty)
+        if isinstance(result, tuple):
+            return result[0], result[1], result[2] or hint
 
     branch = derive_branch_name(state, branch_type, iter_id)
     session_num = _branch_session_num(state, branch_type)
@@ -272,9 +272,9 @@ Examples:
 
     cmd_name = "worktree-create"
     iter_id = kwargs["iter_id"]
-    valid, v_out, v_err = validate_iter_id(iter_id, cmd_name, output_json, pretty)
-    if not valid:
-        return (1, v_out, v_err or hint)
+    result = validate_iter_id(iter_id, cmd_name, output_json, pretty)
+    if isinstance(result, tuple):
+        return result[0], result[1], result[2] or hint
 
     git_err = _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint)
     if git_err is not None:
@@ -399,9 +399,9 @@ Examples:
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
-    valid, v_out, v_err = validate_iter_id(iter_id, cmd_name, output_json, pretty)
-    if not valid:
-        return (1, v_out, v_err or hint)
+    result = validate_iter_id(iter_id, cmd_name, output_json, pretty)
+    if isinstance(result, tuple):
+        return result[0], result[1], result[2] or hint
 
     delete_branch = kwargs.get("delete_branch", False) is True
 
