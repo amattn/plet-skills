@@ -351,9 +351,10 @@ Examples:
     if vkf_err:
         return vkf_err
 
-    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs, allow_dry_run=True)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields, dry_run = result
 
     # Preconditions
     if not os.path.isdir(project_dir):
@@ -608,9 +609,10 @@ Examples:
     if err:
         return err
 
-    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields, _ = result
 
     if not os.path.isdir(project_dir):
         err = f"Error: directory does not exist: {project_dir}\n"

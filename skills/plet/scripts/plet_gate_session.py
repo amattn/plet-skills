@@ -224,9 +224,10 @@ Examples:
     if err:
         return err
 
-    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", hint)
+    result = extract_output_flags(kwargs)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields, _dry_run = result
 
     session_type, reason, artifacts = detect_session_type(plet_dir)
 
@@ -459,9 +460,10 @@ Examples:
     if err:
         return err
 
-    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", hint)
+    result = extract_output_flags(kwargs)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields, _dry_run = result
 
     valid, err_msg = validate_plet_dir(plet_dir)
     if not valid:
@@ -802,9 +804,10 @@ Examples:
     err = require_kwargs(kwargs, ["session_type"], help_text)
     if err:
         return err
-    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields, _dry_run = result
 
     session_type_raw = kwargs["session_type"]
     result = validate_enum(session_type_raw, VALID_SESSION_TYPES, "--session-type")
@@ -879,9 +882,10 @@ def cmd_postflight(args):
     if isinstance(result, tuple):
         return (1, "", result[2] or help_hint("postflight"))
 
-    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields, _ = result
 
     checks = run_preflight_checks(plet_dir, session_type)
     _append_transient_lifecycle_check(checks, plet_dir)

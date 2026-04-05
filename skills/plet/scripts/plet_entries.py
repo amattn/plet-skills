@@ -231,9 +231,10 @@ def _parse_entry_args(args, help_text, cmd_name, known_flags, required):
     except ValueError as e:
         return None, f"{e}\n{hint}"
 
-    output_json, pretty, fields, dry_run, ok, flag_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return None, f"{flag_err}\n{hint}"
+    result = extract_output_flags(kwargs, allow_dry_run=True)
+    if len(result) == 3:
+        return None, f"{result[2]}\n{hint}"
+    output_json, pretty, fields, dry_run = result
     err = validate_known_flags(kwargs, known_flags, hint)
     if err:
         return None, err[2] or hint
@@ -614,9 +615,10 @@ def _parse_check_args(args, help_text):
     if "dry_run" in kwargs:
         return None, f"Error: --dry-run is not available on the check command (read-only)\n{hint}"
 
-    output_json, pretty, fields, _, ok, flag_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return None, f"{flag_err}\n{hint}"
+    result = extract_output_flags(kwargs, allow_dry_run=True)
+    if len(result) == 3:
+        return None, f"{result[2]}\n{hint}"
+    output_json, pretty, fields, _ = result
     err = validate_known_flags(kwargs, {"iter_id"}, hint)
     if err:
         return None, err[2] or hint

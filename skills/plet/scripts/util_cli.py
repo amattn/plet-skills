@@ -422,33 +422,28 @@ def extract_output_flags(kwargs, allow_dry_run=False):
     Validates flag dependencies (--pretty/--fields require --output json).
     Consumes the flags from kwargs.
 
-    Args:
-        kwargs: mutable dict from parse_kwargs
-        allow_dry_run: if False, --dry-run causes an error
-
-    Returns (output_json, pretty, fields, dry_run, ok, err_msg).
-    ok is False if validation failed, err_msg has the reason.
-    For backward compat, callers unpacking 5 values still work —
-    the 6th (err_msg) is optional.
+    Returns (output_json, pretty, fields, dry_run) on success — 4-tuple.
+    Returns (1, "", error_msg) on error — 3-tuple.
+    Callers: if len(result) == 3: return result
     """
     # Reject --dry-run if not allowed
     dry_run = kwargs.pop("dry_run", None)
     if dry_run is not None and not allow_dry_run:
-        return False, False, None, False, False, "Error: --dry-run is not supported (read-only command)"
+        return (1, "", "Error: --dry-run is not supported (read-only command)")
 
     dry_run = dry_run is True if dry_run is not None else False
 
     output_json = kwargs.pop("output", None) == "json"
     pretty = kwargs.pop("pretty", False)
     if pretty is True and not output_json:
-        return False, False, None, False, False, "Error: --pretty requires --output json"
+        return (1, "", "Error: --pretty requires --output json")
 
     fields_raw = kwargs.pop("fields", None)
     if fields_raw and not output_json:
-        return False, False, None, False, False, "Error: --fields requires --output json"
+        return (1, "", "Error: --fields requires --output json")
     fields = fields_raw.split(",") if fields_raw else None
 
-    return output_json, pretty, fields, dry_run, True, ""
+    return output_json, pretty, fields, dry_run
 
 
 def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
@@ -499,9 +494,10 @@ def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
     if err:
         return err
 
-    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=allow_dry_run)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs, allow_dry_run=allow_dry_run)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields, dry_run = result
 
     err = require_kwargs(kwargs, required, help_text)
     if err:

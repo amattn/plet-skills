@@ -165,9 +165,10 @@ Exit 0 if valid, exit 1 if invalid or error.
     err = require_kwargs(kwargs, ["iter_id"], help_text)
     if err:
         return (1, "", err[2] or "")
-    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields, _ = result
 
     iter_id = kwargs["iter_id"]
     data, path, load_err = _load_state(plet_dir, iter_id, hint)
@@ -404,9 +405,10 @@ Examples:
     if err:
         return (1, "", err[2] or "")
 
-    output_json, pretty, fields_filter, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs, allow_dry_run=True)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
@@ -523,9 +525,10 @@ Examples:
     if err:
         return (1, "", err[2] or "")
 
-    output_json, pretty, fields_filter, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs, allow_dry_run=True)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase_activity = kwargs["phase_activity"]
@@ -893,9 +896,10 @@ Examples:
     if err:
         return (1, "", err[2] or "")
 
-    output_json, pretty, fields_filter, _, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
+    result = extract_output_flags(kwargs)
+    if len(result) == 3:
+        return result
+    output_json, pretty, fields_filter, _ = result
 
     iter_id = kwargs["iter_id"]
     agent_id = kwargs["agent_id"]

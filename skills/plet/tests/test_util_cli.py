@@ -574,52 +574,55 @@ def test_get_plet_dir_flag_first():
 def test_extract_output_flags_json():
     print("\n## extract_output_flags — json mode")
     kwargs = {"output": "json", "pretty": True, "fields": "a,b"}
-    output_json, pretty, fields, dry_run, ok, _flags_err = util_cli.extract_output_flags(kwargs)
+    result = util_cli.extract_output_flags(kwargs)
+    check("success (4-tuple)", len(result) == 4)
+    output_json, pretty, fields, dry_run = result
     check("output_json True", output_json is True)
     check("pretty True", pretty is True)
     check("fields parsed", fields == ["a", "b"])
     check("dry_run False", dry_run is False)
-    check("ok True", ok is True)
     check("kwargs consumed", "output" not in kwargs and "pretty" not in kwargs and "fields" not in kwargs)
 
 
 def test_extract_output_flags_text():
     print("\n## extract_output_flags — text mode (no flags)")
     kwargs = {}
-    output_json, pretty, fields, dry_run, ok, _flags_err = util_cli.extract_output_flags(kwargs)
+    result = util_cli.extract_output_flags(kwargs)
+    check("success (4-tuple)", len(result) == 4)
+    output_json, pretty, fields, dry_run = result
     check("output_json False", output_json is False)
     check("pretty False", pretty is False)
     check("fields None", fields is None)
-    check("ok True", ok is True)
 
 
 def test_extract_output_flags_pretty_without_json():
     print("\n## extract_output_flags — --pretty without --output json")
     kwargs = {"pretty": True}
-    _, _, _, _, ok, _flags_err = util_cli.extract_output_flags(kwargs)
-    check("ok False", ok is False)
+    result = util_cli.extract_output_flags(kwargs)
+    check("error (3-tuple)", len(result) == 3)
 
 
 def test_extract_output_flags_fields_without_json():
     print("\n## extract_output_flags — --fields without --output json")
     kwargs = {"fields": "a,b"}
-    _, _, _, _, ok, _flags_err = util_cli.extract_output_flags(kwargs)
-    check("ok False", ok is False)
+    result = util_cli.extract_output_flags(kwargs)
+    check("error (3-tuple)", len(result) == 3)
 
 
 def test_extract_output_flags_dry_run():
     print("\n## extract_output_flags — --dry-run allowed")
     kwargs = {"dry_run": True}
-    _, _, _, dry_run, ok, _flags_err = util_cli.extract_output_flags(kwargs, allow_dry_run=True)
+    result = util_cli.extract_output_flags(kwargs, allow_dry_run=True)
+    check("success (4-tuple)", len(result) == 4)
+    _, _, _, dry_run = result
     check("dry_run True", dry_run is True)
-    check("ok True", ok is True)
 
 
 def test_extract_output_flags_dry_run_rejected():
     print("\n## extract_output_flags — --dry-run rejected (read-only)")
     kwargs = {"dry_run": True}
-    _, _, _, _, ok, _flags_err = util_cli.extract_output_flags(kwargs, allow_dry_run=False)
-    check("ok False", ok is False)
+    result = util_cli.extract_output_flags(kwargs, allow_dry_run=False)
+    check("error (3-tuple)", len(result) == 3)
 
 
 # emit_json / emit_json_error — removed (dead code, PLAN_CLN_1)
