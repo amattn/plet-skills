@@ -12,6 +12,7 @@ Commands:
     run     Execute the main implement→verify loop
 """
 
+import concurrent.futures
 import json
 import os
 import subprocess
@@ -428,6 +429,7 @@ def _parse_run_args(args):
 
     output_ndjson = kwargs.get("output") == "ndjson"
     allow_stale = "allow_stale" in kwargs
+    sequential = "sequential" in kwargs
     max_iterations = None
     if "max_iterations" in kwargs:
         try:
@@ -439,7 +441,7 @@ def _parse_run_args(args):
             print(_help_hint("run"), file=sys.stderr)
             return None
 
-    return plet_dir, output_ndjson, allow_stale, max_iterations
+    return plet_dir, output_ndjson, allow_stale, max_iterations, sequential
 
 
 def _check_nothing_to_do(eligible_ids, counts, stuck, output_ndjson):
@@ -605,80 +607,170 @@ def _finalize_iteration(spawn_result, global_plet_dir, output_ndjson, completed_
     return completed_this_run, was_blocked
 
 
-def _process_single_iteration(
-    iter_id,
+def _execute_round(
+    round_num,
     global_plet_dir,
     output_ndjson,
     completed_this_run,
     counts,
+    stuck,
+    failed_this_round,
     session_number,
     branch,
     max_iterations,
-    failed_this_round,
+    sequential,
 ):
-    """Process one iteration through spawn+finalize (serial wrapper).
+    """Execute one round: promote, check eligible, spawn, finalize.
 
-    Includes breakpoint checks and max-iterations — these move to the main
-    loop in PAR_6 when parallel execution is wired up.
-
-    Returns int (early exit code) or (completed, was_blocked).
+    Returns (completed_this_run, early_exit, counts, stuck) on success,
+    None if nothing to do (caller should break).
     """
-    # Breakpoint before
-    bp_data, _, _ = _run_script_json(
-        "plet_schedule.py", ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "before"]
-    )
-    if bp_data and bp_data.get("result") == "hit":
-        _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "before"}, output_ndjson)
-        result = _make_result(
-            "breakpoint_before",
-            counts,
-            session_number=session_number,
-            branch=branch,
-            completed=completed_this_run,
-            pause_context={"iterationId": iter_id, "phase": None, "error": None},
-        )
-        _emit_event(result, output_ndjson)
-        return 0
+    _promote_eligible(global_plet_dir, output_ndjson)
 
-    # Spawn (implement + verify)
-    spawn_result = _spawn_iteration(iter_id, global_plet_dir, output_ndjson, completed_this_run)
+    eligible_data, _, rc = _run_script_json("plet_schedule.py", ["eligible", global_plet_dir])
+    if rc != 0 or eligible_data is None:
+        return None
+    eligible_ids = eligible_data.get("eligible", [])
+    counts = eligible_data.get("counts", {})
+    stuck = eligible_data.get("stuckIterations", [])
 
-    # Finalize (verdict + merge-squash + cleanup)
-    completed_this_run, was_blocked = _finalize_iteration(
-        spawn_result, global_plet_dir, output_ndjson, completed_this_run, counts
+    _emit_event(
+        {"type": "orchestrator_eligible_round", "eligible": eligible_ids, "stuckIterations": stuck, "counts": counts},
+        output_ndjson,
     )
 
-    # Breakpoint after
-    bp_data, _, _ = _run_script_json(
-        "plet_schedule.py", ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "after"]
+    in_progress = counts.get("implementing", 0) + counts.get("verifying", 0)
+    if not eligible_ids and in_progress == 0:
+        return None
+    if not eligible_ids:
+        return None
+
+    actionable = [i for i in eligible_ids if i not in failed_this_round]
+    if not actionable:
+        return None
+
+    # Check breakpoints before spawning
+    spawn_list = []
+    for iter_id in actionable:
+        bp_data, _, _ = _run_script_json(
+            "plet_schedule.py",
+            ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "before"],
+        )
+        if bp_data and bp_data.get("result") == "hit":
+            _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "before"}, output_ndjson)
+            _emit_event(
+                _make_result(
+                    "breakpoint_before",
+                    counts,
+                    session_number=session_number,
+                    branch=branch,
+                    completed=completed_this_run,
+                    pause_context={"iterationId": iter_id, "phase": None, "error": None},
+                ),
+                output_ndjson,
+            )
+            return completed_this_run, True, counts, stuck
+        spawn_list.append(iter_id)
+
+    if not spawn_list:
+        return None
+
+    # Limit spawn count to max-iterations budget
+    if max_iterations:
+        budget = max_iterations - completed_this_run
+        if budget > 0:
+            spawn_list = spawn_list[:budget]
+        else:
+            return None
+
+    # Spawn iterations (parallel or sequential)
+    pool_size = 1 if sequential else len(spawn_list)
+    _emit_event(
+        {"type": "round_start", "round": round_num, "iterations": spawn_list, "parallel": pool_size > 1},
+        output_ndjson,
     )
-    if bp_data and bp_data.get("result") == "hit":
-        _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "after"}, output_ndjson)
-        result = _make_result(
-            "breakpoint_after",
-            counts,
-            session_number=session_number,
-            branch=branch,
-            completed=completed_this_run,
-            pause_context={"iterationId": iter_id, "phase": None, "error": None},
-        )
-        _emit_event(result, output_ndjson)
-        return 0
 
-    # Max iterations check
-    if max_iterations and completed_this_run >= max_iterations:
-        result = _make_result(
-            "max_iterations_reached",
-            counts,
-            session_number=session_number,
-            branch=branch,
-            completed=completed_this_run,
-        )
-        _emit_event(result, output_ndjson)
-        _emit_text(f"Paused: max iterations reached ({completed_this_run}/{max_iterations})", output_ndjson)
-        return 0
+    spawn_results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as executor:
+        futures = {
+            executor.submit(_spawn_iteration, iid, global_plet_dir, output_ndjson, completed_this_run): iid
+            for iid in spawn_list
+        }
+        for future in concurrent.futures.as_completed(futures):
+            spawn_results.append(future.result())
 
-    return completed_this_run, was_blocked
+    # Finalize sequentially in sorted order
+    spawn_results.sort(key=lambda r: r["iter_id"])
+    completed_this_run, early_exit = _finalize_round(
+        spawn_results,
+        global_plet_dir,
+        output_ndjson,
+        completed_this_run,
+        counts,
+        failed_this_round,
+        session_number,
+        branch,
+        max_iterations,
+    )
+    return completed_this_run, early_exit, counts, stuck
+
+
+def _finalize_round(
+    spawn_results,
+    global_plet_dir,
+    output_ndjson,
+    completed_this_run,
+    counts,
+    failed_this_round,
+    session_number,
+    branch,
+    max_iterations,
+):
+    """Finalize all iterations in a round. Returns (completed_this_run, early_exit)."""
+    for result in spawn_results:
+        iter_id = result["iter_id"]
+        completed_this_run, was_blocked = _finalize_iteration(
+            result, global_plet_dir, output_ndjson, completed_this_run, counts
+        )
+        if was_blocked:
+            failed_this_round.add(iter_id)
+
+        # Breakpoint after
+        bp_data, _, _ = _run_script_json(
+            "plet_schedule.py",
+            ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "after"],
+        )
+        if bp_data and bp_data.get("result") == "hit":
+            _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "after"}, output_ndjson)
+            _emit_event(
+                _make_result(
+                    "breakpoint_after",
+                    counts,
+                    session_number=session_number,
+                    branch=branch,
+                    completed=completed_this_run,
+                    pause_context={"iterationId": iter_id, "phase": None, "error": None},
+                ),
+                output_ndjson,
+            )
+            return completed_this_run, True
+
+        # Max iterations check
+        if max_iterations and completed_this_run >= max_iterations:
+            _emit_event(
+                _make_result(
+                    "max_iterations_reached",
+                    counts,
+                    session_number=session_number,
+                    branch=branch,
+                    completed=completed_this_run,
+                ),
+                output_ndjson,
+            )
+            _emit_text(f"Paused: max iterations reached ({completed_this_run}/{max_iterations})", output_ndjson)
+            return completed_this_run, True
+
+    return completed_this_run, False
 
 
 def cmd_run(args):
@@ -709,7 +801,7 @@ def cmd_run(args):
         return 0
     if parsed is None:
         return 1
-    plet_dir, output_ndjson, allow_stale, max_iterations = parsed
+    plet_dir, output_ndjson, allow_stale, max_iterations, sequential = parsed
 
     # -------------------------------------------------------------------
     # Phase 0: Load state and pre-check
@@ -761,59 +853,25 @@ def cmd_run(args):
     max_rounds = 100  # safety limit
 
     for _round in range(max_rounds):
-        # Promote ineligible → queued where deps are satisfied
-        _promote_eligible(global_plet_dir, output_ndjson)
-
-        # Re-evaluate eligible
-        eligible_data, _, rc = _run_script_json("plet_schedule.py", ["eligible", global_plet_dir])
-        if rc != 0 or eligible_data is None:
-            break
-        eligible_ids = eligible_data.get("eligible", [])
-        counts = eligible_data.get("counts", {})
-        stuck = eligible_data.get("stuckIterations", [])
-
-        _emit_event(
-            {
-                "type": "orchestrator_eligible_round",
-                "eligible": eligible_ids,
-                "stuckIterations": stuck,
-                "counts": counts,
-            },
+        result = _execute_round(
+            _round,
+            global_plet_dir,
             output_ndjson,
+            completed_this_run,
+            counts,
+            stuck,
+            failed_this_round,
+            session_number,
+            branch,
+            max_iterations,
+            sequential,
         )
-
-        in_progress = counts.get("implementing", 0) + counts.get("verifying", 0)
-        if not eligible_ids and in_progress == 0:
-            break
-
-        if not eligible_ids:
-            # Nothing new to start, but something is in progress
-            # (shouldn't happen in this sequential model — break for now)
-            break
-
-        # Filter out iterations that already failed this round (prevent infinite loop)
-        actionable = [i for i in eligible_ids if i not in failed_this_round]
-        if not actionable:
-            break  # all eligible iterations failed — exit loop
-
-        # Process iterations (sequential for now, parallel is future)
-        for iter_id in actionable:
-            rc = _process_single_iteration(
-                iter_id,
-                global_plet_dir,
-                output_ndjson,
-                completed_this_run,
-                counts,
-                session_number,
-                branch,
-                max_iterations,
-                failed_this_round,
-            )
-            if isinstance(rc, int):
-                return rc  # breakpoint or max_iterations — early exit
-            completed_this_run, was_blocked = rc
-            if was_blocked:
-                failed_this_round.add(iter_id)
+        if result is None:
+            break  # nothing to do or error
+        completed_this_run, early_exit, counts, stuck = result
+        if early_exit:
+            # Breakpoint or max-iterations — session stays open for resume
+            return 0
 
     # -------------------------------------------------------------------
     # Phase 3: Session end

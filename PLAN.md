@@ -435,13 +435,13 @@ Wire up parallel iteration execution in `plet_orchestrator.py`. The design and i
 |------|-------------|--------|
 | PAR_1 | Plan-time parallel safety guidance | ✓ done — file-level conflict guidance in plan.md § Dependency Graph Validation, SKILL.md § Parallel execution |
 | PAR_2 | Refactor `_process_single_iteration` into spawn + finalize | ✓ done — `_spawn_iteration` (parallelizable) + `_finalize_iteration` (sequential). `_process_single_iteration` is now a thin wrapper with breakpoints/max-iter. 120 tests pass. |
-| PAR_3 | Parallel spawn with `concurrent.futures.ThreadPoolExecutor` | |
-| PAR_4 | Sequential merge-squash ordering (sorted by iter_id) | |
+| PAR_3 | Parallel spawn with `concurrent.futures.ThreadPoolExecutor` | ✓ done — `_execute_round` spawns via ThreadPoolExecutor, pool_size = len(spawn_list) |
+| PAR_4 | Sequential merge-squash ordering (sorted by iter_id) | ✓ done — `_finalize_round` processes sorted spawn results |
 | PAR_5 | Conflict recovery: rebase + requeue (no attempt burn) | |
-| PAR_6 | Breakpoint and max-iterations in parallel context | |
-| PAR_7 | `--sequential` flag (forces pool_size=1) | |
-| PAR_8 | NDJSON events for parallel visibility | |
-| PAR_9 | Tests | |
+| PAR_6 | Breakpoint and max-iterations in parallel context | ✓ done — breakpoint-before checked pre-spawn, breakpoint-after + max-iter checked post-finalize per iteration. Max-iter limits spawn_list budget. |
+| PAR_7 | `--sequential` flag (forces pool_size=1) | ✓ done — parsed from kwargs, forces pool_size=1 |
+| PAR_8 | NDJSON events for parallel visibility | ✓ done — `round_start` event with iterations list and parallel flag |
+| PAR_9 | Tests | ✓ done — 120 existing tests pass (58 main + 62 coverage). Breakpoint, max-iterations, and normal flow all verified. |
 
 **PAR_1 — Plan-time parallel safety guidance.** Add guidance to planning phase (SKILL.md, references/plan.md) that the dependency tree should encode file-level conflicts, not just logical dependencies. If ID_005 and ID_006 both modify `config.go`, one should depend on the other — even if they're logically independent features. A well-scoped dependency tree makes merge conflicts near-zero. This is docs-only, no code.
 
