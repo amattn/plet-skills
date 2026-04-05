@@ -739,6 +739,59 @@ def test_parse_run_args_no_sequential():
 
 
 # ---------------------------------------------------------------------------
+# Injectable script runner (COV_15)
+# ---------------------------------------------------------------------------
+
+
+def test_injectable_runner_exists():
+    """_run_script and _run_script_json are overridable module attributes."""
+    print("\n## Injectable runner — exists")
+    import plet_orchestrator
+
+    check("_run_script is callable", callable(plet_orchestrator._run_script))
+    check("_run_script_json is callable", callable(plet_orchestrator._run_script_json))
+    check("_run_script_subprocess exists", callable(plet_orchestrator._run_script_subprocess))
+    check("_run_script_json_subprocess exists", callable(plet_orchestrator._run_script_json_subprocess))
+
+
+def test_injectable_runner_override():
+    """Override _run_script and verify it's used."""
+    print("\n## Injectable runner — override")
+    import plet_orchestrator
+
+    calls = []
+
+    def mock_runner(script_name, args, cwd=None):
+        calls.append((script_name, args))
+        if "eligible" in args:
+            return json.dumps({"eligible": [], "counts": {"queued": 0, "complete": 1}, "stuckIterations": []}), "", 0
+        return "", "", 0
+
+    def mock_json_runner(script_name, args, cwd=None):
+        stdout, stderr, rc = mock_runner(script_name, args, cwd)
+        if rc != 0:
+            return None, stderr, rc
+        return json.loads(stdout) if stdout else None, stderr, rc
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    try:
+        old_run = plet_orchestrator._run_script
+        old_json = plet_orchestrator._run_script_json
+        plet_orchestrator._run_script = mock_runner
+        plet_orchestrator._run_script_json = mock_json_runner
+        try:
+            plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), None, 0)
+            check("mock was called", len(calls) > 0, f"calls: {len(calls)}")
+            script_names = [c[0] for c in calls]
+            check("called schedule", any("schedule" in s for s in script_names), f"scripts: {script_names}")
+        finally:
+            plet_orchestrator._run_script = old_run
+            plet_orchestrator._run_script_json = old_json
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -785,6 +838,8 @@ def main():
     test_finalize_iteration_error_with_worktree()
     test_parse_run_args_sequential()
     test_parse_run_args_no_sequential()
+    test_injectable_runner_exists()
+    test_injectable_runner_override()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0

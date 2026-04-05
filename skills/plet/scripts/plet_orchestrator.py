@@ -45,7 +45,7 @@ def _help_hint(command):
     return f"Run: plet_orchestrator.py {command} --help"
 
 
-def _run_script(script_name, args, cwd=None):
+def _run_script_subprocess(script_name, args, cwd=None):
     """Run a plet script via subprocess, return (stdout, stderr, exit_code)."""
     script_path = os.path.join(SCRIPTS_DIR, script_name)
     result = subprocess.run(
@@ -57,8 +57,8 @@ def _run_script(script_name, args, cwd=None):
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
-def _run_script_json(script_name, args, cwd=None):
-    """Run a plet script with --output json, return parsed dict or None."""
+def _run_script_json_subprocess(script_name, args, cwd=None):
+    """Run a plet script with --output json via subprocess, return parsed dict or None."""
     stdout, stderr, rc = _run_script(script_name, args + ["--output", "json"], cwd=cwd)
     if rc != 0:
         return None, stderr, rc
@@ -66,6 +66,11 @@ def _run_script_json(script_name, args, cwd=None):
         return json.loads(stdout), stderr, rc
     except json.JSONDecodeError:
         return None, "Failed to parse JSON: " + stdout[:200], rc
+
+
+# Injectable script runners — override for testing
+_run_script = _run_script_subprocess
+_run_script_json = _run_script_json_subprocess
 
 
 def _update_lifecycle(global_plet_dir, iter_id, lifecycle):
