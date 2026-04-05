@@ -23,6 +23,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `CASE_STUDY_LOGA_R06.md` | LOGA (logalyzer) | Go | 13/13 | First fully successful scripted run; zero human intervention; validates v0.4.x architecture |
 | `CASE_STUDY_LOGA_R07.md` | LOGA (logalyzer) | Go | 13/13 | First post-PLAN_HLP run; --help down 35%; plet_phase.py 100% adoption; gaps collapsed 89% |
 | `CASE_STUDY_LOGA_R08.md` | LOGA (logalyzer) | Go | 13/13 | Zero --help lookups; 100% verify first-pass; 38% faster than R06 (1h53m vs 3h04m) |
+| `CASE_STUDY_LOGA_R09.md` | LOGA (logalyzer) | Go | 5/13 | First parallel run (v0.5.0); merge-squash dirty-tree bug blocked 2 iters; shebang fix works |
 
 ## Stable Labels
 
