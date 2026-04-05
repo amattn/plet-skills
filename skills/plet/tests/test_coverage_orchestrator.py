@@ -792,6 +792,345 @@ def test_injectable_runner_override():
 
 
 # ---------------------------------------------------------------------------
+# Mock-runner tests for orchestrator decision logic (COV_15 payoff)
+# ---------------------------------------------------------------------------
+
+
+def _install_mock_runner(plet_orchestrator, responses):
+    """Install a mock runner that returns canned responses based on script+command.
+
+    responses: dict of (script_name, command) -> (stdout, stderr, rc) or json_dict
+    Lifecycle updates pass through to real subprocess so state.json is modified.
+    """
+    old_run = plet_orchestrator._run_script
+    old_json = plet_orchestrator._run_script_json
+
+    def mock_run(script_name, args, cwd=None):
+        cmd = args[0] if args else ""
+        # Let lifecycle updates through to real scripts
+        if script_name == "plet_global_state.py" and cmd == "update-lifecycle":
+            return plet_orchestrator._run_script_subprocess(script_name, args, cwd)
+        key = (script_name, cmd)
+        if key in responses:
+            val = responses[key]
+            if isinstance(val, tuple):
+                return val
+            return json.dumps(val), "", 0
+        # Default: success with empty output
+        return "", "", 0
+
+    def mock_json(script_name, args, cwd=None):
+        stdout, stderr, rc = mock_run(script_name, args, cwd)
+        if rc != 0:
+            return None, stderr, rc
+        try:
+            return json.loads(stdout) if stdout else None, stderr, rc
+        except (json.JSONDecodeError, ValueError):
+            return None, stderr, rc
+
+    plet_orchestrator._run_script = mock_run
+    plet_orchestrator._run_script_json = mock_json
+    return old_run, old_json
+
+
+def _restore_runner(plet_orchestrator, old_run, old_json):
+    plet_orchestrator._run_script = old_run
+    plet_orchestrator._run_script_json = old_json
+
+
+def test_handle_passed_verdict_with_mock():
+    """Merge-squash succeeds via mock — iteration completes."""
+    print("\n## Mock runner — passed verdict (success)")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            responses = {
+                ("plet_git_ops.py", "merge-squash"): ("OK — merged", "", 0),
+            }
+            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                check("completed = 1", completed == 1)
+                check("not blocked", blocked is False)
+                merged = [e for e in sink.events if e.get("type") == "iteration_merged"]
+                check("merged event", len(merged) == 1)
+            finally:
+                _restore_runner(plet_orchestrator, old_run, old_json)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_handle_passed_verdict_conflict_requeue():
+    """Merge-squash conflicts → rebase+requeue via mock."""
+    print("\n## Mock runner — passed verdict (conflict requeue)")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            responses = {
+                ("plet_git_ops.py", "merge-squash"): ("", "Error: merge --squash has conflicts", 1),
+                ("plet_git_iteration.py", "branch-name"): {
+                    "branchName": "plet/TEST/loop1/ID_001",
+                    "type": "iteration",
+                },
+            }
+            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                check("completed = 0 (not merged)", completed == 0)
+                check("not blocked (requeued)", blocked is False)
+                conflict_events = [e for e in sink.events if e.get("type") == "merge_conflict"]
+                check("conflict event", len(conflict_events) >= 1)
+                gs = load_json(state_json_path(plet_dir))
+                check("lifecycle queued", gs["lifecycles"]["ID_001"] == "queued")
+            finally:
+                _restore_runner(plet_orchestrator, old_run, old_json)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_handle_passed_verdict_non_conflict_error():
+    """Merge-squash fails (non-conflict) → blocked."""
+    print("\n## Mock runner — passed verdict (non-conflict error)")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            responses = {
+                ("plet_git_ops.py", "merge-squash"): ("", "Error: git command failed: something", 1),
+            }
+            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                check("completed = 0", completed == 0)
+                check("blocked", blocked is True)
+                gs = load_json(state_json_path(plet_dir))
+                check("lifecycle blocked", gs["lifecycles"]["ID_001"] == "blocked")
+            finally:
+                _restore_runner(plet_orchestrator, old_run, old_json)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_spawn_iteration_with_mock():
+    """_spawn_iteration with mock: worktree create + implement + verify."""
+    print("\n## Mock runner — spawn iteration (success)")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    try:
+        responses = {
+            ("plet_git_iteration.py", "worktree-create"): {
+                "status": "ok",
+                "worktreePath": os.path.join(d, ".plet/worktrees/TEST/ID_001"),
+                "branchName": "plet/TEST/loop1/ID_001",
+            },
+            ("plet_iter_state.py", "start-phase"): ("OK", "", 0),
+            ("plet_invoke.py", "run"): ("OK", "", 0),
+        }
+        old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+        try:
+            # Need to create the worktree dir and state file for iter_state reads
+            wt_dir = os.path.join(d, ".plet/worktrees/TEST/ID_001")
+            wt_plet = os.path.join(wt_dir, "plet")
+            os.makedirs(os.path.join(wt_plet, "state"), exist_ok=True)
+            # Copy iter state with implementVerdict set
+            ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
+            ist["implementVerdict"] = "completed"
+            ist["verifyVerdict"] = "passed"
+            with open(os.path.join(wt_plet, "state", "ID_001.json"), "w") as f:
+                json.dump(ist, f)
+
+            sink = CaptureSink()
+            result = plet_orchestrator._spawn_iteration("ID_001", plet_dir, sink, 0)
+            check("status ok", result["status"] == "ok", f"got: {result.get('status')}")
+            check("verdict passed", result["verdict"] == "passed", f"got: {result.get('verdict')}")
+        finally:
+            _restore_runner(plet_orchestrator, old_run, old_json)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_spawn_iteration_worktree_fail():
+    """_spawn_iteration when worktree creation fails."""
+    print("\n## Mock runner — spawn iteration (worktree fail)")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    try:
+        responses = {
+            ("plet_git_iteration.py", "worktree-create"): ("", "Error: git failed", 1),
+        }
+        old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+        try:
+            sink = CaptureSink()
+            result = plet_orchestrator._spawn_iteration("ID_001", plet_dir, sink, 0)
+            check("status error", result["status"] == "error")
+            check("worktree_created false", result["worktree_created"] is False)
+        finally:
+            _restore_runner(plet_orchestrator, old_run, old_json)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_spawn_iteration_no_verdict():
+    """_spawn_iteration when implement doesn't set verdict."""
+    print("\n## Mock runner — spawn iteration (no verdict)")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    try:
+        responses = {
+            ("plet_git_iteration.py", "worktree-create"): {
+                "status": "ok",
+                "worktreePath": os.path.join(d, ".plet/worktrees/TEST/ID_001"),
+                "branchName": "plet/TEST/loop1/ID_001",
+            },
+            ("plet_iter_state.py", "start-phase"): ("OK", "", 0),
+            ("plet_invoke.py", "run"): ("OK", "", 0),
+        }
+        old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+        try:
+            # Create worktree dir with state but NO implementVerdict
+            wt_dir = os.path.join(d, ".plet/worktrees/TEST/ID_001")
+            wt_plet = os.path.join(wt_dir, "plet")
+            os.makedirs(os.path.join(wt_plet, "state"), exist_ok=True)
+            ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
+            with open(os.path.join(wt_plet, "state", "ID_001.json"), "w") as f:
+                json.dump(ist, f)
+
+            sink = CaptureSink()
+            result = plet_orchestrator._spawn_iteration("ID_001", plet_dir, sink, 0)
+            check("status error", result["status"] == "error")
+            check("error mentions verdict", "verdict" in result.get("error", ""))
+        finally:
+            _restore_runner(plet_orchestrator, old_run, old_json)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_streaming_loop_with_mock():
+    """_run_streaming_loop with mock: single iteration, passes."""
+    print("\n## Mock runner — streaming loop")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    try:
+        wt_dir = os.path.join(d, ".plet/worktrees/TEST/ID_001")
+        wt_plet = os.path.join(wt_dir, "plet")
+        os.makedirs(os.path.join(wt_plet, "state"), exist_ok=True)
+        ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
+        ist["implementVerdict"] = "completed"
+        ist["verifyVerdict"] = "passed"
+        with open(os.path.join(wt_plet, "state", "ID_001.json"), "w") as f:
+            json.dump(ist, f)
+
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            responses = {
+                ("plet_schedule.py", "eligible"): {
+                    "eligible": ["ID_001"],
+                    "counts": {"queued": 1, "complete": 0, "blocked": 0, "implementing": 0, "verifying": 0},
+                    "stuckIterations": [],
+                },
+                ("plet_git_iteration.py", "worktree-create"): {
+                    "status": "ok",
+                    "worktreePath": wt_dir,
+                    "branchName": "plet/TEST/loop1/ID_001",
+                },
+                ("plet_iter_state.py", "start-phase"): ("OK", "", 0),
+                ("plet_invoke.py", "run"): ("OK", "", 0),
+                ("plet_git_ops.py", "merge-squash"): ("OK — merged", "", 0),
+                ("plet_git_iteration.py", "worktree-remove"): ("OK", "", 0),
+                ("plet_schedule.py", "check-breakpoints"): {"result": "miss"},
+            }
+
+            # After first eligible returns ID_001, subsequent calls should return empty
+            call_count = {"eligible": 0}
+            real_responses = dict(responses)
+
+            def smart_run(script_name, args, cwd=None):
+                cmd = args[0] if args else ""
+                if script_name == "plet_schedule.py" and cmd == "eligible":
+                    call_count["eligible"] += 1
+                    if call_count["eligible"] > 1:
+                        return (
+                            json.dumps(
+                                {
+                                    "eligible": [],
+                                    "counts": {
+                                        "queued": 0,
+                                        "complete": 1,
+                                        "blocked": 0,
+                                        "implementing": 0,
+                                        "verifying": 0,
+                                    },
+                                    "stuckIterations": [],
+                                }
+                            ),
+                            "",
+                            0,
+                        )
+                key = (script_name, cmd)
+                if key in real_responses:
+                    val = real_responses[key]
+                    if isinstance(val, tuple):
+                        return val
+                    return json.dumps(val), "", 0
+                return "", "", 0
+
+            def smart_json(script_name, args, cwd=None):
+                stdout, stderr, rc = smart_run(script_name, args, cwd)
+                if rc != 0:
+                    return None, stderr, rc
+                try:
+                    return json.loads(stdout) if stdout else None, stderr, rc
+                except (json.JSONDecodeError, ValueError):
+                    return None, stderr, rc
+
+            old_run, old_json = plet_orchestrator._run_script, plet_orchestrator._run_script_json
+            plet_orchestrator._run_script = smart_run
+            plet_orchestrator._run_script_json = smart_json
+            try:
+                sink = CaptureSink()
+                counts = {"queued": 1, "complete": 0, "blocked": 0, "implementing": 0, "verifying": 0}
+                completed, reason, final_counts, pause_ctx = plet_orchestrator._run_streaming_loop(
+                    plet_dir, sink, None, True, 1, "ws", counts
+                )
+                check("completed = 1", completed == 1, f"got: {completed}")
+                check("reason all_complete", reason == "all_complete", f"got: {reason}")
+                merged = [e for e in sink.events if e.get("type") == "iteration_merged"]
+                check("merged event", len(merged) == 1, f"got: {len(merged)}")
+            finally:
+                plet_orchestrator._run_script = old_run
+                plet_orchestrator._run_script_json = old_json
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -840,6 +1179,14 @@ def main():
     test_parse_run_args_no_sequential()
     test_injectable_runner_exists()
     test_injectable_runner_override()
+
+    test_handle_passed_verdict_with_mock()
+    test_handle_passed_verdict_conflict_requeue()
+    test_handle_passed_verdict_non_conflict_error()
+    test_spawn_iteration_with_mock()
+    test_spawn_iteration_worktree_fail()
+    test_spawn_iteration_no_verdict()
+    test_streaming_loop_with_mock()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
