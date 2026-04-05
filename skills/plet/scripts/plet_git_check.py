@@ -352,12 +352,12 @@ Examples:
 
     # Load state
     global_state = load_and_validate_global_state(plet_dir)
-    if global_state is None:
-        return (1, "", hint)
+    if isinstance(global_state, tuple):
+        return global_state
 
     iter_state = load_and_validate_iter_state(plet_dir, iter_id)
-    if iter_state is None:
-        return (1, "", hint)
+    if isinstance(iter_state, tuple):
+        return iter_state
 
     # Check git repo
     if not is_git_repo():
@@ -426,8 +426,8 @@ def _check_session_validate_env(plet_dir, sd_path, cmd_name, output_json, pretty
         return None, _check_session_error(cmd_name, err_msg, output_json, pretty, hint)
 
     global_state = load_and_validate_global_state(plet_dir)
-    if global_state is None:
-        return None, (1, "", hint)
+    if isinstance(global_state, tuple):
+        return None, global_state
 
     if not os.path.exists(sd_path):
         msg = f"Error: directory not found: {sd_path}"
@@ -453,7 +453,7 @@ def _load_iter_states(sd_path, plet_dir):
             continue
         iter_id_from_file = os.path.splitext(os.path.basename(jf))[0]
         ist = load_and_validate_iter_state(plet_dir, iter_id_from_file)
-        if ist is None:
+        if isinstance(ist, tuple):
             iter_states.append({"_path": jf, "_valid": False})
         else:
             ist["_path"] = jf

@@ -519,7 +519,9 @@ def _run_implement_phase(iter_id, global_plet_dir, worktree_path, sink, complete
 
     assert worktree_plet_dir != global_plet_dir, "worktree_plet_dir must differ from global_plet_dir"
     iter_state = load_and_validate_iter_state(worktree_plet_dir, iter_id)
-    implement_verdict = iter_state.get("implementVerdict") if iter_state else None
+    if isinstance(iter_state, tuple):
+        return worktree_plet_dir, None
+    implement_verdict = iter_state.get("implementVerdict")
     return worktree_plet_dir, implement_verdict
 
 
@@ -538,7 +540,9 @@ def _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir
 
     assert worktree_plet_dir != global_plet_dir, "worktree_plet_dir must differ from global_plet_dir"
     iter_state = load_and_validate_iter_state(worktree_plet_dir, iter_id)
-    verdict = iter_state.get("verifyVerdict") if iter_state else None
+    if isinstance(iter_state, tuple):
+        return None
+    verdict = iter_state.get("verifyVerdict")
 
     if verdict == "passed" and worktree_path:
         run_git("-C", worktree_path, "add", "-A")

@@ -106,7 +106,7 @@ def scan_iter_states(plet_dir):
         # Extract iter_id from filename (e.g., "ID_001.json" -> "ID_001")
         iter_id = os.path.splitext(basename)[0]
         data = load_and_validate_iter_state(plet_dir, iter_id)
-        if data is None:
+        if isinstance(data, tuple):
             warnings.append(f"corrupt state file: {basename}")
         else:
             states.append(data)
@@ -147,7 +147,7 @@ def detect_session_type(plet_dir):
 
     # Read lifecycles from state.json (SF_28)
     global_state = load_and_validate_global_state(plet_dir)
-    if global_state is None:
+    if isinstance(global_state, tuple):
         return "plan", "invalid state.json", artifacts
 
     lifecycles = global_state.get("lifecycles", {})
@@ -471,8 +471,8 @@ Examples:
             return (1, "", err_msg)
 
     global_state = load_and_validate_global_state(plet_dir)
-    if global_state is None:
-        return (1, "", hint)
+    if isinstance(global_state, tuple):
+        return global_state
 
     sd = state_dir_path(plet_dir)
     if not os.path.isdir(sd):
@@ -687,8 +687,8 @@ def run_preflight_checks(plet_dir, session_type):
     sjp = state_json_path(plet_dir)
     if os.path.isfile(sjp):
         gs = load_and_validate_global_state(plet_dir)
-        status = "pass" if gs is not None else "fail"
-        detail = "plet/state.json valid" if gs is not None else "plet/state.json validation failed"
+        status = "pass" if not isinstance(gs, tuple) else "fail"
+        detail = "plet/state.json valid" if not isinstance(gs, tuple) else "plet/state.json validation failed"
         checks.append({"name": "state-valid", "status": status, "detail": detail})
     else:
         checks.append({"name": "state-valid", "status": "pass", "detail": "no state.json (fresh project)"})

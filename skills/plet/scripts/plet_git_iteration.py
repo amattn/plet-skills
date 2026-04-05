@@ -173,8 +173,8 @@ Examples:
     plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     state = load_and_validate_global_state(plet_dir)
-    if state is None:
-        return (1, "", hint)
+    if isinstance(state, tuple):
+        return state
 
     branch_type = kwargs.get("type", "iteration")
     result = validate_enum(branch_type, VALID_TYPES, "--type")
@@ -281,8 +281,8 @@ Examples:
         return git_err
 
     state = load_and_validate_global_state(plet_dir)
-    if state is None:
-        return (1, "", hint)
+    if isinstance(state, tuple):
+        return state
 
     # Derive paths
     branch = derive_branch_name(state, "iteration", iter_id)
@@ -410,8 +410,8 @@ Examples:
         return git_err
 
     state = load_and_validate_global_state(plet_dir)
-    if state is None:
-        return (1, "", hint)
+    if isinstance(state, tuple):
+        return state
 
     # Derive paths
     branch = derive_branch_name(state, "iteration", iter_id)

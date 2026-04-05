@@ -619,12 +619,12 @@ Examples:
             return (1, "", err)
 
     global_state = load_and_validate_global_state(plet_dir)
-    if global_state is None:
-        return (1, "", hint)
+    if isinstance(global_state, tuple):
+        return global_state
 
     iter_state = load_and_validate_iter_state(plet_dir, iter_id)
-    if iter_state is None:
-        return (1, "", hint)
+    if isinstance(iter_state, tuple):
+        return iter_state
 
     # Shared checks
     checks = []

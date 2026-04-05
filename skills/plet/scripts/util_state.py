@@ -130,22 +130,17 @@ OPTIONAL_DEFAULTS = {
 def load_and_validate_global_state(plet_dir):
     """Load and validate {plet_dir}/state.json.
 
-    Returns the validated dict on success, or None on failure.
-    Prints errors to stderr. Callers check for None and return exit 1.
-
-    Optional fields that are absent are filled with defaults so callers
-    can trust all common fields are present (e.g., loopSessionCount is
-    always an int, never missing).
+    Returns the validated dict on success, (1, "", err) on failure.
+    Callers: if isinstance(state, tuple): return state
     """
     data = load_global_state_json(plet_dir)
     if data is None:
-        return None
+        return (1, "", f"Error: state.json not found or unreadable in {plet_dir}")
 
     errors = validate_global_state(data)
     if errors:
-        for err in errors:
-            print(f"Error: state.json: {err}", file=sys.stderr)
-        return None
+        err_lines = [f"Error: state.json: {e}" for e in errors]
+        return (1, "", "\n".join(err_lines))
 
     # Inject defaults for absent optional fields
     for field, default in OPTIONAL_DEFAULTS.items():
@@ -259,20 +254,17 @@ def validate_iter_state(data):
 def load_and_validate_iter_state(plet_dir, iter_id):
     """Load and validate {plet_dir}/state/{iter_id}.json.
 
-    Returns the validated dict on success, or None on failure.
-    Prints errors to stderr. Callers check for None and return exit 1.
-
-    Optional fields that are absent are filled with defaults.
+    Returns the validated dict on success, (1, "", err) on failure.
+    Callers: if isinstance(state, tuple): return state
     """
     data = load_iter_state_json(plet_dir, iter_id)
     if data is None:
-        return None
+        return (1, "", f"Error: iter state not found for {iter_id} in {plet_dir}")
 
     errors = validate_iter_state(data)
     if errors:
-        for err in errors:
-            print(f"Error: iter state: {err}", file=sys.stderr)
-        return None
+        err_lines = [f"Error: iter state {iter_id}: {e}" for e in errors]
+        return (1, "", "\n".join(err_lines))
 
     # Inject defaults for absent optional fields
     for field, default in ITER_OPTIONAL_DEFAULTS.items():
