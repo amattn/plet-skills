@@ -13,14 +13,14 @@
 | PLAN_FT | Feedback Triage | ✓ COMPLETE |
 | PLAN_PY | Python Tooling | ✓ COMPLETE |
 | PLAN_RW | PRD + ORC + SKILL.md + Reference Files Rewrite | ✓ COMPLETE |
-| PLAN_HLP | Subagent CLI Re-learning | |
-| PLAN_OVH | Plet Infrastructure Overhead | deferred (after HLP) |
-| PLAN_PAR | Parallel Orchestrator | |
-| PLAN_SUB | Subplets | |
-| PLAN_EVL | Eval System + Comparison Runs | |
-| PLAN_RFT | Refactor Loop (orchestrator feature) | |
-| PLAN_COV | Library + CLI Pattern | |
-| PLAN_CLN | Script Cleanup & Consistency | see `specs/PLAN.md` § PLAN_CLN — 11 steps (PLAN_CLN_1-11), dead code, validator patterns, parse_command adoption |
+| PLAN_HLP | Subagent CLI Re-learning | ✓ COMPLETE (validated: zero --help in R08) |
+| PLAN_PAR | Parallel Orchestrator | ✓ COMPLETE |
+| PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
+| PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
+| PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — add refactoring step to plet loop at milestone boundaries |
+| PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
+| PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
+| PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
 | PLAN_EX | Examples | unscheduled |
 
 ---
