@@ -88,6 +88,11 @@ The core of every case study. Analyze all plet runtime artifacts systematically.
 - Completion rate and verify first-pass rate (key metrics)
 - Parallel groups identified
 
+#### Dependency graph & execution order
+- Dependency graph (from state.json dependencyMap)
+- Actual execution order vs expected (dependency-sorted) order
+- Parallel groups: which iterations could have run concurrently?
+
 #### Per-iteration analysis
 - Acceptance criteria count and types
 - Red/green cycle details (failing tests → passing tests)
@@ -122,6 +127,19 @@ Reconstruct the timeline from all available sources. This is not optional — ti
 - `plet/progress.md` — sometimes includes timestamps in entries
 
 **Present as:** A timeline table with iteration, phase, start time, end time, and duration. Flag any gaps > 5 minutes — these indicate stalls, blocking, or orchestrator overhead worth investigating.
+
+#### Git artifacts
+- Audit tags created and naming consistency
+- Branch structure (workstream, iteration branches)
+- Stash inventory (`git stash list`)
+- Merge-squash commit messages
+
+#### Infrastructure overhead analysis
+- What fraction of subagent Bash calls are plet infrastructure vs application code?
+- `--help` lookup count (should decrease as CLI discovery improves)
+- Gap time between iterations (orchestrator spawn/teardown overhead)
+- Per-phase breakdown: how much time in implement vs verify vs orchestrator overhead?
+- Compare against prior runs to track improvement trends
 
 #### Missing or incomplete artifacts
 - Which expected artifacts are absent? (requirements.md, iterations.md, traces, etc.)
@@ -210,6 +228,18 @@ Sources for timing data:
 - [ ] Spec artifact preservation (are requirements.md and iterations.md present?)
 - [ ] Fingerprint integrity (do fingerprints in state.json match spec artifacts?)
 - [ ] State file lifecycle accuracy (do all completed iterations have lifecycle `complete`? Cross-reference against progress.md and orchestrator summary)
+
+### Infrastructure Overhead
+- [ ] Plet infra calls vs application code calls (per phase)
+- [ ] `--help` / `--usage` lookup count
+- [ ] Gap time between iterations (orchestrator overhead)
+- [ ] Phase cost distribution (implement vs verify vs orchestrator)
+- [ ] Compare against prior runs
+
+### Dependency & Execution
+- [ ] Dependency graph matches actual execution order?
+- [ ] Parallel groups identified and validated against dep map?
+- [ ] Any iterations that ran out of dependency order?
 
 ### Process Quality
 - [ ] Red/green discipline followed? (failing test before implementation)
