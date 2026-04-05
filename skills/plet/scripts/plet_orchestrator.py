@@ -607,23 +607,11 @@ def _finalize_iteration(spawn_result, global_plet_dir, output_ndjson, completed_
     return completed_this_run, was_blocked
 
 
-def _execute_round(
-    round_num,
-    global_plet_dir,
-    output_ndjson,
-    completed_this_run,
-    counts,
-    stuck,
-    failed_this_round,
-    session_number,
-    branch,
-    max_iterations,
-    sequential,
-):
-    """Execute one round: promote, check eligible, spawn, finalize.
+def _get_spawnable(global_plet_dir, output_ndjson, failed_ids, max_iterations, completed):
+    """Get iterations ready to spawn. Returns list of iter_ids, or None if nothing to do.
 
-    Returns (completed_this_run, early_exit, counts, stuck) on success,
-    None if nothing to do (caller should break).
+    Promotes ineligible → queued, checks eligible, filters out already-failed,
+    limits to max-iterations budget.
     """
     _promote_eligible(global_plet_dir, output_ndjson)
 
@@ -631,146 +619,125 @@ def _execute_round(
     if rc != 0 or eligible_data is None:
         return None
     eligible_ids = eligible_data.get("eligible", [])
-    counts = eligible_data.get("counts", {})
-    stuck = eligible_data.get("stuckIterations", [])
 
-    _emit_event(
-        {"type": "orchestrator_eligible_round", "eligible": eligible_ids, "stuckIterations": stuck, "counts": counts},
-        output_ndjson,
-    )
-
-    in_progress = counts.get("implementing", 0) + counts.get("verifying", 0)
-    if not eligible_ids and in_progress == 0:
-        return None
-    if not eligible_ids:
-        return None
-
-    actionable = [i for i in eligible_ids if i not in failed_this_round]
+    actionable = [i for i in eligible_ids if i not in failed_ids]
     if not actionable:
         return None
 
-    # Check breakpoints before spawning
-    spawn_list = []
-    for iter_id in actionable:
-        bp_data, _, _ = _run_script_json(
-            "plet_schedule.py",
-            ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "before"],
-        )
-        if bp_data and bp_data.get("result") == "hit":
-            _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "before"}, output_ndjson)
-            _emit_event(
-                _make_result(
-                    "breakpoint_before",
-                    counts,
-                    session_number=session_number,
-                    branch=branch,
-                    completed=completed_this_run,
-                    pause_context={"iterationId": iter_id, "phase": None, "error": None},
-                ),
-                output_ndjson,
-            )
-            return completed_this_run, True, counts, stuck
-        spawn_list.append(iter_id)
-
-    if not spawn_list:
-        return None
-
-    # Limit spawn count to max-iterations budget
+    # Limit to max-iterations budget
     if max_iterations:
-        budget = max_iterations - completed_this_run
-        if budget > 0:
-            spawn_list = spawn_list[:budget]
-        else:
+        budget = max_iterations - completed
+        if budget <= 0:
             return None
+        actionable = actionable[:budget]
 
-    # Spawn iterations (parallel or sequential)
-    pool_size = 1 if sequential else len(spawn_list)
-    _emit_event(
-        {"type": "round_start", "round": round_num, "iterations": spawn_list, "parallel": pool_size > 1},
-        output_ndjson,
+    return actionable
+
+
+def _check_breakpoint_before(iter_id, global_plet_dir, output_ndjson):
+    """Check breakpoint-before for one iteration. Returns True if hit."""
+    bp_data, _, _ = _run_script_json(
+        "plet_schedule.py",
+        ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "before"],
     )
+    if bp_data and bp_data.get("result") == "hit":
+        _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "before"}, output_ndjson)
+        return True
+    return False
 
-    spawn_results = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as executor:
-        futures = {
-            executor.submit(_spawn_iteration, iid, global_plet_dir, output_ndjson, completed_this_run): iid
-            for iid in spawn_list
-        }
-        for future in concurrent.futures.as_completed(futures):
-            spawn_results.append(future.result())
 
-    # Finalize sequentially in sorted order
-    spawn_results.sort(key=lambda r: r["iter_id"])
-    completed_this_run, early_exit = _finalize_round(
-        spawn_results,
-        global_plet_dir,
-        output_ndjson,
-        completed_this_run,
-        counts,
-        failed_this_round,
-        session_number,
-        branch,
-        max_iterations,
+def _check_breakpoint_after(iter_id, global_plet_dir, output_ndjson):
+    """Check breakpoint-after for one iteration. Returns True if hit."""
+    bp_data, _, _ = _run_script_json(
+        "plet_schedule.py",
+        ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "after"],
     )
-    return completed_this_run, early_exit, counts, stuck
+    if bp_data and bp_data.get("result") == "hit":
+        _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "after"}, output_ndjson)
+        return True
+    return False
 
 
-def _finalize_round(
-    spawn_results,
+def _run_streaming_loop(
     global_plet_dir,
     output_ndjson,
-    completed_this_run,
-    counts,
-    failed_this_round,
+    max_iterations,
+    sequential,
     session_number,
     branch,
-    max_iterations,
+    counts,
 ):
-    """Finalize all iterations in a round. Returns (completed_this_run, early_exit)."""
-    for result in spawn_results:
-        iter_id = result["iter_id"]
-        completed_this_run, was_blocked = _finalize_iteration(
-            result, global_plet_dir, output_ndjson, completed_this_run, counts
-        )
-        if was_blocked:
-            failed_this_round.add(iter_id)
+    """Streaming parallel loop: spawn as capacity allows, finalize as each completes.
 
-        # Breakpoint after
-        bp_data, _, _ = _run_script_json(
-            "plet_schedule.py",
-            ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "after"],
-        )
-        if bp_data and bp_data.get("result") == "hit":
-            _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "after"}, output_ndjson)
-            _emit_event(
-                _make_result(
-                    "breakpoint_after",
-                    counts,
-                    session_number=session_number,
-                    branch=branch,
-                    completed=completed_this_run,
-                    pause_context={"iterationId": iter_id, "phase": None, "error": None},
-                ),
-                output_ndjson,
-            )
-            return completed_this_run, True
+    Returns (completed_count, reason, counts, pause_context).
+    """
+    pool_size = 1 if sequential else 8  # cap concurrent iterations
+    completed = 0
+    failed_ids = set()
+    pause = False
+    pause_context = None
+    reason = "all_complete"
 
-        # Max iterations check
-        if max_iterations and completed_this_run >= max_iterations:
-            _emit_event(
-                _make_result(
-                    "max_iterations_reached",
-                    counts,
-                    session_number=session_number,
-                    branch=branch,
-                    completed=completed_this_run,
-                ),
-                output_ndjson,
-            )
-            _emit_text(f"Paused: max iterations reached ({completed_this_run}/{max_iterations})", output_ndjson)
-            return completed_this_run, True
+    with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as executor:
+        active = {}  # future -> iter_id
 
-    return completed_this_run, False
+        while True:
+            # Spawn newly eligible iterations (unless paused)
+            if not pause:
+                spawnable = _get_spawnable(global_plet_dir, output_ndjson, failed_ids, max_iterations, completed)
+                if spawnable:
+                    for iter_id in spawnable:
+                        if iter_id in active.values():
+                            continue  # already running
+                        if _check_breakpoint_before(iter_id, global_plet_dir, output_ndjson):
+                            pause = True
+                            pause_context = {"iterationId": iter_id, "phase": None, "error": None}
+                            reason = "breakpoint_before"
+                            break  # stop spawning, let active finish
+                        future = executor.submit(_spawn_iteration, iter_id, global_plet_dir, output_ndjson, completed)
+                        active[future] = iter_id
+
+            if not active:
+                break  # nothing running, nothing to spawn
+
+            # Wait for any one to complete
+            done_set = concurrent.futures.wait(active, return_when=concurrent.futures.FIRST_COMPLETED)
+            for done in done_set.done:
+                iter_id = active.pop(done)
+                spawn_result = done.result()
+
+                # Finalize immediately (merge-squash)
+                completed, was_blocked = _finalize_iteration(
+                    spawn_result, global_plet_dir, output_ndjson, completed, counts
+                )
+                if was_blocked:
+                    failed_ids.add(iter_id)
+
+                # Check breakpoint-after
+                if not pause and _check_breakpoint_after(iter_id, global_plet_dir, output_ndjson):
+                    pause = True
+                    pause_context = {"iterationId": iter_id, "phase": None, "error": None}
+                    reason = "breakpoint_after"
+
+                # Check max-iterations
+                if not pause and max_iterations and completed >= max_iterations:
+                    pause = True
+                    reason = "max_iterations_reached"
+                    _emit_text(
+                        f"Paused: max iterations reached ({completed}/{max_iterations})",
+                        output_ndjson,
+                    )
+
+    # Determine final reason if not paused
+    if not pause:
+        eligible_data, _, _ = _run_script_json("plet_schedule.py", ["eligible", global_plet_dir])
+        if eligible_data:
+            counts = eligible_data.get("counts", counts)
+        all_done = counts.get("complete", 0) + counts.get("withdrawn", 0)
+        total = sum(counts.get(k, 0) for k in counts if k != "eligible")
+        reason = "all_complete" if all_done == total else "all_blocked_or_complete"
+
+    return completed, reason, counts, pause_context
 
 
 def cmd_run(args):
@@ -845,33 +812,39 @@ def cmd_run(args):
         return err_code
 
     # -------------------------------------------------------------------
-    # Phase 2: Iteration loop
+    # Phase 2: Streaming iteration loop
     # -------------------------------------------------------------------
 
-    completed_this_run = 0
-    failed_this_round = set()  # guard against infinite retry of same iteration
-    max_rounds = 100  # safety limit
+    completed_this_run, reason, counts, pause_context = _run_streaming_loop(
+        global_plet_dir,
+        output_ndjson,
+        max_iterations,
+        sequential,
+        session_number,
+        branch,
+        counts,
+    )
 
-    for _round in range(max_rounds):
-        result = _execute_round(
-            _round,
-            global_plet_dir,
-            output_ndjson,
-            completed_this_run,
-            counts,
-            stuck,
-            failed_this_round,
-            session_number,
-            branch,
-            max_iterations,
-            sequential,
-        )
-        if result is None:
-            break  # nothing to do or error
-        completed_this_run, early_exit, counts, stuck = result
-        if early_exit:
-            # Breakpoint or max-iterations — session stays open for resume
-            return 0
+    # Emit result event
+    stuck_data, _, _ = _run_script_json("plet_schedule.py", ["eligible", global_plet_dir])
+    stuck = stuck_data.get("stuckIterations", []) if stuck_data else []
+    if stuck_data:
+        counts = stuck_data.get("counts", counts)
+
+    result = _make_result(
+        reason,
+        counts,
+        session_number=session_number,
+        branch=branch,
+        completed=completed_this_run,
+        pause_context=pause_context,
+        stuck_iterations=stuck,
+    )
+    _emit_event(result, output_ndjson)
+
+    if reason in ("breakpoint_before", "breakpoint_after", "max_iterations_reached"):
+        # Session stays open for resume
+        return 0
 
     # -------------------------------------------------------------------
     # Phase 3: Session end

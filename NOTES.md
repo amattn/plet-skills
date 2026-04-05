@@ -1886,7 +1886,13 @@ Also cleaned up:
 
 **Decision: spawn + finalize split.** `_process_single_iteration` split into `_spawn_iteration` (worktree + implement + verify — parallelizable, returns result dict) and `_finalize_iteration` (verdict + merge-squash + cleanup — sequential on workstream). Breakpoints and max-iterations stay in the serial wrapper for now, move to the main loop in PAR_6. The split is the prerequisite for ThreadPoolExecutor in PAR_3.
 
-**Design: Round-based execution.** Each round: get eligible → spawn all in parallel → wait for all → merge-squash sequentially (sorted by iter_id) → promote newly eligible → next round. Worktrees are created from the current workstream at round start, so each round's iterations start from the latest merged state. Conflicts only happen between iterations *within the same round*.
+**Design: Round-based → streaming execution (revised 2026-04-04).** Initial implementation used synchronized rounds (spawn all → wait all → finalize all → next round). User pointed out this is suboptimal: if ID_001 finishes before ID_002 and ID_003, its dependent ID_004 should spawn immediately, not wait for the round to complete.
+
+Revised design: **streaming work queue.** ThreadPoolExecutor stays full as long as there's eligible work. As each iteration completes, it's finalized immediately (merge-squash), newly eligible iterations are checked and spawned. No synchronized round boundaries.
+
+**Decision: Breakpoints are gentle pauses (2026-04-04).** A breakpoint (before or after) means "stop spawning new work." Everything already in-flight runs to completion and gets merged. Breakpoint-before is checked at spawn time — if hit, that iteration doesn't spawn AND no further iterations spawn. Breakpoint-after is checked after finalization — if hit, no further iterations spawn. In both cases, all active iterations finish normally.
+
+Example: ID_001, ID_002, ID_003 running. ID_001 finishes, promotes ID_004 and ID_005. ID_005 has breakpoint-before. When checking ID_005, the breakpoint fires — ID_005 doesn't spawn, no further spawns happen. ID_002, ID_003, ID_004 (if already spawned) all run to completion and merge. Then pause.
 
 ### Case study timing analysis
 
