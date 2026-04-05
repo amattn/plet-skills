@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from util_fixture import make_git_repo, make_global_state, make_iter_state, make_spec_artifacts
 from util_io import load_json, state_json_path
+from util_sink import CaptureSink, NdjsonSink, TextSink
 
 passed = 0
 failed = 0
@@ -114,60 +115,7 @@ def test_make_result_no_stuck():
     check("no stuckIterations key", "stuckIterations" not in r)
 
 
-# ---------------------------------------------------------------------------
-# _emit_event / _emit_text
-# ---------------------------------------------------------------------------
-
-
-def test_emit_event_ndjson():
-    import io
-
-    import plet_orchestrator
-
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    plet_orchestrator._emit_event({"type": "test", "data": "hello"}, True)
-    output = sys.stdout.getvalue()
-    sys.stdout = old_stdout
-
-    check("emits line", len(output.strip()) > 0)
-    data = json.loads(output.strip())
-    check("has type", data["type"] == "test")
-    check("has timestamp", "timestamp" in data)
-
-
-def test_emit_event_suppressed():
-    import io
-
-    import plet_orchestrator
-
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    plet_orchestrator._emit_event({"type": "test"}, False)
-    output = sys.stdout.getvalue()
-    sys.stdout = old_stdout
-
-    check("suppressed when not ndjson", output == "")
-
-
-def test_emit_text():
-    import io
-
-    import plet_orchestrator
-
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    plet_orchestrator._emit_text("hello world", False)
-    output = sys.stdout.getvalue()
-    sys.stdout = old_stdout
-    check("emits text", "hello world" in output)
-
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    plet_orchestrator._emit_text("hello world", True)
-    output = sys.stdout.getvalue()
-    sys.stdout = old_stdout
-    check("suppressed in ndjson mode", output == "")
+# _emit_event / _emit_text removed — tested in test_util_sink.py via sink classes
 
 
 # ---------------------------------------------------------------------------
@@ -257,7 +205,7 @@ def test_check_nothing_to_do_has_eligible():
     import plet_orchestrator
 
     counts = {"queued": 2, "complete": 0, "blocked": 0, "implementing": 0, "verifying": 0}
-    r = plet_orchestrator._check_nothing_to_do(["ID_001"], counts, [], False)
+    r = plet_orchestrator._check_nothing_to_do(["ID_001"], counts, [], TextSink())
     check("eligible = None (continue)", r is None)
 
 
@@ -265,7 +213,7 @@ def test_check_nothing_to_do_in_progress():
     import plet_orchestrator
 
     counts = {"queued": 0, "complete": 0, "blocked": 0, "implementing": 1, "verifying": 0}
-    r = plet_orchestrator._check_nothing_to_do([], counts, [], False)
+    r = plet_orchestrator._check_nothing_to_do([], counts, [], TextSink())
     check("in progress = None (continue)", r is None)
 
 
@@ -277,7 +225,7 @@ def test_check_nothing_to_do_all_complete():
     counts = {"queued": 0, "complete": 3, "blocked": 0, "implementing": 0, "verifying": 0, "withdrawn": 0}
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
-    r = plet_orchestrator._check_nothing_to_do([], counts, [], False)
+    r = plet_orchestrator._check_nothing_to_do([], counts, [], TextSink())
     sys.stdout = old_stdout
     check("all complete = 0", r == 0)
 
@@ -290,7 +238,7 @@ def test_check_nothing_to_do_blocked():
     counts = {"queued": 0, "complete": 2, "blocked": 1, "implementing": 0, "verifying": 0, "withdrawn": 0}
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
-    r = plet_orchestrator._check_nothing_to_do([], counts, [], False)
+    r = plet_orchestrator._check_nothing_to_do([], counts, [], TextSink())
     sys.stdout = old_stdout
     check("blocked+complete = 0", r == 0)
 
@@ -303,7 +251,7 @@ def test_check_nothing_to_do_ndjson():
     counts = {"queued": 0, "complete": 1, "blocked": 0, "implementing": 0, "verifying": 0, "withdrawn": 0}
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
-    r = plet_orchestrator._check_nothing_to_do([], counts, [], True)
+    r = plet_orchestrator._check_nothing_to_do([], counts, [], NdjsonSink())
     output = sys.stdout.getvalue()
     sys.stdout = old_stdout
     check("ndjson = 0", r == 0)
@@ -325,7 +273,7 @@ def test_promote_eligible_basic():
         dep_map={"ID_001": [], "ID_002": ["ID_001"]},
     )
     try:
-        plet_orchestrator._promote_eligible(plet_dir, False)
+        plet_orchestrator._promote_eligible(plet_dir, CaptureSink())
         gs = load_json(state_json_path(plet_dir))
         check("ID_002 promoted to queued", gs["lifecycles"]["ID_002"] == "queued")
     finally:
@@ -340,7 +288,7 @@ def test_promote_eligible_deps_not_met():
         dep_map={"ID_001": [], "ID_002": ["ID_001"]},
     )
     try:
-        plet_orchestrator._promote_eligible(plet_dir, False)
+        plet_orchestrator._promote_eligible(plet_dir, CaptureSink())
         gs = load_json(state_json_path(plet_dir))
         check("ID_002 still ineligible", gs["lifecycles"]["ID_002"] == "ineligible")
     finally:
@@ -355,16 +303,14 @@ def test_promote_eligible_no_deps_but_ineligible():
         dep_map={"ID_001": []},
     )
     try:
-        plet_orchestrator._promote_eligible(plet_dir, False)
+        plet_orchestrator._promote_eligible(plet_dir, CaptureSink())
         gs = load_json(state_json_path(plet_dir))
         check("no-dep ineligible promoted", gs["lifecycles"]["ID_001"] == "queued")
     finally:
         shutil.rmtree(d)
 
 
-def test_promote_eligible_ndjson():
-    import io
-
+def test_promote_eligible_with_sink():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
@@ -372,12 +318,10 @@ def test_promote_eligible_ndjson():
         dep_map={"ID_001": [], "ID_002": ["ID_001"]},
     )
     try:
-        old_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-        plet_orchestrator._promote_eligible(plet_dir, True)
-        output = sys.stdout.getvalue()
-        sys.stdout = old_stdout
-        check("emits promotion event", "dependency_promotion" in output)
+        sink = CaptureSink()
+        plet_orchestrator._promote_eligible(plet_dir, sink)
+        dep_events = [e for e in sink.events if e.get("type") == "dependency_promotion"]
+        check("emits promotion event", len(dep_events) == 1)
     finally:
         shutil.rmtree(d)
 
@@ -387,7 +331,7 @@ def test_promote_eligible_missing_state():
 
     d = tempfile.mkdtemp()
     try:
-        plet_orchestrator._promote_eligible(os.path.join(d, "plet"), False)
+        plet_orchestrator._promote_eligible(os.path.join(d, "plet"), CaptureSink())
         check("missing state = no crash", True)
     finally:
         shutil.rmtree(d)
@@ -403,7 +347,9 @@ def test_handle_verdict_none():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
-        completed, blocked = plet_orchestrator._handle_verify_verdict(None, "ID_001", plet_dir, plet_dir, False, 0, {})
+        completed, blocked = plet_orchestrator._handle_verify_verdict(
+            None, "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
+        )
         check("none verdict = blocked", blocked is True)
         check("completed unchanged", completed == 0)
         gs = load_json(state_json_path(plet_dir))
@@ -418,7 +364,7 @@ def test_handle_verdict_blocked():
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
         completed, blocked = plet_orchestrator._handle_verify_verdict(
-            "blocked", "ID_001", plet_dir, plet_dir, False, 0, {}
+            "blocked", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
         )
         check("blocked verdict = blocked", blocked is True)
         gs = load_json(state_json_path(plet_dir))
@@ -434,7 +380,7 @@ def test_handle_verdict_rejected_retry():
     try:
         # check-retry on a fresh iteration with 0 attempts returns "first"
         completed, blocked = plet_orchestrator._handle_verify_verdict(
-            "rejected", "ID_001", plet_dir, plet_dir, False, 0, {}
+            "rejected", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
         )
         check("rejected = not blocked (retry)", blocked is False)
         gs = load_json(state_json_path(plet_dir))
@@ -478,7 +424,7 @@ def test_handle_verdict_passed():
             subprocess.run(["git", "checkout", "plet/TEST/loop1/workstream"], capture_output=True)
 
             completed, blocked = plet_orchestrator._handle_verify_verdict(
-                "passed", "ID_001", plet_dir, plet_dir, False, 0, {}
+                "passed", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
             )
             check("passed = not blocked", blocked is False)
             check("completed incremented", completed == 1)
@@ -515,7 +461,7 @@ def test_end_session():
                 f.write(".plet/\n")
 
             counts = {"queued": 0, "complete": 1, "blocked": 0, "implementing": 0, "verifying": 0}
-            plet_orchestrator._end_session(plet_dir, 1, 1, counts, [], "plet/TEST/loop1/workstream", False)
+            plet_orchestrator._end_session(plet_dir, 1, 1, counts, [], "plet/TEST/loop1/workstream", CaptureSink())
             check("end completes without error", True)
 
             gs = load_json(state_json_path(plet_dir))
@@ -552,8 +498,8 @@ def test_setup_session():
             session_number, branch, err = plet_orchestrator._setup_session(
                 plet_dir,
                 counts,
-                True,
-                False,  # allow_stale=True
+                True,  # allow_stale
+                CaptureSink(),
             )
             check("no error", err is None, f"got error: {err}")
             check("session number > 0", session_number is not None and session_number > 0, f"got: {session_number}")
@@ -577,7 +523,7 @@ def test_get_spawnable_basic():
         dep_map={"ID_001": [], "ID_002": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), None, 0)
+        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), None, 0)
         check("returns list", isinstance(result, list))
         check("both eligible", len(result) == 2, f"got: {result}")
     finally:
@@ -592,7 +538,7 @@ def test_get_spawnable_filters_failed():
         dep_map={"ID_001": [], "ID_002": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, False, {"ID_001"}, None, 0)
+        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), {"ID_001"}, None, 0)
         check("filters failed", result == ["ID_002"], f"got: {result}")
     finally:
         shutil.rmtree(d)
@@ -606,7 +552,7 @@ def test_get_spawnable_max_iterations_budget():
         dep_map={"ID_001": [], "ID_002": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), 1, 0)
+        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), 1, 0)
         check("limited to budget", len(result) == 1, f"got: {result}")
     finally:
         shutil.rmtree(d)
@@ -620,7 +566,7 @@ def test_get_spawnable_budget_exhausted():
         dep_map={"ID_001": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), 2, 2)
+        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), 2, 2)
         check("budget exhausted = None", result is None)
     finally:
         shutil.rmtree(d)
@@ -634,7 +580,7 @@ def test_get_spawnable_nothing_eligible():
         dep_map={"ID_001": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), None, 0)
+        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), None, 0)
         check("nothing eligible = None", result is None)
     finally:
         shutil.rmtree(d)
@@ -648,7 +594,7 @@ def test_get_spawnable_promotes():
         dep_map={"ID_001": [], "ID_002": ["ID_001"]},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), None, 0)
+        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), None, 0)
         check("promoted ID_002", result == ["ID_002"], f"got: {result}")
     finally:
         shutil.rmtree(d)
@@ -669,7 +615,7 @@ def test_check_breakpoint_before_miss():
         import util_io
 
         util_io.atomic_write_json(state_json_path(plet_dir), gs)
-        check("miss = False", plet_orchestrator._check_breakpoint_before("ID_001", plet_dir, False) is False)
+        check("miss = False", plet_orchestrator._check_breakpoint_before("ID_001", plet_dir, CaptureSink()) is False)
     finally:
         shutil.rmtree(d)
 
@@ -688,7 +634,7 @@ def test_check_breakpoint_before_hit():
         util_io.atomic_write_json(state_json_path(plet_dir), gs)
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
-        hit = plet_orchestrator._check_breakpoint_before("ID_001", plet_dir, True)
+        hit = plet_orchestrator._check_breakpoint_before("ID_001", plet_dir, CaptureSink())
         sys.stdout = old_stdout
         check("hit = True", hit is True)
     finally:
@@ -705,7 +651,7 @@ def test_check_breakpoint_after_miss():
         import util_io
 
         util_io.atomic_write_json(state_json_path(plet_dir), gs)
-        check("miss = False", plet_orchestrator._check_breakpoint_after("ID_001", plet_dir, False) is False)
+        check("miss = False", plet_orchestrator._check_breakpoint_after("ID_001", plet_dir, CaptureSink()) is False)
     finally:
         shutil.rmtree(d)
 
@@ -724,7 +670,7 @@ def test_check_breakpoint_after_hit():
         util_io.atomic_write_json(state_json_path(plet_dir), gs)
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
-        hit = plet_orchestrator._check_breakpoint_after("ID_001", plet_dir, True)
+        hit = plet_orchestrator._check_breakpoint_after("ID_001", plet_dir, CaptureSink())
         sys.stdout = old_stdout
         check("hit = True", hit is True)
     finally:
@@ -742,7 +688,7 @@ def test_finalize_iteration_error_no_worktree():
     d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
     try:
         spawn_result = {"status": "error", "iter_id": "ID_001", "error": "worktree failed", "worktree_created": False}
-        completed, blocked = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, False, 0, {})
+        completed, blocked = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, CaptureSink(), 0, {})
         check("blocked", blocked is True)
         check("completed unchanged", completed == 0)
         gs = load_json(state_json_path(plet_dir))
@@ -758,7 +704,7 @@ def test_finalize_iteration_error_with_worktree():
     try:
         # worktree_created=True but worktree doesn't actually exist — worktree-remove will fail gracefully
         spawn_result = {"status": "error", "iter_id": "ID_001", "error": "implement failed", "worktree_created": True}
-        completed, blocked = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, False, 0, {})
+        completed, blocked = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, CaptureSink(), 0, {})
         check("blocked", blocked is True)
     finally:
         shutil.rmtree(d)
@@ -803,9 +749,6 @@ def main():
     test_make_result_breakpoint()
     test_make_result_stuck()
     test_make_result_no_stuck()
-    test_emit_event_ndjson()
-    test_emit_event_suppressed()
-    test_emit_text()
     test_parse_run_args_help()
     test_parse_run_args_basic()
     test_parse_run_args_all_flags()
@@ -820,7 +763,7 @@ def main():
     test_promote_eligible_basic()
     test_promote_eligible_deps_not_met()
     test_promote_eligible_no_deps_but_ineligible()
-    test_promote_eligible_ndjson()
+    test_promote_eligible_with_sink()
     test_promote_eligible_missing_state()
     test_handle_verdict_none()
     test_handle_verdict_blocked()

@@ -24,7 +24,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     get_plet_dir,
-    now_iso,
     parse_kwargs,
     validate_known_flags,
 )
@@ -33,6 +32,7 @@ from util_io import (
     load_json,
     state_json_path,
 )
+from util_sink import NdjsonSink, TextSink
 from util_state import load_and_validate_iter_state
 
 SCRIPT_VERSION = "0.3.1"
@@ -83,7 +83,7 @@ def _update_lifecycle(global_plet_dir, iter_id, lifecycle):
     )
 
 
-def _promote_eligible(global_plet_dir, output_ndjson):
+def _promote_eligible(global_plet_dir, sink):
     """Promote ineligible → queued for iterations whose deps are all complete.
 
     Reads state.json, checks each ineligible iteration's dependencies,
@@ -111,18 +111,9 @@ def _promote_eligible(global_plet_dir, output_ndjson):
 
     for iter_id in sorted(promoted):
         _update_lifecycle(global_plet_dir, iter_id, "queued")
-        _emit_event(
+        sink.event(
             {"type": "dependency_promotion", "iterationId": iter_id, "from": "ineligible", "to": "queued"},
-            output_ndjson,
         )
-
-
-def _emit_event(event, output_ndjson):
-    """Emit an NDJSON event line if in ndjson mode."""
-    if output_ndjson:
-        event["timestamp"] = now_iso()
-        print(json.dumps(event, separators=(",", ":")))
-        sys.stdout.flush()
 
 
 def _make_result(
@@ -150,13 +141,6 @@ def _make_result(
     return result
 
 
-def _emit_text(msg, output_ndjson):
-    """Emit text if NOT in ndjson mode."""
-    if not output_ndjson:
-        print(msg)
-        sys.stdout.flush()
-
-
 # ---------------------------------------------------------------------------
 # run helpers
 # ---------------------------------------------------------------------------
@@ -167,34 +151,34 @@ def _handle_verify_verdict(
     iter_id,
     global_plet_dir,
     worktree_plet_dir,
-    output_ndjson,
+    sink,
     completed_this_run,
     counts,
 ):
     """Process the verify verdict and update lifecycle. Returns (new_completed, blocked)."""
     if verdict is None:
-        _emit_text("  Verify did not set verifyVerdict — blocking", output_ndjson)
+        sink.text("  Verify did not set verifyVerdict — blocking")
         _update_lifecycle(global_plet_dir, iter_id, "blocked")
         return completed_this_run, True
     elif verdict == "passed":
-        return _handle_passed_verdict(iter_id, global_plet_dir, output_ndjson, completed_this_run, counts)
+        return _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts)
     elif verdict == "rejected":
         return _handle_rejected_verdict(
             iter_id,
             global_plet_dir,
             worktree_plet_dir,
-            output_ndjson,
+            sink,
             completed_this_run,
             counts,
         )
     elif verdict == "blocked":
         _update_lifecycle(global_plet_dir, iter_id, "blocked")
-        _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"}, output_ndjson)
+        sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"})
         return completed_this_run, True
     return completed_this_run, False
 
 
-def _handle_merge_conflict(iter_id, global_plet_dir, output_ndjson, completed_this_run):
+def _handle_merge_conflict(iter_id, global_plet_dir, sink, completed_this_run):
     """Handle merge-squash conflict: rebase and retry merge, or requeue for implement.
 
     Returns (new_completed, was_blocked).
@@ -202,7 +186,7 @@ def _handle_merge_conflict(iter_id, global_plet_dir, output_ndjson, completed_th
     # Get branch names
     bn_data, _, _ = _run_script_json("plet_git_iteration.py", ["branch-name", global_plet_dir, "--iter-id", iter_id])
     if not bn_data:
-        _emit_text(f"  Could not determine branch name for {iter_id} — requeuing", output_ndjson)
+        sink.text(f"  Could not determine branch name for {iter_id} — requeuing")
         _update_lifecycle(global_plet_dir, iter_id, "queued")
         return completed_this_run, False
 
@@ -220,16 +204,15 @@ def _handle_merge_conflict(iter_id, global_plet_dir, output_ndjson, completed_th
         # Rebase has conflicts — abort rebase, requeue for implement to resolve
         subprocess.run(["git", "rebase", "--abort"], capture_output=True)
         _update_lifecycle(global_plet_dir, iter_id, "queued")
-        _emit_event(
+        sink.event(
             {
                 "type": "merge_conflict_requeued",
                 "iterationId": iter_id,
                 "rebaseResult": "conflicts",
                 "rebasedOnto": ws_branch,
             },
-            output_ndjson,
         )
-        _emit_text(f"  {iter_id}: rebase conflicts — requeued for implement to resolve", output_ndjson)
+        sink.text(f"  {iter_id}: rebase conflicts — requeued for implement to resolve")
         return completed_this_run, False
 
     # Rebase succeeded — try merge-squash again (should be clean now)
@@ -237,28 +220,27 @@ def _handle_merge_conflict(iter_id, global_plet_dir, output_ndjson, completed_th
     if ms_rc != 0:
         # Still failing after rebase — requeue for implement
         _update_lifecycle(global_plet_dir, iter_id, "queued")
-        _emit_event(
+        sink.event(
             {
                 "type": "merge_conflict_requeued",
                 "iterationId": iter_id,
                 "rebaseResult": "clean",
                 "mergeRetryResult": "failed",
             },
-            output_ndjson,
         )
-        _emit_text(f"  {iter_id}: merge still failed after rebase — requeued", output_ndjson)
+        sink.text(f"  {iter_id}: merge still failed after rebase — requeued")
         return completed_this_run, False
 
     # Merge succeeded after rebase
     _update_lifecycle(global_plet_dir, iter_id, "complete")
     completed_this_run += 1
-    _emit_event({"type": "iteration_merged", "iterationId": iter_id, "afterRebase": True}, output_ndjson)
-    _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"}, output_ndjson)
-    _emit_text(f"[{completed_this_run}] {iter_id}: passed, merged (after rebase)", output_ndjson)
+    sink.event({"type": "iteration_merged", "iterationId": iter_id, "afterRebase": True})
+    sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"})
+    sink.text(f"[{completed_this_run}] {iter_id}: passed, merged (after rebase)")
     return completed_this_run, False
 
 
-def _handle_passed_verdict(iter_id, global_plet_dir, output_ndjson, completed_this_run, counts):
+def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts):
     """Handle a passed verify verdict: commit and merge-squash. Returns (new_completed, blocked)."""
     # Commit pending changes on workstream before merge-squash
     subprocess.run(["git", "add", "-A"], capture_output=True)
@@ -271,48 +253,41 @@ def _handle_passed_verdict(iter_id, global_plet_dir, output_ndjson, completed_th
     if ms_rc != 0:
         is_conflict = "conflict" in ms_err.lower()
         if is_conflict:
-            _emit_event(
-                {"type": "merge_conflict", "iterationId": iter_id, "error": ms_err[:200]},
-                output_ndjson,
-            )
-            return _handle_merge_conflict(iter_id, global_plet_dir, output_ndjson, completed_this_run)
+            sink.event({"type": "merge_conflict", "iterationId": iter_id, "error": ms_err[:200]})
+            return _handle_merge_conflict(iter_id, global_plet_dir, sink, completed_this_run)
         else:
-            _emit_event(
-                {"type": "error", "iterationId": iter_id, "error": "merge-squash failed: " + ms_err[:200]},
-                output_ndjson,
-            )
-            _emit_text(f"  merge-squash failed — blocking: {ms_err[:200]}", output_ndjson)
+            sink.event({"type": "error", "iterationId": iter_id, "error": "merge-squash failed: " + ms_err[:200]})
+            sink.text(f"  merge-squash failed — blocking: {ms_err[:200]}")
             _update_lifecycle(global_plet_dir, iter_id, "blocked")
-            _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"}, output_ndjson)
+            sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"})
             return completed_this_run, True
     else:
         _update_lifecycle(global_plet_dir, iter_id, "complete")
         completed_this_run += 1
-        _emit_event({"type": "iteration_merged", "iterationId": iter_id}, output_ndjson)
-        _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"}, output_ndjson)
-        _emit_text(f"[{completed_this_run}] {iter_id}: passed, merged", output_ndjson)
+        sink.event({"type": "iteration_merged", "iterationId": iter_id})
+        sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"})
+        sink.text(f"[{completed_this_run}] {iter_id}: passed, merged")
         return completed_this_run, False
 
 
-def _handle_rejected_verdict(iter_id, global_plet_dir, worktree_plet_dir, output_ndjson, completed_this_run, counts):
+def _handle_rejected_verdict(iter_id, global_plet_dir, worktree_plet_dir, sink, completed_this_run, counts):
     """Handle a rejected verify verdict: check retry. Returns (new_completed, blocked)."""
     retry_data, _, _ = _run_script_json("plet_schedule.py", ["check-retry", worktree_plet_dir, "--iter-id", iter_id])
     decision = retry_data.get("decision", "abort") if retry_data else "abort"
     if decision == "continue" or decision == "first":
         _update_lifecycle(global_plet_dir, iter_id, "queued")
-        _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "queued"}, output_ndjson)
-        _emit_text(f"[{completed_this_run + 1}] {iter_id}: rejected, retry queued", output_ndjson)
+        sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "queued"})
+        sink.text(f"[{completed_this_run + 1}] {iter_id}: rejected, retry queued")
     else:
         _update_lifecycle(global_plet_dir, iter_id, "blocked")
-        _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"}, output_ndjson)
-        _emit_text(
+        sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"})
+        sink.text(
             f"[{completed_this_run + 1}] {iter_id}: rejected, retry exhausted — blocked",
-            output_ndjson,
         )
     return completed_this_run, False
 
 
-def _setup_session(global_plet_dir, counts, allow_stale, output_ndjson):
+def _setup_session(global_plet_dir, counts, allow_stale, sink):
     """Run preflight, fingerprint check, and start session. Returns (session_number, branch, error_code).
     error_code is None on success."""
     # Validate state.json before anything else — if corrupt, nothing works
@@ -321,15 +296,15 @@ def _setup_session(global_plet_dir, counts, allow_stale, output_ndjson):
         msg = f"state.json validation failed: {val_err[:200]}"
         print(f"Error: {msg}", file=sys.stderr)
         result = _make_result("error", counts, error=msg)
-        _emit_event(result, output_ndjson)
+        sink.event(result)
         return 0, "", 1
 
-    _emit_text("Running preflight...", output_ndjson)
+    sink.text("Running preflight...")
     _, pf_err, pf_rc = _run_script("plet_gate_session.py", ["preflight", global_plet_dir, "--session-type", "loop"])
     if pf_rc == 1:
         print(f"Error: preflight failed: {pf_err}", file=sys.stderr)
         result = _make_result("error", counts, error="preflight failed")
-        _emit_event(result, output_ndjson)
+        sink.event(result)
         return 0, "", 1
 
     fp_data, fp_err, fp_rc = _run_script_json("plet_fingerprint.py", ["check", global_plet_dir, "--level", "all"])
@@ -341,9 +316,9 @@ def _setup_session(global_plet_dir, counts, allow_stale, output_ndjson):
             msg = "Fingerprints stale. Use --allow-stale to override."
             print(f"Error: {msg}", file=sys.stderr)
             result = _make_result("error", counts, error=msg)
-            _emit_event(result, output_ndjson)
+            sink.event(result)
             return 0, "", 1
-        _emit_text("Warning: fingerprints stale (--allow-stale)", output_ndjson)
+        sink.text("Warning: fingerprints stale (--allow-stale)")
 
     session_data, ss_err, ss_rc = _run_script_json(
         "plet_session.py", ["start-session", global_plet_dir, "--type", "loop"]
@@ -356,7 +331,7 @@ def _setup_session(global_plet_dir, counts, allow_stale, output_ndjson):
     branch = session_data.get("branch", "")
     resumed = session_data.get("resumed", False)
 
-    _emit_event(
+    sink.event(
         {
             "type": "session_start",
             "sessionType": "loop",
@@ -364,9 +339,8 @@ def _setup_session(global_plet_dir, counts, allow_stale, output_ndjson):
             "branch": branch,
             "resumed": resumed,
         },
-        output_ndjson,
     )
-    _emit_text("Loop {} {} on {}".format(session_number, "resumed" if resumed else "started", branch), output_ndjson)
+    sink.text("Loop {} {} on {}".format(session_number, "resumed" if resumed else "started", branch))
 
     if not resumed:
         subprocess.run(["git", "checkout", "-b", branch], capture_output=True)
@@ -405,7 +379,7 @@ def _setup_session(global_plet_dir, counts, allow_stale, output_ndjson):
     return session_number, branch, None
 
 
-def _end_session(global_plet_dir, session_number, completed_this_run, counts, stuck, branch, output_ndjson):
+def _end_session(global_plet_dir, session_number, completed_this_run, counts, stuck, branch, sink):
     """Run postflight, end session, emit final result."""
     _run_script("plet_gate_session.py", ["postflight", global_plet_dir, "--session-type", "loop"])
     _run_script("plet_session.py", ["end-session", global_plet_dir])
@@ -457,12 +431,11 @@ def _end_session(global_plet_dir, session_number, completed_this_run, counts, st
         completed=completed_this_run,
         stuck_iterations=stuck,
     )
-    _emit_event(result, output_ndjson)
-    _emit_text(
+    sink.event(result)
+    sink.text(
         "Loop {} complete: {} iterations, {} blocked".format(
             session_number, completed_this_run, counts.get("blocked", 0)
         ),
-        output_ndjson,
     )
 
 
@@ -516,7 +489,7 @@ def _parse_run_args(args):
     return plet_dir, output_ndjson, allow_stale, max_iterations, sequential
 
 
-def _check_nothing_to_do(eligible_ids, counts, stuck, output_ndjson):
+def _check_nothing_to_do(eligible_ids, counts, stuck, sink):
     """Check if there's nothing to do. Returns exit code or None to continue."""
     in_progress = counts.get("implementing", 0) + counts.get("verifying", 0)
     if eligible_ids or in_progress > 0:
@@ -525,18 +498,16 @@ def _check_nothing_to_do(eligible_ids, counts, stuck, output_ndjson):
     total = sum(counts.get(k, 0) for k in counts if k != "eligible")
     reason = "all_complete" if all_complete == total else "all_blocked_or_complete"
     result = _make_result(reason, counts, stuck_iterations=stuck)
-    _emit_event(result, output_ndjson)
-    if not output_ndjson:
-        _emit_text(
-            "Nothing to do: {} ({} complete, {} blocked)".format(
-                reason, counts.get("complete", 0), counts.get("blocked", 0)
-            ),
-            output_ndjson,
-        )
+    sink.event(result)
+    sink.text(
+        "Nothing to do: {} ({} complete, {} blocked)".format(
+            reason, counts.get("complete", 0), counts.get("blocked", 0)
+        ),
+    )
     return 0
 
 
-def _run_implement_phase(iter_id, global_plet_dir, worktree_path, output_ndjson, completed_this_run):
+def _run_implement_phase(iter_id, global_plet_dir, worktree_path, sink, completed_this_run):
     """Run implement phase. Returns (worktree_plet_dir, implement_verdict) or (None, None) on failure."""
     worktree_plet_dir = derive_worktree_plet_dir(worktree_path, global_plet_dir)
     _update_lifecycle(global_plet_dir, iter_id, "implementing")
@@ -548,13 +519,10 @@ def _run_implement_phase(iter_id, global_plet_dir, worktree_path, output_ndjson,
     )
 
     if impl_rc != 0:
-        _emit_text(f"  Invoke implement failed (rc={impl_rc}): {impl_err[:200]}", output_ndjson)
-        _emit_event(
-            {"type": "error", "iterationId": iter_id, "phase": "implement", "error": impl_err[:200]},
-            output_ndjson,
-        )
+        sink.text(f"  Invoke implement failed (rc={impl_rc}): {impl_err[:200]}")
+        sink.event({"type": "error", "iterationId": iter_id, "phase": "implement", "error": impl_err[:200]})
 
-    _emit_event({"type": "iteration_phase_complete", "iterationId": iter_id, "phase": "implement"}, output_ndjson)
+    sink.event({"type": "iteration_phase_complete", "iterationId": iter_id, "phase": "implement"})
 
     assert worktree_plet_dir != global_plet_dir, "worktree_plet_dir must differ from global_plet_dir"
     iter_state = load_and_validate_iter_state(worktree_plet_dir, iter_id)
@@ -562,18 +530,18 @@ def _run_implement_phase(iter_id, global_plet_dir, worktree_path, output_ndjson,
     return worktree_plet_dir, implement_verdict
 
 
-def _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir, output_ndjson, completed_this_run):
+def _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir, sink, completed_this_run):
     """Run verify phase. Returns verdict string or None."""
     _update_lifecycle(global_plet_dir, iter_id, "verifying")
     _run_script("plet_iter_state.py", ["start-phase", worktree_plet_dir, "--iter-id", iter_id, "--phase", "verify"])
-    _emit_event({"type": "iteration_start", "iterationId": iter_id, "phase": "verify"}, output_ndjson)
-    _emit_text(f"[{completed_this_run + 1}] {iter_id}: verifying...", output_ndjson)
+    sink.event({"type": "iteration_start", "iterationId": iter_id, "phase": "verify"})
+    sink.text(f"[{completed_this_run + 1}] {iter_id}: verifying...")
 
     _run_script(
         "plet_invoke.py",
         ["run", global_plet_dir, "--iter-id", iter_id, "--phase", "verify", "--cwd", worktree_path],
     )
-    _emit_event({"type": "iteration_phase_complete", "iterationId": iter_id, "phase": "verify"}, output_ndjson)
+    sink.event({"type": "iteration_phase_complete", "iterationId": iter_id, "phase": "verify"})
 
     assert worktree_plet_dir != global_plet_dir, "worktree_plet_dir must differ from global_plet_dir"
     iter_state = load_and_validate_iter_state(worktree_plet_dir, iter_id)
@@ -588,7 +556,7 @@ def _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir
     return verdict
 
 
-def _spawn_iteration(iter_id, global_plet_dir, output_ndjson, completed_this_run):
+def _spawn_iteration(iter_id, global_plet_dir, sink, completed_this_run):
     """Run implement+verify for one iteration in its own worktree.
 
     This is the expensive, parallelizable part. Does NOT merge to workstream.
@@ -599,15 +567,15 @@ def _spawn_iteration(iter_id, global_plet_dir, output_ndjson, completed_this_run
     or on failure:
         {"status": "error", "iter_id": ..., "error": ..., "worktree_created": bool}
     """
-    _emit_event({"type": "iteration_start", "iterationId": iter_id, "phase": "implement"}, output_ndjson)
-    _emit_text(f"[{completed_this_run + 1}] {iter_id}: implementing...", output_ndjson)
+    sink.event({"type": "iteration_start", "iterationId": iter_id, "phase": "implement"})
+    sink.text(f"[{completed_this_run + 1}] {iter_id}: implementing...")
 
     # Create worktree
     wt_data, wt_err, wt_rc = _run_script_json(
         "plet_git_iteration.py", ["worktree-create", global_plet_dir, "--iter-id", iter_id]
     )
     if wt_rc != 0 or wt_data is None:
-        _emit_text(f"  Error creating worktree: {wt_err}", output_ndjson)
+        sink.text(f"  Error creating worktree: {wt_err}")
         return {
             "status": "error",
             "iter_id": iter_id,
@@ -619,10 +587,10 @@ def _spawn_iteration(iter_id, global_plet_dir, output_ndjson, completed_this_run
 
     # Implement
     worktree_plet_dir, implement_verdict = _run_implement_phase(
-        iter_id, global_plet_dir, worktree_path, output_ndjson, completed_this_run
+        iter_id, global_plet_dir, worktree_path, sink, completed_this_run
     )
     if implement_verdict is None:
-        _emit_text("  Implement did not set implementVerdict — will block", output_ndjson)
+        sink.text("  Implement did not set implementVerdict — will block")
         return {
             "status": "error",
             "iter_id": iter_id,
@@ -631,9 +599,7 @@ def _spawn_iteration(iter_id, global_plet_dir, output_ndjson, completed_this_run
         }
 
     # Verify
-    verdict = _run_verify_phase(
-        iter_id, global_plet_dir, worktree_path, worktree_plet_dir, output_ndjson, completed_this_run
-    )
+    verdict = _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir, sink, completed_this_run)
 
     return {
         "status": "ok",
@@ -645,7 +611,7 @@ def _spawn_iteration(iter_id, global_plet_dir, output_ndjson, completed_this_run
     }
 
 
-def _finalize_iteration(spawn_result, global_plet_dir, output_ndjson, completed_this_run, counts):
+def _finalize_iteration(spawn_result, global_plet_dir, sink, completed_this_run, counts):
     """Handle verdict, merge-squash, and cleanup for one iteration.
 
     This is the sequential part — touches workstream branch and shared state.
@@ -668,7 +634,7 @@ def _finalize_iteration(spawn_result, global_plet_dir, output_ndjson, completed_
         iter_id,
         global_plet_dir,
         worktree_plet_dir,
-        output_ndjson,
+        sink,
         completed_this_run,
         counts,
     )
@@ -679,13 +645,13 @@ def _finalize_iteration(spawn_result, global_plet_dir, output_ndjson, completed_
     return completed_this_run, was_blocked
 
 
-def _get_spawnable(global_plet_dir, output_ndjson, failed_ids, max_iterations, completed):
+def _get_spawnable(global_plet_dir, sink, failed_ids, max_iterations, completed):
     """Get iterations ready to spawn. Returns list of iter_ids, or None if nothing to do.
 
     Promotes ineligible → queued, checks eligible, filters out already-failed,
     limits to max-iterations budget.
     """
-    _promote_eligible(global_plet_dir, output_ndjson)
+    _promote_eligible(global_plet_dir, sink)
 
     eligible_data, _, rc = _run_script_json("plet_schedule.py", ["eligible", global_plet_dir])
     if rc != 0 or eligible_data is None:
@@ -706,33 +672,33 @@ def _get_spawnable(global_plet_dir, output_ndjson, failed_ids, max_iterations, c
     return actionable
 
 
-def _check_breakpoint_before(iter_id, global_plet_dir, output_ndjson):
+def _check_breakpoint_before(iter_id, global_plet_dir, sink):
     """Check breakpoint-before for one iteration. Returns True if hit."""
     bp_data, _, _ = _run_script_json(
         "plet_schedule.py",
         ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "before"],
     )
     if bp_data and bp_data.get("result") == "hit":
-        _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "before"}, output_ndjson)
+        sink.event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "before"})
         return True
     return False
 
 
-def _check_breakpoint_after(iter_id, global_plet_dir, output_ndjson):
+def _check_breakpoint_after(iter_id, global_plet_dir, sink):
     """Check breakpoint-after for one iteration. Returns True if hit."""
     bp_data, _, _ = _run_script_json(
         "plet_schedule.py",
         ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "after"],
     )
     if bp_data and bp_data.get("result") == "hit":
-        _emit_event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "after"}, output_ndjson)
+        sink.event({"type": "breakpoint_hit", "iterationId": iter_id, "position": "after"})
         return True
     return False
 
 
 def _run_streaming_loop(
     global_plet_dir,
-    output_ndjson,
+    sink,
     max_iterations,
     sequential,
     session_number,
@@ -756,17 +722,17 @@ def _run_streaming_loop(
         while True:
             # Spawn newly eligible iterations (unless paused)
             if not pause:
-                spawnable = _get_spawnable(global_plet_dir, output_ndjson, failed_ids, max_iterations, completed)
+                spawnable = _get_spawnable(global_plet_dir, sink, failed_ids, max_iterations, completed)
                 if spawnable:
                     for iter_id in spawnable:
                         if iter_id in active.values():
                             continue  # already running
-                        if _check_breakpoint_before(iter_id, global_plet_dir, output_ndjson):
+                        if _check_breakpoint_before(iter_id, global_plet_dir, sink):
                             pause = True
                             pause_context = {"iterationId": iter_id, "phase": None, "error": None}
                             reason = "breakpoint_before"
                             break  # stop spawning, let active finish
-                        future = executor.submit(_spawn_iteration, iter_id, global_plet_dir, output_ndjson, completed)
+                        future = executor.submit(_spawn_iteration, iter_id, global_plet_dir, sink, completed)
                         active[future] = iter_id
 
             if not active:
@@ -779,14 +745,12 @@ def _run_streaming_loop(
                 spawn_result = done.result()
 
                 # Finalize immediately (merge-squash)
-                completed, was_blocked = _finalize_iteration(
-                    spawn_result, global_plet_dir, output_ndjson, completed, counts
-                )
+                completed, was_blocked = _finalize_iteration(spawn_result, global_plet_dir, sink, completed, counts)
                 if was_blocked:
                     failed_ids.add(iter_id)
 
                 # Check breakpoint-after
-                if not pause and _check_breakpoint_after(iter_id, global_plet_dir, output_ndjson):
+                if not pause and _check_breakpoint_after(iter_id, global_plet_dir, sink):
                     pause = True
                     pause_context = {"iterationId": iter_id, "phase": None, "error": None}
                     reason = "breakpoint_after"
@@ -795,10 +759,7 @@ def _run_streaming_loop(
                 if not pause and max_iterations and completed >= max_iterations:
                     pause = True
                     reason = "max_iterations_reached"
-                    _emit_text(
-                        f"Paused: max iterations reached ({completed}/{max_iterations})",
-                        output_ndjson,
-                    )
+                    sink.text(f"Paused: max iterations reached ({completed}/{max_iterations})")
 
     # Determine final reason if not paused
     if not pause:
@@ -842,6 +803,8 @@ def cmd_run(args):
         return 1
     plet_dir, output_ndjson, allow_stale, max_iterations, sequential = parsed
 
+    sink = NdjsonSink() if output_ndjson else TextSink()
+
     # -------------------------------------------------------------------
     # Phase 0: Load state and pre-check
     # -------------------------------------------------------------------
@@ -871,7 +834,7 @@ def cmd_run(args):
     eligible_ids = eligible_data.get("eligible", [])
     stuck = eligible_data.get("stuckIterations", [])
 
-    early_exit = _check_nothing_to_do(eligible_ids, counts, stuck, output_ndjson)
+    early_exit = _check_nothing_to_do(eligible_ids, counts, stuck, sink)
     if early_exit is not None:
         return early_exit
 
@@ -879,7 +842,7 @@ def cmd_run(args):
     # Phase 1: Session setup
     # -------------------------------------------------------------------
 
-    session_number, branch, err_code = _setup_session(global_plet_dir, counts, allow_stale, output_ndjson)
+    session_number, branch, err_code = _setup_session(global_plet_dir, counts, allow_stale, sink)
     if err_code is not None:
         return err_code
 
@@ -889,7 +852,7 @@ def cmd_run(args):
 
     completed_this_run, reason, counts, pause_context = _run_streaming_loop(
         global_plet_dir,
-        output_ndjson,
+        sink,
         max_iterations,
         sequential,
         session_number,
@@ -912,7 +875,7 @@ def cmd_run(args):
         pause_context=pause_context,
         stuck_iterations=stuck,
     )
-    _emit_event(result, output_ndjson)
+    sink.event(result)
 
     if reason in ("breakpoint_before", "breakpoint_after", "max_iterations_reached"):
         # Session stays open for resume
@@ -922,7 +885,7 @@ def cmd_run(args):
     # Phase 3: Session end
     # -------------------------------------------------------------------
 
-    _end_session(global_plet_dir, session_number, completed_this_run, counts, stuck, branch, output_ndjson)
+    _end_session(global_plet_dir, session_number, completed_this_run, counts, stuck, branch, sink)
     return 0
 
 
