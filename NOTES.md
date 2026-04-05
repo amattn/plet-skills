@@ -1967,10 +1967,29 @@ Threshold raised: 85% → 87% → 88% → 90% → 91%. Coverage is now a ratchet
 - Acceptance criteria: generated from emergent items tagged as tech-debt, plus automated quality checks (lint, complexity, coverage)
 - If refactor iteration fails verify: block it like any other — human reviews in refine
 
+**Decision (2026-04-05): Milestones as native execution barriers.** Milestones are not cosmetic groupings — they're integration points. Every iteration in MS_2 implicitly depends on all of MS_1 being complete (plus any explicit within-milestone deps). This eliminates cross-milestone parallelism by design: you don't start building MS_2 features on an un-integrated, un-refactored MS_1 foundation.
+
+The refactor iteration (`ID_RFT_MS1`) is the last iteration in each milestone. All MS_2 iterations depend on it. The dependency map encodes this — the orchestrator doesn't need milestone awareness, it just follows the DAG.
+
+**Implication for plan phase:** Milestone definition becomes a first-class design decision, not a labeling step. The plan phase must guide users to define milestones as self-contained, buildable increments:
+- Each milestone should be a coherent feature set that integrates as a unit
+- Don't split tightly coupled work across milestones (creates artificial barriers)
+- Milestone boundaries are stable interface points — within a milestone, things evolve; at the boundary, everything is clean
+- The refactor pass at each boundary enforces this
+
+**Implementation:** Plan phase generates the dependency map with milestone barriers:
+1. Within-milestone deps: explicit, per-iteration (same as today)
+2. Cross-milestone deps: implicit barrier — all MS_N+1 iterations depend on ID_RFT_MSN
+3. Refactor iteration added to each milestone during plan decomposition
+4. User reviews refactor iterations alongside regular ones
+
+The orchestrator changes zero — it sees the DAG and follows it. The streaming loop, parallel execution, breakpoints all work unchanged.
+
 **Open questions:**
 - Should the refactor agent have access to learnings.md and emergent.md to prioritize what to refactor?
 - Should there be a "refactor budget" (max time/iterations)?
 - How do we prevent the refactor from breaking things that later iterations depend on?
+- Should a milestone with only 1-2 iterations still get a refactor pass? (Probably not worth it — threshold of 3+?)
 
 ### Case study timing analysis
 
