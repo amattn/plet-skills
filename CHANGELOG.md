@@ -2,6 +2,43 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.5.0 (2026-04-05)
+
+### Parallel Orchestrator (PLAN_PAR)
+- **Streaming work queue:** Iterations spawn as capacity allows, finalize as each completes. No synchronized round boundaries — dependent iterations start as soon as their deps finish.
+- **`--sequential` flag:** Forces pool_size=1 for debugging.
+- **Merge conflict recovery:** On merge-squash conflict, rebases iteration branch onto workstream. If rebase succeeds, merge retries immediately. If rebase fails, iteration requeues for implement to resolve. No attempt burned.
+- **Gentle breakpoints:** Any breakpoint hit stops new spawns. Everything already in-flight runs to completion and merges.
+- **Orchestrator trace file:** All orchestrator events persisted to `plet/trace/orchestrator.ndjson` via MultiplexSink.
+- **File-level conflict guidance:** Plan phase now advises encoding file-level conflicts in dependency tree, not just logical dependencies.
+
+### Script Cleanup (PLAN_CLN)
+- **Dead code removed:** `emit_json`, `emit_json_error`, `emit_error` (~40 lines, zero importers).
+- **Validator convention unified:** All validators return `value/(1,"",err)`. Five script-local validators aligned.
+- **parse_command adoption:** 11 commands across 5 scripts converted from manual 5-6 line arg parsing.
+- **extract_output_flags:** 6-tuple → 4-tuple + error 3-tuple. Eliminated ok/err variables from 15 call sites.
+- **help_hint factory:** `make_help_hint(script_name)` replaces 16 identical per-script functions.
+- **util_state:** Returns error tuples instead of printing to stderr. 16 callers updated.
+- **entries dedup:** Removed local `extract_universal_flags` (uses shared `extract_output_flags`).
+- **Trace helpers:** Internal return patterns aligned with convention.
+
+### Coverage & Testing
+- **Event sink pattern:** `util_sink.py` — NdjsonSink, TextSink, CaptureSink, FileSink, MultiplexSink.
+- **Injectable runners:** Orchestrator and invoke script/subprocess calls are overridable for testing.
+- **Mock-runner tests:** Orchestrator decision logic tested in-process (57% → 81%).
+- **Coverage:** 91% overall (was 87%), 1056 tests (was 934). Threshold: 91%.
+- **Unified test runner:** `test_all.py` runs ruff + pytest + coverage by default (~45s). pytest-xdist parallel.
+
+### Permissions & Agent UX
+- **Shebang execution:** Removed 26 `python3` prefixes from reference files. Agents now call scripts directly.
+- **Pre-approved commands:** Subagent prompt header lists what's pre-approved (no permission prompt).
+- **git push deny rule:** `.claude/settings.json` blocks `git push` mechanically.
+- **Settings cleanup:** Consolidated git commands, added common tools, reset settings.local.json.
+
+### Version Alignment
+- All 17 script SCRIPT_VERSION aligned (orchestrator 0.4.0, prompt 0.3.1, rest 0.3.2).
+- pyproject.toml now tracks SKILL_VERSION. SemVer docs updated (4 locations to sync).
+
 ## 0.4.4 (2026-04-04)
 
 ### PLAN_COV — Coverage Infrastructure
