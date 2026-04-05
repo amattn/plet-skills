@@ -1300,6 +1300,44 @@ Key decisions:
 
 ---
 
+## Plan Decisions
+
+Design decisions, alternatives discussed, and rationale for each plan chunk. PLAN.md has the steps and status; this section has the "why."
+
+### NOTES_HLP: PLAN_HLP — Subagent CLI Re-learning
+
+<!-- TODO: Move HLP decisions here from scattered locations -->
+
+### NOTES_PAR: PLAN_PAR — Parallel Orchestrator
+
+<!-- TODO: Move PAR decisions here from current location -->
+
+### NOTES_COV: PLAN_COV — Coverage Infrastructure
+
+<!-- TODO: Move COV decisions here from current location -->
+
+### NOTES_CLN: PLAN_CLN — Script Cleanup & Consistency
+
+<!-- TODO: Move CLN decisions here from current location -->
+
+### NOTES_RFT: PLAN_RFT — Refactor Loop
+
+<!-- TODO: Move RFT decisions here from current location -->
+
+### NOTES_NTS: PLAN_NTS — Notes Reorganization
+
+**Decision (2026-04-05):** NOTES.md reorganized into plan-chunk sections with stable labels. PLAN.md stays lean (steps + status) with pointers to NOTES.md for rationale. Each plan chunk gets a `NOTES_XXX` section.
+
+### NOTES_SUB: PLAN_SUB — Subplets
+
+<!-- Future — design decisions go here when work begins -->
+
+### NOTES_EVL: PLAN_EVL — Eval System
+
+<!-- Future — design decisions go here when work begins -->
+
+---
+
 ## Lineage
 
 plet draws from three sources:
