@@ -36,6 +36,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     filter_fields,
+    make_help_hint,
     now_iso,
     parse_kwargs,
     require_kwargs,
@@ -90,9 +91,7 @@ ITER_ID_PATTERN = re.compile(r"^(ID_\d+|proj)$")
 FENCE_PATTERN = re.compile(r'<div id="(plet-|END-plet-)')
 
 
-def help_hint(command):
-    """One-line stderr hint pointing agents to --help."""
-    return f"Run: plet_entries.py {command} --help"
+help_hint = make_help_hint("plet_entries")
 
 
 # ---------------------------------------------------------------------------

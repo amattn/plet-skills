@@ -38,6 +38,7 @@ from util_cli import (
     dispatch,
     filter_fields,
     get_plet_dir,
+    make_help_hint,
     now_iso,
     parse_kwargs,
     require_kwargs,
@@ -158,9 +159,7 @@ def check_flag_dependencies(flags, command_is_mutating=True, supports_raw=False)
     return None
 
 
-def help_hint(command):
-    """One-line stderr hint pointing agents to --help."""
-    return f"Run: plet_trace.py {command} --help"
+help_hint = make_help_hint("plet_trace")
 
 
 def json_response(data, flags):

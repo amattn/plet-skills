@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     get_plet_dir,
+    make_help_hint,
     parse_kwargs,
     validate_known_flags,
 )
@@ -42,8 +43,7 @@ from util_constants import SKILL_VERSION  # noqa: E402
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def _help_hint(command):
-    return f"Run: plet_orchestrator.py {command} --help"
+_help_hint = make_help_hint("plet_orchestrator")
 
 
 def _run_script_subprocess(script_name, args, cwd=None):

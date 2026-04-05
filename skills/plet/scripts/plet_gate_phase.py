@@ -28,6 +28,7 @@ from util_cli import (
     extract_output_flags,
     filter_fields,
     get_plet_dir,
+    make_help_hint,
     now_iso,
     parse_kwargs,
     require_kwargs,
@@ -65,8 +66,7 @@ LIFECYCLE_BY_PHASE = {
 # ---------------------------------------------------------------------------
 
 
-def help_hint(command):
-    return f"Run: plet_gate_phase.py {command} --help"
+help_hint = make_help_hint("plet_gate_phase")
 
 
 def scripts_dir():

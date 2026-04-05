@@ -28,6 +28,7 @@ from util_cli import (
     extract_output_flags,
     filter_fields,
     get_plet_dir,
+    make_help_hint,
     now_iso,
     parse_kwargs,
     require_kwargs,
@@ -73,8 +74,7 @@ def _format_duration(start_iso, end_iso):
         return "unknown"
 
 
-def _help_hint(command):
-    return f"Run: plet_session.py {command} --help"
+_help_hint = make_help_hint("plet_session")
 
 
 def _find_active_sessions(history):

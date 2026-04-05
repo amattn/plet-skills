@@ -29,6 +29,7 @@ from util_cli import (
     extract_output_flags,
     filter_fields,
     get_plet_dir,
+    make_help_hint,
     now_iso,
     parse_kwargs,
     require_kwargs,
@@ -73,8 +74,7 @@ def _err_json(cmd, msg, pretty=False):
 # ---------------------------------------------------------------------------
 
 
-def help_hint(command):
-    return f"Run: plet_git_check.py {command} --help"
+help_hint = make_help_hint("plet_git_check")
 
 
 def is_git_repo(cwd=None):

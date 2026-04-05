@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     filter_fields,
+    make_help_hint,
     now_iso,
     parse_command,
     validate_enum,
@@ -69,8 +70,7 @@ def _err_out(cmd, msg, output_json, pretty):
 # ---------------------------------------------------------------------------
 
 
-def help_hint(command):
-    return f"Run: plet_git_ops.py {command} --help"
+help_hint = make_help_hint("plet_git_ops")
 
 
 def is_git_repo(cwd=None):

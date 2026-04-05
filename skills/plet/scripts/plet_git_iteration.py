@@ -36,6 +36,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     filter_fields,
+    make_help_hint,
     now_iso,
     parse_command,
     validate_enum,
@@ -56,9 +57,7 @@ ITER_ID_RE = re.compile(r"^ID_\d+$")
 # ---------------------------------------------------------------------------
 
 
-def help_hint(command):
-    """One-line stderr hint pointing agents to --help."""
-    return f"Run: plet_git_iteration.py {command} --help"
+help_hint = make_help_hint("plet_git_iteration")
 
 
 def _to_json(data, pretty=False, fields=None):

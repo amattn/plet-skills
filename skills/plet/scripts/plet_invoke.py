@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     filter_fields,
+    make_help_hint,
     now_iso,
     parse_command,
     validate_enum,
@@ -49,8 +50,7 @@ VALID_PERMISSION_MODES = ["auto", "bypassPermissions", "default"]
 # ---------------------------------------------------------------------------
 
 
-def help_hint(command):
-    return f"Run: plet_invoke.py {command} --help"
+help_hint = make_help_hint("plet_invoke")
 
 
 def _to_json(data, pretty=False, fields=None):

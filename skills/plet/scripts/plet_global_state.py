@@ -36,6 +36,7 @@ from util_cli import (
     extract_output_flags,
     filter_fields,
     get_plet_dir,
+    make_help_hint,
     now_iso,
     parse_kwargs,
     require_kwargs,
@@ -63,8 +64,7 @@ UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
 UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run"}
 
 
-def _help_hint(cmd):
-    return f"Run: plet_global_state.py {cmd} --help"
+_help_hint = make_help_hint("plet_global_state")
 
 
 def _to_json(data, pretty=False, fields=None):

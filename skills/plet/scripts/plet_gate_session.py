@@ -34,6 +34,7 @@ from util_cli import (
     extract_output_flags,
     filter_fields,
     get_plet_dir,
+    make_help_hint,
     now_iso,
     parse_kwargs,
     require_kwargs,
@@ -85,8 +86,7 @@ LOOP_LIFECYCLES = {"queued", "implementing", "verifying"}
 # ---------------------------------------------------------------------------
 
 
-def help_hint(command):
-    return f"Run: plet_gate_session.py {command} --help"
+help_hint = make_help_hint("plet_gate_session")
 
 
 def scan_iter_states(plet_dir):

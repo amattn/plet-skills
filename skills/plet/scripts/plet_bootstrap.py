@@ -31,6 +31,7 @@ from util_cli import (
     dispatch,
     extract_output_flags,
     filter_fields,
+    make_help_hint,
     now_iso,
     parse_kwargs,
     validate_known_flags,
@@ -94,8 +95,7 @@ Runtime state lives in `plet/` (committed to git):
 """
 
 
-def _help_hint(cmd):
-    return f"Run: plet_bootstrap.py {cmd} --help"
+_help_hint = make_help_hint("plet_bootstrap")
 
 
 def _get_project_dir(args):

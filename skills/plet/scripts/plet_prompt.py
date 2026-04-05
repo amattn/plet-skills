@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util_cli import (
     dispatch,
     filter_fields,
+    make_help_hint,
     now_iso,
     parse_command,
     validate_enum,
@@ -55,8 +56,7 @@ REFERENCE_FILES = {
 # ---------------------------------------------------------------------------
 
 
-def help_hint(command):
-    return f"Run: plet_prompt.py {command} --help"
+help_hint = make_help_hint("plet_prompt")
 
 
 def refs_dir():

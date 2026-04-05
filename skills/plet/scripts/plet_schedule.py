@@ -31,6 +31,7 @@ from util_cli import (
     extract_output_flags,
     filter_fields,
     get_plet_dir,
+    make_help_hint,
     now_iso,
     parse_command,
     parse_kwargs,
@@ -58,8 +59,7 @@ VALID_LIFECYCLES = {
 }
 
 
-def _help_hint(command):
-    return f"Run: plet_schedule.py {command} --help"
+_help_hint = make_help_hint("plet_schedule")
 
 
 def _load_eligible_state(plet_dir, hint):

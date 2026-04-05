@@ -31,6 +31,11 @@ import json
 import sys
 
 
+def make_help_hint(script_name):
+    """Create a help_hint function for a script. Returns f"Run: {script}.py {cmd} --help"."""
+    return lambda cmd: f"Run: {script_name}.py {cmd} --help"
+
+
 def parse_kwargs(args):
     """Parse --key value pairs from an args list.
 

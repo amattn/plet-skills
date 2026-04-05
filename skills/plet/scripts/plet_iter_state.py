@@ -39,6 +39,7 @@ from util_cli import (
     dispatch,
     extract_output_flags,
     get_plet_dir,
+    make_help_hint,
     now_iso,
     parse_command,
     parse_kwargs,
@@ -80,8 +81,7 @@ PHASE_ACTIVITIES = [
 ]
 
 
-def _help_hint(cmd):
-    return f"Run: plet_iter_state.py {cmd} --help"
+_help_hint = make_help_hint("plet_iter_state")
 
 
 def _validate_init_inputs(plet_dir, iter_id, kwargs, no_verify_deps):
