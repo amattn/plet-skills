@@ -1261,6 +1261,416 @@ def test_validate_tuple_return_missing():
 
 
 # ---------------------------------------------------------------------------
+# COV_7 — additional coverage tests (error paths + JSON modes)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_missing_iter_id():
+    print("\n## validate — missing --iter-id")
+    d = make_plet_dir()
+    _, err, _ = run(["validate", d], expect_exit=1)
+    check("error mentions iter-id", "iter" in err.lower() or "required" in err.lower())
+
+
+def test_validate_json_missing_file():
+    print("\n## validate — JSON output, missing file")
+    d = make_plet_dir()
+    code, out, err = ist_mod.cmd_validate([d, "--iter-id", "ID_099", "--output", "json"])
+    check("code 1", code == 1)
+    data = json.loads(out)
+    check("status error", data["status"] == "error")
+    check("command validate", data["command"] == "validate")
+    check("errorCount 1", data["errorCount"] == 1)
+
+
+def test_validate_json_invalid_state():
+    print("\n## validate — JSON output, invalid state")
+    d = make_plet_dir()
+    write_iter_state(d, {"not": "valid"})
+    code, out, err = ist_mod.cmd_validate([d, "--iter-id", "ID_001", "--output", "json"])
+    check("code 1", code == 1)
+    data = json.loads(out)
+    check("status error", data["status"] == "error")
+    check("errors non-empty", len(data["errors"]) > 0)
+
+
+def test_init_dry_run_json():
+    print("\n## init — dry-run + JSON output")
+    d = make_plet_dir()
+    out, _, _ = run(
+        [
+            "init",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--title",
+            "Dry run test",
+            "--dependencies",
+            "[]",
+            "--criteria",
+            '[{"id":"AC_1","description":"Tests pass"}]',
+            "--dry-run",
+            "--output",
+            "json",
+        ]
+    )
+    data = json.loads(out)
+    check("status ok", data["status"] == "ok")
+    check("dryRun true", data.get("dryRun") is True)
+    check("file not created", not os.path.isfile(os.path.join(d, "state", "ID_001.json")))
+
+
+def test_init_dry_run_text():
+    print("\n## init — dry-run text output")
+    d = make_plet_dir()
+    out, _, _ = run(
+        [
+            "init",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--title",
+            "Dry run text",
+            "--dependencies",
+            "[]",
+            "--criteria",
+            '[{"id":"AC_1","description":"X"}]',
+            "--dry-run",
+        ]
+    )
+    check("DRY RUN in output", "DRY RUN" in out)
+    check("file not created", not os.path.isfile(os.path.join(d, "state", "ID_001.json")))
+
+
+def test_start_phase_invalid_phase():
+    print("\n## start-phase — invalid phase")
+    d = make_plet_dir()
+    init_iter(d)
+    _, err, _ = run(["start-phase", d, "--iter-id", "ID_001", "--phase", "bogus"], expect_exit=1)
+    check("error mentions invalid", "invalid" in err.lower())
+
+
+def test_start_phase_missing_state_file():
+    print("\n## start-phase — missing state file")
+    d = make_plet_dir()
+    _, err, _ = run(["start-phase", d, "--iter-id", "ID_099", "--phase", "implement"], expect_exit=1)
+    check("error mentions not found", "not found" in err.lower())
+
+
+def test_start_phase_dry_run_json():
+    print("\n## start-phase — dry-run + JSON output")
+    d = make_plet_dir()
+    init_iter(d)
+    out, _, _ = run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement", "--dry-run", "--output", "json"])
+    data = json.loads(out)
+    check("status ok", data["status"] == "ok")
+    check("dryRun true", data.get("dryRun") is True)
+    check("phase implement", data["phase"] == "implement")
+
+
+def test_start_phase_dry_run_text():
+    print("\n## start-phase — dry-run text output")
+    d = make_plet_dir()
+    init_iter(d)
+    out, _, _ = run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify", "--dry-run"])
+    check("DRY RUN in output", "DRY RUN" in out)
+
+
+def test_update_criterion_dry_run():
+    print("\n## update-criterion — dry-run text output")
+    d = make_plet_dir()
+    init_iter(d)
+    out, _, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "implementation",
+            "--status",
+            "pass",
+            "--evidence",
+            "ok",
+            "--agent-id",
+            AGENT_ID,
+            "--dry-run",
+        ]
+    )
+    check("DRY RUN in output", "DRY RUN" in out)
+
+
+def test_update_criterion_dry_run_json():
+    print("\n## update-criterion — dry-run + JSON output")
+    d = make_plet_dir()
+    init_iter(d)
+    out, _, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "implementation",
+            "--status",
+            "pass",
+            "--evidence",
+            "ok",
+            "--agent-id",
+            AGENT_ID,
+            "--dry-run",
+            "--output",
+            "json",
+        ]
+    )
+    data = json.loads(out)
+    check("status ok", data["status"] == "ok")
+    check("dryRun true", data.get("dryRun") is True)
+
+
+def test_update_criterion_elapsed_invalid():
+    print("\n## update-criterion — invalid --elapsed")
+    d = make_plet_dir()
+    init_iter(d)
+    _, err, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "implementation",
+            "--status",
+            "pass",
+            "--evidence",
+            "ok",
+            "--agent-id",
+            AGENT_ID,
+            "--elapsed",
+            "notanint",
+        ],
+        expect_exit=1,
+    )
+    check("error mentions elapsed", "elapsed" in err.lower())
+
+
+def test_update_criterion_verify_fail_no_test_rationale():
+    print("\n## update-criterion — verify fail, red-test=none, missing no-test-rationale")
+    d = make_plet_dir()
+    init_iter(d)
+    _, err, _ = run(
+        [
+            "update-criterion",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--criterion",
+            "AC_1",
+            "--phase",
+            "verification",
+            "--status",
+            "fail",
+            "--evidence",
+            "fails",
+            "--agent-id",
+            AGENT_ID,
+            "--red-test",
+            "none",
+        ],
+        expect_exit=1,
+    )
+    check("error about no-test-rationale", "rationale" in err.lower())
+
+
+def test_add_report_dry_run_text():
+    print("\n## add-report — dry-run text output")
+    d = make_plet_dir()
+    init_iter(d)
+    run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
+    out, _, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "All good",
+            "--criteria-results",
+            VALID_CR,
+            "--findings",
+            "[]",
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+            "--dry-run",
+        ]
+    )
+    check("DRY RUN in output", "DRY RUN" in out)
+    data = read_iter_state(d)
+    check("report NOT written", len(data.get("verificationReports", [])) == 0)
+
+
+def test_add_report_dry_run_json():
+    print("\n## add-report — dry-run + JSON output")
+    d = make_plet_dir()
+    init_iter(d)
+    run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
+    out, _, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "All good",
+            "--criteria-results",
+            VALID_CR,
+            "--findings",
+            "[]",
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+            "--dry-run",
+            "--output",
+            "json",
+        ]
+    )
+    data = json.loads(out)
+    check("status ok", data["status"] == "ok")
+    check("dryRun true", data.get("dryRun") is True)
+
+
+def test_add_report_missing_findings():
+    print("\n## add-report — missing --findings")
+    d = make_plet_dir()
+    init_iter(d)
+    run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
+    _, err, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "ok",
+            "--criteria-results",
+            VALID_CR,
+            "--related-entries",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
+    check("error mentions findings", "findings" in err.lower())
+
+
+def test_add_report_missing_related_entries():
+    print("\n## add-report — missing --related-entries")
+    d = make_plet_dir()
+    init_iter(d)
+    run(["start-phase", d, "--iter-id", "ID_001", "--phase", "verify"])
+    _, err, _ = run(
+        [
+            "add-report",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--verdict",
+            "passed",
+            "--summary",
+            "ok",
+            "--criteria-results",
+            VALID_CR,
+            "--findings",
+            "[]",
+            "--agent-id",
+            AGENT_ID,
+        ],
+        expect_exit=1,
+    )
+    check("error mentions related-entries", "related" in err.lower())
+
+
+def test_set_verdict_dry_run_text():
+    print("\n## set-verdict — dry-run text output")
+    d = make_plet_dir()
+    init_iter(d)
+    run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement"])
+    out, _, _ = run(
+        [
+            "set-verdict",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase",
+            "implement",
+            "--verdict",
+            "completed",
+            "--agent-id",
+            AGENT_ID,
+            "--dry-run",
+        ]
+    )
+    check("DRY RUN in output", "DRY RUN" in out)
+    data = read_iter_state(d)
+    check("verdict NOT written", data["implementVerdict"] is None)
+
+
+def test_set_verdict_dry_run_json():
+    print("\n## set-verdict — dry-run + JSON output")
+    d = make_plet_dir()
+    init_iter(d)
+    run(["start-phase", d, "--iter-id", "ID_001", "--phase", "implement"])
+    out, _, _ = run(
+        [
+            "set-verdict",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--phase",
+            "implement",
+            "--verdict",
+            "completed",
+            "--agent-id",
+            AGENT_ID,
+            "--dry-run",
+            "--output",
+            "json",
+        ]
+    )
+    data = json.loads(out)
+    check("status ok", data["status"] == "ok")
+    check("dryRun true", data.get("dryRun") is True)
+
+
+def test_load_state_invalid_json():
+    print("\n## _load_state — invalid JSON file (direct import)")
+    d = make_plet_dir()
+    path = iter_state_path(d, "ID_001")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write("not json at all {{{")
+    data, _path, err = ist_mod._load_state(d, "ID_001", "hint")
+    check("returns None on invalid JSON", data is None)
+    check("err mentions invalid JSON", "invalid" in err.lower())
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1315,6 +1725,28 @@ def main():
     test_validate_tuple_return_valid()
     test_validate_tuple_return_invalid()
     test_validate_tuple_return_missing()
+
+    # COV_7 — additional coverage tests (error paths + JSON modes)
+    test_validate_missing_iter_id()
+    test_validate_json_missing_file()
+    test_validate_json_invalid_state()
+    test_init_dry_run_json()
+    test_init_dry_run_text()
+    test_start_phase_invalid_phase()
+    test_start_phase_missing_state_file()
+    test_start_phase_dry_run_json()
+    test_start_phase_dry_run_text()
+    test_update_criterion_dry_run()
+    test_update_criterion_dry_run_json()
+    test_update_criterion_elapsed_invalid()
+    test_update_criterion_verify_fail_no_test_rationale()
+    test_add_report_dry_run_text()
+    test_add_report_dry_run_json()
+    test_add_report_missing_findings()
+    test_add_report_missing_related_entries()
+    test_set_verdict_dry_run_text()
+    test_set_verdict_dry_run_json()
+    test_load_state_invalid_json()
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

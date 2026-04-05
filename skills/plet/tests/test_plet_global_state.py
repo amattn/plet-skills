@@ -196,7 +196,7 @@ def test_init_basic():
 
         with open(sjp) as f:
             data = json.load(f)
-        check("schemaVersion", data["schemaVersion"] == "0.4.0")
+        check("schemaVersion", data["schemaVersion"] == "0.4.1")
         check("projectId", data["projectId"] == "LOGA")
         check("project.name", data["project"]["name"] == "Log Analyzer")
         check("dependencyMap", data["dependencyMap"] == {"ID_001": [], "ID_002": ["ID_001"]})
@@ -653,6 +653,191 @@ def test_get_lifecycle_empty():
 
 
 # ---------------------------------------------------------------------------
+# validate — missing file (JSON output)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_missing_file_json():
+    print("\n## validate — state.json not found (JSON output)")
+    with tempfile.TemporaryDirectory() as d:
+        # No state.json written — dir is empty
+        out, _, _ = run(["validate", d, "--output", "json"], expect_exit=1)
+        data = json.loads(out)
+        check("status error", data["status"] == "error")
+        check("command validate", data["command"] == "validate")
+        check("errors non-empty", len(data["errors"]) > 0)
+        check("errorCount 1", data["errorCount"] == 1)
+
+
+def test_validate_bad_json_file_json_output():
+    print("\n## validate — file has invalid JSON (JSON output)")
+    with tempfile.TemporaryDirectory() as d:
+        # Write a non-JSON file as state.json
+        import os as _os
+
+        sjp = _os.path.join(d, "state.json")
+        with open(sjp, "w") as f:
+            f.write("not valid json }{")
+        out, _, _ = run(["validate", d, "--output", "json"], expect_exit=1)
+        data = json.loads(out)
+        check("status error", data["status"] == "error")
+        check("errorCount 1", data["errorCount"] == 1)
+
+
+def test_validate_bad_json_file_text_output():
+    print("\n## validate — file has invalid JSON (text output)")
+    with tempfile.TemporaryDirectory() as d:
+        import os as _os
+
+        sjp = _os.path.join(d, "state.json")
+        with open(sjp, "w") as f:
+            f.write("not valid json }{")
+        _, err, _ = run(["validate", d], expect_exit=1)
+        check("error mentions invalid JSON", "invalid" in err.lower() or "json" in err.lower())
+
+
+# ---------------------------------------------------------------------------
+# init — project_description (line 265 coverage)
+# ---------------------------------------------------------------------------
+
+
+def test_init_with_description():
+    print("\n## init — project description sets project.description")
+    with tempfile.TemporaryDirectory() as d:
+        out, _, _ = run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "TEST",
+                "--project-name",
+                "Test Project",
+                "--project-description",
+                "A short description.",
+                "--dependency-map",
+                "{}",
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+            ]
+        )
+        check("exits 0", True)
+        with open(os.path.join(d, "state.json")) as f:
+            data = json.load(f)
+        check("description present", data["project"].get("description") == "A short description.")
+
+
+# ---------------------------------------------------------------------------
+# _load_and_validate_for_update — invalid JSON path (lines 342, 345-349)
+# ---------------------------------------------------------------------------
+
+
+def test_update_lifecycle_invalid_json_in_file():
+    print("\n## update-lifecycle — invalid JSON in state.json")
+    with tempfile.TemporaryDirectory() as d:
+        # Write a non-JSON file as state.json
+        sjp = state_json_path(d)
+        os.makedirs(os.path.dirname(sjp), exist_ok=True)
+        with open(sjp, "w") as f:
+            f.write("not json {{")
+        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued"], expect_exit=1)
+        check("error mentions invalid JSON", "invalid" in err.lower() or "json" in err.lower())
+
+
+def test_update_lifecycle_invalid_state_schema():
+    print("\n## update-lifecycle — state.json fails schema validation")
+    with tempfile.TemporaryDirectory() as d:
+        # Write JSON that passes load_json but fails validate_global_state
+        write_raw_state(d, {"not": "a valid state"})
+        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued"], expect_exit=1)
+        check("exits 1", True)
+        check("error returned", len(err) > 0)
+
+
+# ---------------------------------------------------------------------------
+# update-lifecycle — dry-run JSON output (lines 411-416)
+# ---------------------------------------------------------------------------
+
+
+def test_update_lifecycle_dry_run_json():
+    print("\n## update-lifecycle — dry-run with JSON output")
+    with tempfile.TemporaryDirectory() as d:
+        write_raw_state(d, VALID_STATE)
+        out, _, _ = run(
+            [
+                "update-lifecycle",
+                d,
+                "--iter-id",
+                "ID_001",
+                "--lifecycle",
+                "implementing",
+                "--dry-run",
+                "--output",
+                "json",
+            ]
+        )
+        data = json.loads(out)
+        check("status ok", data["status"] == "ok")
+        check("dryRun true", data.get("dryRun") is True)
+        check("changed true", data.get("changed") is True)
+        # State should NOT have been written
+        with open(os.path.join(d, "state.json")) as f:
+            state = json.load(f)
+        check("lifecycle not changed", state["lifecycles"]["ID_001"] == "queued")
+
+
+def test_update_lifecycle_dry_run_text():
+    print("\n## update-lifecycle — dry-run text output")
+    with tempfile.TemporaryDirectory() as d:
+        write_raw_state(d, VALID_STATE)
+        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "implementing", "--dry-run"])
+        check("DRY RUN in output", "DRY RUN" in out)
+        # lifecycle not modified
+        with open(os.path.join(d, "state.json")) as f:
+            state = json.load(f)
+        check("lifecycle not changed", state["lifecycles"]["ID_001"] == "queued")
+
+
+# ---------------------------------------------------------------------------
+# get-lifecycle — not-found JSON output (lines 488-490)
+# ---------------------------------------------------------------------------
+
+
+def test_get_lifecycle_not_found_json():
+    print("\n## get-lifecycle — single iteration not found (JSON output)")
+    with tempfile.TemporaryDirectory() as d:
+        write_raw_state(d, VALID_STATE)
+        out, _, _ = run(["get-lifecycle", d, "--iter-id", "ID_999", "--output", "json"], expect_exit=1)
+        data = json.loads(out)
+        check("status error", data["status"] == "error")
+        check("error mentions ID_999", "ID_999" in data.get("error", ""))
+
+
+# ---------------------------------------------------------------------------
+# get-lifecycle — missing state.json and invalid JSON (lines 461, 465, 476, 480)
+# ---------------------------------------------------------------------------
+
+
+def test_get_lifecycle_missing_state():
+    print("\n## get-lifecycle — state.json not found")
+    with tempfile.TemporaryDirectory() as d:
+        _, err, _ = run(["get-lifecycle", d], expect_exit=1)
+        check("error mentions state.json", "state.json" in err)
+
+
+def test_get_lifecycle_invalid_json():
+    print("\n## get-lifecycle — invalid JSON in state.json")
+    with tempfile.TemporaryDirectory() as d:
+        sjp = state_json_path(d)
+        os.makedirs(os.path.dirname(sjp), exist_ok=True)
+        with open(sjp, "w") as f:
+            f.write("not json {{")
+        _, err, _ = run(["get-lifecycle", d], expect_exit=1)
+        check("error mentions invalid JSON", "invalid" in err.lower() or "json" in err.lower())
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -664,6 +849,9 @@ def main():
     test_validate_invalid()
     test_validate_invalid_json_output()
     test_validate_missing_file()
+    test_validate_missing_file_json()
+    test_validate_bad_json_file_json_output()
+    test_validate_bad_json_file_text_output()
     test_validate_invalid_lifecycle_in_lifecycles()
     test_init_basic()
     test_init_lifecycles_auto()
@@ -675,6 +863,7 @@ def main():
     test_init_json_output()
     test_init_dry_run()
     test_init_plet_dir_missing()
+    test_init_with_description()
     test_update_lifecycle_basic()
     test_update_lifecycle_same_value()
     test_update_lifecycle_new_iter()
@@ -684,9 +873,16 @@ def main():
     test_update_lifecycle_new_iter_json()
     test_update_lifecycle_missing_state()
     test_update_lifecycle_updates_timestamp()
+    test_update_lifecycle_invalid_json_in_file()
+    test_update_lifecycle_invalid_state_schema()
+    test_update_lifecycle_dry_run_json()
+    test_update_lifecycle_dry_run_text()
     test_get_lifecycle_all()
     test_get_lifecycle_single()
     test_get_lifecycle_not_found()
+    test_get_lifecycle_not_found_json()
+    test_get_lifecycle_missing_state()
+    test_get_lifecycle_invalid_json()
     test_get_lifecycle_json_all()
     test_get_lifecycle_json_single()
     test_get_lifecycle_sorted()

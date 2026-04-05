@@ -942,6 +942,269 @@ def test_postflight_json():
 
 
 # ===========================================================================
+# COV_8 — additional coverage tests
+# ===========================================================================
+
+
+def test_detect_json_fields_filter():
+    print("\n## detect — JSON output with --fields filter")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        lc = {"ID_001": "queued"}
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
+        make_iter_state(plet_dir, "ID_001")
+        stdout, _, _ = run(["detect", plet_dir, "--output", "json", "--fields", "sessionType,command"])
+        data = json.loads(stdout)
+        check("sessionType present", "sessionType" in data)
+        check("command present", "command" in data)
+        # fields filter should drop extra keys
+        check("artifacts filtered out", "artifacts" not in data)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_detect_json_pretty():
+    print("\n## detect — JSON pretty output")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        lc = {"ID_001": "queued"}
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
+        make_iter_state(plet_dir, "ID_001")
+        stdout, _, _ = run(["detect", plet_dir, "--output", "json", "--pretty"])
+        # Pretty-printed JSON has newlines and indentation
+        check("indented output", "\n" in stdout)
+        data = json.loads(stdout)
+        check("valid json", data["sessionType"] == "loop")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_detect_no_lifecycles_in_state():
+    print("\n## detect — state.json present but empty lifecycles → plan")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles={})
+        stdout, _, _ = run(["detect", plet_dir])
+        check("returns plan", stdout == "plan")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_status_json_fields_filter():
+    print("\n## status — JSON output with --fields filter")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "complete", "Setup"),
+                ("ID_002", "queued", "Build"),
+            ],
+        )
+        stdout, _, _ = run(["status", plet_dir, "--output", "json", "--fields", "status,progress"])
+        data = json.loads(stdout)
+        check("status present", "status" in data)
+        check("progress present", "progress" in data)
+        check("iterations filtered out", "iterations" not in data)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_status_json_invalid_dir():
+    print("\n## status — JSON output with invalid plet_dir → JSON error")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        nonexistent = os.path.join(tmpdir, "plet")
+        stdout, _, rc = run(["status", nonexistent, "--output", "json"], expect_exit=1)
+        data = json.loads(stdout)
+        check("json status error", data["status"] == "error")
+        check("json command status", data["command"] == "status")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_status_text_output_fingerprints_unknown():
+    print("\n## status — text output shows fingerprints unknown when no fingerprint script")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_full_project(
+            tmpdir,
+            [("ID_001", "complete", "A")],
+        )
+        stdout, _, _ = run(["status", plet_dir])
+        # Fingerprints line should appear (unknown because no plet_fingerprint available in tmp path)
+        check("fingerprints line present", "Fingerprints" in stdout or "fingerprint" in stdout.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_status_text_with_blocker():
+    print("\n## status — text output lists blockers")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "blocked", "OAuth blocked"),
+                ("ID_002", "complete", "Done"),
+            ],
+        )
+        stdout, _, _ = run(["status", plet_dir])
+        check("blocker in text output", "Blocker" in stdout or "ID_001" in stdout)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_status_text_with_active_agent():
+    print("\n## status — text output lists active agents")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        lc = {"ID_001": "implementing"}
+        plet_dir = make_plet_dir(tmpdir, with_requirements=True, with_iterations=True, with_state=True, lifecycles=lc)
+        make_iter_state(plet_dir, "ID_001", title="Build", agent_id="agent-live-001", phase_activity="implementing")
+        stdout, _, _ = run(["status", plet_dir])
+        check("active agent in text output", "Active" in stdout or "agent-live-001" in stdout)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_status_with_milestones():
+    print("\n## status — milestones present in JSON output")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        milestones = {
+            "MS_1": {"name": "Phase 1", "iterations": ["ID_001", "ID_002"]},
+        }
+        plet_dir = make_full_project(
+            tmpdir,
+            [
+                ("ID_001", "complete", "Step 1"),
+                ("ID_002", "queued", "Step 2"),
+            ],
+            milestones=milestones,
+        )
+        stdout, _, _ = run(["status", plet_dir, "--output", "json"])
+        data = json.loads(stdout)
+        check("milestones in output", "milestones" in data)
+        check("MS_1 present", "MS_1" in data["milestones"])
+        check("MS_1 complete 1", data["milestones"]["MS_1"]["complete"] == 1)
+        check("MS_1 total 2", data["milestones"]["MS_1"]["total"] == 2)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_preflight_postflight_missing_session_type():
+    print("\n## postflight — missing --session-type")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(plet_dir, exist_ok=True)
+        _, stderr, _ = run(["postflight", plet_dir], expect_exit=1, cwd=tmpdir)
+        check("error mentions session", "session" in stderr.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_postflight_invalid_session_type():
+    print("\n## postflight — invalid --session-type")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(plet_dir, exist_ok=True)
+        _, stderr, _ = run(["postflight", plet_dir, "--session-type", "bogus"], expect_exit=1, cwd=tmpdir)
+        check("error mentions invalid", "invalid" in stderr.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_postflight_json_pretty():
+    print("\n## postflight — JSON pretty output")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+        make_global_state(plet_dir, lifecycles={"ID_001": "complete"}, dep_map={"ID_001": []})
+        make_iter_state(plet_dir, "ID_001")
+        subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
+        out, _, _ = run(
+            ["postflight", plet_dir, "--session-type", "loop", "--output", "json", "--pretty"],
+            expect_exit=2,
+            cwd=tmpdir,
+        )
+        check("indented output", "\n" in out)
+        data = json.loads(out)
+        check("json command postflight", data["command"] == "postflight")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_preflight_postflight_known_flags_check():
+    print("\n## preflight — unknown flag rejected")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(plet_dir, exist_ok=True)
+        _, stderr, _ = run(["preflight", plet_dir, "--session-type", "plan", "--bogus-flag"], expect_exit=1, cwd=tmpdir)
+        check("error about unknown flag", "bogus" in stderr.lower() or "unknown" in stderr.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_status_no_state_dir():
+    print("\n## status — plet dir exists but no state/ directory")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(plet_dir, exist_ok=True)
+        # Create state.json without state/ dir
+        make_global_state(plet_dir, lifecycles={"ID_001": "queued"})
+        _, stderr, _ = run(["status", plet_dir], expect_exit=1)
+        check("error about state dir", "state" in stderr.lower() or "not found" in stderr.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_status_no_state_dir_json():
+    print("\n## status — no state/ dir with --output json")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(plet_dir, exist_ok=True)
+        make_global_state(plet_dir, lifecycles={"ID_001": "queued"})
+        stdout, _, _ = run(["status", plet_dir, "--output", "json"], expect_exit=1)
+        data = json.loads(stdout)
+        check("json status error", data["status"] == "error")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_postflight_detect_session_type():
+    print("\n## postflight — --session-type detect auto-resolves")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
+        make_global_state(plet_dir, lifecycles={"ID_001": "complete"}, dep_map={"ID_001": []})
+        make_iter_state(plet_dir, "ID_001")
+        with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
+            f.write("# Req\n")
+        with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
+            f.write("# Iter\n")
+        subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
+        out, _, _ = run(
+            ["postflight", plet_dir, "--session-type", "detect", "--output", "json"],
+            expect_exit=2,
+            cwd=tmpdir,
+        )
+        data = json.loads(out)
+        check("command postflight", data["command"] == "postflight")
+        # postflight passes session_type through without resolving "detect"
+        check("sessionType is detect", data["sessionType"] == "detect")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
 # Main
 # ===========================================================================
 
@@ -1002,6 +1265,24 @@ def main():
     test_postflight_transient_detected()
     test_postflight_never_fails()
     test_postflight_json()
+
+    # COV_8 — additional coverage tests
+    test_detect_json_fields_filter()
+    test_detect_json_pretty()
+    test_detect_no_lifecycles_in_state()
+    test_status_json_fields_filter()
+    test_status_json_invalid_dir()
+    test_status_text_output_fingerprints_unknown()
+    test_status_text_with_blocker()
+    test_status_text_with_active_agent()
+    test_status_with_milestones()
+    test_preflight_postflight_missing_session_type()
+    test_postflight_invalid_session_type()
+    test_postflight_json_pretty()
+    test_preflight_postflight_known_flags_check()
+    test_status_no_state_dir()
+    test_status_no_state_dir_json()
+    test_postflight_detect_session_type()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

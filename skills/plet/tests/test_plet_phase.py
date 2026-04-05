@@ -428,6 +428,89 @@ def test_end_verify_missing_summary():
         shutil.rmtree(tmpdir)
 
 
+def test_end_invalid_phase():
+    print("\n## end — invalid --phase value")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_project(tmpdir, phase="implement")
+        _, err, rc = run(
+            [
+                "end",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "review",
+                "--verdict",
+                "completed",
+                "--progress-content",
+                "test",
+            ],
+            expect_exit=1,
+            cwd=tmpdir,
+        )
+        check("exit 1", rc == 1)
+        check("error mentions invalid phase", "review" in err or "invalid" in err.lower() or "phase" in err.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_end_verify_with_report_file():
+    print("\n## end — verify with explicit --report-file")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_project(tmpdir, phase="verify")
+
+        # Write a report JSON file
+        report_data = {
+            "verdict": "passed",
+            "summary": "All 3 criteria verified by report file.",
+            "criteriaResults": [
+                {
+                    "id": "AC_1",
+                    "status": "pass",
+                    "oneLiner": "Tests pass.",
+                    "redTest": "none",
+                    "noTestRationale": "",
+                    "relatedEntries": [],
+                }
+            ],
+            "findings": [],
+            "relatedEntries": [],
+        }
+        report_path = os.path.join(tmpdir, "report.json")
+        with open(report_path, "w") as f:
+            json.dump(report_data, f)
+
+        out, err, rc = run(
+            [
+                "end",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "verify",
+                "--verdict",
+                "passed",
+                "--progress-content",
+                "Verified via report file.",
+                "--report-file",
+                report_path,
+            ],
+            cwd=tmpdir,
+        )
+        check("exit 0", rc == 0)
+
+        ist = load_json(iter_state_path(plet_dir, "ID_001"))
+        reports = ist.get("verificationReports", [])
+        check("report exists", len(reports) >= 1)
+        if reports:
+            check("report verdict passed", reports[-1].get("verdict") == "passed")
+            check("summary from report file", "report file" in reports[-1].get("summary", ""))
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 def test_end_verify_auto_report():
     print("\n## end — verify with --summary auto-builds report")
     tmpdir = tempfile.mkdtemp()
@@ -496,6 +579,41 @@ def test_end_verify_auto_report():
         shutil.rmtree(tmpdir)
 
 
+def test_end_implement_json_output():
+    print("\n## end — implement phase JSON output mode")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = setup_project(tmpdir, phase="implement")
+
+        out, err, rc = run(
+            [
+                "end",
+                plet_dir,
+                "--iter-id",
+                "ID_001",
+                "--phase",
+                "implement",
+                "--verdict",
+                "completed",
+                "--progress-content",
+                "Implemented: all AC done.",
+                "--output",
+                "json",
+            ],
+            cwd=tmpdir,
+        )
+        check("exit 0", rc == 0)
+        data = json.loads(out)
+        check("status ok", data["status"] == "ok")
+        check("command end", data["command"] == "end")
+        check("phase implement", data["phase"] == "implement")
+        check("verdict completed", data["verdict"] == "completed")
+        check("iterationId", data["iterationId"] == "ID_001")
+        check("steps non-empty", len(data.get("steps", [])) > 0)
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 # ===========================================================================
 # main
 # ===========================================================================
@@ -506,10 +624,13 @@ def main():
     test_end_implement_happy_path()
     test_end_verify_happy_path()
     test_end_missing_args()
+    test_end_invalid_phase()
     test_end_verify_missing_summary()
+    test_end_verify_with_report_file()
     test_end_verify_auto_report()
     test_end_invalid_verdict()
     test_end_blocked_verdict()
+    test_end_implement_json_output()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed > 0 else 0
