@@ -1329,23 +1329,223 @@ Design decisions, alternatives discussed, and rationale for each plan chunk. PLA
 
 ### NOTES_PLN_HLP: PLAN_HLP — Subagent CLI Re-learning
 
-<!-- TODO: Move HLP decisions here from scattered locations -->
+#### PLAN_HLP strategy — multi-angle approach (2026-04-03)
+
+8 strategies across 3 categories to eliminate ~150 `--help` lookups/run. Key decisions:
+
+- **Reshape first, document last.** Orchestrator takes over more bookkeeping (HLP_2B) and a phase-complete composite command reduces the surface (HLP_2A) *before* creating cheat sheets or inlining examples — no point documenting commands that will change.
+- **Pre-fill context in prompts.** plet_prompt.py assembles CLI examples with iter_id/phase already filled in (HLP_1C). Zero discovery needed for the most common calls.
+- **Make discovery cheap.** `--usage` for terse help (HLP_3A), cheat sheet reference in `--help` output (HLP_3C).
+- **Excluded:** 2C (batch artifact writes — sacrifices crash recovery). Strategy 4 options (unified CLI, Python API, SDK) — architectural changes beyond scope.
+- **3B clarification:** env var points to cheat sheet file path, not inline content.
+
+#### HLP_2A — plet_phase.py end (2026-04-03)
+
+New composite command that bundles end-of-phase bookkeeping into one call: set-verdict → add-progress → append-event → audit-tag → git commit. Replaces 5-6 separate CLI calls from the subagent. Wired into implement.md (Completing the Phase, Blocker Protocol, Failed Attempt, Missing Dependency) and verify.md (Completing the Phase, Cycle Back, Blocker Protocol). Gate-post stays as a separate subagent call — it's a quality check with a self-correction loop, not bookkeeping.
+
+#### HLP_2B — gate-pre NOT moved to orchestrator (2026-04-03)
+
+Attempted to add `plet_gate_phase.py pre` calls to the orchestrator before spawning subagents. Failed: the auto-logger writes progress.md and trace entries to the worktree, creating dirty files that conflict during merge-squash. Tried `--no-log` but that's a test-only flag agents don't know about. Reverted. Gate-pre stays as an optional subagent action. HLP_2B reduced to just removing redundant start-phase instructions from reference files.
+
+#### HLP_3A — --usage flag with invocation syntax + examples (2026-04-03)
+
+Added `--usage` to all 16 plet scripts via `dispatch()` in util_cli.py. Shows compact invocation syntax + one-line description + copy-pasteable example for each command. Three-level escalation path: cheat sheet → `--usage` → `--help`.
+
+Implementation: each `cmd_*` function has a one-line docstring, a `.usage` attribute (required flags with placeholders), and an `.example` attribute (realistic invocation). `dispatch()` reads these to build the output. 45 functions across 16 scripts.
+
+**Design decision:** Initially `--usage` was just one-liner descriptions (like a compact `--help`). Expanded to include invocation syntax + examples because agents still needed a second `--help` lookup for flags. The full format eliminates the second lookup — one `--usage` call teaches every command's exact syntax.
+
+Documented in: UNV_CMD_30 (conventions.md), script_template.md, scripts/CLAUDE.md, implement.md/verify.md tool listings, all 19 spec Universal Flags tables.
+
+#### test_all ruff gate (2026-04-03)
+
+Ruff runs before any tests — if lint or format check fails, tests are skipped entirely. Previously ruff ran after tests and auto-formatted files silently. Fixed: (1) ruff check (lint) first, (2) ruff format --check (verify, no auto-fix) second, (3) suggest fix command on format failure. Missing ruff is a hard error, not a silent skip.
+
+#### HLP_1B + 3B + 3C — cheat sheet + env var + --help footer (2026-04-03)
+
+Shipped `references/cli-cheatsheet.md` organized by caller (subagent commands vs orchestrator commands). `plet_invoke.py` injects `PLET_CLI_REF` env var pointing to the file. Prompt header tells subagents about the escalation path. `--help` footer on all scripts (both top-level and per-command) says "Tip: --usage for compact syntax. cat $PLET_CLI_REF for full cheat sheet."
+
+Complete escalation path: cheat sheet → `--usage` → `--help`.
+
+HLP_1A (inline examples in reference files) deferred — HLP_1C (prompt assembler pre-fills) may make it redundant. Will validate in the next run.
+
+#### LOGA Run 7 — PLAN_HLP validation (2026-04-04)
+
+First run with 0.4.3 HLP improvements. Key results vs Run 6:
+- --help lookups: 150 → 98 (-35%). Implement agents nearly eliminated (1.2 avg). Verify agents still heavy (82 of 98).
+- plet_phase.py end: 100% adoption (26/26). Impl→verify gaps collapsed 89% (1:47 → 0:17).
+- Total wall-clock: 3:04 → 2:49 (-15 min). Code 16% more compact.
+- --usage flag: 49 uses. Cheat sheet: 16 references (verify agents only).
+
+Post-R7 improvements based on transcript analysis:
+- Verify --help dominated by 2 commands: `add-report` (JSON shape) and `append-event` (event types). Added both to prompt quick ref.
+- Strengthened CLI escalation in verify.md to Critical block.
+- Reordered prompt quick ref to match workflow (write artifacts → phase end → gate post).
+- Injected `PLET_AGENT_ID` env var so agents don't invent IDs.
+- Added phase-start commits to both implement.md and verify.md for git timeline visibility.
+
+#### Reference file bug sweep (2026-04-04)
+
+Found and fixed 8 bugs in verify.md + implement.md examples that caused CLI errors every run:
+1. Wrong flag names (`--activity` → `--phase-activity`, `--detail` → `--activity-detail`)
+2. Non-existent `--elapsed` flag on update-criterion + missing `--agent-id`
+3. Removed `--files` flag on add-progress
+4. Invalid `--event-type verdict_set` (use `decision`)
+5. Invalid `--category "requirement gap"` (use `"spec gap"`)
+6. Shell variable aliases (`$IST`, `$ENTRIES`) fail silently → direct `$PLET_SCRIPTS_DIR` calls
+7. JSON state example → CLI invocation for failure evidence
+8. Hardcoded agent IDs → `$PLET_AGENT_ID` env var
+
+These bugs were likely causing a significant portion of the --help lookups — agents encountered errors from the examples and fell back to --help to learn the real syntax.
 
 ### NOTES_PLN_PAR: PLAN_PAR — Parallel Orchestrator
 
-<!-- TODO: Move PAR decisions here from current location -->
+**Decision (2026-04-04): Conflict recovery via rebase + requeue, not auto-resolve.** When merge-squash conflicts (two parallel iterations touched the same file), the orchestrator does: `git merge --abort` → rebase iteration branch onto updated workstream → set lifecycle to `queued`. The implement agent resolves conflicts on the next pass — it already has full context. Verify then checks the result. This reuses existing retry infrastructure with no new phases.
+
+**Decision: Rebase-requeue does NOT burn an attempt.** The attempt counter tracks agent performance (did the code work?), not scheduling luck (did another iteration modify the same file?). A conflict caused by parallel timing isn't an agent failure.
+
+**Decision: File-level conflict guidance at plan time.** The dependency tree should encode file-level conflicts, not just logical dependencies. If two iterations modify the same file, one should depend on the other — even if the features are logically independent. A dependency costs nothing; a conflict costs a full iteration cycle. Added to plan.md § Dependency Graph Validation.
+
+**Decision: spawn + finalize split.** `_process_single_iteration` split into `_spawn_iteration` (worktree + implement + verify — parallelizable, returns result dict) and `_finalize_iteration` (verdict + merge-squash + cleanup — sequential on workstream). Breakpoints and max-iterations stay in the serial wrapper for now, move to the main loop in PAR_6. The split is the prerequisite for ThreadPoolExecutor in PAR_3.
+
+**Design: Round-based → streaming execution (revised 2026-04-04).** Initial implementation used synchronized rounds (spawn all → wait all → finalize all → next round). User pointed out this is suboptimal: if ID_001 finishes before ID_002 and ID_003, its dependent ID_004 should spawn immediately, not wait for the round to complete.
+
+Revised design: **streaming work queue.** ThreadPoolExecutor stays full as long as there's eligible work. As each iteration completes, it's finalized immediately (merge-squash), newly eligible iterations are checked and spawned. No synchronized round boundaries.
+
+**Decision: Breakpoints are gentle pauses (2026-04-04).** A breakpoint (before or after) means "stop spawning new work." Everything already in-flight runs to completion and gets merged. Breakpoint-before is checked at spawn time — if hit, that iteration doesn't spawn AND no further iterations spawn. Breakpoint-after is checked after finalization — if hit, no further iterations spawn. In both cases, all active iterations finish normally.
+
+Example: ID_001, ID_002, ID_003 running. ID_001 finishes, promotes ID_004 and ID_005. ID_005 has breakpoint-before. When checking ID_005, the breakpoint fires — ID_005 doesn't spawn, no further spawns happen. ID_002, ID_003, ID_004 (if already spawned) all run to completion and merge. Then pause.
 
 ### NOTES_PLN_COV: PLAN_COV — Coverage Infrastructure
 
-<!-- TODO: Move COV decisions here from current location -->
+Canonical home: specs/NOTES.md § SPEC_PLN_COV (script tooling). Coverage infrastructure, tuple returns, test conversion, event sink, injectable runner.
 
 ### NOTES_PLN_CLN: PLAN_CLN — Script Cleanup & Consistency
 
-<!-- TODO: Move CLN decisions here from current location -->
+Canonical home: specs/NOTES.md § SPEC_PLN_CLN (script tooling). Validator patterns, parse_command adoption, extract_output_flags, help_hint factory, dedup-before-refactor principle.
 
 ### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
-<!-- TODO: Move RFT decisions here from current location -->
+**Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.
+
+**Why milestone boundary (not per-iteration or periodic):**
+- Cross-cutting refactoring needs full codebase context — no single iteration's agent can see patterns like "16 scripts have duplicate helper functions"
+- Milestones are natural integration points — all pieces of a feature set are done
+- Avoids wasting time refactoring code that's still evolving
+- Matches how we actually did PLAN_CLN — waited for all scripts to be migrated, then swept
+
+**Why not part of verify:** Verify's job is checking correctness against acceptance criteria. Refactoring is about improving the codebase that's already correct. Different goals, different context needs. Verify sees one iteration; refactor needs to see everything.
+
+**Design sketch:**
+- Synthetic iteration: `ID_RFT_MS1`, `ID_RFT_MS2`, etc. — one per milestone
+- Not in the original dependency map — injected by orchestrator when milestone completes
+- Implement phase: agent audits codebase for patterns, inconsistencies, tech debt. Applies fixes. Runs tests.
+- Verify phase: agent checks that all tests pass, no regressions, refactoring was mechanical (no behavior changes)
+- Acceptance criteria: generated from emergent items tagged as tech-debt, plus automated quality checks (lint, complexity, coverage)
+- If refactor iteration fails verify: block it like any other — human reviews in refine
+
+**Decision (2026-04-05): Milestones as native execution barriers.** Milestones are not cosmetic groupings — they're integration points. Every iteration in MS_2 implicitly depends on all of MS_1 being complete (plus any explicit within-milestone deps). This eliminates cross-milestone parallelism by design: you don't start building MS_2 features on an un-integrated, un-refactored MS_1 foundation.
+
+The refactor iteration (`ID_RFT_MS1`) is the last iteration in each milestone. All MS_2 iterations depend on it. The dependency map encodes this — the orchestrator doesn't need milestone awareness, it just follows the DAG.
+
+**Implication for plan phase:** Milestone definition becomes a first-class design decision, not a labeling step. The plan phase must guide users to define milestones as self-contained, buildable increments:
+- Each milestone should be a coherent feature set that integrates as a unit
+- Don't split tightly coupled work across milestones (creates artificial barriers)
+- Milestone boundaries are stable interface points — within a milestone, things evolve; at the boundary, everything is clean
+- The refactor pass at each boundary enforces this
+
+**Implementation:** Plan phase generates the dependency map with milestone barriers:
+1. Within-milestone deps: explicit, per-iteration (same as today)
+2. Cross-milestone deps: implicit barrier — all MS_N+1 iterations depend on ID_RFT_MSN
+3. Refactor iteration added to each milestone during plan decomposition
+4. User reviews refactor iterations alongside regular ones
+
+The orchestrator changes zero — it sees the DAG and follows it. The streaming loop, parallel execution, breakpoints all work unchanged.
+
+**Open questions:**
+- Should the refactor agent have access to learnings.md and emergent.md to prioritize what to refactor?
+- Should there be a "refactor budget" (max time/iterations)?
+- How do we prevent the refactor from breaking things that later iterations depend on?
+- Should a milestone with only 1-2 iterations still get a refactor pass? (Probably not worth it — threshold of 3+?)
+
+---
+
+Autonomous agents accumulate tech debt iteration by iteration — each implementation subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. Regular refactoring should be built into the loop to mitigate this.
+
+Options explored:
+- **Refactor step within each iteration:** After verify passes, a brief refactor pass before marking complete. Lightweight but frequent.
+- **Periodic refactor phase:** A dedicated refactor iteration injected every N iterations (e.g., every 3-5). Heavier but catches cross-iteration debt.
+- **Refine-triggered refactor:** The refine session surfaces tech debt from learnings/emergent items and creates refactor iterations. Already partially supported — emergent items can capture "this code needs cleanup" — but not formalized.
+- **Milestone boundary refactor:** A refactor pass at the end of each milestone before moving to the next. Natural checkpoint. ← **Selected.**
+
+Key questions:
+- Should refactoring have its own reference file (like execute.md but for cleanup)?
+- How does a refactor iteration define acceptance criteria? ("Code is cleaner" is not verifiable.)
+- Does the verify agent already catch some of this via code quality review? If so, is a separate phase redundant?
+- Should refactor iterations be auto-generated or human-approved during refine?
+
+**Hard invariant: No refactoring unless all tests pass green.** Refactoring without green tests is rearranging code you can't verify. Regression risk is too high.
+
+**Debug number exception to magic numbers rule:** 12-digit debug number literals (PL_DX_2) must NOT be flagged as magic numbers or hardcoded values. They are intentionally unique hardcoded constants — grepping the codebase for any debug number must return exactly 1 result. Never generate debug numbers at runtime (e.g., `random.randint`). One-liner to generate: `head -c 16 /dev/urandom | shasum | tr -cd '0-9' | cut -c1-12`
+
+**Two-tier refactoring model:**
+
+**Tier 1: Per-loop minor refactor** — cheap, obvious, local scope. Things any competent developer would clean up before committing. Handled by the implementation/verify agents as part of normal loop work, not a separate phase.
+
+- Very large or complex functions/modules/files (contextual thresholds — a 200-line parser may be fine, a 200-line controller is a red flag)
+- Functions/methods with high cyclomatic complexity or deep nesting
+- Tests requiring excessive setup or mocking (coupling smell)
+- Tests breaking across iterations that didn't directly touch that area (fragile coupling)
+- Growing parameter lists (introduce options/config object, or question whether the function does too much)
+- Unused imports/variables/dead code within touched files
+- Magic numbers or hardcoded values that should be named constants (exception: 12-digit debug number literals per PL_DX_2)
+- Inconsistent error handling within touched files (new pattern doesn't match existing)
+- Placeholder comments (`// TODO`, `# FIXME`) left by the agent — should never survive past verify
+- Generic error handling (catching all exceptions, swallowing errors, `except Exception: pass`)
+- Missing resource cleanup (file handles, DB connections, temp files not closed)
+- Inefficient patterns (local: N+1 queries, unnecessary copies, O(n²) where O(n) is obvious)
+- Race conditions (obvious: shared mutable state without synchronization in one file)
+
+**Tier 2: Milestone boundary full refactor** — signals that require cross-iteration perspective. Triggered when all iterations in a milestone reach `complete` (tests green by definition). Full analysis across all heuristics before starting the next milestone. Produces proposed refactor iterations that go through the normal loop (acceptance criteria, verify, the whole process).
+
+Design signals (require judgment):
+- **Excessive special cases** — the signature autonomous agent smell. Each iteration adds an `if` branch. After 5 iterations, you've got a function of special cases that should be a cleaner abstraction. Detectable: conditional branch count, `if type == "X"` / `elif type == "Y"` chains, switch-like structures that grew organically.
+- **Code or logic at the wrong conceptual level** — business logic in utility functions, presentation logic in data layers, infrastructure concerns in domain code. Agent checks against `requirements.md` which defines the intended architecture.
+- **Abstraction opportunities** — multiple iterations independently wrote similar helpers. Only visible when you look across all of them.
+
+Structural signals (cheap to detect):
+- Duplicate or near-duplicate code across files touched by different iterations
+- High-churn files (touched by many iterations = likely god object or kitchen-sink module)
+- Import tangles — circular dependencies, modules importing from too many places
+- API surface area creep — modules exposing too many public functions/methods across iterations (module boundary is wrong)
+- Configuration/constants scattered across files that should be centralized
+
+Pattern signals (from plet's own artifacts):
+- `learnings.md` entries mentioning the same file or module repeatedly
+- `emergent.md` items about workarounds or inability to cleanly separate concerns
+- Multiple iterations modifying the same function/class
+- Verify agents flagging code quality issues that suggest deeper structure problems
+
+Cross-iteration accumulation signals (verify catches these per-iteration, but accumulation across iterations is a refactoring signal):
+- Placeholder comments accumulating across the codebase
+- Generic error handling patterns spreading
+- Inefficient patterns (systemic: every iteration repeats the same expensive operation that should be cached at a higher level)
+- Hidden coupling — cross-iteration implicit dependencies not in the import graph. Module A works fine until module B changes because they share assumptions.
+- Race conditions (emergent: multiple iterations independently added concurrent access to the same resource)
+- Missing resource cleanup patterns spreading across modules
+
+Convention drift signals:
+- Inconsistent naming across iterations (mixed `snake_case` / `camelCase` for similar things)
+- Mixed patterns for the same operation (different error handling strategies, etc.)
+- Dead code left behind by iterations that changed direction
+
+Test signals:
+- Test files that became catch-alls (each iteration appended to the nearest test file rather than organizing by concern)
+- Test files growing faster than implementation files
+
+**Escape hatch:** The refine session can create refactor iterations mid-milestone if the human or learnings surface something urgent ("this module is becoming unmaintainable"). Same hard invariant applies — tests must be green.
+
+Not a v1 blocker — the current verify phase catches obvious code quality issues — but worth designing in before tech debt compounds across real usage.
 
 ### NOTES_PLN_NTS: PLAN_NTS — Notes Reorganization
 
@@ -1801,75 +2001,6 @@ Detailed per-iteration timing analysis from transcript files. Key findings:
 - Later iterations trend longer (growing codebase)
 - 43 min (23%) is pure orchestrator overhead (subagent spawn/teardown)
 
-#### PLAN_HLP strategy — multi-angle approach (2026-04-03)
-
-8 strategies across 3 categories to eliminate ~150 `--help` lookups/run. Key decisions:
-
-- **Reshape first, document last.** Orchestrator takes over more bookkeeping (HLP_2B) and a phase-complete composite command reduces the surface (HLP_2A) *before* creating cheat sheets or inlining examples — no point documenting commands that will change.
-- **Pre-fill context in prompts.** plet_prompt.py assembles CLI examples with iter_id/phase already filled in (HLP_1C). Zero discovery needed for the most common calls.
-- **Make discovery cheap.** `--usage` for terse help (HLP_3A), cheat sheet reference in `--help` output (HLP_3C).
-- **Excluded:** 2C (batch artifact writes — sacrifices crash recovery). Strategy 4 options (unified CLI, Python API, SDK) — architectural changes beyond scope.
-- **3B clarification:** env var points to cheat sheet file path, not inline content.
-
-#### HLP_2A — plet_phase.py end (2026-04-03)
-
-New composite command that bundles end-of-phase bookkeeping into one call: set-verdict → add-progress → append-event → audit-tag → git commit. Replaces 5-6 separate CLI calls from the subagent. Wired into implement.md (Completing the Phase, Blocker Protocol, Failed Attempt, Missing Dependency) and verify.md (Completing the Phase, Cycle Back, Blocker Protocol). Gate-post stays as a separate subagent call — it's a quality check with a self-correction loop, not bookkeeping.
-
-#### HLP_2B — gate-pre NOT moved to orchestrator (2026-04-03)
-
-Attempted to add `plet_gate_phase.py pre` calls to the orchestrator before spawning subagents. Failed: the auto-logger writes progress.md and trace entries to the worktree, creating dirty files that conflict during merge-squash. Tried `--no-log` but that's a test-only flag agents don't know about. Reverted. Gate-pre stays as an optional subagent action. HLP_2B reduced to just removing redundant start-phase instructions from reference files.
-
-#### HLP_3A — --usage flag with invocation syntax + examples (2026-04-03)
-
-Added `--usage` to all 16 plet scripts via `dispatch()` in util_cli.py. Shows compact invocation syntax + one-line description + copy-pasteable example for each command. Three-level escalation path: cheat sheet → `--usage` → `--help`.
-
-Implementation: each `cmd_*` function has a one-line docstring, a `.usage` attribute (required flags with placeholders), and an `.example` attribute (realistic invocation). `dispatch()` reads these to build the output. 45 functions across 16 scripts.
-
-**Design decision:** Initially `--usage` was just one-liner descriptions (like a compact `--help`). Expanded to include invocation syntax + examples because agents still needed a second `--help` lookup for flags. The full format eliminates the second lookup — one `--usage` call teaches every command's exact syntax.
-
-Documented in: UNV_CMD_30 (conventions.md), script_template.md, scripts/CLAUDE.md, implement.md/verify.md tool listings, all 19 spec Universal Flags tables.
-
-#### test_all ruff gate (2026-04-03)
-
-Ruff runs before any tests — if lint or format check fails, tests are skipped entirely. Previously ruff ran after tests and auto-formatted files silently. Fixed: (1) ruff check (lint) first, (2) ruff format --check (verify, no auto-fix) second, (3) suggest fix command on format failure. Missing ruff is a hard error, not a silent skip.
-
-#### HLP_1B + 3B + 3C — cheat sheet + env var + --help footer (2026-04-03)
-
-Shipped `references/cli-cheatsheet.md` organized by caller (subagent commands vs orchestrator commands). `plet_invoke.py` injects `PLET_CLI_REF` env var pointing to the file. Prompt header tells subagents about the escalation path. `--help` footer on all scripts (both top-level and per-command) says "Tip: --usage for compact syntax. cat $PLET_CLI_REF for full cheat sheet."
-
-Complete escalation path: cheat sheet → `--usage` → `--help`.
-
-HLP_1A (inline examples in reference files) deferred — HLP_1C (prompt assembler pre-fills) may make it redundant. Will validate in the next run.
-
-#### LOGA Run 7 — PLAN_HLP validation (2026-04-04)
-
-First run with 0.4.3 HLP improvements. Key results vs Run 6:
-- --help lookups: 150 → 98 (-35%). Implement agents nearly eliminated (1.2 avg). Verify agents still heavy (82 of 98).
-- plet_phase.py end: 100% adoption (26/26). Impl→verify gaps collapsed 89% (1:47 → 0:17).
-- Total wall-clock: 3:04 → 2:49 (-15 min). Code 16% more compact.
-- --usage flag: 49 uses. Cheat sheet: 16 references (verify agents only).
-
-Post-R7 improvements based on transcript analysis:
-- Verify --help dominated by 2 commands: `add-report` (JSON shape) and `append-event` (event types). Added both to prompt quick ref.
-- Strengthened CLI escalation in verify.md to Critical block.
-- Reordered prompt quick ref to match workflow (write artifacts → phase end → gate post).
-- Injected `PLET_AGENT_ID` env var so agents don't invent IDs.
-- Added phase-start commits to both implement.md and verify.md for git timeline visibility.
-
-#### Reference file bug sweep (2026-04-04)
-
-Found and fixed 8 bugs in verify.md + implement.md examples that caused CLI errors every run:
-1. Wrong flag names (`--activity` → `--phase-activity`, `--detail` → `--activity-detail`)
-2. Non-existent `--elapsed` flag on update-criterion + missing `--agent-id`
-3. Removed `--files` flag on add-progress
-4. Invalid `--event-type verdict_set` (use `decision`)
-5. Invalid `--category "requirement gap"` (use `"spec gap"`)
-6. Shell variable aliases (`$IST`, `$ENTRIES`) fail silently → direct `$PLET_SCRIPTS_DIR` calls
-7. JSON state example → CLI invocation for failure evidence
-8. Hardcoded agent IDs → `$PLET_AGENT_ID` env var
-
-These bugs were likely causing a significant portion of the --help lookups — agents encountered errors from the examples and fell back to --help to learn the real syntax.
-
 #### Auto-build verification report from state (2026-04-04)
 
 `plet_phase.py end --summary "..."` auto-builds the verification report from criteria in the state file. Agents never construct criteriaResults JSON manually. The only new inputs are `--summary` (prose headline) and optionally `--findings` (JSON array of observation strings). Everything else is derived from `update-criterion` calls already in the state file.
@@ -1883,46 +2014,6 @@ Added `oneLiner`, `redTest`, `noTestRationale` fields to the verification object
 
 `_build_criteria_results` in plet_phase.py reads these from state instead of hardcoding. SCHEMA_VERSION bumped to 0.4.0 (additive fields).
 
-#### PLAN_COV — library pattern for coverage (2026-04-04)
-
-**Root cause analysis:** Coverage keeps drifting below 85% because scripts are only callable via subprocess, which is invisible to pytest-cov. Every new script or feature dilutes the percentage, requiring manual intervention. This happened three times in one session. The root cause is architectural, not test-count.
-
-**Decision:** Restructure scripts into an importable package (PLAN_COV, 10 incremental steps). Logic functions are testable via direct import — coverage becomes a byproduct of testing, not a separate activity. `test_all.py` simultaneously tests and measures coverage. No more backsliding.
-
-**COV_1 (auto-logger test):** Direct import tests for `_log_script_invocation`, `_extract_plet_dir`, `_extract_from_args`. util_cli.py: 67% → 92%. Confirmed: direct imports are ~3x faster than subprocess per test.
-
-**COV_2 start (iter_state internals):** Direct import tests for `_validate_init_inputs`, `_parse_init_data`, `_validate_report_fields`, `_build_phase_obj`, `_find_criterion`, `_validate_criteria_results`. plet_iter_state.py: 81% → 83%. Full extraction (separating logic from CLI wrapper) deferred to the library restructure.
-
-**Quality ratchets:** Formalized as UNV_QG_1-5 in conventions.md. Added §4.5 Quality Ratchets to plan.md requirements template and §10.5 to cli-spec-template.md. Metrics that must never go backwards: coverage ≥85%, McCabe ≤15, ruff lint zero errors, ruff format clean. FOO_73 filed and resolved.
-
-#### PLAN_COV complete — tuple return migration (2026-04-04)
-
-Migrated 46 cmd_* functions across 15 scripts to return `(code, stdout, stderr)` tuples instead of printing directly and returning bare ints. dispatch() in util_cli.py routes tuples to real stdout/stderr (backward compatible — handles both patterns).
-
-**Key design:** functions never call `print()`. They return what they want to output. dispatch is the only thing that touches stdout/stderr. Tests validate the return tuple directly — no `io.StringIO` hacks, no capture helpers.
-
-**Results:** Coverage 85% → 86%. 2471 tests. ~3x faster than subprocess per test call.
-
-**Skipped:** plet_invoke.py and plet_orchestrator.py (streaming output — can't collect into tuple). Marked with TODO comments.
-
-**Test conversion attempted, reverted (earlier attempt):** Converted 14 test `run()` helpers from subprocess to direct import. All 14 failed — internal helpers (`emit_json`, `json_response`, `_parse_*`, `_validate_*`) still printed directly. Reverted; COV_9 added to fix helpers first.
-
-**COV_9 — completed (2026-04-04):** All 15 scripts migrated. Three layers of cleanup:
-1. Remaining scripts (plet_git_ops, plet_global_state, plet_git_iteration, plet_invoke) — replaced shared `emit_json`/`emit_error` imports from util_cli with local `_to_json()`/`_err_out()` helpers that return strings.
-2. Internal helpers that printed to stderr (`_load_and_validate_for_update`, `_merge_squash_validate_git`, `validate_iter_id`, `_validate_git_preconditions`, `_load_eligible_state`, `_resolve_lifecycles`, `_validate_run_inputs`) — changed to return error strings instead of printing.
-3. Naming consistency — renamed local `emit_json`/`emit_json_error` in plet_entries.py and plet_fingerprint.py to `_to_json`/`_err_json`. Zero scripts now import the deprecated shared emit helpers from util_cli.
-
-**COV_10 — completed (2026-04-04):** 15 test files converted from subprocess to direct import. Pattern: `run()` calls `module.main()` with `sys.argv`/`sys.stdout`/`sys.stderr` redirected via `io.StringIO`. Captures both tuple output AND direct stderr prints from util_cli helpers (validate_enum, require_kwargs, etc. — these still print to stderr but are captured by the StringIO redirect). 3 files kept as subprocess: invoke/orchestrator (need mock claude), util_cli (tests auto-logger subprocess integration).
-
-**COV_12 — completed (2026-04-04):** Unified test runner. `test_all.py` now runs ruff + pytest with coverage by default (~50s). Removed `coverage_all.sh`. Key changes:
-- pytest-xdist for parallel execution (one worker per test file, scales automatically)
-- `--no-cov` flag for faster runs without coverage measurement (~35s)
-- `--html` flag for HTML coverage report
-- Coverage threshold raised from 85% → 87% (current: 87.1%)
-
-Performance journey: coverage_all.sh (150s sequential) → pytest-cov sequential (145s) → pytest-xdist `-n auto` (56s) → pytest-xdist `-n <num_test_files>` (42s). The `-n auto` uses CPU count (~10); one worker per test file (~32) is faster because tests are I/O-bound (temp file creation, git operations), not CPU-bound.
-
-**PLAN_COV complete.** All 12 steps done (COV_11 skipped). Infrastructure: 934 pytest tests, 87% coverage, ~42s wall time, single entry point.
 
 **Validation return convention — completed (2026-04-04):** Unified all shared validation functions in util_cli.py to a consistent return pattern:
 - **Error:** always `(1, "", error_msg)` — a 3-tuple callers can `return` directly
@@ -1937,203 +2028,9 @@ Also cleaned up:
 - Zero `print(file=sys.stderr)` remaining in any validation path. Only dispatch() (the stdout/stderr boundary), orchestrator/invoke (streaming), and merge_driver (git-called) still print directly.
 - ~60 call sites updated across all 17 scripts. Coverage improved: 87.1% → 87.4%.
 
-### PLAN_PAR: Parallel orchestrator design decisions
-
-**Decision (2026-04-04): Conflict recovery via rebase + requeue, not auto-resolve.** When merge-squash conflicts (two parallel iterations touched the same file), the orchestrator does: `git merge --abort` → rebase iteration branch onto updated workstream → set lifecycle to `queued`. The implement agent resolves conflicts on the next pass — it already has full context. Verify then checks the result. This reuses existing retry infrastructure with no new phases.
-
-**Decision: Rebase-requeue does NOT burn an attempt.** The attempt counter tracks agent performance (did the code work?), not scheduling luck (did another iteration modify the same file?). A conflict caused by parallel timing isn't an agent failure.
-
-**Decision: File-level conflict guidance at plan time.** The dependency tree should encode file-level conflicts, not just logical dependencies. If two iterations modify the same file, one should depend on the other — even if the features are logically independent. A dependency costs nothing; a conflict costs a full iteration cycle. Added to plan.md § Dependency Graph Validation.
-
-**Decision: spawn + finalize split.** `_process_single_iteration` split into `_spawn_iteration` (worktree + implement + verify — parallelizable, returns result dict) and `_finalize_iteration` (verdict + merge-squash + cleanup — sequential on workstream). Breakpoints and max-iterations stay in the serial wrapper for now, move to the main loop in PAR_6. The split is the prerequisite for ThreadPoolExecutor in PAR_3.
-
-**Design: Round-based → streaming execution (revised 2026-04-04).** Initial implementation used synchronized rounds (spawn all → wait all → finalize all → next round). User pointed out this is suboptimal: if ID_001 finishes before ID_002 and ID_003, its dependent ID_004 should spawn immediately, not wait for the round to complete.
-
-Revised design: **streaming work queue.** ThreadPoolExecutor stays full as long as there's eligible work. As each iteration completes, it's finalized immediately (merge-squash), newly eligible iterations are checked and spawned. No synchronized round boundaries.
-
-**Decision: Breakpoints are gentle pauses (2026-04-04).** A breakpoint (before or after) means "stop spawning new work." Everything already in-flight runs to completion and gets merged. Breakpoint-before is checked at spawn time — if hit, that iteration doesn't spawn AND no further iterations spawn. Breakpoint-after is checked after finalization — if hit, no further iterations spawn. In both cases, all active iterations finish normally.
-
-Example: ID_001, ID_002, ID_003 running. ID_001 finishes, promotes ID_004 and ID_005. ID_005 has breakpoint-before. When checking ID_005, the breakpoint fires — ID_005 doesn't spawn, no further spawns happen. ID_002, ID_003, ID_004 (if already spawned) all run to completion and merge. Then pause.
-
-**Design: Event sink + injected runner for orchestrator testability (2026-04-04).** Two patterns to solve the orchestrator's 58% coverage:
-
-1. **Event sink** (COV_13): Replace `output_ndjson` bool with an injectable `EventSink` object. `NdjsonSink` prints NDJSON to stdout (production), `TextSink` prints human text (production), `CaptureSink` captures events in memory (testing), `FileSink` writes to `plet/trace/orchestrator.ndjson` (persistence + GUI). `MultiplexSink` combines them. The orchestrator's `_emit_event`/`_emit_text` are already centralized — the refactor is renaming one parameter across ~20 call sites.
-
-2. **Injected script runner** (COV_14): Replace `_run_script`/`_run_script_json` with an injectable callable. Production uses subprocess; tests provide a mock that calls cmd_* functions directly. This lets tests exercise the streaming loop, conflict recovery, breakpoints, and verdict handling without launching subprocesses.
-
-The `FileSink` is specifically for orchestrator-level events (round_start, breakpoint_hit, iteration_merged, result) — these are currently ephemeral (stdout only). Per-iteration events already go to `plet/trace/` via plet_trace.py. The orchestrator trace file enables post-run analysis and Ridler/GUI integration.
-
-**COV_13-16 completed (2026-04-05).** All four steps implemented:
-- **COV_13:** Event sink pattern — `util_sink.py` with 6 sink classes (EventSink, NdjsonSink, TextSink, CaptureSink, FileSink, MultiplexSink). Orchestrator refactored: `output_ndjson` → `sink` across 16 functions, ~20 call sites.
-- **COV_14:** Orchestrator trace file — `plet/trace/orchestrator.ndjson` via MultiplexSink(user_sink, FileSink). All orchestrator events persisted.
-- **COV_15:** Injected script runner — `_run_script`/`_run_script_json` as module-level variables. Tests override with mocks that call cmd_* directly. Mock passes lifecycle updates through to real scripts.
-- **COV_16:** Injectable launcher for invoke — `_launcher` module-level variable for `sp.Popen`. Tests use MockProcess with canned JSONL lines.
-
-**Coverage campaign results (2026-04-05):** Systematic low-hanging-fruit audit across all scripts. Added ~90 tests covering error paths, JSON output modes, dry-run paths, and validation edge cases.
-
-| Script | Before | After |
-|--------|--------|-------|
-| plet_orchestrator | 57% | 81% |
-| plet_fingerprint | 82% | 89% |
-| plet_global_state | 84% | 93% |
-| plet_iter_state | 84% | 91% |
-| plet_phase | 84% | 92% |
-| plet_invoke | 86% | 93% |
-| plet_bootstrap | 87% | 92% |
-| plet_gate_session | 87% | 91% |
-| **Overall** | **86%** | **91%** |
-| **Tests** | **934** | **1060** |
-
-Threshold raised: 85% → 87% → 88% → 90% → 91%. Coverage is now a ratchet — it goes up, never down.
-
-### PLAN_CLN: Script cleanup & consistency (2026-04-05)
-
-**PLAN_CLN_1-3 (quick wins):** Removed dead code (`emit_json`/`emit_error`/`emit_json_error` — ~40 lines, zero importers). Removed unnecessary defensive copy in CaptureSink. Replaced 7 raw `subprocess.run(["git", ...])` in orchestrator with `run_git` from util_subprocess.
-
-**PLAN_CLN_4 (validator return patterns):** Aligned 5 script-local validators with the `value/(1,"",err)` convention. `validate_iter_id` (git_iteration + entries), `validate_positive_int` (entries), `validate_artifact_dir` and `validate_file_exists` (fingerprint). The dir/file validators return the validated path on success (not None) — consistent with `validate_enum` returning the value.
-
-**PLAN_CLN_5 (util_state print-to-stderr):** `load_and_validate_global_state` and `load_and_validate_iter_state` now return `data/(1,"",err)` instead of `data/None+print`. Updated 16 callers across 6 scripts. Fixed a latent crash in orchestrator where `iter_state.get()` would fail on the error tuple (tuples are truthy, so `if iter_state` didn't catch errors).
-
-**PLAN_CLN_6 (help_hint deduplication):** Added `make_help_hint(script_name)` factory to util_cli. Replaced 16 identical 2-3 line functions across all scripts with one-liner assignments.
-
-**PLAN_CLN_7 (entries extract_universal_flags):** Replaced plet_entries.py's local `extract_universal_flags` (20 lines) with `extract_output_flags(kwargs, allow_dry_run=True)` from util_cli. Small change, high leverage: entries now uses the same shared function as every other script. When we eventually refactor the 6-tuple return (PLAN_CLN_11 — namedtuple), entries gets the improvement automatically instead of needing a separate migration. Eliminating duplicates before refactoring the shared abstraction prevents the "fix it in two places" problem.
-
-**Principle confirmed:** dedup before refactor. If you know you're going to change an interface (like the 6-tuple), first ensure every consumer goes through one function. Then changing that one function changes everything. The alternative — refactoring with duplicates still in place — means fixing N+1 locations instead of 1.
-
-**PLAN_CLN_8 (parse_command adoption):** 11 of 16 commands converted across 5 scripts. Net -194 lines. 5 commands couldn't convert: gate_session (4 — fresh-project handling needs nonexistent plet_dir) and bootstrap (1 — custom `_get_project_dir`). These are legitimate specializations, not tech debt.
-
-**PLAN_CLN_9 deferred:** invoke's 18-param `_execute_run` — low value, only called from one place, all params consumed. Readability improvement but not a correctness or consistency win.
-
-**PLAN_CLN_10 (trace helper patterns):** Aligned 4 internal helpers with value/(1,"",err). `_validate_query_filters` now returns a dict on success — cleaner than the 4-tuple it replaced. `_read_and_filter_events` left as-is (no error case).
-
-**Principle: function inputs/outputs are the API's UX.** The return convention isn't just about consistency for its own sake. When a helper's return pattern is clean (value on success, error tuple on failure), the calling code becomes cleaner — no unpacking err strings, no None checks, no multi-variable error destructuring. The caller reads like a pipeline: call → check → use. Every function whose returns we cleaned up produced simpler, more readable callers. This is analogous to UI/UX design: the inputs and outputs of a function are the interface the caller experiences. Investing in clean function signatures pays back every time someone reads or modifies the calling code.
-
-### PLAN_RFT: Refactor loop design decisions
-
-**Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.
-
-**Why milestone boundary (not per-iteration or periodic):**
-- Cross-cutting refactoring needs full codebase context — no single iteration's agent can see patterns like "16 scripts have duplicate helper functions"
-- Milestones are natural integration points — all pieces of a feature set are done
-- Avoids wasting time refactoring code that's still evolving
-- Matches how we actually did PLAN_CLN — waited for all scripts to be migrated, then swept
-
-**Why not part of verify:** Verify's job is checking correctness against acceptance criteria. Refactoring is about improving the codebase that's already correct. Different goals, different context needs. Verify sees one iteration; refactor needs to see everything.
-
-**Design sketch:**
-- Synthetic iteration: `ID_RFT_MS1`, `ID_RFT_MS2`, etc. — one per milestone
-- Not in the original dependency map — injected by orchestrator when milestone completes
-- Implement phase: agent audits codebase for patterns, inconsistencies, tech debt. Applies fixes. Runs tests.
-- Verify phase: agent checks that all tests pass, no regressions, refactoring was mechanical (no behavior changes)
-- Acceptance criteria: generated from emergent items tagged as tech-debt, plus automated quality checks (lint, complexity, coverage)
-- If refactor iteration fails verify: block it like any other — human reviews in refine
-
-**Decision (2026-04-05): Milestones as native execution barriers.** Milestones are not cosmetic groupings — they're integration points. Every iteration in MS_2 implicitly depends on all of MS_1 being complete (plus any explicit within-milestone deps). This eliminates cross-milestone parallelism by design: you don't start building MS_2 features on an un-integrated, un-refactored MS_1 foundation.
-
-The refactor iteration (`ID_RFT_MS1`) is the last iteration in each milestone. All MS_2 iterations depend on it. The dependency map encodes this — the orchestrator doesn't need milestone awareness, it just follows the DAG.
-
-**Implication for plan phase:** Milestone definition becomes a first-class design decision, not a labeling step. The plan phase must guide users to define milestones as self-contained, buildable increments:
-- Each milestone should be a coherent feature set that integrates as a unit
-- Don't split tightly coupled work across milestones (creates artificial barriers)
-- Milestone boundaries are stable interface points — within a milestone, things evolve; at the boundary, everything is clean
-- The refactor pass at each boundary enforces this
-
-**Implementation:** Plan phase generates the dependency map with milestone barriers:
-1. Within-milestone deps: explicit, per-iteration (same as today)
-2. Cross-milestone deps: implicit barrier — all MS_N+1 iterations depend on ID_RFT_MSN
-3. Refactor iteration added to each milestone during plan decomposition
-4. User reviews refactor iterations alongside regular ones
-
-The orchestrator changes zero — it sees the DAG and follows it. The streaming loop, parallel execution, breakpoints all work unchanged.
-
-**Open questions:**
-- Should the refactor agent have access to learnings.md and emergent.md to prioritize what to refactor?
-- Should there be a "refactor budget" (max time/iterations)?
-- How do we prevent the refactor from breaking things that later iterations depend on?
-- Should a milestone with only 1-2 iterations still get a refactor pass? (Probably not worth it — threshold of 3+?)
-
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
-
-### Refactor step or phase in the loop
-
-Autonomous agents accumulate tech debt iteration by iteration — each implementation subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. Regular refactoring should be built into the loop to mitigate this.
-
-Options to explore:
-- **Refactor step within each iteration:** After verify passes, a brief refactor pass before marking complete. Lightweight but frequent.
-- **Periodic refactor phase:** A dedicated refactor iteration injected every N iterations (e.g., every 3-5). Heavier but catches cross-iteration debt.
-- **Refine-triggered refactor:** The refine session surfaces tech debt from learnings/emergent items and creates refactor iterations. Already partially supported — emergent items can capture "this code needs cleanup" — but not formalized.
-- **Milestone boundary refactor:** A refactor pass at the end of each milestone before moving to the next. Natural checkpoint.
-
-Key questions:
-- Should refactoring have its own reference file (like execute.md but for cleanup)?
-- How does a refactor iteration define acceptance criteria? ("Code is cleaner" is not verifiable.)
-- Does the verify agent already catch some of this via code quality review? If so, is a separate phase redundant?
-- Should refactor iterations be auto-generated or human-approved during refine?
-
-**Hard invariant: No refactoring unless all tests pass green.** Refactoring without green tests is rearranging code you can't verify. Regression risk is too high.
-
-**Debug number exception to magic numbers rule:** 12-digit debug number literals (PL_DX_2) must NOT be flagged as magic numbers or hardcoded values. They are intentionally unique hardcoded constants — grepping the codebase for any debug number must return exactly 1 result. Never generate debug numbers at runtime (e.g., `random.randint`). One-liner to generate: `head -c 16 /dev/urandom | shasum | tr -cd '0-9' | cut -c1-12`
-
-**Two-tier refactoring model:**
-
-**Tier 1: Per-loop minor refactor** — cheap, obvious, local scope. Things any competent developer would clean up before committing. Handled by the implementation/verify agents as part of normal loop work, not a separate phase.
-
-- Very large or complex functions/modules/files (contextual thresholds — a 200-line parser may be fine, a 200-line controller is a red flag)
-- Functions/methods with high cyclomatic complexity or deep nesting
-- Tests requiring excessive setup or mocking (coupling smell)
-- Tests breaking across iterations that didn't directly touch that area (fragile coupling)
-- Growing parameter lists (introduce options/config object, or question whether the function does too much)
-- Unused imports/variables/dead code within touched files
-- Magic numbers or hardcoded values that should be named constants (exception: 12-digit debug number literals per PL_DX_2)
-- Inconsistent error handling within touched files (new pattern doesn't match existing)
-- Placeholder comments (`// TODO`, `# FIXME`) left by the agent — should never survive past verify
-- Generic error handling (catching all exceptions, swallowing errors, `except Exception: pass`)
-- Missing resource cleanup (file handles, DB connections, temp files not closed)
-- Inefficient patterns (local: N+1 queries, unnecessary copies, O(n²) where O(n) is obvious)
-- Race conditions (obvious: shared mutable state without synchronization in one file)
-
-**Tier 2: Milestone boundary full refactor** — signals that require cross-iteration perspective. Triggered when all iterations in a milestone reach `complete` (tests green by definition). Full analysis across all heuristics before starting the next milestone. Produces proposed refactor iterations that go through the normal loop (acceptance criteria, verify, the whole process).
-
-Design signals (require judgment):
-- **Excessive special cases** — the signature autonomous agent smell. Each iteration adds an `if` branch. After 5 iterations, you've got a function of special cases that should be a cleaner abstraction. Detectable: conditional branch count, `if type == "X"` / `elif type == "Y"` chains, switch-like structures that grew organically.
-- **Code or logic at the wrong conceptual level** — business logic in utility functions, presentation logic in data layers, infrastructure concerns in domain code. Agent checks against `requirements.md` which defines the intended architecture.
-- **Abstraction opportunities** — multiple iterations independently wrote similar helpers. Only visible when you look across all of them.
-
-Structural signals (cheap to detect):
-- Duplicate or near-duplicate code across files touched by different iterations
-- High-churn files (touched by many iterations = likely god object or kitchen-sink module)
-- Import tangles — circular dependencies, modules importing from too many places
-- API surface area creep — modules exposing too many public functions/methods across iterations (module boundary is wrong)
-- Configuration/constants scattered across files that should be centralized
-
-Pattern signals (from plet's own artifacts):
-- `learnings.md` entries mentioning the same file or module repeatedly
-- `emergent.md` items about workarounds or inability to cleanly separate concerns
-- Multiple iterations modifying the same function/class
-- Verify agents flagging code quality issues that suggest deeper structure problems
-
-Cross-iteration accumulation signals (verify catches these per-iteration, but accumulation across iterations is a refactoring signal):
-- Placeholder comments accumulating across the codebase
-- Generic error handling patterns spreading
-- Inefficient patterns (systemic: every iteration repeats the same expensive operation that should be cached at a higher level)
-- Hidden coupling — cross-iteration implicit dependencies not in the import graph. Module A works fine until module B changes because they share assumptions.
-- Race conditions (emergent: multiple iterations independently added concurrent access to the same resource)
-- Missing resource cleanup patterns spreading across modules
-
-Convention drift signals:
-- Inconsistent naming across iterations (mixed `snake_case` / `camelCase` for similar things)
-- Mixed patterns for the same operation (different error handling strategies, etc.)
-- Dead code left behind by iterations that changed direction
-
-Test signals:
-- Test files that became catch-alls (each iteration appended to the nearest test file rather than organizing by concern)
-- Test files growing faster than implementation files
-
-**Escape hatch:** The refine session can create refactor iterations mid-milestone if the human or learnings surface something urgent ("this module is becoming unmaintainable"). Same hard invariant applies — tests must be green.
-
-Not a v1 blocker — the current verify phase catches obvious code quality issues — but worth designing in before tech debt compounds across real usage.
 
 ### PLET.md shape and content
 What goes in PLET.md vs CLAUDE.md? PLET.md is plet-specific instructions that apply in *any* repo using plet; CLAUDE.md is project-specific. See Artifact Taxonomy § Memory.

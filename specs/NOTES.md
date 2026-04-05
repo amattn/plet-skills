@@ -17,7 +17,7 @@ Same convention as root NOTES.md: `SPEC_XXX` for H2s, `SPEC_{H2}_{CHILD}` for H3
 | SPEC_INS | Insights & Principles |
 | SPEC_LBL | Stable Label Prefixes |
 | SPEC_DES | Key Design Decisions |
-| SPEC_PLN | Plan Discussions (SPEC_PLN_COV, SPEC_PLN_CLN) |
+| SPEC_PLN | Plan Discussions (COV, CLN, HLP stub, PAR stub) |
 | SPEC_REV | Script Spec Reviews (15 scripts) |
 | SPEC_IMP | Implementation Log (chronological, append at bottom) |
 
@@ -280,8 +280,35 @@ All scripts take `<plet_dir>` as required first positional arg. Scripts derive a
 
 **Final architecture:** `test_all.py` runs ruff + pytest + coverage by default (~45s). pytest-xdist parallel (one worker per test file). 91% coverage, 1056 tests. Threshold is a ratchet — goes up, never down.
 
-**Key decisions:** Event sink pattern (COV_13), orchestrator trace file (COV_14), injectable script runner (COV_15), injectable launcher (COV_16). See root NOTES.md § NOTES_PLN_COV for the full session narrative.
+**Key decisions:** Event sink pattern (COV_13), orchestrator trace file (COV_14), injectable script runner (COV_15), injectable launcher (COV_16).
 
+#### Root cause and decision (2026-04-04)
+
+**Root cause analysis:** Coverage keeps drifting below 85% because scripts are only callable via subprocess, which is invisible to pytest-cov. Every new script or feature dilutes the percentage, requiring manual intervention. This happened three times in one session. The root cause is architectural, not test-count.
+
+**Decision:** Restructure scripts into an importable package (PLAN_COV, 10 incremental steps). Logic functions are testable via direct import — coverage becomes a byproduct of testing, not a separate activity. `test_all.py` simultaneously tests and measures coverage. No more backsliding.
+
+**COV_1 (auto-logger test):** Direct import tests for `_log_script_invocation`, `_extract_plet_dir`, `_extract_from_args`. util_cli.py: 67% → 92%. Confirmed: direct imports are ~3x faster than subprocess per test.
+
+**COV_2 start (iter_state internals):** Direct import tests for `_validate_init_inputs`, `_parse_init_data`, `_validate_report_fields`, `_build_phase_obj`, `_find_criterion`, `_validate_criteria_results`. plet_iter_state.py: 81% → 83%.
+
+**Quality ratchets:** Formalized as UNV_QG_1-5 in conventions.md. Metrics that must never go backwards: coverage ≥85%, McCabe ≤15, ruff lint zero errors, ruff format clean.
+
+#### Tuple return migration — COV_5-9 (2026-04-04)
+
+Migrated 46 cmd_* functions across 15 scripts to return `(code, stdout, stderr)` tuples instead of printing directly. dispatch() routes tuples to real stdout/stderr (backward compatible).
+
+**Key design:** functions never call `print()`. They return what they want to output. dispatch is the only thing that touches stdout/stderr.
+
+**COV_9:** All 15 scripts migrated. Three layers: remaining scripts → local `_to_json()`/`_err_out()` helpers; internal helpers → return error strings; naming consistency → renamed `emit_json`/`emit_json_error` to `_to_json`/`_err_json`.
+
+**COV_10:** 15 test files converted from subprocess to direct import. Pattern: `run()` calls `module.main()` with `sys.argv`/`sys.stdout`/`sys.stderr` redirected via `io.StringIO`.
+
+**COV_12:** Unified test runner. `test_all.py` runs ruff + pytest + coverage by default. pytest-xdist parallel (one worker per test file). Removed `coverage_all.sh`. Performance: 150s → 42s.
+
+**Validation return convention:** Error always `(1, "", error_msg)`. Success returns useful value. `parse_command` returns 3-tuple (help/error) or 6-tuple (success). `extract_output_flags` returns 4-tuple (success) or 3-tuple (error).
+
+**PLAN_COV complete.** All 12 steps done (COV_11 skipped). 934 pytest tests, 87% coverage, ~42s wall time.
 
 #### Coverage infrastructure — subprocess tracking (2026-04-02)
 
@@ -407,7 +434,52 @@ After tuple return migration (COV_5-9), audited all subprocess calls in test fil
 - `make_help_hint(script_name)` factory replaced 16 identical per-script functions
 - Dedup before refactor: eliminate duplicates first so interface changes touch one function, not N+1
 
-See root NOTES.md § NOTES_PLN_CLN for the full session narrative.
+#### Per-step details (2026-04-05)
+
+**CLN_1-3 (quick wins):** Removed dead code (`emit_json`/`emit_error`/`emit_json_error` — ~40 lines, zero importers). Removed unnecessary defensive copy in CaptureSink. Replaced 7 raw `subprocess.run(["git", ...])` in orchestrator with `run_git` from util_subprocess.
+
+**CLN_4 (validator return patterns):** Aligned 5 script-local validators with `value/(1,"",err)`. Dir/file validators return the validated path on success (not None).
+
+**CLN_5 (util_state print-to-stderr):** `load_and_validate_global_state`/`load_and_validate_iter_state` return `data/(1,"",err)` instead of `data/None+print`. Updated 16 callers across 6 scripts. Fixed latent crash in orchestrator (`iter_state.get()` on error tuple).
+
+**CLN_6 (help_hint deduplication):** `make_help_hint(script_name)` factory in util_cli. Replaced 16 identical per-script functions.
+
+**CLN_7 (entries extract_universal_flags):** Replaced local `extract_universal_flags` with shared `extract_output_flags(kwargs, allow_dry_run=True)`. Enables future 6-tuple→4-tuple refactor to touch one function.
+
+**Principle:** dedup before refactor. Ensure every consumer goes through one function before changing that function's interface.
+
+**CLN_8 (parse_command adoption):** 11 of 16 commands converted. Net -194 lines. 5 couldn't convert (gate_session fresh-project handling, bootstrap custom arg parser).
+
+**CLN_9:** Deferred (invoke's 18-param `_execute_run` — low value).
+
+**CLN_10 (trace helper patterns):** Aligned 4 internal helpers. `_validate_query_filters` returns dict on success.
+
+#### COV_13-16 and coverage campaign (2026-04-05)
+
+**COV_13-16 completed:**
+- **COV_13:** Event sink — `util_sink.py` with 6 classes (EventSink base, NdjsonSink for NDJSON to stdout, TextSink for human text, CaptureSink for testing, FileSink for persistence, MultiplexSink for combining). Orchestrator `output_ndjson` bool → `sink` object across 16 functions, ~20 call sites.
+- **COV_14:** Orchestrator trace file — `plet/trace/orchestrator.ndjson` via MultiplexSink.
+- **COV_15:** Injectable script runner — `_run_script`/`_run_script_json` as module-level variables.
+- **COV_16:** Injectable launcher — `_launcher` module-level variable for `sp.Popen`. Tests use MockProcess with canned JSONL lines.
+
+The FileSink is specifically for orchestrator-level events (round_start, breakpoint_hit, iteration_merged, result) — these were previously ephemeral (stdout only). Per-iteration events go to `plet/trace/` via plet_trace.py. The orchestrator trace file enables post-run analysis and Ridler/GUI integration.
+
+**Coverage campaign results:**
+
+| Script | Before | After |
+|--------|--------|-------|
+| plet_orchestrator | 57% | 81% |
+| plet_fingerprint | 82% | 89% |
+| plet_global_state | 84% | 93% |
+| plet_iter_state | 84% | 91% |
+| plet_phase | 84% | 92% |
+| plet_invoke | 86% | 93% |
+| plet_bootstrap | 87% | 92% |
+| plet_gate_session | 87% | 91% |
+| **Overall** | **86%** | **91%** |
+| **Tests** | **934** | **1060** |
+
+Threshold raised: 85% → 87% → 88% → 90% → 91%.
 
 ### SPEC_PLN_HLP: PLAN_HLP — Subagent CLI Re-learning
 

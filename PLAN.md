@@ -341,10 +341,14 @@ Both NOTES.md (2300 lines) and specs/NOTES.md (1900 lines) had design decisions 
 | NTS_1 | Stable labels + TOC on root NOTES.md (17 H2s, 8 plan H3s) | ✓ done |
 | NTS_2 | Stable labels + TOC on specs/NOTES.md (8 H2s) | ✓ done |
 | NTS_3 | specs/NOTES.md: reorganize into labeled sections | ✓ done — SPEC_INV (3), SPEC_TAX (4), SPEC_INS (3), SPEC_DES (4), SPEC_PLN (4: COV, CLN, HLP stub, PAR stub), SPEC_REV (15 scripts), SPEC_IMP (chronological, at bottom) |
-| NTS_4 | Root NOTES.md: move scattered plan decisions into NOTES_PLN_XXX sections | **Next** |
-| NTS_5 | Update PLAN.md sections to reference NOTES.md / specs/NOTES.md | |
-| NTS_6 | Root NOTES.md: add time markers to implementation log sections | |
+| NTS_4 | Root NOTES.md: move scattered plan decisions into NOTES_PLN_XXX sections | ✓ done — HLP, PAR, RFT moved. COV/CLN routed to specs/NOTES.md (content restored after premature deletion). |
+| NTS_5 | Update PLAN.md sections to reference NOTES.md / specs/NOTES.md | **Next** |
+| NTS_6 | Root NOTES.md: add time markers + label remaining H3s (NOTES_TAX has ~10 unlabeled) | |
 | NTS_7 | Final audit: both files, orphaned content, stale references | |
+
+
+interim consistency finding:
+- One low-priority item: NOTES_TAX H3s unlabeled. 
 
 ---
 
