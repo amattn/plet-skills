@@ -26,18 +26,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
-    UNIVERSAL_FLAGS_READ,
     dispatch,
-    extract_output_flags,
     filter_fields,
-    get_plet_dir,
     make_help_hint,
     now_iso,
     parse_command,
-    parse_kwargs,
-    require_kwargs,
     validate_enum,
-    validate_known_flags,
 )
 from util_io import (
     iter_state_path,
@@ -227,32 +221,18 @@ def cmd_check_breakpoints(args):
         (position "after"). Implements SF_21 and IMP_22.
     """
     help_text = cmd_check_breakpoints.__doc__
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-    kwargs = parse_kwargs(remaining)
-    err = validate_known_flags(kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ, _help_hint("check-breakpoints"))
-    if err:
-        return err
-
-    # Require --iter-id and --position
-    err = require_kwargs(kwargs, ["iter_id", "position"], help_text)
-    if err:
-        return err
+    hint = _help_hint("check-breakpoints")
+    result = parse_command(args, help_text, {"iter_id", "position"}, ["iter_id", "position"], False, hint)
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     iter_id = kwargs["iter_id"]
     position = kwargs["position"]
 
     result = validate_enum(position, ["before", "after"], "position")
     if isinstance(result, tuple):
-        return (1, "", result[2] or _help_hint("check-breakpoints"))
-
-    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
+        return (1, "", result[2] or hint)
 
     # Load global state
     gs_path = state_json_path(plet_dir)
@@ -313,25 +293,13 @@ def cmd_check_retry(args):
         phase produces a "rejected" verdict. Implements IMP_14.
     """
     help_text = cmd_check_retry.__doc__
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-    kwargs = parse_kwargs(remaining)
-    err = validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("check-retry"))
-    if err:
-        return err
-
-    err = require_kwargs(kwargs, ["iter_id"], help_text)
-    if err:
-        return err
+    hint = _help_hint("check-retry")
+    result = parse_command(args, help_text, {"iter_id"}, ["iter_id"], False, hint)
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     iter_id = kwargs["iter_id"]
-    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
 
     # Load per-iteration state
     ip = iter_state_path(plet_dir, iter_id)

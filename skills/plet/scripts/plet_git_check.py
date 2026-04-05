@@ -24,17 +24,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
-    UNIVERSAL_FLAGS_READ,
     dispatch,
-    extract_output_flags,
     filter_fields,
-    get_plet_dir,
     make_help_hint,
     now_iso,
-    parse_kwargs,
-    require_kwargs,
+    parse_command,
     validate_enum,
-    validate_known_flags,
 )
 from util_io import (
     state_dir_path,
@@ -310,45 +305,18 @@ Examples:
     plet_git_check.py check-iteration --iter-id ID_001 --phase implement
     plet_git_check.py check-iteration /path/to/plet --iter-id ID_001 --phase verify --output json --pretty
 """
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
     cmd_name = "check-iteration"
     hint = help_hint(cmd_name)
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        return (1, "", str(e) + "\n" + hint)
-    err = validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_READ, hint)
-    if err:
-        return err
-
-    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=False)
-    if not ok:
-        return (1, "", hint)
-
-    err = require_kwargs(kwargs, ["iter_id", "phase"], help_text)
-    if err:
-        return err
+    result = parse_command(args, help_text, {"iter_id", "phase"}, ["iter_id", "phase"], False, hint)
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     result = validate_enum(phase, VALID_PHASES, "--phase")
     if isinstance(result, tuple):
         return (1, "", result[2] or hint)
-
-    # Validate plet_dir
-    valid, err_msg = validate_plet_dir(plet_dir)
-    if not valid:
-        if output_json:
-            return (1, _err_json(cmd_name, err_msg, pretty), "")
-        else:
-            return (1, "", err_msg + "\n" + hint)
 
     # Load state
     global_state = load_and_validate_global_state(plet_dir)
@@ -615,27 +583,12 @@ Examples:
     plet_git_check.py check-session
     plet_git_check.py check-session /path/to/plet --output json --pretty
 """
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
     cmd_name = "check-session"
     hint = help_hint(cmd_name)
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        return (1, "", str(e) + "\n" + hint)
-    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint)
-    if err:
-        return err
-
-    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=False)
-    if not ok:
-        return (1, "", hint)
+    result = parse_command(args, help_text, set(), [], False, hint)
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     # Validate environment (plet_dir, state_dir, git repo)
     sd_path = state_dir_path(plet_dir)

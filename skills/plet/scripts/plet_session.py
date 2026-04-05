@@ -23,17 +23,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
-    UNIVERSAL_FLAGS_WRITE,
     dispatch,
-    extract_output_flags,
     filter_fields,
-    get_plet_dir,
     make_help_hint,
     now_iso,
-    parse_kwargs,
-    require_kwargs,
+    parse_command,
     validate_enum,
-    validate_known_flags,
 )
 from util_git import derive_branch_name
 from util_io import (
@@ -164,28 +159,16 @@ def cmd_start_session(args):
         of every loop or refine session.
     """
     help_text = cmd_start_session.__doc__
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-    kwargs = parse_kwargs(remaining)
-    err = validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-session"))
-    if err:
-        return err
-    err = require_kwargs(kwargs, ["type"], help_text)
-    if err:
-        return err
+    hint = _help_hint("start-session")
+    result = parse_command(args, help_text, {"type"}, ["type"], True, hint)
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     session_type = kwargs["type"]
     result = validate_enum(session_type, ["loop", "refine"], "type")
     if isinstance(result, tuple):
-        return (1, "", result[2] or _help_hint("start-session"))
-
-    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return (1, "", flags_err)
+        return (1, "", result[2] or hint)
 
     state, gs_path, load_err = _load_session_state(plet_dir, session_type)
     if state is None:
@@ -319,19 +302,11 @@ def cmd_end_session(args):
         and enables the next session to chain from this one.
     """
     help_text = cmd_end_session.__doc__
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-    kwargs = parse_kwargs(remaining)
-    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_WRITE, _help_hint("end-session"))
-    if err:
-        return err
-    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return (1, "", flags_err)
+    hint = _help_hint("end-session")
+    result = parse_command(args, help_text, set(), [], True, hint)
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     # Load state
     gs_path = state_json_path(plet_dir)

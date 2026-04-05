@@ -23,17 +23,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
-    UNIVERSAL_FLAGS_READ,
     dispatch,
-    extract_output_flags,
     filter_fields,
-    get_plet_dir,
     make_help_hint,
     now_iso,
-    parse_kwargs,
-    require_kwargs,
+    parse_command,
     validate_enum,
-    validate_known_flags,
 )
 from util_git import active_loop_number
 from util_io import (
@@ -41,7 +36,6 @@ from util_io import (
     iter_state_path,
     iterations_path,
     requirements_path,
-    validate_plet_dir,
 )
 from util_state import (
     load_and_validate_global_state,
@@ -575,48 +569,16 @@ Examples:
 """
     help_text = help_pre if cmd == "pre" else help_post
 
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
+    result = parse_command(args, help_text, {"iter_id", "phase"}, ["iter_id", "phase"], False, help_hint(cmd))
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
-    hint = help_hint(cmd)
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-
-    try:
-        kwargs = parse_kwargs(remaining)
-    except ValueError as e:
-        return (1, "", str(e) + "\n" + hint)
-    err = validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_READ, hint)
-    if err:
-        return err
-
-    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=False)
-    if not ok:
-        return (1, "", hint)
-
-    err = require_kwargs(kwargs, ["iter_id", "phase"], help_text)
-    if err:
-        return err
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     result = validate_enum(phase, VALID_PHASES, "--phase")
     if isinstance(result, tuple):
-        return (1, "", result[2] or hint)
-
-    valid, err = validate_plet_dir(plet_dir)
-    if not valid:
-        if output_json:
-            data = {
-                "status": "error",
-                "command": cmd,
-                "error": err,
-                "scriptVersion": SCRIPT_VERSION,
-                "timestamp": now_iso(),
-            }
-            return (1, json.dumps(data, indent=2 if pretty else None), "")
-        else:
-            return (1, "", err)
+        return (1, "", result[2] or help_hint(cmd))
 
     global_state = load_and_validate_global_state(plet_dir)
     if isinstance(global_state, tuple):

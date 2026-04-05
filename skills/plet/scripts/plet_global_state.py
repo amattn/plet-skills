@@ -33,15 +33,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
-    extract_output_flags,
     filter_fields,
-    get_plet_dir,
     make_help_hint,
     now_iso,
-    parse_kwargs,
-    require_kwargs,
+    parse_command,
     validate_enum,
-    validate_known_flags,
 )
 from util_constants import SCHEMA_VERSION, SKILL_VERSION
 from util_io import (
@@ -59,10 +55,6 @@ SCRIPT_NAME = "plet_global_state"
 SCRIPT_VERSION = "0.3.1"
 
 PROJECT_ID_RE = re.compile(r"^[A-Z][A-Z0-9]{2,5}$")
-
-UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
-UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run"}
-
 
 _help_hint = make_help_hint("plet_global_state")
 
@@ -91,20 +83,10 @@ Accumulates all errors before reporting.
 
 Exit 0 if valid, exit 1 if invalid or error.
 """
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-    kwargs = parse_kwargs(remaining)
-    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("validate"))
-    if err:
-        return err
-
-    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
+    result = parse_command(args, help_text, set(), [], False, _help_hint("validate"))
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     # Load and validate
     sjp = state_json_path(plet_dir)
@@ -213,15 +195,9 @@ Examples:
     --milestones '{"MS_1":{"name":"MVP","iterations":["ID_001","ID_002"]}}' \\
     --iterations-fingerprint '{}'
 """
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-    kwargs = parse_kwargs(remaining)
-    err = validate_known_flags(
-        kwargs,
+    result = parse_command(
+        args,
+        help_text,
         {
             "project_id",
             "project_name",
@@ -232,19 +208,14 @@ Examples:
             "milestones_file",
             "iterations_fingerprint",
             "iterations_fingerprint_file",
-        }
-        | UNIVERSAL_FLAGS_WRITE,
+        },
+        ["project_id", "project_name"],
+        True,
         _help_hint("init"),
     )
-    if err:
-        return err
-
-    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return (1, "", flags_err)
-    err = require_kwargs(kwargs, ["project_id", "project_name"], help_text)
-    if err:
-        return err
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     project_id = kwargs.pop("project_id")
     project_name = kwargs.pop("project_name")
@@ -366,24 +337,11 @@ Examples:
   plet_global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle implementing
   plet_global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle verifying --output json
 """
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
     hint = _help_hint("update-lifecycle")
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-    kwargs = parse_kwargs(remaining)
-    err = validate_known_flags(kwargs, {"iter_id", "lifecycle"} | UNIVERSAL_FLAGS_WRITE, hint)
-    if err:
-        return err
-    err = require_kwargs(kwargs, ["iter_id", "lifecycle"], help_text)
-    if err:
-        return err
-
-    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
-    if not ok:
-        return (1, "", flags_err)
+    result = parse_command(args, help_text, {"iter_id", "lifecycle"}, ["iter_id", "lifecycle"], True, hint)
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
     new_lifecycle = kwargs["lifecycle"]
@@ -453,20 +411,10 @@ Examples:
   plet_global_state.py get-lifecycle plet --iter-id ID_001
   plet_global_state.py get-lifecycle plet --output json --pretty
 """
-    if "-h" in args or "--help" in args:
-        return (0, help_text, "")
-
-    plet_dir, remaining, dir_err = get_plet_dir(args)
-    if plet_dir is None:
-        return (1, "", dir_err)
-    kwargs = parse_kwargs(remaining)
-    err = validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("get-lifecycle"))
-    if err:
-        return err
-
-    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
-    if not ok:
-        return (1, "", flags_err)
+    result = parse_command(args, help_text, {"iter_id"}, [], False, _help_hint("get-lifecycle"))
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     iter_id = kwargs.get("iter_id")
 
