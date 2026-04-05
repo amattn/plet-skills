@@ -1894,6 +1894,14 @@ Revised design: **streaming work queue.** ThreadPoolExecutor stays full as long 
 
 Example: ID_001, ID_002, ID_003 running. ID_001 finishes, promotes ID_004 and ID_005. ID_005 has breakpoint-before. When checking ID_005, the breakpoint fires — ID_005 doesn't spawn, no further spawns happen. ID_002, ID_003, ID_004 (if already spawned) all run to completion and merge. Then pause.
 
+**Design: Event sink + injected runner for orchestrator testability (2026-04-04).** Two patterns to solve the orchestrator's 58% coverage:
+
+1. **Event sink** (COV_13): Replace `output_ndjson` bool with an injectable `EventSink` object. `NdjsonSink` prints NDJSON to stdout (production), `TextSink` prints human text (production), `CaptureSink` captures events in memory (testing), `FileSink` writes to `plet/trace/orchestrator.ndjson` (persistence + GUI). `MultiplexSink` combines them. The orchestrator's `_emit_event`/`_emit_text` are already centralized — the refactor is renaming one parameter across ~20 call sites.
+
+2. **Injected script runner** (COV_14): Replace `_run_script`/`_run_script_json` with an injectable callable. Production uses subprocess; tests provide a mock that calls cmd_* functions directly. This lets tests exercise the streaming loop, conflict recovery, breakpoints, and verdict handling without launching subprocesses.
+
+The `FileSink` is specifically for orchestrator-level events (round_start, breakpoint_hit, iteration_merged, result) — these are currently ephemeral (stdout only). Per-iteration events already go to `plet/trace/` via plet_trace.py. The orchestrator trace file enables post-run analysis and Ridler/GUI integration.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).

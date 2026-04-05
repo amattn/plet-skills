@@ -548,9 +548,11 @@ assert err == ""
 | COV_9 | Fix incomplete tuple migrations | ✓ done — all scripts migrated. Local `_to_json()`/`_err_out()`/`_err_json()` replaced all `emit_json`/`emit_error` imports. Renamed helpers in plet_entries.py/plet_fingerprint.py for consistency. Updated specs, conventions, PRD. |
 | COV_10 | Convert test subprocess calls to direct import | ✓ done — 15 test files converted to `main()` + `io.StringIO` capture. 3 kept as subprocess (invoke/orchestrator need mock claude, util_cli tests auto-logger). ~10% speedup (31s→28s). Also fixed remaining `print(file=sys.stderr)` in plet_schedule.py helpers. |
 | ~~COV_11~~ | ~~Package restructure~~ | **Skipped** — tuple returns already solved the coverage problem. Package restructure would be code organization (cleaner imports, `__init__.py`) not coverage. Not justified: no external consumers, flat directory is manageable, allowed-tools depends on script paths. |
-| COV_12 | Integrate coverage into test_all.py | Endgame — `test_all.py --cov` runs coverage in-process. No more separate coverage_all.sh. |
+| COV_12 | Integrate coverage into test_all.py | ✓ done — `test_all.py` runs ruff + pytest + coverage by default (~45s). pytest-xdist parallel. Removed coverage_all.sh. |
+| COV_13 | Event sink pattern for orchestrator | Replace `output_ndjson` bool with injectable `EventSink` object. Production: `NdjsonSink`/`TextSink`. Tests: `CaptureSink`. Also `FileSink` for orchestrator trace (`plet/trace/orchestrator.ndjson`). Mechanical: ~20 call sites, rename parameter. |
+| COV_14 | Injected script runner for orchestrator | Replace hardcoded `_run_script`/`_run_script_json` subprocess calls with injectable runner. Tests provide mock that calls cmd_* functions directly. Covers streaming loop, conflict recovery, all decision logic. Orchestrator 58% → 90%+. |
 
-**Key principle:** COV_5 (dispatch update) was the foundation. COV_6-8 migrated 46 functions to tuple returns. COV_9 is the cleanup — ensuring every return path uses the tuple, not print(). COV_10 converts tests to direct import. COV_12 is the payoff — coverage as a byproduct of testing.
+**Key principle:** COV_5 (dispatch update) was the foundation. COV_6-8 migrated 46 functions to tuple returns. COV_9 is the cleanup — ensuring every return path uses the tuple, not print(). COV_10 converts tests to direct import. COV_12 is the payoff — coverage as a byproduct of testing. COV_13-14 tackle the final gap: orchestrator/invoke streaming and subprocess opacity.
 
 **What NOT to do:**
 - Don't add `# pragma: no cover` to dry-run blocks — they become testable after test conversion
