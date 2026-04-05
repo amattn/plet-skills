@@ -23,6 +23,7 @@ All commands support: --output json [--pretty] [--fields f1,f2]
 Mutating commands also support: --dry-run
 """
 
+import json
 import os
 import re
 import sys
@@ -32,8 +33,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
-    emit_json,
     extract_output_flags,
+    filter_fields,
     get_plet_dir,
     now_iso,
     parse_kwargs,
@@ -66,6 +67,15 @@ def _help_hint(cmd):
     return f"Run: plet_global_state.py {cmd} --help"
 
 
+def _to_json(data, pretty=False, fields=None):
+    """Build JSON output string with version/timestamp."""
+    data["scriptVersion"] = SCRIPT_VERSION
+    data["timestamp"] = now_iso()
+    if fields:
+        data = filter_fields(data, fields)
+    return json.dumps(data, indent=2 if pretty else None)
+
+
 # ---------------------------------------------------------------------------
 # validate
 # ---------------------------------------------------------------------------
@@ -84,49 +94,40 @@ Exit 0 if valid, exit 1 if invalid or error.
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("validate")):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("validate"))
+    if err:
+        return err
 
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     # Load and validate
     sjp = state_json_path(plet_dir)
     if not os.path.isfile(sjp):
         msg = f"Error: state.json not found at {sjp}"
         if output_json:
-            emit_json(
-                {"status": "error", "command": "validate", "path": sjp, "errors": [msg], "errorCount": 1},
-                SCRIPT_VERSION,
-                pretty,
-                fields,
-            )
-            return (1, "", "")
+            err_data = {"status": "error", "command": "validate", "path": sjp, "errors": [msg], "errorCount": 1}
+            return (1, _to_json(err_data, pretty, fields), "")
         return (1, "", msg)
 
     data = load_json(sjp)
     if data is None:
         msg = f"Error: invalid JSON in {sjp}"
         if output_json:
-            emit_json(
-                {"status": "error", "command": "validate", "path": sjp, "errors": [msg], "errorCount": 1},
-                SCRIPT_VERSION,
-                pretty,
-                fields,
-            )
-            return (1, "", "")
+            err_data = {"status": "error", "command": "validate", "path": sjp, "errors": [msg], "errorCount": 1}
+            return (1, _to_json(err_data, pretty, fields), "")
         return (1, "", msg)
 
     errors = validate_global_state(data)
     valid = len(errors) == 0
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": "ok" if valid else "error",
                 "command": "validate",
@@ -134,11 +135,10 @@ Exit 0 if valid, exit 1 if invalid or error.
                 "errors": errors,
                 "errorCount": len(errors),
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (0 if valid else 1, "", "")
+        return (0 if valid else 1, out, "")
 
     if valid:
         return (0, f"OK — {sjp} is valid", "")
@@ -216,11 +216,11 @@ Examples:
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(
+    err = validate_known_flags(
         kwargs,
         {
             "project_id",
@@ -235,14 +235,16 @@ Examples:
         }
         | UNIVERSAL_FLAGS_WRITE,
         _help_hint("init"),
-    ):
-        return (1, "", "")
+    )
+    if err:
+        return err
 
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
+    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return (1, "", "")
-    if not require_kwargs(kwargs, ["project_id", "project_name"], help_text):
-        return (1, "", "")
+        return (1, "", flags_err)
+    err = require_kwargs(kwargs, ["project_id", "project_name"], help_text)
+    if err:
+        return err
 
     project_id = kwargs.pop("project_id")
     project_name = kwargs.pop("project_name")
@@ -285,7 +287,7 @@ Examples:
 
     if dry_run:
         if output_json:
-            emit_json(
+            out = _to_json(
                 {
                     "status": "ok",
                     "command": "init",
@@ -294,11 +296,10 @@ Examples:
                     "iterationCount": iteration_count,
                     "dryRun": True,
                 },
-                SCRIPT_VERSION,
                 pretty,
                 fields,
             )
-            return (0, "", "")
+            return (0, out, "")
         else:
             return (0, f"DRY RUN — would create {sjp} ({project_id}, {iteration_count} iterations)", "")
 
@@ -306,7 +307,7 @@ Examples:
     atomic_write_json(sjp, state)
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": "ok",
                 "command": "init",
@@ -314,11 +315,10 @@ Examples:
                 "projectId": project_id,
                 "iterationCount": iteration_count,
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (0, "", "")
+        return (0, out, "")
     else:
         return (0, f"OK — created {sjp} ({project_id}, {iteration_count} iterations)", "")
 
@@ -333,25 +333,21 @@ cmd_init.example = 'plet_global_state.py init plet/ --project-id LOGA --project-
 
 
 def _load_and_validate_for_update(plet_dir, hint):
-    """Load, parse, and validate state.json for update-lifecycle. Returns (state, path) or (None, path)."""
+    """Load, parse, and validate state.json for update-lifecycle. Returns (state, path, err_str)."""
     sjp = state_json_path(plet_dir)
     if not os.path.isfile(sjp):
-        print(f"Error: state.json not found at {sjp}", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None, sjp
+        return None, sjp, f"Error: state.json not found at {sjp}\n{hint}"
     state = load_json(sjp)
     if state is None:
-        print(f"Error: invalid JSON in {sjp}", file=sys.stderr)
-        return None, sjp
+        return None, sjp, f"Error: invalid JSON in {sjp}"
     errors = validate_global_state(state)
     if errors:
-        for err in errors:
-            print(f"Error: state.json: {err}", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None, sjp
+        err_lines = [f"Error: state.json: {e}" for e in errors]
+        err_lines.append(hint)
+        return None, sjp, "\n".join(err_lines)
     if "lifecycles" not in state:
         state["lifecycles"] = {}
-    return state, sjp
+    return state, sjp, ""
 
 
 def cmd_update_lifecycle(args):
@@ -374,27 +370,30 @@ Examples:
         return (0, help_text, "")
 
     hint = _help_hint("update-lifecycle")
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id", "lifecycle"} | UNIVERSAL_FLAGS_WRITE, hint):
-        return (1, "", "")
-    if not require_kwargs(kwargs, ["iter_id", "lifecycle"], help_text):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"iter_id", "lifecycle"} | UNIVERSAL_FLAGS_WRITE, hint)
+    if err:
+        return err
+    err = require_kwargs(kwargs, ["iter_id", "lifecycle"], help_text)
+    if err:
+        return err
 
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
+    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     iter_id = kwargs["iter_id"]
     new_lifecycle = kwargs["lifecycle"]
-    if not validate_enum(new_lifecycle, VALID_LIFECYCLES, "lifecycle"):
-        return (1, "", hint)
+    result = validate_enum(new_lifecycle, VALID_LIFECYCLES, "lifecycle")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
-    state, sjp = _load_and_validate_for_update(plet_dir, hint)
+    state, sjp, load_err = _load_and_validate_for_update(plet_dir, hint)
     if state is None:
-        return (1, "", "")
+        return (1, "", load_err)
 
     old_lifecycle = state["lifecycles"].get(iter_id)
     changed = old_lifecycle != new_lifecycle
@@ -411,8 +410,7 @@ Examples:
     if dry_run:
         result["dryRun"] = True
         if output_json:
-            emit_json(result, SCRIPT_VERSION, pretty, fields)
-            return (0, "", "")
+            return (0, _to_json(result, pretty, fields), "")
         else:
             label = f"{old_lifecycle} → {new_lifecycle}" if changed else f"already {new_lifecycle}"
             return (0, f"DRY RUN — {iter_id}: {label}", "")
@@ -423,8 +421,7 @@ Examples:
         atomic_write_json(sjp, state)
 
     if output_json:
-        emit_json(result, SCRIPT_VERSION, pretty, fields)
-        return (0, "", "")
+        return (0, _to_json(result, pretty, fields), "")
     else:
         label = f"{old_lifecycle} → {new_lifecycle}" if changed else f"already {new_lifecycle}"
         return (0, f"OK — {iter_id}: {label}", "")
@@ -459,16 +456,17 @@ Examples:
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("get-lifecycle")):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("get-lifecycle"))
+    if err:
+        return err
 
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     iter_id = kwargs.get("iter_id")
 
@@ -488,15 +486,15 @@ Examples:
         if iter_id not in lifecycles:
             msg = f"Error: {iter_id} not found in lifecycles"
             if output_json:
-                emit_json({"status": "error", "command": "get-lifecycle", "error": msg}, SCRIPT_VERSION, pretty, fields)
-                return (1, "", "")
+                out = _to_json({"status": "error", "command": "get-lifecycle", "error": msg}, pretty, fields)
+                return (1, out, "")
             return (1, "", msg)
 
         filtered = {iter_id: lifecycles[iter_id]}
         counts = _lifecycle_counts(filtered)
 
         if output_json:
-            emit_json(
+            out = _to_json(
                 {
                     "status": "ok",
                     "command": "get-lifecycle",
@@ -504,11 +502,10 @@ Examples:
                     "counts": counts,
                     "total": 1,
                 },
-                SCRIPT_VERSION,
                 pretty,
                 fields,
             )
-            return (0, "", "")
+            return (0, out, "")
         else:
             return (0, f"{iter_id}: {lifecycles[iter_id]}", "")
 
@@ -518,7 +515,7 @@ Examples:
     total = len(sorted_lc)
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": "ok",
                 "command": "get-lifecycle",
@@ -526,11 +523,10 @@ Examples:
                 "counts": counts,
                 "total": total,
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (0, "", "")
+        return (0, out, "")
     else:
         lines = []
         for iid in sorted(lifecycles.keys()):

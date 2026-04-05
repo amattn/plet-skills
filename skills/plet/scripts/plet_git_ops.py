@@ -17,6 +17,7 @@ Commands:
     merge-squash    Merge iteration into workstream as one commit
 """
 
+import json
 import os
 import sys
 
@@ -27,9 +28,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
-    emit_error,
-    emit_json,
-    emit_json_error,
+    filter_fields,
+    now_iso,
     parse_command,
     validate_enum,
 )
@@ -43,6 +43,25 @@ SCRIPT_VERSION = "0.1.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
+
+
+def _to_json(data, pretty=False, fields=None):
+    """Build JSON output string with version/timestamp."""
+    data["scriptVersion"] = SCRIPT_VERSION
+    data["timestamp"] = now_iso()
+    if fields:
+        data = filter_fields(data, fields)
+    return json.dumps(data, indent=2 if pretty else None)
+
+
+def _err_out(cmd, msg, output_json, pretty):
+    """Build error output. Returns (out, err) — out has JSON if requested."""
+    if output_json:
+        return json.dumps(
+            {"status": "error", "command": cmd, "error": msg, "scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()},
+            indent=2 if pretty else None,
+        ), ""
+    return "", msg
 
 
 # ---------------------------------------------------------------------------
@@ -134,22 +153,21 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        return (1, "", hint)
+    result = validate_enum(phase, VALID_PHASES, "--phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     # Validate plet_dir
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
-        emit_error(cmd_name, err, SCRIPT_VERSION, output_json, pretty)
-        return (1, "", hint)
+        out, err_str = _err_out(cmd_name, err, output_json, pretty)
+        return (1, out, err_str or hint)
 
     # Load and validate both state files
     global_state = load_and_validate_global_state(plet_dir)
@@ -163,12 +181,12 @@ Examples:
     attempt = iter_state["attempts"].get(phase, 0)
     if attempt < 1:
         msg = f"Error: attempts.{phase} is {attempt} — phase has not been attempted"
-        emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
-        return (1, "", "")
+        out, err_str = _err_out(cmd_name, msg, output_json, pretty)
+        return (1, out, err_str)
 
     if not is_git_repo():
-        emit_error(cmd_name, "Error: not inside a git repository", SCRIPT_VERSION, output_json, pretty)
-        return (1, "", "")
+        out, err_str = _err_out(cmd_name, "Error: not inside a git repository", output_json, pretty)
+        return (1, out, err_str)
 
     return _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run)
 
@@ -199,15 +217,14 @@ def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, outpu
     if dry_run:
         result_data["dryRun"] = True
         if output_json:
-            emit_json(result_data, SCRIPT_VERSION, pretty, fields)
-            return (0, "", "")
+            return (0, _to_json(result_data, pretty, fields), "")
         else:
             return (0, f"DRY RUN — would create audit tag {tag_name} at {commit_hash}", "")
 
     r = run_git("tag", "-f", tag_name) if replaced else run_git("tag", tag_name)
     if r.returncode != 0:
-        emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
-        return (1, "", "")
+        out, err_str = _err_out(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
+        return (1, out, err_str)
 
     err_out = ""
     if replaced:
@@ -217,8 +234,7 @@ def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, outpu
         msg = f"OK — created audit tag {tag_name} at {commit_hash}"
 
     if output_json:
-        emit_json(result_data, SCRIPT_VERSION, pretty, fields)
-        return (0, "", err_out)
+        return (0, _to_json(result_data, pretty, fields), err_out)
     else:
         return (0, msg, err_out)
 
@@ -229,14 +245,13 @@ def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, outpu
 
 
 def _merge_squash_error(cmd_name, msg, output_json, pretty, hint=None):
-    """Emit an error for merge-squash and return exit code 1."""
-    if output_json:
-        emit_json_error(cmd_name, msg, SCRIPT_VERSION, pretty)
-    else:
-        print(msg, file=sys.stderr)
-    if hint:
-        print(hint, file=sys.stderr)
-    return 1
+    """Build error output for merge-squash. Returns (code, out, err)."""
+    out, err_str = _err_out(cmd_name, msg, output_json, pretty)
+    if hint and err_str:
+        err_str = f"{err_str}\n{hint}"
+    elif hint:
+        err_str = hint
+    return (1, out, err_str)
 
 
 def _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty):
@@ -393,10 +408,8 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
@@ -414,54 +427,44 @@ Examples:
 
     git_err = _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty)
     if git_err is not None:
-        return (git_err, "", "")
+        return git_err
 
     commit_title, full_message = _build_merge_squash_message(iter_state)
 
     if dry_run:
         if output_json:
-            emit_json(
-                {
-                    "status": "ok",
-                    "command": cmd_name,
-                    "commitMessage": commit_title,
-                    "iterationBranch": iter_branch,
-                    "workstreamBranch": ws_branch,
-                    "dryRun": True,
-                },
-                SCRIPT_VERSION,
-                pretty,
-                fields,
-            )
-            return (0, "", "")
+            data = {
+                "status": "ok",
+                "command": cmd_name,
+                "commitMessage": commit_title,
+                "iterationBranch": iter_branch,
+                "workstreamBranch": ws_branch,
+                "dryRun": True,
+            }
+            return (0, _to_json(data, pretty, fields), "")
         else:
             return (0, f"DRY RUN — would merge-squash {iter_branch} to {ws_branch}: {commit_title}", "")
 
-    commit_hash, err = _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pretty)
-    if err != 0:
-        return (err, "", "")
+    commit_hash, err_result = _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pretty)
+    if err_result != 0:
+        return err_result
 
     tags_cleaned, branch_deleted = _merge_squash_cleanup(
         global_state, iter_state, iter_state["iterationId"], iter_branch
     )
 
     if output_json:
-        emit_json(
-            {
-                "status": "ok",
-                "command": cmd_name,
-                "commitMessage": commit_title,
-                "commitHash": commit_hash,
-                "iterationBranch": iter_branch,
-                "workstreamBranch": ws_branch,
-                "tagsCleaned": tags_cleaned,
-                "branchDeleted": branch_deleted,
-            },
-            SCRIPT_VERSION,
-            pretty,
-            fields,
-        )
-        return (0, "", "")
+        data = {
+            "status": "ok",
+            "command": cmd_name,
+            "commitMessage": commit_title,
+            "commitHash": commit_hash,
+            "iterationBranch": iter_branch,
+            "workstreamBranch": ws_branch,
+            "tagsCleaned": tags_cleaned,
+            "branchDeleted": branch_deleted,
+        }
+        return (0, _to_json(data, pretty, fields), "")
     else:
         msg = f"OK — merged to workstream: {commit_title} ({commit_hash})"
         if tags_cleaned:

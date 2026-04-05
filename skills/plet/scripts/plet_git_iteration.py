@@ -23,6 +23,7 @@ Commands:
 TYPE is iteration (default), workstream, plan, or refine.
 """
 
+import json
 import os
 import re
 import sys
@@ -34,9 +35,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
-    emit_error,
-    emit_json,
-    emit_json_error,
+    filter_fields,
+    now_iso,
     parse_command,
     validate_enum,
 )
@@ -61,28 +61,47 @@ def help_hint(command):
     return f"Run: plet_git_iteration.py {command} --help"
 
 
+def _to_json(data, pretty=False, fields=None):
+    """Build JSON output string with version/timestamp."""
+    data["scriptVersion"] = SCRIPT_VERSION
+    data["timestamp"] = now_iso()
+    if fields:
+        data = filter_fields(data, fields)
+    return json.dumps(data, indent=2 if pretty else None)
+
+
+def _err_out(cmd, msg, output_json, pretty):
+    """Build error output. Returns (out, err) — out has JSON if requested."""
+    if output_json:
+        return json.dumps(
+            {"status": "error", "command": cmd, "error": msg, "scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()},
+            indent=2 if pretty else None,
+        ), ""
+    return "", msg
+
+
 def validate_iter_id(value, command, output_json, pretty):
-    """Validate --iter-id format. Returns True if valid."""
+    """Validate --iter-id format. Returns (True, "", "") or (False, out, err)."""
     if not ITER_ID_RE.match(value):
         msg = f"Error: --iter-id '{value}' does not match expected pattern ID_N+"
-        if output_json:
-            emit_json_error(command, msg, SCRIPT_VERSION, pretty)
-        else:
-            print(msg, file=sys.stderr)
-        return False
-    return True
+        out, err_str = _err_out(command, msg, output_json, pretty)
+        return False, out, err_str
+    return True, "", ""
 
 
 def _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint):
-    """Validate plet_dir and git repo. Returns None on success, exit code on error."""
+    """Validate plet_dir and git repo. Returns None on success, (code, out, err) on error."""
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
-        emit_error(cmd_name, err, SCRIPT_VERSION, output_json, pretty)
-        print(hint, file=sys.stderr)
-        return 1
+        out, err_str = _err_out(cmd_name, err, output_json, pretty)
+        if hint and err_str:
+            err_str = f"{err_str}\n{hint}"
+        elif hint:
+            err_str = hint
+        return (1, out, err_str)
     if not is_git_repo():
-        emit_error(cmd_name, "Error: not inside a git repository", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        out, err_str = _err_out(cmd_name, "Error: not inside a git repository", output_json, pretty)
+        return (1, out, err_str)
     return None
 
 
@@ -149,10 +168,8 @@ Examples:
         allow_dry_run=False,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     state = load_and_validate_global_state(plet_dir)
@@ -160,24 +177,24 @@ Examples:
         return (1, "", hint)
 
     branch_type = kwargs.get("type", "iteration")
-    if not validate_enum(branch_type, VALID_TYPES, "--type"):
-        return (1, "", hint)
+    result = validate_enum(branch_type, VALID_TYPES, "--type")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     iter_id = kwargs.get("iter_id")
     if branch_type == "iteration":
         if not iter_id:
-            emit_error(
-                cmd_name, "Error: --iter-id is required for --type iteration", SCRIPT_VERSION, output_json, pretty
-            )
-            return (1, "", hint)
-        if not validate_iter_id(iter_id, cmd_name, output_json, pretty):
-            return (1, "", hint)
+            out, err_str = _err_out(cmd_name, "Error: --iter-id is required for --type iteration", output_json, pretty)
+            return (1, out, err_str or hint)
+        valid, v_out, v_err = validate_iter_id(iter_id, cmd_name, output_json, pretty)
+        if not valid:
+            return (1, v_out, v_err or hint)
 
     branch = derive_branch_name(state, branch_type, iter_id)
     session_num = _branch_session_num(state, branch_type)
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": "ok",
                 "command": cmd_name,
@@ -186,11 +203,10 @@ Examples:
                 "projectId": state["projectId"],
                 "sessionNum": session_num,
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
-        return (0, "", "")
+        return (0, out, "")
     else:
         return (0, branch, "")
 
@@ -250,20 +266,19 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     cmd_name = "worktree-create"
     iter_id = kwargs["iter_id"]
-    if not validate_iter_id(iter_id, cmd_name, output_json, pretty):
-        return (1, "", hint)
+    valid, v_out, v_err = validate_iter_id(iter_id, cmd_name, output_json, pretty)
+    if not valid:
+        return (1, v_out, v_err or hint)
 
-    err = _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint)
-    if err is not None:
-        return (err, "", "")
+    git_err = _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint)
+    if git_err is not None:
+        return git_err
 
     state = load_and_validate_global_state(plet_dir)
     if state is None:
@@ -277,14 +292,14 @@ Examples:
 
     if os.path.exists(wt_path):
         msg = f"Error: worktree path already exists: {wt_path}. Remove with worktree-remove first."
-        emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
-        return (1, "", "")
+        out, err_str = _err_out(cmd_name, msg, output_json, pretty)
+        return (1, out, err_str)
 
     resumed = branch_exists(branch)
     if not resumed and not branch_exists(base):
         msg = f"Error: base branch not found: {base}. Create the workstream branch first."
-        emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
-        return (1, "", "")
+        out, err_str = _err_out(cmd_name, msg, output_json, pretty)
+        return (1, out, err_str)
 
     result_data = {
         "status": "ok",
@@ -303,8 +318,7 @@ Examples:
             msg = f"DRY RUN — would create worktree at {wt_path} on branch {branch} from {base}"
         result_data["dryRun"] = True
         if output_json:
-            emit_json(result_data, SCRIPT_VERSION, pretty, fields)
-            return (0, "", "")
+            return (0, _to_json(result_data, pretty, fields), "")
         else:
             return (0, msg, "")
 
@@ -326,15 +340,14 @@ def _execute_worktree_create(wt_path, branch, base, resumed, cmd_name, output_js
     else:
         r = run_git("worktree", "add", "-b", branch, wt_path, base)
     if r.returncode != 0:
-        emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
-        return (1, "", "")
+        out, err_str = _err_out(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
+        return (1, out, err_str)
 
     action = "resumed" if resumed else "created"
     prefix = "existing " if resumed else ""
     msg = f"OK — {action} worktree at {wt_path} on {prefix}branch {branch}"
     if output_json:
-        emit_json(result_data, SCRIPT_VERSION, pretty, fields)
-        return (0, "", "")
+        return (0, _to_json(result_data, pretty, fields), "")
     else:
         return (0, msg, "")
 
@@ -381,21 +394,20 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
-    if not validate_iter_id(iter_id, cmd_name, output_json, pretty):
-        return (1, "", hint)
+    valid, v_out, v_err = validate_iter_id(iter_id, cmd_name, output_json, pretty)
+    if not valid:
+        return (1, v_out, v_err or hint)
 
     delete_branch = kwargs.get("delete_branch", False) is True
 
-    err = _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint)
-    if err is not None:
-        return (err, "", "")
+    git_err = _validate_git_preconditions(plet_dir, cmd_name, output_json, pretty, hint)
+    if git_err is not None:
+        return git_err
 
     state = load_and_validate_global_state(plet_dir)
     if state is None:
@@ -407,8 +419,8 @@ Examples:
     wt_path = derive_worktree_path(state, iter_id, worktree_dir)
 
     if not os.path.exists(wt_path):
-        emit_error(cmd_name, f"Error: no worktree at {wt_path}", SCRIPT_VERSION, output_json, pretty)
-        return (1, "", "")
+        out, err_str = _err_out(cmd_name, f"Error: no worktree at {wt_path}", output_json, pretty)
+        return (1, out, err_str)
 
     result_data = {
         "status": "ok",
@@ -425,8 +437,7 @@ Examples:
             msg += f" and branch {branch}"
         result_data["dryRun"] = True
         if output_json:
-            emit_json(result_data, SCRIPT_VERSION, pretty, fields)
-            return (0, "", "")
+            return (0, _to_json(result_data, pretty, fields), "")
         else:
             return (0, msg, "")
 
@@ -441,8 +452,8 @@ def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_js
     """Execute the actual worktree removal and optional branch deletion. Returns (code, out, err) tuple."""
     r = run_git("worktree", "remove", "--force", wt_path)
     if r.returncode != 0:
-        emit_error(cmd_name, f"Error: git command failed: {r.stderr}", SCRIPT_VERSION, output_json, pretty)
-        return (1, "", "")
+        out, err_str = _err_out(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
+        return (1, out, err_str)
 
     run_git("worktree", "prune")
 
@@ -451,8 +462,8 @@ def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_js
         r = run_git("branch", "-D", branch)
         if r.returncode != 0:
             msg = f"Error: git command failed while deleting branch: {r.stderr}"
-            emit_error(cmd_name, msg, SCRIPT_VERSION, output_json, pretty)
-            return (1, "", "")
+            out, err_str = _err_out(cmd_name, msg, output_json, pretty)
+            return (1, out, err_str)
         branch_deleted = True
 
     result_data["branchDeleted"] = branch_deleted
@@ -461,8 +472,7 @@ def _execute_worktree_remove(wt_path, branch, delete_branch, cmd_name, output_js
         msg += f" and branch {branch}"
 
     if output_json:
-        emit_json(result_data, SCRIPT_VERSION, pretty, fields)
-        return (0, "", "")
+        return (0, _to_json(result_data, pretty, fields), "")
     else:
         return (0, msg, "")
 

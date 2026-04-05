@@ -409,7 +409,7 @@ def _parse_run_args(args):
         print(help_text)
         return "help"
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
         return None
 
@@ -422,7 +422,8 @@ def _parse_run_args(args):
 
     # Custom flag set — output is "ndjson" not "json", no pretty, no fields
     known = {"max_iterations", "sequential", "allow_stale", "output"}
-    if not validate_known_flags(kwargs, known, _help_hint("run")):
+    err = validate_known_flags(kwargs, known, _help_hint("run"))
+    if err:
         return None
 
     output_ndjson = kwargs.get("output") == "ndjson"

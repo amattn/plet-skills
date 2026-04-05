@@ -112,38 +112,23 @@ def test_require_kwargs_all_present():
     print("\n## require_kwargs — all present")
     kwargs = {"name": "foo", "count": "3"}
     result = util_cli.require_kwargs(kwargs, ["name", "count"])
-    check("returns True when all present", result is True)
+    check("returns None when all present", result is None)
 
 
 def test_require_kwargs_missing():
     print("\n## require_kwargs — missing key")
     kwargs = {"name": "foo"}
-    # Capture stderr
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = util_cli.require_kwargs(kwargs, ["name", "count"])
-    err = sys.stderr.getvalue()
-    sys.stderr = old_stderr
-
-    check("returns False on missing", result is False)
-    check("error mentions missing flag", "--count" in err)
+    check("returns error tuple on missing", isinstance(result, tuple) and result[0] == 1)
+    check("error mentions missing flag", "--count" in result[2])
 
 
 def test_require_kwargs_with_help():
     print("\n## require_kwargs — prints help on missing")
     kwargs = {}
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = util_cli.require_kwargs(kwargs, ["name"], command_help="Usage: do stuff")
-    err = sys.stderr.getvalue()
-    sys.stderr = old_stderr
-
-    check("returns False", result is False)
-    check("prints help text", "Usage: do stuff" in err)
+    check("returns error tuple", isinstance(result, tuple) and result[0] == 1)
+    check("error includes help text", "Usage: do stuff" in result[2])
 
 
 # ---------------------------------------------------------------------------
@@ -155,43 +140,29 @@ def test_validate_known_flags_all_known():
     print("\n## validate_known_flags — all known")
     kwargs = {"iter_id": "ID_001", "output": "json", "pretty": True}
     result = util_cli.validate_known_flags(kwargs, {"iter_id", "output", "pretty"})
-    check("returns True when all known", result is True)
+    check("returns None when all known", result is None)
 
 
 def test_validate_known_flags_unknown():
     print("\n## validate_known_flags — unknown flag")
     kwargs = {"iter_id": "ID_001", "banana": "yellow"}
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = util_cli.validate_known_flags(kwargs, {"iter_id", "output", "pretty"})
-    err = sys.stderr.getvalue()
-    sys.stderr = old_stderr
-
-    check("returns False on unknown", result is False)
-    check("error mentions --banana", "--banana" in err, "stderr: " + err)
+    check("returns error tuple on unknown", isinstance(result, tuple) and result[0] == 1)
+    check("error mentions --banana", "--banana" in result[2], "error: " + result[2])
 
 
 def test_validate_known_flags_with_hint():
     print("\n## validate_known_flags — with help hint")
     kwargs = {"bad_flag": "x"}
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = util_cli.validate_known_flags(kwargs, set(), help_hint="Run: script cmd --help")
-    err = sys.stderr.getvalue()
-    sys.stderr = old_stderr
-
-    check("returns False", result is False)
-    check("prints hint", "Run: script cmd --help" in err)
+    check("returns error tuple", isinstance(result, tuple) and result[0] == 1)
+    check("error includes hint", "Run: script cmd --help" in result[2])
 
 
 def test_validate_known_flags_empty_kwargs():
     print("\n## validate_known_flags — empty kwargs")
     result = util_cli.validate_known_flags({}, {"iter_id"})
-    check("empty kwargs is valid", result is True)
+    check("empty kwargs is valid", result is None)
 
 
 def test_validate_known_flags_hyphen_conversion():
@@ -199,7 +170,7 @@ def test_validate_known_flags_hyphen_conversion():
     # parse_kwargs converts --iter-id to iter_id, so known_flags uses underscores
     kwargs = {"iter_id": "ID_001", "dry_run": True}
     result = util_cli.validate_known_flags(kwargs, {"iter_id", "dry_run"})
-    check("underscore flags match", result is True)
+    check("underscore flags match", result is None)
 
 
 # ---------------------------------------------------------------------------
@@ -209,29 +180,17 @@ def test_validate_known_flags_hyphen_conversion():
 
 def test_validate_enum_valid():
     print("\n## validate_enum — valid value")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = util_cli.validate_enum("queued", ["queued", "blocked"], "lifecycle")
-    sys.stderr = old_stderr
-    check("returns True for valid", result is True)
+    check("returns value for valid", result == "queued")
 
 
 def test_validate_enum_invalid():
     print("\n## validate_enum — invalid value")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
     result = util_cli.validate_enum("running", ["queued", "blocked"], "lifecycle")
-    err = sys.stderr.getvalue()
-    sys.stderr = old_stderr
-
-    check("returns False for invalid", result is False)
-    check("error shows received value", "'running'" in err)
-    check("error shows valid values", "queued" in err and "blocked" in err)
-    check("error shows field name", "lifecycle" in err)
+    check("returns error tuple for invalid", isinstance(result, tuple) and result[0] == 1)
+    check("error shows received value", "'running'" in result[2])
+    check("error shows valid values", "queued" in result[2] and "blocked" in result[2])
+    check("error shows field name", "lifecycle" in result[2])
 
 
 # ---------------------------------------------------------------------------
@@ -241,41 +200,28 @@ def test_validate_enum_invalid():
 
 def test_validate_int_valid():
     print("\n## validate_int — valid integer")
-    val, ok = util_cli.validate_int("42", "elapsed")
-    check("parses integer", val == 42 and ok is True)
+    result = util_cli.validate_int("42", "elapsed")
+    check("parses integer", result == 42)
 
 
 def test_validate_int_negative():
     print("\n## validate_int — negative integer")
-    val, ok = util_cli.validate_int("-5", "elapsed")
-    check("parses negative", val == -5 and ok is True)
+    result = util_cli.validate_int("-5", "elapsed")
+    check("parses negative", result == -5)
 
 
 def test_validate_int_invalid():
     print("\n## validate_int — invalid string")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
-    val, ok = util_cli.validate_int("abc", "elapsed")
-    err = sys.stderr.getvalue()
-    sys.stderr = old_stderr
-
-    check("returns None, False", val is None and ok is False)
-    check("error mentions field", "elapsed" in err)
-    check("error shows received value", "'abc'" in err)
+    result = util_cli.validate_int("abc", "elapsed")
+    check("returns error tuple", isinstance(result, tuple) and result[0] == 1)
+    check("error mentions field", "elapsed" in result[2])
+    check("error shows received value", "'abc'" in result[2])
 
 
 def test_validate_int_float():
     print("\n## validate_int — float string is invalid")
-    import io
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
-    val, ok = util_cli.validate_int("3.14", "elapsed")
-    sys.stderr = old_stderr
-
-    check("rejects float string", val is None and ok is False)
+    result = util_cli.validate_int("3.14", "elapsed")
+    check("rejects float string", isinstance(result, tuple) and result[0] == 1)
 
 
 # ---------------------------------------------------------------------------
@@ -604,28 +550,28 @@ def test_filter_fields_empty_request():
 
 def test_get_plet_dir_with_dir():
     print("\n## get_plet_dir — explicit dir")
-    plet_dir, remaining = util_cli.get_plet_dir(["my/plet", "--flag", "val"])
+    plet_dir, remaining, _dir_err = util_cli.get_plet_dir(["my/plet", "--flag", "val"])
     check("extracts dir", plet_dir == "my/plet")
     check("remaining args", remaining == ["--flag", "val"])
 
 
 def test_get_plet_dir_default():
     print("\n## get_plet_dir — no plet_dir (flag first)")
-    plet_dir, remaining = util_cli.get_plet_dir(["--flag", "val"])
+    plet_dir, remaining, _dir_err = util_cli.get_plet_dir(["--flag", "val"])
     check("returns None", plet_dir is None)
     check("remaining args unchanged", remaining == ["--flag", "val"])
 
 
 def test_get_plet_dir_empty():
     print("\n## get_plet_dir — empty args")
-    plet_dir, remaining = util_cli.get_plet_dir([])
+    plet_dir, remaining, _dir_err = util_cli.get_plet_dir([])
     check("returns None", plet_dir is None)
     check("remaining empty", remaining == [])
 
 
 def test_get_plet_dir_flag_first():
     print("\n## get_plet_dir — flag as first arg")
-    plet_dir, remaining = util_cli.get_plet_dir(["--output", "json"])
+    plet_dir, remaining, _dir_err = util_cli.get_plet_dir(["--output", "json"])
     check("returns None (flag not consumed)", plet_dir is None)
     check("remaining includes flag", remaining == ["--output", "json"])
 
@@ -638,7 +584,7 @@ def test_get_plet_dir_flag_first():
 def test_extract_output_flags_json():
     print("\n## extract_output_flags — json mode")
     kwargs = {"output": "json", "pretty": True, "fields": "a,b"}
-    output_json, pretty, fields, dry_run, ok = util_cli.extract_output_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok, _flags_err = util_cli.extract_output_flags(kwargs)
     check("output_json True", output_json is True)
     check("pretty True", pretty is True)
     check("fields parsed", fields == ["a", "b"])
@@ -650,7 +596,7 @@ def test_extract_output_flags_json():
 def test_extract_output_flags_text():
     print("\n## extract_output_flags — text mode (no flags)")
     kwargs = {}
-    output_json, pretty, fields, dry_run, ok = util_cli.extract_output_flags(kwargs)
+    output_json, pretty, fields, dry_run, ok, _flags_err = util_cli.extract_output_flags(kwargs)
     check("output_json False", output_json is False)
     check("pretty False", pretty is False)
     check("fields None", fields is None)
@@ -660,21 +606,21 @@ def test_extract_output_flags_text():
 def test_extract_output_flags_pretty_without_json():
     print("\n## extract_output_flags — --pretty without --output json")
     kwargs = {"pretty": True}
-    _, _, _, _, ok = util_cli.extract_output_flags(kwargs)
+    _, _, _, _, ok, _flags_err = util_cli.extract_output_flags(kwargs)
     check("ok False", ok is False)
 
 
 def test_extract_output_flags_fields_without_json():
     print("\n## extract_output_flags — --fields without --output json")
     kwargs = {"fields": "a,b"}
-    _, _, _, _, ok = util_cli.extract_output_flags(kwargs)
+    _, _, _, _, ok, _flags_err = util_cli.extract_output_flags(kwargs)
     check("ok False", ok is False)
 
 
 def test_extract_output_flags_dry_run():
     print("\n## extract_output_flags — --dry-run allowed")
     kwargs = {"dry_run": True}
-    _, _, _, dry_run, ok = util_cli.extract_output_flags(kwargs, allow_dry_run=True)
+    _, _, _, dry_run, ok, _flags_err = util_cli.extract_output_flags(kwargs, allow_dry_run=True)
     check("dry_run True", dry_run is True)
     check("ok True", ok is True)
 
@@ -682,7 +628,7 @@ def test_extract_output_flags_dry_run():
 def test_extract_output_flags_dry_run_rejected():
     print("\n## extract_output_flags — --dry-run rejected (read-only)")
     kwargs = {"dry_run": True}
-    _, _, _, _, ok = util_cli.extract_output_flags(kwargs, allow_dry_run=False)
+    _, _, _, _, ok, _flags_err = util_cli.extract_output_flags(kwargs, allow_dry_run=False)
     check("ok False", ok is False)
 
 

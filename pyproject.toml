@@ -9,6 +9,7 @@ requires-python = ">=3.8"
 dev = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "ruff",
 ]
 
@@ -23,7 +24,7 @@ parallel = true
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 85
+fail_under = 87
 exclude_lines = [
     "if __name__",
     "pragma: no cover",

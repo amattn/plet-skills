@@ -316,12 +316,14 @@ def _validate_trace_context(kwargs, hint):
         return None, f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)\n{hint}"
 
     phase = kwargs["phase"]
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        return None, hint
+    result = validate_enum(phase, VALID_PHASES, "--phase")
+    if isinstance(result, tuple):
+        return None, result[2] or hint
 
-    attempt, ok = validate_int(kwargs["attempt"], "--attempt")
-    if not ok:
-        return None, hint
+    attempt_result = validate_int(kwargs["attempt"], "--attempt")
+    if isinstance(attempt_result, tuple):
+        return None, attempt_result[2] or hint
+    attempt = attempt_result
     if attempt < 1:
         return None, "Error: --attempt must be a positive integer, got '{}'\n{}".format(kwargs["attempt"], hint)
 
@@ -345,9 +347,9 @@ def _parse_trace_args(args, help_text, command, known_flags, required, is_mutati
     if err:
         return None, f"{err}\n{hint}"
 
-    plet_dir, remaining = get_plet_dir(clean_args)
+    plet_dir, remaining, dir_err = get_plet_dir(clean_args)
     if plet_dir is None:
-        return None, "Error: plet_dir is required"
+        return None, dir_err
 
     if not os.path.exists(plet_dir):
         return None, f"Error: {plet_dir} does not exist\n{hint}"
@@ -358,11 +360,13 @@ def _parse_trace_args(args, help_text, command, known_flags, required, is_mutati
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
         return None, f"{e}\n{hint}"
-    if not validate_known_flags(kwargs, known_flags, hint):
-        return None, ""
+    err = validate_known_flags(kwargs, known_flags, hint)
+    if err:
+        return None, err[2] or ""
 
-    if not require_kwargs(kwargs, required, help_text):
-        return None, ""
+    err = require_kwargs(kwargs, required, help_text)
+    if err:
+        return None, err[2] or ""
 
     return (plet_dir, kwargs, flags), ""
 
@@ -461,8 +465,9 @@ Examples:
     iter_id, phase, attempt = ctx
 
     event_type = kwargs["event_type"]
-    if not validate_enum(event_type, VALID_EVENT_TYPES, "--event-type"):
-        return (1, "", hint)
+    result = validate_enum(event_type, VALID_EVENT_TYPES, "--event-type")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     data_obj, data_err = _parse_event_data(kwargs, hint)
     if data_obj is None:
@@ -646,8 +651,10 @@ def _validate_query_filters(kwargs, hint):
     criterion_filter = kwargs.get("criterion")
     last_n = kwargs.get("last")
 
-    if event_type_filter is not None and not validate_enum(event_type_filter, VALID_EVENT_TYPES, "--event-type"):
-        return None, None, None, hint
+    if event_type_filter is not None:
+        result = validate_enum(event_type_filter, VALID_EVENT_TYPES, "--event-type")
+        if isinstance(result, tuple):
+            return None, None, None, result[2] or hint
 
     if criterion_filter is not None:
         if event_type_filter is not None and event_type_filter != "criterion_update":
@@ -663,9 +670,10 @@ def _validate_query_filters(kwargs, hint):
         event_type_filter = "criterion_update"
 
     if last_n is not None:
-        last_n, ok = validate_int(last_n, "--last")
-        if not ok:
-            return None, None, None, hint
+        last_n_result = validate_int(last_n, "--last")
+        if isinstance(last_n_result, tuple):
+            return None, None, None, last_n_result[2] or hint
+        last_n = last_n_result
         if last_n < 1:
             return (
                 None,

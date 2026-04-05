@@ -172,7 +172,7 @@ Metrics that must never go backwards. Each ratchet has a current value, a thresh
 
 | Metric | Threshold | Enforcement | Current |
 |--------|-----------|-------------|---------|
-| Test coverage | ≥ 85% | `coverage_all.sh` / `fail_under` in pyproject.toml | |
+| Test coverage | ≥ 87% | `test_all.py` / `fail_under` in pyproject.toml | |
 | Cyclomatic complexity | ≤ 15 per function | ruff C90 rule | |
 | Lint errors | 0 | ruff check (9 rule sets) | |
 | Format violations | 0 | ruff format --check | |

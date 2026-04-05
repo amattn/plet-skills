@@ -63,41 +63,30 @@ def _help_hint(command):
 
 
 def _load_eligible_state(plet_dir, hint):
-    """Load global state and dependency map. Returns (global_state, dep_map, error_flag)."""
+    """Load global state and dependency map. Returns (global_state, dep_map, err_str)."""
     gs_path = state_json_path(plet_dir)
     global_state = load_json(gs_path)
     if global_state is None:
-        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None, None, True
+        return None, None, f"Error: state.json not found at {gs_path}\n{hint}"
     dep_map = global_state.get("dependencyMap")
     if dep_map is None:
-        print("Error: state.json missing required field: dependencyMap", file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None, None, True
-    return global_state, dep_map, None
+        return None, None, f"Error: state.json missing required field: dependencyMap\n{hint}"
+    return global_state, dep_map, ""
 
 
 def _resolve_lifecycles(dep_map, global_state, hint):
-    """Resolve and validate lifecycles for all iterations. Returns (lifecycles, error_flag)."""
+    """Resolve and validate lifecycles for all iterations. Returns (lifecycles, err_str)."""
     lifecycles_map = global_state.get("lifecycles", {})
     lifecycles = {}
     for iter_id in dep_map:
         if iter_id not in lifecycles_map:
-            print(f"Error: iteration {iter_id} in dependencyMap but not in lifecycles", file=sys.stderr)
-            print(hint, file=sys.stderr)
-            return None, True
+            return None, f"Error: iteration {iter_id} in dependencyMap but not in lifecycles\n{hint}"
         lc = lifecycles_map[iter_id]
         if lc not in VALID_LIFECYCLES:
             valid_str = ", ".join(sorted(VALID_LIFECYCLES))
-            print(
-                f"Error: invalid lifecycle '{lc}' for {iter_id} (valid: {valid_str})",
-                file=sys.stderr,
-            )
-            print(hint, file=sys.stderr)
-            return None, True
+            return None, f"Error: invalid lifecycle '{lc}' for {iter_id} (valid: {valid_str})\n{hint}"
         lifecycles[iter_id] = lc
-    return lifecycles, None
+    return lifecycles, ""
 
 
 def _evaluate_eligibility(dep_map, lifecycles):
@@ -169,19 +158,17 @@ def cmd_eligible(args):
         allow_dry_run=False,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
-    global_state, dep_map, err = _load_eligible_state(plet_dir, hint)
-    if err:
-        return (1, "", "")
+    global_state, dep_map, load_err = _load_eligible_state(plet_dir, hint)
+    if load_err:
+        return (1, "", load_err)
 
-    lifecycles, err = _resolve_lifecycles(dep_map, global_state, hint)
-    if err:
-        return (1, "", "")
+    lifecycles, lc_err = _resolve_lifecycles(dep_map, global_state, hint)
+    if lc_err:
+        return (1, "", lc_err)
 
     eligible, stuck_iterations, counts = _evaluate_eligibility(dep_map, lifecycles)
 
@@ -243,28 +230,29 @@ def cmd_check_breakpoints(args):
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(
-        kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ, _help_hint("check-breakpoints")
-    ):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"iter_id", "position"} | UNIVERSAL_FLAGS_READ, _help_hint("check-breakpoints"))
+    if err:
+        return err
 
     # Require --iter-id and --position
-    if not require_kwargs(kwargs, ["iter_id", "position"], help_text):
-        return (1, "", "")
+    err = require_kwargs(kwargs, ["iter_id", "position"], help_text)
+    if err:
+        return err
 
     iter_id = kwargs["iter_id"]
     position = kwargs["position"]
 
-    if not validate_enum(position, ["before", "after"], "position"):
-        return (1, "", _help_hint("check-breakpoints"))
+    result = validate_enum(position, ["before", "after"], "position")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or _help_hint("check-breakpoints"))
 
-    output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     # Load global state
     gs_path = state_json_path(plet_dir)
@@ -328,20 +316,22 @@ def cmd_check_retry(args):
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("check-retry")):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, _help_hint("check-retry"))
+    if err:
+        return err
 
-    if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return (1, "", "")
+    err = require_kwargs(kwargs, ["iter_id"], help_text)
+    if err:
+        return err
 
     iter_id = kwargs["iter_id"]
-    output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     # Load per-iteration state
     ip = iter_state_path(plet_dir, iter_id)

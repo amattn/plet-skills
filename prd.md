@@ -362,7 +362,7 @@ Python scripts shipped in `skills/plet/scripts/` that enforce compliance determi
 |----|-------------|----------|
 | ES_1 | All scripts take `<plet_dir>` as optional first positional arg (default: `plet/`). Scripts derive all paths internally via `util_io` path functions. Commands needing per-iteration context add `--iter-id ID_xxx`. (UNV_CMD_16) | P0 |
 | ES_2 | All scripts support `--output json`, `--pretty`, `--fields` for structured machine-readable output. Default is human-readable text. (UNV_CMD_15, UNV_CMD_18, UNV_CMD_19) | P0 |
-| ES_3 | Shared CLI helpers (`get_plet_dir`, `extract_output_flags`, `emit_json`, `emit_json_error`) live in `util_cli.py`. Scripts import from shared modules, never duplicate patterns. (UNV_CMD_26) | P0 |
+| ES_3 | Shared CLI helpers (`get_plet_dir`, `extract_output_flags`, `filter_fields`, `parse_command`) live in `util_cli.py`. Each script defines local `_to_json()` / `_err_json()` helpers for JSON output (return strings, never print). (UNV_CMD_26) | P0 |
 | ES_4 | Exit codes: 0 = success, 1 = error. Check/gate commands additionally use 2 = warnings only (no failures). (UNV_CMD_14) | P0 |
 | ES_5 | Runtime artifacts (progress.md, learnings.md, emergent.md, trace NDJSON) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. (UNV_NFR_10) | P0 |
 | ES_6 | `plet_invoke.py` logs the full assembled prompt and invocation context to both a trace event (`invocation` type) and a progress entry before launching. Essential for eval — can't measure prompt effectiveness without knowing what the agent received. | P0 |

@@ -108,7 +108,7 @@ def extract_universal_flags(kwargs):
     return output_json, pretty, fields, dry_run, True, ""
 
 
-def emit_json(data, pretty=False, fields=None):
+def _to_json(data, pretty=False, fields=None):
     """Return JSON output string (does not print)."""
     data["scriptVersion"] = SCRIPT_VERSION
     data["timestamp"] = now_iso()
@@ -120,7 +120,7 @@ def emit_json(data, pretty=False, fields=None):
         return json.dumps(data)
 
 
-def emit_json_error(command, message, pretty=False, extra=None):
+def _err_json(command, message, pretty=False, extra=None):
     """Return (json_str, err_msg) for a JSON error (does not print)."""
     data = {
         "status": "error",
@@ -145,13 +145,13 @@ def validate_artifact_dir(artifact_dir, command, output_json, pretty):
     if not os.path.exists(artifact_dir):
         msg = f"Error: {artifact_dir} does not exist"
         if output_json:
-            out, err = emit_json_error(command, msg, pretty)
+            out, err = _err_json(command, msg, pretty)
             return out, err
         return "", msg
     if not os.path.isdir(artifact_dir):
         msg = f"Error: {artifact_dir} is not a directory"
         if output_json:
-            out, err = emit_json_error(command, msg, pretty)
+            out, err = _err_json(command, msg, pretty)
             return out, err
         return "", msg
     return "", ""
@@ -165,7 +165,7 @@ def validate_file_exists(path, command, output_json, pretty, context=""):
     if not os.path.exists(path):
         msg = f"Error: {path} does not exist — needed to {context}" if context else f"Error: {path} does not exist"
         if output_json:
-            out, err = emit_json_error(command, msg, pretty)
+            out, err = _err_json(command, msg, pretty)
             return out, err
         return "", msg
     return "", ""
@@ -508,16 +508,17 @@ def _parse_fpr_args(args, help_text, cmd_name, valid_types):
     output_json, pretty, fields, dry_run, ok, flag_err = extract_universal_flags(kwargs)
     if not ok:
         return None, "", f"{flag_err}\n{hint}"
-    if not validate_known_flags(kwargs, {"type", "bump"}, hint):
-        # validate_known_flags prints to stderr directly; we cannot intercept it here,
-        # so we signal failure — the caller returns (1, "", "")
-        return None, "", ""
-    if not require_kwargs(kwargs, ["type"], help_text):
-        return None, "", ""
+    err = validate_known_flags(kwargs, {"type", "bump"}, hint)
+    if err:
+        return None, "", err[2] or ""
+    err = require_kwargs(kwargs, ["type"], help_text)
+    if err:
+        return None, "", err[2] or ""
 
     type_val = kwargs["type"]
-    if not validate_enum(type_val, valid_types, "--type"):
-        return None, "", hint
+    result = validate_enum(type_val, valid_types, "--type")
+    if isinstance(result, tuple):
+        return None, "", result[2] or hint
     vout, verr = validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty)
     if verr:
         return None, vout, f"{verr}\n{hint}"
@@ -570,7 +571,7 @@ Examples:
     if dry_run:
         msg = "Error: --dry-run is not available on the extract command (read-only)"
         if output_json:
-            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            eout, eerr = _err_json(cmd_name, msg, pretty)
             return 1, eout, f"{eerr}\n{hint}"
         return 1, "", f"{msg}\n{hint}"
 
@@ -578,7 +579,7 @@ Examples:
     if "bump" in kwargs:
         msg = "Error: --bump is only valid on the embed command"
         if output_json:
-            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            eout, eerr = _err_json(cmd_name, msg, pretty)
             return 1, eout, f"{eerr}\n{hint}"
         return 1, "", f"{msg}\n{hint}"
 
@@ -599,12 +600,12 @@ Examples:
     except ValueError as e:
         msg = f"Error: malformed fingerprint in {target_path}: {e}"
         if output_json:
-            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            eout, eerr = _err_json(cmd_name, msg, pretty)
             return 1, eout, eerr
         return 1, "", msg
 
     if output_json:
-        out = emit_json(
+        out = _to_json(
             {"status": "ok", "command": cmd_name, "type": type_val, "path": target_path, "fingerprint": fingerprint},
             pretty,
             fields,
@@ -770,7 +771,7 @@ def _emit_embed_result(
             msg += f" (timestamp would be {bump_desc})"
         result_data["dryRun"] = True
         if output_json:
-            return 0, emit_json(result_data, pretty, fields), ""
+            return 0, _to_json(result_data, pretty, fields), ""
         return 0, msg, ""
 
     updated_text = write_fingerprint_block(text, fingerprint)
@@ -782,7 +783,7 @@ def _emit_embed_result(
         msg += f" (timestamp {bump_desc})"
 
     if output_json:
-        return 0, emit_json(result_data, pretty, fields), ""
+        return 0, _to_json(result_data, pretty, fields), ""
     return 0, msg, ""
 
 
@@ -793,7 +794,7 @@ def _extract_fingerprint_safe(extract_fn, text, output_json, pretty):
     except ValueError as e:
         msg = f"Error: {e}"
         if output_json:
-            eout, eerr = emit_json_error("embed", msg, pretty)
+            eout, eerr = _err_json("embed", msg, pretty)
             return None, eout, eerr
         return None, "", msg
 
@@ -845,7 +846,7 @@ def _embed_iterations(artifact_dir, target_path, req_path, force_bump, dry_run, 
     if req_fingerprint is None:
         msg = f"Error: no valid fingerprint found in {req_path} — run embed --type requirements first"
         if output_json:
-            eout, eerr = emit_json_error("embed", msg, pretty)
+            eout, eerr = _err_json("embed", msg, pretty)
             return 1, eout, eerr
         return 1, "", msg
 
@@ -890,7 +891,7 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
     if iter_fingerprint is None:
         msg = f"Error: no valid fingerprint found in {iter_path} — run embed --type iterations first"
         if output_json:
-            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            eout, eerr = _err_json(cmd_name, msg, pretty)
             return 1, eout, eerr
         return 1, "", msg
 
@@ -902,7 +903,7 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
     if dry_run:
         msg = f"DRY RUN — would embed state fingerprint in {target_path}"
         if output_json:
-            out = emit_json(
+            out = _to_json(
                 {
                     "status": "ok",
                     "command": cmd_name,
@@ -926,7 +927,7 @@ def _embed_state(artifact_dir, target_path, iter_path, force_bump, dry_run, outp
     msg = f"OK — embedded state fingerprint in {target_path}"
 
     if output_json:
-        out = emit_json(
+        out = _to_json(
             {
                 "status": "ok",
                 "command": cmd_name,
@@ -958,7 +959,7 @@ def _check_requirements_level(req_path, iter_path, cmd_name, output_json, pretty
     except ValueError as e:
         msg = f"Error: malformed fingerprint in {req_path}: {e}"
         if output_json:
-            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            eout, eerr = _err_json(cmd_name, msg, pretty)
             return None, None, eout, eerr
         return None, None, "", msg
 
@@ -993,7 +994,7 @@ def _check_iterations_level(iter_path, state_path, iter_text_cached, cmd_name, o
     except ValueError as e:
         msg = f"Error: malformed fingerprint in {iter_path}: {e}"
         if output_json:
-            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            eout, eerr = _err_json(cmd_name, msg, pretty)
             return None, None, eout, eerr
         return None, None, "", msg
 
@@ -1125,23 +1126,22 @@ Examples:
         allow_dry_run=False,
         hint=hint,
     )
-    if result == "help":
-        return 0, help_text, ""
-    if result is None:
-        return 1, "", ""
+    if len(result) == 3:
+        return result
     artifact_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     # --bump not valid on check
     if "bump" in kwargs:
         msg = "Error: --bump is only valid on the embed command"
         if output_json:
-            eout, eerr = emit_json_error(cmd_name, msg, pretty)
+            eout, eerr = _err_json(cmd_name, msg, pretty)
             return 1, eout, f"{eerr}\n{hint}"
         return 1, "", f"{msg}\n{hint}"
 
     level = kwargs.get("level", "all")
-    if not validate_enum(level, VALID_CHECK_LEVELS, "--level"):
-        return 1, "", hint
+    result = validate_enum(level, VALID_CHECK_LEVELS, "--level")
+    if isinstance(result, tuple):
+        return 1, "", result[2] or hint
 
     vout, verr = validate_artifact_dir(artifact_dir, cmd_name, output_json, pretty)
     if verr:
@@ -1164,7 +1164,7 @@ Examples:
     # Emit results
     if output_json:
         status = "ok" if all_consistent else "stale"
-        out = emit_json(
+        out = _to_json(
             {
                 "status": status,
                 "command": cmd_name,

@@ -25,8 +25,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import (
     dispatch,
-    emit_error,
-    emit_json,
+    filter_fields,
+    now_iso,
     parse_command,
     validate_enum,
 )
@@ -53,31 +53,46 @@ def help_hint(command):
     return f"Run: plet_invoke.py {command} --help"
 
 
+def _to_json(data, pretty=False, fields=None):
+    """Build JSON output string with version/timestamp."""
+    data["scriptVersion"] = SCRIPT_VERSION
+    data["timestamp"] = now_iso()
+    if fields:
+        data = filter_fields(data, fields)
+    return json.dumps(data, indent=2 if pretty else None)
+
+
+def _err_out(cmd, msg, output_json, pretty):
+    """Build error output. Returns (out, err) — out has JSON if requested."""
+    if output_json:
+        return json.dumps(
+            {"status": "error", "command": cmd, "error": msg, "scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()},
+            indent=2 if pretty else None,
+        ), ""
+    return "", msg
+
+
 def scripts_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
 def _validate_run_inputs(phase, permission_mode, plet_dir, cwd, cmd_name, output_json, pretty, hint):
-    """Validate phase, permission_mode, plet_dir, and cwd. Returns None on success, exit code on error."""
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        print(hint, file=sys.stderr)
-        return 1
+    """Validate phase, permission_mode, plet_dir, and cwd. Returns None on success, (code, out, err) on error."""
+    result = validate_enum(phase, VALID_PHASES, "--phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
     if permission_mode not in VALID_PERMISSION_MODES:
-        print(
-            "Error: invalid --permission-mode '{}' (valid: {})".format(
-                permission_mode, ", ".join(VALID_PERMISSION_MODES)
-            ),
-            file=sys.stderr,
+        msg = "Error: invalid --permission-mode '{}' (valid: {})".format(
+            permission_mode, ", ".join(VALID_PERMISSION_MODES)
         )
-        print(hint, file=sys.stderr)
-        return 1
+        return (1, "", f"{msg}\n{hint}")
     valid, err = validate_plet_dir(plet_dir)
     if not valid:
-        emit_error(cmd_name, err, SCRIPT_VERSION, output_json, pretty)
-        return 1
+        out, err_str = _err_out(cmd_name, err, output_json, pretty)
+        return (1, out, err_str)
     if not os.path.isdir(cwd):
-        emit_error(cmd_name, f"Error: working directory not found: {cwd}", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        out, err_str = _err_out(cmd_name, f"Error: working directory not found: {cwd}", output_json, pretty)
+        return (1, out, err_str)
     return None
 
 
@@ -332,9 +347,6 @@ Examples:
     plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd /tmp/wt --dry-run
     plet_invoke.py run --iter-id ID_001 --phase verify --cwd /tmp/wt --output json
 """
-    # TODO: COV migration — streaming output prevents tuple return for the live subprocess path.
-    # The dry-run path could return a tuple, but the live path uses _launch_and_capture which
-    # streams stdout line-by-line to a transcript file. Keeping int return for consistency.
     cmd_name = "run"
     hint = help_hint(cmd_name)
     result = parse_command(
@@ -345,10 +357,8 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return 0
-    if result is None:
-        return 1
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     iter_id = kwargs["iter_id"]
@@ -361,22 +371,22 @@ Examples:
     max_budget = kwargs.get("max_budget")
     verbose = kwargs.get("verbose", False) is True
 
-    err = _validate_run_inputs(phase, permission_mode, plet_dir, cwd, cmd_name, output_json, pretty, hint)
-    if err is not None:
-        return err
+    val_err = _validate_run_inputs(phase, permission_mode, plet_dir, cwd, cmd_name, output_json, pretty, hint)
+    if val_err is not None:
+        return val_err
 
     state_data = load_iter_state_json(plet_dir, iter_id)
     if state_data is None:
-        emit_error(cmd_name, f"Error: iteration state not found for {iter_id}", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        out, err_str = _err_out(cmd_name, f"Error: iteration state not found for {iter_id}", output_json, pretty)
+        return (1, out, err_str)
     attempt = state_data.get("attempts", {}).get(phase, 0) + 1
 
     t_path = transcript_path(plet_dir, iter_id, phase, attempt)
 
     prompt_text, prm_err = assemble_prompt(plet_dir, iter_id, phase)
     if prompt_text is None:
-        emit_error(cmd_name, f"Error: {prm_err}", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        out, err_str = _err_out(cmd_name, f"Error: {prm_err}", output_json, pretty)
+        return (1, out, err_str)
 
     plet_env = _build_plet_env(plet_dir, cwd, iter_id, phase, attempt)
     prompt_text = _build_prompt_with_env(prompt_text, plet_env)
@@ -385,7 +395,7 @@ Examples:
     if dry_run:
         cmd_str = " ".join(f'"{c}"' if " " in c or len(c) > 100 else c for c in claude_cmd)
         if output_json:
-            emit_json(
+            out = _to_json(
                 {
                     "status": "ok",
                     "command": cmd_name,
@@ -396,15 +406,13 @@ Examples:
                     "transcriptPath": t_path,
                     "dryRun": True,
                 },
-                SCRIPT_VERSION,
                 pretty,
                 fields,
             )
+            return (0, out, "")
         else:
-            print("DRY RUN — would execute:")
-            print(cmd_str)
-            print(f"\nTranscript would be written to: {t_path}")
-        return 0
+            msg = f"DRY RUN — would execute:\n{cmd_str}\n\nTranscript would be written to: {t_path}"
+            return (0, msg, "")
 
     return _execute_run(
         cmd_name,
@@ -479,10 +487,10 @@ def _execute_run(
     pretty,
     fields,
 ):
-    """Execute the claude subprocess (non-dry-run path)."""
+    """Execute the claude subprocess (non-dry-run path). Returns (code, out, err) tuple."""
     if find_claude() is None:
-        emit_error(cmd_name, "Error: claude not found on PATH", SCRIPT_VERSION, output_json, pretty)
-        return 1
+        out, err_str = _err_out(cmd_name, "Error: claude not found on PATH", output_json, pretty)
+        return (1, out, err_str)
 
     trace_dir = os.path.dirname(t_path)
     if not os.path.isdir(trace_dir):
@@ -507,7 +515,7 @@ def _execute_run(
     sub_exit, transcript_lines, elapsed = _launch_and_capture(claude_cmd, cwd, plet_env, t_path)
 
     if output_json:
-        emit_json(
+        out = _to_json(
             {
                 "status": "ok" if sub_exit == 0 else "error",
                 "command": cmd_name,
@@ -519,17 +527,15 @@ def _execute_run(
                 "transcriptLines": transcript_lines,
                 "elapsedSeconds": round(elapsed, 1),
             },
-            SCRIPT_VERSION,
             pretty,
             fields,
         )
+        return (sub_exit, out, "")
     else:
         if sub_exit == 0:
-            print(f"OK — {phase} subprocess exited 0")
+            return (0, f"OK — {phase} subprocess exited 0", "")
         else:
-            print(f"ERROR — {phase} subprocess exited {sub_exit}", file=sys.stderr)
-
-    return sub_exit
+            return (sub_exit, "", f"ERROR — {phase} subprocess exited {sub_exit}")
 
 
 # ---------------------------------------------------------------------------

@@ -72,18 +72,18 @@ def test_validate_iter_id():
     import plet_git_iteration
 
     # Valid IDs
-    check("valid ID_001", plet_git_iteration.validate_iter_id("ID_001", "test", False, False))
-    check("valid ID_999", plet_git_iteration.validate_iter_id("ID_999", "test", False, False))
+    check("valid ID_001", plet_git_iteration.validate_iter_id("ID_001", "test", False, False)[0])
+    check("valid ID_999", plet_git_iteration.validate_iter_id("ID_999", "test", False, False)[0])
 
     # Invalid IDs (text output)
-    check("invalid empty", not plet_git_iteration.validate_iter_id("", "test", False, False))
-    check("invalid no prefix", not plet_git_iteration.validate_iter_id("001", "test", False, False))
-    check("invalid bad prefix", not plet_git_iteration.validate_iter_id("XX_001", "test", False, False))
-    check("invalid no digits", not plet_git_iteration.validate_iter_id("ID_", "test", False, False))
+    check("invalid empty", not plet_git_iteration.validate_iter_id("", "test", False, False)[0])
+    check("invalid no prefix", not plet_git_iteration.validate_iter_id("001", "test", False, False)[0])
+    check("invalid bad prefix", not plet_git_iteration.validate_iter_id("XX_001", "test", False, False)[0])
+    check("invalid no digits", not plet_git_iteration.validate_iter_id("ID_", "test", False, False)[0])
 
-    # Invalid ID with JSON output (exercises emit_json_error path, line 69)
-    check("invalid json output", not plet_git_iteration.validate_iter_id("bad", "test", True, False))
-    check("invalid json pretty", not plet_git_iteration.validate_iter_id("bad", "test", True, True))
+    # Invalid ID with JSON output (exercises _err_out path)
+    check("invalid json output", not plet_git_iteration.validate_iter_id("bad", "test", True, False)[0])
+    check("invalid json pretty", not plet_git_iteration.validate_iter_id("bad", "test", True, True)[0])
 
 
 def test_is_git_repo():
@@ -155,7 +155,7 @@ def test_validate_git_preconditions():
             result = plet_git_iteration._validate_git_preconditions(
                 "/nonexistent/path", "test-cmd", False, False, "hint"
             )
-            check("bad plet dir = 1", result == 1)
+            check("bad plet dir = 1", exit_code(result) == 1)
         finally:
             os.chdir(old_cwd)
 
@@ -167,7 +167,7 @@ def test_validate_git_preconditions():
             os.chdir(non_git)
             try:
                 result = plet_git_iteration._validate_git_preconditions(non_git_plet, "test-cmd", False, False, "hint")
-                check("not git repo = 1", result == 1)
+                check("not git repo = 1", exit_code(result) == 1)
             finally:
                 os.chdir(old_cwd)
         finally:

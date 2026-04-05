@@ -19,9 +19,8 @@ Argument parsing, validation, timestamps, dispatch, output filtering. The founda
 | `filter_fields(data, fields)` | Limit dict to requested fields. Adds fieldsIncluded/fieldsOmitted. |
 | `get_plet_dir(args)` | Extract required plet_dir from positional args. Returns `(plet_dir, remaining_args)`. Errors if missing. |
 | `extract_output_flags(kwargs, allow_dry_run=False)` | Extract `--output`, `--pretty`, `--fields`, optionally `--dry-run` from kwargs. Returns `(output_json, pretty, fields, dry_run, ok)`. Validates flag dependencies. |
-| `emit_json(data, script_version, pretty, fields)` | Print structured JSON to stdout. Adds `scriptVersion` and `timestamp`. Applies field filtering. |
-| `emit_json_error(command, message, script_version, pretty)` | Print structured JSON error to stdout + text to stderr. |
-| `emit_error(cmd, msg, version, output_json, pretty)` | Unified error emitter — prints to stderr (text) or stdout (JSON error envelope) depending on output mode. |
+| `filter_fields(data, fields)` | Filter a dict to only the specified field names. Used by per-script `_to_json()` helpers. |
+| ~~`emit_json`~~, ~~`emit_json_error`~~, ~~`emit_error`~~ | **Deprecated.** Still defined in util_cli for backward compat but no scripts import them. Each script defines local `_to_json()` and `_err_json()` / `_err_out()` that return strings (never print). |
 | `parse_command(args, help_text, known_flags, required, allow_dry_run, hint)` | Parse command args with known flags, required field validation, optional dry-run support, and a hint string for unknown-flag error messages. |
 
 ## util_io.py

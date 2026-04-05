@@ -291,7 +291,7 @@ plet_session.py start-session plet/ --type loop
 
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
-| SES_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `now_iso`, `dispatch`, `emit_json`, `get_plet_dir`, `extract_output_flags` |
+| SES_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `now_iso`, `dispatch`, `filter_fields`, `get_plet_dir`, `extract_output_flags` |
 | SES_DEP_2 | imports | `util_io` | `load_json`, `atomic_write_json`, `state_json_path` |
 | SES_DEP_5 | imports | `util_git` | `derive_branch_name` — extracted from `plet_git_iteration.py` into new `util_git.py`. Both scripts import the same function — single source of truth for branch naming. |
 | SES_DEP_3 | called by | `plet_orchestrator.py` | `start-session` at loop/refine entry, `end-session` at exit |

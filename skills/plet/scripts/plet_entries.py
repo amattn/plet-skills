@@ -124,13 +124,12 @@ def validate_positive_int(value, field_name):
     Note: validate_int already prints to stderr on type error; this function only adds its own
     message for the > 0 constraint.
     """
-    parsed, ok = validate_int(value, field_name)
-    if not ok:
-        # validate_int already printed the error; return empty msg to avoid duplication
-        return None, False, ""
-    if parsed <= 0:
+    result = validate_int(value, field_name)
+    if isinstance(result, tuple):
+        return None, False, result[2]
+    if result <= 0:
         return None, False, f"Error: {field_name} must be a positive integer, got '{value}'"
-    return parsed, True, ""
+    return result, True, ""
 
 
 def validate_content(content_text, allow_fences=False):
@@ -195,7 +194,7 @@ def extract_universal_flags(kwargs):
     return output_json, pretty, fields, dry_run, True, ""
 
 
-def emit_json(data, pretty=False, fields=None):
+def _to_json(data, pretty=False, fields=None):
     """Return JSON string for output."""
     data["scriptVersion"] = SCRIPT_VERSION
     data["timestamp"] = now_iso()
@@ -207,7 +206,7 @@ def emit_json(data, pretty=False, fields=None):
         return json.dumps(data)
 
 
-def emit_json_error(command, message, pretty=False, extra=None):
+def _err_json(command, message, pretty=False, extra=None):
     """Return (out_str, err_str) for a JSON error response."""
     data = {
         "status": "error",
@@ -257,10 +256,12 @@ def _parse_entry_args(args, help_text, cmd_name, known_flags, required):
     output_json, pretty, fields, dry_run, ok, flag_err = extract_universal_flags(kwargs)
     if not ok:
         return None, f"{flag_err}\n{hint}"
-    if not validate_known_flags(kwargs, known_flags, hint):
-        return None, hint
-    if not require_kwargs(kwargs, required, help_text):
-        return None, ""
+    err = validate_known_flags(kwargs, known_flags, hint)
+    if err:
+        return None, err[2] or hint
+    err = require_kwargs(kwargs, required, help_text)
+    if err:
+        return None, err[2] or ""
 
     id_ok, id_err = validate_iter_id(kwargs["iter_id"])
     if not id_ok:
@@ -301,14 +302,14 @@ def _emit_entry_result(cmd_name, plet_id, file_path, extra_data, dry_run, output
                 "dryRun": True,
                 "message": msg,
             }
-            return (0, emit_json(data, pretty, fields), "")
+            return (0, _to_json(data, pretty, fields), "")
         else:
             return (0, msg, "")
 
     if output_json:
         data = {"status": "ok", "command": cmd_name, "pletId": plet_id, "path": file_path}
         data.update(extra_data)
-        return (0, emit_json(data, pretty, fields), "")
+        return (0, _to_json(data, pretty, fields), "")
     else:
         return (0, f"OK — {plet_id}{text_suffix}", "")
 
@@ -364,16 +365,18 @@ Examples:
     artifact_dir, kwargs, output_json, pretty, fields, dry_run = parsed
 
     hint = help_hint(cmd_name)
-    if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
+    result = validate_enum(kwargs["phase"], VALID_PHASES, "--phase")
+    if isinstance(result, tuple):
         if output_json:
-            out, _ = emit_json_error(cmd_name, "invalid --phase '{}'".format(kwargs["phase"]), pretty)
-            return (1, out, hint)
-        return (1, "", hint)
-    if not validate_enum(kwargs["status"], VALID_PROGRESS_STATUSES, "--status"):
+            out, _ = _err_json(cmd_name, "invalid --phase '{}'".format(kwargs["phase"]), pretty)
+            return (1, out, result[2] or hint)
+        return (1, "", result[2] or hint)
+    result = validate_enum(kwargs["status"], VALID_PROGRESS_STATUSES, "--status")
+    if isinstance(result, tuple):
         if output_json:
-            out, _ = emit_json_error(cmd_name, "invalid --status '{}'".format(kwargs["status"]), pretty)
-            return (1, out, hint)
-        return (1, "", hint)
+            out, _ = _err_json(cmd_name, "invalid --status '{}'".format(kwargs["status"]), pretty)
+            return (1, out, result[2] or hint)
+        return (1, "", result[2] or hint)
 
     attempt = kwargs["_attempt_int"]
     content_text = kwargs["_content_text"]
@@ -466,10 +469,12 @@ Examples:
     artifact_dir, kwargs, output_json, pretty, fields, dry_run = parsed
 
     hint = help_hint(cmd_name)
-    if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
-        return (1, "", hint)
-    if not validate_enum(kwargs["category"], VALID_LEARNING_CATEGORIES, "--category"):
-        return (1, "", hint)
+    result = validate_enum(kwargs["phase"], VALID_PHASES, "--phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
+    result = validate_enum(kwargs["category"], VALID_LEARNING_CATEGORIES, "--category")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     attempt = kwargs["_attempt_int"]
     content_text = kwargs["_content_text"]
@@ -561,10 +566,12 @@ Examples:
     artifact_dir, kwargs, output_json, pretty, fields, dry_run = parsed
 
     hint = help_hint(cmd_name)
-    if not validate_enum(kwargs["phase"], VALID_PHASES, "--phase"):
-        return (1, "", hint)
-    if not validate_enum(kwargs["category"], VALID_EMERGENT_CATEGORIES, "--category"):
-        return (1, "", hint)
+    result = validate_enum(kwargs["phase"], VALID_PHASES, "--phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
+    result = validate_enum(kwargs["category"], VALID_EMERGENT_CATEGORIES, "--category")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     attempt = kwargs["_attempt_int"]
     content_text = kwargs["_content_text"]
@@ -631,10 +638,12 @@ def _parse_check_args(args, help_text):
     output_json, pretty, fields, _, ok, flag_err = extract_universal_flags(kwargs)
     if not ok:
         return None, f"{flag_err}\n{hint}"
-    if not validate_known_flags(kwargs, {"iter_id"}, hint):
-        return None, hint
-    if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return None, ""
+    err = validate_known_flags(kwargs, {"iter_id"}, hint)
+    if err:
+        return None, err[2] or hint
+    err = require_kwargs(kwargs, ["iter_id"], help_text)
+    if err:
+        return None, err[2] or ""
 
     return (artifact_dir, kwargs, output_json, pretty, fields), ""
 
@@ -644,14 +653,14 @@ def _validate_check_iter_id(iteration, cmd_name, output_json, pretty, hint):
     if iteration.lower() == "proj":
         msg = "Error: --iter-id 'proj' is not accepted by check — R_7 is per-iteration only"
         if output_json:
-            out, err = emit_json_error(cmd_name, msg, pretty)
+            out, err = _err_json(cmd_name, msg, pretty)
             return False, out, f"{err}\n{hint}"
         else:
             return False, "", f"{msg}\n{hint}"
     if not ITER_ID_PATTERN.match(iteration):
         msg = f"Error: --iter-id '{iteration}' does not match expected pattern ID_N+"
         if output_json:
-            out, err = emit_json_error(cmd_name, msg, pretty)
+            out, err = _err_json(cmd_name, msg, pretty)
             return False, out, f"{err}\n{hint}"
         else:
             return False, "", f"{msg}\n{hint}"
@@ -723,7 +732,7 @@ Examples:
             "artifacts": results,
             "allPresent": all_present,
         }
-        return (0 if all_present else 1, emit_json(data, pretty, fields), "")
+        return (0 if all_present else 1, _to_json(data, pretty, fields), "")
     else:
         out_lines = []
         err_lines = []

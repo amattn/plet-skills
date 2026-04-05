@@ -5,16 +5,17 @@ Zero dependencies beyond stdlib. Run with:
     ./skills/plet/tests/test_plet_prompt.py
 """
 
+import io
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
+import plet_prompt  # noqa: E402
 from util_fixture import (
     make_global_state as _shared_make_global_state,
 )
@@ -23,27 +24,34 @@ from util_fixture import (
 )
 from util_io import iter_state_path, iterations_path, learnings_path, requirements_path, state_dir_path
 
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_prompt.py")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 REFS_DIR = os.path.join(os.path.dirname(__file__), "..", "references")
+
+# Suppress auto-logger globally for tests
+os.environ["PLET_NO_LOG"] = "1"
 
 passed = 0
 failed = 0
 
 
 def run(args, expect_exit=0, cwd=None):
-    result = subprocess.run(
-        [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True,
-        text=True,
-        cwd=cwd,
-    )
-    if result.returncode != expect_exit:
-        raise AssertionError(
-            f"Exit code {result.returncode}, expected {expect_exit}.\n"
-            f"stdout: {result.stdout[:500]}\nstderr: {result.stderr[:500]}"
-        )
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
+    """Run via main() with stdout/stderr capture — no subprocess."""
+    old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
+    old_cwd = os.getcwd() if cwd else None
+    sys.argv = ["plet_prompt", "--no-log"] + args
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+    try:
+        if cwd:
+            os.chdir(cwd)
+        code = plet_prompt.main()
+        out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
+    finally:
+        sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
+        if old_cwd:
+            os.chdir(old_cwd)
+    if code != expect_exit:
+        raise AssertionError(f"Exit code {code}, expected {expect_exit}.\nstdout: {out}\nstderr: {err}")
+    return out.strip(), err.strip(), code
 
 
 def check(name, condition, detail=""):

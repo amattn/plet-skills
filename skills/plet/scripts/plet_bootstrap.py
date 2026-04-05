@@ -347,12 +347,13 @@ Examples:
         return (1, "", dir_err)
 
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"force"} | UNIVERSAL_FLAGS_WRITE, _help_hint("setup")):
-        return (1, "", "")
+    vkf_err = validate_known_flags(kwargs, {"force"} | UNIVERSAL_FLAGS_WRITE, _help_hint("setup"))
+    if vkf_err:
+        return vkf_err
 
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
+    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     # Preconditions
     if not os.path.isdir(project_dir):
@@ -603,12 +604,13 @@ Examples:
         return (1, "", dir_err)
 
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("check")):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, _help_hint("check"))
+    if err:
+        return err
 
-    output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     if not os.path.isdir(project_dir):
         err = f"Error: directory does not exist: {project_dir}\n"

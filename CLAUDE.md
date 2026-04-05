@@ -86,9 +86,8 @@ To test: use this repo's skill directly (Claude Code should pick it up from the 
 
 **No shortcuts:** Do not write the script and tests together. Do not write the script first and backfill tests. The red step is not optional — it's the proof that your test catches what it claims to catch. But the script must exist as a stub before tests are written — "file not found" is not red, it's missing infrastructure.
 
-**Two test runners:**
-- `./skills/plet/tests/test_all.py` — fast (~30s), ruff + tests. Use during development.
-- `bash skills/plet/tests/coverage_all.sh` — full coverage (~120s). **Run after adding new scripts or significant changes.** Threshold: 85%.
+**Test runner:**
+- `./skills/plet/tests/test_all.py` — ruff + pytest + coverage (~50s). Coverage is on by default (threshold: 87%). Use `--no-cov` for faster runs (~35s) during rapid iteration. Use `--html` for an HTML coverage report.
 
 ## NOTES.md Routing
 

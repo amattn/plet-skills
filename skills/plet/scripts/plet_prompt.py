@@ -330,16 +330,15 @@ Examples:
         allow_dry_run=False,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        return (1, "", hint)
+    result = validate_enum(phase, VALID_PHASES, "--phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     # Validate plet_dir
     valid, err = validate_plet_dir(plet_dir)

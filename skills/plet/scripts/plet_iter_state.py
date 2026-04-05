@@ -154,18 +154,20 @@ Exit 0 if valid, exit 1 if invalid or error.
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "Error: plet_dir is required")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
     hint = _help_hint("validate")
-    if not validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, hint):
-        return (1, "", hint)
-    if not require_kwargs(kwargs, ["iter_id"], help_text):
-        return (1, "", "")
-    output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
+    err = validate_known_flags(kwargs, {"iter_id"} | UNIVERSAL_FLAGS_READ, hint)
+    if err:
+        return (1, "", err[2] or hint)
+    err = require_kwargs(kwargs, ["iter_id"], help_text)
+    if err:
+        return (1, "", err[2] or "")
+    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     iter_id = kwargs["iter_id"]
     data, path, load_err = _load_state(plet_dir, iter_id, hint)
@@ -254,10 +256,8 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
@@ -392,25 +392,28 @@ Examples:
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
     hint = _help_hint("start-phase")
-    if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_WRITE, hint):
-        return (1, "", hint)
-    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_WRITE, hint)
+    if err:
+        return (1, "", err[2] or hint)
+    err = require_kwargs(kwargs, ["iter_id", "phase"], help_text)
+    if err:
+        return (1, "", err[2] or "")
 
-    output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
+    output_json, pretty, fields_filter, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
 
-    if not validate_enum(phase, VALID_PHASES, "phase"):
-        return (1, "", hint)
+    result = validate_enum(phase, VALID_PHASES, "phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
@@ -498,12 +501,12 @@ Examples:
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
     hint = _help_hint("update-activity")
-    if not validate_known_flags(
+    err = validate_known_flags(
         kwargs,
         {
             "iter_id",
@@ -513,22 +516,25 @@ Examples:
         }
         | UNIVERSAL_FLAGS_WRITE,
         hint,
-    ):
-        return (1, "", hint)
-    if not require_kwargs(kwargs, ["iter_id", "phase_activity", "activity_detail", "agent_id"], help_text):
-        return (1, "", "")
+    )
+    if err:
+        return (1, "", err[2] or hint)
+    err = require_kwargs(kwargs, ["iter_id", "phase_activity", "activity_detail", "agent_id"], help_text)
+    if err:
+        return (1, "", err[2] or "")
 
-    output_json, pretty, fields_filter, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
+    output_json, pretty, fields_filter, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     iter_id = kwargs["iter_id"]
     phase_activity = kwargs["phase_activity"]
     activity_detail = kwargs["activity_detail"]
     agent_id = kwargs["agent_id"]
 
-    if not validate_enum(phase_activity, PHASE_ACTIVITIES, "phase-activity"):
-        return (1, "", hint)
+    result = validate_enum(phase_activity, PHASE_ACTIVITIES, "phase-activity")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     data, path, load_err = _load_state(plet_dir, iter_id, hint)
     if data is None:
@@ -663,20 +669,20 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     status = kwargs["status"]
 
-    if not validate_enum(phase, ["implementation", "verification"], "phase"):
-        return (1, "", hint)
-    if not validate_enum(status, ["not_started", "fail", "pass", "error", "skipped"], "status"):
-        return (1, "", hint)
+    result = validate_enum(phase, ["implementation", "verification"], "phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
+    result = validate_enum(status, ["not_started", "fail", "pass", "error", "skipped"], "status")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     elapsed = kwargs.get("elapsed")
     if elapsed is not None:
@@ -800,18 +806,17 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
     verdict = kwargs["verdict"]
 
-    if not validate_enum(phase, VALID_PHASES, "phase"):
-        return (1, "", hint)
+    result = validate_enum(phase, VALID_PHASES, "phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     valid_verdicts = IMPLEMENT_VERDICTS if phase == "implement" else VERIFY_VERDICTS
     if verdict not in valid_verdicts:
@@ -876,19 +881,21 @@ Examples:
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
     hint = _help_hint("heartbeat")
-    if not validate_known_flags(kwargs, {"iter_id", "agent_id"} | UNIVERSAL_FLAGS_READ, hint):
-        return (1, "", hint)
-    if not require_kwargs(kwargs, ["iter_id", "agent_id"], help_text):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"iter_id", "agent_id"} | UNIVERSAL_FLAGS_READ, hint)
+    if err:
+        return (1, "", err[2] or hint)
+    err = require_kwargs(kwargs, ["iter_id", "agent_id"], help_text)
+    if err:
+        return (1, "", err[2] or "")
 
-    output_json, pretty, fields_filter, _, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields_filter, _, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     iter_id = kwargs["iter_id"]
     agent_id = kwargs["agent_id"]
@@ -1025,10 +1032,8 @@ Examples:
         allow_dry_run=True,
         hint=hint,
     )
-    if result == "help":
-        return (0, help_text, "")
-    if result is None:
-        return (1, "", "")
+    if len(result) == 3:
+        return result
     plet_dir, kwargs, output_json, pretty, fields_filter, dry_run = result
 
     iter_id = kwargs["iter_id"]
@@ -1036,8 +1041,9 @@ Examples:
     summary = kwargs["summary"]
     agent_id = kwargs["agent_id"]
 
-    if not validate_enum(verdict, ["passed", "rejected", "blocked"], "verdict"):
-        return (1, "", hint)
+    result = validate_enum(verdict, ["passed", "rejected", "blocked"], "verdict")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     criteria_results, findings, related_entries, err = _parse_report_json_args(kwargs)
     if err:

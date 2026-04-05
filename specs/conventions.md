@@ -32,7 +32,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_CMD_9 | Every command supports `-h` and `--help`. Top-level `--help` prints the module docstring. Help text is agent-readable with copy-pasteable examples | P0 |
 | UNV_CMD_10 | Only file path / artifact directory as positional arg. All other arguments use named `--key value` format. Agents generate commands programmatically — predictability matters more than brevity. | P0 |
 | UNV_CMD_16 | **Unified plet_dir input:** All scripts take `<plet_dir>` as required first positional arg (no default). Every call must be explicit about which plet context it operates in (required for subplet support). Scripts derive all paths via `util_io` path functions (`state_json_path`, `iter_state_path`, etc.) — never construct paths manually. Commands needing per-iteration context add `--iter-id ID_xxx`. | P0 |
-| UNV_CMD_26 | **Shared CLI helpers:** Scripts must use `util_cli` for: `get_plet_dir()` (parse plet_dir from args), `extract_output_flags()` (parse --output/--pretty/--fields/--dry-run), `emit_json()` / `emit_json_error()` (structured output). Do not duplicate these patterns per-script. | P0 |
+| UNV_CMD_26 | **Shared CLI helpers:** Scripts must use `util_cli` for: `get_plet_dir()` (parse plet_dir from args), `extract_output_flags()` (parse --output/--pretty/--fields/--dry-run), `filter_fields()` (field filtering). Each script defines local `_to_json()` / `_err_json()` (or `_err_out()`) helpers for structured output — these return strings (never print). Do not import the deprecated `emit_json` / `emit_json_error` from util_cli. | P0 |
 | UNV_CMD_11 | No argparse — manual parsing via `parse_kwargs()` pattern | P0 |
 | UNV_CMD_12 | Complex values (arrays, objects) passed as JSON strings | P0 |
 | UNV_CMD_13 | Every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)` | P0 |
@@ -110,7 +110,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | UNV_QG_1 | McCabe cyclomatic complexity ≤15 per function. Enforced by ruff C90 rule. Functions exceeding threshold must be decomposed — extract helpers, not raise the limit. | P0 |
-| UNV_QG_2 | Test coverage ≥85% across all scripts. Measured by `coverage_all.sh` (subprocess tracking). Threshold in `pyproject.toml` `fail_under = 85`. | P0 |
+| UNV_QG_2 | Test coverage ≥87% across all scripts. Measured by `test_all.py` (pytest-cov + pytest-xdist). Threshold in `pyproject.toml` `fail_under = 87`. | P0 |
 | UNV_QG_3 | Ruff lint (9 rule sets: E, F, W, I, N, UP, B, SIM, C90) must pass with zero errors before tests run. `test_all.py` enforces this as a gate — tests are skipped if ruff fails. | P0 |
 | UNV_QG_4 | Ruff format must pass (`ruff format --check`). No auto-fix in the test runner — developer fixes manually. | P0 |
 | UNV_QG_5 | All quality gates run in a single command: `test_all.py` (ruff + tests, ~30s) for development, `coverage_all.sh` (ruff + tests + coverage, ~120s) for pre-publish. | P0 |

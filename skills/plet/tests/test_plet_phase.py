@@ -10,6 +10,7 @@ verdict set, progress entry written, trace event emitted, audit tag created,
 artifacts committed.
 """
 
+import io
 import json
 import os
 import shutil
@@ -19,6 +20,8 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
+
+import plet_phase  # noqa: E402
 from util_fixture import (
     make_global_state,
     make_iter_state,
@@ -28,8 +31,6 @@ from util_fixture import (
 from util_io import events_path, iter_state_path, load_json, progress_path
 
 TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_phase.py")
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from plet_phase import cmd_end  # noqa: E402 — direct import for coverage visibility
 
 # Suppress auto-logger globally for tests
 os.environ["PLET_NO_LOG"] = "1"
@@ -53,25 +54,24 @@ def run_subprocess(args, expect_exit=0):
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
-def exit_code(result):
-    """Extract exit code from tuple (code, out, err) or bare int result."""
-    return result[0] if isinstance(result, tuple) else result
-
-
 def run(args, expect_exit=0, cwd=None):
-    """Call cmd_end directly (coverage-visible). Strips 'end' prefix."""
-    if args and args[0] == "end":
-        args = args[1:]
-    old_cwd = os.getcwd()
-    if cwd:
-        os.chdir(cwd)
+    """Run via main() with stdout/stderr capture — no subprocess."""
+    old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
+    old_cwd = os.getcwd() if cwd else None
+    sys.argv = ["plet_phase", "--no-log"] + args
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        rc = exit_code(cmd_end(args))
+        if cwd:
+            os.chdir(cwd)
+        code = plet_phase.main()
+        out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
-        os.chdir(old_cwd)
-    if rc != expect_exit:
-        raise AssertionError(f"Exit code {rc}, expected {expect_exit}.")
-    return "", "", rc
+        sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
+        if old_cwd:
+            os.chdir(old_cwd)
+    if code != expect_exit:
+        raise AssertionError(f"Exit code {code}, expected {expect_exit}.\nstdout: {out}\nstderr: {err}")
+    return out.strip(), err.strip(), code
 
 
 def check(name, condition, detail=""):

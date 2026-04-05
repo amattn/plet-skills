@@ -5,35 +5,35 @@ Zero dependencies beyond stdlib. Run with:
     ./skills/plet/tests/test_plet_global_state.py
 """
 
+import io
 import json
 import os
-import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+import plet_global_state  # noqa: E402  (after the sys.path.insert for scripts dir)
 from util_io import state_json_path
-
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_global_state.py")
 
 passed = 0
 failed = 0
 
 
 def run(args, expect_exit=0):
-    """Run the script with args via subprocess, assert exit code."""
-    result = subprocess.run(
-        [sys.executable, TOOL] + args,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != expect_exit:
-        raise AssertionError(
-            f"Expected exit {expect_exit}, got {result.returncode}.\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
+    """Run via main() with stdout/stderr capture — no subprocess."""
+    old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
+    sys.argv = ["plet_global_state", "--no-log"] + args
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+    try:
+        code = plet_global_state.main()
+        out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
+    finally:
+        sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
+    if code != expect_exit:
+        raise AssertionError(f"Exit code {code}, expected {expect_exit}.\nstdout: {out}\nstderr: {err}")
+    return out.strip(), err.strip(), code
 
 
 def check(name, condition, detail=""):

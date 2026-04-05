@@ -212,18 +212,19 @@ Examples:
 
     cmd_name = "detect"
     hint = help_hint(cmd_name)
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
         return (1, "", str(e) + "\n" + hint)
-    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint)
+    if err:
+        return err
 
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
         return (1, "", hint)
 
@@ -446,18 +447,19 @@ Examples:
 
     cmd_name = "status"
     hint = help_hint(cmd_name)
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
         return (1, "", str(e) + "\n" + hint)
-    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint)
+    if err:
+        return err
 
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
         return (1, "", hint)
 
@@ -787,24 +789,27 @@ Examples:
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     # NOTE: do NOT validate plet_dir exists — preflight checks fresh projects
     # where plet/ may not exist yet. parse_command would reject this.
 
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"session_type", "output", "pretty", "fields"}, hint):
-        return (1, "", "")
-    if not require_kwargs(kwargs, ["session_type"], help_text):
-        return (1, "", "")
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs)
+    err = validate_known_flags(kwargs, {"session_type", "output", "pretty", "fields"}, hint)
+    if err:
+        return err
+    err = require_kwargs(kwargs, ["session_type"], help_text)
+    if err:
+        return err
+    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     session_type_raw = kwargs["session_type"]
-    if not validate_enum(session_type_raw, VALID_SESSION_TYPES, "--session-type"):
-        return (1, "", hint)
+    result = validate_enum(session_type_raw, VALID_SESSION_TYPES, "--session-type")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     # Resolve "detect" to actual session type
     session_type = detect_session_type(plet_dir)[0] if session_type_raw == "detect" else session_type_raw
@@ -858,22 +863,25 @@ def cmd_postflight(args):
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ, help_hint("postflight")):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"session_type"} | UNIVERSAL_FLAGS_READ, help_hint("postflight"))
+    if err:
+        return err
 
-    if not require_kwargs(kwargs, ["session_type"], help_text):
-        return (1, "", "")
+    err = require_kwargs(kwargs, ["session_type"], help_text)
+    if err:
+        return err
     session_type = kwargs["session_type"]
-    if not validate_enum(session_type, ["detect", "plan", "loop", "refine"], "session-type"):
-        return (1, "", help_hint("postflight"))
+    result = validate_enum(session_type, ["detect", "plan", "loop", "refine"], "session-type")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or help_hint("postflight"))
 
-    output_json, pretty, fields, _, ok = extract_output_flags(kwargs)
+    output_json, pretty, fields, _, ok, flags_err = extract_output_flags(kwargs)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     checks = run_preflight_checks(plet_dir, session_type)
     _append_transient_lifecycle_check(checks, plet_dir)

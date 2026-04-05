@@ -411,7 +411,7 @@ plet_schedule.py check-retry plet/ --iter-id ID_002 --output json --pretty
 
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
-| SCH_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `now_iso`, `dispatch`, `emit_json`, `emit_json_error`, `get_plet_dir`, `extract_output_flags`, `filter_fields` |
+| SCH_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `now_iso`, `dispatch`, `get_plet_dir`, `extract_output_flags`, `filter_fields`, `parse_command` |
 | SCH_DEP_2 | imports | `util_io` | `load_json`, `state_json_path`, `iter_state_path`, `state_dir_path` |
 | SCH_DEP_5 | imports | `util_state` | `VALID_LIFECYCLES` — lifecycle enum validation for `eligible`. `load_and_validate_iter_state` no longer needed for `eligible` (reads state.json only). `check-retry` reads per-iteration files directly via `util_io.load_json`. |
 | SCH_DEP_3 | called by | `plet_orchestrator.py` | All three commands — core scheduling decisions in the main loop |

@@ -1844,11 +1844,37 @@ Migrated 46 cmd_* functions across 15 scripts to return `(code, stdout, stderr)`
 
 **Skipped:** plet_invoke.py and plet_orchestrator.py (streaming output — can't collect into tuple). Marked with TODO comments.
 
-**Test conversion attempted, reverted:** Converted 14 test `run()` helpers from subprocess to direct import. All 14 failed — the cmd_* functions return tuples but internal helpers (`emit_json`, `json_response`, `_parse_*`, `_validate_*`) still print directly. The tuple migration was incomplete: cmd_* functions wrap their own output in tuples, but helper calls inside them leak to real stdout/stderr. The direct import tests see empty `out` strings because JSON went to real stdout, not the tuple.
+**Test conversion attempted, reverted (earlier attempt):** Converted 14 test `run()` helpers from subprocess to direct import. All 14 failed — internal helpers (`emit_json`, `json_response`, `_parse_*`, `_validate_*`) still printed directly. Reverted; COV_9 added to fix helpers first.
 
-**COV_9 — fix incomplete migrations (in progress):** Each script's internal helpers need to return strings instead of printing. Pattern: helper returns `(result, err_str)`, cmd_* function unpacks and includes in its tuple. plet_trace.py completed (5 helpers, 3 cmd functions, 0 remaining print calls). 14 scripts remaining.
+**COV_9 — completed (2026-04-04):** All 15 scripts migrated. Three layers of cleanup:
+1. Remaining scripts (plet_git_ops, plet_global_state, plet_git_iteration, plet_invoke) — replaced shared `emit_json`/`emit_error` imports from util_cli with local `_to_json()`/`_err_out()` helpers that return strings.
+2. Internal helpers that printed to stderr (`_load_and_validate_for_update`, `_merge_squash_validate_git`, `validate_iter_id`, `_validate_git_preconditions`, `_load_eligible_state`, `_resolve_lifecycles`, `_validate_run_inputs`) — changed to return error strings instead of printing.
+3. Naming consistency — renamed local `emit_json`/`emit_json_error` in plet_entries.py and plet_fingerprint.py to `_to_json`/`_err_json`. Zero scripts now import the deprecated shared emit helpers from util_cli.
 
-**Subprocess audit:** 271 subprocess calls in test files. 223 are git operations (unavoidable — need real repos). 22 are script calls via sys.executable (eliminable after COV_9). 16 are mock claude / orchestrator infrastructure. COV_10 (package restructure) skipped — tuple returns already solved the coverage problem.
+**COV_10 — completed (2026-04-04):** 15 test files converted from subprocess to direct import. Pattern: `run()` calls `module.main()` with `sys.argv`/`sys.stdout`/`sys.stderr` redirected via `io.StringIO`. Captures both tuple output AND direct stderr prints from util_cli helpers (validate_enum, require_kwargs, etc. — these still print to stderr but are captured by the StringIO redirect). 3 files kept as subprocess: invoke/orchestrator (need mock claude), util_cli (tests auto-logger subprocess integration).
+
+**COV_12 — completed (2026-04-04):** Unified test runner. `test_all.py` now runs ruff + pytest with coverage by default (~50s). Removed `coverage_all.sh`. Key changes:
+- pytest-xdist for parallel execution (one worker per test file, scales automatically)
+- `--no-cov` flag for faster runs without coverage measurement (~35s)
+- `--html` flag for HTML coverage report
+- Coverage threshold raised from 85% → 87% (current: 87.1%)
+
+Performance journey: coverage_all.sh (150s sequential) → pytest-cov sequential (145s) → pytest-xdist `-n auto` (56s) → pytest-xdist `-n <num_test_files>` (42s). The `-n auto` uses CPU count (~10); one worker per test file (~32) is faster because tests are I/O-bound (temp file creation, git operations), not CPU-bound.
+
+**PLAN_COV complete.** All 12 steps done (COV_11 skipped). Infrastructure: 934 pytest tests, 87% coverage, ~42s wall time, single entry point.
+
+**Validation return convention — completed (2026-04-04):** Unified all shared validation functions in util_cli.py to a consistent return pattern:
+- **Error:** always `(1, "", error_msg)` — a 3-tuple callers can `return` directly
+- **Success:** returns a useful value — the validated data for `validate_enum` (returns the value) and `validate_int` (returns parsed int), `None` for checks (`validate_known_flags`, `require_kwargs`), 6-tuple for `parse_command`
+- Callers distinguish by type: `if err: return err` for None/tuple checks, `if isinstance(result, tuple): return result` for value-returning validators, `if len(result) == 3: return result` for parse_command
+
+Also cleaned up:
+- `get_plet_dir` → returns 3-tuple `(plet_dir, remaining, err_str)` (was 2-tuple, error printed)
+- `extract_output_flags` → returns 6-tuple with `err_msg` as 6th element (was 5-tuple, error printed)
+- `parse_command` → returns `(0, help_text, "")` for help, `(1, "", err)` for error, 6-tuple for success (was `"help"`, `None`, 6-tuple — callers needed three-way check)
+- `_load_session_state`, `_check_active_sessions` in plet_session.py → return error strings instead of printing
+- Zero `print(file=sys.stderr)` remaining in any validation path. Only dispatch() (the stdout/stderr boundary), orchestrator/invoke (streaming), and merge_driver (git-called) still print directly.
+- ~60 call sites updated across all 17 scripts. Coverage improved: 87.1% → 87.4%.
 
 ### Case study timing analysis
 

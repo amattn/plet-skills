@@ -99,19 +99,16 @@ def parse_kwargs(args):
 def require_kwargs(kwargs, required, command_help=""):
     """Check that all required keys exist in kwargs.
 
-    On first missing key, prints error to stderr. If command_help is
-    provided, prints it to stderr after the error.
-
-    Returns True if all present, False if any missing.
+    Returns None if all present, (1, "", error_msg) if any missing.
     """
     for key in required:
         if key not in kwargs:
             flag = key.replace("_", "-")
-            print(f"Error: --{flag} is required", file=sys.stderr)
+            msg = f"Error: --{flag} is required"
             if command_help:
-                print(command_help, file=sys.stderr)
-            return False
-    return True
+                msg = f"{msg}\n{command_help}"
+            return (1, "", msg)
+    return None
 
 
 # Universal flag sets for validate_known_flags.
@@ -128,49 +125,38 @@ def validate_known_flags(kwargs, known_flags, help_hint=""):
         known_flags: set/list of valid flag names in underscore format.
             Combine command-specific flags with UNIVERSAL_FLAGS_READ or
             UNIVERSAL_FLAGS_WRITE: {"iter_id"} | UNIVERSAL_FLAGS_READ
-        help_hint: string printed to stderr on failure (e.g., "Run: script cmd --help")
+        help_hint: string appended to error on failure (e.g., "Run: script cmd --help")
 
-    On first unknown flag, prints error to stderr.
-    Returns True if all flags known, False if unknown found.
+    Returns None if all flags known, (1, "", error_msg) if unknown found.
     """
     known = set(known_flags)
     for key in kwargs:
         if key not in known:
             flag = "--" + key.replace("_", "-")
-            print(f"Error: unknown flag {flag}. {help_hint}", file=sys.stderr)
-            return False
-    return True
+            return (1, "", f"Error: unknown flag {flag}. {help_hint}")
+    return None
 
 
 def validate_enum(value, valid_values, field_name):
     """Check that value is in valid_values.
 
-    On failure, prints error to stderr showing received value and
-    valid options. Returns True if valid, False if not.
+    Returns value if valid, (1, "", error_msg) if not.
     """
     if value not in valid_values:
-        print(
-            "Error: invalid {} '{}' (valid: {})".format(field_name, value, ", ".join(valid_values)),
-            file=sys.stderr,
-        )
-        return False
-    return True
+        msg = "Error: invalid {} '{}' (valid: {})".format(field_name, value, ", ".join(valid_values))
+        return (1, "", msg)
+    return value
 
 
 def validate_int(value, field_name):
     """Parse a string as an integer.
 
-    On failure, prints error to stderr.
-    Returns (parsed_int, True) on success, (None, False) on failure.
+    Returns parsed_int on success, (1, "", error_msg) on failure.
     """
     try:
-        return int(value), True
+        return int(value)
     except (ValueError, TypeError):
-        print(
-            f"Error: {field_name} must be an integer, got '{value}'",
-            file=sys.stderr,
-        )
-        return None, False
+        return (1, "", f"Error: {field_name} must be an integer, got '{value}'")
 
 
 def now_iso():
@@ -451,12 +437,12 @@ def get_plet_dir(args):
     Errors if missing — no default. Every caller must be explicit about
     which plet context it operates in (required for subplet support).
 
-    Returns (plet_dir, remaining_args).
+    Returns (plet_dir, remaining_args, "") on success,
+    (None, args, error_msg) on failure.
     """
     if args and not args[0].startswith("-"):
-        return args[0], args[1:]
-    print("Error: <plet_dir> is required as the first argument", file=sys.stderr)
-    return None, args
+        return args[0], args[1:], ""
+    return None, args, "Error: <plet_dir> is required as the first argument"
 
 
 def extract_output_flags(kwargs, allow_dry_run=False):
@@ -469,30 +455,29 @@ def extract_output_flags(kwargs, allow_dry_run=False):
         kwargs: mutable dict from parse_kwargs
         allow_dry_run: if False, --dry-run causes an error
 
-    Returns (output_json, pretty, fields, dry_run, ok) where ok is False
-    if validation failed (error already printed to stderr).
+    Returns (output_json, pretty, fields, dry_run, ok, err_msg).
+    ok is False if validation failed, err_msg has the reason.
+    For backward compat, callers unpacking 5 values still work —
+    the 6th (err_msg) is optional.
     """
     # Reject --dry-run if not allowed
     dry_run = kwargs.pop("dry_run", None)
     if dry_run is not None and not allow_dry_run:
-        print("Error: --dry-run is not supported (read-only command)", file=sys.stderr)
-        return False, False, None, False, False
+        return False, False, None, False, False, "Error: --dry-run is not supported (read-only command)"
 
     dry_run = dry_run is True if dry_run is not None else False
 
     output_json = kwargs.pop("output", None) == "json"
     pretty = kwargs.pop("pretty", False)
     if pretty is True and not output_json:
-        print("Error: --pretty requires --output json", file=sys.stderr)
-        return False, False, None, False, False
+        return False, False, None, False, False, "Error: --pretty requires --output json"
 
     fields_raw = kwargs.pop("fields", None)
     if fields_raw and not output_json:
-        print("Error: --fields requires --output json", file=sys.stderr)
-        return False, False, None, False, False
+        return False, False, None, False, False, "Error: --fields requires --output json"
     fields = fields_raw.split(",") if fields_raw else None
 
-    return output_json, pretty, fields, dry_run, True
+    return output_json, pretty, fields, dry_run, True, ""
 
 
 def emit_error(cmd_name, msg, script_version, output_json, pretty):
@@ -523,46 +508,44 @@ def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
         hint: help hint string for error messages
 
     Returns:
-        "help" if -h/--help was requested (caller returns 0)
-        None if error (caller returns 1, error already printed)
+        (0, help_text, "") if -h/--help was requested
+        (1, "", error_msg) on validation error
         (plet_dir, kwargs, output_json, pretty, fields, dry_run) on success
+
+    Callers distinguish by tuple length: 3 = done (return it), 6 = success (unpack).
     """
     from util_io import validate_plet_dir
 
     if "-h" in args or "--help" in args:
-        print(help_text)
-        print("\nTip: --usage for compact syntax. cat $PLET_CLI_REF for full cheat sheet.")
-        return "help"
+        return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return None
+        return (1, "", dir_err)
 
-    # Validate plet_dir exists and is a directory
-    valid, err = validate_plet_dir(plet_dir)
+    valid, plet_err = validate_plet_dir(plet_dir)
     if not valid:
-        print(err, file=sys.stderr)
-        return None
+        return (1, "", plet_err)
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
-        print(str(e), file=sys.stderr)
-        print(hint, file=sys.stderr)
-        return None
+        return (1, "", f"{e}\n{hint}")
 
     all_known = known_flags | {"output", "pretty", "fields"}
     if allow_dry_run:
         all_known = all_known | {"dry_run"}
-    if not validate_known_flags(kwargs, all_known, hint):
-        return None
+    err = validate_known_flags(kwargs, all_known, hint)
+    if err:
+        return err
 
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=allow_dry_run)
+    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=allow_dry_run)
     if not ok:
-        return None
+        return (1, "", flags_err)
 
-    if required and not require_kwargs(kwargs, required, help_text):
-        return None
+    err = require_kwargs(kwargs, required, help_text)
+    if err:
+        return err
 
     return plet_dir, kwargs, output_json, pretty, fields, dry_run
 

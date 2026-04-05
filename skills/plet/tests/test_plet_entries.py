@@ -10,13 +10,14 @@ Tests are written against the ENT spec (specs/plet_entries.md). They exercise
 the new CLI interface with renamed flags, new features, and new validations.
 """
 
+import io
 import json
 import os
-import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+import plet_entries  # noqa: E402
 from util_io import (
     emergent_path as emergent_path_fn,
 )
@@ -27,25 +28,23 @@ from util_io import (
     progress_path as progress_path_fn,
 )
 
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_entries.py")
-
 passed = 0
 failed = 0
 
 
 def run(args, expect_exit=0):
-    """Run plet_entries.py with args, return (stdout, stderr, exit_code)."""
-    result = subprocess.run(
-        [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != expect_exit:
-        raise AssertionError(
-            f"Expected exit {expect_exit}, got {result.returncode}\n"
-            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
-        )
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
+    """Run via main() with stdout/stderr capture — no subprocess."""
+    old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
+    sys.argv = ["plet_entries", "--no-log"] + args
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+    try:
+        code = plet_entries.main()
+        out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
+    finally:
+        sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
+    if code != expect_exit:
+        raise AssertionError(f"Exit code {code}, expected {expect_exit}.\nstdout: {out}\nstderr: {err}")
+    return out.strip(), err.strip(), code
 
 
 def check(name, condition, detail=""):
@@ -1905,7 +1904,7 @@ def test_validate_check_iter_id_json_error():
 
 def main():
     global passed, failed
-    print(f"Testing: {TOOL}\n")
+    print("Testing: plet_entries (direct import)\n")
 
     test_help_all_commands()
     test_plet_id_format()

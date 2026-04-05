@@ -7,36 +7,39 @@ Zero dependencies beyond stdlib. Run with:
 Creates temporary git repos as fixtures. All tests clean up after themselves.
 """
 
+import io
 import json
 import os
-import subprocess
 import subprocess as sp
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+import plet_git_ops  # noqa: E402
 from util_io import iter_state_path, state_dir_path, state_json_path
-
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_git_ops.py")
 
 passed = 0
 failed = 0
 
 
 def run(args, expect_exit=0, cwd=None):
-    """Run plet_git_ops.py with args, return (stdout, stderr, exit_code)."""
-    result = subprocess.run(
-        [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True,
-        text=True,
-        cwd=cwd,
-    )
-    if result.returncode != expect_exit:
-        raise AssertionError(
-            f"Expected exit {expect_exit}, got {result.returncode}\n"
-            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
-        )
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
+    """Run via main() with stdout/stderr capture — no subprocess."""
+    old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
+    old_cwd = os.getcwd() if cwd else None
+    sys.argv = ["plet_git_ops", "--no-log"] + args
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+    try:
+        if cwd:
+            os.chdir(cwd)
+        code = plet_git_ops.main()
+        out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
+    finally:
+        sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
+        if old_cwd:
+            os.chdir(old_cwd)
+    if code != expect_exit:
+        raise AssertionError(f"Exit code {code}, expected {expect_exit}.\nstdout: {out}\nstderr: {err}")
+    return out.strip(), err.strip(), code
 
 
 def check(name, condition, detail=""):

@@ -508,8 +508,8 @@ assert err == ""
 | COV_6 | Migrate plet_iter_state.py cmd_* to tuple returns | ✓ done (8 functions) |
 | COV_7 | Migrate plet_entries.py + plet_fingerprint.py cmd_* | ✓ done (7 functions) |
 | COV_8 | Migrate all remaining scripts cmd_* | ✓ done (31 functions, 2 skipped: invoke/orchestrator stream) |
-| COV_9 | Fix incomplete tuple migrations | **Next** — some scripts still print via emit_json() instead of returning in tuple. Discovered when test run() conversion found empty `out` strings. |
-| COV_10 | Convert 22 test subprocess calls to direct import | Blocked on COV_9. Each test run() helper calls cmd_* directly instead of subprocess. |
+| COV_9 | Fix incomplete tuple migrations | ✓ done — all scripts migrated. Local `_to_json()`/`_err_out()`/`_err_json()` replaced all `emit_json`/`emit_error` imports. Renamed helpers in plet_entries.py/plet_fingerprint.py for consistency. Updated specs, conventions, PRD. |
+| COV_10 | Convert test subprocess calls to direct import | ✓ done — 15 test files converted to `main()` + `io.StringIO` capture. 3 kept as subprocess (invoke/orchestrator need mock claude, util_cli tests auto-logger). ~10% speedup (31s→28s). Also fixed remaining `print(file=sys.stderr)` in plet_schedule.py helpers. |
 | ~~COV_11~~ | ~~Package restructure~~ | **Skipped** — tuple returns already solved the coverage problem. Package restructure would be code organization (cleaner imports, `__init__.py`) not coverage. Not justified: no external consumers, flat directory is manageable, allowed-tools depends on script paths. |
 | COV_12 | Integrate coverage into test_all.py | Endgame — `test_all.py --cov` runs coverage in-process. No more separate coverage_all.sh. |
 

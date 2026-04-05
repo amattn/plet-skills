@@ -1,29 +1,26 @@
 #!/usr/bin/env python3
-"""Run all plet test files and report results.
+"""Run all plet tests via pytest with coverage (default) or without.
 
-Default mode is parallel with progress — launches all test files at once,
-shows results as each completes, then a sorted summary. Subagents should
-use the default so the user can see progress. Before running, tell the
-user approximately how long to expect (typically ~27s parallel, ~68s sequential
-as of 2026-03-29 with 19 test files / 1507 tests).
+Runs ruff lint + format checks first, then pytest. Coverage is on by default
+(threshold: 85%). Use --no-cov for a faster run without coverage measurement.
 
 Usage:
-    ./skills/plet/tests/test_all.py          # parallel + progress (default)
-    ./skills/plet/tests/test_all.py -s        # sequential (old behavior)
-    ./skills/plet/tests/test_all.py -v        # verbose (sequential, pass/fail counts)
-    ./skills/plet/tests/test_all.py -q        # quiet (summary only)
-
-For coverage: use coverage_all.sh (pytest + subprocess coverage tracking)
+    ./skills/plet/tests/test_all.py              # ruff + pytest + coverage (~50s)
+    ./skills/plet/tests/test_all.py --no-cov     # ruff + pytest, no coverage (~35s)
+    ./skills/plet/tests/test_all.py --html       # coverage + HTML report
+    ./skills/plet/tests/test_all.py -q           # quiet (minimal output)
+    ./skills/plet/tests/test_all.py -v           # verbose (full pytest output)
 """
 
 import glob
 import os
-import re
 import subprocess
 import sys
 import time
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPTS_DIR = os.path.join(os.path.dirname(TESTS_DIR), "scripts")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(TESTS_DIR)))
 
 
 def _find_ruff():
@@ -33,136 +30,15 @@ def _find_ruff():
     found = shutil.which("ruff")
     if found:
         return found
-    # Check .venv/bin relative to repo root
-    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(TESTS_DIR)))
-    venv_ruff = os.path.join(repo_root, ".venv", "bin", "ruff")
+    venv_ruff = os.path.join(REPO_ROOT, ".venv", "bin", "ruff")
     if os.path.isfile(venv_ruff):
         return venv_ruff
     return None
 
 
-def _parse_results(output):
-    """Extract pass/fail counts from test output."""
-    match = re.search(r"(\d+)\s+passed,\s+(\d+)\s+failed", output)
-    if match:
-        return int(match.group(1)), int(match.group(2))
-    return 0, 1  # couldn't parse = treat as failure
-
-
-def _run_parallel(test_files, quiet):
-    """Launch all test files at once, collect results as they finish."""
-    total_passed = 0
-    total_failed = 0
-    failures = []
-    t0 = time.monotonic()
-    n = len(test_files)
-
-    # Launch all at once
-    procs = []
-    for path in test_files:
-        proc = subprocess.Popen(
-            [sys.executable, path],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        procs.append((path, proc))
-
-    # Collect results as they finish (completion order)
-    completed = 0
-    results = {}  # name -> (passed, failed, elapsed, status)
-
-    remaining = list(procs)
-    while remaining:
-        for i, (path, proc) in enumerate(remaining):
-            ret = proc.poll()
-            if ret is not None:
-                remaining.pop(i)
-                completed += 1
-                name = os.path.basename(path)
-                output = proc.stdout.read() + proc.stderr.read()
-                p, f = _parse_results(output)
-                total_passed += p
-                total_failed += f
-                elapsed = time.monotonic() - t0
-                is_fail = ret != 0 or f > 0
-                status = "FAIL" if is_fail else "ok"
-                results[name] = (p, f, elapsed, status)
-
-                if is_fail:
-                    failures.append(name)
-
-                if not quiet:
-                    sys.stdout.write(f"  [{completed}/{n}] {name:40s} {p:>4d} passed  [{elapsed:>5.1f}s] [{status}]\n")
-                    sys.stdout.flush()
-                break
-        else:
-            time.sleep(0.05)
-
-    elapsed = time.monotonic() - t0
-
-    # Sorted summary
-    if not quiet:
-        print()
-        print("--- sorted by name ---")
-        for name in sorted(results.keys()):
-            p, f, _, status = results[name]
-            line = f"  {name:40s} {p:>4d} passed"
-            if f > 0:
-                line += f", {f:>2d} failed"
-            line += f"  [{status}]"
-            print(line)
-
-    return total_passed, total_failed, failures, elapsed
-
-
-def _run_sequential(test_files, verbose, quiet):
-    """Run test files one at a time (original behavior)."""
-    total_passed = 0
-    total_failed = 0
-    failures = []
-    progress = not verbose and not quiet
-    t0 = time.monotonic()
-    n = len(test_files)
-
-    for idx, path in enumerate(test_files, 1):
-        name = os.path.basename(path)
-
-        if progress:
-            sys.stdout.write(f"\r  [{idx}/{n}] running {name}...".ljust(70))
-            sys.stdout.flush()
-
-        result = subprocess.run(
-            [sys.executable, path],
-            capture_output=True,
-            text=True,
-        )
-
-        output = result.stdout + result.stderr
-        p, f = _parse_results(output)
-        total_passed += p
-        total_failed += f
-
-        if result.returncode != 0 or f > 0:
-            failures.append(name)
-
-        if progress:
-            elapsed = time.monotonic() - t0
-            status = "FAIL" if (f > 0 or result.returncode != 0) else "ok"
-            sys.stdout.write(f"\r  [{idx}/{n}] {name:40s} {p:>4d} passed  [{elapsed:>5.1f}s] [{status}]\n")
-            sys.stdout.flush()
-        elif verbose:
-            status = "FAIL" if (f > 0 or result.returncode != 0) else "ok"
-            print(f"  {name:40s} {p:>4d} passed, {f:>2d} failed  [{status}]")
-
-    elapsed = time.monotonic() - t0
-    return total_passed, total_failed, failures, elapsed
-
-
 def _run_ruff_checks(quiet):
     """Run ruff lint + format checks. Returns True if any failed."""
-    scripts_dir = os.path.join(os.path.dirname(TESTS_DIR), "scripts")
-    ruff_dirs = [scripts_dir, TESTS_DIR]
+    ruff_dirs = [SCRIPTS_DIR, TESTS_DIR]
     ruff_path = _find_ruff()
 
     if not ruff_path:
@@ -171,7 +47,6 @@ def _run_ruff_checks(quiet):
 
     failed = False
 
-    # 1. Lint check
     if not quiet:
         print("  ruff check ...", end="", flush=True)
     rc = subprocess.run([ruff_path, "check"] + ruff_dirs, capture_output=True).returncode
@@ -183,7 +58,6 @@ def _run_ruff_checks(quiet):
     elif not quiet:
         print(" ok")
 
-    # 2. Format check (no auto-fix — just verify)
     if not quiet:
         print("  ruff format --check ...", end="", flush=True)
     rc = subprocess.run([ruff_path, "format", "--check"] + ruff_dirs, capture_output=True).returncode
@@ -200,29 +74,79 @@ def _run_ruff_checks(quiet):
     return failed
 
 
-def main():
-    verbose = "-v" in sys.argv
-    quiet = "-q" in sys.argv
-    sequential = "-s" in sys.argv or verbose  # -v implies sequential
+def _find_pytest():
+    """Find uv or pytest. Returns (cmd_prefix, None) or (None, error_msg)."""
+    import shutil
 
-    if not quiet:
-        print("Hint: tell the user how long to expect (~27s parallel, ~68s sequential)")
-        print("Mode: {} | {} test files".format("sequential" if sequential else "parallel", "scanning..."), end="")
+    uv = shutil.which("uv")
+    if not uv:
+        venv_uv = os.path.join(REPO_ROOT, ".venv", "bin", "uv")
+        if os.path.isfile(venv_uv):
+            uv = venv_uv
+    if uv:
+        return [uv, "run", "pytest"], None
 
-    test_files = sorted(glob.glob(os.path.join(TESTS_DIR, "test_*.py")))
-    test_files = [f for f in test_files if os.path.basename(f) not in ("test_all.py", "test_coverage_imports.py")]
+    pytest_bin = shutil.which("pytest")
+    if pytest_bin:
+        return [pytest_bin], None
 
-    if not test_files:
-        print(f"\nNo test files found in {TESTS_DIR}")
+    return None, "Error: neither uv nor pytest found. Install with: uv pip install pytest pytest-cov"
+
+
+def _run_pytest(cov, html, quiet, verbose):
+    """Run pytest with optional coverage. Returns exit code."""
+    cmd_prefix, err = _find_pytest()
+    if err:
+        print(err, file=sys.stderr)
         return 1
 
+    cmd = list(cmd_prefix)
+    # One worker per test file — scales automatically as files are added
+    n_workers = len(glob.glob(os.path.join(TESTS_DIR, "test_*.py")))
+    cmd.extend(["-n", str(n_workers)])
+    if quiet or not verbose:
+        cmd.append("-q")
+    else:
+        cmd.append("-v")
+
+    if cov:
+        cmd.extend(
+            [
+                "--cov=" + SCRIPTS_DIR,
+                "--cov-report=term-missing",
+                "--cov-fail-under=87",
+            ]
+        )
+        if html:
+            cmd.append("--cov-report=html")
+
+    label = "pytest + coverage" if cov else "pytest (no coverage)"
     if not quiet:
-        mode = "sequential" if sequential else "parallel"
-        print(f"\rMode: {mode} | {len(test_files)} test files".ljust(60))
+        print(f"  {label} ...", flush=True)
         print()
 
-    ruff_failed = _run_ruff_checks(quiet)
+    t0 = time.monotonic()
+    result = subprocess.run(cmd, cwd=REPO_ROOT)
+    elapsed = time.monotonic() - t0
 
+    if not quiet:
+        print()
+        print(f"  {label} completed in {elapsed:.1f}s")
+        if html and cov and result.returncode == 0:
+            htmlcov = os.path.join(REPO_ROOT, "htmlcov", "index.html")
+            print(f"  HTML report: file://{htmlcov}")
+
+    return result.returncode
+
+
+def main():
+    quiet = "-q" in sys.argv
+    verbose = "-v" in sys.argv
+    no_cov = "--no-cov" in sys.argv
+    html = "--html" in sys.argv
+    cov = not no_cov
+
+    ruff_failed = _run_ruff_checks(quiet)
     if ruff_failed:
         print()
         print("=" * 50)
@@ -230,24 +154,7 @@ def main():
         print("=" * 50)
         return 1
 
-    if sequential:
-        total_passed, total_failed, failures, elapsed = _run_sequential(test_files, verbose, quiet)
-    else:
-        total_passed, total_failed, failures, elapsed = _run_parallel(test_files, quiet)
-
-    print()
-    print("=" * 50)
-    print(f"  {len(test_files)} files, {total_passed} passed, {total_failed} failed  ({elapsed:.1f}s)")
-    print("=" * 50)
-
-    if failures:
-        print()
-        print("FAILURES:")
-        for name in sorted(failures):
-            print(f"  - {name}")
-        return 1
-
-    return 0
+    return _run_pytest(cov, html, quiet, verbose)
 
 
 if __name__ == "__main__":

@@ -8,34 +8,33 @@ Red/green, command-by-command. Creates temp fixtures, runs commands
 via subprocess, validates output, cleans up.
 """
 
+import io
 import json
 import os
-import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+import plet_trace  # noqa: E402  (after the sys.path.insert for scripts dir)
 from util_io import events_path, trace_dir_path
-
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_trace.py")
 
 passed = 0
 failed = 0
 
 
 def run(args, expect_exit=0):
-    """Run plet_trace.py with args, return (stdout, stderr, exit_code)."""
-    result = subprocess.run(
-        [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != expect_exit:
-        raise AssertionError(
-            f"Expected exit {expect_exit}, got {result.returncode}\n"
-            f"  args: {args}\n  stdout: {result.stdout}\n  stderr: {result.stderr}"
-        )
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
+    """Run via main() with stdout/stderr capture — no subprocess."""
+    old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
+    sys.argv = ["plet_trace", "--no-log"] + args
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+    try:
+        code = plet_trace.main()
+        out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
+    finally:
+        sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
+    if code != expect_exit:
+        raise AssertionError(f"Exit code {code}, expected {expect_exit}.\nstdout: {out}\nstderr: {err}")
+    return out.strip(), err.strip(), code
 
 
 def check(name, condition, detail=""):
@@ -305,6 +304,8 @@ def test_append_invocation_with_prompt():
 
 
 def test_append_multiple_events():
+    import time
+
     print("\n## Append — multiple events to same file")
     with tempfile.TemporaryDirectory() as tmpdir:
         for i in range(3):
@@ -324,6 +325,7 @@ def test_append_multiple_events():
                     f'{{"description":"decision {i}","rationale":"reason {i}"}}',
                 ]
             )
+            time.sleep(0.002)  # ensure distinct ms timestamps for unique plet IDs
 
         events = read_events(events_path(tmpdir, "ID_001", "implement", 1))
         check("three events", len(events) == 3)
@@ -1542,7 +1544,7 @@ def test_query_file_not_found():
 
 def main():
     global passed, failed
-    print(f"Testing: {TOOL}\n")
+    print("Testing: plet_trace (direct import)\n")
 
     test_help()
     test_version()

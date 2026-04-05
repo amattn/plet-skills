@@ -328,7 +328,7 @@ def test_merge_squash_validate_not_git_repo():
         try:
             err = plet_git_ops._merge_squash_validate_git("ws", "iter", "merge-squash", False, False)
             check("not git repo = error", err is not None)
-            check("not git repo = 1", err == 1)
+            check("not git repo = 1", exit_code(err) == 1)
         finally:
             os.chdir(old_cwd)
     finally:
@@ -456,11 +456,11 @@ def test_merge_squash_error():
     check("error returns 1", rc == 1)
 
     # JSON mode
-    rc2 = plet_git_ops._merge_squash_error("merge-squash", "test error", True, False)
+    rc2 = exit_code(plet_git_ops._merge_squash_error("merge-squash", "test error", True, False))
     check("json error returns 1", rc2 == 1)
 
     # No hint
-    rc3 = plet_git_ops._merge_squash_error("merge-squash", "test error", False, False)
+    rc3 = exit_code(plet_git_ops._merge_squash_error("merge-squash", "test error", False, False))
     check("no hint returns 1", rc3 == 1)
 
 

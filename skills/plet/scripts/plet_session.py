@@ -167,33 +167,36 @@ def cmd_start_session(args):
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-session")):
-        return (1, "", "")
-    if not require_kwargs(kwargs, ["type"], help_text):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, _help_hint("start-session"))
+    if err:
+        return err
+    err = require_kwargs(kwargs, ["type"], help_text)
+    if err:
+        return err
 
     session_type = kwargs["type"]
-    if not validate_enum(session_type, ["loop", "refine"], "type"):
-        return (1, "", _help_hint("start-session"))
+    result = validate_enum(session_type, ["loop", "refine"], "type")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or _help_hint("start-session"))
 
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
+    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
-    state, gs_path = _load_session_state(plet_dir, session_type)
+    state, gs_path, load_err = _load_session_state(plet_dir, session_type)
     if state is None:
-        return (1, "", "")
+        return (1, "", load_err)
 
     history = state["sessionHistory"]
     active = _find_active_sessions(history)
 
-    err = _check_active_sessions(active, session_type)
-    if err is not None:
-        return (err, "", "")
+    chk_code, chk_err = _check_active_sessions(active, session_type)
+    if chk_code is not None:
+        return (chk_code, "", chk_err)
 
     # Resume detection: same type already active
     if len(active) == 1:
@@ -227,47 +230,38 @@ cmd_start_session.example = "plet_session.py start-session plet/ --type loop"  #
 
 
 def _load_session_state(plet_dir, session_type):
-    """Load and prepare state for start-session. Returns (state, path) or (None, None)."""
+    """Load and prepare state for start-session. Returns (state, path, err_str)."""
     gs_path = state_json_path(plet_dir)
     state = load_json(gs_path)
     if state is None:
-        print(f"Error: state.json not found at {gs_path}", file=sys.stderr)
-        print(_help_hint("start-session"), file=sys.stderr)
-        return None, None
+        return None, None, f"Error: state.json not found at {gs_path}\n{_help_hint('start-session')}"
     if "projectId" not in state:
-        print("Error: state.json missing required field: projectId", file=sys.stderr)
-        print(_help_hint("start-session"), file=sys.stderr)
-        return None, None
+        return None, None, f"Error: state.json missing required field: projectId\n{_help_hint('start-session')}"
     if "sessionHistory" not in state:
         state["sessionHistory"] = []
     counter_key = COUNTER_KEY[session_type]
     if counter_key not in state:
         state[counter_key] = 0
-    return state, gs_path
+    return state, gs_path, ""
 
 
 def _check_active_sessions(active, session_type):
-    """Check for corruption or cross-type conflict. Returns exit code or None."""
+    """Check for corruption or cross-type conflict. Returns (exit_code, err_str) or (None, "")."""
     if len(active) > 1:
         indices = [str(i) for i, _ in active]
-        print(
+        msg = (
             "Error: corrupt sessionHistory — multiple active sessions "
-            "found (entries {}). Manual repair required.".format(", ".join(indices)),
-            file=sys.stderr,
+            "found (entries {}). Manual repair required.".format(", ".join(indices))
         )
-        return 1
+        return 1, msg
     if len(active) == 1:
         _, ae = active[0]
         if ae["type"] != session_type:
-            print(
-                "Error: {} session {} is still active (endedAt: null). Run end-session first.".format(
-                    ae["type"], ae["session"]
-                ),
-                file=sys.stderr,
+            msg = "Error: {} session {} is still active (endedAt: null). Run end-session first.\n{}".format(
+                ae["type"], ae["session"], _help_hint("start-session")
             )
-            print(_help_hint("start-session"), file=sys.stderr)
-            return 1
-    return None
+            return 1, msg
+    return None, ""
 
 
 def _emit_session_result(session_number, branch, session_type, project_id, resumed, output_json, pretty, fields):
@@ -328,15 +322,16 @@ def cmd_end_session(args):
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
     kwargs = parse_kwargs(remaining)
-    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_WRITE, _help_hint("end-session")):
-        return (1, "", "")
-    output_json, pretty, fields, dry_run, ok = extract_output_flags(kwargs, allow_dry_run=True)
+    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_WRITE, _help_hint("end-session"))
+    if err:
+        return err
+    output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=True)
     if not ok:
-        return (1, "", "")
+        return (1, "", flags_err)
 
     # Load state
     gs_path = state_json_path(plet_dir)

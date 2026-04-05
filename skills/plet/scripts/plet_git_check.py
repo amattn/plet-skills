@@ -316,28 +316,31 @@ Examples:
     cmd_name = "check-iteration"
     hint = help_hint(cmd_name)
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
         return (1, "", str(e) + "\n" + hint)
-    if not validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_READ, hint):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, {"iter_id", "phase"} | UNIVERSAL_FLAGS_READ, hint)
+    if err:
+        return err
 
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
+    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=False)
     if not ok:
         return (1, "", hint)
 
-    if not require_kwargs(kwargs, ["iter_id", "phase"], help_text):
-        return (1, "", "")
+    err = require_kwargs(kwargs, ["iter_id", "phase"], help_text)
+    if err:
+        return err
 
     iter_id = kwargs["iter_id"]
     phase = kwargs["phase"]
-    if not validate_enum(phase, VALID_PHASES, "--phase"):
-        return (1, "", hint)
+    result = validate_enum(phase, VALID_PHASES, "--phase")
+    if isinstance(result, tuple):
+        return (1, "", result[2] or hint)
 
     # Validate plet_dir
     valid, err_msg = validate_plet_dir(plet_dir)
@@ -618,18 +621,19 @@ Examples:
     cmd_name = "check-session"
     hint = help_hint(cmd_name)
 
-    plet_dir, remaining = get_plet_dir(args)
+    plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:
-        return (1, "", "")
+        return (1, "", dir_err)
 
     try:
         kwargs = parse_kwargs(remaining)
     except ValueError as e:
         return (1, "", str(e) + "\n" + hint)
-    if not validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint):
-        return (1, "", "")
+    err = validate_known_flags(kwargs, UNIVERSAL_FLAGS_READ, hint)
+    if err:
+        return err
 
-    output_json, pretty, fields, _dry_run, ok = extract_output_flags(kwargs, allow_dry_run=False)
+    output_json, pretty, fields, _dry_run, ok, flags_err = extract_output_flags(kwargs, allow_dry_run=False)
     if not ok:
         return (1, "", hint)
 

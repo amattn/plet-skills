@@ -8,9 +8,9 @@ Zero dependencies beyond stdlib. Run with:
 Red/green, command-by-command: eligible first, then check-breakpoints, then check-retry.
 """
 
+import io
 import json
 import os
-import subprocess
 import sys
 import tempfile
 
@@ -20,24 +20,25 @@ from util_fixture import make_iter_state as _make_iter_state
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_schedule.py")
+import plet_schedule  # noqa: E402
 
 passed = 0
 failed = 0
 
 
 def run(args, expect_exit=0):
-    """Run the script with args via subprocess, assert exit code."""
-    result = subprocess.run(
-        [sys.executable, TOOL, "--no-log"] + args,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != expect_exit:
-        raise AssertionError(
-            f"Exit code {result.returncode}, expected {expect_exit}.\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-    return result.stdout.strip(), result.stderr.strip(), result.returncode
+    """Run via main() with stdout/stderr capture — no subprocess."""
+    old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
+    sys.argv = ["plet_schedule", "--no-log"] + args
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
+    try:
+        code = plet_schedule.main()
+        out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
+    finally:
+        sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
+    if code != expect_exit:
+        raise AssertionError(f"Exit code {code}, expected {expect_exit}.\nstdout: {out}\nstderr: {err}")
+    return out.strip(), err.strip(), code
 
 
 def check(name, condition, detail=""):

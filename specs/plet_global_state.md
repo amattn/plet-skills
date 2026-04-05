@@ -385,7 +385,7 @@ plet_global_state.py validate plet
 | ID | Dependency | Direction | Description |
 |----|------------|-----------|-------------|
 | GST_DEP_1 | `util_io.py` | imports | Path derivation (`state_json_path`), atomic writes (`atomic_write_json`) |
-| GST_DEP_2 | `util_cli.py` | imports | Argument parsing (`parse_kwargs`, `require_kwargs`), dispatch, output formatting (`emit_json`, `emit_json_error`), timestamps (`now_iso`) |
+| GST_DEP_2 | `util_cli.py` | imports | Argument parsing (`parse_kwargs`, `require_kwargs`), dispatch, output formatting (`filter_fields`), timestamps (`now_iso`) |
 | GST_DEP_3 | `util_state.py` | imports | Schema validation (`validate_global_state`, `VALID_LIFECYCLES`) |
 | GST_DEP_4 | `util_constants.py` | imports | `SCHEMA_VERSION`, `SKILL_VERSION` |
 | GST_DEP_5 | `plet_orchestrator.py` | called by | Lifecycle transitions during loop |
