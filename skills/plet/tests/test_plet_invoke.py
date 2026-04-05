@@ -615,6 +615,111 @@ def test_injectable_launcher_retry_append():
 
 
 # ===========================================================================
+# Direct import tests for invoke internals
+# ===========================================================================
+
+
+def test_to_json_with_fields():
+    print("\n## _to_json with fields filter")
+    import plet_invoke
+
+    result = plet_invoke._to_json({"status": "ok", "command": "run", "extra": "data"}, fields=["status"])
+    data = json.loads(result)
+    check("has status", "status" in data)
+    check("filtered extra", "extra" not in data or "fieldsOmitted" in data)
+
+
+def test_err_out_json_mode():
+    print("\n## _err_out JSON mode")
+    import plet_invoke
+
+    out, err = plet_invoke._err_out("run", "test error", True, False)
+    check("out has JSON", len(out) > 0)
+    data = json.loads(out)
+    check("status error", data["status"] == "error")
+    check("err empty", err == "")
+
+
+def test_validate_run_inputs_bad_permission():
+    print("\n## _validate_run_inputs — bad permission mode")
+    import tempfile
+
+    import plet_invoke
+
+    tmpdir = tempfile.mkdtemp()
+    plet_dir = os.path.join(tmpdir, "plet")
+    os.makedirs(plet_dir)
+    try:
+        result = plet_invoke._validate_run_inputs(
+            "implement", "INVALID_MODE", plet_dir, tmpdir, "run", False, False, "hint"
+        )
+        check("returns error tuple", result is not None)
+        check("exit code 1", result[0] == 1)
+        check("mentions invalid", "invalid" in result[2].lower() or "INVALID_MODE" in result[2])
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_build_claude_command_with_options():
+    print("\n## build_claude_command — with model and max_budget")
+    import plet_invoke
+
+    cmd = plet_invoke.build_claude_command("prompt", "verify", "ID_001", 2, "auto", "sonnet", 5, True)
+    check("has model", "--model" in cmd and "sonnet" in cmd)
+    check("has max-budget", "--max-budget-usd" in cmd and "5" in cmd)
+
+
+def test_auto_detect_permission_mode():
+    print("\n## _auto_detect_permission_mode — no settings")
+    import tempfile
+
+    import plet_invoke
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+        result = plet_invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
+        check("defaults to auto", result == "auto")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_auto_detect_bypass_permissions():
+    print("\n## _auto_detect_permission_mode — bypassPermissions")
+    import tempfile
+
+    import plet_invoke
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+        settings_dir = os.path.join(tmpdir, ".claude")
+        os.makedirs(settings_dir)
+        with open(os.path.join(settings_dir, "settings.json"), "w") as f:
+            json.dump({"permissions": {"bypassPermissions": True}}, f)
+        result = plet_invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
+        check("detects bypass", result == "bypassPermissions")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_auto_detect_bad_json():
+    print("\n## _auto_detect_permission_mode — bad JSON")
+    import tempfile
+
+    import plet_invoke
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+        settings_dir = os.path.join(tmpdir, ".claude")
+        os.makedirs(settings_dir)
+        with open(os.path.join(settings_dir, "settings.json"), "w") as f:
+            f.write("not json{{{")
+        result = plet_invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
+        check("falls back to auto", result == "auto")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
 # Main
 # ===========================================================================
 
@@ -639,6 +744,13 @@ def main():
     test_injectable_launcher()
     test_injectable_launcher_nonzero_exit()
     test_injectable_launcher_retry_append()
+    test_to_json_with_fields()
+    test_err_out_json_mode()
+    test_validate_run_inputs_bad_permission()
+    test_build_claude_command_with_options()
+    test_auto_detect_permission_mode()
+    test_auto_detect_bypass_permissions()
+    test_auto_detect_bad_json()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
