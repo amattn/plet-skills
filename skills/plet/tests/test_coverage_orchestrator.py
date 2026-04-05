@@ -565,6 +565,234 @@ def test_setup_session():
 
 
 # ---------------------------------------------------------------------------
+# _get_spawnable
+# ---------------------------------------------------------------------------
+
+
+def test_get_spawnable_basic():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(
+        lifecycles={"ID_001": "queued", "ID_002": "queued"},
+        dep_map={"ID_001": [], "ID_002": []},
+    )
+    try:
+        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), None, 0)
+        check("returns list", isinstance(result, list))
+        check("both eligible", len(result) == 2, f"got: {result}")
+    finally:
+        shutil.rmtree(d)
+
+
+def test_get_spawnable_filters_failed():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(
+        lifecycles={"ID_001": "queued", "ID_002": "queued"},
+        dep_map={"ID_001": [], "ID_002": []},
+    )
+    try:
+        result = plet_orchestrator._get_spawnable(plet_dir, False, {"ID_001"}, None, 0)
+        check("filters failed", result == ["ID_002"], f"got: {result}")
+    finally:
+        shutil.rmtree(d)
+
+
+def test_get_spawnable_max_iterations_budget():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(
+        lifecycles={"ID_001": "queued", "ID_002": "queued"},
+        dep_map={"ID_001": [], "ID_002": []},
+    )
+    try:
+        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), 1, 0)
+        check("limited to budget", len(result) == 1, f"got: {result}")
+    finally:
+        shutil.rmtree(d)
+
+
+def test_get_spawnable_budget_exhausted():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(
+        lifecycles={"ID_001": "queued"},
+        dep_map={"ID_001": []},
+    )
+    try:
+        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), 2, 2)
+        check("budget exhausted = None", result is None)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_get_spawnable_nothing_eligible():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(
+        lifecycles={"ID_001": "complete"},
+        dep_map={"ID_001": []},
+    )
+    try:
+        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), None, 0)
+        check("nothing eligible = None", result is None)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_get_spawnable_promotes():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(
+        lifecycles={"ID_001": "complete", "ID_002": "ineligible"},
+        dep_map={"ID_001": [], "ID_002": ["ID_001"]},
+    )
+    try:
+        result = plet_orchestrator._get_spawnable(plet_dir, False, set(), None, 0)
+        check("promoted ID_002", result == ["ID_002"], f"got: {result}")
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# _check_breakpoint_before / _check_breakpoint_after
+# ---------------------------------------------------------------------------
+
+
+def test_check_breakpoint_before_miss():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project()
+    try:
+        gs = load_json(state_json_path(plet_dir))
+        gs["breakpoints"] = {"before": [], "after": []}
+        import util_io
+
+        util_io.atomic_write_json(state_json_path(plet_dir), gs)
+        check("miss = False", plet_orchestrator._check_breakpoint_before("ID_001", plet_dir, False) is False)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_check_breakpoint_before_hit():
+    import io
+
+    import plet_orchestrator
+
+    d, plet_dir = _make_project()
+    try:
+        gs = load_json(state_json_path(plet_dir))
+        gs["breakpoints"] = {"before": ["ID_001"], "after": []}
+        import util_io
+
+        util_io.atomic_write_json(state_json_path(plet_dir), gs)
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        hit = plet_orchestrator._check_breakpoint_before("ID_001", plet_dir, True)
+        sys.stdout = old_stdout
+        check("hit = True", hit is True)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_check_breakpoint_after_miss():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project()
+    try:
+        gs = load_json(state_json_path(plet_dir))
+        gs["breakpoints"] = {"before": [], "after": []}
+        import util_io
+
+        util_io.atomic_write_json(state_json_path(plet_dir), gs)
+        check("miss = False", plet_orchestrator._check_breakpoint_after("ID_001", plet_dir, False) is False)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_check_breakpoint_after_hit():
+    import io
+
+    import plet_orchestrator
+
+    d, plet_dir = _make_project()
+    try:
+        gs = load_json(state_json_path(plet_dir))
+        gs["breakpoints"] = {"before": [], "after": ["ID_001"]}
+        import util_io
+
+        util_io.atomic_write_json(state_json_path(plet_dir), gs)
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        hit = plet_orchestrator._check_breakpoint_after("ID_001", plet_dir, True)
+        sys.stdout = old_stdout
+        check("hit = True", hit is True)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# _finalize_iteration
+# ---------------------------------------------------------------------------
+
+
+def test_finalize_iteration_error_no_worktree():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
+    try:
+        spawn_result = {"status": "error", "iter_id": "ID_001", "error": "worktree failed", "worktree_created": False}
+        completed, blocked = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, False, 0, {})
+        check("blocked", blocked is True)
+        check("completed unchanged", completed == 0)
+        gs = load_json(state_json_path(plet_dir))
+        check("lifecycle blocked", gs["lifecycles"]["ID_001"] == "blocked")
+    finally:
+        shutil.rmtree(d)
+
+
+def test_finalize_iteration_error_with_worktree():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
+    try:
+        # worktree_created=True but worktree doesn't actually exist — worktree-remove will fail gracefully
+        spawn_result = {"status": "error", "iter_id": "ID_001", "error": "implement failed", "worktree_created": True}
+        completed, blocked = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, False, 0, {})
+        check("blocked", blocked is True)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# _parse_run_args with --sequential
+# ---------------------------------------------------------------------------
+
+
+def test_parse_run_args_sequential():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project()
+    try:
+        r = plet_orchestrator._parse_run_args([plet_dir, "--sequential"])
+        check("returns tuple", isinstance(r, tuple))
+        check("sequential is True", r[4] is True, f"got: {r}")
+    finally:
+        shutil.rmtree(d)
+
+
+def test_parse_run_args_no_sequential():
+    import plet_orchestrator
+
+    d, plet_dir = _make_project()
+    try:
+        r = plet_orchestrator._parse_run_args([plet_dir])
+        check("sequential is False", r[4] is False, f"got: {r}")
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -600,6 +828,20 @@ def main():
     test_handle_verdict_passed()
     test_end_session()
     test_setup_session()
+    test_get_spawnable_basic()
+    test_get_spawnable_filters_failed()
+    test_get_spawnable_max_iterations_budget()
+    test_get_spawnable_budget_exhausted()
+    test_get_spawnable_nothing_eligible()
+    test_get_spawnable_promotes()
+    test_check_breakpoint_before_miss()
+    test_check_breakpoint_before_hit()
+    test_check_breakpoint_after_miss()
+    test_check_breakpoint_after_hit()
+    test_finalize_iteration_error_no_worktree()
+    test_finalize_iteration_error_with_worktree()
+    test_parse_run_args_sequential()
+    test_parse_run_args_no_sequential()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
