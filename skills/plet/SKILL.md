@@ -275,7 +275,7 @@ The orchestrator manages the full loop lifecycle internally — session setup, d
 | `max_iterations_reached` | Report progress. Ask: continue or stop. |
 | `error` | Surface the error from `pauseContext.error`. Investigate. |
 
-**Parallel execution:** Eligible iterations with no dependency relationship launch concurrently (round-based). Merge-squash is always sequential. Use `--sequential` for debugging.
+**Parallel execution:** Eligible iterations with no dependency relationship launch concurrently (round-based). Merge-squash is always sequential. If a merge-squash conflicts, the iteration branch is rebased onto the updated workstream and requeued — the implement agent resolves conflicts on the next pass (no attempt burned). Use `--sequential` for debugging. See `references/plan.md` § Dependency Graph Validation for file-level conflict guidance.
 
 ### Refine Phase
 

@@ -429,9 +429,46 @@ Wire up parallel iteration execution in `plet_orchestrator.py`. The design and i
 - Round 6 runs 4 iterations concurrently (ID_008 + ID_009 + ID_010 + ID_012)
 - 43 min (23%) is orchestrator overhead (subagent spawn/teardown gaps)
 
-**Implementation:** Replace the serial `for iter_id in actionable` loop with `concurrent.futures.ProcessPoolExecutor` or multiple `subprocess.Popen` calls. Merge-squash must remain sequential (one at a time to workstream). Key concern: merge conflicts between parallel iterations modifying the same files.
-
 **Depends on:** FOO_69.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| PAR_1 | Plan-time parallel safety guidance | ✓ done — file-level conflict guidance in plan.md § Dependency Graph Validation, SKILL.md § Parallel execution |
+| PAR_2 | Refactor `_process_single_iteration` into spawn + finalize | ✓ done — `_spawn_iteration` (parallelizable) + `_finalize_iteration` (sequential). `_process_single_iteration` is now a thin wrapper with breakpoints/max-iter. 120 tests pass. |
+| PAR_3 | Parallel spawn with `concurrent.futures.ThreadPoolExecutor` | |
+| PAR_4 | Sequential merge-squash ordering (sorted by iter_id) | |
+| PAR_5 | Conflict recovery: rebase + requeue (no attempt burn) | |
+| PAR_6 | Breakpoint and max-iterations in parallel context | |
+| PAR_7 | `--sequential` flag (forces pool_size=1) | |
+| PAR_8 | NDJSON events for parallel visibility | |
+| PAR_9 | Tests | |
+
+**PAR_1 — Plan-time parallel safety guidance.** Add guidance to planning phase (SKILL.md, references/plan.md) that the dependency tree should encode file-level conflicts, not just logical dependencies. If ID_005 and ID_006 both modify `config.go`, one should depend on the other — even if they're logically independent features. A well-scoped dependency tree makes merge conflicts near-zero. This is docs-only, no code.
+
+**PAR_2 — Refactor into spawn + finalize.** Split `_process_single_iteration` into two functions:
+- `_spawn_iteration(iter_id, ...)` — worktree create + implement + verify. Returns iteration result (verdict, worktree path, etc.) but does NOT merge.
+- `_finalize_iteration(iter_id, result, ...)` — verdict handling + merge-squash + worktree cleanup. Runs sequentially on workstream.
+No behavior change — serial loop calls spawn then finalize and gets the same result. Red/green: tests must still pass identically.
+
+**PAR_3 — Parallel spawn.** Replace the serial `for iter_id in actionable` with `concurrent.futures.ThreadPoolExecutor`. Each thread manages one iteration's subprocess lifecycle (plet_invoke.py runs in its own worktree — already isolated). `ThreadPoolExecutor` is stdlib, no external deps. Each thread calls `_spawn_iteration`, main thread collects results.
+
+**PAR_4 — Sequential merge-squash ordering.** After all iterations in a round complete, `_finalize_iteration` runs sequentially in sorted iter_id order. Ensures: runtime artifact appends merge cleanly, reproducible git history, failed merges don't block others.
+
+**PAR_5 — Conflict recovery: rebase + requeue.** On merge-squash conflict:
+1. `git merge --abort`
+2. Rebase iteration branch onto current workstream
+3. Set lifecycle → `queued` (NOT blocked — this isn't an agent failure)
+4. Do NOT burn an implement/verify attempt (rebase-requeue is scheduling luck, not iteration failure)
+5. Emit `merge_conflict_requeued` event
+6. Next round picks it up naturally — implement agent sees rebased state, resolves any remaining conflicts, verify confirms
+
+**PAR_6 — Breakpoints and max-iterations.** Breakpoint-before: check before spawning (per iteration, skip that one). Breakpoint-after: check after finalization (pause after this round). Max-iterations: check after each merge-squash, finish current round's merges then pause.
+
+**PAR_7 — `--sequential` flag.** Wire up the existing reserved flag. Forces pool size to 1 — same parallel code path, just serialized. Default is parallel. Simple implementation: `pool_size = 1 if sequential else len(actionable)`.
+
+**PAR_8 — NDJSON events.** New events for parallel visibility: `round_start` (iterations being spawned), `iteration_spawned` (subprocess launched), `iteration_collected` (subprocess done, before merge). Existing events unchanged.
+
+**PAR_9 — Tests.** Test parallel with 2-3 independent iterations. Test merge-squash is sequential (git log order). Test `--sequential` fallback. Test breakpoint mid-round. Test one failure doesn't block others. Test conflict rebase-requeue path.
 
 ---
 

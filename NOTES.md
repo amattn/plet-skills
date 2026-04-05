@@ -1876,6 +1876,18 @@ Also cleaned up:
 - Zero `print(file=sys.stderr)` remaining in any validation path. Only dispatch() (the stdout/stderr boundary), orchestrator/invoke (streaming), and merge_driver (git-called) still print directly.
 - ~60 call sites updated across all 17 scripts. Coverage improved: 87.1% → 87.4%.
 
+### PLAN_PAR: Parallel orchestrator design decisions
+
+**Decision (2026-04-04): Conflict recovery via rebase + requeue, not auto-resolve.** When merge-squash conflicts (two parallel iterations touched the same file), the orchestrator does: `git merge --abort` → rebase iteration branch onto updated workstream → set lifecycle to `queued`. The implement agent resolves conflicts on the next pass — it already has full context. Verify then checks the result. This reuses existing retry infrastructure with no new phases.
+
+**Decision: Rebase-requeue does NOT burn an attempt.** The attempt counter tracks agent performance (did the code work?), not scheduling luck (did another iteration modify the same file?). A conflict caused by parallel timing isn't an agent failure.
+
+**Decision: File-level conflict guidance at plan time.** The dependency tree should encode file-level conflicts, not just logical dependencies. If two iterations modify the same file, one should depend on the other — even if the features are logically independent. A dependency costs nothing; a conflict costs a full iteration cycle. Added to plan.md § Dependency Graph Validation.
+
+**Decision: spawn + finalize split.** `_process_single_iteration` split into `_spawn_iteration` (worktree + implement + verify — parallelizable, returns result dict) and `_finalize_iteration` (verdict + merge-squash + cleanup — sequential on workstream). Breakpoints and max-iterations stay in the serial wrapper for now, move to the main loop in PAR_6. The split is the prerequisite for ThreadPoolExecutor in PAR_3.
+
+**Design: Round-based execution.** Each round: get eligible → spawn all in parallel → wait for all → merge-squash sequentially (sorted by iter_id) → promote newly eligible → next round. Worktrees are created from the current workstream at round start, so each round's iterations start from the latest merged state. Conflicts only happen between iterations *within the same round*.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).

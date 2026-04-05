@@ -514,6 +514,97 @@ def _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir
     return verdict
 
 
+def _spawn_iteration(iter_id, global_plet_dir, output_ndjson, completed_this_run):
+    """Run implement+verify for one iteration in its own worktree.
+
+    This is the expensive, parallelizable part. Does NOT merge to workstream.
+
+    Returns dict:
+        {"status": "ok", "iter_id": ..., "verdict": ..., "worktree_path": ...,
+         "worktree_plet_dir": ..., "implement_verdict": ...}
+    or on failure:
+        {"status": "error", "iter_id": ..., "error": ..., "worktree_created": bool}
+    """
+    _emit_event({"type": "iteration_start", "iterationId": iter_id, "phase": "implement"}, output_ndjson)
+    _emit_text(f"[{completed_this_run + 1}] {iter_id}: implementing...", output_ndjson)
+
+    # Create worktree
+    wt_data, wt_err, wt_rc = _run_script_json(
+        "plet_git_iteration.py", ["worktree-create", global_plet_dir, "--iter-id", iter_id]
+    )
+    if wt_rc != 0 or wt_data is None:
+        _emit_text(f"  Error creating worktree: {wt_err}", output_ndjson)
+        return {
+            "status": "error",
+            "iter_id": iter_id,
+            "error": f"worktree create failed: {wt_err}",
+            "worktree_created": False,
+        }
+
+    worktree_path = os.path.abspath(wt_data.get("worktreePath", ""))
+
+    # Implement
+    worktree_plet_dir, implement_verdict = _run_implement_phase(
+        iter_id, global_plet_dir, worktree_path, output_ndjson, completed_this_run
+    )
+    if implement_verdict is None:
+        _emit_text("  Implement did not set implementVerdict — will block", output_ndjson)
+        return {
+            "status": "error",
+            "iter_id": iter_id,
+            "error": "implement did not set verdict",
+            "worktree_created": True,
+        }
+
+    # Verify
+    verdict = _run_verify_phase(
+        iter_id, global_plet_dir, worktree_path, worktree_plet_dir, output_ndjson, completed_this_run
+    )
+
+    return {
+        "status": "ok",
+        "iter_id": iter_id,
+        "verdict": verdict,
+        "worktree_path": worktree_path,
+        "worktree_plet_dir": worktree_plet_dir,
+        "implement_verdict": implement_verdict,
+    }
+
+
+def _finalize_iteration(spawn_result, global_plet_dir, output_ndjson, completed_this_run, counts):
+    """Handle verdict, merge-squash, and cleanup for one iteration.
+
+    This is the sequential part — touches workstream branch and shared state.
+
+    Returns (new_completed, was_blocked).
+    """
+    iter_id = spawn_result["iter_id"]
+
+    if spawn_result["status"] == "error":
+        _update_lifecycle(global_plet_dir, iter_id, "blocked")
+        if spawn_result.get("worktree_created"):
+            _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
+        return completed_this_run, True
+
+    verdict = spawn_result["verdict"]
+    worktree_plet_dir = spawn_result["worktree_plet_dir"]
+
+    completed_this_run, was_blocked = _handle_verify_verdict(
+        verdict,
+        iter_id,
+        global_plet_dir,
+        worktree_plet_dir,
+        output_ndjson,
+        completed_this_run,
+        counts,
+    )
+
+    # Cleanup worktree
+    _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
+
+    return completed_this_run, was_blocked
+
+
 def _process_single_iteration(
     iter_id,
     global_plet_dir,
@@ -525,7 +616,13 @@ def _process_single_iteration(
     max_iterations,
     failed_this_round,
 ):
-    """Process one iteration through implement+verify. Returns int (early exit code) or (completed, was_blocked)."""
+    """Process one iteration through spawn+finalize (serial wrapper).
+
+    Includes breakpoint checks and max-iterations — these move to the main
+    loop in PAR_6 when parallel execution is wired up.
+
+    Returns int (early exit code) or (completed, was_blocked).
+    """
     # Breakpoint before
     bp_data, _, _ = _run_script_json(
         "plet_schedule.py", ["check-breakpoints", global_plet_dir, "--iter-id", iter_id, "--position", "before"]
@@ -543,47 +640,13 @@ def _process_single_iteration(
         _emit_event(result, output_ndjson)
         return 0
 
-    _emit_event({"type": "iteration_start", "iterationId": iter_id, "phase": "implement"}, output_ndjson)
-    _emit_text(f"[{completed_this_run + 1}] {iter_id}: implementing...", output_ndjson)
+    # Spawn (implement + verify)
+    spawn_result = _spawn_iteration(iter_id, global_plet_dir, output_ndjson, completed_this_run)
 
-    # Create worktree
-    wt_data, wt_err, wt_rc = _run_script_json(
-        "plet_git_iteration.py", ["worktree-create", global_plet_dir, "--iter-id", iter_id]
+    # Finalize (verdict + merge-squash + cleanup)
+    completed_this_run, was_blocked = _finalize_iteration(
+        spawn_result, global_plet_dir, output_ndjson, completed_this_run, counts
     )
-    if wt_rc != 0 or wt_data is None:
-        _emit_text(f"  Error creating worktree: {wt_err}", output_ndjson)
-        _update_lifecycle(global_plet_dir, iter_id, "blocked")
-        return completed_this_run, True
-
-    worktree_path = os.path.abspath(wt_data.get("worktreePath", ""))
-
-    # Implement
-    worktree_plet_dir, implement_verdict = _run_implement_phase(
-        iter_id, global_plet_dir, worktree_path, output_ndjson, completed_this_run
-    )
-    if implement_verdict is None:
-        _emit_text("  Implement did not set implementVerdict — blocking", output_ndjson)
-        _update_lifecycle(global_plet_dir, iter_id, "blocked")
-        _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
-        return completed_this_run, True
-
-    # Verify
-    verdict = _run_verify_phase(
-        iter_id, global_plet_dir, worktree_path, worktree_plet_dir, output_ndjson, completed_this_run
-    )
-
-    completed_this_run, was_blocked = _handle_verify_verdict(
-        verdict,
-        iter_id,
-        global_plet_dir,
-        worktree_plet_dir,
-        output_ndjson,
-        completed_this_run,
-        counts,
-    )
-
-    # Cleanup worktree
-    _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
 
     # Breakpoint after
     bp_data, _, _ = _run_script_json(
