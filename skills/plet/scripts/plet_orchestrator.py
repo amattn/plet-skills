@@ -194,6 +194,70 @@ def _handle_verify_verdict(
     return completed_this_run, False
 
 
+def _handle_merge_conflict(iter_id, global_plet_dir, output_ndjson, completed_this_run):
+    """Handle merge-squash conflict: rebase and retry merge, or requeue for implement.
+
+    Returns (new_completed, was_blocked).
+    """
+    # Get branch names
+    bn_data, _, _ = _run_script_json("plet_git_iteration.py", ["branch-name", global_plet_dir, "--iter-id", iter_id])
+    if not bn_data:
+        _emit_text(f"  Could not determine branch name for {iter_id} — requeuing", output_ndjson)
+        _update_lifecycle(global_plet_dir, iter_id, "queued")
+        return completed_this_run, False
+
+    iter_branch = bn_data.get("branchName", "")
+    ws_data, _, _ = _run_script_json("plet_git_iteration.py", ["branch-name", global_plet_dir, "--type", "workstream"])
+    ws_branch = ws_data.get("branchName", "") if ws_data else ""
+
+    # Rebase iteration branch onto current workstream
+    r = subprocess.run(
+        ["git", "rebase", ws_branch, iter_branch],
+        capture_output=True,
+        text=True,
+    )
+    if r.returncode != 0:
+        # Rebase has conflicts — abort rebase, requeue for implement to resolve
+        subprocess.run(["git", "rebase", "--abort"], capture_output=True)
+        _update_lifecycle(global_plet_dir, iter_id, "queued")
+        _emit_event(
+            {
+                "type": "merge_conflict_requeued",
+                "iterationId": iter_id,
+                "rebaseResult": "conflicts",
+                "rebasedOnto": ws_branch,
+            },
+            output_ndjson,
+        )
+        _emit_text(f"  {iter_id}: rebase conflicts — requeued for implement to resolve", output_ndjson)
+        return completed_this_run, False
+
+    # Rebase succeeded — try merge-squash again (should be clean now)
+    ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", global_plet_dir, "--iter-id", iter_id])
+    if ms_rc != 0:
+        # Still failing after rebase — requeue for implement
+        _update_lifecycle(global_plet_dir, iter_id, "queued")
+        _emit_event(
+            {
+                "type": "merge_conflict_requeued",
+                "iterationId": iter_id,
+                "rebaseResult": "clean",
+                "mergeRetryResult": "failed",
+            },
+            output_ndjson,
+        )
+        _emit_text(f"  {iter_id}: merge still failed after rebase — requeued", output_ndjson)
+        return completed_this_run, False
+
+    # Merge succeeded after rebase
+    _update_lifecycle(global_plet_dir, iter_id, "complete")
+    completed_this_run += 1
+    _emit_event({"type": "iteration_merged", "iterationId": iter_id, "afterRebase": True}, output_ndjson)
+    _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"}, output_ndjson)
+    _emit_text(f"[{completed_this_run}] {iter_id}: passed, merged (after rebase)", output_ndjson)
+    return completed_this_run, False
+
+
 def _handle_passed_verdict(iter_id, global_plet_dir, output_ndjson, completed_this_run, counts):
     """Handle a passed verify verdict: commit and merge-squash. Returns (new_completed, blocked)."""
     # Commit pending changes on workstream before merge-squash
@@ -205,14 +269,22 @@ def _handle_passed_verdict(iter_id, global_plet_dir, output_ndjson, completed_th
 
     ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", global_plet_dir, "--iter-id", iter_id])
     if ms_rc != 0:
-        _emit_event(
-            {"type": "error", "iterationId": iter_id, "error": "merge-squash failed: " + ms_err[:200]},
-            output_ndjson,
-        )
-        _emit_text(f"  merge-squash failed — blocking: {ms_err[:200]}", output_ndjson)
-        _update_lifecycle(global_plet_dir, iter_id, "blocked")
-        _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"}, output_ndjson)
-        return completed_this_run, True
+        is_conflict = "conflict" in ms_err.lower()
+        if is_conflict:
+            _emit_event(
+                {"type": "merge_conflict", "iterationId": iter_id, "error": ms_err[:200]},
+                output_ndjson,
+            )
+            return _handle_merge_conflict(iter_id, global_plet_dir, output_ndjson, completed_this_run)
+        else:
+            _emit_event(
+                {"type": "error", "iterationId": iter_id, "error": "merge-squash failed: " + ms_err[:200]},
+                output_ndjson,
+            )
+            _emit_text(f"  merge-squash failed — blocking: {ms_err[:200]}", output_ndjson)
+            _update_lifecycle(global_plet_dir, iter_id, "blocked")
+            _emit_event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"}, output_ndjson)
+            return completed_this_run, True
     else:
         _update_lifecycle(global_plet_dir, iter_id, "complete")
         completed_this_run += 1
