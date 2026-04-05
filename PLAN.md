@@ -18,8 +18,9 @@
 | PLAN_PAR | Parallel Orchestrator | |
 | PLAN_SUB | Subplets | |
 | PLAN_EVL | Eval System + Comparison Runs | |
-| PLAN_RFT | Refactor Loop | |
+| PLAN_RFT | Refactor Loop (orchestrator feature) | |
 | PLAN_COV | Library + CLI Pattern | |
+| PLAN_CLN | Script Cleanup & Consistency | see `specs/PLAN.md` § PLAN_CLN — 11 steps (PLAN_CLN_1-11), dead code, validator patterns, parse_command adoption |
 | PLAN_EX | Examples | unscheduled |
 
 ---
