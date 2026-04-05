@@ -352,6 +352,7 @@ def main():
     test_merge_squash_cleanup_tags()
     test_merge_squash_cleanup_branches()
     test_merge_squash_dirty_working_tree()
+    test_merge_squash_conflict()
     test_merge_squash_iteration_branch_missing()
 
     print(f"\n{passed} passed, {failed} failed")
@@ -538,6 +539,51 @@ def test_merge_squash_dirty_working_tree():
 
         _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
         check("error mentions dirty", "dirty" in stderr.lower() or "clean" in stderr.lower())
+
+
+def test_merge_squash_conflict():
+    """merge-squash with conflicting changes detects the conflict."""
+    print("\n## merge-squash — conflict detection")
+    with tempfile.TemporaryDirectory() as d:
+        repo = make_git_repo(d)
+
+        # Create a shared file on main
+        shared = os.path.join(repo, "shared.txt")
+        with open(shared, "w") as f:
+            f.write("original content\n")
+        git_run(repo, ["add", "-A"])
+        git_run(repo, ["commit", "-m", "base with shared file"])
+
+        # Create workstream
+        ws = "plet/LOGA/loop1/workstream"
+        git_run(repo, ["checkout", "-b", ws])
+
+        # Create iteration branch that modifies shared.txt
+        iter_br = "plet/LOGA/loop1/ID_001"
+        git_run(repo, ["checkout", "-b", iter_br])
+        with open(shared, "w") as f:
+            f.write("iteration change\n")
+        git_run(repo, ["add", "-A"])
+        git_run(repo, ["commit", "-m", "iteration modifies shared"])
+
+        # Back to workstream — make a conflicting change
+        git_run(repo, ["checkout", ws])
+        with open(shared, "w") as f:
+            f.write("workstream conflicting change\n")
+        git_run(repo, ["add", "-A"])
+        git_run(repo, ["commit", "-m", "workstream modifies shared"])
+
+        # Write state files
+        iter_state = dict(ITER_STATE)
+        iter_state["attempts"] = {"implement": 1, "verify": 1}
+        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
+        git_run(repo, ["add", "plet/"])
+        git_run(repo, ["commit", "-m", "state files"])
+
+        out, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
+        combined = out + " " + stderr
+        check("detects conflict", "conflict" in combined.lower(), "out: " + out[:100] + " err: " + stderr[:100])
+        check("mentions merge aborted", "abort" in combined.lower(), "out: " + out[:100])
 
 
 def test_merge_squash_iteration_branch_missing():

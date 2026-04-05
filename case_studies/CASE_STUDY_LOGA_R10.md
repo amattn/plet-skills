@@ -58,14 +58,17 @@ The error is NOT the dirty-tree validation check. It's from `_execute_merge_squa
 
 The dirty-tree fix (`"dirty" in ms_err.lower()`) never triggers because the error never reaches the dirty-tree check — the working tree passes validation (clean after `git add -A + commit`), but the actual `git merge --squash` command fails for an unknown reason related to parallel worktree state.
 
-**The `_try_merge_squash` fix from v0.5.1 is correct for dirty-tree errors but this is a different bug.** The `git merge --squash` command itself fails when parallel worktrees are active. Need to capture the full git output (stdout + stderr + exit code) to diagnose why.
+**Root cause found:** `git merge --squash` puts CONFLICT messages on **stdout**, not stderr. The code at `_execute_merge_squash` (plet_git_ops.py line 363) checks `r.stderr` for "conflict" — but `r.stderr` is empty when there's a conflict. Falls through to `f"Error: git command failed: {r.stderr}"` → "Error: git command failed:" (empty stderr).
 
-**Broader issue: string-based error matching is architecturally fragile.** Two layers of string grep (`"dirty"`, `"conflict"`) are both wrong:
-1. They depend on specific words surviving through error message construction + subprocess capture + tuple routing
-2. They miss errors from unexpected paths (like this one — a git command failure with empty stderr)
-3. They can't distinguish between "known recoverable" and "unknown fatal"
+This is NOT a parallel/worktree issue. It's a basic git output routing bug that affects ANY merge conflict. It was never caught because R06-R08 ran sequentially with no conflicts.
 
-**Fix approach:** `plet_git_ops.py merge-squash` should return structured error information — an error code or category that the orchestrator can dispatch on deterministically.
+**Fix:** Check both stdout and stderr for conflict keywords: `combined = r.stdout + " " + r.stderr`. Also improved fallback error message to include whichever output has content.
+
+**Broader issue: string-based error matching is fragile.** The conflict recovery checks `"conflict" in ms_err.lower()`, the dirty-tree recovery checks `"dirty" in ms_err.lower()`. Both depend on specific words appearing in the right stream. The v0.5.1 dirty-tree fix was actually correct — but never reached because the upstream conflict detection was broken first.
+
+**With the stdout fix, the full recovery chain should work:** conflict detected → orchestrator's rebase+requeue → iteration retries on updated workstream. The dirty-tree fix is a belt-and-suspenders layer on top.
+
+**Long-term:** structured error codes from plet_git_ops.py would be more robust than string matching, but the immediate fix (check stdout+stderr) addresses the actual bug.
 
 **Design smell: string-based error matching is fragile.** The conflict recovery checks `"conflict" in ms_err.lower()`, the dirty-tree recovery checks `"dirty" in ms_err.lower()`. Both depend on specific words appearing in error messages that pass through multiple layers (plet_git_ops → _run_script → orchestrator). Any truncation, rewording, or stderr/stdout routing issue breaks the detection.
 

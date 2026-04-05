@@ -40,7 +40,7 @@ from util_state import (
     load_and_validate_iter_state,
 )
 
-SCRIPT_VERSION = "0.3.2"
+SCRIPT_VERSION = "0.3.3"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -360,11 +360,13 @@ def _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pret
     """Execute the git merge --squash and commit. Returns (commit_hash, error_code)."""
     r = run_git("merge", "--squash", iter_branch)
     if r.returncode != 0:
-        if "conflict" in r.stderr.lower() or "CONFLICT" in r.stderr:
+        combined = r.stdout + " " + r.stderr
+        if "conflict" in combined.lower() or "CONFLICT" in combined:
             run_git("merge", "--abort")
             msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
             return None, _merge_squash_error(cmd_name, msg, output_json, pretty)
-        return None, _merge_squash_error(cmd_name, f"Error: git command failed: {r.stderr}", output_json, pretty)
+        detail = r.stderr or r.stdout or "(no output)"
+        return None, _merge_squash_error(cmd_name, f"Error: git merge --squash failed: {detail}", output_json, pretty)
 
     r = run_git("commit", "-m", full_message)
     if r.returncode != 0:
