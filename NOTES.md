@@ -1551,6 +1551,48 @@ Not a v1 blocker — the current verify phase catches obvious code quality issue
 
 **Decision (2026-04-05):** NOTES.md reorganized into plan-chunk sections with stable labels. PLAN.md stays lean (steps + status) with pointers to NOTES.md for rationale. Each plan chunk gets a `NOTES_XXX` section.
 
+### NOTES_PLN_FOUNDATION: Early Plans (SKL, REF, PKG, CS, NOT, XS, FT, PY, RW)
+
+Completed foundation plans. Grouped here since each is small individually.
+
+#### PLAN_SKL: SKILL.md — Main Orchestrator
+Single entry point `/plet` with routing logic based on state detection. File: `skills/plet/SKILL.md`.
+
+#### PLAN_REF: Reference Files
+6 reference files injected into subagent prompts: formats.md, state-schema.md, plan.md, implement.md, verify.md, refine.md. All under `skills/plet/references/`.
+
+#### PLAN_PKG: Packaging
+Plugin metadata: `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`.
+
+#### PLAN_CS: Case Study Feedback Loop
+8 case studies across 3 projects (LOGA, LIBT, SPARK). All feedback tracked in `FEEDBACK_FOO.md` (FOO_1–FOO_72). Stable labels: `CASE_{PROJECT}_{RUN}_{N}`.
+
+FEEDBACK_FOO.md 5-phase overhaul (2026-04-03): stable labels, cross-referencing, resolution pass, new items, coverage check.
+
+Additional work: vocabulary cleanup ("X phase" → "X session"), taxonomy consolidation, case study methodology (`case_studies/CLAUDE.md`), git stash ban (FOO_9), state file enforcement via plet_state.py (FOO_12), spec artifact preservation (FOO_16), post-merge verification (FOO_18), real timestamps (FOO_19), allowed-tools for plet_state.py.
+
+#### PLAN_NOT: Notes Skill
+Standalone `/notes` skill for living development notes. File: `skills/notes/SKILL.md` (v0.1.1). Bootstrap, Notes Discipline, reorg, routing, size management. Published in session-kit.
+
+#### PLAN_XS: Extractable Skills
+6 skills shipped to session-kit: /dictation, /fast-chat, /notes, /stable-label, /warmup, /sharpen. Published to marketplace (v0.5.0).
+
+#### PLAN_FT: Feedback Triage
+Review and resolve open FOO items. 72 total: 67 resolved, 5 withdrawn, 2 deferred.
+
+Key routing: 12 items deferred to PLAN_PY (script handles deterministically): FOO_11 (trace schema), FOO_13 (worktrees), FOO_22 (permissions), FOO_23 (bootstrap), FOO_29 (learnings enforcement), FOO_30 (stash elimination), FOO_31 (end-session), FOO_32 (worktree cleanup), FOO_33 (progress completeness), FOO_35 (lost commits), FOO_38 (knowledge transfer), FOO_40 (lifecycle). 5 resolved as plan-session prose fixes (FOO_24-28).
+
+#### PLAN_PY: Python Tooling
+14 enforcement scripts + 6 utility modules. Detailed build plan: `specs/PLAN.md` (47 tasks). Follows "Skills for Judgment, Code for Compliance" principle.
+
+#### PLAN_RW: PRD + ORC + SKILL.md + Reference Files Rewrite
+Scripts, prose, and orchestrator complete. LOGA Run 6 validated (13/13, zero human intervention). Phases: PRD catch-up, SKILL.md rewrite, reference files rewrite, ORC spec, ORC implementation, SKILL.md + artifact integration.
+
+Emergent work: lifecycle ownership model, 3 new scripts (schedule, session, orchestrator), 1 rename (session → gate_session), 1 new util (util_git), gate/schedule updates, UNV_CMD_29, NDJSON standardization.
+
+#### PLAN_OVH: Plet Infrastructure Overhead (deferred)
+R06: 53% of implement-phase Bash calls were plet infrastructure. Dominated by discovery cost (80 --help lookups, start-phase retries), not artifact writes. Deferred after PLAN_HLP. R08 showed 8.8m/iter (down from 14.2m) with zero --help lookups — may be moot. Re-evaluate if infra is still >40% after parallel run.
+
 ### NOTES_PLN_SUB: PLAN_SUB — Subplets
 
 <!-- Future — design decisions go here when work begins -->
