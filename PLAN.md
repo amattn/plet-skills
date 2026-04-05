@@ -17,7 +17,8 @@
 | PLAN_PAR | Parallel Orchestrator | ✓ COMPLETE |
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
-| PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — add refactoring step to plet loop at milestone boundaries |
+| PLAN_NTS | NOTES.md Reorganization | **Next** — stable labels, plan-chunk sections, PLAN.md→NOTES.md pointers |
+| PLAN_RFT | Refactor Loop (orchestrator feature) | After NTS — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -322,53 +323,52 @@ Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/tod
 
 ---
 
+## PLAN_NTS: NOTES.md Reorganization
+
+NOTES.md is 2300 lines with design decisions scattered under ad-hoc headings. Plan-specific decisions (PLAN_HLP, PLAN_PAR, PLAN_COV, etc.) are mixed into general sections. No stable labels. Hard to find decisions for a specific plan chunk.
+
+**Goal:** Organize NOTES.md so every plan chunk has a dedicated, labeled section. PLAN.md stays lean (steps + status) with pointers to NOTES.md for rationale.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| NTS_1 | Add `## Plan Decisions` H2 section to NOTES.md | |
+| NTS_2 | Create `NOTES_XXX` subsections for each plan chunk (HLP, PAR, COV, CLN, RFT, SUB, EVL) | |
+| NTS_3 | Move existing scattered plan decisions into their sections | |
+| NTS_4 | Add stable labels to all moved content (NOTES_PAR_1, etc.) | |
+| NTS_5 | Update PLAN.md sections to reference NOTES.md (e.g., "See NOTES.md § NOTES_RFT") | |
+| NTS_6 | Audit remaining NOTES.md H3s — are any orphaned plan decisions? | |
+
+**Structure:**
+```
+## Plan Decisions
+### NOTES_HLP: PLAN_HLP — Subagent CLI Re-learning
+### NOTES_PAR: PLAN_PAR — Parallel Orchestrator
+### NOTES_COV: PLAN_COV — Coverage Infrastructure
+### NOTES_CLN: PLAN_CLN — Script Cleanup & Consistency
+### NOTES_RFT: PLAN_RFT — Refactor Loop
+### NOTES_SUB: PLAN_SUB — Subplets (future)
+### NOTES_EVL: PLAN_EVL — Eval System (future)
+```
+
+Each section contains: design decisions, alternatives discussed, rationale, key insights, resolved and open questions. Content pulled from wherever it currently lives in NOTES.md.
+
+---
+
 ## PLAN_RFT: Refactor Loop
 
-Autonomous agents accumulate tech debt iteration by iteration — each subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. LOGA Run 6: main.go grew to 433 lines. PLAN_CLN: 16 scripts had duplicate help_hint functions. The pattern is universal — local optimization produces global inconsistency.
-
-### Design Decisions
-
-**Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone complete, a refactor iteration runs before the next milestone begins. The refactor agent sees the full integrated codebase and fixes cross-cutting issues.
-
-**Milestones as native execution barriers.** Milestones are not cosmetic groupings — they're self-contained buildable increments. All iterations in MS_2 implicitly depend on MS_1 being complete + refactored. This eliminates cross-milestone parallelism by design. Within a milestone, parallel execution works normally via the dependency graph.
-
-**Refactor iterations are regular DAG nodes.** The plan phase adds `ID_RFT_MS1` to the dependency map as the last iteration in each milestone. All MS_2 iterations depend on it. The orchestrator doesn't need milestone awareness — it follows the DAG. Streaming loop, parallel execution, breakpoints all work unchanged.
-
-**Two tiers of refactoring:**
-- Tier 1 (local): Within an iteration — the implement agent should write clean code, verify catches it. No new mechanism needed.
-- Tier 2 (cross-cutting): Across iterations — patterns, duplication, dead code, inconsistencies visible only with full codebase context. This is what PLAN_RFT addresses.
-
-### Plan Phase Changes
-
-Milestone definition becomes a first-class design decision:
-- Each milestone is a coherent feature set that integrates as a unit
-- Don't split tightly coupled work across milestones (creates artificial barriers)
-- Milestone boundaries are stable interface points
-- The plan phase generates milestone barrier deps in the dependency map
-- User reviews refactor iterations alongside regular ones during iteration review
-
-### Implementation Steps
+Milestone-boundary refactor via synthetic iteration. Milestones become native execution barriers — not cosmetic groupings. See NOTES.md § NOTES_RFT for design decisions, alternatives, and rationale.
 
 | Step | Description | Status |
 |------|-------------|--------|
 | RFT_1 | Plan phase: make milestones native (barrier deps in dependency map) | |
 | RFT_2 | Plan phase: auto-generate ID_RFT_MSN iterations per milestone | |
-| RFT_3 | Reference file: refactor.md (what the refactor agent does, how to audit, acceptance criteria patterns) | |
-| RFT_4 | Acceptance criteria generation: derive from emergent.md tech-debt items + automated quality checks (lint, complexity, coverage, duplication) | |
-| RFT_5 | Prompt assembly: plet_prompt.py supports phase=refactor, includes full codebase context | |
-| RFT_6 | State schema: support "refactor" as a valid phase alongside implement/verify | |
-| RFT_7 | Test with real run: LOGA R09 or R10 with milestone barrier + refactor iterations | |
+| RFT_3 | Reference file: refactor.md (refactor agent guidance, acceptance criteria patterns) | |
+| RFT_4 | Acceptance criteria generation: emergent.md tech-debt + automated quality checks | |
+| RFT_5 | Prompt assembly: plet_prompt.py supports phase=refactor | |
+| RFT_6 | State schema: "refactor" as valid phase alongside implement/verify | |
+| RFT_7 | Test with real run | |
 
-### Open Questions
-
-- Should the refactor agent have access to learnings.md and emergent.md to prioritize? (Probably yes — emergent tech-debt items are the refactor backlog)
-- Refactor budget? (Max time or single-attempt — refactoring shouldn't spiral)
-- Preventing breakage? (Tests are the safety net — same discipline as PLAN_CLN)
-- Minimum milestone size for refactor? (1-2 iterations may not warrant a pass — threshold of 3+?)
-- Does the refactor agent get its own reference file (like implement.md)? (Yes — refactor.md)
-- How does the refactor iteration define verifiable acceptance criteria? ("Code is cleaner" is not testable — need concrete checks like "zero ruff errors", "McCabe ≤15", "no duplicate functions >10 lines")
-
-**Depends on:** FOO_70, NOTES.md § Two-tier refactoring model, NOTES.md § PLAN_RFT design decisions.
+**Depends on:** PLAN_NTS (notes reorg), FOO_70.
 
 ---
 
