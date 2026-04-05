@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
   "permissions": {
     "allow": [
       "Bash(./skills/plet/scripts/*)",
@@ -19,6 +22,7 @@
       "Bash(rm:*)",
       "Bash(sed:*)",
       "Bash(shasum)",
+      "Bash(sort:*)",
       "Bash(wc:*)",
       "WebFetch(domain:gist.github.com)",
       "WebSearch"

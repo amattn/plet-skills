@@ -325,32 +325,26 @@ Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/tod
 
 ## PLAN_NTS: NOTES.md Reorganization
 
-NOTES.md is 2300 lines with design decisions scattered under ad-hoc headings. Plan-specific decisions (PLAN_HLP, PLAN_PAR, PLAN_COV, etc.) are mixed into general sections. No stable labels. Hard to find decisions for a specific plan chunk.
+Both NOTES.md (2300 lines) and specs/NOTES.md (1900 lines) had design decisions scattered under ad-hoc headings with no stable labels.
 
-**Goal:** Organize NOTES.md so every plan chunk has a dedicated, labeled section. PLAN.md stays lean (steps + status) with pointers to NOTES.md for rationale.
+**Goal:** Stable labels on every H2/H3. Plan-chunk sections in the right file. PLAN.md stays lean with pointers.
+
+**Routing:** COV and CLN decisions → specs/NOTES.md (script tooling). HLP, PAR, RFT, SUB, EVL → root NOTES.md (project/orchestrator). Cross-cutting plans (HLP, PAR) get stubs in specs/NOTES.md pointing to root.
+
+**Conventions established:**
+- Label format: `NOTES_XXX` for H2, `NOTES_{H2}_{CHILD}` for H3 (root). `SPEC_XXX` / `SPEC_{H2}_{CHILD}` (specs).
+- Implementation log time markers: H3 on 1st, 11th, and 21st of each month. Empty sections stay.
+- Relocation rule: always fully move content, no "Moved to" / "Extracted to" pointers.
 
 | Step | Description | Status |
 |------|-------------|--------|
-| NTS_1 | Add `## Plan Decisions` H2 section to NOTES.md | |
-| NTS_2 | Create `NOTES_XXX` subsections for each plan chunk (HLP, PAR, COV, CLN, RFT, SUB, EVL) | |
-| NTS_3 | Move existing scattered plan decisions into their sections | |
-| NTS_4 | Add stable labels to all moved content (NOTES_PAR_1, etc.) | |
-| NTS_5 | Update PLAN.md sections to reference NOTES.md (e.g., "See NOTES.md § NOTES_RFT") | |
-| NTS_6 | Audit remaining NOTES.md H3s — are any orphaned plan decisions? | |
-
-**Structure:**
-```
-## Plan Decisions
-### NOTES_HLP: PLAN_HLP — Subagent CLI Re-learning
-### NOTES_PAR: PLAN_PAR — Parallel Orchestrator
-### NOTES_COV: PLAN_COV — Coverage Infrastructure
-### NOTES_CLN: PLAN_CLN — Script Cleanup & Consistency
-### NOTES_RFT: PLAN_RFT — Refactor Loop
-### NOTES_SUB: PLAN_SUB — Subplets (future)
-### NOTES_EVL: PLAN_EVL — Eval System (future)
-```
-
-Each section contains: design decisions, alternatives discussed, rationale, key insights, resolved and open questions. Content pulled from wherever it currently lives in NOTES.md.
+| NTS_1 | Stable labels + TOC on root NOTES.md (17 H2s, 8 plan H3s) | ✓ done |
+| NTS_2 | Stable labels + TOC on specs/NOTES.md (8 H2s) | ✓ done |
+| NTS_3 | specs/NOTES.md: reorganize into labeled sections | ✓ done — SPEC_INV (3), SPEC_TAX (4), SPEC_INS (3), SPEC_DES (4), SPEC_PLN (4: COV, CLN, HLP stub, PAR stub), SPEC_REV (15 scripts), SPEC_IMP (chronological, at bottom) |
+| NTS_4 | Root NOTES.md: move scattered plan decisions into NOTES_PLN_XXX sections | **Next** |
+| NTS_5 | Update PLAN.md sections to reference NOTES.md / specs/NOTES.md | |
+| NTS_6 | Root NOTES.md: add time markers to implementation log sections | |
+| NTS_7 | Final audit: both files, orphaned content, stale references | |
 
 ---
 
