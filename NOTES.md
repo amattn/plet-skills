@@ -2,21 +2,44 @@
 
 > **See also:** `guide/NOTES.md` for presentation/guide decisions. Routing rule in CLAUDE.md § NOTES.md Routing.
 
-- What is plet?
-- Core Workflow
-- Platform & Distribution
-- Invariants & Critical Requirements
-- Taxonomy & Conventions
-- Important Concepts & Insights
-- Key Design Decisions
-- Lineage
-- PRD Status
-- Things to Monitor
-- Open Questions
-- Multi-Developer Analysis
-- Self-Improvement Analysis
+## Stable Label Convention
 
-## What is plet?
+Every H2 section has a stable label: `NOTES_XXX: Title`. H3 subsections use the parent prefix: `NOTES_PLN_HLP: PLAN_HLP — ...` (child of `NOTES_PLN`).
+
+**Format:** `NOTES_{PARENT}_{CHILD}: Title`
+- H2: `NOTES_XXX` (3-letter code)
+- H3: `NOTES_{H2CODE}_{CHILD}` (parent + child)
+- H4+: `NOTES_{H2CODE}_{H3CODE}_{N}` (for numbered items within a subsection)
+
+Labels are append-only — never renumber or rename. Use `grep NOTES_PLN_RFT` to find all refactor loop decisions.
+
+**Time-ordered sections:** Any section with time-ordered entries uses H3 date markers to partition the stream. Empty markers stay — they indicate no activity during that period. New entries append at the bottom under the current marker.
+
+**Relocation rule:** When moving content between sections, fully relocate — no "Moved to" or "Extracted to" pointers. Pointers rot. The destination is the canonical location.
+
+## Table of Contents
+
+| Label | Section |
+|-------|---------|
+| NOTES_DEF | What is plet? |
+| NOTES_WRK | Core Workflow |
+| NOTES_DST | Platform & Distribution |
+| NOTES_INV | Invariants & Critical Requirements |
+| NOTES_TAX | Taxonomy & Conventions |
+| NOTES_INS | Important Concepts & Insights |
+| NOTES_DES | Key Design Decisions |
+| NOTES_PLN | Plan Discussions |
+| NOTES_LIN | Lineage |
+| NOTES_PRD | PRD Status |
+| NOTES_TBR | Tooling Brainstorm |
+| NOTES_MON | Things to Monitor |
+| NOTES_GUI | GUI Design |
+| NOTES_OPN | Open Questions |
+| NOTES_EXP | Example Projects |
+| NOTES_SUB | Subplets & Multi-Developer Analysis |
+| NOTES_SIA | Self-Improvement Analysis |
+
+## NOTES_DEF: What is plet?
 
 **PLET = Progress, Learnings, Emergent items, Traces** — the four runtime artifacts the system produces. 
 
@@ -24,7 +47,7 @@ plet is a Claude Code skill that orchestrates spec-driven autonomous development
 
 ---
 
-## Core Workflow
+## NOTES_WRK: Core Workflow
 
 **Plan -> Loop (Implement → Verify) -> Refine**
 
@@ -36,7 +59,7 @@ plet is a Claude Code skill that orchestrates spec-driven autonomous development
 
 ---
 
-## Platform & Distribution
+## NOTES_DST: Platform & Distribution
 
 - Claude Code skill (SKILL.md + bundled reference files)
 - Python enforcement scripts shipped in `skills/plet/scripts/` — stdlib only, zero external dependencies. Standards in `scripts/CLAUDE.md`.
@@ -46,7 +69,7 @@ plet is a Claude Code skill that orchestrates spec-driven autonomous development
 
 ---
 
-## Invariants & Critical Requirements
+## NOTES_INV: Invariants & Critical Requirements
 
 Rules that must not be violated. An agent breaking these breaks the system.
 
@@ -69,7 +92,7 @@ Rules that must not be violated. An agent breaking these breaks the system.
 
 ---
 
-## Taxonomy & Conventions
+## NOTES_TAX: Taxonomy & Conventions
 
 Canonical definitions for plet's vocabulary, document terms, artifact categories, and ID conventions. Decision rationale and rejected alternatives live in Key Design Decisions; this section is the reference.
 
@@ -271,7 +294,7 @@ Design principle: commands match agent workflow, not JSON structure. `start-phas
 
 ---
 
-## Important Concepts & Insights
+## NOTES_INS: Important Concepts & Insights
 
 ### Agent-First CLI Design (2026-03-16)
 
@@ -406,7 +429,7 @@ Claude Code has three layers of memory:
 
 ---
 
-## Key Design Decisions
+## NOTES_DES: Key Design Decisions
 
 ### Architecture & Routing
 
@@ -1300,45 +1323,45 @@ Key decisions:
 
 ---
 
-## Plan Decisions
+## NOTES_PLN: Plan Discussions
 
 Design decisions, alternatives discussed, and rationale for each plan chunk. PLAN.md has the steps and status; this section has the "why."
 
-### NOTES_HLP: PLAN_HLP — Subagent CLI Re-learning
+### NOTES_PLN_HLP: PLAN_HLP — Subagent CLI Re-learning
 
 <!-- TODO: Move HLP decisions here from scattered locations -->
 
-### NOTES_PAR: PLAN_PAR — Parallel Orchestrator
+### NOTES_PLN_PAR: PLAN_PAR — Parallel Orchestrator
 
 <!-- TODO: Move PAR decisions here from current location -->
 
-### NOTES_COV: PLAN_COV — Coverage Infrastructure
+### NOTES_PLN_COV: PLAN_COV — Coverage Infrastructure
 
 <!-- TODO: Move COV decisions here from current location -->
 
-### NOTES_CLN: PLAN_CLN — Script Cleanup & Consistency
+### NOTES_PLN_CLN: PLAN_CLN — Script Cleanup & Consistency
 
 <!-- TODO: Move CLN decisions here from current location -->
 
-### NOTES_RFT: PLAN_RFT — Refactor Loop
+### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
 <!-- TODO: Move RFT decisions here from current location -->
 
-### NOTES_NTS: PLAN_NTS — Notes Reorganization
+### NOTES_PLN_NTS: PLAN_NTS — Notes Reorganization
 
 **Decision (2026-04-05):** NOTES.md reorganized into plan-chunk sections with stable labels. PLAN.md stays lean (steps + status) with pointers to NOTES.md for rationale. Each plan chunk gets a `NOTES_XXX` section.
 
-### NOTES_SUB: PLAN_SUB — Subplets
+### NOTES_PLN_SUB: PLAN_SUB — Subplets
 
 <!-- Future — design decisions go here when work begins -->
 
-### NOTES_EVL: PLAN_EVL — Eval System
+### NOTES_PLN_EVL: PLAN_EVL — Eval System
 
 <!-- Future — design decisions go here when work begins -->
 
 ---
 
-## Lineage
+## NOTES_LIN: Lineage
 
 plet draws from three sources:
 
@@ -1394,7 +1417,7 @@ plet draws from three sources:
 
 ---
 
-## PRD Status
+## NOTES_PRD: PRD Status
 
 All sections reviewed and approved. The PRD is the source of truth for requirement IDs and counts.
 
@@ -1417,7 +1440,7 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 
 ---
 
-## Tooling Brainstorm
+## NOTES_TBR: Tooling Brainstorm
 
 Tools shipped inside the skill package via `${CLAUDE_SKILL_DIR}/scripts/`. The pattern: prose rules that agents consistently violate → deterministic tooling that makes compliance automatic. See "Skills for Judgment, Code for Compliance" in § Important Concepts.
 
@@ -1578,7 +1601,7 @@ PRD ref: SF_24
 
 ---
 
-## Things to Monitor
+## NOTES_MON: Things to Monitor
 
 ### Injection payload sizes
 
@@ -1631,7 +1654,7 @@ The three-layer compaction defense (CLAUDE.md POST-COMPACTION RULE → PLET.md M
 
 ---
 
-## GUI Design
+## NOTES_GUI: GUI Design
 
 Central collection of GUI-relevant design decisions made across specs. The GUI is a separate project (see PRD §1 Overview) that reads plet's state files for visualization. These decisions shape what the GUI needs to handle.
 
@@ -1659,7 +1682,7 @@ GUI merges `-events.ndjson` and `-transcript.ndjson` by timestamp for a unified 
 
 ---
 
-## Open Questions
+## NOTES_OPN: Open Questions
 
 ### Consistency checking as a skill?
 
@@ -2154,7 +2177,7 @@ Key questions:
 
 ---
 
-## Example Projects
+## NOTES_EXP: Example Projects
 
 Example projects live in subdirectories of `plet-skills/`. Their purpose is to serve as real target projects for plet's first runs — exercising the full plan → loop → refine workflow against actual code, not speculative samples.
 
@@ -2211,7 +2234,7 @@ Run plet plan mode on each project and compare its iteration decomposition again
 
 ---
 
-## Multi-Developer Analysis
+## NOTES_SUB: Subplets & Multi-Developer Analysis
 
 plet is currently designed for a single developer driving a single Claude Code session. Multi-developer workflows are planned for plet v2.x.y — not a v1 concern, but the state file architecture should not accidentally preclude it.
 
@@ -2276,7 +2299,7 @@ Benefits: namespace isolation, each instance fully self-contained, cross-PRD vis
 
 ---
 
-## Self-Improvement Analysis
+## NOTES_SIA: Self-Improvement Analysis
 
 Self-Improvement Analysis workflows are planned for plet v3.x.y — not a v1 concern
 Future Consideration #11
