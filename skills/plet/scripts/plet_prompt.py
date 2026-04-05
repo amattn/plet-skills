@@ -39,7 +39,7 @@ from util_io import (
     validate_plet_dir,
 )
 
-SCRIPT_VERSION = "0.1.1"
+SCRIPT_VERSION = "0.3.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]

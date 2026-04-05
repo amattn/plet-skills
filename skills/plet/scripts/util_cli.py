@@ -517,7 +517,8 @@ def parse_command(args, help_text, known_flags, required, allow_dry_run, hint):
     from util_io import validate_plet_dir
 
     if "-h" in args or "--help" in args:
-        return (0, help_text, "")
+        full_help = help_text + "\n\nTip: --usage for compact syntax. cat $PLET_CLI_REF for full cheat sheet."
+        return (0, full_help, "")
 
     plet_dir, remaining, dir_err = get_plet_dir(args)
     if plet_dir is None:

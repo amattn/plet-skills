@@ -84,7 +84,7 @@ def test_version():
     print("\n## Version output")
     out, _, _ = run(["--version"])
     check("has script name", "plet_trace" in out)
-    check("has version", "0.1.1" in out)
+    check("has version", "0.3.1" in out)
 
 
 # ---------------------------------------------------------------------------

@@ -44,7 +44,7 @@ from util_io import (
     state_json_path,
 )
 
-SCRIPT_VERSION = "0.3.0"
+SCRIPT_VERSION = "0.3.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_LIFECYCLES = {

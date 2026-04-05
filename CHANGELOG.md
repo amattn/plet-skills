@@ -2,6 +2,28 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.4.4 (2026-04-04)
+
+### PLAN_COV — Coverage Infrastructure
+- **Tuple return convention:** All 17 scripts return `(code, stdout, stderr)` from cmd_* functions. No script prints directly — dispatch is the only stdout/stderr boundary.
+- **Validation return convention:** `validate_enum` returns value on success / `(1,"",err)` on error. `validate_int` returns parsed int / error tuple. `validate_known_flags`, `require_kwargs` return `None` / error tuple. `parse_command` returns `(0,help,"")` / `(1,"",err)` / 6-tuple. Callers distinguish by tuple length or type.
+- **Test runner unified:** `test_all.py` runs ruff + pytest + coverage by default (~40s). pytest-xdist parallel (one worker per test file). `--no-cov` for fast runs (~35s). Removed `coverage_all.sh`.
+- **Coverage threshold:** 85% → 87% (current: 87.4%).
+- **15 test files** converted from subprocess to direct import (`main()` + `io.StringIO` capture).
+
+### PLAN_PAR — Parallel Orchestrator (in progress)
+- **PAR_1:** File-level conflict guidance in plan.md — dependency tree should encode file conflicts, not just logical order.
+- **PAR_2:** Orchestrator refactored into `_spawn_iteration` (parallelizable) + `_finalize_iteration` (sequential merge-squash).
+
+### Help Text
+- **`--help` via tuple:** Command-level `--help` now returns help text through the tuple (not printed directly). Includes the "Tip: --usage..." footer. Error messages from validation (missing flags, bad enum values, unknown flags) also flow through tuples — visible in structured output, not just stderr.
+
+### Schema
+- **SCHEMA_VERSION:** 0.4.0 → 0.4.1. Additive: `oneLiner`, `redTest`, `noTestRationale` fields in verification objects (criteria and reports).
+
+### Version Alignment
+- All 17 script SCRIPT_VERSION aligned to 0.3.1.
+
 ## 0.4.3 (2026-04-03)
 
 ### New Script

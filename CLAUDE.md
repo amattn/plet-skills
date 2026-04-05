@@ -76,7 +76,7 @@ To test: use this repo's skill directly (Claude Code should pick it up from the 
 **Non-negotiable for all script implementations.** Every command is implemented through a red/green cycle:
 
 1. **Stub the script first** — create the script with shebang, docstring, dispatch, and a stub command function that accepts args but returns a dummy/zero value (e.g., empty list, hardcoded "ok"). The script must be runnable — `--help` and `--version` work, the command executes without crashing, but it doesn't do real work yet.
-2. **Write tests for one command** — tests that call the script via subprocess and assert expected behavior
+2. **Write tests for one command** — tests that call the script and assert expected behavior
 3. **Run tests — they must fail (red)** — this proves the tests are load-bearing. The script runs but returns the wrong answer. A test that fails because the file doesn't exist (`FileNotFoundError`) is not meaningful red — it proves nothing about the test's ability to catch bad behavior.
 4. **Implement the command**
 5. **Run tests — they must pass (green)**

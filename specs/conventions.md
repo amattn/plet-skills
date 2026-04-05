@@ -113,7 +113,7 @@ Universal requirements across all plet scripts. Per-script specs reference this 
 | UNV_QG_2 | Test coverage ≥87% across all scripts. Measured by `test_all.py` (pytest-cov + pytest-xdist). Threshold in `pyproject.toml` `fail_under = 87`. | P0 |
 | UNV_QG_3 | Ruff lint (9 rule sets: E, F, W, I, N, UP, B, SIM, C90) must pass with zero errors before tests run. `test_all.py` enforces this as a gate — tests are skipped if ruff fails. | P0 |
 | UNV_QG_4 | Ruff format must pass (`ruff format --check`). No auto-fix in the test runner — developer fixes manually. | P0 |
-| UNV_QG_5 | All quality gates run in a single command: `test_all.py` (ruff + tests, ~30s) for development, `coverage_all.sh` (ruff + tests + coverage, ~120s) for pre-publish. | P0 |
+| UNV_QG_5 | All quality gates run in a single command: `test_all.py` (ruff + pytest + coverage, ~40s). Use `--no-cov` for faster runs (~35s) during rapid iteration. | P0 |
 
 ## Implementation Prerequisites
 
