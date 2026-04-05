@@ -2217,6 +2217,8 @@ Run plet plan mode on each project and compare its iteration decomposition again
 
 ## NOTES_SUB: Subplets & Multi-Developer Analysis
 
+Subplets exist for **multiple developers to work on the same codebase simultaneously**, each with their own plet-driven workflow. This is not about decomposing complexity (milestones and iterations handle that) — it's about parallelizing human effort across a team.
+
 plet is currently designed for a single developer driving a single Claude Code session. Multi-developer workflows are planned for plet v2.x.y — not a v1 concern, but the state file architecture should not accidentally preclude it.
 
 ### NOTES_SUB_1: Scenarios identified
@@ -2274,9 +2276,31 @@ Benefits: namespace isolation, each instance fully self-contained, cross-PRD vis
 - Emergent/blocker ownership: `assignee` field on emergent entries (additive to current format)
 - Refine is naturally single-threaded — one human refines at a time, others consume updated spec
 - Does the orchestrator need to know about sibling `subplets/`?
-- How do iterations in one subplet express dependencies on a sibling?
 - Naming convention: `subplets/{feature-name}/` or `subplets/{developer-name}/`?
 - The `proj` sentinel in plet IDs (used for project-level refine entries) is scoped to a single plet directory. If cross-subplet plet IDs ever need to be disambiguated, the iteration segment format will need a subplet-qualified alternative — constrained by underscore-as-delimiter and double-click-select ergonomics.
+- How do refactor iterations interact with subplets? Each subplet has its own milestones and refactor passes. Does the parent's refactor see subplet code?
+- ~~Subplet orchestrator discovery~~ → resolved: each subplet has its own human driver (NOTES_SUB_8)
+- ~~Subplet completion rollup~~ → resolved: human-driven (NOTES_SUB_8). Optional status command could scan `subplets/*/plet/state.json`
+
+### NOTES_SUB_6: No cross-subplet dependencies (2026-04-05)
+
+**Decision:** Subplets are independent work streams. No cross-subplet dependencies in the DAG. If a subplet needs work from a sibling, it is conceptually blocked until the sibling merges to the shared branch and the blocked subplet rebases.
+
+Git is the integration point, not the orchestrator. Each subplet has its own DAG, its own milestones, its own refactor iterations. The parent plet doesn't coordinate between siblings.
+
+This is fork mode elevated to a design principle: subplets are isolated by definition. Cross-subplet coupling is a planning error — the work should either be in the same subplet or sequenced (one subplet completes before the other starts).
+
+### NOTES_SUB_7: Subplets inherit parent refactor goals (2026-04-05)
+
+**Decision:** Subplets share the root plet's refactor heuristics by default. The parent's refactor goals (defined during plan phase) cascade to all subplets. A subplet can add its own goals on top but inherits the baseline.
+
+This ensures consistency across the project — if the root says "files under 300 lines" and "consistent error handling," every subplet enforces the same standard. Without inheritance, subplets drift toward their own conventions and the integration refactor (when subplet work merges back) becomes a consistency nightmare.
+
+### NOTES_SUB_8: Each subplet has its own human driver (2026-04-05)
+
+**Decision:** Each subplet is a full plet instance driven by one human. The human runs `/plet plan`, `/plet loop`, `/plet refine` independently on each subplet. The parent plet doesn't orchestrate subplets — it decomposes the project during plan phase and creates the `subplets/` directories. After that, each subplet is independent.
+
+No parent-level orchestrator awareness needed. No discovery mechanism. No completion rollup. Humans coordinate between subplets the same way they coordinate between branches — through communication and git. A simple status command scanning `subplets/*/plet/state.json` could provide a dashboard, but it's informational, not orchestration.
 
 ---
 
