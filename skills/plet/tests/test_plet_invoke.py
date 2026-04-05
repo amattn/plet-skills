@@ -500,6 +500,121 @@ def test_invocation_progress_entry():
 
 
 # ===========================================================================
+# Injectable launcher (COV_16)
+# ===========================================================================
+
+
+def test_injectable_launcher():
+    """_launcher is overridable — mock process captures transcript in-process."""
+    print("\n## Injectable launcher — mock process")
+
+    import tempfile
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    import plet_invoke
+
+    class MockProcess:
+        def __init__(self):
+            self.stdout = iter(['{"type":"init"}\n', '{"type":"result"}\n'])
+            self.returncode = 0
+
+        def wait(self):
+            pass
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+        t_path = os.path.join(tmpdir, "transcript.jsonl")
+
+        old_launcher = plet_invoke._launcher
+        plet_invoke._launcher = lambda cmd, cwd, env: MockProcess()
+        try:
+            exit_code, lines, elapsed = plet_invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
+            check("exit code 0", exit_code == 0)
+            check("2 lines captured", lines == 2, f"got: {lines}")
+            check("transcript exists", os.path.isfile(t_path))
+
+            with open(t_path) as f:
+                content = f.read()
+            check("transcript has init", '{"type":"init"}' in content)
+            check("transcript has result", '{"type":"result"}' in content)
+        finally:
+            plet_invoke._launcher = old_launcher
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_injectable_launcher_nonzero_exit():
+    """Mock process with non-zero exit code."""
+    print("\n## Injectable launcher — non-zero exit")
+
+    import tempfile
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    import plet_invoke
+
+    class FailProcess:
+        def __init__(self):
+            self.stdout = iter(['{"type":"error"}\n'])
+            self.returncode = 1
+
+        def wait(self):
+            pass
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+        t_path = os.path.join(tmpdir, "transcript.jsonl")
+
+        old_launcher = plet_invoke._launcher
+        plet_invoke._launcher = lambda cmd, cwd, env: FailProcess()
+        try:
+            exit_code, lines, elapsed = plet_invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
+            check("exit code 1", exit_code == 1)
+            check("1 line captured", lines == 1)
+        finally:
+            plet_invoke._launcher = old_launcher
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_injectable_launcher_retry_append():
+    """Transcript appends on retry (existing file gets --- retry --- marker)."""
+    print("\n## Injectable launcher — retry append")
+
+    import tempfile
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    import plet_invoke
+
+    class MockProcess:
+        def __init__(self):
+            self.stdout = iter(['{"type":"retry"}\n'])
+            self.returncode = 0
+
+        def wait(self):
+            pass
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+        t_path = os.path.join(tmpdir, "transcript.jsonl")
+        with open(t_path, "w") as f:
+            f.write('{"type":"first_run"}\n')
+
+        old_launcher = plet_invoke._launcher
+        plet_invoke._launcher = lambda cmd, cwd, env: MockProcess()
+        try:
+            exit_code, lines, elapsed = plet_invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
+            with open(t_path) as f:
+                content = f.read()
+            check("has first_run", "first_run" in content)
+            check("has retry marker", "--- retry ---" in content)
+            check("has retry event", '{"type":"retry"}' in content)
+        finally:
+            plet_invoke._launcher = old_launcher
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
 # Main
 # ===========================================================================
 
@@ -521,6 +636,9 @@ def main():
     test_trace_dir_created()
     test_invocation_trace_event()
     test_invocation_progress_entry()
+    test_injectable_launcher()
+    test_injectable_launcher_nonzero_exit()
+    test_injectable_launcher_retry_append()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

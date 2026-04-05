@@ -271,6 +271,15 @@ def _log_invocation(
             os.unlink(content_tmp)
 
 
+def _default_launcher(cmd, cwd, env):
+    """Launch a real subprocess. Returns a process with .stdout and .wait()."""
+    return sp.Popen(cmd, stdout=sp.PIPE, stderr=sys.stderr, text=True, cwd=cwd, env=env)
+
+
+# Injectable launcher — override for testing
+_launcher = _default_launcher
+
+
 def _launch_and_capture(claude_cmd, cwd, plet_env, t_path):
     """Launch subprocess and capture transcript. Returns (exit_code, transcript_lines, elapsed)."""
     start_time = time.time()
@@ -283,14 +292,7 @@ def _launch_and_capture(claude_cmd, cwd, plet_env, t_path):
     sub_env = os.environ.copy()
     sub_env.update(plet_env)
 
-    proc = sp.Popen(
-        claude_cmd,
-        stdout=sp.PIPE,
-        stderr=sys.stderr,
-        text=True,
-        cwd=cwd,
-        env=sub_env,
-    )
+    proc = _launcher(claude_cmd, cwd, sub_env)
 
     with open(t_path, "a") as transcript:
         for line in proc.stdout:
