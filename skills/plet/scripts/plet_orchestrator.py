@@ -37,7 +37,7 @@ from util_sink import FileSink, MultiplexSink, NdjsonSink, TextSink
 from util_state import load_and_validate_iter_state
 from util_subprocess import run_git
 
-SCRIPT_VERSION = "0.4.0"
+SCRIPT_VERSION = "0.4.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -242,13 +242,26 @@ def _handle_merge_conflict(iter_id, global_plet_dir, sink, completed_this_run):
     return completed_this_run, False
 
 
-def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts):
-    """Handle a passed verify verdict: commit and merge-squash. Returns (new_completed, blocked)."""
+def _try_merge_squash(iter_id, global_plet_dir, sink):
+    """Attempt merge-squash with dirty-tree recovery. Returns (out, err, rc)."""
     # Commit pending changes on workstream before merge-squash
     run_git("add", "-A")
     run_git("commit", "-m", f"plet: state before merge-squash {iter_id}", "--allow-empty")
 
     ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", global_plet_dir, "--iter-id", iter_id])
+    if ms_rc != 0 and "dirty" in ms_err.lower():
+        # Dirty tree from parallel worktrees — clean and retry once
+        sink.text(f"  {iter_id}: dirty tree detected, cleaning and retrying merge-squash")
+        run_git("add", "-A")
+        run_git("commit", "-m", f"plet: clean tree before merge-squash {iter_id}", "--allow-empty")
+        ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", global_plet_dir, "--iter-id", iter_id])
+
+    return ms_out, ms_err, ms_rc
+
+
+def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts):
+    """Handle a passed verify verdict: commit and merge-squash. Returns (new_completed, blocked)."""
+    ms_out, ms_err, ms_rc = _try_merge_squash(iter_id, global_plet_dir, sink)
     if ms_rc != 0:
         is_conflict = "conflict" in ms_err.lower()
         if is_conflict:

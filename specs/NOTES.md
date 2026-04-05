@@ -2044,3 +2044,18 @@ Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree co
 **Test count:** 1786 across 23 files (~19s).
 
 
+
+#### Merge-squash dirty-tree bug — LOGA R09 (2026-04-05)
+
+**Bug:** `plet_git_ops.py merge-squash` validates `git status --porcelain` is empty before merging. With parallel execution, worktree artifacts leak into the main working tree, making it appear dirty. Two iterations (ID_004, ID_011) passed verify but failed merge-squash. Cascading: 6 more iterations permanently ineligible. Run completed only 38%.
+
+**Root cause:** The `_handle_passed_verdict` in plet_orchestrator.py does `run_git("add", "-A")` + `run_git("commit", ...)` before merge-squash, but this runs on the workstream branch. With parallel worktrees active, files from worktrees may appear as untracked or modified in the main tree's `git status`.
+
+**The rebase+requeue path did NOT trigger** because the error message doesn't contain "conflict" — it's a pre-merge validation failure (`git status --porcelain non-empty`), not a merge conflict. The conflict recovery code checks `"conflict" in ms_err.lower()`.
+
+**Fix options:**
+1. Expand the error recovery in `_handle_passed_verdict` to also catch dirty-tree errors and clean+retry
+2. Add a `run_git("add", "-A")` + `run_git("commit", "--allow-empty")` immediately before the merge-squash call to ensure the tree is clean
+3. Have merge-squash itself tolerate or clean the dirty tree when worktrees exist
+
+**Decision:** Option 2 — the orchestrator already does `git add -A && git commit` but it may not be running at the right time relative to worktree finalization. Ensure it runs immediately before every merge-squash, not just once per finalize call.

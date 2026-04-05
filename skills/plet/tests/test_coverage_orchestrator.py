@@ -867,6 +867,52 @@ def test_handle_passed_verdict_with_mock():
         shutil.rmtree(d)
 
 
+def test_handle_passed_verdict_dirty_tree_retry():
+    """Merge-squash fails with dirty tree → clean and retry succeeds."""
+    print("\n## Mock runner — passed verdict (dirty tree retry)")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            call_count = {"merge": 0}
+
+            def mock_merge_runner(script_name, args, cwd=None):
+                cmd = args[0] if args else ""
+                if script_name == "plet_global_state.py" and cmd == "update-lifecycle":
+                    return plet_orchestrator._run_script_subprocess(script_name, args, cwd)
+                if script_name == "plet_git_ops.py" and cmd == "merge-squash":
+                    call_count["merge"] += 1
+                    if call_count["merge"] == 1:
+                        # First attempt: dirty tree
+                        return "", "Error: working tree is dirty (git status --porcelain non-empty)", 1
+                    else:
+                        # Second attempt: clean
+                        return "OK — merged", "", 0
+                return "", "", 0
+
+            old_run, old_json = plet_orchestrator._run_script, plet_orchestrator._run_script_json
+            plet_orchestrator._run_script = mock_merge_runner
+            plet_orchestrator._run_script_json = lambda s, a, c=None: (None, "", 0)
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                check("completed = 1 (retry succeeded)", completed == 1)
+                check("not blocked", blocked is False)
+                check("merge called twice", call_count["merge"] == 2)
+                dirty_msgs = [m for m in sink.messages if "dirty tree" in m]
+                check("dirty tree message emitted", len(dirty_msgs) == 1)
+            finally:
+                plet_orchestrator._run_script = old_run
+                plet_orchestrator._run_script_json = old_json
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
 def test_handle_passed_verdict_conflict_requeue():
     """Merge-squash conflicts → rebase+requeue via mock."""
     print("\n## Mock runner — passed verdict (conflict requeue)")
@@ -1181,6 +1227,7 @@ def main():
     test_injectable_runner_override()
 
     test_handle_passed_verdict_with_mock()
+    test_handle_passed_verdict_dirty_tree_retry()
     test_handle_passed_verdict_conflict_requeue()
     test_handle_passed_verdict_non_conflict_error()
     test_spawn_iteration_with_mock()
