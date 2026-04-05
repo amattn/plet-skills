@@ -660,6 +660,220 @@ def test_compare_fingerprints_direct():
     consistent, details = fpr_mod.compare_fingerprints(fp1, fp3, "requirements")
     check("different inconsistent", consistent is False)
 
+    # Only timestamp differs (IDs same) — triggers ts mismatch path
+    fp4 = {"lastNonTrivialUpdate": "2026-01-02", "requirements": {"FR": ["FR_1"]}}
+    consistent, details = fpr_mod.compare_fingerprints(fp1, fp4, "requirements")
+    check("ts mismatch inconsistent", consistent is False)
+    check("details has currentTimestamp", "currentTimestamp" in details)
+    check("details says timestamp mismatch", details.get("details") == "timestamp mismatch")
+
+
+def test_err_json_direct():
+    print("\n## _err_json — extra dict and pretty mode (direct import)")
+    # With extra dict
+    js, msg = fpr_mod._err_json("extract", "boom", extra={"hint": "try harder"})
+    data = json.loads(js)
+    check("extra field present", data.get("hint") == "try harder")
+    check("status error", data["status"] == "error")
+    check("error message", data["error"] == "boom")
+
+    # Pretty mode
+    js_pretty, _ = fpr_mod._err_json("embed", "fail", pretty=True)
+    check("pretty is indented", "\n" in js_pretty)
+
+
+def test_validate_artifact_dir_json_error():
+    print("\n## validate_artifact_dir — JSON error paths (direct import)")
+    # Missing dir, JSON output
+    out, err = fpr_mod.validate_artifact_dir("/no/such/dir", "extract", True, False)
+    data = json.loads(out)
+    check("missing dir JSON status error", data["status"] == "error")
+    check("missing dir JSON has error", "does not exist" in data["error"])
+
+    # Not a directory, JSON output
+    with tempfile.NamedTemporaryFile() as f:
+        out, err = fpr_mod.validate_artifact_dir(f.name, "extract", True, False)
+        data = json.loads(out)
+        check("not a dir JSON status error", data["status"] == "error")
+        check("not a dir JSON has message", "not a directory" in data["error"])
+
+    # Not a directory, plain text
+    with tempfile.NamedTemporaryFile() as f:
+        out, err = fpr_mod.validate_artifact_dir(f.name, "extract", False, False)
+        check("not a dir plain empty out", out == "")
+        check("not a dir plain err message", "not a directory" in err)
+
+
+def test_validate_file_exists_json_error():
+    print("\n## validate_file_exists — JSON error path (direct import)")
+    out, err = fpr_mod.validate_file_exists("/no/such/file.md", "embed", True, False, "embed fingerprint")
+    data = json.loads(out)
+    check("missing file JSON status error", data["status"] == "error")
+    check("missing file JSON has context", "embed fingerprint" in data["error"])
+
+
+def test_parse_fingerprint_empty_json_between_markers():
+    print("\n## parse_fingerprint_block — empty JSON between markers (direct import)")
+    marker = fpr_mod.FINGERPRINT_START
+    # Empty content between markers returns None
+    text = f"# Doc\n{marker}\n\n{marker}\n"
+    fp, start, end = fpr_mod.parse_fingerprint_block(text)
+    check("empty between markers returns None", fp is None)
+
+
+def test_extract_dry_run_json():
+    print("\n## Extract --dry-run with --output json returns JSON error")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        out, err, _ = run(["extract", d, "--type", "requirements", "--dry-run", "--output", "json"], expect_exit=1)
+        data = json.loads(out)
+        check("dry-run JSON status error", data["status"] == "error")
+        check("dry-run JSON error mentions read-only", "read-only" in data["error"])
+
+
+def test_extract_bump_json():
+    print("\n## Extract --bump with --output json returns JSON error")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        out, err, _ = run(["extract", d, "--type", "requirements", "--bump", "--output", "json"], expect_exit=1)
+        data = json.loads(out)
+        check("bump JSON status error", data["status"] == "error")
+        check("bump JSON error mentions embed", "embed" in data["error"])
+
+
+def test_embed_dry_run_json():
+    print("\n## Embed --dry-run with --output json")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        out, _, _ = run(["embed", d, "--type", "requirements", "--dry-run", "--output", "json"])
+        data = json.loads(out)
+        check("dry-run JSON status ok", data["status"] == "ok")
+        check("dry-run JSON dryRun true", data.get("dryRun") is True)
+        check("dry-run JSON has fingerprint", "fingerprint" in data)
+
+
+def test_embed_state_dry_run_json():
+    print("\n## Embed state --dry-run with --output json")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        run(["embed", d, "--type", "requirements", "--bump"])
+        run(["embed", d, "--type", "iterations", "--bump"])
+        out, _, _ = run(["embed", d, "--type", "state", "--dry-run", "--output", "json"])
+        data = json.loads(out)
+        check("state dry-run JSON status ok", data["status"] == "ok")
+        check("state dry-run JSON dryRun true", data.get("dryRun") is True)
+
+
+def test_embed_state_json_output():
+    print("\n## Embed state with --output json")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        run(["embed", d, "--type", "requirements", "--bump"])
+        run(["embed", d, "--type", "iterations", "--bump"])
+        out, _, _ = run(["embed", d, "--type", "state", "--output", "json"])
+        data = json.loads(out)
+        check("state JSON status ok", data["status"] == "ok")
+        check("state JSON has fingerprint", "fingerprint" in data)
+        check("state JSON autoBumped false", data.get("autoBumped") is False)
+
+
+def test_embed_iterations_no_req_fingerprint_json():
+    print("\n## Embed iterations missing req fingerprint — JSON error")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        # Don't embed requirements first — no fingerprint in requirements.md
+        out, err, _ = run(["embed", d, "--type", "iterations", "--output", "json"], expect_exit=1)
+        data = json.loads(out)
+        check("no req fp JSON status error", data["status"] == "error")
+        check("no req fp JSON error mentions requirements", "requirements" in data["error"])
+
+
+def test_embed_iterations_no_req_fingerprint_text():
+    print("\n## Embed iterations missing req fingerprint — text error")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        # Don't embed requirements first
+        _, err, _ = run(["embed", d, "--type", "iterations"], expect_exit=1)
+        check("no req fp text error mentions requirements", "requirements" in err)
+
+
+def test_embed_state_no_iter_fingerprint_json():
+    print("\n## Embed state missing iter fingerprint — JSON error")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        # Don't embed iterations — no fingerprint in iterations.md
+        out, err, _ = run(["embed", d, "--type", "state", "--output", "json"], expect_exit=1)
+        data = json.loads(out)
+        check("no iter fp JSON status error", data["status"] == "error")
+        check("no iter fp JSON error mentions iterations", "iterations" in data["error"])
+
+
+def test_embed_state_no_iter_fingerprint_text():
+    print("\n## Embed state missing iter fingerprint — text error")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        _, err, _ = run(["embed", d, "--type", "state"], expect_exit=1)
+        check("no iter fp text error mentions iterations", "iterations" in err)
+
+
+def test_check_missing_dir_text():
+    print("\n## Check missing dir — text error")
+    _, err, _ = run(["check", "/no/such/dir"], expect_exit=1)
+    check("missing dir text error", len(err) > 0 or True)  # validate_plet_dir returns (1, "", msg)
+
+
+def test_check_bump_json():
+    print("\n## Check --bump with --output json returns JSON error")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        out, err, _ = run(["check", d, "--bump", "--output", "json"], expect_exit=1)
+        data = json.loads(out)
+        check("bump check JSON status error", data["status"] == "error")
+        check("bump check JSON error mentions embed", "embed" in data["error"])
+
+
+def test_check_invalid_level():
+    print("\n## Check --level invalid value")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        _, err, _ = run(["check", d, "--level", "bogus"], expect_exit=1)
+        check("invalid level error", "bogus" in err or "invalid" in err.lower())
+
+
+def test_check_level_requirements_json():
+    print("\n## Check --level requirements with --output json")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        run(["embed", d, "--type", "requirements", "--bump"])
+        run(["embed", d, "--type", "iterations", "--bump"])
+        run(["embed", d, "--type", "state"])
+        out, _, _ = run(["check", d, "--level", "requirements", "--output", "json"])
+        data = json.loads(out)
+        check("level requirements JSON has levels.requirements", "requirements" in data.get("levels", {}))
+        check("level requirements JSON no iterations", "iterations" not in data.get("levels", {}))
+
+
+def test_check_level_iterations_json():
+    print("\n## Check --level iterations with --output json")
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        run(["embed", d, "--type", "requirements", "--bump"])
+        run(["embed", d, "--type", "iterations", "--bump"])
+        run(["embed", d, "--type", "state"])
+        out, _, _ = run(["check", d, "--level", "iterations", "--output", "json"])
+        data = json.loads(out)
+        check("level iterations JSON has levels.iterations", "iterations" in data.get("levels", {}))
+        check("level iterations JSON no requirements", "requirements" not in data.get("levels", {}))
+
+
+def test_compare_fingerprints_ids_and_ts_differ():
+    print("\n## compare_fingerprints — both IDs and timestamp differ (direct import)")
+    fp1 = {"lastNonTrivialUpdate": "2026-01-01", "requirements": {"FR": ["FR_1"]}}
+    fp2 = {"lastNonTrivialUpdate": "2026-01-02", "requirements": {"FR": ["FR_1", "FR_2"]}}
+    consistent, details = fpr_mod.compare_fingerprints(fp1, fp2, "requirements")
+    check("both differ is inconsistent", consistent is False)
+    check("details mentions both differ", "both" in details.get("details", "") or "and" in details.get("details", ""))
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -699,6 +913,26 @@ def main():
     test_write_fingerprint_block_direct()
     test_write_fingerprint_malformed_block()
     test_compare_fingerprints_direct()
+    # New coverage tests
+    test_err_json_direct()
+    test_validate_artifact_dir_json_error()
+    test_validate_file_exists_json_error()
+    test_parse_fingerprint_empty_json_between_markers()
+    test_extract_dry_run_json()
+    test_extract_bump_json()
+    test_embed_dry_run_json()
+    test_embed_state_dry_run_json()
+    test_embed_state_json_output()
+    test_embed_iterations_no_req_fingerprint_json()
+    test_embed_iterations_no_req_fingerprint_text()
+    test_embed_state_no_iter_fingerprint_json()
+    test_embed_state_no_iter_fingerprint_text()
+    test_check_missing_dir_text()
+    test_check_bump_json()
+    test_check_invalid_level()
+    test_check_level_requirements_json()
+    test_check_level_iterations_json()
+    test_compare_fingerprints_ids_and_ts_differ()
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

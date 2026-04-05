@@ -332,6 +332,199 @@ def test_gitignore_no_plet():
 
 
 # ---------------------------------------------------------------------------
+# setup — missing project_dir arg
+# ---------------------------------------------------------------------------
+
+
+def test_setup_no_args():
+    print("\n## setup — missing project_dir arg")
+    _, err, _ = run(["setup"], expect_exit=1)
+    check("error mentions project_dir required", "project_dir" in err or "required" in err.lower())
+
+
+# ---------------------------------------------------------------------------
+# setup — non-existent directory
+# ---------------------------------------------------------------------------
+
+
+def test_setup_nonexistent_dir():
+    print("\n## setup — non-existent directory")
+    _, err, _ = run(["setup", "/no/such/directory/xyz"], expect_exit=1)
+    check("error mentions directory does not exist", "does not exist" in err or "directory" in err.lower())
+
+
+# ---------------------------------------------------------------------------
+# setup — dry-run JSON output
+# ---------------------------------------------------------------------------
+
+
+def test_setup_dry_run_json():
+    print("\n## setup — dry-run with JSON output")
+    d = make_git_repo()
+    try:
+        out, _, _ = run(["setup", d, "--dry-run", "--output", "json"])
+        data = json.loads(out)
+        check("status ok", data["status"] == "ok")
+        check("dryRun true", data.get("dryRun") is True)
+        check("command setup", data["command"] == "setup")
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# setup — dry-run plain text
+# ---------------------------------------------------------------------------
+
+
+def test_setup_dry_run_text():
+    print("\n## setup — dry-run plain text output")
+    d = make_git_repo()
+    try:
+        out, _, _ = run(["setup", d, "--dry-run"])
+        check("dry run message present", "DRY RUN" in out)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# setup — JSON with --pretty
+# ---------------------------------------------------------------------------
+
+
+def test_setup_json_pretty():
+    print("\n## setup — JSON with --pretty")
+    d = make_git_repo()
+    try:
+        out, _, _ = run(["setup", d, "--output", "json", "--pretty"])
+        data = json.loads(out)
+        check("pretty JSON has actions", len(data["actions"]) > 0)
+        check("pretty is indented", "\n" in out)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# check — missing project_dir arg
+# ---------------------------------------------------------------------------
+
+
+def test_check_no_args():
+    print("\n## check — missing project_dir arg")
+    _, err, _ = run(["check"], expect_exit=1)
+    check("error mentions project_dir required", "project_dir" in err or "required" in err.lower())
+
+
+# ---------------------------------------------------------------------------
+# check — non-existent directory
+# ---------------------------------------------------------------------------
+
+
+def test_check_nonexistent_dir():
+    print("\n## check — non-existent directory")
+    _, err, _ = run(["check", "/no/such/directory/xyz"], expect_exit=1)
+    check("error mentions directory does not exist", "does not exist" in err or "directory" in err.lower())
+
+
+# ---------------------------------------------------------------------------
+# check — invalid JSON in .claude/settings.json is reported as warn
+# ---------------------------------------------------------------------------
+
+
+def test_check_invalid_settings_json():
+    print("\n## check — invalid .claude/settings.json")
+    d = make_git_repo()
+    try:
+        run(["setup", d])
+        # Replace settings.json with invalid JSON
+        with open(os.path.join(d, ".claude", "settings.json"), "w") as f:
+            f.write("not valid json{{{")
+        out, _, rc = run(["check", d], expect_exit=2)
+        # The check should still run and report settings as warn
+        check("claude-settings warn", "claude-settings" in out)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# check — plet entries missing from settings.json
+# ---------------------------------------------------------------------------
+
+
+def test_check_plet_entries_missing():
+    print("\n## check — plet allow entries missing from settings.json")
+    d = make_git_repo()
+    try:
+        run(["setup", d])
+        # Replace allow list with empty list
+        settings_path = os.path.join(d, ".claude", "settings.json")
+        with open(settings_path) as f:
+            settings = json.load(f)
+        settings["permissions"]["allow"] = []
+        with open(settings_path, "w") as f:
+            json.dump(settings, f)
+        out, _, _ = run(["check", d], expect_exit=2)
+        check("claude-settings warns about missing entries", "plet allow entries missing" in out)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# check — permissions pass when bypassPermissions present
+# ---------------------------------------------------------------------------
+
+
+def test_check_bypass_permissions():
+    print("\n## check — bypassPermissions triggers permissions pass")
+    d = make_git_repo()
+    try:
+        run(["setup", d])
+        settings_path = os.path.join(d, ".claude", "settings.json")
+        with open(settings_path) as f:
+            settings = json.load(f)
+        settings.setdefault("permissions", {})["bypassPermissions"] = True
+        with open(settings_path, "w") as f:
+            json.dump(settings, f)
+        out, _, _ = run(["check", d])
+        check("permissions pass", "permissions" in out and "pass" in out)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# check — JSON output with --pretty
+# ---------------------------------------------------------------------------
+
+
+def test_check_json_pretty():
+    print("\n## check — JSON output with --pretty")
+    d = make_git_repo()
+    try:
+        run(["setup", d])
+        out, _, _ = run(["check", d, "--output", "json", "--pretty"], expect_exit=2)
+        data = json.loads(out)
+        check("has scriptVersion", "scriptVersion" in data)
+        check("is indented", "\n" in out)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# check — text output (failed count path)
+# ---------------------------------------------------------------------------
+
+
+def test_check_text_summary_line():
+    print("\n## check — text output summary line")
+    d = make_git_repo()
+    try:
+        run(["setup", d])
+        out, _, _ = run(["check", d], expect_exit=2)
+        check("summary line present", "passed" in out and "warnings" in out)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -350,6 +543,19 @@ def main():
     test_check_json()
     test_check_no_git()
     test_gitignore_no_plet()
+    # New coverage tests
+    test_setup_no_args()
+    test_setup_nonexistent_dir()
+    test_setup_dry_run_json()
+    test_setup_dry_run_text()
+    test_setup_json_pretty()
+    test_check_no_args()
+    test_check_nonexistent_dir()
+    test_check_invalid_settings_json()
+    test_check_plet_entries_missing()
+    test_check_bypass_permissions()
+    test_check_json_pretty()
+    test_check_text_summary_line()
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

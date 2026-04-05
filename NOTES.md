@@ -1902,6 +1902,29 @@ Example: ID_001, ID_002, ID_003 running. ID_001 finishes, promotes ID_004 and ID
 
 The `FileSink` is specifically for orchestrator-level events (round_start, breakpoint_hit, iteration_merged, result) — these are currently ephemeral (stdout only). Per-iteration events already go to `plet/trace/` via plet_trace.py. The orchestrator trace file enables post-run analysis and Ridler/GUI integration.
 
+**COV_13-16 completed (2026-04-05).** All four steps implemented:
+- **COV_13:** Event sink pattern — `util_sink.py` with 6 sink classes (EventSink, NdjsonSink, TextSink, CaptureSink, FileSink, MultiplexSink). Orchestrator refactored: `output_ndjson` → `sink` across 16 functions, ~20 call sites.
+- **COV_14:** Orchestrator trace file — `plet/trace/orchestrator.ndjson` via MultiplexSink(user_sink, FileSink). All orchestrator events persisted.
+- **COV_15:** Injected script runner — `_run_script`/`_run_script_json` as module-level variables. Tests override with mocks that call cmd_* directly. Mock passes lifecycle updates through to real scripts.
+- **COV_16:** Injectable launcher for invoke — `_launcher` module-level variable for `sp.Popen`. Tests use MockProcess with canned JSONL lines.
+
+**Coverage campaign results (2026-04-05):** Systematic low-hanging-fruit audit across all scripts. Added ~90 tests covering error paths, JSON output modes, dry-run paths, and validation edge cases.
+
+| Script | Before | After |
+|--------|--------|-------|
+| plet_orchestrator | 57% | 81% |
+| plet_fingerprint | 82% | 89% |
+| plet_global_state | 84% | 93% |
+| plet_iter_state | 84% | 91% |
+| plet_phase | 84% | 92% |
+| plet_invoke | 86% | 93% |
+| plet_bootstrap | 87% | 92% |
+| plet_gate_session | 87% | 91% |
+| **Overall** | **86%** | **91%** |
+| **Tests** | **934** | **1060** |
+
+Threshold raised: 85% → 87% → 88% → 90% → 91%. Coverage is now a ratchet — it goes up, never down.
+
 ### Case study timing analysis
 
 **Decision (2026-03-11):** Timing analysis is a required subsection of Artifact Analysis in case studies, not just a checklist item. Applied going forward (next case study), not retroactively to LOGA/LIBT. Timing data exists in both projects (state file `elapsedSeconds`, trace `phase_start`/`phase_end` timestamps, git commit timestamps, `state.json` `startedAt`/`endedAt`) but neither case study systematically analyzed it. The README template now specifies what to reconstruct, which sources to cross-reference, and how to present it (timeline table, flag gaps > 5 minutes).
