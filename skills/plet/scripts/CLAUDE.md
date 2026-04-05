@@ -32,6 +32,7 @@ Target **Python 3.8+** as the minimum. Avoid features from 3.10+ (`match/case`, 
 
 - **Shebang:** `#!/usr/bin/env python3` — portable across macOS, Linux, and CI environments
 - **Executable bit:** all scripts must be `chmod +x`. Combined with the shebang, this allows direct invocation via path without prefixing `python3`. This is what makes the `allowed-tools` pattern work — `Bash(${CLAUDE_SKILL_DIR}/scripts/*)` approves only shipped scripts regardless of the Python binary name on the system
+- **Never prefix with `python3`:** Call scripts directly via path: `"$PLET_SCRIPTS_DIR/plet_iter_state.py" ...`, NOT `python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" ...`. The `python3` prefix bypasses the allowed-tools pattern and triggers permission prompts
 - **Module docstring:** purpose, what it enforces, usage examples for every command
 
 ### Structure

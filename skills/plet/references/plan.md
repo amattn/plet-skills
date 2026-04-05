@@ -420,7 +420,7 @@ After all iterations are approved:
 
 3. Create per-iteration state files using the state tool:
    ```bash
-   TOOL="python3 ${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
+   TOOL="${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
    $TOOL init plet/state/ID_001.json \
        --iter-id ID_001 \
        --title "Project scaffolding" \

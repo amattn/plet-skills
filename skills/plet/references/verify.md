@@ -13,11 +13,11 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Critical — CLI lookup:** Do NOT call `--help` as your first step for CLI syntax. Use the escalation path: (1) `cat $PLET_CLI_REF` for the full cheat sheet, (2) `script.py --usage` for compact syntax, (3) `--help` only if you still need more detail. The cheat sheet has every command you'll need with copy-pasteable examples.
 
-**State file tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) — per-iteration state operations. Commands: `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Note: `start-phase` is called by the orchestrator before you spawn — do not call it yourself.
+**State file tool:** `${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) — per-iteration state operations. Commands: `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Note: `start-phase` is called by the orchestrator before you spawn — do not call it yourself.
 
-**Entry tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` — runtime artifact entries (progress.md, learnings.md, emergent.md). Enforces formats, generates plet IDs, handles fencing. Commands: `add-progress`, `add-learning`, `add-emergent`.
+**Entry tool:** `${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` — runtime artifact entries (progress.md, learnings.md, emergent.md). Enforces formats, generates plet IDs, handles fencing. Commands: `add-progress`, `add-learning`, `add-emergent`.
 
-**Phase end tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` — complete any phase exit (pass, reject, block). One call handles: set-verdict, verification report (auto-built from criteria via `--summary`), progress entry, trace event, audit tag, and git commit. You never construct report JSON manually.
+**Phase end tool:** `${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` — complete any phase exit (pass, reject, block). One call handles: set-verdict, verification report (auto-built from criteria via `--summary`), progress entry, trace event, audit tag, and git commit. You never construct report JSON manually.
 
 **Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in the same worktree the implement agent used. Do NOT create a new branch. Your commits go on this branch alongside the implement agent's commits. Audit tags distinguish phases.
 
@@ -32,7 +32,7 @@ You are a verification subagent. Your job is to independently verify one iterati
 The orchestrator already called `start-phase` before spawning you — attempt counters, phase timestamps, and verdict clearing are done. Your first state action is to announce your presence:
 
 ```bash
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
     --agent-id $PLET_AGENT_ID
 git add plet/ && git commit -m "plet: [{iteration_id}] verify-start"
@@ -177,7 +177,7 @@ If your remaining findings are all cosmetic, the iteration has converged — app
 After verifying each criterion, update the `verification` object using the state tool:
 
 ```bash
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
     --criterion AC_1 --phase verification --status pass --agent-id $PLET_AGENT_ID \
     --evidence "Independently ran test_FR_1_valid_request — passes, correctly asserts 200 status and JSON body structure. Read the handler code: validates input, queries DB, returns correct shape. Spec says 'return user profile on valid request' — implementation matches. No tautological tests found."
 ```
@@ -192,7 +192,7 @@ The tool enforces the two-state model automatically and derives the top-level `s
 
 For failures:
 ```bash
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
     --criterion AC_1 --phase verification --status fail --agent-id $PLET_AGENT_ID \
     --evidence "Test test_FR_1_valid_request passes but only asserts status code, not response body. The spec requires returning a user profile with name and email fields. Implementation returns {ok: true} — does not match spec." \
     --red-test test_returns_profile
@@ -200,7 +200,7 @@ python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id 
 
 If a red test could not be written (e.g., not test-expressible), use `--red-test none` with a rationale:
 ```bash
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
     --criterion AC_1 --phase verification --status fail --agent-id $PLET_AGENT_ID \
     --evidence "Wrong abstraction — auth check is baked into request handler instead of middleware. Test cannot demonstrate this structural concern." \
     --red-test none \
@@ -217,23 +217,23 @@ Use `plet_iter_state.py` for all per-iteration state modifications. Call scripts
 
 ```bash
 # Update activity and heartbeat
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id ID_001 \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id ID_001 \
     --phase-activity running_checks --activity-detail "verifying AC_1: API returns 200" \
     --agent-id $PLET_AGENT_ID
 
 # Update criterion verification status (VF_6) — pass (all fields auto-default)
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
     --criterion AC_1 --phase verification --status pass \
     --evidence "All API endpoints return correct status codes" --agent-id $PLET_AGENT_ID
 
 # Update criterion verification status — fail (--red-test required)
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
     --criterion AC_1 --phase verification --status fail \
     --evidence "Response body missing required fields per spec." \
     --red-test test_missing_fields --agent-id $PLET_AGENT_ID
 
 # Heartbeat
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
     --agent-id $PLET_AGENT_ID
 ```
 
@@ -333,20 +333,20 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 
 ```bash
 # Progress entry
-python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-progress plet/ \
+"$PLET_SCRIPTS_DIR/plet_entries.py" add-progress plet/ \
     --iter-id ID_001 --iter-title "Project scaffolding" \
     --phase verify --attempt 1 --status COMPLETE \
     --content "All acceptance criteria independently verified. Tests pass, code is idiomatic."
 
 # Learning entry
-python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-learning plet/ \
+"$PLET_SCRIPTS_DIR/plet_entries.py" add-learning plet/ \
     --iter-id ID_002 --iter-title "Core data model" \
     --category gotcha --title "Test mocks DB layer too aggressively" \
     --content "Tests mock the entire DB, missing real query issues. Needs integration tests." \
     --phase verify --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
-python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-emergent plet/ \
+"$PLET_SCRIPTS_DIR/plet_entries.py" add-emergent plet/ \
     --iter-id ID_003 --iter-title "API endpoints" \
     --title "API rate limiting not specified" --phase verify \
     --category "spec gap" \

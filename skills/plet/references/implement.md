@@ -10,11 +10,11 @@ You are an implementation subagent. Your job is to implement one iteration — w
 
 **CLI lookup:** Run `script.py --usage` for compact invocation syntax with examples. Use `--help` only if you need more detail. Escalation: cheat sheet → `--usage` → `--help`.
 
-**State file tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) — per-iteration state operations. Commands: `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Note: `start-phase` is called by the orchestrator before you spawn — do not call it yourself.
+**State file tool:** `${CLAUDE_SKILL_DIR}/scripts/plet_iter_state.py` (IST) — per-iteration state operations. Commands: `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. Do not write state file JSON by hand. Note: `start-phase` is called by the orchestrator before you spawn — do not call it yourself.
 
-**Entry tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` — runtime artifact entries (progress.md, learnings.md, emergent.md). Enforces formats, generates plet IDs, handles fencing. Commands: `add-progress`, `add-learning`, `add-emergent`.
+**Entry tool:** `${CLAUDE_SKILL_DIR}/scripts/plet_entries.py` — runtime artifact entries (progress.md, learnings.md, emergent.md). Enforces formats, generates plet IDs, handles fencing. Commands: `add-progress`, `add-learning`, `add-emergent`.
 
-**Phase end tool:** `python3 ${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` — complete any phase exit (pass, block, retry). One call handles: set-verdict, progress entry, trace event, audit tag, and git commit. See § Completing the Phase, Blocker Protocol, and Failed Attempt Protocol.
+**Phase end tool:** `${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` — complete any phase exit (pass, block, retry). One call handles: set-verdict, progress entry, trace event, audit tag, and git commit. See § Completing the Phase, Blocker Protocol, and Failed Attempt Protocol.
 
 **Critical:** Never create merge commits. plet requires linear history for clean `git bisect` and audit trails. The verify agent handles rebase and fast-forward merge to the workstream after verification passes (IMP_16).
 
@@ -33,7 +33,7 @@ You are an implementation subagent. Your job is to implement one iteration — w
 The orchestrator already called `start-phase` before spawning you — attempt counters, phase timestamps, and verdict clearing are done. Your first state action is to announce your presence:
 
 ```bash
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
     --agent-id $PLET_AGENT_ID
 git add plet/ && git commit -m "plet: [{iteration_id}] implement-start"
@@ -115,7 +115,7 @@ This is the core implementation loop. For each acceptance criterion:
 After the green step, update the criterion in the per-iteration state file using the state tool:
 
 ```bash
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id {iteration_id} \
     --criterion AC_1 --phase implementation --status pass --agent-id $PLET_AGENT_ID \
     --evidence "Test test_FR_1_valid_request passes — asserts 200 status and correct body. All 12 tests pass. Full suite green (8s)."
 ```
@@ -145,17 +145,17 @@ Call scripts directly — do not use shell variable aliases (they fail silently 
 
 ```bash
 # Update activity
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id ID_001 \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id ID_001 \
     --phase-activity implementing --activity-detail "red: writing failing test for AC_3" \
     --agent-id $PLET_AGENT_ID
 
 # Update criterion status in real time (IMP_6)
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" update-criterion plet/ --iter-id ID_001 \
     --criterion AC_1 --phase implementation --status pass \
     --evidence "All 12 tests pass (3.2s)" --agent-id $PLET_AGENT_ID
 
 # Heartbeat — update at regular intervals (IMP_23)
-python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
+"$PLET_SCRIPTS_DIR/plet_iter_state.py" heartbeat plet/ --iter-id ID_001 \
     --agent-id $PLET_AGENT_ID
 ```
 
@@ -212,20 +212,20 @@ Append to runtime artifacts **as things come up during work**, not only at the e
 
 ```bash
 # Progress entry
-python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-progress plet/ \
+"$PLET_SCRIPTS_DIR/plet_entries.py" add-progress plet/ \
     --iter-id ID_001 --iter-title "Project scaffolding" \
     --phase implement --attempt 1 --status COMPLETE \
     --content "Initialized project with pytest, ruff. All checks pass."
 
 # Learning entry
-python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-learning plet/ \
+"$PLET_SCRIPTS_DIR/plet_entries.py" add-learning plet/ \
     --iter-id ID_002 --iter-title "Core data model" \
     --category gotcha --title "SQLite WAL mode required" \
     --content "Default journal mode blocks readers during writes." \
     --phase implement --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
-python3 "$PLET_SCRIPTS_DIR/plet_entries.py" add-emergent plet/ \
+"$PLET_SCRIPTS_DIR/plet_entries.py" add-emergent plet/ \
     --iter-id ID_002 --iter-title "Core data model" \
     --title "Chose SQLite over PostgreSQL" --phase implement \
     --category "design decision" \

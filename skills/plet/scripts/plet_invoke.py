@@ -169,7 +169,9 @@ def _build_prompt_with_env(prompt_text, plet_env):
     for key, val in sorted(plet_env.items()):
         env_lines.append(f"- `{key}={val}`")
     env_lines.append("")
-    env_lines.append('Call scripts as: `python3 "$PLET_SCRIPTS_DIR/plet_iter_state.py" ...`')
+    env_lines.append('Call scripts as: `"$PLET_SCRIPTS_DIR/plet_iter_state.py" ...`')
+    env_lines.append("**No `python3` prefix** — scripts have shebangs. Direct execution is pre-approved.")
+    env_lines.append("Pre-approved (no permission prompt): plet scripts, git, cat, ls, mkdir, chmod, grep, sed, ruff, uv.")
     env_lines.append("Your agent ID: `$PLET_AGENT_ID` — use for all `--agent-id` flags.")
     env_lines.append("CLI cheat sheet: `cat $PLET_CLI_REF` for all commands with examples.")
     env_lines.append("Escalation: cheat sheet → `--usage` → `--help`.")

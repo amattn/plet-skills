@@ -4,6 +4,8 @@ Compact reference for all plet script commands. Escalation: this file → `--usa
 
 Scripts are at `${CLAUDE_SKILL_DIR}/scripts/` or `$PLET_SCRIPTS_DIR` (env var injected by orchestrator).
 
+**Call scripts directly — never prefix with `python3`:** `"$PLET_SCRIPTS_DIR/plet_phase.py" end ...`
+
 ---
 
 ## Subagent Commands (implement + verify)

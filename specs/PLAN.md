@@ -206,7 +206,7 @@ Consistency and cleanup across all 17 plet scripts + 7 utility modules. The util
 | Step | Description | Files | Effort |
 |------|-------------|-------|--------|
 | PLAN_CLN_8 | parse_command adoption: convert 16 commands across 8 scripts from manual 5-6 line arg parsing to `parse_command` one-liner | plet_global_state.py (4), plet_gate_session.py (4), plet_session.py (2), plet_gate_phase.py (1), plet_git_check.py (2), plet_schedule.py (2), plet_bootstrap.py (2) | Medium-High |
-| PLAN_CLN_9 | plet_invoke.py: group `_execute_run` (18 params) and `_log_invocation` (13 params) into context dicts | plet_invoke.py | Medium |
+| ~~PLAN_CLN_9~~ | ~~plet_invoke.py: group `_execute_run` (18 params) and `_log_invocation` (13 params) into context dicts~~ | ~~plet_invoke.py~~ | **Deferred** — low value, functions work fine, only called from one place each |
 | PLAN_CLN_10 | plet_trace.py: align internal helpers (`_validate_trace_context`, `_parse_trace_args`, `_parse_event_data`, `_validate_query_filters`, `_read_and_filter_events`) with `value`/`(1,"",err)` return convention | plet_trace.py | Medium |
 | PLAN_CLN_11 | extract_output_flags: 6-tuple → namedtuple for readability. 28 call sites. | util_cli.py + all scripts | High |
 
