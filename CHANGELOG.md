@@ -2,6 +2,16 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.5.1 (2026-04-05)
+
+### Bug Fix
+- **Merge-squash dirty-tree recovery:** Parallel worktree artifacts leaked into the main working tree, causing `plet_git_ops.py merge-squash` to reject the dirty tree. New `_try_merge_squash` detects "dirty" in the error, cleans the tree (`git add -A + commit`), and retries once. Discovered in LOGA R09 (2/7 iterations blocked, 38% completion). plet_orchestrator.py: 0.4.0 → 0.4.1.
+
+### Documentation
+- **PLAN_NTS complete:** NOTES.md reorganized — 97 labeled H3s, PLAN.md slimmed 458→264 lines (-42%).
+- **LOGA R08 case study:** Zero --help lookups, 100% verify first-pass, 1h53m (38% faster than R06).
+- **LOGA R09 case study:** First parallel run. Merge-squash bug found and fixed.
+
 ## 0.5.0 (2026-04-05)
 
 ### Parallel Orchestrator (PLAN_PAR)
