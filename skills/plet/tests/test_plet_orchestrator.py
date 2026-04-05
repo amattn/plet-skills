@@ -1057,6 +1057,49 @@ def test_run_dependency_chain_streaming():
 
 
 # ===========================================================================
+# run — orchestrator trace file (#18)
+# ===========================================================================
+
+
+def test_run_orchestrator_trace_file():
+    """Orchestrator writes events to plet/trace/orchestrator.ndjson."""
+    print("\n## run — orchestrator trace file")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        plet_dir = setup_project(
+            tmp,
+            iterations=[
+                {"id": "ID_001", "title": "First", "deps": []},
+            ],
+        )
+
+        mock_dir = create_mock_claude(tmp)
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": mock_dir + ":" + env.get("PATH", ""),
+                "MOCK_PLET_DIR": plet_dir,
+                "MOCK_SCRIPTS_DIR": SCRIPTS_DIR,
+                "MOCK_BEHAVIOR": "pass",
+            }
+        )
+
+        out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
+        check("exits 0", rc == 0)
+
+        trace_path = os.path.join(plet_dir, "trace", "orchestrator.ndjson")
+        check("trace file exists", os.path.isfile(trace_path), f"path: {trace_path}")
+
+        if os.path.isfile(trace_path):
+            with open(trace_path) as f:
+                lines = [json.loads(ln) for ln in f if ln.strip()]
+            check("has events", len(lines) > 0, f"got {len(lines)} lines")
+            types = [ln.get("type") for ln in lines]
+            check("has session_start", "session_start" in types, f"types: {types}")
+            check("has result", "result" in types, f"types: {types}")
+
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 
@@ -1081,6 +1124,7 @@ def main():
     test_run_two_independent_parallel()
     test_run_sequential_flag()
     test_run_dependency_chain_streaming()
+    test_run_orchestrator_trace_file()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

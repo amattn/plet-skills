@@ -32,7 +32,7 @@ from util_io import (
     load_json,
     state_json_path,
 )
-from util_sink import NdjsonSink, TextSink
+from util_sink import FileSink, MultiplexSink, NdjsonSink, TextSink
 from util_state import load_and_validate_iter_state
 
 SCRIPT_VERSION = "0.3.1"
@@ -803,7 +803,13 @@ def cmd_run(args):
         return 1
     plet_dir, output_ndjson, allow_stale, max_iterations, sequential = parsed
 
-    sink = NdjsonSink() if output_ndjson else TextSink()
+    user_sink = NdjsonSink() if output_ndjson else TextSink()
+
+    # Orchestrator trace file — persists all events for post-run analysis
+    trace_dir = os.path.join(plet_dir, "trace")
+    os.makedirs(trace_dir, exist_ok=True)
+    trace_path = os.path.join(trace_dir, "orchestrator.ndjson")
+    sink = MultiplexSink(user_sink, FileSink(trace_path))
 
     # -------------------------------------------------------------------
     # Phase 0: Load state and pre-check
