@@ -1462,11 +1462,53 @@ The refactor iteration (`ID_RFT_MS1`) is the last iteration in each milestone. A
 
 The orchestrator changes zero — it sees the DAG and follows it. The streaming loop, parallel execution, breakpoints all work unchanged.
 
-**Open questions:**
-- Should the refactor agent have access to learnings.md and emergent.md to prioritize what to refactor?
-- Should there be a "refactor budget" (max time/iterations)?
-- How do we prevent the refactor from breaking things that later iterations depend on?
-- Should a milestone with only 1-2 iterations still get a refactor pass? (Probably not worth it — threshold of 3+?)
+**Resolved questions (2026-04-05):**
+
+**Q: Refactor agent access to learnings/emergent?** A: Agent reads both files as part of its audit (same way it reads the codebase). NOT injected into prompt by orchestrator. The refactor.md reference file tells the agent to read them. Agent triages what's relevant.
+
+**Q: Refactor budget?** A: Single attempt — one implement + one verify. Block if verify fails. Trivial fix-ups (typos, missed imports) handled in-place during the single attempt, same as verify's fix-in-place pattern. If verify fails, human reviews in refine. Refactoring shouldn't spiral.
+
+**Q: Minimum milestone size?** A: Always included. The refactor looks at the entire codebase, not just the milestone's iterations. Even a single-iteration milestone might reveal patterns in older code. User can remove `ID_RFT_MSN` during plan review if not needed.
+
+**Q: Acceptance criteria generation?** A: Three layers:
+1. **Refactor goals** — defined once during plan phase, project-level. Defaults (ruff clean, McCabe ≤15, coverage holds, all tests pass) plus user-specified goals ("files under 300 lines", "consistent error handling", "extract shared patterns when 3+ duplicates"). These apply to every refactor iteration.
+2. **Agent-proposed ACs** — the refactor agent reads the codebase + emergent.md + learnings.md, proposes specific ACs ("I'll extract the duplicate handler pattern in cmd/"). Verify checks these.
+3. **Emergent pipeline** — things the refactor notices but shouldn't fix go into emergent.md ("this pattern will get worse when MS_3 adds more subcommands"). Refine session triages them into the next refactor's goals or a dedicated iteration. Closes the loop: emergent → refactor goals → refactor → emergent.
+
+**Q: Is "refactor" a new phase?** A: Yes — `--phase refactor` everywhere. Different reference file (refactor.md), different AC patterns, different prompt. Clean separation from implement/verify.
+
+**Q: Refactor iteration structure?** A: `refactor → verify`, not `implement → verify`. Refactor replaces implement as phase 1. Verify is always phase 2 (checks the work). Regular iterations: implement→verify. Refactor iterations: refactor→verify.
+
+**Q: Verdict fields?** A: Two booleans, not an enum. Refactor can't block — it always completes (worst case: revert changes, file emergent items).
+
+```json
+{
+  "refactorChanges": true,   // did code change?
+  "refactorDeferrals": true  // were emergent items filed for refine?
+}
+```
+
+Orchestrator routing:
+- `refactorChanges: true` → verify phase (check the changes)
+- `refactorChanges: false` → skip verify, mark complete (nothing to check)
+- `refactorDeferrals` is informational — doesn't affect routing
+
+A refactor that breaks tests reverts all changes, sets `refactorChanges: false`, files everything as emergent (`refactorDeferrals: true`). The refine session handles it.
+
+**Q: Time budget?** A: Explicit, defined per-project in plan phase. Stored in refactor iteration state. Default TBD (maybe 20 min). Orchestrator passes to invoke. If agent hits limit: revert uncommitted changes, file remaining as emergent, set `changes: false, deferrals: true`.
+
+**Taxonomy update:**
+- Phase values: implement, verify, refactor (3 total)
+- Lifecycle states: implementing, verifying, refactoring (3 gerunds)
+- Verdict fields: implementVerdict, verifyVerdict (enums); refactorChanges, refactorDeferrals (booleans)
+- Attempts: attempts.implement, attempts.verify, attempts.refactor (3 counters)
+- Reference files: implement.md, verify.md, refactor.md (3 files)
+
+**Open design questions (resolve during build):**
+
+1. **Plan phase presentation of refactor iterations.** How does the plan phase present ID_RFT_MSN to the user during iteration review? What does the refactor goals definition UX look like? Defaults vs user-specified? This needs to be designed first — it influences the refactor.md content and the state file shape.
+
+2. **refactor.md reference file content.** The agent's audit procedure, how to read emergent/learnings, how to propose ACs, when to defer vs fix, how to handle test failures (revert + emergent), time budget behavior. Depends on plan presentation decisions (#1).
 
 ---
 

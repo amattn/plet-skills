@@ -175,19 +175,19 @@ interim consistency finding:
 
 ## PLAN_RFT: Refactor Loop
 
-Milestone-boundary refactor via synthetic iteration. Milestones become native execution barriers — not cosmetic groupings. See NOTES.md § NOTES_RFT for design decisions, alternatives, and rationale.
+Milestone-boundary refactor via synthetic iteration. Milestones are execution barriers. `--phase refactor` is a distinct phase. Single attempt, always included, user can remove. See NOTES.md § NOTES_PLN_RFT for design decisions and rationale.
 
 | Step | Description | Status |
 |------|-------------|--------|
 | RFT_1 | Plan phase: make milestones native (barrier deps in dependency map) | |
-| RFT_2 | Plan phase: auto-generate ID_RFT_MSN iterations per milestone | |
-| RFT_3 | Reference file: refactor.md (refactor agent guidance, acceptance criteria patterns) | |
-| RFT_4 | Acceptance criteria generation: emergent.md tech-debt + automated quality checks | |
+| RFT_2 | Plan phase: auto-generate ID_RFT_MSN per milestone + refactor goals | |
+| RFT_3 | Reference file: refactor.md (audit procedure, AC patterns, emergent pipeline) | |
+| RFT_4 | State schema: "refactor" as valid phase alongside implement/verify | |
 | RFT_5 | Prompt assembly: plet_prompt.py supports phase=refactor | |
-| RFT_6 | State schema: "refactor" as valid phase alongside implement/verify | |
+| RFT_6 | Script updates: gate, trace, entries accept phase=refactor | |
 | RFT_7 | Test with real run | |
 
-**Depends on:** PLAN_NTS (notes reorg), FOO_70.
+**Depends on:** FOO_70.
 
 ---
 
