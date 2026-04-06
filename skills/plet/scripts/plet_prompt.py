@@ -220,6 +220,28 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
     """Build all prompt sections. Returns (sections, error_msg)."""
     sections = []
 
+    # 0. Requeue directive (FIRST — urgent action before anything else)
+    state_for_requeue = load_iter_state_json(plet_dir, iter_id)
+    if state_for_requeue and state_for_requeue.get("requeue_reason") == "rebase_conflict" and phase == "implement":
+        directive = (
+            "⚠️ **CRITICAL — REQUEUED DUE TO MERGE CONFLICT**\n\n"
+            "This iteration was requeued because its previous rebase-commit failed.\n"
+            "**Your FIRST action MUST be to rebase onto the current workstream:**\n\n"
+            "```bash\n"
+            f"plet_git_ops.py rebase-prep plet/ --iter-id {iter_id}\n"
+            "```\n\n"
+            "If conflicts are reported, resolve each file:\n"
+            "```bash\n"
+            "git add <resolved-file>\n"
+            "git rebase --continue\n"
+            "```\n\n"
+            "**Then re-run the full test suite** to confirm everything passes on the rebased code.\n\n"
+            "**Do NOT skip this step.** The post-implement gate enforces that your branch is on top\n"
+            "of workstream (`git merge-base --is-ancestor`). If you skip the rebase, the gate FAILS.\n\n"
+            "After the rebase completes and tests pass, continue with normal implementation.\n"
+        )
+        sections.append({"name": "requeue-directive", "source": "generated", "content": directive})
+
     # 1. Reference file
     ref_filename = REFERENCE_FILES[phase]
     ref_content, ref_path = load_reference(ref_filename)
@@ -282,26 +304,6 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
         lifecycle = global_state.get("lifecycles", {}).get(iter_id, "?")
     state_text = format_iteration_state(state_data, lifecycle=lifecycle)
     sections.append({"name": "iteration-state", "source": "derived", "content": state_text})
-
-    # 8. Requeue directive (if iteration was requeued for a rebase conflict)
-    requeue_reason = state_data.get("requeue_reason")
-    if requeue_reason == "rebase_conflict" and phase == "implement":
-        directive = (
-            "⚠️ **REQUEUED DUE TO MERGE CONFLICT**\n\n"
-            "This iteration was requeued because rebase-commit failed with a conflict.\n"
-            "**Before doing any implementation work**, run this command to rebase onto\n"
-            "the current workstream and resolve conflicts:\n\n"
-            "```bash\n"
-            f"plet_git_ops.py rebase-prep plet/ --iter-id {iter_id}\n"
-            "```\n\n"
-            "If conflicts are reported, resolve each file, then:\n"
-            "```bash\n"
-            "git add <resolved-file>\n"
-            "git rebase --continue\n"
-            "```\n\n"
-            "After the rebase completes, continue with normal implementation.\n"
-        )
-        sections.append({"name": "requeue-directive", "source": "generated", "content": directive})
 
     return sections, None
 

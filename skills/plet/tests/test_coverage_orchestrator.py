@@ -1294,9 +1294,13 @@ def test_prompt_includes_rebase_prep_for_requeued():
         sections, err = plet_prompt._build_prompt_sections(plet_dir, "ID_001", "implement")
         assert err is None, f"Prompt assembly failed: {err}"
 
-        # Check for rebase-prep directive in any section
-        full_prompt = " ".join(s["content"] for s in sections)
-        assert "rebase-prep" in full_prompt, "Prompt should include rebase-prep command for requeued iteration"
+        # Check rebase-prep directive is the FIRST section
+        assert sections[0]["name"] == "requeue-directive", (
+            f"Requeue directive should be first section, got: {sections[0]['name']}"
+        )
+        assert "rebase-prep" in sections[0]["content"]
+        assert "CRITICAL" in sections[0]["content"]
+        assert "gate" in sections[0]["content"].lower()
     finally:
         shutil.rmtree(d)
 
