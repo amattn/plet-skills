@@ -550,13 +550,18 @@ def _execute_rebase_commit(ws_branch, iter_branch, cmd_name, output_json, pretty
     # Rebase iteration branch onto workstream
     r = run_git("rebase", ws_branch, iter_branch)
     if r.returncode != 0:
+        # Capture which files conflict before aborting
+        conflict_out = run_git("diff", "--name-only", "--diff-filter=U").stdout
+        conflict_files = [f.strip() for f in conflict_out.split("\n") if f.strip()] if conflict_out else []
         # Abort the failed rebase to leave repo in clean state
         run_git("rebase", "--abort")
         # Restore stash on workstream
         if has_stash:
             run_git("checkout", ws_branch)
             run_git("stash", "pop")
-        msg = "Error: rebase has conflicts. Rebase aborted. Orchestrator must requeue."
+        files_str = ", ".join(conflict_files) if conflict_files else "(unknown)"
+        detail = r.stderr.strip() or r.stdout.strip() or ""
+        msg = f"Error: rebase has conflicts in: {files_str}. Rebase aborted. {detail}"
         return None, _rebase_commit_error(cmd_name, msg, output_json, pretty)
 
     # Switch back to workstream and fast-forward merge
