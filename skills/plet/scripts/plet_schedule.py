@@ -307,49 +307,15 @@ def cmd_check_retry(args):
     if iter_state is None:
         return (1, "", f"Error: state file not found for {iter_id} at {ip}\n{_help_hint('check-retry')}")
 
-    reports = iter_state.get("verificationReports", None)
     attempts = iter_state.get("attempts", {"implement": 0, "verify": 0})
+    remaining = iter_state.get("remainingRetries", 3)
 
-    # No reports → first
-    if not reports:
-        decision = "first"
-        reason = "No verification reports yet."
-        failure_trend = []
-        trend_direction = "none"
-        max_attempts = 3
-    else:
-        # Count failures per report (only "fail" status)
-        failure_trend = []
-        for report in reports:
-            criteria = report.get("criteriaResults", [])
-            fail_count = sum(1 for c in criteria if c.get("status") == "fail")
-            failure_trend.append(fail_count)
-
-        # Determine trend
-        is_decreasing = len(failure_trend) >= 2 and all(
-            failure_trend[i] > failure_trend[i + 1] for i in range(len(failure_trend) - 1)
-        )
-        trend_direction = "decreasing" if is_decreasing else "not_decreasing"
-        max_attempts = 6 if is_decreasing else 3
-        verify_attempts = len(reports)
-
-        if verify_attempts >= max_attempts:
-            decision = "abort"
-            reason = f"Retry limit reached ({verify_attempts} attempts, max {max_attempts})."
-            if not is_decreasing:
-                reason += " Failure count not strictly decreasing: {}.".format(
-                    " \u2192 ".join(str(f) for f in failure_trend)
-                )
-        else:
-            decision = "continue"
-            if is_decreasing:
-                reason = "Failure count strictly decreasing: {}. Extended limit ({} max).".format(
-                    " \u2192 ".join(str(f) for f in failure_trend), max_attempts
-                )
-            elif verify_attempts < 3:
-                reason = f"Under default limit ({verify_attempts}/3 attempts)."
-            else:
-                reason = f"Attempt {verify_attempts}/{max_attempts}."
+    if remaining <= 0:
+        decision = "abort"
+        reason = f"No retries remaining (remainingRetries={remaining})."
+    elif remaining > 0:
+        decision = "continue"
+        reason = f"{remaining} retries remaining."
 
     if output_json:
         data = {
@@ -359,9 +325,7 @@ def cmd_check_retry(args):
             "decision": decision,
             "reason": reason,
             "attemptsUsed": attempts,
-            "maxAttempts": max_attempts,
-            "failureTrend": failure_trend,
-            "trendDirection": trend_direction,
+            "remainingRetries": remaining,
         }
         data["scriptVersion"] = SCRIPT_VERSION
         data["timestamp"] = now_iso()

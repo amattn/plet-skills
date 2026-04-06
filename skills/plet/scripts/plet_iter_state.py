@@ -316,6 +316,7 @@ Examples:
         "cleanupBranchesAutomatically": cleanup_branches,
         "criteria": criteria,
         "verificationReports": [],
+        "remainingRetries": 3,
     }
 
     # Validate before writing

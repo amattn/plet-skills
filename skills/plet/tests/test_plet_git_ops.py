@@ -119,6 +119,7 @@ ITER_STATE = {
     ],
     "cleanupTagsAutomatically": False,
     "cleanupBranchesAutomatically": False,
+    "remainingRetries": 3,
 }
 
 
@@ -692,12 +693,12 @@ def test_rebase_commit_preserves_commits():
 
         # Check that individual commits are on workstream (not squashed into one)
         log_out, _, _ = git_run(repo, ["log", "--oneline"])
-        lines = [l for l in log_out.split("\n") if l.strip()]
+        lines = [ln for ln in log_out.split("\n") if ln.strip()]
         # Should have: init, state files, commit 0, commit 1, commit 2, verify fix
         # (at least 4 commits from the iteration branch, not squashed to 1)
         check("multiple commits preserved", len(lines) >= 5, f"got {len(lines)} commits: {log_out[:200]}")
-        check("individual commit visible", any("commit 0" in l for l in lines), log_out[:200])
-        check("verify commit visible", any("verify fix" in l for l in lines), log_out[:200])
+        check("individual commit visible", any("commit 0" in ln for ln in lines), log_out[:200])
+        check("verify commit visible", any("verify fix" in ln for ln in lines), log_out[:200])
 
 
 def test_rebase_commit_json():
@@ -886,7 +887,7 @@ def test_rebase_commit_workstream_advanced():
 
         # Iteration commit should be on top of workstream commits
         log_out, _, _ = git_run(repo, ["log", "--oneline"])
-        lines = [l for l in log_out.split("\n") if l.strip()]
+        lines = [ln for ln in log_out.split("\n") if ln.strip()]
         check("iter commit on top", "iter_file" in lines[0], log_out[:200])
 
 
@@ -898,7 +899,7 @@ def test_rebase_commit_sequential_two_iterations():
 
         ws = "plet/LOGA/loop1/workstream"
         git_run(repo, ["checkout", "-b", ws])
-        base_commit = get_head_hash(repo, short=False)
+        get_head_hash(repo, short=False)
 
         # Create iter 1 branch
         git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001"])
@@ -1014,10 +1015,10 @@ def test_rebase_commit_preserves_messages():
         run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
 
         log_out, _, _ = git_run(repo, ["log", "--oneline"])
-        check("commit 0 message", any("commit 0" in l for l in log_out.split("\n")))
-        check("commit 1 message", any("commit 1" in l for l in log_out.split("\n")))
-        check("commit 2 message", any("commit 2" in l for l in log_out.split("\n")))
-        check("verify fix message", any("verify fix" in l for l in log_out.split("\n")))
+        check("commit 0 message", any("commit 0" in ln for ln in log_out.split("\n")))
+        check("commit 1 message", any("commit 1" in ln for ln in log_out.split("\n")))
+        check("commit 2 message", any("commit 2" in ln for ln in log_out.split("\n")))
+        check("verify fix message", any("verify fix" in ln for ln in log_out.split("\n")))
 
 
 def test_rebase_commit_state_files_survive():
@@ -1059,7 +1060,9 @@ def test_rebase_commit_parallel_same_file_no_conflict():
         # Iter 1 modifies section A (line 2)
         git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001"])
         with open(shared, "w") as f:
-            f.write("line 1: header\nline 2: section A MODIFIED BY ITER 1\nline 3: gap\nline 4: section B\nline 5: footer\n")
+            f.write(
+                "line 1: header\nline 2: section A MODIFIED BY ITER 1\nline 3: gap\nline 4: section B\nline 5: footer\n"
+            )
         git_run(repo, ["add", "-A"])
         git_run(repo, ["commit", "-m", "iter 1 modifies section A"])
 
@@ -1067,7 +1070,9 @@ def test_rebase_commit_parallel_same_file_no_conflict():
         git_run(repo, ["checkout", ws])
         git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_002"])
         with open(shared, "w") as f:
-            f.write("line 1: header\nline 2: section A\nline 3: gap\nline 4: section B MODIFIED BY ITER 2\nline 5: footer\n")
+            f.write(
+                "line 1: header\nline 2: section A\nline 3: gap\nline 4: section B MODIFIED BY ITER 2\nline 5: footer\n"
+            )
         git_run(repo, ["add", "-A"])
         git_run(repo, ["commit", "-m", "iter 2 modifies section B"])
 
@@ -1266,7 +1271,7 @@ def test_rebase_prep_clean():
 
         # Workstream changes should be in history (rebased on top)
         log_out, _, _ = git_run(repo, ["log", "--oneline"])
-        check("ws commit in history", any("workstream adds" in l for l in log_out.split("\n")), log_out[:200])
+        check("ws commit in history", any("workstream adds" in ln for ln in log_out.split("\n")), log_out[:200])
 
 
 def test_rebase_prep_noop():
@@ -1290,9 +1295,8 @@ def test_rebase_prep_conflict_leaves_rebase_in_progress():
 
         # Rebase should be in progress (not aborted)
         git_dir = os.path.join(repo, ".git")
-        rebase_in_progress = (
-            os.path.exists(os.path.join(git_dir, "rebase-merge"))
-            or os.path.exists(os.path.join(git_dir, "rebase-apply"))
+        rebase_in_progress = os.path.exists(os.path.join(git_dir, "rebase-merge")) or os.path.exists(
+            os.path.join(git_dir, "rebase-apply")
         )
         check("rebase in progress", rebase_in_progress)
 

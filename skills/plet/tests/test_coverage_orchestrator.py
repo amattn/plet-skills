@@ -1207,15 +1207,16 @@ def test_rebase_commit_success():
                 completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 # Use assert so pytest catches failures
                 git_ops_calls = [(s, c) for s, c in called_scripts if s == "plet_git_ops.py"]
-                assert any(c == "rebase-commit" for _, c in git_ops_calls), \
+                assert any(c == "rebase-commit" for _, c in git_ops_calls), (
                     f"Expected rebase-commit call, got: {git_ops_calls}"
-                assert not any(c == "merge-squash" for _, c in git_ops_calls), \
+                )
+                assert not any(c == "merge-squash" for _, c in git_ops_calls), (
                     f"Should NOT call merge-squash, got: {git_ops_calls}"
+                )
                 assert completed == 1, f"Expected completed=1, got {completed}"
-                assert blocked is False, f"Expected not blocked"
+                assert blocked is False, "Expected not blocked"
                 gs = load_json(state_json_path(plet_dir))
-                assert gs["lifecycles"]["ID_001"] == "complete", \
-                    f"Expected complete, got {gs['lifecycles']['ID_001']}"
+                assert gs["lifecycles"]["ID_001"] == "complete", f"Expected complete, got {gs['lifecycles']['ID_001']}"
             finally:
                 plet_orchestrator._run_script = old_run
                 plet_orchestrator._run_script_json = old_json
@@ -1243,10 +1244,9 @@ def test_rebase_commit_conflict_requeues():
                 sink = CaptureSink()
                 completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 assert completed == 0, f"Expected completed=0, got {completed}"
-                assert blocked is False, f"Expected requeued (not blocked)"
+                assert blocked is False, "Expected requeued (not blocked)"
                 gs = load_json(state_json_path(plet_dir))
-                assert gs["lifecycles"]["ID_001"] == "queued", \
-                    f"Expected queued, got {gs['lifecycles']['ID_001']}"
+                assert gs["lifecycles"]["ID_001"] == "queued", f"Expected queued, got {gs['lifecycles']['ID_001']}"
             finally:
                 _restore_runner(plet_orchestrator, old_run, old_json)
         finally:
@@ -1274,10 +1274,9 @@ def test_rebase_commit_any_error_requeues():
                 sink = CaptureSink()
                 completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 assert completed == 0, f"Expected completed=0, got {completed}"
-                assert blocked is False, f"Expected requeued (not blocked)"
+                assert blocked is False, "Expected requeued (not blocked)"
                 gs = load_json(state_json_path(plet_dir))
-                assert gs["lifecycles"]["ID_001"] == "queued", \
-                    f"Expected queued, got {gs['lifecycles']['ID_001']}"
+                assert gs["lifecycles"]["ID_001"] == "queued", f"Expected queued, got {gs['lifecycles']['ID_001']}"
             finally:
                 _restore_runner(plet_orchestrator, old_run, old_json)
         finally:

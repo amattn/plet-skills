@@ -212,8 +212,26 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     return completed_this_run, False
 
 
+def _decrement_remaining_retries(plet_dir, iter_id):
+    """Decrement remainingRetries in per-iteration state. Direct file access (no CLI command)."""
+    is_path = os.path.join(plet_dir, "state", f"{iter_id}.json")
+    try:
+        with open(is_path) as f:
+            data = json.load(f)
+        current = data.get("remainingRetries", 3)
+        data["remainingRetries"] = max(0, current - 1)
+        with open(is_path + ".tmp", "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+        os.rename(is_path + ".tmp", is_path)
+    except (OSError, json.JSONDecodeError):
+        pass  # Best-effort — check-retry will catch 0 retries
+
+
 def _handle_rejected_verdict(iter_id, global_plet_dir, worktree_plet_dir, sink, completed_this_run, counts):
-    """Handle a rejected verify verdict: check retry. Returns (new_completed, blocked)."""
+    """Handle a rejected verify verdict: decrement remainingRetries, check retry. Returns (new_completed, blocked)."""
+    # Decrement remainingRetries — this IS an agent failure (unlike rebase requeue)
+    _decrement_remaining_retries(worktree_plet_dir, iter_id)
     retry_data, _, _ = _run_script_json("plet_schedule.py", ["check-retry", worktree_plet_dir, "--iter-id", iter_id])
     decision = retry_data.get("decision", "abort") if retry_data else "abort"
     if decision == "continue" or decision == "first":

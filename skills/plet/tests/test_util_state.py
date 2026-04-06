@@ -492,6 +492,7 @@ VALID_ITER_STATE = {
     "criteria": [
         {"id": "AC_1", "description": "Tests pass", "status": "not_started"},
     ],
+    "remainingRetries": 3,
 }
 
 
@@ -530,6 +531,7 @@ def test_iter_minimal():
         "agentId": None,
         "attempts": {"implement": 0, "verify": 0},
         "criteria": [],
+        "remainingRetries": 3,
     }
 
     with tempfile.TemporaryDirectory() as d:
@@ -753,6 +755,7 @@ SF28_ITER_STATE = {
     "criteria": [
         {"id": "AC_1", "description": "Tests pass", "status": "not_started"},
     ],
+    "remainingRetries": 3,
 }
 
 

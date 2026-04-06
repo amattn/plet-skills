@@ -546,11 +546,15 @@ def _execute_rebase_commit(ws_branch, iter_branch, cmd_name, output_json, pretty
     # Switch back to workstream and fast-forward merge
     r = run_git("checkout", ws_branch)
     if r.returncode != 0:
-        return None, _rebase_commit_error(cmd_name, f"Error: checkout {ws_branch} failed: {r.stderr}", output_json, pretty)
+        return None, _rebase_commit_error(
+            cmd_name, f"Error: checkout {ws_branch} failed: {r.stderr}", output_json, pretty
+        )
 
     r = run_git("merge", "--ff-only", iter_branch)
     if r.returncode != 0:
-        return None, _rebase_commit_error(cmd_name, f"Error: fast-forward merge failed: {r.stderr}", output_json, pretty)
+        return None, _rebase_commit_error(
+            cmd_name, f"Error: fast-forward merge failed: {r.stderr}", output_json, pretty
+        )
 
     return get_head_short(), 0
 
@@ -633,9 +637,7 @@ Examples:
         return err_result
 
     # Reuse merge-squash cleanup (same tag/branch cleanup logic)
-    tags_cleaned, branch_deleted = _merge_squash_cleanup(
-        global_state, iter_state, iter_id, iter_branch
-    )
+    tags_cleaned, branch_deleted = _merge_squash_cleanup(global_state, iter_state, iter_id, iter_branch)
 
     if output_json:
         data = {
@@ -759,7 +761,10 @@ Examples:
         return (0, _to_json(data, pretty, fields), "")
 
     files_str = ", ".join(conflict_files) if conflict_files else "(unknown)"
-    msg = f"OK — rebase in progress. Conflicts in: {files_str}\nResolve, then run: git add <file> && git rebase --continue"
+    msg = (
+        f"OK — rebase in progress. Conflicts in: {files_str}\n"
+        "Resolve, then run: git add <file> && git rebase --continue"
+    )
     return (0, msg, "")
 
 

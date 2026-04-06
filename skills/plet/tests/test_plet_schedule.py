@@ -807,14 +807,14 @@ def test_check_retry_missing_state_file():
 
 
 def test_check_retry_no_reports():
-    print("\n## check-retry — no verification reports")
+    print("\n## check-retry — no verification reports, remainingRetries=3")
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         make_iter_state(plet_dir, "ID_001")
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
-        check("no reports returns first", out == "first", "got: " + out)
+        check("remainingRetries=3 returns continue", out == "continue", "got: " + out)
 
 
 # ===========================================================================
@@ -823,14 +823,14 @@ def test_check_retry_no_reports():
 
 
 def test_check_retry_empty_reports():
-    print("\n## check-retry — empty verification reports")
+    print("\n## check-retry — empty verification reports, remainingRetries=3")
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         make_iter_state(plet_dir, "ID_001", verification_reports=[])
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
-        check("empty reports returns first", out == "first", "got: " + out)
+        check("remainingRetries=3 returns continue", out == "continue", "got: " + out)
 
 
 # ===========================================================================
@@ -861,62 +861,32 @@ def test_check_retry_single_report_under_limit():
 
 
 # ===========================================================================
-# check-retry — strictly decreasing trend (continue, extended)
+# check-retry — remainingRetries > 0 (continue)
 # ===========================================================================
 
 
-def test_check_retry_decreasing_trend():
-    print("\n## check-retry — strictly decreasing trend")
+def test_check_retry_remaining_retries_positive():
+    print("\n## check-retry — remainingRetries=2 returns continue")
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        reports = [
-            {
-                "attempt": 1,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "fail"},
-                    {"id": "AC_4", "status": "fail"},
-                    {"id": "AC_5", "status": "fail"},
-                ],
-            },
-            {
-                "attempt": 2,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "pass"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "fail"},
-                    {"id": "AC_4", "status": "fail"},
-                    {"id": "AC_5", "status": "pass"},
-                ],
-            },
-            {
-                "attempt": 3,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "pass"},
-                    {"id": "AC_2", "status": "pass"},
-                    {"id": "AC_3", "status": "fail"},
-                    {"id": "AC_4", "status": "pass"},
-                    {"id": "AC_5", "status": "pass"},
-                ],
-            },
-        ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 3, "verify": 3}, verification_reports=reports)
+        make_iter_state(plet_dir, "ID_001", attempts={"implement": 1, "verify": 1})
+        # Override remainingRetries to 2
+        ip = os.path.join(plet_dir, "state", "ID_001.json")
+        with open(ip) as f:
+            data = json.load(f)
+        data["remainingRetries"] = 2
+        with open(ip, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
-        check("decreasing 5→3→1 returns continue", out == "continue", "got: " + out)
+        check("remainingRetries=2 returns continue", out == "continue", "got: " + out)
 
-        # Check JSON for extended limit
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001", "--output", "json"])
         data = json.loads(out)
         check("json decision continue", data["decision"] == "continue")
-        check("json maxAttempts extended to 6", data["maxAttempts"] == 6)
-        check("json failureTrend", data["failureTrend"] == [5, 3, 1])
-        check("json trendDirection decreasing", data["trendDirection"] == "decreasing")
+        check("json remainingRetries", data["remainingRetries"] == 2)
 
 
 # ===========================================================================
@@ -924,275 +894,51 @@ def test_check_retry_decreasing_trend():
 # ===========================================================================
 
 
-def test_check_retry_not_decreasing_at_limit():
-    print("\n## check-retry — not decreasing at limit")
+def test_check_retry_remaining_retries_zero():
+    print("\n## check-retry — remainingRetries=0 returns abort")
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        reports = [
-            {
-                "attempt": 1,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "fail"},
-                ],
-            },
-            {
-                "attempt": 2,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "pass"},
-                ],
-            },
-            {
-                "attempt": 3,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "fail"},
-                ],
-            },
-        ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 3, "verify": 3}, verification_reports=reports)
+        make_iter_state(plet_dir, "ID_001", attempts={"implement": 3, "verify": 3})
+        # Set remainingRetries to 0
+        ip = os.path.join(plet_dir, "state", "ID_001.json")
+        with open(ip) as f:
+            data = json.load(f)
+        data["remainingRetries"] = 0
+        with open(ip, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
-        check("not decreasing 3→2→3 at limit returns abort", out == "abort", "got: " + out)
+        check("remainingRetries=0 returns abort", out == "abort", "got: " + out)
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001", "--output", "json"])
         data = json.loads(out)
         check("json decision abort", data["decision"] == "abort")
-        check("json maxAttempts default 3", data["maxAttempts"] == 3)
-        check("json trendDirection not_decreasing", data["trendDirection"] == "not_decreasing")
+        check("json remainingRetries 0", data["remainingRetries"] == 0)
 
 
 # ===========================================================================
-# check-retry — flat trend at limit (abort)
+# check-retry — remainingRetries=1 (continue, last chance)
 # ===========================================================================
 
 
-def test_check_retry_flat_trend_at_limit():
-    print("\n## check-retry — flat trend at limit")
+def test_check_retry_remaining_retries_one():
+    print("\n## check-retry — remainingRetries=1 (last chance)")
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        reports = [
-            {
-                "attempt": 1,
-                "verdict": "rejected",
-                "criteriaResults": [{"id": "AC_1", "status": "fail"}],
-            },
-            {
-                "attempt": 2,
-                "verdict": "rejected",
-                "criteriaResults": [{"id": "AC_1", "status": "fail"}],
-            },
-            {
-                "attempt": 3,
-                "verdict": "rejected",
-                "criteriaResults": [{"id": "AC_1", "status": "fail"}],
-            },
-        ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 3, "verify": 3}, verification_reports=reports)
+        make_iter_state(plet_dir, "ID_001", attempts={"implement": 2, "verify": 2})
+        ip = os.path.join(plet_dir, "state", "ID_001.json")
+        with open(ip) as f:
+            data = json.load(f)
+        data["remainingRetries"] = 1
+        with open(ip, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
-        check("flat 1→1→1 at limit returns abort", out == "abort", "got: " + out)
-
-
-# ===========================================================================
-# check-retry — not decreasing but under limit (continue)
-# ===========================================================================
-
-
-def test_check_retry_not_decreasing_under_limit():
-    print("\n## check-retry — not decreasing but under limit")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        plet_dir = os.path.join(tmp, "plet")
-        reports = [
-            {
-                "attempt": 1,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                ],
-            },
-            {
-                "attempt": 2,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "fail"},
-                ],
-            },
-        ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 2, "verify": 2}, verification_reports=reports)
-
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
-        check("increasing but under limit returns continue", out == "continue", "got: " + out)
-
-
-# ===========================================================================
-# check-retry — error/skipped not counted as failures
-# ===========================================================================
-
-
-def test_check_retry_error_skipped_excluded():
-    print("\n## check-retry — error/skipped excluded from failure count")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        plet_dir = os.path.join(tmp, "plet")
-        reports = [
-            {
-                "attempt": 1,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "error"},
-                    {"id": "AC_3", "status": "skipped"},
-                    {"id": "AC_4", "status": "fail"},
-                ],
-            },
-        ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 1, "verify": 1}, verification_reports=reports)
-
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001", "--output", "json"])
-        data = json.loads(out)
-        check("failure trend counts only fail", data["failureTrend"] == [2], "got: " + str(data.get("failureTrend")))
-
-
-# ===========================================================================
-# check-retry — report with no criteriaResults (0 failures)
-# ===========================================================================
-
-
-def test_check_retry_no_criteria_results():
-    print("\n## check-retry — report with no criteriaResults")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        plet_dir = os.path.join(tmp, "plet")
-        reports = [
-            {"attempt": 1, "verdict": "rejected"},
-        ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 1, "verify": 1}, verification_reports=reports)
-
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001", "--output", "json"])
-        data = json.loads(out)
-        check(
-            "no criteriaResults treated as 0 failures",
-            data["failureTrend"] == [0],
-            "got: " + str(data.get("failureTrend")),
-        )
-
-
-# ===========================================================================
-# check-retry — extended limit, 4th attempt still decreasing (continue)
-# ===========================================================================
-
-
-def test_check_retry_extended_limit_4th_attempt():
-    print("\n## check-retry — extended limit, 4th attempt")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        plet_dir = os.path.join(tmp, "plet")
-        reports = [
-            {
-                "attempt": 1,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "fail"},
-                    {"id": "AC_4", "status": "fail"},
-                ],
-            },
-            {
-                "attempt": 2,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "fail"},
-                    {"id": "AC_4", "status": "pass"},
-                ],
-            },
-            {
-                "attempt": 3,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "pass"},
-                    {"id": "AC_4", "status": "pass"},
-                ],
-            },
-            {
-                "attempt": 4,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "pass"},
-                    {"id": "AC_3", "status": "pass"},
-                    {"id": "AC_4", "status": "pass"},
-                ],
-            },
-        ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 4, "verify": 4}, verification_reports=reports)
-
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
-        check("4th attempt still decreasing returns continue", out == "continue", "got: " + out)
-
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001", "--output", "json"])
-        data = json.loads(out)
-        check("json trend 4→3→2→1", data["failureTrend"] == [4, 3, 2, 1])
-        check("json max 6", data["maxAttempts"] == 6)
-
-
-# ===========================================================================
-# check-retry — extended limit exhausted at 6 (abort)
-# ===========================================================================
-
-
-def test_check_retry_extended_limit_exhausted():
-    print("\n## check-retry — extended limit exhausted at 6")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        plet_dir = os.path.join(tmp, "plet")
-        # Actually make it strictly decreasing for first 3, then flat
-        reports = [
-            {
-                "attempt": 1,
-                "verdict": "rejected",
-                "criteriaResults": [
-                    {"id": "AC_1", "status": "fail"},
-                    {"id": "AC_2", "status": "fail"},
-                    {"id": "AC_3", "status": "fail"},
-                ],
-            },
-            {
-                "attempt": 2,
-                "verdict": "rejected",
-                "criteriaResults": [{"id": "AC_1", "status": "fail"}, {"id": "AC_2", "status": "fail"}],
-            },
-            {"attempt": 3, "verdict": "rejected", "criteriaResults": [{"id": "AC_1", "status": "fail"}]},
-            {
-                "attempt": 4,
-                "verdict": "rejected",
-                "criteriaResults": [{"id": "AC_1", "status": "fail"}],
-            },  # flat — no longer decreasing
-            {"attempt": 5, "verdict": "rejected", "criteriaResults": [{"id": "AC_1", "status": "fail"}]},
-            {"attempt": 6, "verdict": "rejected", "criteriaResults": [{"id": "AC_1", "status": "fail"}]},
-        ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 6, "verify": 6}, verification_reports=reports)
-
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
-        check("6 attempts exhausted returns abort", out == "abort", "got: " + out)
+        check("remainingRetries=1 returns continue", out == "continue", "got: " + out)
 
 
 # ===========================================================================
@@ -1233,14 +979,9 @@ def main():
     test_check_retry_no_reports()
     test_check_retry_empty_reports()
     test_check_retry_single_report_under_limit()
-    test_check_retry_decreasing_trend()
-    test_check_retry_not_decreasing_at_limit()
-    test_check_retry_flat_trend_at_limit()
-    test_check_retry_not_decreasing_under_limit()
-    test_check_retry_error_skipped_excluded()
-    test_check_retry_no_criteria_results()
-    test_check_retry_extended_limit_4th_attempt()
-    test_check_retry_extended_limit_exhausted()
+    test_check_retry_remaining_retries_positive()
+    test_check_retry_remaining_retries_zero()
+    test_check_retry_remaining_retries_one()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

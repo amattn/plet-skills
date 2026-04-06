@@ -175,6 +175,7 @@ ITER_REQUIRED_FIELDS = {
     "dependencies": list,
     "attempts": dict,
     "criteria": list,
+    "remainingRetries": int,
 }
 
 # agentId is required but may be null — handled separately
@@ -247,6 +248,9 @@ def validate_iter_state(data):
             errors.append(msg)
 
     _validate_attempts(errors, data)
+
+    if "remainingRetries" in data and isinstance(data["remainingRetries"], int) and data["remainingRetries"] < 0:
+        errors.append(f"remainingRetries must be >= 0, got {data['remainingRetries']}")
 
     return errors
 
