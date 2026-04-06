@@ -178,12 +178,13 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 
 | Step | Description | Status |
 |------|-------------|--------|
-| RBS_1 | `plet_git_ops.py`: replace `merge-squash` command with `rebase-merge` (rebase iter onto workstream, ff-merge) | |
-| RBS_2 | `plet_orchestrator.py`: replace `_try_merge_squash` / `_handle_merge_conflict` with rebase + ff-merge flow | |
-| RBS_3 | Tests: rewrite merge-squash tests → rebase-merge tests (basic, conflict, cleanup, dry-run) | |
-| RBS_4 | Reference files: update implement.md, verify.md, plan.md — remove squash references | |
-| RBS_5 | SKILL.md, state-schema.md, cli-cheatsheet.md — update terminology | |
-| RBS_6 | Validate with real run | |
+| RBS_1 | Tests: `rebase-commit` tests (basic, conflict, cleanup, dry-run) — RED | |
+| RBS_2 | `plet_git_ops.py`: implement `rebase-commit` command (rebase iter onto workstream, ff-merge) — GREEN. Keep `merge-squash`. | |
+| RBS_3 | Tests: orchestrator rebase-commit integration (finalize, conflict recovery, requeue) — RED | |
+| RBS_4 | `plet_orchestrator.py`: replace `_try_merge_squash` / `_handle_merge_conflict` with rebase + ff-merge flow — GREEN | |
+| RBS_5 | Reference files: update implement.md, verify.md, plan.md — replace squash with rebase-commit references | |
+| RBS_6 | SKILL.md, state-schema.md, cli-cheatsheet.md — update terminology | |
+| RBS_7 | Validate with real run | |
 
 ---
 

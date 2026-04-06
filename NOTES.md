@@ -1450,10 +1450,45 @@ Canonical home: specs/NOTES.md § SPEC_PLN_CLN (script tooling). Validator patte
 - Conflict recovery already does a rebase — the squash is an extra step on top of something that already works
 
 **What changes:**
-- `plet_git_ops.py merge-squash` → `rebase-merge` command: `git rebase workstream` on iter branch, then `git checkout workstream && git merge --ff-only iter_branch`
-- Orchestrator: `_try_merge_squash` / `_handle_merge_conflict` simplify to rebase + ff-merge
+- `plet_git_ops.py`: new `rebase-commit` command — `git rebase workstream` on iter branch, then `git checkout workstream && git merge --ff-only iter_branch`. Old `merge-squash` command stays (alternative strategy, some projects may prefer squashed history).
+- Orchestrator: `_try_merge_squash` / `_handle_merge_conflict` simplify to rebase + ff-merge via `rebase-commit`
 - Conflict recovery: rebase failure → requeue for implement (same as today, but without the merge-squash retry layer)
 - Commit history: workstream shows all wip commits from each iteration, linear (rebase ensures no merge commits)
+
+**Flow comparison:**
+
+Current merge-squash (3 layers):
+```
+_handle_passed_verdict
+  → _try_merge_squash
+    → git add -A + commit (clean workstream for squash)
+    → git merge --squash iter_branch + git commit
+    → if dirty tree: clean + retry merge-squash
+  → if conflict (string match on stderr/stdout):
+    → _handle_merge_conflict
+      → git rebase ws_branch iter_branch
+      → if rebase fails: abort, requeue
+      → if rebase succeeds: retry merge-squash AGAIN
+      → if still fails: requeue
+```
+
+New rebase-commit (1 layer):
+```
+_handle_passed_verdict
+  → plet_git_ops.py rebase-commit
+    → git rebase ws_branch (on iter branch)
+    → if conflict: abort, return error
+    → git checkout ws_branch
+    → git merge --ff-only iter_branch
+  → if error: requeue for implement
+  → cleanup (tags, branches)
+```
+
+Key simplifications:
+1. No dirty-tree recovery — rebase operates on iter branch, not workstream
+2. No retry-after-rebase layer — rebase IS the operation, not a recovery step
+3. No stdout/stderr string matching for conflict detection — `git rebase` returns nonzero cleanly
+4. One layer instead of three (`_try_merge_squash` + `_handle_merge_conflict` + retry → just rebase-commit)
 
 **What doesn't change:**
 - Sequential finalization — still one iteration at a time on workstream
