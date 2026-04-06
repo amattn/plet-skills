@@ -6,7 +6,7 @@ that multiple scripts need to agree on.
 
 # State file schema version — bump when state file format changes.
 # Additive changes = minor bump. Breaking changes = major bump.
-SCHEMA_VERSION = "0.4.1"
+SCHEMA_VERSION = "0.5.0"
 
 # Plet skill version — matches SKILL.md frontmatter version.
-SKILL_VERSION = "0.5.2"
+SKILL_VERSION = "0.6.0"

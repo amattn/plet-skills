@@ -1073,6 +1073,10 @@ Refine-phase entries that aren't tied to a specific iteration (stage summaries, 
 
 ### NOTES_DES_6: Cross-cutting
 
+#### Python target 3.8 → 3.11 (2026-04-06)
+
+Bumped minimum Python version. 3.8 hit EOL October 2024. 3.11 is macOS Sonoma default. Unlocks `datetime.UTC` (fixed 584 test warnings from `utcnow()` deprecation), `match/case`, `tomllib`, `X | Y` union types.
+
 #### Consistency passes
 
 Four levels: Quick (grep for one pattern), Standard (grep + cross-reference IDs — the default), Sweep (inventory all instances, categorize, get approval, execute systematically — for broad convention changes), Structural (full scan, spawn agent). Quick and Standard run proactively after changes. Structural needs confirmation. Renamed from numbered "flavors" to intuitive sizing; replaced Deep (never used in practice) with Sweep (validated during vocabulary cleanup miniplan) (2026-03-10).
@@ -1556,6 +1560,12 @@ FINALIZE
 ```
 
 If another iteration merges between steps 9 and 14 with a conflicting change, step 15 fails again and the cycle repeats. In practice this is rare — the plan phase guides users to add dependencies when iterations touch the same file, so conflicts are edge cases.
+
+**Decision (2026-04-06): `remainingRetries` — retry budget separate from attempts.** New required int field in per-iteration state, starts at 3. Decremented on agent failure (verify rejection, implement failure). NOT decremented on rebase-commit requeue (scheduling luck). `check-retry` now checks `remainingRetries > 0` — replaced the old failure-trend analysis (decreasing trend → extended limit) with a simple budget counter. Attempts is a factual counter (how many times did this run); remainingRetries is the budget (how many more chances). This distinction exists because rebase requeue increments attempts but should not consume retry budget.
+
+**Decision (2026-04-06): Audit tags stay at pre-rebase commit hashes.** After rebase, rebased commits have new hashes. Tags still point at old (pre-rebase) commits — they're still reachable (git doesn't GC tagged commits). Historical reference, not navigational. Simplest approach. `cleanupTagsAutomatically` handles deletion for projects that want it.
+
+**Architectural fix found by integration tests (2026-04-06):** The `--allow-empty` pre-commit pattern from merge-squash broke ff-merge with rebase-commit. Empty commits advance workstream HEAD past the rebased iter branch, making ff-merge impossible. Fix: orchestrator pre-commit without `--allow-empty` (only commits when there are actual changes). Rebase-commit has its own validator that skips the dirty-tree check (rebase operates on iter branch, not workstream).
 
 **What doesn't change:**
 - Sequential finalization — still one iteration at a time on workstream

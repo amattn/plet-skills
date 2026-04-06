@@ -2,6 +2,35 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.6.0 (2026-04-06)
+
+### Rebase-over-Squash (PLAN_RBS)
+- **New merge strategy:** Replace `merge-squash` with `rebase-commit`. Iteration branches are rebased onto workstream and fast-forward merged. Individual commits preserved in workstream history — no squashing.
+- **New command: `rebase-commit`** (plet_git_ops.py 0.4.0). Rebase + ff-merge. On conflict: abort and return error (orchestrator requeues). 18 tests including parallel same-file scenarios.
+- **New command: `rebase-prep`** (plet_git_ops.py 0.4.0). Rebase for agent conflict resolution. On conflict: leaves rebase in progress, reports conflicting files. Agent resolves and continues. 7 tests.
+- **Orchestrator rewrite** (plet_orchestrator.py 0.5.0). Replaced `_try_merge_squash` + `_handle_merge_conflict` + string-based error matching with single `rebase-commit` call. Any error → requeue (not block). -176 lines of merge-squash recovery code.
+- **Integration test suite** (test_rbs_integration.py). 11 tests with real git — no mocks. Covers: state.json divergence, per-iteration state after requeue (R11 scenario), two parallel iterations, full 16-step conflict resolution cycle. Found and fixed architectural bug: `--allow-empty` pre-commit broke ff-merge.
+- **`merge-squash` command kept** as legacy option for projects that prefer squashed history.
+
+### Retry Budget
+- **New field: `remainingRetries`** (required int, default 3). Retry budget separate from attempt count. Decremented on agent failure (verify rejection, implement failure). NOT decremented on rebase-commit requeue (scheduling luck). Replaces old failure-trend analysis in `check-retry`.
+- **Simplified `check-retry`** (plet_schedule.py 0.4.0). Now checks `remainingRetries > 0` instead of complex trend analysis with extended limits. -90 lines.
+- **plet_iter_state.py** (0.3.3): `init` adds `remainingRetries: 3`.
+- **Validation:** `remainingRetries` must be int >= 0. Missing or negative fails validation.
+
+### Schema
+- **SCHEMA_VERSION:** 0.4.1 → 0.5.0. Breaking: `remainingRetries` is required in per-iteration state.
+
+### Platform
+- **Python target:** 3.8 → 3.11. Python 3.8 hit EOL Oct 2024. Unlocks `datetime.UTC`, `match/case`, `tomllib`.
+- **Fixed 584 warnings:** `datetime.utcnow()` → `datetime.now(datetime.UTC)` in util_cli.py and util_format.py.
+
+### Documentation
+- **LOGA R11 case study:** 9/13 in 53m. Conflict detection fix (v0.5.2) validated. New failure: state file corruption from merge conflict markers in JSON — the bug that motivated PLAN_RBS.
+- **Plan phase review discipline:** Rewrote Review Discipline in plan.md modeled on /fast-chat patterns. NLR, R/O stable tail, "silence is not approval", full interaction transcript.
+- **Refactor goals:** 7 defaults decided (4 pattern-oriented, 3 artifact-oriented). New RFT_7: churn command.
+- **Reference files:** All merge-squash → rebase-commit across implement.md, verify.md, plan.md, state-schema.md, cli-cheatsheet.md, SKILL.md.
+
 ## 0.5.2 (2026-04-05)
 
 ### Bug Fixes

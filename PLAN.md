@@ -18,8 +18,8 @@
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
-| PLAN_RBS | Rebase-over-Squash | **Next** — replace merge-squash with rebase + fast-forward |
-| PLAN_RFT | Refactor Loop (orchestrator feature) | After RBS — milestone barriers, synthetic iterations |
+| PLAN_RBS | Rebase-over-Squash | 8/9 done — RBS_9 (R12 validation) remaining |
+| PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -178,15 +178,15 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 
 | Step | Description | Status |
 |------|-------------|--------|
-| RBS_1 | Tests: `rebase-commit` tests (basic, conflict, cleanup, parallel same-file) — RED | ✓ done (18 tests) |
-| RBS_2 | `plet_git_ops.py`: implement `rebase-commit` command (rebase + ff-merge) — GREEN. Keep `merge-squash`. | ✓ done |
-| RBS_3 | Tests: `rebase-prep` tests (clean rebase, conflict leaves rebase in progress, report files) — RED | |
-| RBS_4 | `plet_git_ops.py`: implement `rebase-prep` command — GREEN | |
-| RBS_5 | Tests: orchestrator rebase-commit integration (finalize, conflict requeue, prompt injection) — RED | |
-| RBS_6 | `plet_orchestrator.py`: replace `_try_merge_squash` / `_handle_merge_conflict` with rebase-commit + requeue flow — GREEN | |
-| RBS_7 | Reference files: update implement.md, verify.md, plan.md — replace squash with rebase-commit references | |
-| RBS_8 | SKILL.md, state-schema.md, cli-cheatsheet.md — update terminology | |
-| RBS_9 | Validate with real run | |
+| RBS_1 | Tests: `rebase-commit` tests (18 tests) — RED | ✓ done |
+| RBS_2 | `plet_git_ops.py`: implement `rebase-commit` — GREEN | ✓ done |
+| RBS_3 | Tests: `rebase-prep` tests (7 tests) — RED | ✓ done |
+| RBS_4 | `plet_git_ops.py`: implement `rebase-prep` — GREEN | ✓ done |
+| RBS_5 | Tests: orchestrator integration (11 real git + 3 mock) — RED | ✓ done |
+| RBS_6 | Orchestrator: rebase-commit + requeue flow — GREEN | ✓ done |
+| RBS_7 | Reference files: implement.md, verify.md, plan.md, state-schema.md | ✓ done |
+| RBS_8 | SKILL.md, cli-cheatsheet.md, scripts/CLAUDE.md | ✓ done |
+| RBS_9 | Validate with real run (R12) | |
 
 ---
 

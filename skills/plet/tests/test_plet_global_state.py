@@ -196,7 +196,7 @@ def test_init_basic():
 
         with open(sjp) as f:
             data = json.load(f)
-        check("schemaVersion", data["schemaVersion"] == "0.4.1")
+        check("schemaVersion", data["schemaVersion"] == "0.5.0")
         check("projectId", data["projectId"] == "LOGA")
         check("project.name", data["project"]["name"] == "Log Analyzer")
         check("dependencyMap", data["dependencyMap"] == {"ID_001": [], "ID_002": ["ID_001"]})
