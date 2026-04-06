@@ -25,6 +25,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `CASE_STUDY_LOGA_R08.md` | LOGA (logalyzer) | Go | 13/13 | Zero --help lookups; 100% verify first-pass; 38% faster than R06 (1h53m vs 3h04m) |
 | `CASE_STUDY_LOGA_R09.md` | LOGA (logalyzer) | Go | 5/13 | First parallel run (v0.5.0); merge-squash dirty-tree bug blocked 2 iters; shebang fix works |
 | `CASE_STUDY_LOGA_R10.md` | LOGA (logalyzer) | Go | 13/13 | v0.5.1; 3 loop sessions, 5 merge-squash failures, 2 manual interventions; string error matching fragile |
+| `CASE_STUDY_LOGA_R11.md` | LOGA (logalyzer) | Go | 9/13 | v0.5.2; conflict detection works, but merge-squash corrupts JSON state files via conflict markers |
 
 ## Stable Labels
 
