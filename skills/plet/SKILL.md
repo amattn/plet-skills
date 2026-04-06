@@ -154,6 +154,32 @@ plet_gate_session.py preflight plet/ --session-type detect --output json
 
 Checks: scripts installed, git health, CLAUDE.md exists, .gitignore configured, spec artifacts exist, state valid, fingerprints consistent. Exit 0 = ready, exit 1 = blocked, exit 2 = warnings.
 
+### Settings Setup (before bootstrap)
+
+**Before running bootstrap or entering the loop**, ensure `.claude/settings.json` exists with pre-approved plet commands. Without this, every script call triggers a permission prompt — making the loop effectively manual.
+
+Present this to the user and ask them to create or update `.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(${CLAUDE_SKILL_DIR}/scripts/*)",
+      "Bash(git:*)",
+      "Bash(go:*)",
+      "Bash(python3:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)"
+    ]
+  }
+}
+```
+
+Adapt the `allow` list to the project's toolchain (e.g., `go:*` for Go, `python3:*` for Python, `cargo:*` for Rust). The `Bash(${CLAUDE_SKILL_DIR}/scripts/*)` entry pre-approves all plet scripts.
+
+**Do NOT set `bypassPermissions` for the user.** Bypass mode grants unrestricted tool access — it is a dangerous, user-only decision. If the user asks about it, explain the risk: bypass allows the agent to run ANY command without approval, not just plet scripts. The scoped `allow` list above is the safe alternative.
+
 ### First Invocation Bootstrap
 
 If `plet/` doesn't exist, create the directory structure and empty runtime artifact files before entering Plan:
