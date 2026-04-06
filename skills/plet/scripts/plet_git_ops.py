@@ -496,6 +496,37 @@ def _rebase_commit_error(cmd_name, msg, output_json, pretty, hint=None):
     return (1, out, err_str)
 
 
+def _rebase_commit_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty):
+    """Validate git preconditions for rebase-commit. No dirty-tree check —
+    pending state changes are committed inside _execute_rebase_commit before ff-merge."""
+    if not is_git_repo():
+        return _rebase_commit_error(cmd_name, "Error: not inside a git repository", output_json, pretty)
+
+    current_branch = run_git("branch", "--show-current").stdout
+    if current_branch != ws_branch:
+        msg = f"Error: must be on workstream branch {ws_branch}, currently on {current_branch}"
+        return _rebase_commit_error(cmd_name, msg, output_json, pretty)
+
+    r = run_git("symbolic-ref", "HEAD")
+    if r.returncode != 0:
+        msg = "Error: HEAD is detached — rebase-commit requires a named branch"
+        return _rebase_commit_error(cmd_name, msg, output_json, pretty)
+
+    r = run_git("rev-parse", "--verify", "refs/heads/" + iter_branch)
+    if r.returncode != 0:
+        msg = f"Error: iteration branch not found: {iter_branch}"
+        return _rebase_commit_error(cmd_name, msg, output_json, pretty)
+
+    r = run_git("merge-base", "--is-ancestor", iter_branch, "HEAD")
+    if r.returncode == 0:
+        msg = (
+            f"Error: iteration branch {iter_branch} has no changes ahead of workstream — already merged or no work done"
+        )
+        return _rebase_commit_error(cmd_name, msg, output_json, pretty)
+
+    return None
+
+
 def _execute_rebase_commit(ws_branch, iter_branch, cmd_name, output_json, pretty):
     """Rebase iter_branch onto ws_branch, then ff-merge. Returns (commit_hash, error_code)."""
     # Rebase iteration branch onto workstream
@@ -572,8 +603,9 @@ Examples:
     ws_branch = derive_workstream_branch(global_state)
     iter_branch = derive_iteration_branch(global_state, iter_state)
 
-    # Reuse merge-squash validation (same preconditions: on workstream, iter branch exists, has changes, clean tree)
-    git_err = _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty)
+    # Validate git preconditions (same as merge-squash but WITHOUT dirty-tree check —
+    # rebase operates on iter branch, and we commit pending state before ff-merge)
+    git_err = _rebase_commit_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty)
     if git_err is not None:
         return git_err
 
