@@ -774,8 +774,136 @@ def main():
     test_cmd_post_json()
     test_cmd_post_missing_args()
 
+    # rebase check
+    test_rebase_check_on_top()
+    test_rebase_check_behind()
+    test_rebase_check_implement_only()
+
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
+
+
+# ---------------------------------------------------------------------------
+# Rebase check — iter branch must be on top of workstream
+# ---------------------------------------------------------------------------
+
+
+def test_rebase_check_on_top():
+    """Rebase check passes when iter branch is on top of workstream."""
+    print("\n## rebase-check — on top of workstream")
+    import plet_gate_phase
+
+    d, plet_dir = _make_project()
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            subprocess.run(["git", "add", "-A"], capture_output=True)
+            subprocess.run(["git", "commit", "-m", "state"], capture_output=True)
+
+            # Create workstream + iteration branch on top of it
+            ws = "plet/TEST/loop1/workstream"
+            subprocess.run(["git", "branch", ws], capture_output=True)
+            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop1/ID_001", ws], capture_output=True)
+            # Add a commit on iter branch
+            with open(os.path.join(d, "test.txt"), "w") as f:
+                f.write("test\n")
+            subprocess.run(["git", "add", "-A"], capture_output=True)
+            subprocess.run(["git", "commit", "-m", "iter work"], capture_output=True)
+
+            from util_state import load_and_validate_global_state
+
+            gs = load_and_validate_global_state(plet_dir)
+            result = plet_gate_phase.check_rebase_onto_workstream(gs)
+            assert result["status"] == "pass", f"Expected pass, got: {result}"
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_rebase_check_behind():
+    """Rebase check fails when workstream has advanced past iter branch base."""
+    print("\n## rebase-check — behind workstream")
+    import plet_gate_phase
+
+    d, plet_dir = _make_project()
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            subprocess.run(["git", "add", "-A"], capture_output=True)
+            subprocess.run(["git", "commit", "-m", "state"], capture_output=True)
+
+            # Create workstream
+            ws = "plet/TEST/loop1/workstream"
+            subprocess.run(["git", "branch", ws], capture_output=True)
+
+            # Create iteration branch
+            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop1/ID_001", ws], capture_output=True)
+            with open(os.path.join(d, "iter.txt"), "w") as f:
+                f.write("iter work\n")
+            subprocess.run(["git", "add", "-A"], capture_output=True)
+            subprocess.run(["git", "commit", "-m", "iter work"], capture_output=True)
+
+            # Advance workstream past the branch point
+            subprocess.run(["git", "checkout", ws], capture_output=True)
+            with open(os.path.join(d, "ws.txt"), "w") as f:
+                f.write("ws advance\n")
+            subprocess.run(["git", "add", "-A"], capture_output=True)
+            subprocess.run(["git", "commit", "-m", "ws advance"], capture_output=True)
+
+            # Back to iter branch — now behind workstream
+            subprocess.run(["git", "checkout", "plet/TEST/loop1/ID_001"], capture_output=True)
+
+            from util_state import load_and_validate_global_state
+
+            gs = load_and_validate_global_state(plet_dir)
+            result = plet_gate_phase.check_rebase_onto_workstream(gs)
+            assert result["status"] == "fail", f"Expected fail, got: {result}"
+            assert "rebase-prep" in result["detail"], f"Should mention rebase-prep: {result['detail']}"
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_rebase_check_implement_only():
+    """Rebase check only runs for implement phase, not verify."""
+    print("\n## rebase-check — implement only")
+    import plet_gate_phase
+
+    d, plet_dir = _make_project()
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            subprocess.run(["git", "add", "-A"], capture_output=True)
+            subprocess.run(["git", "commit", "-m", "state"], capture_output=True)
+
+            from util_state import load_and_validate_global_state, load_and_validate_iter_state
+
+            gs = load_and_validate_global_state(plet_dir)
+            ist = load_and_validate_iter_state(plet_dir, "ID_001")
+
+            # Implement phase should have rebase-check
+            impl_checks = []
+            plet_gate_phase.post_phase_checks(impl_checks, plet_dir, "ID_001", "implement", ist, gs)
+            impl_names = [c["name"] for c in impl_checks]
+            assert "rebase-check" in impl_names, f"implement should have rebase-check: {impl_names}"
+
+            # Verify phase should NOT have rebase-check
+            ist2 = dict(ist)
+            ist2["verifyVerdict"] = "passed"
+            ist2["verificationReports"] = [{"verdict": "passed", "criteriaResults": []}]
+            verify_checks = []
+            plet_gate_phase.post_phase_checks(verify_checks, plet_dir, "ID_001", "verify", ist2, gs)
+            verify_names = [c["name"] for c in verify_checks]
+            assert "rebase-check" not in verify_names, f"verify should NOT have rebase-check: {verify_names}"
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
 
 
 if __name__ == "__main__":
