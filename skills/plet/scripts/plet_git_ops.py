@@ -625,6 +625,57 @@ cmd_rebase_commit.example = "plet_git_ops.py rebase-commit plet/ --iter-id ID_00
 
 
 # ---------------------------------------------------------------------------
+# rebase-prep (stub — tests written first, implementation next)
+# ---------------------------------------------------------------------------
+
+
+def cmd_rebase_prep(args):
+    """Rebase iteration branch onto workstream. On conflict, leave rebase in progress for agent to resolve."""
+    help_text = """IMPORTANT:
+    rebase-prep rebases the current iteration branch onto the workstream.
+    Run this FROM the iteration branch, not the workstream.
+    If conflicts occur, the rebase is left in progress — resolve conflicts,
+    then run: git add <file> && git rebase --continue
+
+PITFALLS:
+    - Must be on the iteration branch, not workstream
+    - On conflict, rebase is IN PROGRESS — do not start other git operations
+
+USAGE:
+    plet_git_ops.py rebase-prep <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+
+    plet_dir             Path to plet directory (required)
+    --iter-id            Iteration ID (e.g., ID_001)
+
+PURPOSE:
+    Rebases iteration branch onto the latest workstream. Used by implement
+    agents after requeue due to merge conflict. On clean rebase, the agent
+    continues normal work. On conflict, the agent resolves and continues.
+
+Examples:
+    plet_git_ops.py rebase-prep plet/ --iter-id ID_001
+"""
+    cmd_name = "rebase-prep"
+    hint = help_hint(cmd_name)
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id"},
+        required=["iter_id"],
+        allow_dry_run=False,
+        hint=hint,
+    )
+    if len(result) == 3:
+        return result
+    # Stub: return dummy success — tests will fail
+    return (0, "STUB — not implemented", "")
+
+
+cmd_rebase_prep.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_rebase_prep.example = "plet_git_ops.py rebase-prep plet/ --iter-id ID_001"  # noqa: E501
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -634,6 +685,7 @@ def main():
         "audit-tag": cmd_audit_tag,
         "merge-squash": cmd_merge_squash,
         "rebase-commit": cmd_rebase_commit,
+        "rebase-prep": cmd_rebase_prep,
     }
     return dispatch(commands, "plet_git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
