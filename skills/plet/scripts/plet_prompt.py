@@ -283,6 +283,26 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
     state_text = format_iteration_state(state_data, lifecycle=lifecycle)
     sections.append({"name": "iteration-state", "source": "derived", "content": state_text})
 
+    # 8. Requeue directive (if iteration was requeued for a rebase conflict)
+    requeue_reason = state_data.get("requeue_reason")
+    if requeue_reason == "rebase_conflict" and phase == "implement":
+        directive = (
+            "⚠️ **REQUEUED DUE TO MERGE CONFLICT**\n\n"
+            "This iteration was requeued because rebase-commit failed with a conflict.\n"
+            "**Before doing any implementation work**, run this command to rebase onto\n"
+            "the current workstream and resolve conflicts:\n\n"
+            "```bash\n"
+            f"plet_git_ops.py rebase-prep plet/ --iter-id {iter_id}\n"
+            "```\n\n"
+            "If conflicts are reported, resolve each file, then:\n"
+            "```bash\n"
+            "git add <resolved-file>\n"
+            "git rebase --continue\n"
+            "```\n\n"
+            "After the rebase completes, continue with normal implementation.\n"
+        )
+        sections.append({"name": "requeue-directive", "source": "generated", "content": directive})
+
     return sections, None
 
 

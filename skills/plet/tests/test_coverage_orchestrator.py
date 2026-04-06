@@ -1192,6 +1192,71 @@ def test_invoke_receives_worktree_plet_dir():
 
 
 # ---------------------------------------------------------------------------
+# Requeue reason — orchestrator writes, prompt assembler reads
+# ---------------------------------------------------------------------------
+
+
+def test_rebase_failure_writes_requeue_reason():
+    """On rebase-commit failure, orchestrator writes requeue_reason to iter state."""
+    print("\n## Requeue reason written to iter state")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            responses = {
+                ("plet_git_ops.py", "rebase-commit"): ("", "Error: rebase has conflicts", 1),
+            }
+            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            try:
+                sink = CaptureSink()
+                plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+
+                # Check iter state has requeue_reason
+                is_path = os.path.join(plet_dir, "state", "ID_001.json")
+                with open(is_path) as f:
+                    state = json.load(f)
+                assert state.get("requeue_reason") == "rebase_conflict", (
+                    f"Expected requeue_reason='rebase_conflict', got: {state.get('requeue_reason')}"
+                )
+            finally:
+                _restore_runner(plet_orchestrator, old_run, old_json)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_prompt_includes_rebase_prep_for_requeued():
+    """Prompt assembler includes rebase-prep directive when requeue_reason is set."""
+    print("\n## Prompt includes rebase-prep for requeued iteration")
+    import plet_prompt
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
+    try:
+        # Write requeue_reason to iter state
+        is_path = os.path.join(plet_dir, "state", "ID_001.json")
+        with open(is_path) as f:
+            state = json.load(f)
+        state["requeue_reason"] = "rebase_conflict"
+        with open(is_path, "w") as f:
+            json.dump(state, f, indent=2)
+            f.write("\n")
+
+        # Assemble prompt
+        sections, err = plet_prompt._build_prompt_sections(plet_dir, "ID_001", "implement")
+        assert err is None, f"Prompt assembly failed: {err}"
+
+        # Check for rebase-prep directive in any section
+        full_prompt = " ".join(s["content"] for s in sections)
+        assert "rebase-prep" in full_prompt, "Prompt should include rebase-prep command for requeued iteration"
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1255,6 +1320,10 @@ def main():
 
     # trace isolation
     test_invoke_receives_worktree_plet_dir()
+
+    # requeue reason
+    test_rebase_failure_writes_requeue_reason()
+    test_prompt_includes_rebase_prep_for_requeued()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0

@@ -194,8 +194,8 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     # rebase-commit handles dirty workstream via stash/pop — no pre-commit needed
     rc_out, rc_err, rc_rc = _run_script("plet_git_ops.py", ["rebase-commit", global_plet_dir, "--iter-id", iter_id])
     if rc_rc != 0:
-        # Decrement retry budget + check if exhausted
-        _decrement_remaining_retries(global_plet_dir, iter_id)
+        # Decrement retry budget + write requeue reason for prompt injection
+        _decrement_remaining_retries(global_plet_dir, iter_id, requeue_reason="rebase_conflict")
         remaining = 0
         try:
             is_path = os.path.join(global_plet_dir, "state", f"{iter_id}.json")
@@ -223,14 +223,16 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     return completed_this_run, False
 
 
-def _decrement_remaining_retries(plet_dir, iter_id):
-    """Decrement remainingRetries in per-iteration state. Direct file access (no CLI command)."""
+def _decrement_remaining_retries(plet_dir, iter_id, requeue_reason=None):
+    """Decrement remainingRetries and optionally set requeue_reason. Direct file access."""
     is_path = os.path.join(plet_dir, "state", f"{iter_id}.json")
     try:
         with open(is_path) as f:
             data = json.load(f)
         current = data.get("remainingRetries", 3)
         data["remainingRetries"] = max(0, current - 1)
+        if requeue_reason:
+            data["requeue_reason"] = requeue_reason
         with open(is_path + ".tmp", "w") as f:
             json.dump(data, f, indent=2)
             f.write("\n")
