@@ -1490,6 +1490,73 @@ Key simplifications:
 3. No stdout/stderr string matching for conflict detection — `git rebase` returns nonzero cleanly
 4. One layer instead of three (`_try_merge_squash` + `_handle_merge_conflict` + retry → just rebase-commit)
 
+**Two commands, different conflict behavior (2026-04-05):**
+
+| Command | On conflict | Purpose |
+|---------|-------------|---------|
+| `rebase-prep` | Leave rebase in progress, report conflicting files | Implement agent resolves |
+| `rebase-commit` | Abort rebase, return error | Orchestrator requeues |
+
+**Requeue flow for conflict (2026-04-05, decided):**
+
+1. Orchestrator runs `rebase-commit` → fails (conflict)
+2. Orchestrator sets lifecycle → `queued`, writes `requeue_reason: "rebase_conflict"` to iter state
+3. Prompt assembler sees requeue reason, injects exact command: `plet_git_ops.py rebase-prep plet/ --iter-id ID_002`
+4. Implement agent runs `rebase-prep` — rebase starts, conflicts reported (which files)
+5. Agent resolves conflicts, `git add`, `git rebase --continue`
+6. Agent continues normal implement flow
+7. Verify phase — normal
+8. Orchestrator runs `rebase-commit` — iter already rebased, rebase is no-op, ff-merge advances workstream
+
+Branch state on requeue: leave as-is (option A). The `rebase-prep` command in the injected prompt prevents drift — agent can't miss it. No orchestrator branch manipulation needed.
+
+**Full conflict resolution flow (16 steps):**
+
+```
+FIRST PASS (normal)
+═══════════════════
+1. Orchestrator spawns ID_002 → implement agent runs in worktree
+2. Implement agent: write code, tests, commit wip commits
+3. Verify agent: checks acceptance criteria, passes
+4. Orchestrator: runs rebase-commit
+   → git rebase workstream ID_002_branch
+   → CONFLICT (ID_001 merged to workstream while ID_002 was running)
+   → git rebase --abort
+   → returns error
+
+REQUEUE
+═══════
+5. Orchestrator: lifecycle → "queued"
+6. Orchestrator: writes requeue_reason: "rebase_conflict" to iter state
+7. No attempt burned (scheduling luck, not agent failure)
+
+SECOND PASS (requeued)
+══════════════════════
+8.  Orchestrator spawns ID_002 again → implement agent runs in worktree
+9.  Prompt includes: "⚠️ Requeued due to merge conflict.
+     Run: plet_git_ops.py rebase-prep plet/ --iter-id ID_002"
+10. Agent runs rebase-prep
+    → git rebase workstream
+    → CONFLICT in shared.txt
+    → leaves rebase in progress
+    → output: "Conflicts in: shared.txt"
+11. Agent opens shared.txt, resolves conflict markers
+12. Agent: git add shared.txt && git rebase --continue
+13. Agent continues normal implement (tests pass, ACs met, wip commits)
+14. Verify agent: checks acceptance criteria, passes
+
+FINALIZE
+════════
+15. Orchestrator: runs rebase-commit
+    → git rebase workstream (no-op — already rebased in step 10)
+    → git checkout workstream
+    → git merge --ff-only ID_002_branch
+    → OK ✓
+16. Orchestrator: lifecycle → "complete"
+```
+
+If another iteration merges between steps 9 and 14 with a conflicting change, step 15 fails again and the cycle repeats. In practice this is rare — the plan phase guides users to add dependencies when iterations touch the same file, so conflicts are edge cases.
+
 **What doesn't change:**
 - Sequential finalization — still one iteration at a time on workstream
 - Audit tags — still mark phase boundaries
