@@ -667,8 +667,62 @@ Examples:
     )
     if len(result) == 3:
         return result
-    # Stub: return dummy success — tests will fail
-    return (0, "STUB — not implemented", "")
+    plet_dir, kwargs, output_json, pretty, fields, _ = result
+
+    iter_id = kwargs["iter_id"]
+
+    global_state = load_and_validate_global_state(plet_dir)
+    if isinstance(global_state, tuple):
+        return global_state
+
+    iter_state = load_and_validate_iter_state(plet_dir, iter_id)
+    if isinstance(iter_state, tuple):
+        return iter_state
+
+    ws_branch = derive_workstream_branch(global_state)
+    iter_branch = derive_iteration_branch(global_state, iter_state)
+
+    # Validate: must be on iter branch, not workstream
+    if not is_git_repo():
+        return _rebase_commit_error("rebase-prep", "Error: not inside a git repository", output_json, pretty)
+
+    current_branch = run_git("branch", "--show-current").stdout
+    if current_branch != iter_branch:
+        msg = f"Error: must be on iteration branch {iter_branch}, currently on {current_branch}"
+        return _rebase_commit_error("rebase-prep", msg, output_json, pretty)
+
+    # Rebase onto workstream
+    r = run_git("rebase", ws_branch)
+    if r.returncode == 0:
+        # Clean rebase — no conflicts
+        if output_json:
+            data = {
+                "status": "ok",
+                "command": "rebase-prep",
+                "rebasedOnto": ws_branch,
+                "conflictFiles": [],
+            }
+            return (0, _to_json(data, pretty, fields), "")
+        return (0, f"OK — rebased {iter_branch} onto {ws_branch}, no conflicts", "")
+
+    # Conflict — leave rebase in progress, report conflicting files
+    conflict_files = []
+    porcelain = run_git("diff", "--name-only", "--diff-filter=U").stdout
+    if porcelain:
+        conflict_files = [f.strip() for f in porcelain.split("\n") if f.strip()]
+
+    if output_json:
+        data = {
+            "status": "ok",
+            "command": "rebase-prep",
+            "rebasedOnto": ws_branch,
+            "conflictFiles": conflict_files,
+        }
+        return (0, _to_json(data, pretty, fields), "")
+
+    files_str = ", ".join(conflict_files) if conflict_files else "(unknown)"
+    msg = f"OK — rebase in progress. Conflicts in: {files_str}\nResolve, then run: git add <file> && git rebase --continue"
+    return (0, msg, "")
 
 
 cmd_rebase_prep.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
