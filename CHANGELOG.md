@@ -2,6 +2,33 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.6.2 (2026-04-06)
+
+### Parallel Conflict Resolution (PLAN_RBS completion)
+- **Always rebase at start AND end of implement.** implement.md: `rebase-prep` as FIRST ACTION (before reading context) and MANDATORY step before phase-end. No conditional logic — same flow for first attempt and requeued iterations.
+- **Gate-post enforcement.** New `check_rebase_onto_workstream` check verifies `git merge-base --is-ancestor`. If the implement agent skips the rebase, the gate fails. plet_gate_phase.py: 0.3.2 → 0.3.3.
+- **Dynamic parallel stop.** On first rebase-commit failure, orchestrator limits spawning to 1 iteration at a time. Remaining iterations run sequentially. OLLR R03: ID_005 recovered via parallel stop (first successful conflict recovery). plet_orchestrator.py: 0.5.1 → 0.5.2.
+- **`wip-commit` command.** Stages source + plet state/artifacts, excludes `plet/trace/`. Breaks the transcript feedback loop where committing plet/ grows the transcript, which dirties the working tree, which triggers another commit. plet_git_ops.py: 0.4.1 → 0.5.0.
+
+### Schema Changes
+- **`remainingRetries` moved to state.json.** Parallel dict alongside `lifecycles`, orchestrator-owned. Fixes R03 stash bug: per-iter state files no longer dirtied by retry decrements on workstream. SCHEMA_VERSION: 0.5.0 → 0.6.0.
+- **`remainingRetries` removed from per-iteration state.** No longer a required field. plet_iter_state.py: 0.3.3 → 0.3.4.
+- **`requeue_reason` removed.** Was used for prompt injection, superseded by always-rebase + gate enforcement. plet_prompt.py: 0.3.1 → 0.3.2.
+
+### Bug Fixes
+- **Permission detection.** `defaultMode: "bypassPermissions"` now correctly detected. OLLR R02: subagent launched with auto mode despite parent having bypass configured. plet_invoke.py: 0.3.2 → 0.3.3.
+- **Audit tag timing.** Tag now created after phase-end commit (not before). Tags mark the phase-end commit, not a prior wip commit. plet_phase.py: 0.3.2 → 0.3.3.
+- **`noTestRationale` enforcement.** Rejects empty string when `redTest` is "none". Auto-report fills default when verify agent omits.
+- **Loop runs ONCE.** SKILL.md: "Never automatically start another loop session." Prevents auto-restart bug from OLLR R03.
+- **`/plet` router confirms.** When entered via `/plet` (not `/plet loop`), confirms before entering the loop.
+- **Settings setup documentation.** New section in SKILL.md: pre-approved plet command patterns in `.claude/settings.json`. Explicit warning about bypass mode.
+- **`check-retry` reads from state.json.** plet_schedule.py: 0.4.0 → 0.4.1.
+
+### Documentation
+- **OLLR R01-R03 case studies.** First non-logalyzer project (Bash CLI). Intentional parallel conflict stress test. Validated: parallel stop, retry check, permission detection. Found: stash bug, auto-restart, transcript feedback loop.
+- **LOGA R11 case study.** State file corruption via merge conflict markers — the bug that motivated PLAN_RBS.
+- **implement.md + verify.md.** `wip-commit` replaces `git add plet/`. Rebase at start + end. Gate enforcement documented.
+
 ## 0.6.1 (2026-04-06)
 
 ### Bug Fixes

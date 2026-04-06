@@ -43,7 +43,7 @@ from util_state import (
 )
 from util_subprocess import run, run_git
 
-SCRIPT_VERSION = "0.3.2"
+SCRIPT_VERSION = "0.3.3"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]

@@ -59,7 +59,7 @@ from util_state import (
 )
 
 SCRIPT_NAME = "plet_iter_state"
-SCRIPT_VERSION = "0.3.3"
+SCRIPT_VERSION = "0.3.4"
 
 UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
 UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run"}
