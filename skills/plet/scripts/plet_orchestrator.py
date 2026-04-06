@@ -467,7 +467,7 @@ def _run_implement_phase(iter_id, global_plet_dir, worktree_path, sink, complete
 
     impl_out, impl_err, impl_rc = _run_script(
         "plet_invoke.py",
-        ["run", global_plet_dir, "--iter-id", iter_id, "--phase", "implement", "--cwd", worktree_path],
+        ["run", worktree_plet_dir, "--iter-id", iter_id, "--phase", "implement", "--cwd", worktree_path],
     )
 
     if impl_rc != 0:
@@ -493,7 +493,7 @@ def _run_verify_phase(iter_id, global_plet_dir, worktree_path, worktree_plet_dir
 
     _run_script(
         "plet_invoke.py",
-        ["run", global_plet_dir, "--iter-id", iter_id, "--phase", "verify", "--cwd", worktree_path],
+        ["run", worktree_plet_dir, "--iter-id", iter_id, "--phase", "verify", "--cwd", worktree_path],
     )
     sink.event({"type": "iteration_phase_complete", "iterationId": iter_id, "phase": "verify"})
 
