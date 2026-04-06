@@ -176,6 +176,26 @@ def check_implement_verdict(iter_state):
     return {"name": "implement-verdict", "status": "pass", "detail": f"implementVerdict is '{verdict}'"}
 
 
+def check_rebase_onto_workstream(global_state, cwd=None):
+    """Post-implement check: iteration branch must be on top of workstream.
+    Ensures the implement agent ran rebase-prep before phase-end."""
+    project_id = global_state.get("projectId", "UNKNOWN")
+    loop_n = active_loop_number(global_state)
+    ws_branch = f"plet/{project_id}/loop{loop_n}/workstream"
+
+    result = run_git("merge-base", "--is-ancestor", ws_branch, "HEAD", cwd=cwd)
+    if result.returncode == 0:
+        return {"name": "rebase-check", "status": "pass", "detail": f"branch is on top of {ws_branch}"}
+    return {
+        "name": "rebase-check",
+        "status": "fail",
+        "detail": (
+            f"branch is NOT on top of {ws_branch} — run rebase-prep before phase-end: "
+            "plet_git_ops.py rebase-prep plet/ --iter-id <ID>"
+        ),
+    }
+
+
 def check_audit_tag(global_state, iter_state, phase, cwd=None):
     """Check that the audit tag exists for this phase."""
     project_id = global_state.get("projectId", "UNKNOWN")
@@ -633,9 +653,10 @@ def pre_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state)
 
 def post_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state):
     """Phase-specific post checks. Order per GPH_PST_BHV_10."""
-    # Implement-verdict (implement only)
+    # Implement-only checks
     if phase == "implement":
         checks.append(check_implement_verdict(iter_state))
+        checks.append(check_rebase_onto_workstream(global_state))
 
     # Audit tag check
     checks.append(check_audit_tag(global_state, iter_state, phase))

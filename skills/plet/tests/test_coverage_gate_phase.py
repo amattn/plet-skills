@@ -802,9 +802,10 @@ def test_rebase_check_on_top():
             subprocess.run(["git", "commit", "-m", "state"], capture_output=True)
 
             # Create workstream + iteration branch on top of it
-            ws = "plet/TEST/loop1/workstream"
+            # loopSessionCount=0 in _make_project → loop0
+            ws = "plet/TEST/loop0/workstream"
             subprocess.run(["git", "branch", ws], capture_output=True)
-            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop1/ID_001", ws], capture_output=True)
+            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop0/ID_001", ws], capture_output=True)
             # Add a commit on iter branch
             with open(os.path.join(d, "test.txt"), "w") as f:
                 f.write("test\n")
@@ -835,12 +836,12 @@ def test_rebase_check_behind():
             subprocess.run(["git", "add", "-A"], capture_output=True)
             subprocess.run(["git", "commit", "-m", "state"], capture_output=True)
 
-            # Create workstream
-            ws = "plet/TEST/loop1/workstream"
+            # Create workstream (loopSessionCount=0 → loop0)
+            ws = "plet/TEST/loop0/workstream"
             subprocess.run(["git", "branch", ws], capture_output=True)
 
             # Create iteration branch
-            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop1/ID_001", ws], capture_output=True)
+            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop0/ID_001", ws], capture_output=True)
             with open(os.path.join(d, "iter.txt"), "w") as f:
                 f.write("iter work\n")
             subprocess.run(["git", "add", "-A"], capture_output=True)
@@ -854,7 +855,7 @@ def test_rebase_check_behind():
             subprocess.run(["git", "commit", "-m", "ws advance"], capture_output=True)
 
             # Back to iter branch — now behind workstream
-            subprocess.run(["git", "checkout", "plet/TEST/loop1/ID_001"], capture_output=True)
+            subprocess.run(["git", "checkout", "plet/TEST/loop0/ID_001"], capture_output=True)
 
             from util_state import load_and_validate_global_state
 
