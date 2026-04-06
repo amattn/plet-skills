@@ -186,8 +186,9 @@ def test_help():
     check("mentions merge-squash", "merge-squash" in stdout)
     check("mentions rebase-commit", "rebase-commit" in stdout)
     check("mentions rebase-prep", "rebase-prep" in stdout)
+    check("mentions wip-commit", "wip-commit" in stdout)
 
-    for cmd in ["audit-tag", "merge-squash", "rebase-commit", "rebase-prep"]:
+    for cmd in ["audit-tag", "merge-squash", "rebase-commit", "rebase-prep", "wip-commit"]:
         stdout, _, _ = run([cmd, "--help"])
         check(f"{cmd} --help exits 0", True)
         check(f"{cmd} help has content", len(stdout) > 50)
@@ -386,6 +387,12 @@ def main():
     test_rebase_prep_conflict_json()
     test_rebase_prep_clean_json()
     test_rebase_prep_not_on_iter_branch()
+
+    # wip-commit tests
+    test_wip_commit_basic()
+    test_wip_commit_excludes_trace()
+    test_wip_commit_includes_state()
+    test_wip_commit_nothing_to_commit()
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
@@ -1353,6 +1360,122 @@ def test_rebase_prep_not_on_iter_branch():
 
         _, stderr, _ = run(["rebase-prep", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
         check("error mentions branch", "branch" in stderr.lower() or "iteration" in stderr.lower())
+
+
+# ---------------------------------------------------------------------------
+# wip-commit tests
+# ---------------------------------------------------------------------------
+
+
+def setup_for_wip_commit(d):
+    """Set up a repo on an iteration branch with source + plet state + trace files."""
+    repo = make_git_repo(d)
+    iter_state = dict(ITER_STATE)
+    iter_state["attempts"] = {"implement": 1, "verify": 0}
+    plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
+
+    # Create workstream + iteration branch
+    ws = create_workstream_branch(repo)
+    iter_br = "plet/LOGA/loop1/ID_001"
+    git_run(repo, ["checkout", "-b", iter_br, ws])
+
+    # Commit state files on iter branch
+    git_run(repo, ["add", "plet/"])
+    git_run(repo, ["commit", "-m", "plet state"])
+
+    # Create source file (what the agent would write)
+    with open(os.path.join(repo, "main.go"), "w") as f:
+        f.write("package main\n")
+
+    # Create trace file (transcript — should NOT be committed by wip-commit)
+    trace_dir = os.path.join(plet_dir, "trace")
+    os.makedirs(trace_dir, exist_ok=True)
+    with open(os.path.join(trace_dir, "ID_001-implement-1-transcript.ndjson"), "w") as f:
+        f.write('{"type":"system","subtype":"init"}\n')
+
+    # Create progress entry (should be committed by wip-commit)
+    with open(os.path.join(plet_dir, "progress.md"), "w") as f:
+        f.write("# Progress\n\nSome progress.\n")
+
+    return repo, plet_dir, iter_br
+
+
+def test_wip_commit_basic():
+    """wip-commit stages source + state, commits with prefixed message."""
+    print("\n## wip-commit — basic")
+    with tempfile.TemporaryDirectory() as d:
+        repo, plet_dir, _ = setup_for_wip_commit(d)
+
+        stdout, _, _ = run(
+            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "AC_1 - tests pass"],
+            cwd=repo,
+        )
+        check("success", "OK" in stdout)
+
+        # Check commit message format
+        log_out, _, _ = git_run(repo, ["log", "-1", "--format=%s"])
+        check("message prefixed", log_out == "wip: [ID_001] AC_1 - tests pass")
+
+
+def test_wip_commit_excludes_trace():
+    """wip-commit must NOT stage plet/trace/ files."""
+    print("\n## wip-commit — excludes trace")
+    with tempfile.TemporaryDirectory() as d:
+        repo, plet_dir, _ = setup_for_wip_commit(d)
+
+        run(
+            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "AC_1 - test"],
+            cwd=repo,
+        )
+
+        # Check that transcript file is NOT in the commit (assert for pytest)
+        diff_out, _, _ = git_run(repo, ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"])
+        assert "main.go" in diff_out, f"source file not committed: {diff_out}"
+        assert "plet/progress.md" in diff_out, f"progress not committed: {diff_out}"
+        assert "transcript" not in diff_out, f"trace file should NOT be committed: {diff_out}"
+
+
+def test_wip_commit_includes_state():
+    """wip-commit stages plet/state/ files."""
+    print("\n## wip-commit — includes state")
+    with tempfile.TemporaryDirectory() as d:
+        repo, plet_dir, _ = setup_for_wip_commit(d)
+
+        # Modify per-iteration state
+        is_path = os.path.join(plet_dir, "state", "ID_001.json")
+        with open(is_path) as f:
+            data = json.load(f)
+        data["phaseActivity"] = "coding"
+        with open(is_path, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+
+        run(
+            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "state update"],
+            cwd=repo,
+        )
+
+        diff_out, _, _ = git_run(repo, ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"])
+        check("state file committed", "plet/state/ID_001.json" in diff_out)
+
+
+def test_wip_commit_nothing_to_commit():
+    """wip-commit with no changes should handle gracefully."""
+    print("\n## wip-commit — nothing to commit")
+    with tempfile.TemporaryDirectory() as d:
+        repo, plet_dir, _ = setup_for_wip_commit(d)
+
+        # Commit everything first
+        git_run(repo, ["add", "-A"])
+        git_run(repo, ["commit", "-m", "all committed"])
+
+        # wip-commit with nothing to commit — should not error
+        stdout, stderr, rc = run(
+            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "no changes"],
+            cwd=repo,
+        )
+        # Either succeeds with "nothing to commit" or exits 0
+        check("handles gracefully", rc == 0, f"rc={rc}, err={stderr}")
 
 
 if __name__ == "__main__":

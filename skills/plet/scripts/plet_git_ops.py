@@ -802,6 +802,59 @@ cmd_rebase_prep.example = "plet_git_ops.py rebase-prep plet/ --iter-id ID_001"  
 
 
 # ---------------------------------------------------------------------------
+# wip-commit (stub — tests written first)
+# ---------------------------------------------------------------------------
+
+
+def cmd_wip_commit(args):
+    """Commit source code + plet state, excluding plet/trace/. Prevents transcript feedback loop."""
+    help_text = """IMPORTANT:
+    wip-commit stages source files and plet state/artifacts, but NOT
+    plet/trace/. Use this instead of raw git add/commit during implement
+    and verify phases. Transcripts are committed by plet_phase.py end.
+
+PITFALLS:
+    - Do NOT use 'git add plet/' — that stages transcripts and creates
+      a commit→transcript→commit feedback loop
+    - plet_phase.py end uses 'git add -A' which captures everything
+      including traces — that's the one place traces get committed
+
+USAGE:
+    plet_git_ops.py wip-commit <plet_dir> --iter-id ID_xxx --message "AC_1 - description"
+
+    plet_dir    Path to plet directory (required)
+    --iter-id   Iteration ID (e.g., ID_001)
+    --message   Commit message (required). Automatically prefixed with "wip: [ID_xxx] "
+
+PURPOSE:
+    Safe commit during implement/verify. Stages everything except plet/trace/
+    to prevent the transcript feedback loop where committing plet/ grows
+    the transcript, which dirties plet/, which triggers another commit.
+
+Examples:
+    plet_git_ops.py wip-commit plet/ --iter-id ID_001 --message "AC_1 - tests pass"
+"""
+    cmd_name = "wip-commit"
+    hint = help_hint(cmd_name)
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id", "message"},
+        required=["iter_id", "message"],
+        allow_dry_run=False,
+        hint=hint,
+    )
+    if len(result) == 3:
+        return result
+    # Stub: return dummy success
+    return (0, "STUB — not implemented", "")
+
+
+cmd_wip_commit.usage = '<plet_dir> --iter-id ID_xxx --message "description"'  # noqa: E501
+cmd_wip_commit.example = 'plet_git_ops.py wip-commit plet/ --iter-id ID_001 --message "AC_1 - tests pass"'  # noqa: E501
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -812,6 +865,7 @@ def main():
         "merge-squash": cmd_merge_squash,
         "rebase-commit": cmd_rebase_commit,
         "rebase-prep": cmd_rebase_prep,
+        "wip-commit": cmd_wip_commit,
     }
     return dispatch(commands, "plet_git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
