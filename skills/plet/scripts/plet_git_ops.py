@@ -482,6 +482,149 @@ cmd_merge_squash.example = "plet_git_ops.py merge-squash plet/ --iter-id ID_001"
 
 
 # ---------------------------------------------------------------------------
+# rebase-commit (stub — tests written first, implementation next)
+# ---------------------------------------------------------------------------
+
+
+def _rebase_commit_error(cmd_name, msg, output_json, pretty, hint=None):
+    """Build error output for rebase-commit. Returns (code, out, err)."""
+    out, err_str = _err_out(cmd_name, msg, output_json, pretty)
+    if hint and err_str:
+        err_str = f"{err_str}\n{hint}"
+    elif hint:
+        err_str = hint
+    return (1, out, err_str)
+
+
+def _execute_rebase_commit(ws_branch, iter_branch, cmd_name, output_json, pretty):
+    """Rebase iter_branch onto ws_branch, then ff-merge. Returns (commit_hash, error_code)."""
+    # Rebase iteration branch onto workstream
+    r = run_git("rebase", ws_branch, iter_branch)
+    if r.returncode != 0:
+        # Abort the failed rebase to leave repo in clean state
+        run_git("rebase", "--abort")
+        msg = "Error: rebase has conflicts. Rebase aborted. Orchestrator must requeue."
+        return None, _rebase_commit_error(cmd_name, msg, output_json, pretty)
+
+    # Switch back to workstream and fast-forward merge
+    r = run_git("checkout", ws_branch)
+    if r.returncode != 0:
+        return None, _rebase_commit_error(cmd_name, f"Error: checkout {ws_branch} failed: {r.stderr}", output_json, pretty)
+
+    r = run_git("merge", "--ff-only", iter_branch)
+    if r.returncode != 0:
+        return None, _rebase_commit_error(cmd_name, f"Error: fast-forward merge failed: {r.stderr}", output_json, pretty)
+
+    return get_head_short(), 0
+
+
+def cmd_rebase_commit(args):
+    """Rebase iteration branch onto workstream and fast-forward merge."""
+    help_text = """IMPORTANT:
+    rebase-commit rebases the iteration branch onto the workstream, then
+    fast-forward merges. Individual commits are preserved (no squash).
+    Must be run FROM the workstream branch. Use --dry-run first.
+
+PITFALLS:
+    - Must checkout workstream branch BEFORE running this command
+    - Tag and branch cleanup controlled by per-iteration state fields
+    - If rebase conflicts, returns error — orchestrator requeues
+
+USAGE:
+    plet_git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+
+    plet_dir             Path to plet directory (required)
+    --iter-id            Iteration ID (e.g., ID_001)
+
+PURPOSE:
+    Rebases iteration work onto workstream and fast-forward merges.
+    Individual implementation and verification commits are preserved
+    in the workstream history. Linear history, no merge commits.
+
+Examples:
+    plet_git_ops.py rebase-commit plet/ --iter-id ID_001
+    plet_git_ops.py rebase-commit --iter-id ID_001 --dry-run
+"""
+    cmd_name = "rebase-commit"
+    hint = help_hint(cmd_name)
+    result = parse_command(
+        args,
+        help_text,
+        known_flags={"iter_id"},
+        required=["iter_id"],
+        allow_dry_run=True,
+        hint=hint,
+    )
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
+
+    iter_id = kwargs["iter_id"]
+
+    global_state = load_and_validate_global_state(plet_dir)
+    if isinstance(global_state, tuple):
+        return global_state
+
+    iter_state = load_and_validate_iter_state(plet_dir, iter_id)
+    if isinstance(iter_state, tuple):
+        return iter_state
+
+    ws_branch = derive_workstream_branch(global_state)
+    iter_branch = derive_iteration_branch(global_state, iter_state)
+
+    # Reuse merge-squash validation (same preconditions: on workstream, iter branch exists, has changes, clean tree)
+    git_err = _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty)
+    if git_err is not None:
+        return git_err
+
+    if dry_run:
+        if output_json:
+            data = {
+                "status": "ok",
+                "command": cmd_name,
+                "iterationBranch": iter_branch,
+                "workstreamBranch": ws_branch,
+                "dryRun": True,
+            }
+            return (0, _to_json(data, pretty, fields), "")
+        else:
+            return (0, f"DRY RUN — would rebase-commit {iter_branch} onto {ws_branch}", "")
+
+    commit_hash, err_result = _execute_rebase_commit(ws_branch, iter_branch, cmd_name, output_json, pretty)
+    if err_result != 0:
+        return err_result
+
+    # Reuse merge-squash cleanup (same tag/branch cleanup logic)
+    tags_cleaned, branch_deleted = _merge_squash_cleanup(
+        global_state, iter_state, iter_id, iter_branch
+    )
+
+    if output_json:
+        data = {
+            "status": "ok",
+            "command": cmd_name,
+            "commitHash": commit_hash,
+            "iterationBranch": iter_branch,
+            "workstreamBranch": ws_branch,
+            "tagsCleaned": tags_cleaned,
+            "branchDeleted": branch_deleted,
+        }
+        return (0, _to_json(data, pretty, fields), "")
+    else:
+        msg = f"OK — rebased and merged {iter_branch} onto {ws_branch} ({commit_hash})"
+        if tags_cleaned:
+            for tc in tags_cleaned:
+                msg += "\n  Tag {} deleted (was at {})".format(tc["tag"], tc["hash"])
+        if branch_deleted:
+            msg += f"\n  Branch {iter_branch} deleted"
+        return (0, msg, "")
+
+
+cmd_rebase_commit.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
+cmd_rebase_commit.example = "plet_git_ops.py rebase-commit plet/ --iter-id ID_001"  # noqa: E501
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -490,6 +633,7 @@ def main():
     commands = {
         "audit-tag": cmd_audit_tag,
         "merge-squash": cmd_merge_squash,
+        "rebase-commit": cmd_rebase_commit,
     }
     return dispatch(commands, "plet_git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
