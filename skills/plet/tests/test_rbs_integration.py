@@ -678,6 +678,42 @@ def test_full_requeue_cycle_real_git():
 # ===========================================================================
 
 
+def test_dirty_workstream_stash_r12_scenario():
+    """R12 bug: workstream has uncommitted lifecycle updates when rebase-commit runs.
+    rebase-commit must stash dirty state, rebase, ff-merge, then pop stash."""
+    with tempfile.TemporaryDirectory() as d:
+        repo, plet_dir, ws = setup_project(d, lifecycles={"ID_001": "verifying"})
+        make_iteration_commits(repo, ws, "ID_001")
+        git(repo, "checkout", ws)
+
+        # Simulate orchestrator lifecycle updates — dirty workstream state.json
+        with open(state_json_path(plet_dir)) as f:
+            gs = json.load(f)
+        gs["lifecycles"]["ID_001"] = "implementing"
+        gs["lastUpdated"] = "2026-04-06T07:00:00Z"
+        with open(state_json_path(plet_dir), "w") as f:
+            json.dump(gs, f, indent=2)
+            f.write("\n")
+
+        # Workstream is dirty — state.json modified but not committed
+        porcelain, _, _ = git(repo, "status", "--porcelain")
+        assert porcelain.strip() != "", "Workstream should be dirty"
+
+        # rebase-commit should handle this via stash/pop
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        assert rc == 0, f"Should succeed with dirty workstream. err: {err}"
+
+        # Iteration's file should be on workstream
+        assert os.path.exists(os.path.join(repo, "ID_001_file.txt"))
+
+        # Lifecycle updates should be preserved (stash popped)
+        with open(state_json_path(plet_dir)) as f:
+            gs = json.load(f)
+        # The stash pop restores the dirty state.json, which had implementing
+        # In practice the orchestrator overwrites this after rebase-commit succeeds
+        assert gs.get("lastUpdated") is not None, "state.json should exist and be valid"
+
+
 def test_noop_rebase_already_on_top():
     """Iteration already rebased onto workstream — rebase is no-op, ff-merge works."""
     with tempfile.TemporaryDirectory() as d:

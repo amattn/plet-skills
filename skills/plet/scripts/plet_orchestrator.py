@@ -191,11 +191,7 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     On any error (conflict or otherwise): lifecycle → queued (requeue for implement).
     No string matching, no retry layers — rebase-commit handles everything.
     """
-    # Commit pending state changes on workstream (lifecycle updates for other iters).
-    # Only if there are actual changes — no empty commits that break ff-merge.
-    run_git("add", "-A")
-    run_git("commit", "-m", f"plet: state update before rebase-commit {iter_id}")  # no --allow-empty
-
+    # rebase-commit handles dirty workstream via stash/pop — no pre-commit needed
     rc_out, rc_err, rc_rc = _run_script("plet_git_ops.py", ["rebase-commit", global_plet_dir, "--iter-id", iter_id])
     if rc_rc != 0:
         # Any error → requeue. No string matching needed.

@@ -534,27 +534,51 @@ def _rebase_commit_validate_git(ws_branch, iter_branch, cmd_name, output_json, p
 
 
 def _execute_rebase_commit(ws_branch, iter_branch, cmd_name, output_json, pretty):
-    """Rebase iter_branch onto ws_branch, then ff-merge. Returns (commit_hash, error_code)."""
+    """Rebase iter_branch onto ws_branch, then ff-merge. Returns (commit_hash, error_code).
+
+    Stashes any dirty workstream state before rebase (lifecycle updates from
+    the orchestrator), then pops after ff-merge. This prevents state.json
+    conflicts between workstream lifecycle updates and iteration branch changes.
+    """
+    # Stash dirty workstream files (lifecycle updates, etc.) so rebase is clean
+    has_stash = False
+    porcelain = run_git("status", "--porcelain").stdout
+    if porcelain:
+        r = run_git("stash", "push", "-m", f"plet: rebase-commit stash for {iter_branch}")
+        has_stash = r.returncode == 0
+
     # Rebase iteration branch onto workstream
     r = run_git("rebase", ws_branch, iter_branch)
     if r.returncode != 0:
         # Abort the failed rebase to leave repo in clean state
         run_git("rebase", "--abort")
+        # Restore stash on workstream
+        if has_stash:
+            run_git("checkout", ws_branch)
+            run_git("stash", "pop")
         msg = "Error: rebase has conflicts. Rebase aborted. Orchestrator must requeue."
         return None, _rebase_commit_error(cmd_name, msg, output_json, pretty)
 
     # Switch back to workstream and fast-forward merge
     r = run_git("checkout", ws_branch)
     if r.returncode != 0:
+        if has_stash:
+            run_git("stash", "pop")
         return None, _rebase_commit_error(
             cmd_name, f"Error: checkout {ws_branch} failed: {r.stderr}", output_json, pretty
         )
 
     r = run_git("merge", "--ff-only", iter_branch)
     if r.returncode != 0:
+        if has_stash:
+            run_git("stash", "pop")
         return None, _rebase_commit_error(
             cmd_name, f"Error: fast-forward merge failed: {r.stderr}", output_json, pretty
         )
+
+    # Restore stashed state changes (lifecycle updates land on top of merged work)
+    if has_stash:
+        run_git("stash", "pop")
 
     return get_head_short(), 0
 
