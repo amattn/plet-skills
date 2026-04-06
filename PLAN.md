@@ -167,10 +167,6 @@ Both NOTES.md (2300 lines) and specs/NOTES.md (1900 lines) had design decisions 
 | NTS_6 | Label all H3s in root NOTES.md | ✓ done — 88 H3s labeled. 97 total. Time markers not needed (thematic sections, not chronological). |
 | NTS_7 | Final audit: both files, orphaned content, stale references | ✓ done — all clean. 0 unlabeled H3s, 0 stale pointers, 0 TODO stubs, all PLAN.md pointers resolve. |
 
-
-interim consistency finding:
-- One low-priority item: NOTES_TAX H3s unlabeled. 
-
 ---
 
 ## PLAN_RFT: Refactor Loop

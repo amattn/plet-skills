@@ -39,7 +39,72 @@ Read the target project's `CLAUDE.md` and `README.md` (if they exist) for conven
 
 ## Review Discipline
 
-At every review step:
+### Core rule: silence is not approval
+
+**The review stays open until the user explicitly approves with O.** After executing any instruction (add, change, remove), re-present the item for further input. Do not treat the first instruction as implicit approval of everything else. The user may have more changes — wait for O.
+
+### Numbers-letters with recommendations (NLR)
+
+**Use NLR for all choices.** Number each question, letter each option, mark your recommendation with `← recommended` and a brief reason. Always wrap options in a **fenced code block** with options indented 3 spaces from the number — without the code block, markdown rendering collapses the hierarchy.
+
+**Batch answers:** the user responds with codes (`1A, 2C, 3ok`). Parse and apply all at once. Re-present with only **unanswered items remaining**. No answer = still open — never assume approval. "ok" on any item means approve as-is.
+
+**One-by-one mode:** the user says **"1b1"** — discuss each item sequentially instead of batching. Present one item, wait for the response, then present the next.
+
+**Single decision = letters only.** When there's only one question, drop the number — just use A/B/C. Numbers are only needed to batch multiple decision points.
+
+### The stable tail
+
+Every review prompt ends with:
+
+```
+R. Show me recommendations
+O. Ok, approve
+```
+
+**R** asks you to surface concerns or suggestions. R always produces NL-formatted options (lettered choices), not prose paragraphs. The user wants to pick, not read.
+
+**O** approves the current item and moves on. Free-form input needs no prefix — the user just says what they want ("add X", "fix the wording on Y").
+
+### How it works in practice
+
+```
+Agent: [presents section]
+
+   R. Show me recommendations
+   O. Ok, approve
+
+User: fix the typo in line 3
+Agent: [fixes typo, re-presents section]
+
+   R. Show me recommendations
+   O. Ok, approve
+
+User: R
+Agent: 1. The timeout has no upper bound
+          A. Add a 30s cap
+          B. Make it configurable with 30s default
+          C. Leave as-is
+
+       2. Missing error case for empty input
+          A. Return empty result
+          B. Return error
+          C. Skip for now
+
+   R. Show me recommendations
+   O. Ok, approve
+
+User: 1B, 2A
+Agent: [applies both, re-presents]
+
+   R. Show me recommendations
+   O. Ok, approve
+
+User: O
+```
+
+### At every review step
+
 1. **Show work, then recommend** — show the full content first for context, then surface any recommendations, concerns, or alternative approaches before asking for approval. Don't wait to be asked — proactively share thoughts on what could be improved, what might be missing, or what trade-offs exist.
 2. **Update notes** — after each approval, update the project's living notes document (`NOTES.md`) with the decision, rationale, and any rejected alternatives. This is institutional memory — it prevents revisiting settled decisions in future sessions.
 3. **Consistency pass last** — after approval and writing to disk, run a consistency pass across all affected artifacts before moving to the next step. Catch drift early.
@@ -48,14 +113,19 @@ At every review step:
 
 ## Step 1: Clarifying Questions (PL_1)
 
-Ask as many **major** clarifying questions as needed to understand the feature or product. Use lettered options to make answering fast:
+Ask as many **major** clarifying questions as needed to understand the feature or product. **Use numbers-letters format with recommendations (NLR)** — number each question, letter each option, and mark your recommended option. This lets the user batch answers efficiently (e.g., "1B, 2A, 3C").
 
 ```
-What kind of persistence does this need?
-  A. In-memory only (ephemeral)
-  B. Local file storage (SQLite, JSON files)
-  C. Remote database (PostgreSQL, MySQL)
-  D. Other — please describe
+1. What kind of persistence does this need?
+   A. In-memory only (ephemeral)
+   B. Local file storage (SQLite, JSON files) ← recommended for CLI tools
+   C. Remote database (PostgreSQL, MySQL)
+   D. Other — please describe
+
+2. What's the target platform?
+   A. macOS only
+   B. macOS + Linux ← recommended
+   C. Cross-platform (including Windows)
 ```
 
 **Major questions** are ones where the answer materially affects the architecture or requirements. Minor questions (edge cases, naming, formatting) go to Open Questions for later resolution — don't front-load them.
@@ -66,18 +136,18 @@ Continue asking until you have enough understanding to draft a complete requirem
 
 ## Step 2: Project Name & ID
 
-After clarifying questions, confirm the project name and choose a short project ID. The agent suggests options based on what it learned during Step 1 — the user picks or overrides.
+After clarifying questions, confirm the project name and choose a short project ID. The agent suggests options based on what it learned during Step 1 — the user picks or overrides. Use NLR format:
 
 ```
 Before I draft requirements, let's nail down naming:
 
 1. Project name?
    A. Log Analyzer
-   B. LogAlyzer
+   B. LogAlyzer ← recommended (distinctive, memorable)
    C. Something else — please specify
 
 2. Project ID? (3-6 uppercase chars, used in branch names and tags)
-   A. LOGA
+   A. LOGA ← recommended (short, clear)
    B. LOGZ
    C. ANLZR
    D. Something else — please specify
@@ -261,13 +331,14 @@ Beyond per-command specs:
 Present each feature area's requirements to the user for review. For each section:
 
 1. Show the full requirement table
-2. **Recommendations** — surface any concerns, gaps, or alternative approaches before asking for approval
-3. Ask: "Anything to add, change, or remove? Or ok to approve."
-4. If the user approves, **write the section to disk immediately** (PL_12)
-5. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until the approved text is confirmed on disk. (FOO_24)
-6. **Commit** — `plet: [plan] approve {section_name}`. Each approved section gets its own commit for crash recovery and inspectable history. (FOO_28)
-7. **Consistency pass** — verify the approved section is consistent with previously approved sections
-8. Move to the next section
+2. **Recommendations** — surface any concerns, gaps, or alternative approaches as NL-formatted options before asking for approval
+3. End with the stable tail: `R. Show me recommendations` / `O. Ok, approve`
+4. **Silence is not approval** — after any change, re-present the section with the R/O tail. Wait for O.
+5. If the user approves (O), **write the section to disk immediately** (PL_12)
+6. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until the approved text is confirmed on disk. (FOO_24)
+7. **Commit** — `plet: [plan] approve {section_name}`. Each approved section gets its own commit for crash recovery and inspectable history. (FOO_28)
+8. **Consistency pass** — verify the approved section is consistent with previously approved sections
+9. Move to the next section
 
 The user may batch answers or go one-by-one — follow their lead.
 
@@ -278,8 +349,9 @@ The user may batch answers or go one-by-one — follow their lead.
 After all requirement sections are reviewed and approved, finalize §9 Release Milestones in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
 
 1. Draft milestones based on approved requirements
-2. Present to user for review
-3. Write to disk, verify, commit (`plet: [plan] approve milestones`)
+2. Present to user for review with the R/O stable tail
+3. **Silence is not approval** — re-present after changes, wait for O
+4. Write to disk, verify, commit (`plet: [plan] approve milestones`)
 
 ---
 
@@ -299,7 +371,7 @@ Before decomposing into iterations, proactively probe for gaps that will cause b
 
 5. **Architecture decisions not yet made** — database choice, API style, auth strategy, file format — decisions that multiple requirements depend on but that aren't captured in §6 Technical Architecture.
 
-**Present as a numbered list with concrete proposals.** The user resolves each item: clarify the requirement, add a new requirement, defer to Open Questions, or dismiss. Update requirements.md and commit after each resolution.
+**Present as NL-formatted options with concrete proposals.** For each gap, offer lettered resolution options (e.g., A. Clarify the requirement, B. Add a new requirement, C. Defer to Open Questions, D. Dismiss). The user can batch answers (`1A, 2C, 3D`). End with the R/O stable tail. Update requirements.md and commit after each resolution.
 
 If no gaps found, say so and move on. Don't invent problems — but don't skip this step either.
 
@@ -382,13 +454,14 @@ Assign iterations to milestones based on the release milestones defined in the r
 Present each iteration definition to the user for review:
 
 1. Show all iterations as a summary list first (ID, title, dependencies, milestone)
-2. **Recommendations** — surface any concerns about sizing, dependencies, ordering, or gaps before detailed review
+2. **Recommendations** — surface any concerns about sizing, dependencies, ordering, or gaps as NL-formatted options before detailed review
 3. Go through each one-by-one for detailed review
-4. For each: "Anything to add, change, or remove? Or ok to approve."
-5. Write approved iterations to disk immediately
-6. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until confirmed. (FOO_24)
-7. **Commit** — `plet: [plan] approve iterations`. (FOO_28)
-8. **Consistency pass** — verify iterations are consistent with requirements (all requirements covered, dependencies valid, sizing appropriate)
+4. For each: end with the stable tail (`R. Show me recommendations` / `O. Ok, approve`)
+5. **Silence is not approval** — after any change, re-present and wait for O
+6. Write approved iterations to disk immediately
+7. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until confirmed. (FOO_24)
+8. **Commit** — `plet: [plan] approve iterations`. (FOO_28)
+9. **Consistency pass** — verify iterations are consistent with requirements (all requirements covered, dependencies valid, sizing appropriate)
 
 ---
 

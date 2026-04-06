@@ -427,6 +427,18 @@ Claude Code has three layers of memory:
 
 **Key implication for plet:** persistent memory is per-machine, not per-repo. For shared institutional memory, use checked-in files (NOTES.md, CLAUDE.md) rather than the memory directory.
 
+### NOTES_INS_18: Subagents load CLAUDE.md but don't follow it reliably
+
+Claude Code auto-loads project CLAUDE.md into subagent (Agent tool) context. So rules written in CLAUDE.md are technically *visible* to subagents. But visibility is not compliance — subagents operate under task pressure with a narrower focus, and they routinely skip rules that aren't reinforced in the prompt that launched them.
+
+**What we learned (2026-04-05):** The red/green discipline and scripts/CLAUDE.md reading requirements existed in root CLAUDE.md, but subagents launched to work on plet scripts weren't following them. The rules were in context (auto-loaded) but not enforced. The gap: the *parent agent* writing the prompt didn't include these directives explicitly.
+
+**The fix has two layers:**
+1. **Belt (CLAUDE.md callout):** Added "Script Work — Required Reading" section near the top of root CLAUDE.md with explicit "This also applies to subagents — if you launch an agent to work on plet scripts, include this directive in the prompt."
+2. **Suspenders (parent agent responsibility):** The parent agent must include script-specific directives in the prompt when spawning subagents for script work. CLAUDE.md can remind the parent to do this, but it can't force the subagent to comply — only the prompt can.
+
+**General principle:** For subagent compliance, CLAUDE.md is necessary but not sufficient. Critical rules must appear in both CLAUDE.md (so the parent agent knows the rule) AND the subagent's launch prompt (so the subagent actually follows it). Auto-memory (`MEMORY.md`) is NOT injected into subagent context.
+
 ---
 
 ## NOTES_DES: Key Design Decisions
@@ -1064,6 +1076,10 @@ Refine-phase entries that aren't tied to a specific iteration (stage summaries, 
 #### Consistency passes
 
 Four levels: Quick (grep for one pattern), Standard (grep + cross-reference IDs — the default), Sweep (inventory all instances, categorize, get approval, execute systematically — for broad convention changes), Structural (full scan, spawn agent). Quick and Standard run proactively after changes. Structural needs confirmation. Renamed from numbered "flavors" to intuitive sizing; replaced Deep (never used in practice) with Sweep (validated during vocabulary cleanup miniplan) (2026-03-10).
+
+#### Plan phase review discipline — NLR + R/O stable tail (2026-04-05)
+
+R10 observation (CASE_LOGA_R10_OBS_1): plan agent presented choices as flat A/B/C lists instead of NLR format. Root cause: plan.md had no NLR guidance — the plan subagent doesn't read the user's CLAUDE.md, only its reference file. Fix: rewrote Review Discipline section in `references/plan.md` modeled on `/fast-chat` skill prose patterns. Key additions: "silence is not approval" as core rule, R/O stable tail on every review prompt, NLR mechanics (batch parsing, 1b1, single-decision letters-only, fenced code blocks), full interaction transcript example. Updated Steps 1, 2, 4, 5, 6, 8 to use R/O tail. Plan.md is now self-contained on interaction style.
 
 #### Decision Discipline (CLAUDE.md)
 

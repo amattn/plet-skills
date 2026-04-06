@@ -28,6 +28,12 @@ plet-skills — PRD and skills repo for the plet skill (spec-driven autonomous d
 - `PLAN.md` — build plan for implementing the skill
 - `case_studies/` — case studies from real plet runs (logalyzer, etc.). **When asked to produce a case study, read `case_studies/CLAUDE.md` first** — it contains the standard template, required sections, and analysis checklists.
 
+## Script Work — Required Reading
+
+> **When working on files in `skills/plet/scripts/` or `skills/plet/tests/`, you MUST read `skills/plet/scripts/CLAUDE.md` before making changes.** It contains script-specific coding standards: tuple return conventions, CLI patterns, test harness structure, naming rules, and the zero-external-dependencies constraint. Root CLAUDE.md has project-level rules; scripts/CLAUDE.md has script-level rules. Both apply. **This also applies to subagents** — if you launch an agent to work on plet scripts, include this directive in the prompt.
+
+> **Red/green is non-negotiable for scripts.** See § Red/Green Development Discipline below. Every command, every error path, every bug fix follows red/green. No exceptions. No shortcuts. No "I'll add tests later." The cost of skipping red/green is shipping broken error handling for 4+ versions (see LOGA R06-R10).
+
 ## Testing with Local Skill vs Published Plugin
 
 When testing plet on a target project from this repo, **uninstall the published marketplace plugin first.** If both the published plugin and the local skill are active, Claude Code may load either one — the published version will be outdated and missing orchestrator integration, enforcement scripts, lifecycle ownership, etc. This causes hard-to-diagnose issues (agent uses old prose-based loop, ignores scripts, asks for permissions).
@@ -85,6 +91,10 @@ To test: use this repo's skill directly (Claude Code should pick it up from the 
 **Granularity:** command-by-command, not all-at-once. Later commands often depend on earlier ones (e.g., `embed` depends on `extract`). Writing all tests before any implementation adds mocking complexity for no benefit.
 
 **No shortcuts:** Do not write the script and tests together. Do not write the script first and backfill tests. The red step is not optional — it's the proof that your test catches what it claims to catch. But the script must exist as a stub before tests are written — "file not found" is not red, it's missing infrastructure.
+
+**EVERY error path MUST have a test that triggers the REAL failure.** Not a mock. Not a string check. The actual error condition. If you write conflict detection, create two branches that actually conflict. If you write retry logic, trigger the actual failure that causes a retry. **Untested error handling is the same as no error handling.** The cost of one test is minutes. The cost of an untested error path is shipping a broken feature for 4 versions (LOGA R09/R10: `git merge --squash` puts CONFLICT on stdout, we checked stderr — undetected through R06-R10).
+
+**Bug fixes MUST follow red/green.** Write a test that reproduces the bug FIRST (RED). Then fix the code (GREEN). Never fix first and test after — that skips the proof that your test catches the bug.
 
 **Test runner:**
 - `./skills/plet/tests/test_all.py` — ruff + pytest + coverage (~50s). Coverage is on by default (threshold: 87%). Use `--no-cov` for faster runs (~35s) during rapid iteration. Use `--html` for an HTML coverage report.
