@@ -194,7 +194,9 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     # rebase-commit handles dirty workstream via stash/pop — no pre-commit needed
     rc_out, rc_err, rc_rc = _run_script("plet_git_ops.py", ["rebase-commit", global_plet_dir, "--iter-id", iter_id])
     if rc_rc != 0:
-        # Any error → requeue. No string matching needed.
+        # Any error → decrement retry budget + requeue. Burns a retry as a safety valve
+        # against infinite loops (can revisit once stash fix is battle-tested).
+        _decrement_remaining_retries(global_plet_dir, iter_id)
         _update_lifecycle(global_plet_dir, iter_id, "queued")
         sink.event({"type": "rebase_commit_failed", "iterationId": iter_id, "error": rc_err[:200]})
         sink.text(f"  {iter_id}: rebase-commit failed — requeued: {rc_err[:200]}")
