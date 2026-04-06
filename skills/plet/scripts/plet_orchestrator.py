@@ -582,6 +582,11 @@ def _finalize_iteration(spawn_result, global_plet_dir, sink, completed_this_run,
     verdict = spawn_result["verdict"]
     worktree_plet_dir = spawn_result["worktree_plet_dir"]
 
+    if verdict == "passed":
+        # Remove worktree BEFORE rebase-commit — git rebase needs to checkout the
+        # iteration branch, which fails if a worktree holds it
+        _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
+
     completed_this_run, was_blocked = _handle_verify_verdict(
         verdict,
         iter_id,
@@ -592,8 +597,9 @@ def _finalize_iteration(spawn_result, global_plet_dir, sink, completed_this_run,
         counts,
     )
 
-    # Cleanup worktree
-    _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
+    if verdict != "passed":
+        # Cleanup worktree after verdict handling (rejected/blocked still need worktree for state reads)
+        _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
 
     return completed_this_run, was_blocked
 
