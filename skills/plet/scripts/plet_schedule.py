@@ -301,14 +301,20 @@ def cmd_check_retry(args):
 
     iter_id = kwargs["iter_id"]
 
-    # Load per-iteration state
+    # Load global state for remainingRetries
+    gs_path = state_json_path(plet_dir)
+    global_state = load_json(gs_path)
+    if global_state is None:
+        return (1, "", f"Error: state.json not found at {gs_path}\n{_help_hint('check-retry')}")
+
+    # Load per-iteration state for attempts count
     ip = iter_state_path(plet_dir, iter_id)
     iter_state = load_json(ip)
     if iter_state is None:
         return (1, "", f"Error: state file not found for {iter_id} at {ip}\n{_help_hint('check-retry')}")
 
     attempts = iter_state.get("attempts", {"implement": 0, "verify": 0})
-    remaining = iter_state.get("remainingRetries", 3)
+    remaining = global_state.get("remainingRetries", {}).get(iter_id, 3)
 
     if remaining <= 0:
         decision = "abort"

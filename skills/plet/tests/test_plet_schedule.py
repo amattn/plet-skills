@@ -812,6 +812,7 @@ def test_check_retry_no_reports():
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         make_iter_state(plet_dir, "ID_001")
+        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("remainingRetries=3 returns continue", out == "continue", "got: " + out)
@@ -828,6 +829,7 @@ def test_check_retry_empty_reports():
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         make_iter_state(plet_dir, "ID_001", verification_reports=[])
+        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("remainingRetries=3 returns continue", out == "continue", "got: " + out)
@@ -855,6 +857,7 @@ def test_check_retry_single_report_under_limit():
             }
         ]
         make_iter_state(plet_dir, "ID_001", attempts={"implement": 1, "verify": 1}, verification_reports=reports)
+        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
         check("single report under limit returns continue", out == "continue", "got: " + out)
@@ -871,13 +874,14 @@ def test_check_retry_remaining_retries_positive():
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         make_iter_state(plet_dir, "ID_001", attempts={"implement": 1, "verify": 1})
-        # Override remainingRetries to 2
-        ip = os.path.join(plet_dir, "state", "ID_001.json")
-        with open(ip) as f:
-            data = json.load(f)
-        data["remainingRetries"] = 2
-        with open(ip, "w") as f:
-            json.dump(data, f, indent=2)
+        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        # Set remainingRetries in state.json
+        gp = os.path.join(plet_dir, "state.json")
+        with open(gp) as f:
+            gs = json.load(f)
+        gs["remainingRetries"] = {"ID_001": 2}
+        with open(gp, "w") as f:
+            json.dump(gs, f, indent=2)
             f.write("\n")
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
@@ -900,13 +904,13 @@ def test_check_retry_remaining_retries_zero():
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         make_iter_state(plet_dir, "ID_001", attempts={"implement": 3, "verify": 3})
-        # Set remainingRetries to 0
-        ip = os.path.join(plet_dir, "state", "ID_001.json")
-        with open(ip) as f:
-            data = json.load(f)
-        data["remainingRetries"] = 0
-        with open(ip, "w") as f:
-            json.dump(data, f, indent=2)
+        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        gp = os.path.join(plet_dir, "state.json")
+        with open(gp) as f:
+            gs = json.load(f)
+        gs["remainingRetries"] = {"ID_001": 0}
+        with open(gp, "w") as f:
+            json.dump(gs, f, indent=2)
             f.write("\n")
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
@@ -929,12 +933,13 @@ def test_check_retry_remaining_retries_one():
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         make_iter_state(plet_dir, "ID_001", attempts={"implement": 2, "verify": 2})
-        ip = os.path.join(plet_dir, "state", "ID_001.json")
-        with open(ip) as f:
-            data = json.load(f)
-        data["remainingRetries"] = 1
-        with open(ip, "w") as f:
-            json.dump(data, f, indent=2)
+        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        gp = os.path.join(plet_dir, "state.json")
+        with open(gp) as f:
+            gs = json.load(f)
+        gs["remainingRetries"] = {"ID_001": 1}
+        with open(gp, "w") as f:
+            json.dump(gs, f, indent=2)
             f.write("\n")
 
         out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])

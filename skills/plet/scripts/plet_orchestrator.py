@@ -194,13 +194,12 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     # rebase-commit handles dirty workstream via stash/pop — no pre-commit needed
     rc_out, rc_err, rc_rc = _run_script("plet_git_ops.py", ["rebase-commit", global_plet_dir, "--iter-id", iter_id])
     if rc_rc != 0:
-        # Decrement retry budget + write requeue reason for prompt injection
-        _decrement_remaining_retries(global_plet_dir, iter_id, requeue_reason="rebase_conflict")
+        # Decrement retry budget in state.json (not per-iter state — avoids dirtying workstream)
+        _decrement_remaining_retries(global_plet_dir, iter_id)
         remaining = 0
         try:
-            is_path = os.path.join(global_plet_dir, "state", f"{iter_id}.json")
-            with open(is_path) as _f:
-                remaining = json.load(_f).get("remainingRetries", 0)
+            with open(state_json_path(global_plet_dir)) as _f:
+                remaining = json.load(_f).get("remainingRetries", {}).get(iter_id, 0)
         except (OSError, json.JSONDecodeError):
             pass
 
@@ -223,29 +222,33 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     return completed_this_run, False, False
 
 
-def _decrement_remaining_retries(plet_dir, iter_id, requeue_reason=None):
-    """Decrement remainingRetries and optionally set requeue_reason. Direct file access."""
-    is_path = os.path.join(plet_dir, "state", f"{iter_id}.json")
+def _decrement_remaining_retries(plet_dir, iter_id):
+    """Decrement remainingRetries in state.json (global state, orchestrator-owned).
+
+    remainingRetries lives in state.json as a parallel dict alongside lifecycles.
+    This avoids dirtying per-iteration state files on the workstream.
+    """
+    gs_path = state_json_path(plet_dir)
     try:
-        with open(is_path) as f:
+        with open(gs_path) as f:
             data = json.load(f)
-        current = data.get("remainingRetries", 3)
-        data["remainingRetries"] = max(0, current - 1)
-        if requeue_reason:
-            data["requeue_reason"] = requeue_reason
-        with open(is_path + ".tmp", "w") as f:
+        retries = data.get("remainingRetries", {})
+        current = retries.get(iter_id, 3)
+        retries[iter_id] = max(0, current - 1)
+        data["remainingRetries"] = retries
+        with open(gs_path + ".tmp", "w") as f:
             json.dump(data, f, indent=2)
             f.write("\n")
-        os.rename(is_path + ".tmp", is_path)
+        os.rename(gs_path + ".tmp", gs_path)
     except (OSError, json.JSONDecodeError):
-        pass  # Best-effort — check-retry will catch 0 retries
+        pass  # Best-effort
 
 
 def _handle_rejected_verdict(iter_id, global_plet_dir, worktree_plet_dir, sink, completed_this_run, counts):
     """Handle a rejected verify verdict: decrement remainingRetries, check retry. Returns (new_completed, blocked)."""
-    # Decrement remainingRetries — this IS an agent failure (unlike rebase requeue)
-    _decrement_remaining_retries(worktree_plet_dir, iter_id)
-    retry_data, _, _ = _run_script_json("plet_schedule.py", ["check-retry", worktree_plet_dir, "--iter-id", iter_id])
+    # Decrement remainingRetries in state.json — this IS an agent failure
+    _decrement_remaining_retries(global_plet_dir, iter_id)
+    retry_data, _, _ = _run_script_json("plet_schedule.py", ["check-retry", global_plet_dir, "--iter-id", iter_id])
     decision = retry_data.get("decision", "abort") if retry_data else "abort"
     if decision == "continue" or decision == "first":
         _update_lifecycle(global_plet_dir, iter_id, "queued")
