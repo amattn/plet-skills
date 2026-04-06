@@ -161,15 +161,15 @@ def _handle_verify_verdict(
     completed_this_run,
     counts,
 ):
-    """Process the verify verdict and update lifecycle. Returns (new_completed, blocked)."""
+    """Process the verify verdict and update lifecycle. Returns (new_completed, blocked, rebase_failed)."""
     if verdict is None:
         sink.text("  Verify did not set verifyVerdict — blocking")
         _update_lifecycle(global_plet_dir, iter_id, "blocked")
-        return completed_this_run, True
+        return completed_this_run, True, False
     elif verdict == "passed":
         return _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts)
     elif verdict == "rejected":
-        return _handle_rejected_verdict(
+        c, b = _handle_rejected_verdict(
             iter_id,
             global_plet_dir,
             worktree_plet_dir,
@@ -177,19 +177,19 @@ def _handle_verify_verdict(
             completed_this_run,
             counts,
         )
+        return c, b, False
     elif verdict == "blocked":
         _update_lifecycle(global_plet_dir, iter_id, "blocked")
         sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"})
-        return completed_this_run, True
-    return completed_this_run, False
+        return completed_this_run, True, False
+    return completed_this_run, False, False
 
 
 def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts):
-    """Handle a passed verify verdict: rebase-commit to workstream. Returns (new_completed, blocked).
+    """Handle a passed verify verdict: rebase-commit to workstream. Returns (new_completed, blocked, rebase_failed).
 
-    On success: lifecycle → complete.
-    On any error (conflict or otherwise): lifecycle → queued (requeue for implement).
-    No string matching, no retry layers — rebase-commit handles everything.
+    On success: lifecycle → complete, rebase_failed=False.
+    On any error: lifecycle → queued or blocked, rebase_failed=True.
     """
     # rebase-commit handles dirty workstream via stash/pop — no pre-commit needed
     rc_out, rc_err, rc_rc = _run_script("plet_git_ops.py", ["rebase-commit", global_plet_dir, "--iter-id", iter_id])
@@ -208,19 +208,19 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
             _update_lifecycle(global_plet_dir, iter_id, "blocked")
             sink.event({"type": "rebase_commit_failed", "iterationId": iter_id, "error": rc_err[:200]})
             sink.text(f"  {iter_id}: rebase-commit failed, retries exhausted — blocked")
-            return completed_this_run, True
+            return completed_this_run, True, True
 
         _update_lifecycle(global_plet_dir, iter_id, "queued")
         sink.event({"type": "rebase_commit_failed", "iterationId": iter_id, "error": rc_err[:200]})
         sink.text(f"  {iter_id}: rebase-commit failed — requeued ({remaining} retries left)")
-        return completed_this_run, False
+        return completed_this_run, False, True
 
     _update_lifecycle(global_plet_dir, iter_id, "complete")
     completed_this_run += 1
     sink.event({"type": "iteration_merged", "iterationId": iter_id})
     sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"})
     sink.text(f"[{completed_this_run}] {iter_id}: passed, merged")
-    return completed_this_run, False
+    return completed_this_run, False, False
 
 
 def _decrement_remaining_retries(plet_dir, iter_id, requeue_reason=None):
@@ -596,14 +596,12 @@ def _finalize_iteration(spawn_result, global_plet_dir, sink, completed_this_run,
 
     verdict = spawn_result["verdict"]
     worktree_plet_dir = spawn_result["worktree_plet_dir"]
-    completed_before = completed_this_run
-
     if verdict == "passed":
         # Remove worktree BEFORE rebase-commit — git rebase needs to checkout the
         # iteration branch, which fails if a worktree holds it
         _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
 
-    completed_this_run, was_blocked = _handle_verify_verdict(
+    completed_this_run, was_blocked, rebase_failed = _handle_verify_verdict(
         verdict,
         iter_id,
         global_plet_dir,
@@ -617,8 +615,6 @@ def _finalize_iteration(spawn_result, global_plet_dir, sink, completed_this_run,
         # Cleanup worktree after verdict handling (rejected/blocked still need worktree for state reads)
         _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
 
-    # Detect rebase-commit failure: verdict was passed but iteration was requeued (not completed)
-    rebase_failed = verdict == "passed" and not was_blocked and completed_this_run == completed_before
     return completed_this_run, was_blocked, rebase_failed
 
 

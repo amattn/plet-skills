@@ -280,7 +280,7 @@ def test_integration_handle_passed_verdict_real_git():
         os.chdir(repo)
         try:
             sink = CaptureSink()
-            completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+            completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
 
             assert completed == 1, f"Expected completed=1, got {completed}"
             assert blocked is False
@@ -508,12 +508,12 @@ def test_two_parallel_iterations_real_git():
         try:
             # Finalize ID_001
             sink1 = CaptureSink()
-            c1, b1 = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink1, 0, {})
+            c1, b1, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink1, 0, {})
             assert c1 == 1 and not b1, f"ID_001 should complete: c={c1}, b={b1}"
 
             # Finalize ID_002 — workstream advanced with ID_001
             sink2 = CaptureSink()
-            c2, b2 = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink2, 1, {})
+            c2, b2, _ = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink2, 1, {})
             assert c2 == 2 and not b2, f"ID_002 should complete: c={c2}, b={b2}"
 
             # Both files on workstream
@@ -587,11 +587,11 @@ def test_full_requeue_cycle_real_git():
         os.chdir(repo)
         try:
             sink = CaptureSink()
-            c, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+            c, _, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
             assert c == 1, "ID_001 should complete"
 
             sink2 = CaptureSink()
-            c2, b2 = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink2, 1, {})
+            c2, b2, _ = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink2, 1, {})
             assert c2 == 1, "ID_002 should not increment (requeued)"
             assert b2 is False, "Should requeue, not block"
 
@@ -651,7 +651,7 @@ def test_full_requeue_cycle_real_git():
         os.chdir(repo)
         try:
             sink3 = CaptureSink()
-            c3, b3 = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink3, 1, {})
+            c3, b3, _ = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink3, 1, {})
             assert c3 == 2, f"ID_002 should complete: c={c3}, msgs={sink3.messages}"
             assert b3 is False
 

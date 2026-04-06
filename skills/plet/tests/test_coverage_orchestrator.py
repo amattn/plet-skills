@@ -347,7 +347,7 @@ def test_handle_verdict_none():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
-        completed, blocked = plet_orchestrator._handle_verify_verdict(
+        completed, blocked, _ = plet_orchestrator._handle_verify_verdict(
             None, "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
         )
         check("none verdict = blocked", blocked is True)
@@ -363,7 +363,7 @@ def test_handle_verdict_blocked():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
-        completed, blocked = plet_orchestrator._handle_verify_verdict(
+        completed, blocked, _ = plet_orchestrator._handle_verify_verdict(
             "blocked", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
         )
         check("blocked verdict = blocked", blocked is True)
@@ -379,7 +379,7 @@ def test_handle_verdict_rejected_retry():
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
         # check-retry on a fresh iteration with 0 attempts returns "first"
-        completed, blocked = plet_orchestrator._handle_verify_verdict(
+        completed, blocked, _ = plet_orchestrator._handle_verify_verdict(
             "rejected", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
         )
         check("rejected = not blocked (retry)", blocked is False)
@@ -423,7 +423,7 @@ def test_handle_verdict_passed():
             subprocess.run(["git", "commit", "-m", "implement ID_001"], capture_output=True)
             subprocess.run(["git", "checkout", "plet/TEST/loop1/workstream"], capture_output=True)
 
-            completed, blocked = plet_orchestrator._handle_verify_verdict(
+            completed, blocked, _ = plet_orchestrator._handle_verify_verdict(
                 "passed", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
             )
             check("passed = not blocked", blocked is False)
@@ -854,7 +854,7 @@ def test_handle_passed_verdict_with_mock():
             old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
             try:
                 sink = CaptureSink()
-                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 check("completed = 1", completed == 1)
                 check("not blocked", blocked is False)
                 merged = [e for e in sink.events if e.get("type") == "iteration_merged"]
@@ -883,7 +883,7 @@ def test_handle_passed_verdict_rebase_commit_requeue():
             old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
             try:
                 sink = CaptureSink()
-                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 check("completed = 0 (not merged)", completed == 0)
                 check("not blocked (requeued)", blocked is False)
                 fail_events = [e for e in sink.events if e.get("type") == "rebase_commit_failed"]
@@ -1418,7 +1418,7 @@ def test_rebase_commit_success():
             plet_orchestrator._run_script_json = tracking_json
             try:
                 sink = CaptureSink()
-                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 # Use assert so pytest catches failures
                 git_ops_calls = [(s, c) for s, c in called_scripts if s == "plet_git_ops.py"]
                 assert any(c == "rebase-commit" for _, c in git_ops_calls), (
@@ -1456,7 +1456,7 @@ def test_rebase_commit_conflict_requeues():
             old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
             try:
                 sink = CaptureSink()
-                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 assert completed == 0, f"Expected completed=0, got {completed}"
                 assert blocked is False, "Expected requeued (not blocked)"
                 gs = load_json(state_json_path(plet_dir))
@@ -1486,7 +1486,7 @@ def test_rebase_commit_any_error_requeues():
             old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
             try:
                 sink = CaptureSink()
-                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 assert completed == 0, f"Expected completed=0, got {completed}"
                 assert blocked is False, "Expected requeued (not blocked)"
                 gs = load_json(state_json_path(plet_dir))
