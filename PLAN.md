@@ -18,7 +18,7 @@
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
-| PLAN_RBS | Rebase-over-Squash | 17/22 done — remainingRetries migration, always-rebase, loop-once, cleanup |
+| PLAN_RBS | Rebase-over-Squash | 17/25 done — remainingRetries migration, always-rebase, loop-once, cleanup |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
@@ -195,11 +195,14 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 | RBS_15 | Tests: orchestrator parallel stop flag — RED | ✓ done |
 | RBS_16 | Orchestrator: dynamic parallel stop — on ff-merge fail, spawn max 1 — GREEN | ✓ done |
 | RBS_17 | Prompt requeue directive moved to top of prompt | ✓ done |
-| RBS_18 | Move `remainingRetries` to state.json, remove `requeue_reason` from per-iter state | |
-| RBS_19 | implement.md: add rebase-prep at START of implement (always, not just requeue) | |
-| RBS_20 | SKILL.md: loop runs ONCE — never auto-restart | |
-| RBS_21 | Remove prompt requeue directive (superseded by always-rebase) | |
-| RBS_22 | Validate with real run | |
+| RBS_18 | Tests: `remainingRetries` in state.json (read/write/decrement) — RED | |
+| RBS_19 | Move `remainingRetries` to state.json, update orchestrator + check-retry — GREEN | |
+| RBS_20 | Remove `remainingRetries` from per-iter state (schema, validator, fixtures) | |
+| RBS_21 | Tests: `requeue_reason` removed from per-iter state — RED | |
+| RBS_22 | Remove `requeue_reason` write + prompt injection — GREEN | |
+| RBS_23 | implement.md: add rebase-prep at START of implement (always, not just requeue) | |
+| RBS_24 | SKILL.md: loop runs ONCE — never auto-restart | |
+| RBS_25 | Validate with real run | |
 
 ---
 
