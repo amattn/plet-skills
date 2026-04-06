@@ -1275,33 +1275,19 @@ def test_rebase_failure_writes_requeue_reason():
         shutil.rmtree(d)
 
 
-def test_prompt_includes_rebase_prep_for_requeued():
-    """Prompt assembler includes rebase-prep directive when requeue_reason is set."""
-    print("\n## Prompt includes rebase-prep for requeued iteration")
+def test_prompt_has_rebase_in_reference():
+    """Prompt includes rebase-prep guidance via implement.md reference file (always, not conditional)."""
+    print("\n## Prompt has rebase-prep in reference file")
     import plet_prompt
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
     try:
-        # Write requeue_reason to iter state
-        is_path = os.path.join(plet_dir, "state", "ID_001.json")
-        with open(is_path) as f:
-            state = json.load(f)
-        state["requeue_reason"] = "rebase_conflict"
-        with open(is_path, "w") as f:
-            json.dump(state, f, indent=2)
-            f.write("\n")
-
-        # Assemble prompt
         sections, err = plet_prompt._build_prompt_sections(plet_dir, "ID_001", "implement")
         assert err is None, f"Prompt assembly failed: {err}"
 
-        # Check rebase-prep directive is the FIRST section
-        assert sections[0]["name"] == "requeue-directive", (
-            f"Requeue directive should be first section, got: {sections[0]['name']}"
-        )
-        assert "rebase-prep" in sections[0]["content"]
-        assert "CRITICAL" in sections[0]["content"]
-        assert "gate" in sections[0]["content"].lower()
+        # Reference file (implement.md) should mention rebase-prep
+        ref_section = next(s for s in sections if s["name"] == "reference-file")
+        assert "rebase-prep" in ref_section["content"], "implement.md should mention rebase-prep"
     finally:
         shutil.rmtree(d)
 
@@ -1428,7 +1414,7 @@ def main():
 
     # requeue reason
     test_rebase_failure_writes_requeue_reason()
-    test_prompt_includes_rebase_prep_for_requeued()
+    test_prompt_has_rebase_in_reference()
 
     # remainingRetries in state.json
     test_remaining_retries_in_global_state()
