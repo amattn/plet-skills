@@ -1235,8 +1235,136 @@ def main():
     test_spawn_iteration_no_verdict()
     test_streaming_loop_with_mock()
 
+    # rebase-commit orchestrator tests (RBS_5)
+    test_rebase_commit_success()
+    test_rebase_commit_conflict_requeues()
+    test_rebase_commit_any_error_requeues()
+
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
+
+
+# ---------------------------------------------------------------------------
+# rebase-commit orchestrator integration tests (RBS_5)
+# ---------------------------------------------------------------------------
+
+
+def test_rebase_commit_success():
+    """_handle_passed_verdict calls rebase-commit (not merge-squash) and completes."""
+    print("\n## Rebase-commit orchestrator — success")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            called_scripts = []
+
+            def tracking_run(script_name, args, cwd=None):
+                cmd = args[0] if args else ""
+                called_scripts.append((script_name, cmd))
+                if script_name == "plet_global_state.py" and cmd == "update-lifecycle":
+                    return plet_orchestrator._run_script_subprocess(script_name, args, cwd)
+                if script_name == "plet_git_ops.py" and cmd == "rebase-commit":
+                    return "OK — rebased and merged", "", 0
+                return "", "", 0
+
+            def tracking_json(script_name, args, cwd=None):
+                stdout, stderr, rc = tracking_run(script_name, args, cwd)
+                if rc != 0:
+                    return None, stderr, rc
+                try:
+                    return json.loads(stdout) if stdout else None, stderr, rc
+                except (json.JSONDecodeError, ValueError):
+                    return None, stderr, rc
+
+            old_run = plet_orchestrator._run_script
+            old_json = plet_orchestrator._run_script_json
+            plet_orchestrator._run_script = tracking_run
+            plet_orchestrator._run_script_json = tracking_json
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                # Use assert so pytest catches failures
+                git_ops_calls = [(s, c) for s, c in called_scripts if s == "plet_git_ops.py"]
+                assert any(c == "rebase-commit" for _, c in git_ops_calls), \
+                    f"Expected rebase-commit call, got: {git_ops_calls}"
+                assert not any(c == "merge-squash" for _, c in git_ops_calls), \
+                    f"Should NOT call merge-squash, got: {git_ops_calls}"
+                assert completed == 1, f"Expected completed=1, got {completed}"
+                assert blocked is False, f"Expected not blocked"
+                gs = load_json(state_json_path(plet_dir))
+                assert gs["lifecycles"]["ID_001"] == "complete", \
+                    f"Expected complete, got {gs['lifecycles']['ID_001']}"
+            finally:
+                plet_orchestrator._run_script = old_run
+                plet_orchestrator._run_script_json = old_json
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_rebase_commit_conflict_requeues():
+    """rebase-commit conflict → requeue (not block). No string matching needed."""
+    print("\n## Rebase-commit orchestrator — conflict requeues")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            responses = {
+                ("plet_git_ops.py", "rebase-commit"): ("", "Error: rebase has conflicts. Rebase aborted.", 1),
+            }
+            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                assert completed == 0, f"Expected completed=0, got {completed}"
+                assert blocked is False, f"Expected requeued (not blocked)"
+                gs = load_json(state_json_path(plet_dir))
+                assert gs["lifecycles"]["ID_001"] == "queued", \
+                    f"Expected queued, got {gs['lifecycles']['ID_001']}"
+            finally:
+                _restore_runner(plet_orchestrator, old_run, old_json)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_rebase_commit_any_error_requeues():
+    """Any rebase-commit error requeues (not just conflicts). No string matching."""
+    print("\n## Rebase-commit orchestrator — any error requeues")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            # Non-conflict error — should still requeue, not block
+            responses = {
+                ("plet_git_ops.py", "rebase-commit"): ("", "Error: fast-forward merge failed: something", 1),
+            }
+            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+                assert completed == 0, f"Expected completed=0, got {completed}"
+                assert blocked is False, f"Expected requeued (not blocked)"
+                gs = load_json(state_json_path(plet_dir))
+                assert gs["lifecycles"]["ID_001"] == "queued", \
+                    f"Expected queued, got {gs['lifecycles']['ID_001']}"
+            finally:
+                _restore_runner(plet_orchestrator, old_run, old_json)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
 
 
 if __name__ == "__main__":
