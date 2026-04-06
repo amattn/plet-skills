@@ -1588,7 +1588,36 @@ On first rebase-commit failure, dynamically add a dependency on whatever just me
 
 This accepts that parallel execution of file-conflicting iterations is not worth the complexity. The plan phase should catch most conflicts. When it misses one, sequential fallback is cheap and reliable.
 
-**Alternative considered and deferred:** Orchestrator-driven rebase between implement and verify. Architecturally cleaner (verify checks integrated code), but doesn't eliminate the race (another iter can merge during verify). More complex to implement. May revisit for verify-correctness reasons, but sequential fallback solves the reliability problem.
+**Alternative considered and deferred:** Orchestrator-driven rebase between implement and verify. Architecturally cleaner (verify checks integrated code), but doesn't eliminate the race (another iter can merge during verify). More complex to implement.
+
+**Decision (2026-04-06): Implement-end rebase + dynamic parallel stop.** Two-layer defense:
+
+**Layer 1: Implement-end rebase (proactive).** Every implement phase ends with `rebase-prep` as the last step before `plet_phase.py end`. The implement agent rebases its iteration branch onto the current workstream. If there's a conflict, the agent resolves it — it has full context (just wrote the code). Verify then checks integrated code (as it will exist on workstream). The orchestrator's ff-merge at finalize is usually a no-op.
+
+Why this works better than orchestrator-driven rebase or prompt injection:
+- Agent has full context for conflict resolution (it just wrote the code)
+- It's a standard implement.md instruction, not a special-case requeue directive — more reliable
+- No orchestrator complexity for conflict resolution
+- Verify checks integrated code (correctness benefit)
+- The common case (iterations with different durations) is handled naturally — the slower iteration rebases onto whatever merged during its implementation
+
+**Layer 2: Dynamic parallel stop (reactive).** On first ff-merge failure, set a flag that stops spawning new parallel work. Everything in-flight finishes and merges one at a time. Requeued iterations run sequentially. Simple boolean flag in the orchestrator — no dep map manipulation.
+
+When parallel stop triggers:
+- At most one wasted verify cycle (the iter that failed ff-merge)
+- The requeued iter's next implement includes a rebase (per implement.md), catching up with whatever merged
+- Subsequent iters run one at a time — no more races
+
+**Three-layer defense against parallel conflicts:**
+1. Plan phase: file-conflict dependency guidance (prevents most conflicts at design time)
+2. Implement-end rebase: agent rebases onto workstream before verify (catches conflicts with full context)
+3. Dynamic parallel stop: on first ff-merge failure, serialize remaining work (safety net for edge cases)
+
+**What to remove:** The rebase-prep prompt injection (`requeue_reason` mechanism) is no longer needed — every implement does rebase, not just requeued ones. The complex rebase-commit stash/pop logic may also simplify since the iteration branch should already be on top of workstream after implement-end rebase.
+
+**OLLR R02 validation:** R02 confirmed that agent-driven rebase-prep via prompt injection is unreliable (agent didn't follow it). But implement.md standard instructions are more reliable — they're part of the normal flow, not a special directive. The risk of non-compliance exists but is lower, and C (parallel stop) handles the failure case.
+
+**Permission detection fix (2026-04-06):** `_auto_detect_permission_mode` in plet_invoke.py checked for `"bypassPermissions" in perms` (top-level key) but the actual setting is `defaultMode: "bypassPermissions"`. Fixed to check both. OLLR R02: subagent launched with auto mode despite parent having bypassPermissions.
 
 **What doesn't change:**
 - Sequential finalization — still one iteration at a time on workstream
