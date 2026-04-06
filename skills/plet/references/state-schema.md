@@ -130,6 +130,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `project.description` | string | no | Short project description |
 | `dependencyMap` | object | yes | `{iteration_id: [dependency_ids]}` — lightweight graph (SF_23) |
 | `lifecycles` | object | yes | `{iteration_id: lifecycle_value}` — iteration lifecycle phases (SF_28). Sole source of lifecycle truth. Written only by the orchestrator. Values: see Lifecycle Values below. |
+| `remainingRetries` | object | no | `{iteration_id: int}` — retry budget per iteration. Starts at 3. Decremented by orchestrator on verify rejection, implement failure, or rebase-commit failure. When 0, `check-retry` returns `abort` and iteration blocks. Orchestrator-owned — NOT in per-iteration state files. |
 | `milestones` | object | yes | `{milestone_id: {name, iterations[]}}` |
 | `parallelGroups` | array of arrays | no | Groups of iterations that can execute concurrently (SF_19) |
 | `breakpoints.before` | array of strings | no | Iteration IDs — orchestrator pauses before these (SF_21) |
@@ -354,7 +355,6 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | ~~`filesChanged`~~ | | | **Removed.** Git history (`git diff --name-only`) is the source of truth for changed files. |
 | `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after rebase-commit (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. (IMP_17) |
 | `cleanupBranchesAutomatically` | boolean | no | When `true`, iteration branch is deleted after rebase-commit to workstream. Inherited from global `state.json` at initialization. Default `false` — branch kept. Independent of `cleanupTagsAutomatically`. |
-| `remainingRetries` | integer | yes | Retry budget. Starts at 3. Decremented on verify rejection or implement failure (agent's fault). NOT decremented on rebase-commit requeue (scheduling luck). When 0, `check-retry` returns `abort`. |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
 | ~~`lastVerdict`~~ | | | **Removed.** Replaced by `verifyVerdict` (SF_28). |
 | `verificationReports` | array | no | One verification report per verify attempt, ordered by attempt number. See Verification Report below. |

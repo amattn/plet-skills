@@ -1241,8 +1241,8 @@ def test_parallel_stop_limits_spawning():
 # ---------------------------------------------------------------------------
 
 
-def test_rebase_failure_writes_requeue_reason():
-    """On rebase-commit failure, orchestrator writes requeue_reason to iter state."""
+def test_rebase_failure_decrements_retries_in_state_json():
+    """On rebase-commit failure, orchestrator decrements remainingRetries in state.json."""
     print("\n## Requeue reason written to iter state")
     import plet_orchestrator
 
@@ -1413,7 +1413,7 @@ def main():
     test_parallel_stop_limits_spawning()
 
     # requeue reason
-    test_rebase_failure_writes_requeue_reason()
+    test_rebase_failure_decrements_retries_in_state_json()
     test_prompt_has_rebase_in_reference()
 
     # remainingRetries in state.json

@@ -1641,6 +1641,15 @@ First rebase is usually a no-op. When it's not (requeued iteration), it catches 
 
 **Tradeoff:** Workstream history is noisier (many small commits vs one per iteration). But: `git log --oneline` is still readable, audit tags still mark boundaries, and the operational simplicity is worth more than cosmetic history.
 
+**Implementation complete (2026-04-06):** RBS_1-24 done. Key changes from the original design:
+- `remainingRetries` moved from per-iter state to `state.json` (avoids dirtying workstream per-iter files)
+- `requeue_reason` removed entirely (always-rebase supersedes prompt injection)
+- Always rebase at start AND end of implement (not conditional on requeue)
+- Gate-post enforces rebase (`merge-base --is-ancestor`)
+- Dynamic parallel stop on first rebase-commit failure
+- `wip-commit` command excludes `plet/trace/` (breaks transcript feedback loop)
+- Loop runs ONCE — never auto-restart
+
 ### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
 **Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.
