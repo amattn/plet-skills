@@ -688,7 +688,7 @@ def test_finalize_iteration_error_no_worktree():
     d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
     try:
         spawn_result = {"status": "error", "iter_id": "ID_001", "error": "worktree failed", "worktree_created": False}
-        completed, blocked = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, CaptureSink(), 0, {})
+        completed, blocked, _ = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, CaptureSink(), 0, {})
         check("blocked", blocked is True)
         check("completed unchanged", completed == 0)
         gs = load_json(state_json_path(plet_dir))
@@ -704,7 +704,7 @@ def test_finalize_iteration_error_with_worktree():
     try:
         # worktree_created=True but worktree doesn't actually exist — worktree-remove will fail gracefully
         spawn_result = {"status": "error", "iter_id": "ID_001", "error": "implement failed", "worktree_created": True}
-        completed, blocked = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, CaptureSink(), 0, {})
+        completed, blocked, _ = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, CaptureSink(), 0, {})
         check("blocked", blocked is True)
     finally:
         shutil.rmtree(d)
@@ -1226,12 +1226,8 @@ def test_parallel_stop_limits_spawning():
                 assert len(normal) == 3, f"Normal: expected 3 spawnable, got {len(normal)}"
 
                 # After parallel stop: max 1 spawnable
-                result = plet_orchestrator._get_spawnable(
-                    plet_dir, sink, set(), None, 0, parallel_stopped=True
-                )
-                assert len(result) == 1, (
-                    f"Parallel stopped: expected 1 spawnable, got {len(result)}"
-                )
+                result = plet_orchestrator._get_spawnable(plet_dir, sink, set(), None, 0, parallel_stopped=True)
+                assert len(result) == 1, f"Parallel stopped: expected 1 spawnable, got {len(result)}"
             finally:
                 _restore_runner(plet_orchestrator, old_run, old_json)
         finally:

@@ -580,11 +580,11 @@ def _spawn_iteration(iter_id, global_plet_dir, sink, completed_this_run):
 
 
 def _finalize_iteration(spawn_result, global_plet_dir, sink, completed_this_run, counts):
-    """Handle verdict, merge-squash, and cleanup for one iteration.
+    """Handle verdict, rebase-commit, and cleanup for one iteration.
 
     This is the sequential part — touches workstream branch and shared state.
 
-    Returns (new_completed, was_blocked).
+    Returns (new_completed, was_blocked, rebase_failed).
     """
     iter_id = spawn_result["iter_id"]
 
@@ -592,10 +592,11 @@ def _finalize_iteration(spawn_result, global_plet_dir, sink, completed_this_run,
         _update_lifecycle(global_plet_dir, iter_id, "blocked")
         if spawn_result.get("worktree_created"):
             _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
-        return completed_this_run, True
+        return completed_this_run, True, False
 
     verdict = spawn_result["verdict"]
     worktree_plet_dir = spawn_result["worktree_plet_dir"]
+    completed_before = completed_this_run
 
     if verdict == "passed":
         # Remove worktree BEFORE rebase-commit — git rebase needs to checkout the
@@ -616,14 +617,16 @@ def _finalize_iteration(spawn_result, global_plet_dir, sink, completed_this_run,
         # Cleanup worktree after verdict handling (rejected/blocked still need worktree for state reads)
         _run_script("plet_git_iteration.py", ["worktree-remove", global_plet_dir, "--iter-id", iter_id])
 
-    return completed_this_run, was_blocked
+    # Detect rebase-commit failure: verdict was passed but iteration was requeued (not completed)
+    rebase_failed = verdict == "passed" and not was_blocked and completed_this_run == completed_before
+    return completed_this_run, was_blocked, rebase_failed
 
 
-def _get_spawnable(global_plet_dir, sink, failed_ids, max_iterations, completed):
+def _get_spawnable(global_plet_dir, sink, failed_ids, max_iterations, completed, parallel_stopped=False):
     """Get iterations ready to spawn. Returns list of iter_ids, or None if nothing to do.
 
     Promotes ineligible → queued, checks eligible, filters out already-failed,
-    limits to max-iterations budget.
+    limits to max-iterations budget. When parallel_stopped, returns max 1.
     """
     _promote_eligible(global_plet_dir, sink)
 
@@ -642,6 +645,10 @@ def _get_spawnable(global_plet_dir, sink, failed_ids, max_iterations, completed)
         if budget <= 0:
             return None
         actionable = actionable[:budget]
+
+    # After a rebase-commit failure, serialize remaining work
+    if parallel_stopped:
+        actionable = actionable[:1]
 
     return actionable
 
@@ -688,6 +695,7 @@ def _run_streaming_loop(
     failed_ids = set()
     pause = False
     pause_context = None
+    parallel_stopped = False  # set True on first rebase-commit failure — serialize remaining
     reason = "all_complete"
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as executor:
@@ -696,7 +704,14 @@ def _run_streaming_loop(
         while True:
             # Spawn newly eligible iterations (unless paused)
             if not pause:
-                spawnable = _get_spawnable(global_plet_dir, sink, failed_ids, max_iterations, completed)
+                spawnable = _get_spawnable(
+                    global_plet_dir,
+                    sink,
+                    failed_ids,
+                    max_iterations,
+                    completed,
+                    parallel_stopped=parallel_stopped,
+                )
                 if spawnable:
                     for iter_id in spawnable:
                         if iter_id in active.values():
@@ -718,10 +733,15 @@ def _run_streaming_loop(
                 iter_id = active.pop(done)
                 spawn_result = done.result()
 
-                # Finalize immediately (merge-squash)
-                completed, was_blocked = _finalize_iteration(spawn_result, global_plet_dir, sink, completed, counts)
+                # Finalize immediately (rebase-commit)
+                completed, was_blocked, rebase_failed = _finalize_iteration(
+                    spawn_result, global_plet_dir, sink, completed, counts
+                )
                 if was_blocked:
                     failed_ids.add(iter_id)
+                if rebase_failed and not parallel_stopped:
+                    parallel_stopped = True
+                    sink.text("  ⚠ Parallel stopped — serializing remaining iterations")
 
                 # Check breakpoint-after
                 if not pause and _check_breakpoint_after(iter_id, global_plet_dir, sink):
