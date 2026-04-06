@@ -1192,6 +1192,55 @@ def test_invoke_receives_worktree_plet_dir():
 
 
 # ---------------------------------------------------------------------------
+# Parallel stop — after ff-merge failure, spawn max 1
+# ---------------------------------------------------------------------------
+
+
+def test_parallel_stop_limits_spawning():
+    """After rebase-commit failure, _get_spawnable returns max 1 when parallel_stopped is True."""
+    print("\n## Parallel stop limits spawning")
+    import plet_orchestrator
+
+    # 3 parallel eligible iterations
+    d, plet_dir = _make_project(
+        lifecycles={"ID_001": "queued", "ID_002": "queued", "ID_003": "queued"},
+        dep_map={"ID_001": [], "ID_002": [], "ID_003": []},
+    )
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            responses = {
+                ("plet_schedule.py", "eligible"): {
+                    "eligible": ["ID_001", "ID_002", "ID_003"],
+                    "counts": {"queued": 3, "complete": 0, "blocked": 0, "implementing": 0, "verifying": 0},
+                    "stuckIterations": [],
+                },
+            }
+            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            try:
+                sink = CaptureSink()
+
+                # Normal mode: all 3 spawnable
+                normal = plet_orchestrator._get_spawnable(plet_dir, sink, set(), None, 0)
+                assert len(normal) == 3, f"Normal: expected 3 spawnable, got {len(normal)}"
+
+                # After parallel stop: max 1 spawnable
+                result = plet_orchestrator._get_spawnable(
+                    plet_dir, sink, set(), None, 0, parallel_stopped=True
+                )
+                assert len(result) == 1, (
+                    f"Parallel stopped: expected 1 spawnable, got {len(result)}"
+                )
+            finally:
+                _restore_runner(plet_orchestrator, old_run, old_json)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Requeue reason — orchestrator writes, prompt assembler reads
 # ---------------------------------------------------------------------------
 
@@ -1320,6 +1369,9 @@ def main():
 
     # trace isolation
     test_invoke_receives_worktree_plet_dir()
+
+    # parallel stop
+    test_parallel_stop_limits_spawning()
 
     # requeue reason
     test_rebase_failure_writes_requeue_reason()
