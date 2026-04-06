@@ -429,9 +429,9 @@ plet_phase.py end plet/ --iter-id {iter_id} --phase verify --verdict passed \
 
 The report is auto-built from your `update-criterion` calls — no manual JSON construction needed. See § Verification Report above.
 
-This sets `verifyVerdict`, appends the verification report, writes a COMPLETE progress entry, emits a trace event, creates an audit tag, and commits all artifacts. **Do NOT set lifecycle** — the orchestrator sets lifecycle → `"complete"` after successful merge-squash (SF_28).
+This sets `verifyVerdict`, appends the verification report, writes a COMPLETE progress entry, emits a trace event, creates an audit tag, and commits all artifacts. **Do NOT set lifecycle** — the orchestrator sets lifecycle → `"complete"` after successful rebase-commit (SF_28).
 
-**Do NOT squash your commits.** Leave incremental commits on the iteration branch. The orchestrator handles merge-squash after verification completes (rebase onto workstream, squash into one commit, tag/branch cleanup). **Green/rebase/green invariant:** tests must pass before and after the rebase.
+**Do NOT squash your commits.** Leave incremental commits on the iteration branch. The orchestrator rebases onto workstream and fast-forward merges after verification completes. Your individual commits are preserved in workstream history. **Green/rebase/green invariant:** tests must pass before and after the rebase.
 
 ### Run Post-Gate
 
@@ -504,7 +504,7 @@ Why: lifecycle transitions after verification are **decisions** that require mul
 | `verificationReports` (append report) | lifecycle → queued (retry) |
 | `phaseActivity`, `agentId` (idle on exit) | lifecycle → blocked (retry exhausted or blocked verdict) |
 
-You write to the **worktree's** plet directory (your cwd). The orchestrator reads your verdict from the worktree, then writes the final lifecycle to `state.json` in the **global** plet directory (SF_26, SF_27, SF_28). Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked).
+You write to the **worktree's** plet directory (your cwd). The orchestrator reads your verdict from the worktree, then writes the final lifecycle to `state.json` in the **global** plet directory (SF_26, SF_27, SF_28). Your state changes reach the workstream via rebase-commit (passed) or stay on the iteration branch (rejected/blocked).
 
 The post-verify gate enforces verdict consistency: `verifyVerdict` must not be null (GPH_PST_BHV_7), must match last report verdict (GPH_PST_BHV_12).
 

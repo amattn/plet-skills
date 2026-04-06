@@ -641,7 +641,7 @@ def _check_merge_driver(session_type):
         "name": "merge-driver",
         "status": "warn",
         "detail": "plet-append merge driver not configured — "
-        "runtime artifact conflicts during merge-squash may not auto-resolve. "
+        "runtime artifact conflicts during rebase-commit may not auto-resolve. "
         "start-session configures this automatically.",
     }
 

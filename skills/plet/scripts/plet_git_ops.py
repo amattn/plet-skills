@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
-"""plet git operations — audit-tag and merge-squash for iteration workflow.
+"""plet git operations — audit-tag, rebase-commit, rebase-prep for iteration workflow.
 
-Audit tags mark phase boundaries on the iteration branch. Merge-squash creates
-one commit per iteration on the workstream. Git history is never lost —
-incremental commits stay on the iteration branch.
+Audit tags mark phase boundaries on the iteration branch. Rebase-commit rebases
+the iteration branch onto the workstream and fast-forward merges — individual
+commits are preserved. Rebase-prep prepares for conflict resolution.
 
 Usage:
     plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
         --phase implement|verify [--dry-run]
+        [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx
+        [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    plet_git_ops.py rebase-prep <plet_dir> --iter-id ID_xxx
         [--output json [--pretty] [--fields f1,f2]]
     plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx
         [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     audit-tag       Create an audit tag marking a phase boundary
-    merge-squash    Merge iteration into workstream as one commit
+    rebase-commit   Rebase iteration onto workstream and fast-forward merge
+    rebase-prep     Rebase iteration onto workstream (leaves conflicts for agent)
+    merge-squash    Merge iteration into workstream as one commit (legacy)
 """
 
 import json

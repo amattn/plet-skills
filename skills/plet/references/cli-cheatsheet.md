@@ -67,7 +67,7 @@ plet_gate_phase.py post <plet_dir> --iter-id ID_xxx --phase implement --output j
 
 ```
 plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx --phase implement
-plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx
+plet_git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx
 plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx --phase implement
 ```
 

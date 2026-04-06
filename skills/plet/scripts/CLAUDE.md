@@ -181,7 +181,7 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | `plet_fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` |
 | `plet_trace.py` | Trace NDJSON schema enforcement | `append-event`, `validate`, `query` |
 | `plet_git_iteration.py` | Git iteration lifecycle (branches, worktrees) | `branch-name`, `worktree-create`, `worktree-remove` |
-| `plet_git_ops.py` | Git workflow operations | `audit-tag`, `merge-squash` |
+| `plet_git_ops.py` | Git workflow operations | `audit-tag`, `rebase-commit`, `rebase-prep`, `merge-squash` |
 | `plet_git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
 | `plet_gate_session.py` | Session-level gate checks (read-only) | `detect`, `status`, `preflight`, `postflight` |
 | `plet_gate_phase.py` | Phase gate (pre/post, `--phase implement\|verify`) | `pre`, `post` |

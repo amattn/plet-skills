@@ -446,7 +446,7 @@ Present the dependency graph visually during iteration review. Ask the user to c
 
 **When in doubt, add the dependency.** Missing dependencies are the most dangerous planning error — an agent starts work before prerequisite code exists, wastes a cycle, and must self-correct. False dependencies (unnecessary deps that reduce parallelism) are harmless — they only slow things down slightly. Always err on the side of adding a dependency rather than omitting one.
 
-**File-level conflicts matter for parallel execution.** Dependencies aren't just about logical ordering — they also prevent merge conflicts. If two iterations modify the same file (e.g., both add routes to `router.go`, both modify `config.yaml`), one should depend on the other even if the features are logically independent. Iterations in the same parallel round run in separate worktrees and merge-squash sequentially to the workstream. If they touch the same files, the second merge may conflict. Adding a dependency between them forces sequential execution of those two iterations while keeping the rest of the graph parallel.
+**File-level conflicts matter for parallel execution.** Dependencies aren't just about logical ordering — they also prevent merge conflicts. If two iterations modify the same file (e.g., both add routes to `router.go`, both modify `config.yaml`), one should depend on the other even if the features are logically independent. Iterations in the same parallel round run in separate worktrees and rebase-commit sequentially to the workstream. If they touch the same files, the second rebase may conflict. Adding a dependency between them forces sequential execution of those two iterations while keeping the rest of the graph parallel.
 
 When defining iterations, ask: "could these two iterations modify the same file?" If yes, add a dependency. Common patterns that need dependencies:
 - Shared configuration files (config, env, manifests)
@@ -454,7 +454,7 @@ When defining iterations, ask: "could these two iterations modify the same file?
 - Shared type definitions or interfaces that multiple features extend
 - Test helper files that multiple iterations add fixtures to
 
-If a merge conflict does occur at runtime, the orchestrator rebases and requeues the iteration — the implement agent resolves the conflict on the next pass. This is safe but costs a full iteration cycle. A dependency costs nothing.
+If a conflict does occur at runtime, the orchestrator requeues the iteration (no attempt burned — scheduling luck, not agent failure). On the next pass, the implement agent runs `rebase-prep` to rebase onto the updated workstream and resolves conflicts before continuing. This is safe but costs a full iteration cycle. A dependency costs nothing.
 
 If an agent discovers a missing dependency during execution, it self-corrects without blocking — fixes the DAG in place, sets itself to `ineligible`, and documents across all four runtime artifacts. The loop continues and the iteration auto-queues when the missing dep completes. See `references/implement.md` for the full self-correction procedure (IMP_24).
 

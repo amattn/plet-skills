@@ -275,7 +275,7 @@ The orchestrator manages the full loop lifecycle internally — session setup, d
 | `max_iterations_reached` | Report progress. Ask: continue or stop. |
 | `error` | Surface the error from `pauseContext.error`. Investigate. |
 
-**Parallel execution:** Eligible iterations with no dependency relationship launch concurrently (round-based). Merge-squash is always sequential. If a merge-squash conflicts, the iteration branch is rebased onto the updated workstream and requeued — the implement agent resolves conflicts on the next pass (no attempt burned). Use `--sequential` for debugging. See `references/plan.md` § Dependency Graph Validation for file-level conflict guidance.
+**Parallel execution:** Eligible iterations with no dependency relationship launch concurrently. Rebase-commit is always sequential. If a rebase-commit conflicts, the iteration is requeued — the implement agent resolves conflicts on the next pass via `rebase-prep` (no attempt burned). Use `--sequential` for debugging. See `references/plan.md` § Dependency Graph Validation for file-level conflict guidance.
 
 ### Refine Phase
 
@@ -359,16 +359,17 @@ Use scripts for all git operations:
 - Branch names: `plet_git_iteration.py branch-name plet/ --iter-id ID_xxx`
 - Worktrees: `plet_git_iteration.py worktree-create/remove plet/ --iter-id ID_xxx`
 - Audit tags: `plet_git_ops.py audit-tag plet/ --iter-id ID_xxx --phase implement`
-- Merge-squash: `plet_git_ops.py merge-squash plet/ --iter-id ID_xxx`
+- Rebase-commit: `plet_git_ops.py rebase-commit plet/ --iter-id ID_xxx`
+- Rebase-prep (conflict resolution): `plet_git_ops.py rebase-prep plet/ --iter-id ID_xxx`
 - Compliance checks: `plet_git_check.py check-iteration/check-session plet/`
 
 **Key rules:**
 - Agents commit incrementally during each phase for crash recovery — never use `git stash`
-- Audit tags mark phase boundaries (created at phase END)
-- One commit per iteration on workstream: `plet: [ID_xxx] - {title}` (via merge-squash)
+- Audit tags mark phase boundaries (created at phase END, point to pre-rebase commits)
+- Individual commits preserved on workstream via rebase + fast-forward merge
 - Linear history required — no merge commits on iteration branches
 
-**Merge strategy for shared artifacts:** Sequential merge-squash. Iterations execute in parallel (the expensive part). Merge-squash is serial (fast — <2s each). Runtime artifacts (progress/learnings/emergent) are shared files — parallel appends merge cleanly only if merge-squash is sequential.
+**Merge strategy for shared artifacts:** Sequential rebase-commit. Iterations execute in parallel (the expensive part). Rebase-commit is serial (fast — <2s each). Runtime artifacts (progress/learnings/emergent) are shared files — parallel appends merge cleanly only if rebase-commit is sequential.
 
 ---
 
@@ -431,7 +432,7 @@ plet_invoke.py run plet/ --iter-id ID_xxx --phase implement --cwd <worktree>
 
 # Git
 plet_git_iteration.py worktree-create plet/ --iter-id ID_xxx
-plet_git_ops.py merge-squash plet/ --iter-id ID_xxx
+plet_git_ops.py rebase-commit plet/ --iter-id ID_xxx
 
 # State + artifacts
 plet_iter_state.py validate plet/ --iter-id ID_xxx

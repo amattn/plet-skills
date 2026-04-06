@@ -134,8 +134,8 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `parallelGroups` | array of arrays | no | Groups of iterations that can execute concurrently (SF_19) |
 | `breakpoints.before` | array of strings | no | Iteration IDs — orchestrator pauses before these (SF_21) |
 | `breakpoints.after` | array of strings | no | Iteration IDs — orchestrator pauses after these (SF_21) |
-| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after merge-squash (commit hash logged in progress.md for recovery). Default `false` — tags are kept. Tags mark phase boundaries on the iteration branch. Per-iteration state inherits this value at initialization. (IMP_17) |
-| `cleanupBranchesAutomatically` | boolean | no | When `true`, iteration branches are deleted after merge-squash to workstream. Default `false` — branches are kept. Independent of `cleanupTagsAutomatically`. If branch is deleted but tags are kept, tags keep the commits reachable. Per-iteration state inherits this value at initialization. |
+| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after rebase-commit (commit hash logged in progress.md for recovery). Default `false` — tags are kept. Tags mark phase boundaries on the iteration branch (pre-rebase commit hashes). Per-iteration state inherits this value at initialization. (IMP_17) |
+| `cleanupBranchesAutomatically` | boolean | no | When `true`, iteration branches are deleted after rebase-commit to workstream. Default `false` — branches are kept. Independent of `cleanupTagsAutomatically`. If branch is deleted but tags are kept, tags keep the pre-rebase commits reachable. Per-iteration state inherits this value at initialization. |
 | `loopSessionCount` | integer | no | Number of loop sessions invoked. Incremented at the start of each `/plet loop` invocation. Used in branch names (`loop1`, `loop2`). Default `0`. |
 | `refineSessionCount` | integer | no | Number of refine sessions completed. Incremented at the start of each refine session entry. Used as the attempt number in refine-session plet ID context segments (e.g., `r1`, `r2`). Default `0`. |
 | `sessionHistory` | array | no | Append-only ledger of session transitions. Each entry: `{type, session, branch, startedAt, endedAt}`. `type` is `"loop"` or `"refine"`. `session` matches `loopSessionCount` or `refineSessionCount`. `branch` is the workstream branch for this session. `endedAt` is `null` while the session is active. Last entry is the current session; previous entry is the parent branch. Default `[]`. (OR_14) |
@@ -352,8 +352,8 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `elapsedSeconds` | object | no | Time elapsed in seconds per phase attempt (`implement_1`, `verify_1`, etc.) and `total` across all attempts. Updated opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. |
 | ~~`summary`~~ | | | **Removed.** Progress.md entries serve the same purpose. |
 | ~~`filesChanged`~~ | | | **Removed.** Git history (`git diff --name-only`) is the source of truth for changed files. |
-| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after merge-squash (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. (IMP_17) |
-| `cleanupBranchesAutomatically` | boolean | no | When `true`, iteration branch is deleted after merge-squash to workstream. Inherited from global `state.json` at initialization. Default `false` — branch kept. Independent of `cleanupTagsAutomatically`. |
+| `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after rebase-commit (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. (IMP_17) |
+| `cleanupBranchesAutomatically` | boolean | no | When `true`, iteration branch is deleted after rebase-commit to workstream. Inherited from global `state.json` at initialization. Default `false` — branch kept. Independent of `cleanupTagsAutomatically`. |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
 | ~~`lastVerdict`~~ | | | **Removed.** Replaced by `verifyVerdict` (SF_28). |
 | `verificationReports` | array | no | One verification report per verify attempt, ordered by attempt number. See Verification Report below. |
@@ -378,7 +378,7 @@ Lifecycle is stored in `state.json.lifecycles`, NOT in per-iteration files. The 
 |-----------|---------|------------------------|
 | `queued` → `implementing` | Orchestrator spawns implement subagent | `state.json` (orchestrator) |
 | `implementing` → `verifying` | Orchestrator reads `implementVerdict: "completed"` from worktree | `state.json` (orchestrator) |
-| `verifying` → `complete` | Orchestrator reads `verifyVerdict: "passed"`, merge-squash succeeds | `state.json` (orchestrator) |
+| `verifying` → `complete` | Orchestrator reads `verifyVerdict: "passed"`, rebase-commit succeeds | `state.json` (orchestrator) |
 | `verifying` → `queued` | Orchestrator reads `verifyVerdict: "rejected"`, retry allowed | `state.json` (orchestrator) |
 | `verifying` → `blocked` | Orchestrator reads `blocked` verdict or retry exhausted | `state.json` (orchestrator) |
 | `implementing` → `blocked` | Orchestrator reads `implementVerdict: "blocked"` or crash | `state.json` (orchestrator) |

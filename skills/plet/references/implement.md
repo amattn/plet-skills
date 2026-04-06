@@ -126,7 +126,7 @@ The tool enforces the two-state model automatically — it creates the correct `
 
 ### Commit Incrementally (IMP_17)
 
-Commit after each red step (failing test written) and after each green step (implementation passing) at a minimum. Also commit after any other logical unit of work. These incremental commits are for crash recovery. Do NOT squash them — the orchestrator handles squashing via merge-squash after verify completes.
+Commit after each red step (failing test written) and after each green step (implementation passing) at a minimum. Also commit after any other logical unit of work. These incremental commits are for crash recovery and are preserved in the workstream history — the orchestrator rebases your iteration branch onto the workstream and fast-forward merges.
 
 **Always include `plet/` in your commits.** Runtime artifacts (progress.md, learnings.md, emergent.md, state files, trace files) live in the `plet/` directory. If you only commit source code, runtime artifacts are lost on crash or worktree removal.
 
@@ -291,7 +291,7 @@ plet_phase.py end plet/ --iter-id {iter_id} --phase implement --verdict complete
 
 This sets `implementVerdict` (the handoff signal to the orchestrator), writes a COMPLETE progress entry, emits a trace event, creates an audit tag, and commits all artifacts. **Do NOT set lifecycle** — the orchestrator manages all lifecycle transitions (SF_28).
 
-**Do NOT squash your commits.** Leave the incremental wip commits on the iteration branch. The orchestrator handles merge-squash to the workstream after verify completes.
+**Do NOT squash your commits.** Leave the incremental wip commits on the iteration branch. The orchestrator rebases and fast-forward merges to the workstream after verify completes. Your individual commits are preserved in workstream history.
 
 ### Run Post-Gate
 
