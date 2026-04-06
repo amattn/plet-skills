@@ -37,6 +37,14 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 - Every runtime artifact entry includes a globally unique plet ID for cross-referencing and git merge fencing.
 - All scripts take `<plet_dir>` as required first arg (no default). Every call must be explicit about which plet context it operates in. Derive paths via `util_io` — never construct paths manually.
 
+## Project Directories
+
+| Directory | Committed? | Purpose |
+|-----------|------------|---------|
+| `plet/` | **Yes** | Runtime state and artifacts. `state.json`, `state/*.json`, `progress.md`, `learnings.md`, `emergent.md`, `trace/`, `requirements.md`, `iterations.md`. Shared across sessions. |
+| `.plet/` | **No** (gitignored) | Local infrastructure. Scratch space for plet internals. Not committed — `.gitignore` excludes it. **Do not `git add`.** |
+| `.claude/` | Depends | Claude Code settings. May or may not be committed depending on project conventions. |
+
 ---
 
 ## Pre-Session Check
