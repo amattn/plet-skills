@@ -147,9 +147,10 @@ def _auto_detect_permission_mode(cwd, plet_dir):
                 with open(settings_path) as _f:
                     _settings = json.load(_f)
                 perms = _settings.get("permissions", {})
-                if "bypassPermissions" in perms:
+                default_mode = perms.get("defaultMode", "")
+                if default_mode == "bypassPermissions" or "bypassPermissions" in perms:
                     return "bypassPermissions"
-                elif perms.get("defaultMode") == "auto":
+                elif default_mode == "auto":
                     return "auto"
             except (json.JSONDecodeError, OSError):
                 pass
