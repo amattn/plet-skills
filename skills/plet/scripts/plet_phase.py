@@ -71,8 +71,8 @@ def cmd_end(args):
         2. add-report (verify only — auto-built from state or from --report-file)
         3. add-progress via plet_entries.py (COMPLETE/BLOCKED/FAILED entry)
         4. append-event via plet_trace.py (phase_end event)
-        5. audit-tag via plet_git_ops.py
-        6. git add plet/ && git commit
+        5. git add plet/ && git commit
+        6. audit-tag via plet_git_ops.py (tags the phase-end commit)
 
     The subagent still calls gate-post separately after this — gate-post is a
     quality check with a self-correction loop, not bookkeeping.
@@ -295,21 +295,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     ):
         return (1, "", step_err)
 
-    # Step 4: audit-tag
-    if not _step(
-        "audit-tag",
-        cmd_audit_tag,
-        [
-            plet_dir,
-            "--iter-id",
-            iter_id,
-            "--phase",
-            phase,
-        ],
-    ):
-        return (1, "", step_err)
-
-    # Step 5: git add + commit
+    # Step 4: git add + commit (before audit-tag so the tag marks the phase-end commit)
     project_root = os.path.dirname(os.path.abspath(plet_dir))
     subprocess.run(["git", "add", "-A"], capture_output=True, cwd=project_root)
     commit_msg = f"plet: [{iter_id}] {phase} - {verdict}"
@@ -322,6 +308,20 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     if commit_result.returncode != 0:
         return (1, "", f"git commit failed: {commit_result.stderr[:200]}")
     steps_done.append("git-commit")
+
+    # Step 5: audit-tag (tags the phase-end commit, not a prior wip commit)
+    if not _step(
+        "audit-tag",
+        cmd_audit_tag,
+        [
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--phase",
+            phase,
+        ],
+    ):
+        return (1, "", step_err)
 
     if output_json:
         from util_cli import filter_fields, now_iso
