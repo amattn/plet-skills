@@ -31,6 +31,25 @@ If `plet/requirements.md` already exists:
 2. Read `plet/emergent.md` for pending items — triage with the user before planning
 3. Read `plet/learnings.md` for patterns that suggest spec changes — incorporate into requirements
 
+### Specs Exist but State Missing
+
+If `plet/requirements.md` and `plet/iterations.md` exist but `plet/state.json` does not, the project was planned but never entered the loop. Present all decisions as a single NLR batch so the user can answer in one shot:
+
+```
+1. How should we proceed?
+   A. Review requirements and iterations before initializing
+      ← recommended if you haven't reviewed recently
+   B. Skip review — initialize state and get ready for /plet loop
+   C. Start fresh — re-plan from scratch
+
+2. Project ID? (3-6 uppercase chars, used in branch names and tags)
+   A. LOGA ← recommended
+   B. [other suggestions based on project name]
+   C. Something else — please specify
+```
+
+Do NOT split these into separate prompts — they're one batch. The user answers `1B, 2A` and you proceed.
+
 ### Reading Project Context (DX_2)
 
 Read the target project's `CLAUDE.md` and `README.md` (if they exist) for conventions, context, and preferences. Respect these throughout the plan phase.

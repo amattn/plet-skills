@@ -1520,11 +1520,36 @@ A refactor that breaks tests reverts all changes, sets `refactorChanges: false`,
 - Attempts: attempts.implement, attempts.verify, attempts.refactor (3 counters)
 - Reference files: implement.md, verify.md, refactor.md (3 files)
 
-**Open design questions (resolve during build):**
+**Plan phase presentation decisions (2026-04-05, partially resolved):**
 
-1. **Plan phase presentation of refactor iterations.** How does the plan phase present ID_RFT_MSN to the user during iteration review? What does the refactor goals definition UX look like? Defaults vs user-specified? This needs to be designed first — it influences the refactor.md content and the state file shape.
+1. **When introduced:** During milestone definition (Step 5), right before milestones — natural integration point.
+2. **Refactor goals:** Defaults + user-specified. Defaults are pattern-oriented + artifact-oriented (not quality ratchets — those are already enforced by linter/test suite). Discussion ongoing about exact defaults. Quality ratchet items (ruff clean, McCabe, coverage) don't belong as refactor goals — they're NFRs.
+3. **Where goals live:** New section in requirements.md — "Refactor Policy and Goals", placed before milestone definitions. Refactor iterations in iterations.md reference the policy.
+4. **Removable:** Yes — user deletes `ID_RFT_MSN` during review like any iteration. No special mechanism.
+5. **Presentation:** Grouped summary — all refactor iterations presented together at the end, not interleaved. Needs real-run validation.
+6. **Placement in requirements.md:** Still open — between §4.5 and §5 (quality-adjacent) vs before §9 (milestone-adjacent). Leaning toward quality-adjacent but not decided.
 
-2. **refactor.md reference file content.** The agent's audit procedure, how to read emergent/learnings, how to propose ACs, when to defer vs fix, how to handle test failures (revert + emergent), time budget behavior. Depends on plan presentation decisions (#1).
+**Default refactor goals (2026-04-05, decided):**
+
+Pattern-oriented:
+1. Extract duplicated logic when 3+ copies exist across files
+2. Flag files over 500 lines for review — split only if there's a clear seam (not just because it's long)
+3. Consolidate scattered constants/config into centralized locations
+4. Reduce excessive special-case branching (if/elif chains that grew organically across iterations)
+
+Artifact-oriented:
+5. Review emergent.md for deferred cleanup items
+6. Review learnings.md entries from at least this milestone's iterations
+7. Audit high-churn files (via `plet_git_check.py churn` command — new, detects files touched by many iterations)
+
+Rejected: quality ratchet items (ruff, McCabe, coverage) — already enforced by linter/test suite, not refactor goals. Deep nesting / high complexity — same, linter job.
+
+Note on #7: `churn` command added to PLAN_RFT scope — natural home in plet_git_check.py which already does git analysis. Lists files by commit count since workstream start, flags outliers.
+
+**Still open:**
+
+1. **refactor.md reference file content.** Agent audit procedure, AC proposal format, defer-vs-fix guidance, test failure handling (revert + emergent), time budget behavior.
+2. **§Refactor Policy placement in requirements.md.** Between §4.5 and §5 (quality-adjacent) vs before §9 (milestone-adjacent). Leaning quality-adjacent.
 
 ---
 

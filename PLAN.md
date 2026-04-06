@@ -181,7 +181,8 @@ Milestone-boundary refactor via synthetic iteration. Milestones are execution ba
 | RFT_4 | State schema: "refactor" as valid phase alongside implement/verify | |
 | RFT_5 | Prompt assembly: plet_prompt.py supports phase=refactor | |
 | RFT_6 | Script updates: gate, trace, entries accept phase=refactor | |
-| RFT_7 | Test with real run | |
+| RFT_7 | plet_git_check.py `churn` command — files by commit count, flag outliers | |
+| RFT_8 | Test with real run | |
 
 **Depends on:** FOO_70.
 
