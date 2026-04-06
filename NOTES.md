@@ -1569,7 +1569,26 @@ If another iteration merges between steps 9 and 14 with a conflicting change, st
 
 Final fix: `_execute_rebase_commit` stashes dirty workstream files before rebase, pops after ff-merge. No pre-commit at all — the stash preserves lifecycle updates without creating divergent commits. Rebase-commit has its own validator that skips the dirty-tree check.
 
-**Safety valve (2026-04-06):** Rebase requeue burns a retry (`remainingRetries` decremented). Prevents infinite loops like R12. Can revisit once the stash fix is validated in a real run — ideally requeue should NOT burn retries (scheduling luck, not agent failure).
+**Safety valve (2026-04-06):** Rebase requeue burns a retry (`remainingRetries` decremented). Prevents infinite loops like R12. Validated in OLLR R02 — ID_004 blocked after 3 attempts (no infinite loop).
+
+**Rebase-prep prompt injection (2026-04-06):** On rebase-commit failure, orchestrator writes `requeue_reason: "rebase_conflict"` to iter state. Prompt assembler injects rebase-prep directive. **OLLR R02 result: injected but agent didn't follow it.** Agent re-implemented from old branch point each time. Agent-driven conflict resolution via prompt injection is unreliable.
+
+**OLLR R01/R02 parallel conflict findings (2026-04-06):**
+
+The rebase-commit model works well for non-conflicting parallel iterations (OLLR: ID_003, ID_005 both succeeded). But when iterations conflict on the same files, the recovery flow fails:
+
+1. **Agent can't/won't rebase-prep.** Prompt injection was generated but agent didn't follow. Complex multi-step git operations (rebase-prep → resolve → git add → rebase --continue) are too fragile as agent instructions.
+2. **Each retry is a full implement+verify cycle wasted.** The code was correct every time — only the merge failed. ~20 min wasted per conflict.
+3. **Commit accumulation.** Each retry adds ~12 commits to the iteration branch. Rebase replays more commits each time (12 → 24 → 35), increasing conflict surface.
+4. **Rebase-between-phases doesn't fully solve it.** Even if we rebase after implement but before verify, another iteration can merge during verify and invalidate the rebase. The race window shrinks but doesn't close.
+
+**Proposed solution: Sequential fallback on first conflict (2026-04-06).**
+
+On first rebase-commit failure, dynamically add a dependency on whatever just merged. The iteration waits its turn — runs sequentially when its new dep completes. Zero wasted cycles. The plan phase's file-conflict dependency guidance is the primary defense; sequential fallback is the runtime safety net when plan-time detection misses a conflict.
+
+This accepts that parallel execution of file-conflicting iterations is not worth the complexity. The plan phase should catch most conflicts. When it misses one, sequential fallback is cheap and reliable.
+
+**Alternative considered and deferred:** Orchestrator-driven rebase between implement and verify. Architecturally cleaner (verify checks integrated code), but doesn't eliminate the race (another iter can merge during verify). More complex to implement. May revisit for verify-correctness reasons, but sequential fallback solves the reliability problem.
 
 **What doesn't change:**
 - Sequential finalization — still one iteration at a time on workstream

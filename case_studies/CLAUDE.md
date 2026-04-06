@@ -27,6 +27,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `CASE_STUDY_LOGA_R10.md` | LOGA (logalyzer) | Go | 13/13 | v0.5.1; 3 loop sessions, 5 merge-squash failures, 2 manual interventions; string error matching fragile |
 | `CASE_STUDY_LOGA_R11.md` | LOGA (logalyzer) | Go | 9/13 | v0.5.2; conflict detection works, but merge-squash corrupts JSON state files via conflict markers |
 | `CASE_STUDY_OLLR_R01.md` | OLLR (oller) | Bash | 3/6 | v0.6.1; rebase-commit works for non-conflicting iters; conflict recovery broken (no rebase-prep injection, no retry check) |
+| `CASE_STUDY_OLLR_R02.md` | OLLR (oller) | Bash | 4/6 | v0.6.1+fixes; retry check works, rebase-prep injected but not followed; need sequential fallback |
 
 ## Stable Labels
 
