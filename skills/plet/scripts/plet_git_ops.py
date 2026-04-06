@@ -846,8 +846,49 @@ Examples:
     )
     if len(result) == 3:
         return result
-    # Stub: return dummy success
-    return (0, "STUB — not implemented", "")
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
+
+    iter_id = kwargs["iter_id"]
+    message = kwargs["message"]
+
+    if not is_git_repo():
+        return _rebase_commit_error("wip-commit", "Error: not inside a git repository", output_json, pretty)
+
+    # Stage everything EXCEPT plet/trace/
+    # 1. Stage all non-plet files
+    run_git("add", "-A", "--", ".", ":!plet/trace")
+    # 2. Stage plet state + artifacts (not trace)
+    plet_abs = os.path.abspath(plet_dir)
+    for sub in ["state", "progress.md", "learnings.md", "emergent.md", "state.json"]:
+        path = os.path.join(plet_abs, sub)
+        if os.path.exists(path):
+            run_git("add", path)
+
+    # Check if there's anything to commit
+    porcelain = run_git("diff", "--cached", "--name-only").stdout
+    if not porcelain.strip():
+        if output_json:
+            data = {"status": "ok", "command": "wip-commit", "committed": False, "detail": "nothing to commit"}
+            return (0, _to_json(data, pretty, fields), "")
+        return (0, "OK — nothing to commit", "")
+
+    # Commit with prefixed message
+    commit_msg = f"wip: [{iter_id}] {message}"
+    r = run_git("commit", "-m", commit_msg)
+    if r.returncode != 0:
+        return (1, "", f"Error: git commit failed: {r.stderr}")
+
+    commit_hash = get_head_short()
+    if output_json:
+        data = {
+            "status": "ok",
+            "command": "wip-commit",
+            "committed": True,
+            "commitHash": commit_hash,
+            "message": commit_msg,
+        }
+        return (0, _to_json(data, pretty, fields), "")
+    return (0, f"OK — {commit_msg} ({commit_hash})", "")
 
 
 cmd_wip_commit.usage = '<plet_dir> --iter-id ID_xxx --message "description"'  # noqa: E501
