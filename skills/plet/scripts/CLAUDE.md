@@ -24,7 +24,7 @@ Scripts must **never prompt for input** — no `input()`, no `sys.stdin` reads, 
 
 ### Python Version
 
-Target **Python 3.8+** as the minimum. Avoid features from 3.10+ (`match/case`, `X | Y` union types, `tomllib`). Python 3.8 is the oldest version still widely deployed on production systems and CI environments.
+Target **Python 3.11+** as the minimum. Python 3.8 hit EOL October 2024. 3.11 is the macOS default since Sonoma and unlocks `datetime.UTC`, `match/case`, `tomllib`, and `X | Y` union types.
 
 ## Script Standards
 

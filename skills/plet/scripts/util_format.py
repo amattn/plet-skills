@@ -31,7 +31,7 @@ import datetime
 
 def now_iso():
     """Return current UTC time as ISO 8601 string: YYYY-MM-DDTHH:MM:SSZ."""
-    return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def build_progress_entry(plet_id, iteration, title, phase, attempt, status, content_text):

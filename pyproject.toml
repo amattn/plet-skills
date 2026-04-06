@@ -2,7 +2,7 @@
 name = "plet-skills"
 version = "0.5.2"
 description = "Spec-driven autonomous development orchestrator for Claude Code"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 # No runtime dependencies — stdlib only
 
 [project.optional-dependencies]

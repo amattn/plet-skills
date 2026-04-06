@@ -132,7 +132,7 @@ def validate_int(value, field_name):
 
 def now_iso():
     """Return current UTC time as ISO 8601 string: YYYY-MM-DDTHH:MM:SSZ."""
-    return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _handle_command_result(result):
