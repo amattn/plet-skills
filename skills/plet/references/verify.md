@@ -19,6 +19,8 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **Phase end tool:** `${CLAUDE_SKILL_DIR}/scripts/plet_phase.py end` — complete any phase exit (pass, reject, block). One call handles: set-verdict, verification report (auto-built from criteria via `--summary`), progress entry, trace event, audit tag, and git commit. You never construct report JSON manually.
 
+**Commit tool:** `${CLAUDE_SKILL_DIR}/scripts/plet_git_ops.py wip-commit` — use this instead of raw `git add/commit`. It stages source code and plet state/artifacts but excludes `plet/trace/`. Do NOT use `git add plet/` — it stages transcripts, creating a feedback loop where each commit grows the transcript, which dirties the working tree, which triggers another commit. Trace files are committed once at phase-end by `plet_phase.py end`.
+
 **Branch context:** You are on the iteration branch (`plet/{projectId}/loop{N}/{iter_id}`) in the same worktree the implement agent used. Do NOT create a new branch. Your commits go on this branch alongside the implement agent's commits. Audit tags distinguish phases.
 
 **State file context (SF_26, SF_28):** You write to the worktree's `plet/` directory (your cwd). The orchestrator does NOT write per-iteration state during your work — you are the sole writer. Your state changes reach the workstream via merge-squash (passed) or stay on the iteration branch (rejected/blocked). You set `verifyVerdict` via `plet_iter_state.py set-verdict --phase verify`. **You do NOT set lifecycle** — the orchestrator manages all lifecycle transitions in `state.json` (SF_28). **Do NOT modify `plet/state.json`** — it is orchestrator-owned. Your worktree copy may be stale; that is expected and not your concern to fix.
@@ -35,7 +37,7 @@ The orchestrator already called `start-phase` before spawning you — attempt co
 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
     --agent-id $PLET_AGENT_ID
-git add plet/ && git commit -m "plet: [{iteration_id}] verify-start"
+plet_git_ops.py wip-commit plet/ --iter-id {iteration_id} --message "verify-start"
 ```
 
 The verify-start commit marks the exact beginning of verification in git history. Without it, the git tree shows no activity between implement completion and verify completion — making timing analysis harder and the verify phase invisible to external tools.
@@ -282,7 +284,7 @@ If issues are minor and obvious to fix — missing edge case tests, small correc
    - Update activity: `"running_checks"` / `"fix-in-place: green — verifying fix"`
    - Run the full test suite — confirm no regressions
    - Update both `implementation` and `verification` objects on the new criterion
-   - Commit: `git add [specific files] plet/ && git commit -m "wip: [ID_xxx] AC_N - fix-in-place: {description}"`
+   - Commit: `plet_git_ops.py wip-commit plet/ --iter-id ID_xxx --message "AC_N - fix-in-place: {description}"`
 3. After all fix-in-place issues are resolved, proceed to Completing the Phase below
 
 **Use this path sparingly.** If you find yourself doing more than 2-3 fix-in-place corrections, or if any fix touches core logic, use Path C instead.

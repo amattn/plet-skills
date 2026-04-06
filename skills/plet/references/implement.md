@@ -128,12 +128,13 @@ The tool enforces the two-state model automatically — it creates the correct `
 
 Commit after each red step (failing test written) and after each green step (implementation passing) at a minimum. Also commit after any other logical unit of work. These incremental commits are for crash recovery and are preserved in the workstream history — the orchestrator rebases your iteration branch onto the workstream and fast-forward merges.
 
-**Always include `plet/` in your commits.** Runtime artifacts (progress.md, learnings.md, emergent.md, state files, trace files) live in the `plet/` directory. If you only commit source code, runtime artifacts are lost on crash or worktree removal.
+**Use `wip-commit` instead of raw `git add/commit`.** It stages source code and plet state/artifacts but excludes `plet/trace/`. Trace files are committed once at phase-end by `plet_phase.py end`. Do NOT use `git add plet/` — it stages transcripts, creating a feedback loop where each commit grows the transcript, which dirties the working tree, which triggers another commit.
 
 ```
-git add [specific source files] plet/
-git commit -m "wip: [ID_xxx] AC_N - [short description]"
+plet_git_ops.py wip-commit plet/ --iter-id ID_xxx --message "AC_N - [short description]"
 ```
+
+The message is automatically prefixed with `wip: [ID_xxx] `.
 
 ---
 
@@ -279,6 +280,25 @@ When all acceptance criteria pass:
 1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
 2. Write any remaining learnings via `plet_entries.py add-learning`
 3. Write any remaining emergent items via `plet_entries.py add-emergent`
+
+### Rebase onto Workstream — MANDATORY
+
+**You MUST rebase your branch onto the current workstream before ending the phase.** This is not optional. Without this step, your iteration cannot merge to workstream — the orchestrator's fast-forward merge will fail and your work will be requeued.
+
+```bash
+plet_git_ops.py rebase-prep plet/ --iter-id {iter_id}
+```
+
+**If conflicts are reported:** You are the best person to resolve them — you just wrote the code and have full context. Resolve each conflicting file, then:
+
+```bash
+git add <resolved-file>
+git rebase --continue
+```
+
+**After the rebase completes, re-run the full test suite.** Tests must pass on the rebased code. The rebase integrates other iterations' changes — your tests should still pass, but verify. If they don't, fix the issue before proceeding.
+
+**This step is enforced by gate-post.** The post-implement gate verifies that the workstream is an ancestor of your branch (`git merge-base --is-ancestor`). If you skip the rebase, the gate FAILS. The self-correction loop will require you to rebase before the gate passes. Do not attempt to bypass — rebase first, then call `plet_phase.py end`.
 
 ### End Phase
 
