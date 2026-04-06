@@ -1098,6 +1098,100 @@ def test_streaming_loop_with_mock():
 
 
 # ---------------------------------------------------------------------------
+# Trace file isolation — invoke should get worktree plet dir, not global
+# ---------------------------------------------------------------------------
+
+
+def test_invoke_receives_worktree_plet_dir():
+    """plet_invoke.py run must receive worktree_plet_dir for trace output, not global_plet_dir.
+    Bug: traces written to global plet dir dirty the workstream working tree."""
+    print("\n## Invoke receives worktree plet dir")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    try:
+        wt_dir = os.path.join(d, ".plet/worktrees/TEST/ID_001")
+        wt_plet = os.path.join(wt_dir, "plet")
+        os.makedirs(os.path.join(wt_plet, "state"), exist_ok=True)
+        ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
+        ist["implementVerdict"] = "completed"
+        ist["verifyVerdict"] = "passed"
+        with open(os.path.join(wt_plet, "state", "ID_001.json"), "w") as f:
+            json.dump(ist, f)
+
+        invoke_calls = []
+
+        def tracking_run(script_name, args, cwd=None):
+            cmd = args[0] if args else ""
+            if script_name == "plet_global_state.py" and cmd == "update-lifecycle":
+                return plet_orchestrator._run_script_subprocess(script_name, args, cwd)
+            if script_name == "plet_invoke.py" and cmd == "run":
+                invoke_calls.append(args)
+            return "", "", 0
+
+        def tracking_json(script_name, args, cwd=None):
+            stdout, stderr, rc = tracking_run(script_name, args, cwd)
+            if rc != 0:
+                return None, stderr, rc
+            try:
+                return json.loads(stdout) if stdout else None, stderr, rc
+            except (json.JSONDecodeError, ValueError):
+                return None, stderr, rc
+
+        responses = {
+            ("plet_git_iteration.py", "worktree-create"): {
+                "status": "ok",
+                "worktreePath": wt_dir,
+                "branchName": "plet/TEST/loop1/ID_001",
+            },
+        }
+
+        old_run = plet_orchestrator._run_script
+        old_json = plet_orchestrator._run_script_json
+
+        def combined_run(script_name, args, cwd=None):
+            cmd = args[0] if args else ""
+            key = (script_name, cmd)
+            if key in responses:
+                val = responses[key]
+                if isinstance(val, tuple):
+                    return val
+                return json.dumps(val), "", 0
+            return tracking_run(script_name, args, cwd)
+
+        def combined_json(script_name, args, cwd=None):
+            stdout, stderr, rc = combined_run(script_name, args, cwd)
+            if rc != 0:
+                return None, stderr, rc
+            try:
+                return json.loads(stdout) if stdout else None, stderr, rc
+            except (json.JSONDecodeError, ValueError):
+                return None, stderr, rc
+
+        plet_orchestrator._run_script = combined_run
+        plet_orchestrator._run_script_json = combined_json
+        try:
+            sink = CaptureSink()
+            plet_orchestrator._spawn_iteration("ID_001", plet_dir, sink, 0)
+
+            # Should have 2 invoke calls (implement + verify)
+            assert len(invoke_calls) >= 1, f"Expected invoke calls, got {len(invoke_calls)}"
+
+            for call_args in invoke_calls:
+                # args: ["run", <plet_dir>, "--iter-id", ..., "--phase", ..., "--cwd", ...]
+                # The plet_dir (args[1]) should be the WORKTREE plet dir, not the global one
+                invoke_plet_dir = call_args[1]
+                assert invoke_plet_dir != plet_dir, (
+                    f"Invoke got global plet dir ({plet_dir}) — should get worktree plet dir.\nFull args: {call_args}"
+                )
+        finally:
+            plet_orchestrator._run_script = old_run
+            plet_orchestrator._run_script_json = old_json
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1158,6 +1252,9 @@ def main():
     test_rebase_commit_success()
     test_rebase_commit_conflict_requeues()
     test_rebase_commit_any_error_requeues()
+
+    # trace isolation
+    test_invoke_receives_worktree_plet_dir()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
