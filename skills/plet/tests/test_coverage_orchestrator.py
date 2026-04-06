@@ -1345,17 +1345,11 @@ def test_remaining_retries_in_global_state():
                     f"Expected remainingRetries=2 in state.json, got: {gs.get('remainingRetries')}"
                 )
 
-                # Per-iter state should NOT have been modified by the decrement
-                # (remainingRetries may still exist from init — removed in RBS_20)
+                # Per-iter state should NOT have remainingRetries (removed in RBS_20)
                 is_path = os.path.join(plet_dir, "state", "ID_001.json")
                 with open(is_path) as f:
                     ist = json.load(f)
-                # If remainingRetries is in per-iter state, it should still be 3
-                # (unchanged — the decrement went to state.json)
-                if "remainingRetries" in ist:
-                    assert ist["remainingRetries"] == 3, (
-                        f"Per-iter remainingRetries should be unchanged at 3, got: {ist['remainingRetries']}"
-                    )
+                assert "remainingRetries" not in ist, "remainingRetries should not be in per-iter state"
             finally:
                 _restore_runner(plet_orchestrator, old_run, old_json)
         finally:

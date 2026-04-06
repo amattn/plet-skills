@@ -108,7 +108,6 @@ def write_iter_state(plet_dir, iter_id, attempts=None, updated="2026-04-06T00:00
         "criteria": [{"id": "AC_1", "description": "Test passes", "status": "pass"}],
         "cleanupTagsAutomatically": False,
         "cleanupBranchesAutomatically": False,
-        "remainingRetries": 3,
     }
     os.makedirs(state_dir_path(plet_dir), exist_ok=True)
     with open(iter_state_path(plet_dir, iter_id), "w") as f:

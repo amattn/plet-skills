@@ -192,7 +192,6 @@ def make_iter_state(
         "cleanupBranchesAutomatically": False,
         "criteria": criteria if criteria is not None else [],
         "verificationReports": verification_reports if verification_reports is not None else [],
-        "remainingRetries": 3,
     }
     state.update(overrides)
 

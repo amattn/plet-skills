@@ -119,7 +119,6 @@ ITER_STATE = {
     ],
     "cleanupTagsAutomatically": False,
     "cleanupBranchesAutomatically": False,
-    "remainingRetries": 3,
 }
 
 
