@@ -160,6 +160,7 @@ Instead of aborting the entire rebase on conflict, let git try to resolve. Many 
 | CASE_OLLR_R02_REC_2 | Alternative: rebase between implement and verify (orchestrator-driven, not agent-driven) | P0 |
 | CASE_OLLR_R02_REC_3 | Investigate why agent doesn't follow rebase-prep directive | P1 |
 | CASE_OLLR_R02_REC_4 | Address commit accumulation — squash wip commits before rebase, or limit retry count for rebase conflicts specifically | P2 |
+| CASE_OLLR_R02_REC_5 | Fix "always include plet/" guidance — causes agents to commit transcript snapshots after every action. Tighten to: include plet/ with red/green commits, not after gate scripts or transcript updates. | P1 |
 
 ### Open Questions
 
