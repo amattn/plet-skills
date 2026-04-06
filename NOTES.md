@@ -1440,6 +1440,29 @@ Canonical home: specs/NOTES.md § SPEC_PLN_COV (script tooling). Coverage infras
 
 Canonical home: specs/NOTES.md § SPEC_PLN_CLN (script tooling). Validator patterns, parse_command adoption, extract_output_flags, help_hint factory, dedup-before-refactor principle.
 
+### NOTES_PLN_RBS: PLAN_RBS — Rebase-over-Squash
+
+**Decision (2026-04-05): Replace merge-squash with rebase + fast-forward merge.** Individual wip commits from implement/verify survive into workstream history. No squashing.
+
+**Why:** Every parallel run (R09, R10, R11) hit merge-squash failures. The squash operation adds complexity for a cosmetic benefit:
+- Dirty-tree recovery (`_try_merge_squash`) — needed because merge-squash is sensitive to uncommitted state
+- stdout/stderr conflict detection bug — `git merge --squash` puts CONFLICT on stdout, code checked stderr (4 versions undetected)
+- Conflict recovery already does a rebase — the squash is an extra step on top of something that already works
+
+**What changes:**
+- `plet_git_ops.py merge-squash` → `rebase-merge` command: `git rebase workstream` on iter branch, then `git checkout workstream && git merge --ff-only iter_branch`
+- Orchestrator: `_try_merge_squash` / `_handle_merge_conflict` simplify to rebase + ff-merge
+- Conflict recovery: rebase failure → requeue for implement (same as today, but without the merge-squash retry layer)
+- Commit history: workstream shows all wip commits from each iteration, linear (rebase ensures no merge commits)
+
+**What doesn't change:**
+- Sequential finalization — still one iteration at a time on workstream
+- Audit tags — still mark phase boundaries
+- Branch/tag cleanup options — still configurable
+- Breakpoints, streaming execution — unaffected
+
+**Tradeoff:** Workstream history is noisier (many small commits vs one per iteration). But: `git log --oneline` is still readable, audit tags still mark boundaries, and the operational simplicity is worth more than cosmetic history.
+
 ### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
 **Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.

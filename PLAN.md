@@ -18,7 +18,8 @@
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
-| PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
+| PLAN_RBS | Rebase-over-Squash | **Next** — replace merge-squash with rebase + fast-forward |
+| PLAN_RFT | Refactor Loop (orchestrator feature) | After RBS — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -166,6 +167,23 @@ Both NOTES.md (2300 lines) and specs/NOTES.md (1900 lines) had design decisions 
 | NTS_5 | Slim PLAN.md — move detail to NOTES.md, keep steps + pointers | ✓ done — 458→264 lines (-42%). 8 completed sections slimmed. |
 | NTS_6 | Label all H3s in root NOTES.md | ✓ done — 88 H3s labeled. 97 total. Time markers not needed (thematic sections, not chronological). |
 | NTS_7 | Final audit: both files, orphaned content, stale references | ✓ done — all clean. 0 unlabeled H3s, 0 stale pointers, 0 TODO stubs, all PLAN.md pointers resolve. |
+
+---
+
+## PLAN_RBS: Rebase-over-Squash
+
+Replace merge-squash with rebase + fast-forward merge. Individual wip commits from implement/verify survive into workstream history. Simplifies conflict recovery (rebase is already the recovery path). Eliminates the merge-squash bugs from R09/R10. See NOTES.md § NOTES_PLN_RBS for design decisions.
+
+**Motivation:** Every case study with parallel execution (R09, R10, R11) hit merge-squash failures. The squash operation adds complexity (dirty-tree recovery, stdout/stderr conflict detection) for a cosmetic benefit (one commit per iteration). Rebase gives linear history with full commit visibility.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| RBS_1 | `plet_git_ops.py`: replace `merge-squash` command with `rebase-merge` (rebase iter onto workstream, ff-merge) | |
+| RBS_2 | `plet_orchestrator.py`: replace `_try_merge_squash` / `_handle_merge_conflict` with rebase + ff-merge flow | |
+| RBS_3 | Tests: rewrite merge-squash tests → rebase-merge tests (basic, conflict, cleanup, dry-run) | |
+| RBS_4 | Reference files: update implement.md, verify.md, plan.md — remove squash references | |
+| RBS_5 | SKILL.md, state-schema.md, cli-cheatsheet.md — update terminology | |
+| RBS_6 | Validate with real run | |
 
 ---
 
