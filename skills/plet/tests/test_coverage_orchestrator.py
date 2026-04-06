@@ -1306,6 +1306,60 @@ def test_prompt_includes_rebase_prep_for_requeued():
 
 
 # ---------------------------------------------------------------------------
+# remainingRetries in state.json (not per-iter state)
+# ---------------------------------------------------------------------------
+
+
+def test_remaining_retries_in_global_state():
+    """After rebase-commit failure, remainingRetries is decremented in state.json, not per-iter state."""
+    print("\n## remainingRetries in state.json")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    try:
+        # Add remainingRetries to state.json
+        gs_path = state_json_path(plet_dir)
+        with open(gs_path) as f:
+            gs = json.load(f)
+        gs["remainingRetries"] = {"ID_001": 3}
+        with open(gs_path, "w") as f:
+            json.dump(gs, f, indent=2)
+            f.write("\n")
+
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            responses = {
+                ("plet_git_ops.py", "rebase-commit"): ("", "Error: rebase has conflicts", 1),
+            }
+            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            try:
+                sink = CaptureSink()
+                plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+
+                # Check state.json has decremented remainingRetries
+                with open(gs_path) as f:
+                    gs = json.load(f)
+                assert gs.get("remainingRetries", {}).get("ID_001") == 2, (
+                    f"Expected remainingRetries=2 in state.json, got: {gs.get('remainingRetries')}"
+                )
+
+                # Check per-iter state was NOT modified
+                is_path = os.path.join(plet_dir, "state", "ID_001.json")
+                with open(is_path) as f:
+                    ist = json.load(f)
+                assert "remainingRetries" not in ist, (
+                    f"remainingRetries should NOT be in per-iter state, got: {ist.get('remainingRetries')}"
+                )
+            finally:
+                _restore_runner(plet_orchestrator, old_run, old_json)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1376,6 +1430,9 @@ def main():
     # requeue reason
     test_rebase_failure_writes_requeue_reason()
     test_prompt_includes_rebase_prep_for_requeued()
+
+    # remainingRetries in state.json
+    test_remaining_retries_in_global_state()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
