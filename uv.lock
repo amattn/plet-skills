@@ -401,7 +401,7 @@ wheels = [
 
 [[package]]
 name = "plet-skills"
-version = "0.5.1"
+version = "0.5.2"
 source = { virtual = "." }
 
 [package.optional-dependencies]

@@ -2,6 +2,21 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.5.2 (2026-04-05)
+
+### Bug Fixes
+- **Merge conflict detection (stdout/stderr):** `git merge --squash` puts CONFLICT messages on **stdout**, not stderr. The code checked only stderr — empty on conflict — producing "Error: git command failed:" with no useful info. Now checks combined stdout+stderr. This was the actual root cause behind R09/R10 merge-squash failures (not the dirty-tree issue). plet_git_ops.py: 0.3.2 → 0.3.3.
+- **Plan phase review discipline:** Plan agent presented choices as flat A/B/C lists instead of NLR format (CASE_LOGA_R10_OBS_1). Root cause: `references/plan.md` had no NLR guidance — the plan subagent doesn't read the user's CLAUDE.md. Rewrote Review Discipline section modeled on `/fast-chat` patterns: "silence is not approval" core rule, R/O stable tail, NLR mechanics, full interaction transcript example. Updated Steps 1, 2, 4, 5, 6, 8.
+
+### Subagent Reliability
+- **Script work callout in CLAUDE.md:** Added prominent directive near top — when agents/subagents work on plet scripts, they MUST read `scripts/CLAUDE.md`. Includes explicit "this applies to subagents" instruction for parent agents writing launch prompts.
+- **Red/green reinforcement:** Strengthened callout with cost framing (LOGA R06-R10 evidence).
+
+### Documentation
+- **LOGA R10 case study:** 3 loop sessions, 5 merge-squash failures, root cause found (stdout not stderr).
+- **NOTES_INS_18:** Subagent loading insight — CLAUDE.md is auto-loaded into subagents but visibility ≠ compliance. Critical rules need both CLAUDE.md and the launch prompt.
+- **PLAN_RFT design:** All open questions resolved (milestone barriers, synthetic iterations, two boolean verdict fields).
+
 ## 0.5.1 (2026-04-05)
 
 ### Bug Fix
