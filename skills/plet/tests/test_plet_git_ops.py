@@ -392,6 +392,7 @@ def main():
     test_wip_commit_basic()
     test_wip_commit_excludes_trace()
     test_wip_commit_includes_state()
+    test_wip_commit_excludes_all_trace_files()
     test_wip_commit_nothing_to_commit()
 
     print(f"\n{passed} passed, {failed} failed")
@@ -1457,6 +1458,34 @@ def test_wip_commit_includes_state():
 
         diff_out, _, _ = git_run(repo, ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"])
         check("state file committed", "plet/state/ID_001.json" in diff_out)
+
+
+def test_wip_commit_excludes_all_trace_files():
+    """wip-commit must exclude ALL plet/trace/ files — transcripts, events, and orchestrator."""
+    print("\n## wip-commit — excludes all trace files")
+    with tempfile.TemporaryDirectory() as d:
+        repo, plet_dir, _ = setup_for_wip_commit(d)
+
+        # Add event files and orchestrator trace
+        trace_dir = os.path.join(plet_dir, "trace")
+        for fname in [
+            "ID_001-implement-1-events.ndjson",
+            "ID_001-unknown-1-events.ndjson",
+            "orchestrator.ndjson",
+        ]:
+            with open(os.path.join(trace_dir, fname), "w") as f:
+                f.write('{"type":"test"}\n')
+
+        run(
+            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "AC_1 - test"],
+            cwd=repo,
+        )
+
+        diff_out, _, _ = git_run(repo, ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"])
+        assert "main.go" in diff_out, f"source not committed: {diff_out}"
+        assert "events" not in diff_out, f"event files should NOT be committed: {diff_out}"
+        assert "orchestrator" not in diff_out, f"orchestrator trace should NOT be committed: {diff_out}"
+        assert "transcript" not in diff_out, f"transcript should NOT be committed: {diff_out}"
 
 
 def test_wip_commit_nothing_to_commit():
