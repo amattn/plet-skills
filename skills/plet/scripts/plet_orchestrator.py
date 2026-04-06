@@ -194,12 +194,25 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     # rebase-commit handles dirty workstream via stash/pop — no pre-commit needed
     rc_out, rc_err, rc_rc = _run_script("plet_git_ops.py", ["rebase-commit", global_plet_dir, "--iter-id", iter_id])
     if rc_rc != 0:
-        # Any error → decrement retry budget + requeue. Burns a retry as a safety valve
-        # against infinite loops (can revisit once stash fix is battle-tested).
+        # Decrement retry budget + check if exhausted
         _decrement_remaining_retries(global_plet_dir, iter_id)
+        remaining = 0
+        try:
+            is_path = os.path.join(global_plet_dir, "state", f"{iter_id}.json")
+            with open(is_path) as _f:
+                remaining = json.load(_f).get("remainingRetries", 0)
+        except (OSError, json.JSONDecodeError):
+            pass
+
+        if remaining <= 0:
+            _update_lifecycle(global_plet_dir, iter_id, "blocked")
+            sink.event({"type": "rebase_commit_failed", "iterationId": iter_id, "error": rc_err[:200]})
+            sink.text(f"  {iter_id}: rebase-commit failed, retries exhausted — blocked")
+            return completed_this_run, True
+
         _update_lifecycle(global_plet_dir, iter_id, "queued")
         sink.event({"type": "rebase_commit_failed", "iterationId": iter_id, "error": rc_err[:200]})
-        sink.text(f"  {iter_id}: rebase-commit failed — requeued: {rc_err[:200]}")
+        sink.text(f"  {iter_id}: rebase-commit failed — requeued ({remaining} retries left)")
         return completed_this_run, False
 
     _update_lifecycle(global_plet_dir, iter_id, "complete")

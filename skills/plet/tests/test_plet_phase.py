@@ -471,7 +471,7 @@ def test_end_verify_with_report_file():
                     "status": "pass",
                     "oneLiner": "Tests pass.",
                     "redTest": "none",
-                    "noTestRationale": "",
+                    "noTestRationale": "read-only verification check",
                     "relatedEntries": [],
                 }
             ],

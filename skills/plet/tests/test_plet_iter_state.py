@@ -1218,7 +1218,7 @@ def test_validate_criteria_results_direct():
                 "status": "done",
                 "oneLiner": "ok",
                 "redTest": "none",
-                "noTestRationale": "",
+                "noTestRationale": "read-only verification check",
                 "relatedEntries": [],
             }
         ]

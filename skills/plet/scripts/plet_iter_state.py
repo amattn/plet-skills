@@ -986,8 +986,13 @@ def _validate_criteria_results(criteria_results):
             return "Error: criteriaResults[{}].status '{}' invalid (valid: {})".format(
                 i, cr["status"], ", ".join(valid_cr_statuses)
             )
-        if cr["redTest"] == "none" and "noTestRationale" not in cr:
-            return f"Error: criteriaResults[{i}] redTest is 'none' but noTestRationale is missing"
+        if cr["redTest"] == "none":
+            rationale = cr.get("noTestRationale", "")
+            if not rationale or not rationale.strip():
+                return (
+                    f"Error: criteriaResults[{i}] redTest is 'none' but noTestRationale is empty"
+                    " — explain why there is no red test"
+                )
 
     return None
 

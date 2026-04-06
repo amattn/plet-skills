@@ -142,6 +142,8 @@ Any iterations lifecycle: blocked AND none queued/implementing?
 
 **Note:** `ineligible` iterations are waiting on dependencies — they do not trigger loop entry on their own.
 
+**Confirmation rule:** When entered via `/plet` (the router), confirm with the user before entering the loop or refine phase: "Ready to start the loop. Proceed?" When entered via `/plet loop` or `/plet refine` (explicit subcommand), proceed without confirmation — the user already expressed intent.
+
 ### Preflight
 
 Before entering any session, run preflight:

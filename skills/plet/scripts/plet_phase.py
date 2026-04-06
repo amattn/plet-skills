@@ -135,7 +135,7 @@ def _build_criteria_results(ist):
                 "status": crit_status,
                 "oneLiner": v.get("oneLiner") or evidence.split(".")[0][:120] or c.get("description", ""),
                 "redTest": v.get("redTest", "none"),
-                "noTestRationale": v.get("noTestRationale", ""),
+                "noTestRationale": v.get("noTestRationale") or "auto-report: no rationale provided by verify agent",
                 "relatedEntries": [],
             }
         )
