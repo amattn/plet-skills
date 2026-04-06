@@ -839,7 +839,7 @@ def _restore_runner(plet_orchestrator, old_run, old_json):
 
 
 def test_handle_passed_verdict_with_mock():
-    """Merge-squash succeeds via mock — iteration completes."""
+    """Rebase-commit succeeds via mock — iteration completes."""
     print("\n## Mock runner — passed verdict (success)")
     import plet_orchestrator
 
@@ -849,7 +849,7 @@ def test_handle_passed_verdict_with_mock():
         os.chdir(d)
         try:
             responses = {
-                ("plet_git_ops.py", "merge-squash"): ("OK — merged", "", 0),
+                ("plet_git_ops.py", "rebase-commit"): ("OK — rebased and merged", "", 0),
             }
             old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
             try:
@@ -867,55 +867,9 @@ def test_handle_passed_verdict_with_mock():
         shutil.rmtree(d)
 
 
-def test_handle_passed_verdict_dirty_tree_retry():
-    """Merge-squash fails with dirty tree → clean and retry succeeds."""
-    print("\n## Mock runner — passed verdict (dirty tree retry)")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
-    try:
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            call_count = {"merge": 0}
-
-            def mock_merge_runner(script_name, args, cwd=None):
-                cmd = args[0] if args else ""
-                if script_name == "plet_global_state.py" and cmd == "update-lifecycle":
-                    return plet_orchestrator._run_script_subprocess(script_name, args, cwd)
-                if script_name == "plet_git_ops.py" and cmd == "merge-squash":
-                    call_count["merge"] += 1
-                    if call_count["merge"] == 1:
-                        # First attempt: dirty tree
-                        return "", "Error: working tree is dirty (git status --porcelain non-empty)", 1
-                    else:
-                        # Second attempt: clean
-                        return "OK — merged", "", 0
-                return "", "", 0
-
-            old_run, old_json = plet_orchestrator._run_script, plet_orchestrator._run_script_json
-            plet_orchestrator._run_script = mock_merge_runner
-            plet_orchestrator._run_script_json = lambda s, a, c=None: (None, "", 0)
-            try:
-                sink = CaptureSink()
-                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-                check("completed = 1 (retry succeeded)", completed == 1)
-                check("not blocked", blocked is False)
-                check("merge called twice", call_count["merge"] == 2)
-                dirty_msgs = [m for m in sink.messages if "dirty tree" in m]
-                check("dirty tree message emitted", len(dirty_msgs) == 1)
-            finally:
-                plet_orchestrator._run_script = old_run
-                plet_orchestrator._run_script_json = old_json
-        finally:
-            os.chdir(old_cwd)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_handle_passed_verdict_conflict_requeue():
-    """Merge-squash conflicts → rebase+requeue via mock."""
-    print("\n## Mock runner — passed verdict (conflict requeue)")
+def test_handle_passed_verdict_rebase_commit_requeue():
+    """Rebase-commit fails → requeue (not block). Replaces old merge-squash conflict test."""
+    print("\n## Mock runner — passed verdict (rebase-commit requeue)")
     import plet_orchestrator
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
@@ -924,11 +878,7 @@ def test_handle_passed_verdict_conflict_requeue():
         os.chdir(d)
         try:
             responses = {
-                ("plet_git_ops.py", "merge-squash"): ("", "Error: merge --squash has conflicts", 1),
-                ("plet_git_iteration.py", "branch-name"): {
-                    "branchName": "plet/TEST/loop1/ID_001",
-                    "type": "iteration",
-                },
+                ("plet_git_ops.py", "rebase-commit"): ("", "Error: rebase has conflicts", 1),
             }
             old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
             try:
@@ -936,39 +886,10 @@ def test_handle_passed_verdict_conflict_requeue():
                 completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
                 check("completed = 0 (not merged)", completed == 0)
                 check("not blocked (requeued)", blocked is False)
-                conflict_events = [e for e in sink.events if e.get("type") == "merge_conflict"]
-                check("conflict event", len(conflict_events) >= 1)
+                fail_events = [e for e in sink.events if e.get("type") == "rebase_commit_failed"]
+                check("rebase_commit_failed event", len(fail_events) >= 1)
                 gs = load_json(state_json_path(plet_dir))
                 check("lifecycle queued", gs["lifecycles"]["ID_001"] == "queued")
-            finally:
-                _restore_runner(plet_orchestrator, old_run, old_json)
-        finally:
-            os.chdir(old_cwd)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_handle_passed_verdict_non_conflict_error():
-    """Merge-squash fails (non-conflict) → blocked."""
-    print("\n## Mock runner — passed verdict (non-conflict error)")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
-    try:
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            responses = {
-                ("plet_git_ops.py", "merge-squash"): ("", "Error: git command failed: something", 1),
-            }
-            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-            try:
-                sink = CaptureSink()
-                completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-                check("completed = 0", completed == 0)
-                check("blocked", blocked is True)
-                gs = load_json(state_json_path(plet_dir))
-                check("lifecycle blocked", gs["lifecycles"]["ID_001"] == "blocked")
             finally:
                 _restore_runner(plet_orchestrator, old_run, old_json)
         finally:
@@ -1227,9 +1148,7 @@ def main():
     test_injectable_runner_override()
 
     test_handle_passed_verdict_with_mock()
-    test_handle_passed_verdict_dirty_tree_retry()
-    test_handle_passed_verdict_conflict_requeue()
-    test_handle_passed_verdict_non_conflict_error()
+    test_handle_passed_verdict_rebase_commit_requeue()
     test_spawn_iteration_with_mock()
     test_spawn_iteration_worktree_fail()
     test_spawn_iteration_no_verdict()

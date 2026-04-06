@@ -184,102 +184,31 @@ def _handle_verify_verdict(
     return completed_this_run, False
 
 
-def _handle_merge_conflict(iter_id, global_plet_dir, sink, completed_this_run):
-    """Handle merge-squash conflict: rebase and retry merge, or requeue for implement.
+def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts):
+    """Handle a passed verify verdict: rebase-commit to workstream. Returns (new_completed, blocked).
 
-    Returns (new_completed, was_blocked).
+    On success: lifecycle → complete.
+    On any error (conflict or otherwise): lifecycle → queued (requeue for implement).
+    No string matching, no retry layers — rebase-commit handles everything.
     """
-    # Get branch names
-    bn_data, _, _ = _run_script_json("plet_git_iteration.py", ["branch-name", global_plet_dir, "--iter-id", iter_id])
-    if not bn_data:
-        sink.text(f"  Could not determine branch name for {iter_id} — requeuing")
+    # Commit any pending state changes on workstream before rebase-commit
+    run_git("add", "-A")
+    run_git("commit", "-m", f"plet: state before rebase-commit {iter_id}", "--allow-empty")
+
+    rc_out, rc_err, rc_rc = _run_script("plet_git_ops.py", ["rebase-commit", global_plet_dir, "--iter-id", iter_id])
+    if rc_rc != 0:
+        # Any error → requeue. No string matching needed.
         _update_lifecycle(global_plet_dir, iter_id, "queued")
+        sink.event({"type": "rebase_commit_failed", "iterationId": iter_id, "error": rc_err[:200]})
+        sink.text(f"  {iter_id}: rebase-commit failed — requeued: {rc_err[:200]}")
         return completed_this_run, False
 
-    iter_branch = bn_data.get("branchName", "")
-    ws_data, _, _ = _run_script_json("plet_git_iteration.py", ["branch-name", global_plet_dir, "--type", "workstream"])
-    ws_branch = ws_data.get("branchName", "") if ws_data else ""
-
-    # Rebase iteration branch onto current workstream
-    r = run_git("rebase", ws_branch, iter_branch)
-    if r.returncode != 0:
-        # Rebase has conflicts — abort rebase, requeue for implement to resolve
-        run_git("rebase", "--abort")
-        _update_lifecycle(global_plet_dir, iter_id, "queued")
-        sink.event(
-            {
-                "type": "merge_conflict_requeued",
-                "iterationId": iter_id,
-                "rebaseResult": "conflicts",
-                "rebasedOnto": ws_branch,
-            },
-        )
-        sink.text(f"  {iter_id}: rebase conflicts — requeued for implement to resolve")
-        return completed_this_run, False
-
-    # Rebase succeeded — try merge-squash again (should be clean now)
-    ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", global_plet_dir, "--iter-id", iter_id])
-    if ms_rc != 0:
-        # Still failing after rebase — requeue for implement
-        _update_lifecycle(global_plet_dir, iter_id, "queued")
-        sink.event(
-            {
-                "type": "merge_conflict_requeued",
-                "iterationId": iter_id,
-                "rebaseResult": "clean",
-                "mergeRetryResult": "failed",
-            },
-        )
-        sink.text(f"  {iter_id}: merge still failed after rebase — requeued")
-        return completed_this_run, False
-
-    # Merge succeeded after rebase
     _update_lifecycle(global_plet_dir, iter_id, "complete")
     completed_this_run += 1
-    sink.event({"type": "iteration_merged", "iterationId": iter_id, "afterRebase": True})
+    sink.event({"type": "iteration_merged", "iterationId": iter_id})
     sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"})
-    sink.text(f"[{completed_this_run}] {iter_id}: passed, merged (after rebase)")
+    sink.text(f"[{completed_this_run}] {iter_id}: passed, merged")
     return completed_this_run, False
-
-
-def _try_merge_squash(iter_id, global_plet_dir, sink):
-    """Attempt merge-squash with dirty-tree recovery. Returns (out, err, rc)."""
-    # Commit pending changes on workstream before merge-squash
-    run_git("add", "-A")
-    run_git("commit", "-m", f"plet: state before merge-squash {iter_id}", "--allow-empty")
-
-    ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", global_plet_dir, "--iter-id", iter_id])
-    if ms_rc != 0 and "dirty" in ms_err.lower():
-        # Dirty tree from parallel worktrees — clean and retry once
-        sink.text(f"  {iter_id}: dirty tree detected, cleaning and retrying merge-squash")
-        run_git("add", "-A")
-        run_git("commit", "-m", f"plet: clean tree before merge-squash {iter_id}", "--allow-empty")
-        ms_out, ms_err, ms_rc = _run_script("plet_git_ops.py", ["merge-squash", global_plet_dir, "--iter-id", iter_id])
-
-    return ms_out, ms_err, ms_rc
-
-
-def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, counts):
-    """Handle a passed verify verdict: commit and merge-squash. Returns (new_completed, blocked)."""
-    ms_out, ms_err, ms_rc = _try_merge_squash(iter_id, global_plet_dir, sink)
-    if ms_rc != 0:
-        is_conflict = "conflict" in ms_err.lower()
-        if is_conflict:
-            sink.event({"type": "merge_conflict", "iterationId": iter_id, "error": ms_err[:200]})
-            return _handle_merge_conflict(iter_id, global_plet_dir, sink, completed_this_run)
-        else:
-            sink.event({"type": "error", "iterationId": iter_id, "error": "merge-squash failed: " + ms_err[:200]})
-            sink.text(f"  merge-squash failed — blocking: {ms_err[:200]}")
-            _update_lifecycle(global_plet_dir, iter_id, "blocked")
-            sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "blocked"})
-            return completed_this_run, True
-    else:
-        _update_lifecycle(global_plet_dir, iter_id, "complete")
-        completed_this_run += 1
-        sink.event({"type": "iteration_merged", "iterationId": iter_id})
-        sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"})
-        sink.text(f"[{completed_this_run}] {iter_id}: passed, merged")
-        return completed_this_run, False
 
 
 def _handle_rejected_verdict(iter_id, global_plet_dir, worktree_plet_dir, sink, completed_this_run, counts):
