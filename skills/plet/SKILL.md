@@ -311,6 +311,8 @@ The orchestrator manages the full loop lifecycle internally — session setup, d
 | `max_iterations_reached` | Report progress. Ask: continue or stop. |
 | `error` | Surface the error from `pauseContext.error`. Investigate. |
 
+**The loop runs ONCE.** After the orchestrator exits, report the results to the user and STOP. **Never automatically start another loop session.** The user decides whether to run again (`/plet loop`), enter refine (`/plet refine`), or do something else. Autonomous re-entry into the loop is dangerous — the agent should not make decisions about project state between sessions.
+
 **Parallel execution:** Eligible iterations with no dependency relationship launch concurrently. Rebase-commit is always sequential. If a rebase-commit conflicts, the iteration is requeued — the implement agent resolves conflicts on the next pass via `rebase-prep` (no attempt burned). Use `--sequential` for debugging. See `references/plan.md` § Dependency Graph Validation for file-level conflict guidance.
 
 ### Refine Phase

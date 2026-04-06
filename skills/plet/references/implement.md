@@ -36,10 +36,20 @@ The orchestrator already called `start-phase` before spawning you — attempt co
 "$PLET_SCRIPTS_DIR/plet_iter_state.py" update-activity plet/ --iter-id {iteration_id} \
     --phase-activity setup --activity-detail "reading context" \
     --agent-id $PLET_AGENT_ID
-git add plet/ && git commit -m "plet: [{iteration_id}] implement-start"
+"$PLET_SCRIPTS_DIR/plet_git_ops.py" wip-commit plet/ --iter-id {iteration_id} --message "implement-start"
 ```
 
 `$PLET_AGENT_ID` is set by the orchestrator — a unique ID for this subagent session. Use it for all `--agent-id` flags. Do not use shell variable aliases for script paths — call scripts directly via `$PLET_SCRIPTS_DIR`.
+
+### Rebase onto Workstream — FIRST ACTION
+
+**Before reading context or writing any code, rebase onto the current workstream.** This catches any changes that other iterations merged before you started.
+
+```bash
+"$PLET_SCRIPTS_DIR/plet_git_ops.py" rebase-prep plet/ --iter-id {iteration_id}
+```
+
+If the rebase is clean (usual case), proceed immediately. If conflicts are reported, resolve each file, `git add <file>`, `git rebase --continue`, then verify tests pass before proceeding.
 
 ### Read Context (IMP_18, RT_6, RT_7)
 
