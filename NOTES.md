@@ -1565,7 +1565,11 @@ If another iteration merges between steps 9 and 14 with a conflicting change, st
 
 **Decision (2026-04-06): Audit tags stay at pre-rebase commit hashes.** After rebase, rebased commits have new hashes. Tags still point at old (pre-rebase) commits — they're still reachable (git doesn't GC tagged commits). Historical reference, not navigational. Simplest approach. `cleanupTagsAutomatically` handles deletion for projects that want it.
 
-**Architectural fix found by integration tests (2026-04-06):** The `--allow-empty` pre-commit pattern from merge-squash broke ff-merge with rebase-commit. Empty commits advance workstream HEAD past the rebased iter branch, making ff-merge impossible. Fix: orchestrator pre-commit without `--allow-empty` (only commits when there are actual changes). Rebase-commit has its own validator that skips the dirty-tree check (rebase operates on iter branch, not workstream).
+**Architectural fix — stash/pop pattern (2026-04-06, revised after R12):** The orchestrator writes lifecycle updates to `state.json` on workstream during iterations (implementing → verifying). These dirty the workstream working tree. The original fix (pre-commit without `--allow-empty`) still caused rebase conflicts because the committed state.json diverged from the iteration branch's copy. R12 confirmed: even the first iteration (ID_001) conflicted on state.json.
+
+Final fix: `_execute_rebase_commit` stashes dirty workstream files before rebase, pops after ff-merge. No pre-commit at all — the stash preserves lifecycle updates without creating divergent commits. Rebase-commit has its own validator that skips the dirty-tree check.
+
+**Safety valve (2026-04-06):** Rebase requeue burns a retry (`remainingRetries` decremented). Prevents infinite loops like R12. Can revisit once the stash fix is validated in a real run — ideally requeue should NOT burn retries (scheduling luck, not agent failure).
 
 **What doesn't change:**
 - Sequential finalization — still one iteration at a time on workstream

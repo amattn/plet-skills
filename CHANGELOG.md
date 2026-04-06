@@ -2,6 +2,19 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.6.1 (2026-04-06)
+
+### Bug Fixes
+- **R12 fix: stash dirty workstream before rebase-commit.** Orchestrator lifecycle updates (implementing, verifying) dirty `state.json` on workstream. `rebase-commit` then rebases iteration branch which also modified `state.json` → conflict on the very first iteration. Fix: stash dirty state before rebase, pop after ff-merge. plet_git_ops.py: 0.4.0 → 0.4.1.
+- **Conflict file names in error message.** `rebase-commit` error now includes which files conflicted: "Error: rebase has conflicts in: plet/state.json, shared.txt."
+- **Rebase requeue burns a retry.** Safety valve against infinite requeue loops (seen in R12). `remainingRetries` decremented on rebase-commit failure until stash fix is battle-tested. plet_orchestrator.py: 0.5.0 → 0.5.1.
+
+### Bug Fixes (cont.)
+- **Trace file isolation.** `plet_invoke.py` received `global_plet_dir` for trace output — traces and transcripts written to workstream instead of worktree. Now receives `worktree_plet_dir`. Subagent traces stay on iteration branch, land on workstream only via rebase-commit. plet_orchestrator.py: 0.5.1.
+
+### Documentation
+- **Project directories table in SKILL.md.** `plet/` (committed), `.plet/` (gitignored — do not `git add`). Prevents agents from trying to commit `.plet/` (seen in R12).
+
 ## 0.6.0 (2026-04-06)
 
 ### Rebase-over-Squash (PLAN_RBS)
