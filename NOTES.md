@@ -1617,6 +1617,20 @@ When parallel stop triggers:
 
 **OLLR R02 validation:** R02 confirmed that agent-driven rebase-prep via prompt injection is unreliable (agent didn't follow it). But implement.md standard instructions are more reliable — they're part of the normal flow, not a special directive. The risk of non-compliance exists but is lower, and C (parallel stop) handles the failure case.
 
+**Decision (2026-04-06): Always rebase at start AND end of implement.** No conditional logic, no `requeue_reason`, no prompt injection. implement.md instructs:
+1. Start of implement: `rebase-prep` (catches anything that merged before this iteration)
+2. End of implement: `rebase-prep` (catches anything that merged during implementation)
+3. Gate-post enforces #2 via `merge-base --is-ancestor`
+
+First rebase is usually a no-op. When it's not (requeued iteration), it catches the conflict early. Zero special cases — same flow for first attempt and requeued attempts.
+
+**Decision (2026-04-06): Move `remainingRetries` to state.json, remove `requeue_reason`.**
+- `remainingRetries` moves from per-iteration state to `state.json` as a parallel dict (like `lifecycles`). Orchestrator-owned, avoids dirtying per-iter state on workstream.
+- `requeue_reason` removed entirely. Was used for prompt injection which is superseded by always-rebase + gate enforcement.
+- Root cause of R03 stash bug: `_decrement_remaining_retries` wrote to workstream's per-iter state file, dirtying it. The dirty file blocked the next iteration's rebase-commit.
+
+**Decision (2026-04-06): Loop runs ONCE. Never auto-restart.** OLLR R03: agent auto-started session 2 after session 1 ended, autonomously resolving merge conflicts and re-entering the loop. SKILL.md must explicitly say: after the orchestrator exits, report results and STOP. The user decides whether to run another session.
+
 **Permission detection fix (2026-04-06):** `_auto_detect_permission_mode` in plet_invoke.py checked for `"bypassPermissions" in perms` (top-level key) but the actual setting is `defaultMode: "bypassPermissions"`. Fixed to check both. OLLR R02: subagent launched with auto mode despite parent having bypassPermissions.
 
 **What doesn't change:**

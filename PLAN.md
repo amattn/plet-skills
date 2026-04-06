@@ -18,7 +18,7 @@
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
-| PLAN_RBS | Rebase-over-Squash | 9/18 done — wip-commit, gate enforce, parallel stop, cleanup remaining |
+| PLAN_RBS | Rebase-over-Squash | 17/22 done — remainingRetries migration, always-rebase, loop-once, cleanup |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
@@ -187,15 +187,19 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 | RBS_7 | Reference files: implement.md, verify.md, plan.md, state-schema.md | ✓ done |
 | RBS_8 | SKILL.md, cli-cheatsheet.md, scripts/CLAUDE.md | ✓ done |
 | RBS_9 | LOGA R12/R13, OLLR R01/R02 — validated rebase-commit, found conflict recovery issues | ✓ done (see case studies) |
-| RBS_10 | Tests: `wip-commit` (stages source + state, excludes trace/) — RED | |
-| RBS_11 | `plet_git_ops.py wip-commit`: implement command — GREEN | |
-| RBS_12 | implement.md: replace `git add/commit` with `wip-commit`, add rebase-prep as mandatory last step | |
-| RBS_13 | Tests: gate-post rebase check (`merge-base --is-ancestor`) — RED | |
-| RBS_14 | Gate-post: enforce iter branch on top of workstream — GREEN | |
-| RBS_15 | Tests: orchestrator parallel stop flag — RED | |
-| RBS_16 | Orchestrator: dynamic parallel stop — on ff-merge fail, spawn max 1 — GREEN | |
-| RBS_17 | Remove requeue_reason prompt injection (superseded by implement-end rebase) | |
-| RBS_18 | Validate with real run | |
+| RBS_10 | Tests: `wip-commit` (stages source + state, excludes trace/) — RED | ✓ done |
+| RBS_11 | `plet_git_ops.py wip-commit`: implement command — GREEN | ✓ done |
+| RBS_12 | implement.md + verify.md: `wip-commit`, rebase-prep at start AND end | ✓ done |
+| RBS_13 | Tests: gate-post rebase check (`merge-base --is-ancestor`) — RED | ✓ done |
+| RBS_14 | Gate-post: enforce iter branch on top of workstream — GREEN | ✓ done |
+| RBS_15 | Tests: orchestrator parallel stop flag — RED | ✓ done |
+| RBS_16 | Orchestrator: dynamic parallel stop — on ff-merge fail, spawn max 1 — GREEN | ✓ done |
+| RBS_17 | Prompt requeue directive moved to top of prompt | ✓ done |
+| RBS_18 | Move `remainingRetries` to state.json, remove `requeue_reason` from per-iter state | |
+| RBS_19 | implement.md: add rebase-prep at START of implement (always, not just requeue) | |
+| RBS_20 | SKILL.md: loop runs ONCE — never auto-restart | |
+| RBS_21 | Remove prompt requeue directive (superseded by always-rebase) | |
+| RBS_22 | Validate with real run | |
 
 ---
 
