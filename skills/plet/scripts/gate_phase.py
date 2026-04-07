@@ -227,18 +227,10 @@ def run_ent_check(plet_dir, iter_id):
         ],
     )
     if data is None and result is None:
-        for name in ("progress-entry", "learnings-entry", "emergent-entry"):
-            checks.append({"name": name, "status": "fail", "detail": "entries.py not found"})
+        checks.append({"name": "progress-entry", "status": "fail", "detail": "entries.py not found"})
         return checks
     if data is None:
-        for name in ("progress-entry", "learnings-entry", "emergent-entry"):
-            checks.append(
-                {
-                    "name": name,
-                    "status": "fail",
-                    "detail": "could not parse entries.py output",
-                }
-            )
+        checks.append({"name": "progress-entry", "status": "fail", "detail": "could not parse entries.py output"})
         return checks
 
     artifacts = data.get("artifacts", {})
@@ -254,39 +246,6 @@ def run_ent_check(plet_dir, iter_id):
         )
     else:
         checks.append({"name": "progress-entry", "status": "fail", "detail": f"0 progress entries for {iter_id}"})
-
-    l_count = artifacts.get("learnings", {}).get("count", 0)
-    if l_count > 0:
-        checks.append(
-            {
-                "name": "learnings-entry",
-                "status": "pass",
-                "detail": f"{l_count} learnings entries for {iter_id}",
-            }
-        )
-    else:
-        checks.append({"name": "learnings-entry", "status": "warn", "detail": f"0 learnings entries for {iter_id}"})
-
-    e_count = artifacts.get("emergent", {}).get("count", 0)
-    if e_count > 0:
-        checks.append(
-            {
-                "name": "emergent-entry",
-                "status": "pass",
-                "detail": f"{e_count} emergent entries for {iter_id}",
-            }
-        )
-    else:
-        checks.append(
-            {
-                "name": "emergent-entry",
-                "status": "warn",
-                "detail": f"0 emergent entries for {iter_id} — verify no design decisions, "
-                "requirement gaps, or assumptions were made. "
-                "If none, this is expected. If any were made, write them before "
-                "exiting.",
-            }
-        )
 
     return checks
 
@@ -609,7 +568,9 @@ Examples:
 
     # Shared checks
     checks = []
-    checks.extend(run_gtc_checks(plet_dir, iter_id, phase))
+    if cmd == "pre":
+        # Git infrastructure checks (branch, clean tree, etc.) — pre only
+        checks.extend(run_gtc_checks(plet_dir, iter_id, phase))
     checks.append(run_sta_validate(plet_dir, iter_id))
 
     # Phase-specific checks
@@ -651,14 +612,15 @@ def pre_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state)
 
 
 def post_phase_checks(checks, plet_dir, iter_id, phase, iter_state, global_state):
-    """Phase-specific post checks. Order per GPH_PST_BHV_10."""
+    """Phase-specific post checks — quality only, no infrastructure.
+
+    Infrastructure checks (clean-worktree, audit-tag, correct-branch) are
+    handled by phase-end itself or the orchestrator. Gate-post focuses on
+    artifact completeness: verdict, entries, trace, report.
+    """
     # Implement-only checks
     if phase == "implement":
         checks.append(check_implement_verdict(iter_state))
-        checks.append(check_rebase_onto_workstream(global_state))
-
-    # Audit tag check
-    checks.append(check_audit_tag(global_state, iter_state, phase))
 
     # Entries and trace
     checks.extend(run_ent_check(plet_dir, iter_id))

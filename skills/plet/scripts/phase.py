@@ -141,7 +141,7 @@ def _build_criteria_results(ist):
     return results
 
 
-def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields):
+def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields):  # noqa: C901
     """Execute the end-of-phase step sequence. Returns exit code."""
     iter_id = kwargs["iter_id"]
     progress_content = kwargs["progress_content"]
@@ -181,28 +181,9 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
         steps_done.append(name)
         return True
 
-    # Step 1: set-verdict
-    if not _step(
-        "set-verdict",
-        cmd_set_verdict,
-        [
-            plet_dir,
-            "--iter-id",
-            iter_id,
-            "--phase",
-            phase,
-            "--verdict",
-            verdict,
-            "--agent-id",
-            "phase",
-        ],
-    ):
-        return (1, "", step_err)
-
-    # Step 1.5: add-report (verify phase only)
+    # Step 1: add-report (verify phase only)
     if phase == "verify" and (summary or report_file):
         if report_file and os.path.isfile(report_file):
-            # Explicit report file — read and pass fields
             with open(report_file) as f:
                 report_data = json.load(f)
             report_args = [
@@ -223,7 +204,6 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
                 "phase",
             ]
         else:
-            # Auto-build from criteria in state file
             criteria_results = _build_criteria_results(ist)
             report_args = [
                 plet_dir,
@@ -294,7 +274,45 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     ):
         return (1, "", step_err)
 
-    # Step 4: git add + commit (before audit-tag so the tag marks the phase-end commit)
+    # Step 4: set-verdict
+    if not _step(
+        "set-verdict",
+        cmd_set_verdict,
+        [
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--phase",
+            phase,
+            "--verdict",
+            verdict,
+            "--agent-id",
+            "phase",
+        ],
+    ):
+        return (1, "", step_err)
+
+    # Step 5: gate-post quality checks — HARD FAIL if gate fails
+    # Gate checks artifact completeness (verdict, entries, trace, report).
+    # No infrastructure checks (clean-worktree, audit-tag) — those happen after.
+    # On failure, agent fixes issues and retries. Steps 1-4 are idempotent.
+    from gate_phase import cmd_post as cmd_gate_post
+
+    gate_result = cmd_gate_post([plet_dir, "--iter-id", iter_id, "--phase", phase])
+    gate_rc = gate_result[0] if isinstance(gate_result, tuple) else gate_result
+    if gate_rc == 1:  # Hard fail only — warnings (exit 2) are acceptable
+        gate_err = gate_result[2] if isinstance(gate_result, tuple) and len(gate_result) > 2 else ""
+        gate_out = gate_result[1] if isinstance(gate_result, tuple) and len(gate_result) > 1 else ""
+        steps_done.append("gate-post(FAIL)")
+        msg = f"Gate check failed — fix issues and retry phase-end.\nSteps completed: {', '.join(steps_done)}"
+        if gate_out:
+            msg += f"\nGate output: {gate_out[:500]}"
+        if gate_err:
+            msg += f"\nGate errors: {gate_err[:500]}"
+        return (1, "", msg)
+    steps_done.append("gate-post")
+
+    # Step 6: git commit (only after gate passes — nothing is sealed until quality checks pass)
     project_root = os.path.dirname(os.path.abspath(plet_dir))
     subprocess.run(["git", "add", "-A"], capture_output=True, cwd=project_root)
     commit_msg = f"plet: [{iter_id}] {phase} - {verdict}"
@@ -308,7 +326,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
         return (1, "", f"git commit failed: {commit_result.stderr[:200]}")
     steps_done.append("git-commit")
 
-    # Step 5: audit-tag (tags the phase-end commit, not a prior wip commit)
+    # Step 7: audit-tag (tags the gate-passing commit)
     if not _step(
         "audit-tag",
         cmd_audit_tag,
@@ -322,22 +340,6 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     ):
         return (1, "", step_err)
 
-    # Step 6: gate-post checks (integrated — agent no longer calls gate-post separately)
-    from gate_phase import cmd_post as cmd_gate_post
-
-    gate_result = cmd_gate_post([plet_dir, "--iter-id", iter_id, "--phase", phase])
-    gate_rc = gate_result[0] if isinstance(gate_result, tuple) else gate_result
-    gate_passed = gate_rc == 0
-    steps_done.append("gate-post" if gate_passed else "gate-post(warn)")
-
-    # Commit gate-post artifacts (progress entry from gate check)
-    subprocess.run(["git", "add", "-A"], capture_output=True, cwd=project_root)
-    subprocess.run(
-        ["git", "commit", "-m", f"plet: [{iter_id}] {phase} gate-post", "--allow-empty"],
-        capture_output=True,
-        cwd=project_root,
-    )
-
     if output_json:
         from util_cli import filter_fields, now_iso
 
@@ -348,7 +350,6 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             "verdict": verdict,
             "iterationId": iter_id,
             "steps": steps_done,
-            "gateResult": "pass" if gate_passed else "warn",
             "scriptVersion": SCRIPT_VERSION,
             "timestamp": now_iso(),
         }
@@ -356,8 +357,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             data = filter_fields(data, fields)
         return (0, json.dumps(data, indent=2 if pretty else None), "")
     else:
-        gate_msg = " (gate: pass)" if gate_passed else " (gate: warn — check output)"
-        return (0, f"OK — {phase} phase ended: {verdict} ({', '.join(steps_done)}){gate_msg}", "")
+        return (0, f"OK — {phase} phase ended: {verdict} ({', '.join(steps_done)})", "")
 
 
 cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict VALUE --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501

@@ -334,16 +334,14 @@ Examples:
         else:
             return (1, "", msg)
 
-    # Derive branch names
-    iter_branch = derive_iteration_branch(global_state, iter_state)
+    # Derive workstream branch (sequential mode — no per-iteration branches)
     ws_branch = derive_workstream_branch(global_state)
 
-    # Run checks in order (BHV_6):
-    # in-progress-operation → branch-exists → correct-branch → clean-worktree → linear-history → no-stashes
+    # Run checks in order:
+    # in-progress-operation → correct-branch (workstream) → clean-worktree → linear-history → no-stashes
     checks = []
     checks.append(check_in_progress_operation())
-    checks.append(check_branch_exists(iter_branch))
-    checks.append(check_correct_branch(iter_branch))
+    checks.append(check_correct_branch(ws_branch))
     checks.append(check_clean_worktree())
     checks.append(check_linear_history(ws_branch))
     checks.append(check_no_stashes())

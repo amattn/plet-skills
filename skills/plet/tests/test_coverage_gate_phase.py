@@ -256,11 +256,9 @@ def test_run_ent_check():
                 f.write(f"# {name}\n")
 
         results = gate_phase.run_ent_check(plet_dir, "ID_001")
-        check("returns 3 checks", len(results) == 3)
+        check("returns 1 check", len(results) == 1, f"got {len(results)}")
         names = [r["name"] for r in results]
         check("has progress", "progress-entry" in names)
-        check("has learnings", "learnings-entry" in names)
-        check("has emergent", "emergent-entry" in names)
     finally:
         shutil.rmtree(d)
 
@@ -382,7 +380,7 @@ def test_post_phase_checks():
             gate_phase.post_phase_checks(checks, plet_dir, "ID_001", "implement", ist, gs)
             names = [c["name"] for c in checks]
             check("has implement-verdict", "implement-verdict" in names)
-            check("has audit-tag", "audit-tag" in names)
+            check("no audit-tag in post", "audit-tag" not in names)
             check("has progress-entry", "progress-entry" in names)
             check("has trace-events", "trace-events" in names)
             check("no verify-verdict", "verify-verdict" not in names)
@@ -442,15 +440,11 @@ def _make_gated_project(phase="implement"):
         with open(os.path.join(plet_dir, name), "w") as f:
             f.write(f"# {name}\n")
 
-    # Git: commit everything, create workstream and iteration branches
+    # Git: commit everything, create workstream branch (sequential mode — no per-iteration branches)
     subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
     subprocess.run(["git", "-C", d, "commit", "-m", "setup"], capture_output=True)
     subprocess.run(
         ["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/workstream"],
-        capture_output=True,
-    )
-    subprocess.run(
-        ["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/ID_001"],
         capture_output=True,
     )
 
@@ -612,7 +606,7 @@ def test_cmd_post_implement():
     try:
         os.chdir(d)
 
-        # Post-implement needs: implementVerdict set, audit tag, entries, trace
+        # Post-implement needs: implementVerdict set, entries, trace
         make_iter_state(
             plet_dir,
             "ID_001",
@@ -632,7 +626,7 @@ def test_cmd_post_implement():
         )
         check("cmd_post implement returns int", isinstance(code, int))
         check("cmd_post implement has output", len(out) > 0)
-        # Should mention implement-verdict and audit-tag checks
+        # Should mention implement-verdict check
         check("cmd_post implement mentions verdict", "verdict" in out.lower() or "implement" in out.lower())
     finally:
         os.chdir(old_cwd)
@@ -647,7 +641,7 @@ def test_cmd_post_verify():
     try:
         os.chdir(d)
 
-        # Post-verify needs: verifyVerdict, verificationReports, audit tag, entries, trace
+        # Post-verify needs: verifyVerdict, verificationReports, entries, trace
         make_iter_state(
             plet_dir,
             "ID_001",
@@ -775,7 +769,7 @@ def main():
     # rebase check
     test_rebase_check_on_top()
     test_rebase_check_behind()
-    test_rebase_check_implement_only()
+    test_rebase_check_not_in_post()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
@@ -867,9 +861,9 @@ def test_rebase_check_behind():
         shutil.rmtree(d)
 
 
-def test_rebase_check_implement_only():
-    """Rebase check only runs for implement phase, not verify."""
-    print("\n## rebase-check — implement only")
+def test_rebase_check_not_in_post():
+    """Post gate no longer includes rebase-check (handled by phase-end/orchestrator)."""
+    print("\n## rebase-check — not in post gate")
     import gate_phase
 
     d, plet_dir = _make_project()
@@ -885,20 +879,20 @@ def test_rebase_check_implement_only():
             gs = load_and_validate_global_state(plet_dir)
             ist = load_and_validate_iter_state(plet_dir, "ID_001")
 
-            # Implement phase should have rebase-check
+            # Implement phase should NOT have rebase-check in post
             impl_checks = []
             gate_phase.post_phase_checks(impl_checks, plet_dir, "ID_001", "implement", ist, gs)
             impl_names = [c["name"] for c in impl_checks]
-            assert "rebase-check" in impl_names, f"implement should have rebase-check: {impl_names}"
+            assert "rebase-check" not in impl_names, f"implement post should NOT have rebase-check: {impl_names}"
 
-            # Verify phase should NOT have rebase-check
+            # Verify phase should NOT have rebase-check in post
             ist2 = dict(ist)
             ist2["verifyVerdict"] = "passed"
             ist2["verificationReports"] = [{"verdict": "passed", "criteriaResults": []}]
             verify_checks = []
             gate_phase.post_phase_checks(verify_checks, plet_dir, "ID_001", "verify", ist2, gs)
             verify_names = [c["name"] for c in verify_checks]
-            assert "rebase-check" not in verify_names, f"verify should NOT have rebase-check: {verify_names}"
+            assert "rebase-check" not in verify_names, f"verify post should NOT have rebase-check: {verify_names}"
         finally:
             os.chdir(old_cwd)
     finally:

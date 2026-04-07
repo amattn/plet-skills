@@ -85,7 +85,7 @@ def check(name, condition, detail=""):
 
 
 def setup_git_repo(tmpdir):
-    """Initialize a git repo with an initial commit and iteration branch."""
+    """Initialize a git repo with an initial commit on the workstream branch (sequential mode)."""
     subprocess.run(["git", "init", tmpdir], capture_output=True)
     subprocess.run(["git", "-C", tmpdir, "config", "user.email", "test@test.com"], capture_output=True)
     subprocess.run(["git", "-C", tmpdir, "config", "user.name", "Test"], capture_output=True)
@@ -95,10 +95,8 @@ def setup_git_repo(tmpdir):
         f.write("# test\n")
     subprocess.run(["git", "-C", tmpdir, "add", "-A"], capture_output=True)
     subprocess.run(["git", "-C", tmpdir, "commit", "-m", "init"], capture_output=True)
-    # Create workstream branch
-    subprocess.run(["git", "-C", tmpdir, "branch", "plet/TEST/loop1/workstream"], capture_output=True)
-    # Create and checkout iteration branch
-    subprocess.run(["git", "-C", tmpdir, "checkout", "-b", "plet/TEST/loop1/ID_001"], capture_output=True)
+    # Create and checkout workstream branch (sequential — no iter branch)
+    subprocess.run(["git", "-C", tmpdir, "checkout", "-b", "plet/TEST/loop1/workstream"], capture_output=True)
     return tmpdir
 
 
@@ -108,7 +106,7 @@ def setup_project(tmpdir, phase="implement", verdict_field=None, verdict_value=N
     plet_dir = os.path.join(tmpdir, "plet")
 
     lifecycle = "implementing" if phase == "implement" else "verifying"
-    make_global_state(plet_dir, lifecycles={"ID_001": lifecycle})
+    make_global_state(plet_dir, lifecycles={"ID_001": lifecycle}, loop_session=1)
 
     iter_kwargs = {
         "criteria": [

@@ -470,9 +470,9 @@ def test_cmd_check_iteration_basic_pass():
     d, plet_dir = _make_iteration_project()
     old_cwd = os.getcwd()
     try:
-        # Switch to the iteration branch
-        iter_branch = "plet/TEST/loop1/ID_001"
-        subprocess.run(["git", "-C", d, "checkout", iter_branch], capture_output=True)
+        # Switch to workstream branch (sequential mode — no per-iteration branches)
+        ws_branch = "plet/TEST/loop1/workstream"
+        subprocess.run(["git", "-C", d, "checkout", ws_branch], capture_output=True)
         os.chdir(d)
         rc = exit_code(
             git_check.cmd_check_iteration(
@@ -497,8 +497,8 @@ def test_cmd_check_iteration_json_output():
     d, plet_dir = _make_iteration_project()
     old_cwd = os.getcwd()
     try:
-        iter_branch = "plet/TEST/loop1/ID_001"
-        subprocess.run(["git", "-C", d, "checkout", iter_branch], capture_output=True)
+        ws_branch = "plet/TEST/loop1/workstream"
+        subprocess.run(["git", "-C", d, "checkout", ws_branch], capture_output=True)
         os.chdir(d)
 
         # Capture stdout
@@ -651,14 +651,14 @@ def test_cmd_check_iteration_missing_iter_state():
 
 
 def test_cmd_check_iteration_wrong_branch():
-    """Checks fail when on the wrong branch (workstream instead of iteration)."""
+    """Checks fail when on main instead of workstream."""
     import git_check
 
     d, plet_dir = _make_iteration_project()
     old_cwd = os.getcwd()
     try:
-        # Stay on workstream, not the iteration branch
-        subprocess.run(["git", "-C", d, "checkout", "plet/TEST/loop1/workstream"], capture_output=True)
+        # Stay on main, not the workstream branch
+        subprocess.run(["git", "-C", d, "checkout", "main"], capture_output=True)
         os.chdir(d)
         rc = exit_code(
             git_check.cmd_check_iteration(

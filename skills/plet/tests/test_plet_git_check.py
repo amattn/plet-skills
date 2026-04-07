@@ -112,9 +112,9 @@ def run_git_direct(repo, args):
 
 
 def setup_clean_iteration(d):
-    """Set up a clean repo with workstream + iteration branch + committed state files.
+    """Set up a clean repo with workstream branch + committed state files.
     Returns (repo, plet_dir).
-    Leaves HEAD on the iteration branch."""
+    Leaves HEAD on the workstream branch (sequential mode — no per-iteration branches)."""
     repo = make_git_repo(d)
     plet_dir = os.path.join(repo, "plet")
     write_global_state(plet_dir, lifecycles={"ID_001": "implementing"})
@@ -124,11 +124,8 @@ def setup_clean_iteration(d):
     git_run(repo, ["add", "plet/"])
     git_run(repo, ["commit", "-m", "add plet state"])
 
-    # Create workstream branch
-    git_run(repo, ["branch", "plet/LOGA/loop1/workstream"])
-
-    # Create iteration branch with a commit
-    git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001", "plet/LOGA/loop1/workstream"])
+    # Create and checkout workstream branch
+    git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/workstream"])
     with open(os.path.join(repo, "impl.txt"), "w") as f:
         f.write("implementation\n")
     git_run(repo, ["add", "impl.txt"])
@@ -173,7 +170,8 @@ def test_cki_all_pass():
 
         stdout, _, _ = run(["check-iteration", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], cwd=repo)
         check("PASS in title", stdout.startswith("PASS"))
-        check("all checks listed", "branch-exists" in stdout and "correct-branch" in stdout)
+        check("correct-branch listed", "correct-branch" in stdout)
+        check("no branch-exists check", "branch-exists" not in stdout)
         check("exit 0", True)
 
 
@@ -201,7 +199,7 @@ def test_cki_json_output():
         check("command", data["command"] == "check-iteration")
         check("has checks array", isinstance(data["checks"], list))
         check("has summary", "total" in data["summary"])
-        check("6 checks", data["summary"]["total"] == 6)
+        check("5 checks", data["summary"]["total"] == 5)
         check("0 failed", data["summary"]["failed"] == 0)
 
 
@@ -210,7 +208,7 @@ def test_cki_wrong_branch():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir = setup_clean_iteration(d)
 
-        # Switch to main (wrong branch)
+        # Switch to main (wrong branch — should be on workstream)
         git_run(repo, ["checkout", "main"])
 
         stdout, _, _ = run(
@@ -236,24 +234,27 @@ def test_cki_dirty_worktree():
 
 
 def test_cki_merge_commit():
-    print("\n## check-iteration — merge commit (FAIL)")
+    print("\n## check-iteration — merge commit on workstream (linear-history is self-referencing)")
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir = setup_clean_iteration(d)
 
-        # Create a merge commit on the iteration branch
+        # Create a side branch, then merge it into workstream to produce a merge commit
+        git_run(repo, ["checkout", "-b", "side-branch", "main"])
+        with open(os.path.join(repo, "side_change.txt"), "w") as f:
+            f.write("side change\n")
+        git_run(repo, ["add", "side_change.txt"])
+        git_run(repo, ["commit", "-m", "side change"])
+
         git_run(repo, ["checkout", "plet/LOGA/loop1/workstream"])
-        with open(os.path.join(repo, "ws_change.txt"), "w") as f:
-            f.write("workstream change\n")
-        git_run(repo, ["add", "ws_change.txt"])
-        git_run(repo, ["commit", "-m", "workstream change"])
+        git_run(repo, ["merge", "side-branch", "--no-edit"])
 
-        git_run(repo, ["checkout", "plet/LOGA/loop1/ID_001"])
-        git_run(repo, ["merge", "plet/LOGA/loop1/workstream", "--no-edit"])
-
+        # In sequential mode, HEAD IS the workstream branch, so workstream..HEAD
+        # is an empty range — linear-history always passes. The check is meaningful
+        # only when HEAD is on a different branch than the base.
         stdout, _, _ = run(
-            ["check-iteration", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=repo
+            ["check-iteration", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=0, cwd=repo
         )
-        check("linear-history failed", "linear-history" in stdout and "FAIL" in stdout)
+        check("linear-history passes (self-ref)", "linear-history" in stdout and "PASS" in stdout)
 
 
 def test_cki_stashes_warn():
@@ -274,8 +275,8 @@ def test_cki_stashes_warn():
         check("no-stashes warned", "no-stashes" in stdout and "WARN" in stdout)
 
 
-def test_cki_branch_not_exists():
-    print("\n## check-iteration — branch doesn't exist (FAIL)")
+def test_cki_workstream_wrong_branch():
+    print("\n## check-iteration — on main, not workstream (FAIL)")
     with tempfile.TemporaryDirectory() as d:
         repo = make_git_repo(d)
         plet_dir = os.path.join(repo, "plet")
@@ -284,11 +285,12 @@ def test_cki_branch_not_exists():
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "add plet state"])
 
-        # Don't create iteration branch
+        # Don't create workstream branch — HEAD is on main
         stdout, _, _ = run(
             ["check-iteration", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=repo
         )
-        check("branch-exists failed", "branch-exists" in stdout and "FAIL" in stdout)
+        check("correct-branch failed", "correct-branch" in stdout and "FAIL" in stdout)
+        check("no branch-exists check", "branch-exists" not in stdout)
 
 
 def test_cki_all_checks_run():
@@ -413,7 +415,7 @@ def main():
     test_cki_dirty_worktree()
     test_cki_merge_commit()
     test_cki_stashes_warn()
-    test_cki_branch_not_exists()
+    test_cki_workstream_wrong_branch()
     test_cki_all_checks_run()
     test_cki_in_progress_operation()
     test_cki_detached_head()

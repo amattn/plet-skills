@@ -18,7 +18,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import gate_phase  # noqa: E402
 from util_fixture import (
-    create_iteration_branch,
     create_workstream_branch,
     make_audit_tag,
     make_git_repo,
@@ -107,9 +106,15 @@ def setup_git_repo(tmpdir):
     return make_git_repo(tmpdir)
 
 
-def setup_iteration_branch(repo, project_id="TEST", iter_id="ID_001"):
+def setup_workstream_branch(repo, project_id="TEST"):
+    """Commit plet files on main, then create workstream branch and leave HEAD on it (sequential mode)."""
+    import subprocess as _sp
+
+    # Commit all plet files on main first so workstream starts clean
+    _sp.run(["git", "-C", repo, "add", "-A"], capture_output=True, check=True)
+    _sp.run(["git", "-C", repo, "commit", "-m", "add plet files"], capture_output=True, check=True)
     create_workstream_branch(repo, project_id=project_id)
-    create_iteration_branch(repo, project_id=project_id, iter_id=iter_id, num_commits=1)
+    # Stay on workstream — sequential mode has no per-iteration branches
 
 
 def make_runtime_artifacts(plet_dir, iter_id="ID_001", phase="implement", progress=True, learnings=True, emergent=True):
@@ -208,7 +213,7 @@ def setup_impl_pre(tmpdir, lifecycle="implementing"):
     make_global_state(plet_dir, lifecycles={"ID_001": lifecycle})
     make_iter_state(plet_dir)
     make_spec_artifacts(plet_dir)
-    setup_iteration_branch(repo)
+    setup_workstream_branch(repo)
     return plet_dir
 
 
@@ -230,7 +235,7 @@ def setup_impl_post(
     make_runtime_artifacts(plet_dir, phase="implement", progress=progress, learnings=learnings, emergent=emergent)
     if trace:
         make_trace_file(plet_dir, phase="implement")
-    setup_iteration_branch(repo)
+    setup_workstream_branch(repo)
     if audit_tag:
         make_audit_tag(tmpdir, phase="implement")
     return plet_dir
@@ -242,7 +247,7 @@ def setup_verify_pre(tmpdir, lifecycle="verifying"):
     make_global_state(plet_dir, lifecycles={"ID_001": lifecycle})
     make_iter_state(plet_dir)
     make_spec_artifacts(plet_dir)
-    setup_iteration_branch(repo)
+    setup_workstream_branch(repo)
     return plet_dir
 
 
@@ -267,7 +272,7 @@ def setup_verify_post(
     make_runtime_artifacts(plet_dir, phase="verify", progress=progress, learnings=learnings, emergent=emergent)
     if trace:
         make_trace_file(plet_dir, phase="verify")
-    setup_iteration_branch(repo)
+    setup_workstream_branch(repo)
     if audit_tag:
         make_audit_tag(tmpdir, phase="verify")
     return plet_dir
@@ -348,7 +353,7 @@ def test_impl_pre_missing_artifacts():
         plet_dir = os.path.join(tmpdir, "plet")
         make_global_state(plet_dir, lifecycles={"ID_001": "implementing"})
         make_iter_state(plet_dir)
-        setup_iteration_branch(repo)
+        setup_workstream_branch(repo)
         stdout, _, rc = run(["pre", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=tmpdir)
         check("exit 1", rc == 1)
         check("spec-artifacts FAIL", "FAIL" in stdout and "spec-artifacts" in stdout)
@@ -431,8 +436,8 @@ def test_impl_post_passing():
         )
         check("exit 0", rc == 0)
         check("has progress-entry", "progress-entry" in stdout)
-        check("has learnings-entry", "learnings-entry" in stdout)
-        check("has emergent-entry", "emergent-entry" in stdout)
+        check("no learnings-entry", "learnings-entry" not in stdout)
+        check("no emergent-entry", "emergent-entry" not in stdout)
         check("has trace-events", "trace-events" in stdout)
         check("has implement-verdict", "implement-verdict" in stdout)
         check("no verify-verdict", "verify-verdict" not in stdout)
@@ -451,20 +456,6 @@ def test_impl_post_missing_progress():
         )
         check("exit 1", rc == 1)
         check("progress FAIL", "FAIL" in stdout and "progress" in stdout)
-    finally:
-        shutil.rmtree(tmpdir)
-
-
-def test_impl_post_missing_learnings():
-    print("\n## implement post — missing learnings → WARN")
-    tmpdir = tempfile.mkdtemp()
-    try:
-        plet_dir = setup_impl_post(tmpdir, learnings=False)
-        stdout, _, rc = run(
-            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=2, cwd=tmpdir
-        )
-        check("exit 2", rc == 2)
-        check("learnings WARN", "WARN" in stdout and "learnings" in stdout)
     finally:
         shutil.rmtree(tmpdir)
 
@@ -591,8 +582,8 @@ def test_verify_post_json():
         shutil.rmtree(tmpdir)
 
 
-def test_verify_post_git_checks():
-    print("\n## verify post — git checks present")
+def test_verify_post_no_git_checks():
+    print("\n## verify post — no git infrastructure checks (post is quality-only)")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_verify_post(tmpdir)
@@ -603,7 +594,7 @@ def test_verify_post_git_checks():
         )
         data = json.loads(stdout)
         git_checks = [c for c in data["checks"] if c["name"].startswith("git:")]
-        check("git checks present", len(git_checks) > 0)
+        check("no git checks in post", len(git_checks) == 0)
     finally:
         shutil.rmtree(tmpdir)
 
@@ -756,46 +747,20 @@ def test_verify_post_verdict_consistency_warn():
 
 
 # ===========================================================================
-# post tests — audit tag existence
+# post tests — audit tag no longer checked (handled by phase-end/orchestrator)
 # ===========================================================================
 
 
-def test_impl_post_audit_tag_missing():
-    print("\n## implement post — audit tag missing → FAIL")
+def test_impl_post_no_audit_tag_check():
+    print("\n## implement post — audit-tag not checked in post gate")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = setup_impl_post(tmpdir, audit_tag=False)
         stdout, _, rc = run(
-            ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=tmpdir
-        )
-        check("exit 1", rc == 1)
-        check("mentions audit-tag", "audit" in stdout.lower(), "got: " + stdout[:200])
-    finally:
-        shutil.rmtree(tmpdir)
-
-
-def test_impl_post_audit_tag_present():
-    print("\n## implement post — audit tag present → PASS")
-    tmpdir = tempfile.mkdtemp()
-    try:
-        plet_dir = setup_impl_post(tmpdir, audit_tag=True)
-        stdout, _, rc = run(
             ["post", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=0, cwd=tmpdir
         )
-        check("exit 0", rc == 0)
-        check("has audit-tag check", "audit-tag" in stdout)
-    finally:
-        shutil.rmtree(tmpdir)
-
-
-def test_verify_post_audit_tag_missing():
-    print("\n## verify post — audit tag missing → FAIL")
-    tmpdir = tempfile.mkdtemp()
-    try:
-        plet_dir = setup_verify_post(tmpdir, audit_tag=False)
-        stdout, _, rc = run(["post", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], expect_exit=1, cwd=tmpdir)
-        check("exit 1", rc == 1)
-        check("mentions audit-tag", "audit" in stdout.lower(), "got: " + stdout[:200])
+        check("exit 0 (no audit-tag check)", rc == 0)
+        check("no audit-tag in output", "audit-tag" not in stdout)
     finally:
         shutil.rmtree(tmpdir)
 
@@ -819,7 +784,6 @@ def main():
     test_verify_pre_no_phase_specific()
     test_impl_post_passing()
     test_impl_post_missing_progress()
-    test_impl_post_missing_learnings()
     test_impl_post_missing_trace()
     test_impl_post_json()
     test_verify_post_passing()
@@ -828,7 +792,7 @@ def main():
     test_verify_post_report_missing_fields()
     test_verify_post_missing_progress()
     test_verify_post_json()
-    test_verify_post_git_checks()
+    test_verify_post_no_git_checks()
     test_post_gate_logs_progress()
     test_post_gate_logs_failure()
     test_impl_post_implement_verdict_fail()
@@ -837,9 +801,7 @@ def main():
     test_verify_post_verify_verdict_invalid()
     test_verify_post_verdict_consistency_pass()
     test_verify_post_verdict_consistency_warn()
-    test_impl_post_audit_tag_missing()
-    test_impl_post_audit_tag_present()
-    test_verify_post_audit_tag_missing()
+    test_impl_post_no_audit_tag_check()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
