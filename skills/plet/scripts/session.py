@@ -1,13 +1,12 @@
-#!/usr/bin/env python3
 """plet session tool — session lifecycle management.
 
 Starts and ends loop and refine sessions. Mutating commands that update
 state.json (session counters, session history). Paired with
-plet_gate_session.py which handles read-only session detection and preflight.
+gate_session.py which handles read-only session detection and preflight.
 
 Usage:
-    plet_session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     start-session   Start a loop or refine session (increment counter, append history)
@@ -69,7 +68,7 @@ def _format_duration(start_iso, end_iso):
         return "unknown"
 
 
-_help_hint = make_help_hint("plet_session")
+_help_hint = make_help_hint("session")
 
 
 def _find_active_sessions(history):
@@ -146,13 +145,13 @@ def cmd_start_session(args):
           (idempotent) rather than creating a duplicate.
 
     USAGE
-        plet_session.py start-session <plet_dir> --type loop|refine
+        session.py start-session <plet_dir> --type loop|refine
             [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
-        plet_session.py start-session plet/ --type loop
-        plet_session.py start-session plet/ --type refine --output json --pretty
-        plet_session.py start-session plet/ --type loop --dry-run
+        session.py start-session plet/ --type loop
+        session.py start-session plet/ --type refine --output json --pretty
+        session.py start-session plet/ --type loop --dry-run
 
     PURPOSE
         Session setup for the loop orchestrator. Called once at the beginning
@@ -209,7 +208,7 @@ def cmd_start_session(args):
 
 
 cmd_start_session.usage = "<plet_dir> --type loop|refine"  # noqa: E501
-cmd_start_session.example = "plet_session.py start-session plet/ --type loop"  # noqa: E501
+cmd_start_session.example = "session.py start-session plet/ --type loop"  # noqa: E501
 
 
 def _load_session_state(plet_dir, session_type):
@@ -290,12 +289,12 @@ def cmd_end_session(args):
         - Does NOT merge branches or perform any git operations.
 
     USAGE
-        plet_session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+        session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
-        plet_session.py end-session plet/
-        plet_session.py end-session plet/ --output json --pretty
-        plet_session.py end-session plet/ --dry-run
+        session.py end-session plet/
+        session.py end-session plet/ --output json --pretty
+        session.py end-session plet/ --dry-run
 
     PURPOSE
         Clean session close for the orchestrator. Sets endedAt timestamp
@@ -389,7 +388,7 @@ def cmd_end_session(args):
 
 
 cmd_end_session.usage = "<plet_dir>"  # noqa: E501
-cmd_end_session.example = "plet_session.py end-session plet/"  # noqa: E501
+cmd_end_session.example = "session.py end-session plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -402,7 +401,7 @@ def main():
         "start-session": cmd_start_session,
         "end-session": cmd_end_session,
     }
-    return dispatch(commands, "plet_session", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "session", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

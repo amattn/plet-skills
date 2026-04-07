@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_fingerprint.py — fingerprint generation, embedding, and staleness detection.
+"""Tests for fingerprint.py — fingerprint generation, embedding, and staleness detection.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_fingerprint.py
+    ./skills/plet/tests/test_fingerprint.py
 
 Creates temp fixtures, runs commands via subprocess, validates output, cleans up.
 """
@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-import plet_fingerprint  # noqa: E402
+import fingerprint  # noqa: E402
 from util_io import iterations_path, requirements_path, state_json_path
 
 passed = 0
@@ -24,10 +24,10 @@ failed = 0
 def run(args, expect_exit=0):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
-    sys.argv = ["plet_fingerprint", "--no-log"] + args
+    sys.argv = ["fingerprint", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        code = plet_fingerprint.main()
+        code = fingerprint.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -176,7 +176,7 @@ def test_help_all_commands():
 def test_version():
     print("\n## Version")
     stdout, _, _ = run(["--version"])
-    check("version output", "plet_fingerprint" in stdout and "0.3.2" in stdout)
+    check("version output", "fingerprint" in stdout and "0.3.2" in stdout)
 
 
 def test_extract_requirements():
@@ -588,7 +588,7 @@ def test_withdrawn_section_exclusion():
 # Direct import tests (COV_4 — coverage-visible pure functions)
 # ---------------------------------------------------------------------------
 
-import plet_fingerprint as fpr_mod  # noqa: E402, F401 (alias for direct-import tests)
+import fingerprint as fpr_mod  # noqa: E402, F401 (alias for direct-import tests)
 
 
 def test_filter_excluded_sections_direct():

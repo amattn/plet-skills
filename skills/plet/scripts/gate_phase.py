@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet gate phase — implement and verify phase pre/post gate checks.
 
 Enforces compliance at phase boundaries. Pre-gate verifies the foundation
@@ -6,9 +5,9 @@ before work starts. Post-gate verifies artifact completeness before the
 subagent exits. --phase controls which checks run.
 
 Usage:
-    plet_gate_phase.py pre <plet_dir> --iter-id ID_xxx
+    gate_phase.py pre <plet_dir> --iter-id ID_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_phase.py post <plet_dir> --iter-id ID_xxx
+    gate_phase.py post <plet_dir> --iter-id ID_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
@@ -60,7 +59,7 @@ LIFECYCLE_BY_PHASE = {
 # ---------------------------------------------------------------------------
 
 
-help_hint = make_help_hint("plet_gate_phase")
+help_hint = make_help_hint("gate_phase")
 
 
 def scripts_dir():
@@ -89,7 +88,7 @@ def run_gtc_checks(plet_dir, iter_id, phase):
     """Call GTC check-iteration. Returns list of check dicts with git: prefix."""
     checks = []
     data, result = run_tool(
-        "plet_git_check.py",
+        "git_check.py",
         [
             "check-iteration",
             plet_dir,
@@ -102,9 +101,9 @@ def run_gtc_checks(plet_dir, iter_id, phase):
         ],
     )
     if data is None and result is None:
-        checks.append({"name": "git-check", "status": "fail", "detail": "plet_git_check.py not found"})
+        checks.append({"name": "git-check", "status": "fail", "detail": "git_check.py not found"})
     elif data is None:
-        checks.append({"name": "git-check", "status": "fail", "detail": "could not parse plet_git_check.py output"})
+        checks.append({"name": "git-check", "status": "fail", "detail": "could not parse git_check.py output"})
     else:
         for gc in data.get("checks", []):
             checks.append(
@@ -121,7 +120,7 @@ def run_sta_validate(plet_dir, iter_id):
     """Call IST validate. Returns a check dict."""
     is_path = iter_state_path(plet_dir, iter_id)
     data, result = run_tool(
-        "plet_iter_state.py",
+        "iter_state.py",
         [
             "validate",
             plet_dir,
@@ -132,9 +131,9 @@ def run_sta_validate(plet_dir, iter_id):
         ],
     )
     if data is None and result is None:
-        return {"name": "state-valid", "status": "fail", "detail": "plet_iter_state.py not found"}
+        return {"name": "state-valid", "status": "fail", "detail": "iter_state.py not found"}
     if data is None:
-        return {"name": "state-valid", "status": "fail", "detail": "could not parse plet_iter_state.py output"}
+        return {"name": "state-valid", "status": "fail", "detail": "could not parse iter_state.py output"}
     if result.returncode == 0:
         return {"name": "state-valid", "status": "pass", "detail": f"{os.path.basename(is_path)} valid"}
     errors = data.get("errors", [])
@@ -191,7 +190,7 @@ def check_rebase_onto_workstream(global_state, cwd=None):
         "status": "fail",
         "detail": (
             f"branch is NOT on top of {ws_branch} — run rebase-prep before phase-end: "
-            "plet_git_ops.py rebase-prep plet/ --iter-id <ID>"
+            "git_ops.py rebase-prep plet/ --iter-id <ID>"
         ),
     }
 
@@ -217,7 +216,7 @@ def run_ent_check(plet_dir, iter_id):
     """Call ENT check. Returns 3 check dicts (progress FAIL, learnings WARN, emergent WARN)."""
     checks = []
     data, result = run_tool(
-        "plet_entries.py",
+        "entries.py",
         [
             "check",
             plet_dir,
@@ -229,7 +228,7 @@ def run_ent_check(plet_dir, iter_id):
     )
     if data is None and result is None:
         for name in ("progress-entry", "learnings-entry", "emergent-entry"):
-            checks.append({"name": name, "status": "fail", "detail": "plet_entries.py not found"})
+            checks.append({"name": name, "status": "fail", "detail": "entries.py not found"})
         return checks
     if data is None:
         for name in ("progress-entry", "learnings-entry", "emergent-entry"):
@@ -237,7 +236,7 @@ def run_ent_check(plet_dir, iter_id):
                 {
                     "name": name,
                     "status": "fail",
-                    "detail": "could not parse plet_entries.py output",
+                    "detail": "could not parse entries.py output",
                 }
             )
         return checks
@@ -311,7 +310,7 @@ def check_trace_events(plet_dir, iter_id, phase, attempt):
         }
 
     data, result = run_tool(
-        "plet_trace.py", ["validate", plet_dir, "--iter-id", iter_id, "--phase", phase, "--attempt", str(attempt)]
+        "traces.py", ["validate", plet_dir, "--iter-id", iter_id, "--phase", phase, "--attempt", str(attempt)]
     )
     if result is not None and result.returncode != 0:
         return {
@@ -345,7 +344,7 @@ def check_spec_artifacts(plet_dir):
 def run_fpr_check(plet_dir):
     """Call FPR check. Implement pre only."""
     data, result = run_tool(
-        "plet_fingerprint.py",
+        "fingerprint.py",
         [
             "check",
             plet_dir,
@@ -354,12 +353,12 @@ def run_fpr_check(plet_dir):
         ],
     )
     if data is None and result is None:
-        return {"name": "fingerprints-consistent", "status": "warn", "detail": "plet_fingerprint.py not found"}
+        return {"name": "fingerprints-consistent", "status": "warn", "detail": "fingerprint.py not found"}
     if data is None:
         return {
             "name": "fingerprints-consistent",
             "status": "warn",
-            "detail": "could not parse plet_fingerprint.py output",
+            "detail": "could not parse fingerprint.py output",
         }
     consistent = data.get("consistent", None)
     if consistent is True:
@@ -498,8 +497,8 @@ def format_text_output(command, checks, overall, counts):
 
 
 def _log_gate_to_progress(cmd, checks, plet_dir, iter_id, iter_state, phase, overall, counts, exit_code):
-    """Log gate result to progress.md via plet_entries.py."""
-    ent_script = os.path.join(scripts_dir(), "plet_entries.py")
+    """Log gate result to progress.md via entries.py."""
+    ent_script = os.path.join(scripts_dir(), "entries.py")
     progress_path_val = os.path.join(plet_dir, "progress.md")
     if not (os.path.isfile(ent_script) and os.path.isfile(progress_path_val)):
         return
@@ -555,15 +554,15 @@ PITFALLS:
     - verify pre is simpler (git + state + lifecycle only)
 
 USAGE:
-    plet_gate_phase.py pre <plet_dir> --iter-id ID_xxx
+    gate_phase.py pre <plet_dir> --iter-id ID_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 PURPOSE:
     Pre-phase gate. Verifies the foundation before the subagent starts.
 
 Examples:
-    plet_gate_phase.py pre plet/ --iter-id ID_001 --phase implement
-    plet_gate_phase.py pre --iter-id ID_001 --phase verify --output json
+    gate_phase.py pre plet/ --iter-id ID_001 --phase implement
+    gate_phase.py pre --iter-id ID_001 --phase verify --output json
 """
     help_post = """IMPORTANT:
     post is read-only. The subagent runs this before exiting and
@@ -577,15 +576,15 @@ PITFALLS:
     - verify post requires verifyVerdict + verificationReports
 
 USAGE:
-    plet_gate_phase.py post <plet_dir> --iter-id ID_xxx
+    gate_phase.py post <plet_dir> --iter-id ID_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 PURPOSE:
     Post-phase gate. Verifies artifact completeness after the subagent finishes.
 
 Examples:
-    plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement
-    plet_gate_phase.py post --iter-id ID_001 --phase verify --output json
+    gate_phase.py post plet/ --iter-id ID_001 --phase implement
+    gate_phase.py post --iter-id ID_001 --phase verify --output json
 """
     help_text = help_pre if cmd == "pre" else help_post
 
@@ -684,7 +683,7 @@ def cmd_pre(args):
 
 
 cmd_pre.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_pre.example = "plet_gate_phase.py pre plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_pre.example = "gate_phase.py pre plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 def cmd_post(args):
@@ -693,7 +692,7 @@ def cmd_post(args):
 
 
 cmd_post.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_post.example = "plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_post.example = "gate_phase.py post plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -706,7 +705,7 @@ def main():
         "pre": cmd_pre,
         "post": cmd_post,
     }
-    return dispatch(commands, "plet_gate_phase", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "gate_phase", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

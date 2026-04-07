@@ -632,7 +632,7 @@ def test_extract_output_flags_dry_run_rejected():
 # ---------------------------------------------------------------------------
 
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
-STATE_TOOL = os.path.join(SCRIPTS_DIR, "plet_iter_state.py")
+STATE_TOOL = os.path.join(SCRIPTS_DIR, "iter_state.py")
 
 
 def make_test_plet_dir():

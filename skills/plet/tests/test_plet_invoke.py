@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_invoke.py — subprocess launch + transcript capture.
+"""Tests for invoke.py — subprocess launch + transcript capture.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_invoke.py
+    ./skills/plet/tests/test_invoke.py
 
 Uses a mock claude script for tests that need subprocess launch.
 Dry-run tests verify command construction without mocks.
@@ -30,7 +30,7 @@ from util_io import (
     transcript_path,
 )
 
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_invoke.py")
+TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "invoke.py")
 
 passed = 0
 failed = 0
@@ -511,7 +511,7 @@ def test_injectable_launcher():
     import tempfile
 
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-    import plet_invoke
+    import invoke
 
     class MockProcess:
         def __init__(self):
@@ -525,10 +525,10 @@ def test_injectable_launcher():
     try:
         t_path = os.path.join(tmpdir, "transcript.jsonl")
 
-        old_launcher = plet_invoke._launcher
-        plet_invoke._launcher = lambda cmd, cwd, env: MockProcess()
+        old_launcher = invoke._launcher
+        invoke._launcher = lambda cmd, cwd, env: MockProcess()
         try:
-            exit_code, lines, elapsed = plet_invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
+            exit_code, lines, elapsed = invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
             check("exit code 0", exit_code == 0)
             check("2 lines captured", lines == 2, f"got: {lines}")
             check("transcript exists", os.path.isfile(t_path))
@@ -538,7 +538,7 @@ def test_injectable_launcher():
             check("transcript has init", '{"type":"init"}' in content)
             check("transcript has result", '{"type":"result"}' in content)
         finally:
-            plet_invoke._launcher = old_launcher
+            invoke._launcher = old_launcher
     finally:
         shutil.rmtree(tmpdir)
 
@@ -550,7 +550,7 @@ def test_injectable_launcher_nonzero_exit():
     import tempfile
 
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-    import plet_invoke
+    import invoke
 
     class FailProcess:
         def __init__(self):
@@ -564,14 +564,14 @@ def test_injectable_launcher_nonzero_exit():
     try:
         t_path = os.path.join(tmpdir, "transcript.jsonl")
 
-        old_launcher = plet_invoke._launcher
-        plet_invoke._launcher = lambda cmd, cwd, env: FailProcess()
+        old_launcher = invoke._launcher
+        invoke._launcher = lambda cmd, cwd, env: FailProcess()
         try:
-            exit_code, lines, elapsed = plet_invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
+            exit_code, lines, elapsed = invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
             check("exit code 1", exit_code == 1)
             check("1 line captured", lines == 1)
         finally:
-            plet_invoke._launcher = old_launcher
+            invoke._launcher = old_launcher
     finally:
         shutil.rmtree(tmpdir)
 
@@ -583,7 +583,7 @@ def test_injectable_launcher_retry_append():
     import tempfile
 
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-    import plet_invoke
+    import invoke
 
     class MockProcess:
         def __init__(self):
@@ -599,17 +599,17 @@ def test_injectable_launcher_retry_append():
         with open(t_path, "w") as f:
             f.write('{"type":"first_run"}\n')
 
-        old_launcher = plet_invoke._launcher
-        plet_invoke._launcher = lambda cmd, cwd, env: MockProcess()
+        old_launcher = invoke._launcher
+        invoke._launcher = lambda cmd, cwd, env: MockProcess()
         try:
-            exit_code, lines, elapsed = plet_invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
+            exit_code, lines, elapsed = invoke._launch_and_capture(["mock"], tmpdir, {}, t_path)
             with open(t_path) as f:
                 content = f.read()
             check("has first_run", "first_run" in content)
             check("has retry marker", "--- retry ---" in content)
             check("has retry event", '{"type":"retry"}' in content)
         finally:
-            plet_invoke._launcher = old_launcher
+            invoke._launcher = old_launcher
     finally:
         shutil.rmtree(tmpdir)
 
@@ -621,9 +621,9 @@ def test_injectable_launcher_retry_append():
 
 def test_to_json_with_fields():
     print("\n## _to_json with fields filter")
-    import plet_invoke
+    import invoke
 
-    result = plet_invoke._to_json({"status": "ok", "command": "run", "extra": "data"}, fields=["status"])
+    result = invoke._to_json({"status": "ok", "command": "run", "extra": "data"}, fields=["status"])
     data = json.loads(result)
     check("has status", "status" in data)
     check("filtered extra", "extra" not in data or "fieldsOmitted" in data)
@@ -631,9 +631,9 @@ def test_to_json_with_fields():
 
 def test_err_out_json_mode():
     print("\n## _err_out JSON mode")
-    import plet_invoke
+    import invoke
 
-    out, err = plet_invoke._err_out("run", "test error", True, False)
+    out, err = invoke._err_out("run", "test error", True, False)
     check("out has JSON", len(out) > 0)
     data = json.loads(out)
     check("status error", data["status"] == "error")
@@ -644,15 +644,13 @@ def test_validate_run_inputs_bad_permission():
     print("\n## _validate_run_inputs — bad permission mode")
     import tempfile
 
-    import plet_invoke
+    import invoke
 
     tmpdir = tempfile.mkdtemp()
     plet_dir = os.path.join(tmpdir, "plet")
     os.makedirs(plet_dir)
     try:
-        result = plet_invoke._validate_run_inputs(
-            "implement", "INVALID_MODE", plet_dir, tmpdir, "run", False, False, "hint"
-        )
+        result = invoke._validate_run_inputs("implement", "INVALID_MODE", plet_dir, tmpdir, "run", False, False, "hint")
         check("returns error tuple", result is not None)
         check("exit code 1", result[0] == 1)
         check("mentions invalid", "invalid" in result[2].lower() or "INVALID_MODE" in result[2])
@@ -662,9 +660,9 @@ def test_validate_run_inputs_bad_permission():
 
 def test_build_claude_command_with_options():
     print("\n## build_claude_command — with model and max_budget")
-    import plet_invoke
+    import invoke
 
-    cmd = plet_invoke.build_claude_command("prompt", "verify", "ID_001", 2, "auto", "sonnet", 5, True)
+    cmd = invoke.build_claude_command("prompt", "verify", "ID_001", 2, "auto", "sonnet", 5, True)
     check("has model", "--model" in cmd and "sonnet" in cmd)
     check("has max-budget", "--max-budget-usd" in cmd and "5" in cmd)
 
@@ -673,11 +671,11 @@ def test_auto_detect_permission_mode():
     print("\n## _auto_detect_permission_mode — no settings")
     import tempfile
 
-    import plet_invoke
+    import invoke
 
     tmpdir = tempfile.mkdtemp()
     try:
-        result = plet_invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
+        result = invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
         check("defaults to auto", result == "auto")
     finally:
         shutil.rmtree(tmpdir)
@@ -687,7 +685,7 @@ def test_auto_detect_bypass_permissions():
     print("\n## _auto_detect_permission_mode — bypassPermissions")
     import tempfile
 
-    import plet_invoke
+    import invoke
 
     tmpdir = tempfile.mkdtemp()
     try:
@@ -695,7 +693,7 @@ def test_auto_detect_bypass_permissions():
         os.makedirs(settings_dir)
         with open(os.path.join(settings_dir, "settings.json"), "w") as f:
             json.dump({"permissions": {"bypassPermissions": True}}, f)
-        result = plet_invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
+        result = invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
         check("detects bypass", result == "bypassPermissions")
     finally:
         shutil.rmtree(tmpdir)
@@ -705,7 +703,7 @@ def test_auto_detect_bad_json():
     print("\n## _auto_detect_permission_mode — bad JSON")
     import tempfile
 
-    import plet_invoke
+    import invoke
 
     tmpdir = tempfile.mkdtemp()
     try:
@@ -713,7 +711,7 @@ def test_auto_detect_bad_json():
         os.makedirs(settings_dir)
         with open(os.path.join(settings_dir, "settings.json"), "w") as f:
             f.write("not json{{{")
-        result = plet_invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
+        result = invoke._auto_detect_permission_mode(tmpdir, os.path.join(tmpdir, "plet"))
         check("falls back to auto", result == "auto")
     finally:
         shutil.rmtree(tmpdir)

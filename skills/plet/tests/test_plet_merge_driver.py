@@ -107,7 +107,7 @@ LEARNINGS_ORCHESTRATOR_ENTRY = """\
 
 Preflight caught stale fingerprints before loop started.
 Requirements had been updated in refine but fingerprints not re-embedded.
-Running `plet_fingerprint.py embed` resolved it.
+Running `fingerprint.py embed` resolved it.
 
 """
 

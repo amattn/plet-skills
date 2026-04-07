@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet global state tool — manages plet/state.json (lifecycle, project metadata).
 
 Enforces the global state schema defined in references/state-schema.md § Global State.
@@ -7,7 +6,7 @@ Split from plet_state.py as part of lifecycle extraction (SF_28).
 GST only operates on the global copy (state.json does not exist in worktrees).
 
 Usage:
-    plet_global_state.py <command> <global_plet_dir> [args]
+    global_state.py <command> <global_plet_dir> [args]
 
 Commands:
     init              Create a new state.json with correct structure.
@@ -51,12 +50,12 @@ from util_state import (
     validate_global_state,
 )
 
-SCRIPT_NAME = "plet_global_state"
+SCRIPT_NAME = "global_state"
 SCRIPT_VERSION = "0.3.2"
 
 PROJECT_ID_RE = re.compile(r"^[A-Z][A-Z0-9]{2,5}$")
 
-_help_hint = make_help_hint("plet_global_state")
+_help_hint = make_help_hint("global_state")
 
 
 def _to_json(data, pretty=False, fields=None):
@@ -75,7 +74,7 @@ def _to_json(data, pretty=False, fields=None):
 
 def cmd_validate(args):
     """Check state.json against the global state schema."""
-    help_text = """Usage: plet_global_state.py validate <global_plet_dir>
+    help_text = """Usage: global_state.py validate <global_plet_dir>
   [--output json [--pretty] [--fields f1,f2]]
 
 Validates state.json against the global state schema.
@@ -132,7 +131,7 @@ Exit 0 if valid, exit 1 if invalid or error.
 
 
 cmd_validate.usage = "<plet_dir>"  # noqa: E501
-cmd_validate.example = "plet_global_state.py validate plet/"  # noqa: E501
+cmd_validate.example = "global_state.py validate plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -171,7 +170,7 @@ def _load_init_json_args(kwargs):
 
 def cmd_init(args):
     """Create a new state.json with correct structure."""
-    help_text = """Usage: plet_global_state.py init <global_plet_dir>
+    help_text = """Usage: global_state.py init <global_plet_dir>
   --project-id PROJ --project-name "Name"
   --dependency-map '{"ID_001":[],...}'
   --milestones '{"MS_1":{"name":"MVP","iterations":[...]}}'
@@ -189,7 +188,7 @@ Also creates the state/ subdirectory for per-iteration files.
 Errors if state.json already exists.
 
 Examples:
-  plet_global_state.py init plet \\
+  global_state.py init plet \\
     --project-id LOGA --project-name "Log Analyzer" \\
     --dependency-map '{"ID_001":[],"ID_002":["ID_001"]}' \\
     --milestones '{"MS_1":{"name":"MVP","iterations":["ID_001","ID_002"]}}' \\
@@ -295,7 +294,7 @@ Examples:
 
 
 cmd_init.usage = "<plet_dir> --project-id PROJ --project-name \"Name\" --dependency-map '{...}' --milestones '{...}' --iterations-fingerprint '{...}'"  # noqa: E501
-cmd_init.example = 'plet_global_state.py init plet/ --project-id LOGA --project-name "Log Analyzer" --dependency-map \'{"ID_001":[]}\' --milestones \'{"MS_1":{"name":"MVP","iterations":["ID_001"]}}\' --iterations-fingerprint \'{}\''  # noqa: E501
+cmd_init.example = 'global_state.py init plet/ --project-id LOGA --project-name "Log Analyzer" --dependency-map \'{"ID_001":[]}\' --milestones \'{"MS_1":{"name":"MVP","iterations":["ID_001"]}}\' --iterations-fingerprint \'{}\''  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -323,7 +322,7 @@ def _load_and_validate_for_update(plet_dir, hint):
 
 def cmd_update_lifecycle(args):
     """Set lifecycle for one iteration in state.json.lifecycles."""
-    help_text = """Usage: plet_global_state.py update-lifecycle <global_plet_dir>
+    help_text = """Usage: global_state.py update-lifecycle <global_plet_dir>
   --iter-id ID_xxx --lifecycle implementing
   [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
@@ -334,8 +333,8 @@ Valid lifecycle values: ineligible, queued, implementing, verifying,
                         complete, blocked, withdrawn
 
 Examples:
-  plet_global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle implementing
-  plet_global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle verifying --output json
+  global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle implementing
+  global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle verifying --output json
 """
     hint = _help_hint("update-lifecycle")
     result = parse_command(args, help_text, {"iter_id", "lifecycle"}, ["iter_id", "lifecycle"], True, hint)
@@ -386,7 +385,7 @@ Examples:
 
 
 cmd_update_lifecycle.usage = "<plet_dir> --iter-id ID_xxx --lifecycle implementing"  # noqa: E501
-cmd_update_lifecycle.example = "plet_global_state.py update-lifecycle plet/ --iter-id ID_001 --lifecycle implementing"  # noqa: E501
+cmd_update_lifecycle.example = "global_state.py update-lifecycle plet/ --iter-id ID_001 --lifecycle implementing"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -396,7 +395,7 @@ cmd_update_lifecycle.example = "plet_global_state.py update-lifecycle plet/ --it
 
 def cmd_get_lifecycle(args):
     """Read lifecycle for one or all iterations."""
-    help_text = """Usage: plet_global_state.py get-lifecycle <global_plet_dir>
+    help_text = """Usage: global_state.py get-lifecycle <global_plet_dir>
   [--iter-id ID_xxx]
   [--output json [--pretty] [--fields f1,f2]]
 
@@ -407,9 +406,9 @@ JSON output is the same shape either way:
   {"status":"ok", "lifecycles":{...}, "counts":{...}, "total":N}
 
 Examples:
-  plet_global_state.py get-lifecycle plet
-  plet_global_state.py get-lifecycle plet --iter-id ID_001
-  plet_global_state.py get-lifecycle plet --output json --pretty
+  global_state.py get-lifecycle plet
+  global_state.py get-lifecycle plet --iter-id ID_001
+  global_state.py get-lifecycle plet --output json --pretty
 """
     result = parse_command(args, help_text, {"iter_id"}, [], False, _help_hint("get-lifecycle"))
     if len(result) == 3:
@@ -489,7 +488,7 @@ Examples:
 
 
 cmd_get_lifecycle.usage = "<plet_dir>"  # noqa: E501
-cmd_get_lifecycle.example = "plet_global_state.py get-lifecycle plet/"  # noqa: E501
+cmd_get_lifecycle.example = "global_state.py get-lifecycle plet/"  # noqa: E501
 
 
 def _lifecycle_counts(lifecycles):

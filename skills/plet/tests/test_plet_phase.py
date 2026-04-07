@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Tests for plet_phase.py — composite phase lifecycle commands.
+"""Tests for phase.py — composite phase lifecycle commands.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_phase.py
+    ./skills/plet/tests/test_phase.py
 
-Tests run plet_phase.py end against real plet state files in temp git repos.
+Tests run phase.py end against real plet state files in temp git repos.
 Verifies that a single 'end' call produces all expected side effects:
 verdict set, progress entry written, trace event emitted, audit tag created,
 artifacts committed.
@@ -21,7 +21,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-import plet_phase  # noqa: E402
+import phase  # noqa: E402
 from util_fixture import (
     make_global_state,
     make_iter_state,
@@ -30,7 +30,7 @@ from util_fixture import (
 )
 from util_io import events_path, iter_state_path, load_json, progress_path
 
-TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_phase.py")
+TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "phase.py")
 
 # Suppress auto-logger globally for tests
 os.environ["PLET_NO_LOG"] = "1"
@@ -40,7 +40,7 @@ failed = 0
 
 
 def run_subprocess(args, expect_exit=0):
-    """Run plet_phase.py via subprocess (for --help/--version tests only)."""
+    """Run phase.py via subprocess (for --help/--version tests only)."""
     result = subprocess.run(
         [sys.executable, TOOL] + args,
         capture_output=True,
@@ -58,12 +58,12 @@ def run(args, expect_exit=0, cwd=None):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
     old_cwd = os.getcwd() if cwd else None
-    sys.argv = ["plet_phase", "--no-log"] + args
+    sys.argv = ["phase", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         if cwd:
             os.chdir(cwd)
-        code = plet_phase.main()
+        code = phase.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -136,7 +136,7 @@ def setup_project(tmpdir, phase="implement", verdict_field=None, verdict_value=N
     subprocess.run(
         [
             sys.executable,
-            os.path.join(scripts_dir, "plet_iter_state.py"),
+            os.path.join(scripts_dir, "iter_state.py"),
             "start-phase",
             plet_dir,
             "--iter-id",
@@ -162,7 +162,7 @@ def setup_project(tmpdir, phase="implement", verdict_field=None, verdict_value=N
 def test_help():
     print("## help")
     out, _, _ = run_subprocess(["--help"])
-    check("top-level help", "plet_phase" in out.lower() or "end" in out)
+    check("top-level help", "phase" in out.lower() or "end" in out)
 
     out, _, _ = run_subprocess(["end", "--help"])
     check("end help", "verdict" in out.lower() or "phase" in out.lower())
@@ -522,7 +522,7 @@ def test_end_verify_auto_report():
         subprocess.run(
             [
                 sys.executable,
-                os.path.join(scripts_dir, "plet_iter_state.py"),
+                os.path.join(scripts_dir, "iter_state.py"),
                 "update-criterion",
                 plet_dir,
                 "--iter-id",
@@ -540,7 +540,7 @@ def test_end_verify_auto_report():
             ],
             capture_output=True,
         )
-        # Commit the criterion update so it's on disk for plet_phase.py end
+        # Commit the criterion update so it's on disk for phase.py end
         subprocess.run(["git", "-C", tmpdir, "add", "-A"], capture_output=True)
         subprocess.run(["git", "-C", tmpdir, "commit", "-m", "criterion update"], capture_output=True)
 

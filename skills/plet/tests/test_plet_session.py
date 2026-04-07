@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for plet_session.py — session lifecycle management.
+"""Tests for session.py — session lifecycle management.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_session.py
-    pytest skills/plet/tests/test_plet_session.py
+    ./skills/plet/tests/test_session.py
+    pytest skills/plet/tests/test_session.py
 
 Red/green, command-by-command: start-session first, then end-session.
 """
@@ -16,7 +16,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-import plet_session  # noqa: E402
+import session  # noqa: E402
 from util_io import state_json_path
 
 passed = 0
@@ -26,10 +26,10 @@ failed = 0
 def run(args, expect_exit=0):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
-    sys.argv = ["plet_session", "--no-log"] + args
+    sys.argv = ["session", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        code = plet_session.main()
+        code = session.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err

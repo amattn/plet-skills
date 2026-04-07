@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet phase lifecycle tool — composite commands for phase boundaries.
 
 Bundles the end-of-phase sequence (set-verdict, progress entry, trace event,
@@ -6,17 +5,17 @@ audit tag, git commit) into a single call. Reduces subagent CLI surface from
 6 separate calls to 1.
 
 Usage:
-    plet_phase.py <command> <plet_dir> --iter-id ID_xxx [args]
+    phase.py <command> <plet_dir> --iter-id ID_xxx [args]
 
 Commands:
     end     Complete a phase: set verdict, write progress, emit trace event,
             create audit tag, commit artifacts.
 
 Examples:
-    plet_phase.py end plet/ --iter-id ID_001 --phase implement --verdict completed \\
+    phase.py end plet/ --iter-id ID_001 --phase implement --verdict completed \\
         --progress-content "Implemented: project scaffolding. 5 AC, all green."
 
-    plet_phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed \\
+    phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed \\
         --progress-content "Verified: all 5 AC independently confirmed." \\
         --report-file /tmp/report.json
 """
@@ -50,7 +49,7 @@ def cmd_end(args):
     """End a phase: set verdict, write progress, emit trace, audit tag, commit.
 
     USAGE:
-        plet_phase.py end <plet_dir> --iter-id ID_xxx --phase implement|verify
+        phase.py end <plet_dir> --iter-id ID_xxx --phase implement|verify
             --verdict VALUE --progress-content "..."
             [--summary "..."] [--findings '[...]']
             [--report-file PATH]
@@ -67,23 +66,23 @@ def cmd_end(args):
         --report-file       Path to verification report JSON (verify only, overrides auto-build)
 
     WHAT IT DOES (in order):
-        1. set-verdict via plet_iter_state.py
+        1. set-verdict via iter_state.py
         2. add-report (verify only — auto-built from state or from --report-file)
-        3. add-progress via plet_entries.py (COMPLETE/BLOCKED/FAILED entry)
-        4. append-event via plet_trace.py (phase_end event)
+        3. add-progress via entries.py (COMPLETE/BLOCKED/FAILED entry)
+        4. append-event via trace.py (phase_end event)
         5. git add plet/ && git commit
-        6. audit-tag via plet_git_ops.py (tags the phase-end commit)
+        6. audit-tag via git_ops.py (tags the phase-end commit)
 
     The subagent still calls gate-post separately after this — gate-post is a
     quality check with a self-correction loop, not bookkeeping.
 
     VERIFY EXAMPLE (auto-report from state — no --report-file needed):
-        plet_phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed \\
+        phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed \\
             --progress-content "Verified: all AC confirmed." \\
             --summary "All 5 criteria independently verified."
     """
     help_text = cmd_end.__doc__
-    hint = "Run: plet_phase.py end --help"
+    hint = "Run: phase.py end --help"
 
     result = parse_command(
         args,
@@ -166,10 +165,10 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
         iter_title = ist.get("title", iter_id)
 
     # Import sibling cmd functions directly (no subprocess, coverage-visible)
-    from plet_entries import cmd_add_progress
-    from plet_git_ops import cmd_audit_tag
-    from plet_iter_state import cmd_add_report, cmd_set_verdict
-    from plet_trace import cmd_append_event
+    from entries import cmd_add_progress  # noqa: I001 (sibling imports, order is logical)
+    from git_ops import cmd_audit_tag
+    from iter_state import cmd_add_report, cmd_set_verdict
+    from traces import cmd_append_event
 
     def _step(name, func, func_args):
         """Run a step, fail fast on error. Handles both int and tuple returns."""
@@ -195,7 +194,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             "--verdict",
             verdict,
             "--agent-id",
-            "plet_phase",
+            "phase",
         ],
     ):
         return (1, "", step_err)
@@ -221,7 +220,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
                 "--related-entries",
                 json.dumps(report_data.get("relatedEntries", [])),
                 "--agent-id",
-                "plet_phase",
+                "phase",
             ]
         else:
             # Auto-build from criteria in state file
@@ -241,7 +240,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
                 "--related-entries",
                 "[]",
                 "--agent-id",
-                "plet_phase",
+                "phase",
             ]
 
         if not _step("add-report", cmd_add_report, report_args):
@@ -344,14 +343,14 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
 
 
 cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict VALUE --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501
-cmd_end.example = 'plet_phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed --progress-content "Verified: all AC confirmed." --summary "All 5 criteria independently verified."'  # noqa: E501
+cmd_end.example = 'phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed --progress-content "Verified: all AC confirmed." --summary "All 5 criteria independently verified."'  # noqa: E501
 
 
 def main():
     commands = {
         "end": cmd_end,
     }
-    return dispatch(commands, "plet_phase", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "phase", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,12 @@
-#!/usr/bin/env python3
 """plet git compliance checks — read-only checks at phase and session boundaries.
 
 Verifies git invariants without modifying state. Called by gate scripts and
 the orchestrator. Reports findings as a list of pass/fail/warn checks.
 
 Usage:
-    plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx
+    git_check.py check-iteration <plet_dir> --iter-id ID_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
-    plet_git_check.py check-session <plet_dir>
+    git_check.py check-session <plet_dir>
         [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
@@ -69,7 +68,7 @@ def _err_json(cmd, msg, pretty=False):
 # ---------------------------------------------------------------------------
 
 
-help_hint = make_help_hint("plet_git_check")
+help_hint = make_help_hint("git_check")
 
 
 def is_git_repo(cwd=None):
@@ -288,7 +287,7 @@ PITFALLS:
     - --phase is "implement" or "verify" (not "implementation")
 
 USAGE:
-    plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx
+    git_check.py check-iteration <plet_dir> --iter-id ID_xxx
         --phase implement|verify
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -302,8 +301,8 @@ PURPOSE:
     merge commits, stashes. Single canonical check shared by gate scripts.
 
 Examples:
-    plet_git_check.py check-iteration --iter-id ID_001 --phase implement
-    plet_git_check.py check-iteration /path/to/plet --iter-id ID_001 --phase verify --output json --pretty
+    git_check.py check-iteration --iter-id ID_001 --phase implement
+    git_check.py check-iteration /path/to/plet --iter-id ID_001 --phase verify --output json --pretty
 """
     cmd_name = "check-iteration"
     hint = help_hint(cmd_name)
@@ -371,7 +370,7 @@ Examples:
 
 
 cmd_check_iteration.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_check_iteration.example = "plet_git_check.py check-iteration plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_check_iteration.example = "git_check.py check-iteration plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -571,7 +570,7 @@ PITFALLS:
     - Must be run from inside a git repository
 
 USAGE:
-    plet_git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (required)
 
@@ -580,8 +579,8 @@ PURPOSE:
     completed iterations, and stashes across the entire loop session.
 
 Examples:
-    plet_git_check.py check-session
-    plet_git_check.py check-session /path/to/plet --output json --pretty
+    git_check.py check-session
+    git_check.py check-session /path/to/plet --output json --pretty
 """
     cmd_name = "check-session"
     hint = help_hint(cmd_name)
@@ -636,7 +635,7 @@ Examples:
 
 
 cmd_check_session.usage = "<plet_dir>"  # noqa: E501
-cmd_check_session.example = "plet_git_check.py check-session plet/"  # noqa: E501
+cmd_check_session.example = "git_check.py check-session plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -649,7 +648,7 @@ def main():
         "check-iteration": cmd_check_iteration,
         "check-session": cmd_check_session,
     }
-    return dispatch(commands, "plet_git_check", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "git_check", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

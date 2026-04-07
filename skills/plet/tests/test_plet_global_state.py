@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_global_state.py (GST) — global state management.
+"""Tests for global_state.py (GST) — global state management.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_global_state.py
+    ./skills/plet/tests/test_global_state.py
 """
 
 import io
@@ -14,7 +14,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(__file__))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-import plet_global_state  # noqa: E402  (after the sys.path.insert for scripts dir)
+import global_state  # noqa: E402  (after the sys.path.insert for scripts dir)
 from util_io import state_json_path
 
 passed = 0
@@ -24,10 +24,10 @@ failed = 0
 def run(args, expect_exit=0):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
-    sys.argv = ["plet_global_state", "--no-log"] + args
+    sys.argv = ["global_state", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        code = plet_global_state.main()
+        code = global_state.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -85,7 +85,7 @@ def test_help():
 
     out, _, _ = run(["--version"])
     check("--version exits 0", True)
-    check("--version has version", "plet_global_state" in out)
+    check("--version has version", "global_state" in out)
 
     out, _, _ = run(["validate", "--help"])
     check("validate --help exits 0", True)

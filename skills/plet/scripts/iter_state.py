@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet iteration state tool — manages per-iteration state files.
 
 Enforces the per-iteration schema defined in references/state-schema.md.
@@ -8,7 +7,7 @@ High-level, agent-friendly commands that encode workflow steps — not raw
 JSON field updates. Each command manages all the fields that step requires.
 
 Usage:
-    plet_iter_state.py <command> <plet_dir> --iter-id ID_xxx [args]
+    iter_state.py <command> <plet_dir> --iter-id ID_xxx [args]
 
 Commands:
     init              Create a new per-iteration state file.
@@ -58,7 +57,7 @@ from util_state import (
     validate_iter_state,
 )
 
-SCRIPT_NAME = "plet_iter_state"
+SCRIPT_NAME = "iter_state"
 SCRIPT_VERSION = "0.3.4"
 
 UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
@@ -81,7 +80,7 @@ PHASE_ACTIVITIES = [
 ]
 
 
-_help_hint = make_help_hint("plet_iter_state")
+_help_hint = make_help_hint("iter_state")
 
 
 def _validate_init_inputs(plet_dir, iter_id, kwargs, no_verify_deps):
@@ -143,7 +142,7 @@ def _load_state(plet_dir, iter_id, hint):
 
 def cmd_validate(args):
     """Check a per-iteration state file against the schema."""
-    help_text = """Usage: plet_iter_state.py validate <plet_dir> --iter-id ID_xxx
+    help_text = """Usage: iter_state.py validate <plet_dir> --iter-id ID_xxx
   [--output json [--pretty] [--fields f1,f2]]
 
 Validates a per-iteration state file against the schema.
@@ -213,7 +212,7 @@ Exit 0 if valid, exit 1 if invalid or error.
 
 
 cmd_validate.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
-cmd_validate.example = "plet_iter_state.py validate plet/ --iter-id ID_001"  # noqa: E501
+cmd_validate.example = "iter_state.py validate plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -223,7 +222,7 @@ cmd_validate.example = "plet_iter_state.py validate plet/ --iter-id ID_001"  # n
 
 def cmd_init(args):
     """Create a new per-iteration state file."""
-    help_text = """Usage: plet_iter_state.py init <plet_dir> --iter-id ID_xxx
+    help_text = """Usage: iter_state.py init <plet_dir> --iter-id ID_xxx
   --title "..." --dependencies '["ID_001"]'
   --criteria '[{"id":"AC_1","description":"..."}]'
   [--dependencies-file path] [--criteria-file path]
@@ -234,7 +233,7 @@ Create a per-iteration state file with correct structure.
 No lifecycle field (SF_28 — lifecycle is in state.json).
 
 Examples:
-  plet_iter_state.py init plet --iter-id ID_001 --title "Scaffolding" \\
+  iter_state.py init plet --iter-id ID_001 --title "Scaffolding" \\
     --dependencies '[]' \\
     --criteria '[{"id":"AC_1","description":"Tests pass"}]'
 """
@@ -366,7 +365,7 @@ Examples:
 cmd_init.usage = (
     '<plet_dir> --iter-id ID_xxx --title "..." --dependencies \'[]\' --criteria \'[{"id":"AC_1","description":"..."}]\''  # noqa: E501
 )
-cmd_init.example = 'plet_iter_state.py init plet/ --iter-id ID_001 --title "Scaffolding" --dependencies \'[]\' --criteria \'[{"id":"AC_1","description":"Tests pass"}]\''  # noqa: E501
+cmd_init.example = 'iter_state.py init plet/ --iter-id ID_001 --title "Scaffolding" --dependencies \'[]\' --criteria \'[{"id":"AC_1","description":"Tests pass"}]\''  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +375,7 @@ cmd_init.example = 'plet_iter_state.py init plet/ --iter-id ID_001 --title "Scaf
 
 def cmd_start_phase(args):
     """Initialize a phase (orchestrator pre-spawn)."""
-    help_text = """Usage: plet_iter_state.py start-phase <plet_dir>
+    help_text = """Usage: iter_state.py start-phase <plet_dir>
   --iter-id ID_xxx --phase implement|verify
   [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
@@ -387,8 +386,8 @@ Implement: clears both implementVerdict and verifyVerdict to null.
 Verify: clears only verifyVerdict (implementVerdict preserved).
 
 Examples:
-  plet_iter_state.py start-phase plet --iter-id ID_001 --phase implement
-  plet_iter_state.py start-phase plet --iter-id ID_001 --phase verify
+  iter_state.py start-phase plet --iter-id ID_001 --phase implement
+  iter_state.py start-phase plet --iter-id ID_001 --phase verify
 """
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
@@ -476,7 +475,7 @@ Examples:
 
 
 cmd_start_phase.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_start_phase.example = "plet_iter_state.py start-phase plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_start_phase.example = "iter_state.py start-phase plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -486,7 +485,7 @@ cmd_start_phase.example = "plet_iter_state.py start-phase plet/ --iter-id ID_001
 
 def cmd_update_activity(args):
     """Set phaseActivity + activityDetail + heartbeat."""
-    help_text = """Usage: plet_iter_state.py update-activity <plet_dir>
+    help_text = """Usage: iter_state.py update-activity <plet_dir>
   --iter-id ID_xxx --phase-activity setup|writing_tests|implementing|...
   --activity-detail "..." --agent-id <id>
   [--dry-run] [--output json [--pretty] [--fields f1,f2]]
@@ -496,7 +495,7 @@ Valid phase activities:
   Verify: setup, verifying, fixing, writing_report, running_checks, committing, wrapping_up, idle
 
 Examples:
-  plet_iter_state.py update-activity plet --iter-id ID_001 \\
+  iter_state.py update-activity plet --iter-id ID_001 \\
     --phase-activity writing_tests --activity-detail "writing failing test for AC_1" \\
     --agent-id agent_abc123
 """
@@ -580,7 +579,7 @@ Examples:
 cmd_update_activity.usage = (
     '<plet_dir> --iter-id ID_xxx --phase-activity implementing --activity-detail "..." --agent-id AGENT_ID'  # noqa: E501
 )
-cmd_update_activity.example = 'plet_iter_state.py update-activity plet/ --iter-id ID_001 --phase-activity implementing --activity-detail "writing tests for AC_1" --agent-id agent_abc123'  # noqa: E501
+cmd_update_activity.example = 'iter_state.py update-activity plet/ --iter-id ID_001 --phase-activity implementing --activity-detail "writing tests for AC_1" --agent-id agent_abc123'  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -621,7 +620,7 @@ def _validate_report_fields(phase, status, red_test, no_test_rationale):
 
 def cmd_update_criterion(args):
     """Update a criterion's implementation or verification status."""
-    help_text = """Usage: plet_iter_state.py update-criterion <plet_dir>
+    help_text = """Usage: iter_state.py update-criterion <plet_dir>
   --iter-id ID_xxx --criterion AC_1
   --phase implementation|verification
   --status pass --evidence "..."
@@ -632,22 +631,22 @@ def cmd_update_criterion(args):
 
 Valid statuses: not_started, fail, pass, error, skipped
 
-Verification report fields (stored in verification object, read by plet_phase.py end):
+Verification report fields (stored in verification object, read by phase.py end):
   --one-liner         One-line summary for report index. Default: first sentence of evidence.
   --red-test          Required for --phase verification --status fail. Test name or "none".
   --no-test-rationale Required when --red-test none AND --status fail. Why no test was written.
 
 Examples:
-  plet_iter_state.py update-criterion plet --iter-id ID_001 \\
+  iter_state.py update-criterion plet --iter-id ID_001 \\
     --criterion AC_1 --phase implementation --status pass \\
     --evidence "pytest exits 0" --agent-id agent_abc123
 
-  plet_iter_state.py update-criterion plet --iter-id ID_001 \\
+  iter_state.py update-criterion plet --iter-id ID_001 \\
     --criterion AC_1 --phase verification --status fail \\
     --evidence "Returns {ok:true} not user profile" --agent-id verify_agent \\
     --red-test test_returns_profile --one-liner "Wrong response shape"
 
-  plet_iter_state.py update-criterion plet --iter-id ID_001 \\
+  iter_state.py update-criterion plet --iter-id ID_001 \\
     --criterion AC_2 --phase verification --status fail \\
     --evidence "Too much coupling between modules" --agent-id verify_agent \\
     --red-test none --no-test-rationale "Architectural concern, not test-expressible"
@@ -752,7 +751,7 @@ Examples:
 
 
 cmd_update_criterion.usage = '<plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." --agent-id ID [--red-test "test_name" for verify+fail]'  # noqa: E501
-cmd_update_criterion.example = 'plet_iter_state.py update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase verification --status fail --evidence "Wrong response shape" --agent-id verify_agent --red-test test_returns_profile'  # noqa: E501
+cmd_update_criterion.example = 'iter_state.py update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase verification --status fail --evidence "Wrong response shape" --agent-id verify_agent --red-test test_returns_profile'  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -783,7 +782,7 @@ def _compute_phase_elapsed(data, phase, attempt, ts):
 
 def cmd_set_verdict(args):
     """Set implementVerdict or verifyVerdict."""
-    help_text = """Usage: plet_iter_state.py set-verdict <plet_dir>
+    help_text = """Usage: iter_state.py set-verdict <plet_dir>
   --iter-id ID_xxx --phase implement|verify
   --verdict completed|blocked|passed|rejected
   --agent-id <id>
@@ -795,9 +794,9 @@ Verify verdicts: passed, rejected, blocked
 Auto-sets phaseActivity to idle and updates phase end timestamp.
 
 Examples:
-  plet_iter_state.py set-verdict plet --iter-id ID_001 \\
+  iter_state.py set-verdict plet --iter-id ID_001 \\
     --phase implement --verdict completed --agent-id agent_abc123
-  plet_iter_state.py set-verdict plet --iter-id ID_001 \\
+  iter_state.py set-verdict plet --iter-id ID_001 \\
     --phase verify --verdict passed --agent-id agent_def456
 """
     hint = _help_hint("set-verdict")
@@ -862,7 +861,9 @@ Examples:
 
 
 cmd_set_verdict.usage = "<plet_dir> --iter-id ID_xxx --phase implement --verdict completed --agent-id AGENT_ID"  # noqa: E501
-cmd_set_verdict.example = "plet_iter_state.py set-verdict plet/ --iter-id ID_001 --phase implement --verdict completed --agent-id agent_abc123"  # noqa: E501
+cmd_set_verdict.example = (
+    "iter_state.py set-verdict plet/ --iter-id ID_001 --phase implement --verdict completed --agent-id agent_abc123"  # noqa: E501
+)
 
 
 # ---------------------------------------------------------------------------
@@ -872,14 +873,14 @@ cmd_set_verdict.example = "plet_iter_state.py set-verdict plet/ --iter-id ID_001
 
 def cmd_heartbeat(args):
     """Lightweight alive signal."""
-    help_text = """Usage: plet_iter_state.py heartbeat <plet_dir>
+    help_text = """Usage: iter_state.py heartbeat <plet_dir>
   --iter-id ID_xxx --agent-id <id>
   [--output json [--pretty] [--fields f1,f2]]
 
 Updates lastHeartbeat and agentId only. No --dry-run.
 
 Examples:
-  plet_iter_state.py heartbeat plet --iter-id ID_001 --agent-id agent_abc123
+  iter_state.py heartbeat plet --iter-id ID_001 --agent-id agent_abc123
 """
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
@@ -930,7 +931,7 @@ Examples:
 
 
 cmd_heartbeat.usage = "<plet_dir> --iter-id ID_xxx --agent-id AGENT_ID"  # noqa: E501
-cmd_heartbeat.example = "plet_iter_state.py heartbeat plet/ --iter-id ID_001 --agent-id agent_abc123"  # noqa: E501
+cmd_heartbeat.example = "iter_state.py heartbeat plet/ --iter-id ID_001 --agent-id agent_abc123"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -1003,7 +1004,7 @@ def _validate_criteria_results(criteria_results):
 
 def cmd_add_report(args):
     """Append a verification report."""
-    help_text = """Usage: plet_iter_state.py add-report <plet_dir>
+    help_text = """Usage: iter_state.py add-report <plet_dir>
   --iter-id ID_xxx --verdict passed|rejected|blocked
   --summary "..." --criteria-results '[...]'
   --findings '[...]' --related-entries '[...]'
@@ -1016,7 +1017,7 @@ criteriaResults entries require: id, status, oneLiner, redTest, relatedEntries.
 noTestRationale required when redTest is "none".
 
 Examples:
-  plet_iter_state.py add-report plet --iter-id ID_001 \\
+  iter_state.py add-report plet --iter-id ID_001 \\
     --verdict passed --summary "All criteria pass." \\
     --criteria-results '[{"id":"AC_1","status":"pass","oneLiner":"Solid",
       "redTest":"none","noTestRationale":"read-only check",
@@ -1121,7 +1122,7 @@ Examples:
 
 
 cmd_add_report.usage = "<plet_dir> --iter-id ID_xxx --verdict passed --summary \"...\" --criteria-results '[...]' --findings '[...]' --related-entries '[...]' --agent-id AGENT_ID"  # noqa: E501
-cmd_add_report.example = 'plet_iter_state.py add-report plet/ --iter-id ID_001 --verdict passed --summary "All criteria pass." --criteria-results \'[{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"read-only","relatedEntries":[]}]\' --findings \'[]\' --related-entries \'[]\' --agent-id agent_abc123'  # noqa: E501
+cmd_add_report.example = 'iter_state.py add-report plet/ --iter-id ID_001 --verdict passed --summary "All criteria pass." --criteria-results \'[{"id":"AC_1","status":"pass","oneLiner":"OK","redTest":"none","noTestRationale":"read-only","relatedEntries":[]}]\' --findings \'[]\' --related-entries \'[]\' --agent-id agent_abc123'  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

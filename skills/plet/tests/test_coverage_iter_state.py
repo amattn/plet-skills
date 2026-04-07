@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import-based coverage tests for plet_iter_state.py cmd_* functions.
+"""Import-based coverage tests for iter_state.py cmd_* functions.
 
 Run with: uv run pytest skills/plet/tests/test_coverage_iter_state.py
 """
@@ -52,9 +52,9 @@ def _make_project(iter_id="ID_001", criteria=None, with_phase=None, **iter_kwarg
     make_iter_state(plet_dir, iter_id, criteria=criteria, **iter_kwargs)
 
     if with_phase is not None:
-        import plet_iter_state
+        import iter_state
 
-        plet_iter_state.cmd_start_phase(
+        iter_state.cmd_start_phase(
             [
                 plet_dir,
                 "--iter-id",
@@ -96,21 +96,21 @@ def _capture(fn, args):
 
 
 def test_cmd_init_help():
-    import plet_iter_state
+    import iter_state
 
-    rc = exit_code(plet_iter_state.cmd_init(["--help"]))
+    rc = exit_code(iter_state.cmd_init(["--help"]))
     check("init help = 0", rc == 0)
 
 
 def test_cmd_init_basic():
-    import plet_iter_state
+    import iter_state
 
     d = tempfile.mkdtemp()
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
         rc = exit_code(
-            plet_iter_state.cmd_init(
+            iter_state.cmd_init(
                 [
                     plet_dir,
                     "--iter-id",
@@ -135,12 +135,12 @@ def test_cmd_init_basic():
 
 
 def test_cmd_init_exists_error():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project()
     try:
         rc = exit_code(
-            plet_iter_state.cmd_init(
+            iter_state.cmd_init(
                 [
                     plet_dir,
                     "--iter-id",
@@ -160,14 +160,14 @@ def test_cmd_init_exists_error():
 
 
 def test_cmd_init_invalid_iter_id():
-    import plet_iter_state
+    import iter_state
 
     d = tempfile.mkdtemp()
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
         rc = exit_code(
-            plet_iter_state.cmd_init(
+            iter_state.cmd_init(
                 [
                     plet_dir,
                     "--iter-id",
@@ -187,14 +187,14 @@ def test_cmd_init_invalid_iter_id():
 
 
 def test_cmd_init_json():
-    import plet_iter_state
+    import iter_state
 
     d = tempfile.mkdtemp()
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
         rc, output = _capture(
-            plet_iter_state.cmd_init,
+            iter_state.cmd_init,
             [
                 plet_dir,
                 "--iter-id",
@@ -219,14 +219,14 @@ def test_cmd_init_json():
 
 
 def test_cmd_init_with_deps_and_criteria():
-    import plet_iter_state
+    import iter_state
 
     d = tempfile.mkdtemp()
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
         # Create dep first
-        plet_iter_state.cmd_init(
+        iter_state.cmd_init(
             [
                 plet_dir,
                 "--iter-id",
@@ -240,7 +240,7 @@ def test_cmd_init_with_deps_and_criteria():
             ]
         )
         rc = exit_code(
-            plet_iter_state.cmd_init(
+            iter_state.cmd_init(
                 [
                     plet_dir,
                     "--iter-id",
@@ -268,19 +268,19 @@ def test_cmd_init_with_deps_and_criteria():
 
 
 def test_cmd_start_phase_help():
-    import plet_iter_state
+    import iter_state
 
-    rc = exit_code(plet_iter_state.cmd_start_phase(["--help"]))
+    rc = exit_code(iter_state.cmd_start_phase(["--help"]))
     check("start-phase help = 0", rc == 0)
 
 
 def test_cmd_start_phase_implement():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project()
     try:
         rc = exit_code(
-            plet_iter_state.cmd_start_phase(
+            iter_state.cmd_start_phase(
                 [
                     plet_dir,
                     "--iter-id",
@@ -300,12 +300,12 @@ def test_cmd_start_phase_implement():
 
 
 def test_cmd_start_phase_verify():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(implement_verdict="completed", attempts={"implement": 1, "verify": 0})
     try:
         rc = exit_code(
-            plet_iter_state.cmd_start_phase(
+            iter_state.cmd_start_phase(
                 [
                     plet_dir,
                     "--iter-id",
@@ -325,13 +325,13 @@ def test_cmd_start_phase_verify():
 
 
 def test_cmd_start_phase_already_started():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         # Starting again increments attempt
         rc = exit_code(
-            plet_iter_state.cmd_start_phase(
+            iter_state.cmd_start_phase(
                 [
                     plet_dir,
                     "--iter-id",
@@ -349,12 +349,12 @@ def test_cmd_start_phase_already_started():
 
 
 def test_cmd_start_phase_json():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project()
     try:
         rc, output = _capture(
-            plet_iter_state.cmd_start_phase,
+            iter_state.cmd_start_phase,
             [
                 plet_dir,
                 "--iter-id",
@@ -380,19 +380,19 @@ def test_cmd_start_phase_json():
 
 
 def test_cmd_update_activity_help():
-    import plet_iter_state
+    import iter_state
 
-    rc = exit_code(plet_iter_state.cmd_update_activity(["--help"]))
+    rc = exit_code(iter_state.cmd_update_activity(["--help"]))
     check("update-activity help = 0", rc == 0)
 
 
 def test_cmd_update_activity_basic():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_update_activity(
+            iter_state.cmd_update_activity(
                 [
                     plet_dir,
                     "--iter-id",
@@ -416,12 +416,12 @@ def test_cmd_update_activity_basic():
 
 
 def test_cmd_update_activity_json():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc, output = _capture(
-            plet_iter_state.cmd_update_activity,
+            iter_state.cmd_update_activity,
             [
                 plet_dir,
                 "--iter-id",
@@ -445,13 +445,13 @@ def test_cmd_update_activity_json():
 
 
 def test_cmd_update_activity_missing_args():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         # Missing --phase-activity
         rc = exit_code(
-            plet_iter_state.cmd_update_activity(
+            iter_state.cmd_update_activity(
                 [
                     plet_dir,
                     "--iter-id",
@@ -469,12 +469,12 @@ def test_cmd_update_activity_missing_args():
 
 
 def test_cmd_update_activity_invalid_activity():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_update_activity(
+            iter_state.cmd_update_activity(
                 [
                     plet_dir,
                     "--iter-id",
@@ -499,19 +499,19 @@ def test_cmd_update_activity_invalid_activity():
 
 
 def test_cmd_update_criterion_help():
-    import plet_iter_state
+    import iter_state
 
-    rc = exit_code(plet_iter_state.cmd_update_criterion(["--help"]))
+    rc = exit_code(iter_state.cmd_update_criterion(["--help"]))
     check("update-criterion help = 0", rc == 0)
 
 
 def test_cmd_update_criterion_pass():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_update_criterion(
+            iter_state.cmd_update_criterion(
                 [
                     plet_dir,
                     "--iter-id",
@@ -540,12 +540,12 @@ def test_cmd_update_criterion_pass():
 
 
 def test_cmd_update_criterion_fail():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="verify")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_update_criterion(
+            iter_state.cmd_update_criterion(
                 [
                     plet_dir,
                     "--iter-id",
@@ -576,12 +576,12 @@ def test_cmd_update_criterion_fail():
 
 
 def test_cmd_update_criterion_missing_criterion():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_update_criterion(
+            iter_state.cmd_update_criterion(
                 [
                     plet_dir,
                     "--iter-id",
@@ -605,12 +605,12 @@ def test_cmd_update_criterion_missing_criterion():
 
 
 def test_cmd_update_criterion_json():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc, output = _capture(
-            plet_iter_state.cmd_update_criterion,
+            iter_state.cmd_update_criterion,
             [
                 plet_dir,
                 "--iter-id",
@@ -639,12 +639,12 @@ def test_cmd_update_criterion_json():
 
 
 def test_cmd_update_criterion_invalid_phase():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_update_criterion(
+            iter_state.cmd_update_criterion(
                 [
                     plet_dir,
                     "--iter-id",
@@ -673,19 +673,19 @@ def test_cmd_update_criterion_invalid_phase():
 
 
 def test_cmd_set_verdict_help():
-    import plet_iter_state
+    import iter_state
 
-    rc = exit_code(plet_iter_state.cmd_set_verdict(["--help"]))
+    rc = exit_code(iter_state.cmd_set_verdict(["--help"]))
     check("set-verdict help = 0", rc == 0)
 
 
 def test_cmd_set_verdict_implement():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_set_verdict(
+            iter_state.cmd_set_verdict(
                 [
                     plet_dir,
                     "--iter-id",
@@ -708,7 +708,7 @@ def test_cmd_set_verdict_implement():
 
 
 def test_cmd_set_verdict_verify():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(
         with_phase="verify",
@@ -717,7 +717,7 @@ def test_cmd_set_verdict_verify():
     )
     try:
         rc = exit_code(
-            plet_iter_state.cmd_set_verdict(
+            iter_state.cmd_set_verdict(
                 [
                     plet_dir,
                     "--iter-id",
@@ -739,12 +739,12 @@ def test_cmd_set_verdict_verify():
 
 
 def test_cmd_set_verdict_json():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc, output = _capture(
-            plet_iter_state.cmd_set_verdict,
+            iter_state.cmd_set_verdict,
             [
                 plet_dir,
                 "--iter-id",
@@ -768,12 +768,12 @@ def test_cmd_set_verdict_json():
 
 
 def test_cmd_set_verdict_invalid_verdict():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_set_verdict(
+            iter_state.cmd_set_verdict(
                 [
                     plet_dir,
                     "--iter-id",
@@ -798,19 +798,19 @@ def test_cmd_set_verdict_invalid_verdict():
 
 
 def test_cmd_heartbeat_help():
-    import plet_iter_state
+    import iter_state
 
-    rc = exit_code(plet_iter_state.cmd_heartbeat(["--help"]))
+    rc = exit_code(iter_state.cmd_heartbeat(["--help"]))
     check("heartbeat help = 0", rc == 0)
 
 
 def test_cmd_heartbeat_basic():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_heartbeat(
+            iter_state.cmd_heartbeat(
                 [
                     plet_dir,
                     "--iter-id",
@@ -829,12 +829,12 @@ def test_cmd_heartbeat_basic():
 
 
 def test_cmd_heartbeat_json():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc, output = _capture(
-            plet_iter_state.cmd_heartbeat,
+            iter_state.cmd_heartbeat,
             [
                 plet_dir,
                 "--iter-id",
@@ -854,12 +854,12 @@ def test_cmd_heartbeat_json():
 
 
 def test_cmd_heartbeat_missing_agent_id():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(with_phase="implement")
     try:
         rc = exit_code(
-            plet_iter_state.cmd_heartbeat(
+            iter_state.cmd_heartbeat(
                 [
                     plet_dir,
                     "--iter-id",
@@ -878,14 +878,14 @@ def test_cmd_heartbeat_missing_agent_id():
 
 
 def test_cmd_add_report_help():
-    import plet_iter_state
+    import iter_state
 
-    rc = exit_code(plet_iter_state.cmd_add_report(["--help"]))
+    rc = exit_code(iter_state.cmd_add_report(["--help"]))
     check("add-report help = 0", rc == 0)
 
 
 def test_cmd_add_report_basic():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(
         with_phase="verify", implement_verdict="completed", attempts={"implement": 1, "verify": 0}
@@ -904,7 +904,7 @@ def test_cmd_add_report_basic():
             ]
         )
         rc = exit_code(
-            plet_iter_state.cmd_add_report(
+            iter_state.cmd_add_report(
                 [
                     plet_dir,
                     "--iter-id",
@@ -936,7 +936,7 @@ def test_cmd_add_report_basic():
 
 
 def test_cmd_add_report_json():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(
         with_phase="verify", implement_verdict="completed", attempts={"implement": 1, "verify": 0}
@@ -955,7 +955,7 @@ def test_cmd_add_report_json():
             ]
         )
         rc, output = _capture(
-            plet_iter_state.cmd_add_report,
+            iter_state.cmd_add_report,
             [
                 plet_dir,
                 "--iter-id",
@@ -985,14 +985,14 @@ def test_cmd_add_report_json():
 
 
 def test_cmd_add_report_invalid_verdict():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(
         with_phase="verify", implement_verdict="completed", attempts={"implement": 1, "verify": 0}
     )
     try:
         rc = exit_code(
-            plet_iter_state.cmd_add_report(
+            iter_state.cmd_add_report(
                 [
                     plet_dir,
                     "--iter-id",
@@ -1018,7 +1018,7 @@ def test_cmd_add_report_invalid_verdict():
 
 
 def test_cmd_add_report_missing_findings():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project(
         with_phase="verify", implement_verdict="completed", attempts={"implement": 1, "verify": 0}
@@ -1026,7 +1026,7 @@ def test_cmd_add_report_missing_findings():
     try:
         # Missing --findings and --related-entries
         rc = exit_code(
-            plet_iter_state.cmd_add_report(
+            iter_state.cmd_add_report(
                 [
                     plet_dir,
                     "--iter-id",
@@ -1053,19 +1053,19 @@ def test_cmd_add_report_missing_findings():
 
 
 def test_cmd_validate_help():
-    import plet_iter_state
+    import iter_state
 
-    rc = exit_code(plet_iter_state.cmd_validate(["--help"]))
+    rc = exit_code(iter_state.cmd_validate(["--help"]))
     check("validate help = 0", rc == 0)
 
 
 def test_cmd_validate_valid():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project()
     try:
         rc = exit_code(
-            plet_iter_state.cmd_validate(
+            iter_state.cmd_validate(
                 [
                     plet_dir,
                     "--iter-id",
@@ -1079,7 +1079,7 @@ def test_cmd_validate_valid():
 
 
 def test_cmd_validate_invalid():
-    import plet_iter_state
+    import iter_state
 
     d = tempfile.mkdtemp()
     try:
@@ -1092,7 +1092,7 @@ def test_cmd_validate_invalid():
             json.dump({"schemaVersion": "0.2.0", "iterationId": "ID_001"}, f)
             f.write("\n")
         rc = exit_code(
-            plet_iter_state.cmd_validate(
+            iter_state.cmd_validate(
                 [
                     plet_dir,
                     "--iter-id",
@@ -1106,12 +1106,12 @@ def test_cmd_validate_invalid():
 
 
 def test_cmd_validate_json():
-    import plet_iter_state
+    import iter_state
 
     d, plet_dir = _make_project()
     try:
         rc, output = _capture(
-            plet_iter_state.cmd_validate,
+            iter_state.cmd_validate,
             [
                 plet_dir,
                 "--iter-id",
@@ -1130,7 +1130,7 @@ def test_cmd_validate_json():
 
 
 def test_cmd_validate_invalid_json():
-    import plet_iter_state
+    import iter_state
 
     d = tempfile.mkdtemp()
     try:
@@ -1142,7 +1142,7 @@ def test_cmd_validate_invalid_json():
             json.dump({"schemaVersion": "0.2.0", "iterationId": "ID_001"}, f)
             f.write("\n")
         rc, output = _capture(
-            plet_iter_state.cmd_validate,
+            iter_state.cmd_validate,
             [
                 plet_dir,
                 "--iter-id",
@@ -1160,14 +1160,14 @@ def test_cmd_validate_invalid_json():
 
 
 def test_cmd_validate_missing_file():
-    import plet_iter_state
+    import iter_state
 
     d = tempfile.mkdtemp()
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
         rc = exit_code(
-            plet_iter_state.cmd_validate(
+            iter_state.cmd_validate(
                 [
                     plet_dir,
                     "--iter-id",

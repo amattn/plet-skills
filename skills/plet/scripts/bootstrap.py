@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet bootstrap — project setup for plet operation.
 
 Configures git (merge driver, .gitattributes), creates .gitignore,
@@ -6,7 +5,7 @@ merges allow entries into .claude/settings.json, creates CLAUDE.md stub.
 Idempotent — safe to run multiple times.
 
 Usage:
-    plet_bootstrap.py <command> <project_dir>
+    bootstrap.py <command> <project_dir>
 
 Commands:
     setup     Configure the project for plet (mutating, idempotent)
@@ -38,7 +37,7 @@ from util_cli import (
 )
 from util_constants import SKILL_VERSION
 
-SCRIPT_NAME = "plet_bootstrap"
+SCRIPT_NAME = "bootstrap"
 SCRIPT_VERSION = "0.3.2"
 
 UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
@@ -80,7 +79,7 @@ Key variables:
 - `CLAUDE_SKILL_DIR` — skill directory (if available)
 - `CLAUDE_CONFIG_DIR` — Claude config directory (fallback: `~/.claude`)
 
-Call scripts as: `$PLET_SCRIPTS_DIR/plet_iter_state.py ...`
+Call scripts as: `$PLET_SCRIPTS_DIR/iter_state.py ...`
 
 ## Project State
 
@@ -95,7 +94,7 @@ Runtime state lives in `plet/` (committed to git):
 """
 
 
-_help_hint = make_help_hint("plet_bootstrap")
+_help_hint = make_help_hint("bootstrap")
 
 
 def _get_project_dir(args):
@@ -325,16 +324,16 @@ def _ensure_claude_settings(project_dir):
 
 def cmd_setup(args):
     """Configure the project for plet operation."""
-    help_text = """Usage: plet_bootstrap.py setup <project_dir> [--force]
+    help_text = """Usage: bootstrap.py setup <project_dir> [--force]
   [--output json [--pretty] [--fields f1,f2]]
 
 Configures a project for plet: git merge driver, .gitignore,
 .claude/settings.json, CLAUDE.md stub. Idempotent.
 
 Examples:
-  plet_bootstrap.py setup .
-  plet_bootstrap.py setup /path/to/project --force
-  plet_bootstrap.py setup . --output json --pretty
+  bootstrap.py setup .
+  bootstrap.py setup /path/to/project --force
+  bootstrap.py setup . --output json --pretty
 """
     out = ""
     err = ""
@@ -430,7 +429,7 @@ Examples:
 
 
 cmd_setup.usage = "<project_dir>"  # noqa: E501
-cmd_setup.example = "plet_bootstrap.py setup ."  # noqa: E501
+cmd_setup.example = "bootstrap.py setup ."  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -584,15 +583,15 @@ def _gather_checks(project_dir):
 
 def cmd_check(args):
     """Verify bootstrap state without modifying anything."""
-    help_text = """Usage: plet_bootstrap.py check <project_dir>
+    help_text = """Usage: bootstrap.py check <project_dir>
   [--output json [--pretty] [--fields f1,f2]]
 
 Checks if the project is properly configured for plet.
 Reports what's missing or needs attention. Read-only.
 
 Examples:
-  plet_bootstrap.py check .
-  plet_bootstrap.py check /path/to/project --output json --pretty
+  bootstrap.py check .
+  bootstrap.py check /path/to/project --output json --pretty
 """
     out = ""
     err = ""
@@ -655,7 +654,7 @@ Examples:
 
 
 cmd_check.usage = "<project_dir>"  # noqa: E501
-cmd_check.example = "plet_bootstrap.py check ."  # noqa: E501
+cmd_check.example = "bootstrap.py check ."  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

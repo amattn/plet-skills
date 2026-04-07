@@ -347,9 +347,7 @@ def test_handle_verdict_none():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
-        completed, blocked, _ = plet_orchestrator._handle_verify_verdict(
-            None, "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
-        )
+        completed, blocked = plet_orchestrator._handle_verify_verdict(None, "ID_001", plet_dir, CaptureSink(), 0, {})
         check("none verdict = blocked", blocked is True)
         check("completed unchanged", completed == 0)
         gs = load_json(state_json_path(plet_dir))
@@ -363,8 +361,8 @@ def test_handle_verdict_blocked():
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
-        completed, blocked, _ = plet_orchestrator._handle_verify_verdict(
-            "blocked", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
+        completed, blocked = plet_orchestrator._handle_verify_verdict(
+            "blocked", "ID_001", plet_dir, CaptureSink(), 0, {}
         )
         check("blocked verdict = blocked", blocked is True)
         gs = load_json(state_json_path(plet_dir))
@@ -379,8 +377,8 @@ def test_handle_verdict_rejected_retry():
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
     try:
         # check-retry on a fresh iteration with 0 attempts returns "first"
-        completed, blocked, _ = plet_orchestrator._handle_verify_verdict(
-            "rejected", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
+        completed, blocked = plet_orchestrator._handle_verify_verdict(
+            "rejected", "ID_001", plet_dir, CaptureSink(), 0, {}
         )
         check("rejected = not blocked (retry)", blocked is False)
         gs = load_json(state_json_path(plet_dir))
@@ -390,6 +388,7 @@ def test_handle_verdict_rejected_retry():
 
 
 def test_handle_verdict_passed():
+    """Passed verdict: no rebase-commit needed (sequential), just mark complete."""
     import plet_orchestrator
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
@@ -397,34 +396,8 @@ def test_handle_verdict_passed():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            # Need proper branch setup with session history for merge-squash
-            gs = load_json(state_json_path(plet_dir))
-            gs["loopSessionCount"] = 1
-            gs["sessionHistory"] = [
-                {
-                    "type": "loop",
-                    "session": 1,
-                    "branch": "plet/TEST/loop1/workstream",
-                    "startedAt": "2026-04-01T00:00:00Z",
-                    "endedAt": None,
-                }
-            ]
-            import util_io
-
-            util_io.atomic_write_json(state_json_path(plet_dir), gs)
-
-            subprocess.run(["git", "add", "-A"], capture_output=True)
-            subprocess.run(["git", "commit", "-m", "state"], capture_output=True)
-            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop1/workstream"], capture_output=True)
-            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop1/ID_001"], capture_output=True)
-            with open(os.path.join(d, "impl.txt"), "w") as f:
-                f.write("work\n")
-            subprocess.run(["git", "add", "-A"], capture_output=True)
-            subprocess.run(["git", "commit", "-m", "implement ID_001"], capture_output=True)
-            subprocess.run(["git", "checkout", "plet/TEST/loop1/workstream"], capture_output=True)
-
-            completed, blocked, _ = plet_orchestrator._handle_verify_verdict(
-                "passed", "ID_001", plet_dir, plet_dir, CaptureSink(), 0, {}
+            completed, blocked = plet_orchestrator._handle_verify_verdict(
+                "passed", "ID_001", plet_dir, CaptureSink(), 0, {}
             )
             check("passed = not blocked", blocked is False)
             check("completed incremented", completed == 1)
@@ -447,9 +420,9 @@ def test_end_session():
     d, plet_dir = _make_project(lifecycles={"ID_001": "complete"})
     try:
         # Start a session so there's one to end
-        import plet_session
+        import session
 
-        plet_session.cmd_start_session([plet_dir, "--type", "loop"])
+        session.cmd_start_session([plet_dir, "--type", "loop"])
 
         old_cwd = os.getcwd()
         os.chdir(d)
@@ -515,7 +488,7 @@ def test_setup_session():
 # ---------------------------------------------------------------------------
 
 
-def test_get_spawnable_basic():
+def test_get_next_eligible_basic():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
@@ -523,14 +496,14 @@ def test_get_spawnable_basic():
         dep_map={"ID_001": [], "ID_002": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), None, 0)
-        check("returns list", isinstance(result, list))
-        check("both eligible", len(result) == 2, f"got: {result}")
+        result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), None, 0)
+        check("returns single id", isinstance(result, str), f"got: {result}")
+        check("is first eligible", result == "ID_001", f"got: {result}")
     finally:
         shutil.rmtree(d)
 
 
-def test_get_spawnable_filters_failed():
+def test_get_next_eligible_filters_failed():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
@@ -538,27 +511,13 @@ def test_get_spawnable_filters_failed():
         dep_map={"ID_001": [], "ID_002": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), {"ID_001"}, None, 0)
-        check("filters failed", result == ["ID_002"], f"got: {result}")
+        result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), {"ID_001"}, None, 0)
+        check("filters failed", result == "ID_002", f"got: {result}")
     finally:
         shutil.rmtree(d)
 
 
-def test_get_spawnable_max_iterations_budget():
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(
-        lifecycles={"ID_001": "queued", "ID_002": "queued"},
-        dep_map={"ID_001": [], "ID_002": []},
-    )
-    try:
-        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), 1, 0)
-        check("limited to budget", len(result) == 1, f"got: {result}")
-    finally:
-        shutil.rmtree(d)
-
-
-def test_get_spawnable_budget_exhausted():
+def test_get_next_eligible_budget_exhausted():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
@@ -566,13 +525,13 @@ def test_get_spawnable_budget_exhausted():
         dep_map={"ID_001": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), 2, 2)
+        result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), 2, 2)
         check("budget exhausted = None", result is None)
     finally:
         shutil.rmtree(d)
 
 
-def test_get_spawnable_nothing_eligible():
+def test_get_next_eligible_nothing_eligible():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
@@ -580,13 +539,13 @@ def test_get_spawnable_nothing_eligible():
         dep_map={"ID_001": []},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), None, 0)
+        result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), None, 0)
         check("nothing eligible = None", result is None)
     finally:
         shutil.rmtree(d)
 
 
-def test_get_spawnable_promotes():
+def test_get_next_eligible_promotes():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
@@ -594,8 +553,8 @@ def test_get_spawnable_promotes():
         dep_map={"ID_001": [], "ID_002": ["ID_001"]},
     )
     try:
-        result = plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), None, 0)
-        check("promoted ID_002", result == ["ID_002"], f"got: {result}")
+        result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), None, 0)
+        check("promoted ID_002", result == "ID_002", f"got: {result}")
     finally:
         shutil.rmtree(d)
 
@@ -677,63 +636,14 @@ def test_check_breakpoint_after_hit():
         shutil.rmtree(d)
 
 
-# ---------------------------------------------------------------------------
-# _finalize_iteration
-# ---------------------------------------------------------------------------
-
-
-def test_finalize_iteration_error_no_worktree():
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
-    try:
-        spawn_result = {"status": "error", "iter_id": "ID_001", "error": "worktree failed", "worktree_created": False}
-        completed, blocked, _ = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, CaptureSink(), 0, {})
-        check("blocked", blocked is True)
-        check("completed unchanged", completed == 0)
-        gs = load_json(state_json_path(plet_dir))
-        check("lifecycle blocked", gs["lifecycles"]["ID_001"] == "blocked")
-    finally:
-        shutil.rmtree(d)
-
-
-def test_finalize_iteration_error_with_worktree():
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
-    try:
-        # worktree_created=True but worktree doesn't actually exist — worktree-remove will fail gracefully
-        spawn_result = {"status": "error", "iter_id": "ID_001", "error": "implement failed", "worktree_created": True}
-        completed, blocked, _ = plet_orchestrator._finalize_iteration(spawn_result, plet_dir, CaptureSink(), 0, {})
-        check("blocked", blocked is True)
-    finally:
-        shutil.rmtree(d)
-
-
-# ---------------------------------------------------------------------------
-# _parse_run_args with --sequential
-# ---------------------------------------------------------------------------
-
-
-def test_parse_run_args_sequential():
+def test_parse_run_args_no_sequential_flag():
+    """--sequential flag is removed; parser rejects it as unknown."""
     import plet_orchestrator
 
     d, plet_dir = _make_project()
     try:
         r = plet_orchestrator._parse_run_args([plet_dir, "--sequential"])
-        check("returns tuple", isinstance(r, tuple))
-        check("sequential is True", r[4] is True, f"got: {r}")
-    finally:
-        shutil.rmtree(d)
-
-
-def test_parse_run_args_no_sequential():
-    import plet_orchestrator
-
-    d, plet_dir = _make_project()
-    try:
-        r = plet_orchestrator._parse_run_args([plet_dir])
-        check("sequential is False", r[4] is False, f"got: {r}")
+        check("sequential rejected as unknown", r is None)
     finally:
         shutil.rmtree(d)
 
@@ -744,49 +654,44 @@ def test_parse_run_args_no_sequential():
 
 
 def test_injectable_runner_exists():
-    """_run_script and _run_script_json are overridable module attributes."""
+    """_run_invoke and _call_cmd are available module attributes."""
     print("\n## Injectable runner — exists")
     import plet_orchestrator
 
-    check("_run_script is callable", callable(plet_orchestrator._run_script))
-    check("_run_script_json is callable", callable(plet_orchestrator._run_script_json))
-    check("_run_script_subprocess exists", callable(plet_orchestrator._run_script_subprocess))
-    check("_run_script_json_subprocess exists", callable(plet_orchestrator._run_script_json_subprocess))
+    check("_run_invoke is callable", callable(plet_orchestrator._run_invoke))
+    check("_run_invoke_subprocess exists", callable(plet_orchestrator._run_invoke_subprocess))
+    check("_call_cmd is callable", callable(plet_orchestrator._call_cmd))
+    check("_call_cmd_json is callable", callable(plet_orchestrator._call_cmd_json))
 
 
 def test_injectable_runner_override():
-    """Override _run_script and verify it's used."""
+    """Override _run_invoke and verify it's injectable."""
     print("\n## Injectable runner — override")
     import plet_orchestrator
 
     calls = []
 
-    def mock_runner(script_name, args, cwd=None):
-        calls.append((script_name, args))
-        if "eligible" in args:
-            return json.dumps({"eligible": [], "counts": {"queued": 0, "complete": 1}, "stuckIterations": []}), "", 0
+    def mock_invoke(args, cwd=None):
+        calls.append(args)
         return "", "", 0
-
-    def mock_json_runner(script_name, args, cwd=None):
-        stdout, stderr, rc = mock_runner(script_name, args, cwd)
-        if rc != 0:
-            return None, stderr, rc
-        return json.loads(stdout) if stdout else None, stderr, rc
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
     try:
-        old_run = plet_orchestrator._run_script
-        old_json = plet_orchestrator._run_script_json
-        plet_orchestrator._run_script = mock_runner
-        plet_orchestrator._run_script_json = mock_json_runner
+        old_invoke = plet_orchestrator._run_invoke
+        plet_orchestrator._run_invoke = mock_invoke
         try:
-            plet_orchestrator._get_spawnable(plet_dir, CaptureSink(), set(), None, 0)
-            check("mock was called", len(calls) > 0, f"calls: {len(calls)}")
-            script_names = [c[0] for c in calls]
-            check("called schedule", any("schedule" in s for s in script_names), f"scripts: {script_names}")
+            # _get_next_eligible uses _call_cmd_json(schedule.cmd_eligible, ...)
+            # which calls the real module directly — no mock needed.
+            # Just verify it works with real modules.
+            result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), None, 0)
+            check("eligible returns ID", result == "ID_001", f"got: {result}")
+
+            # Verify _run_invoke is overridable by checking our mock is installed
+            plet_orchestrator._run_invoke(["test"], cwd=".")
+            check("mock invoke was called", len(calls) == 1)
+            check("mock received args", calls[0] == ["test"])
         finally:
-            plet_orchestrator._run_script = old_run
-            plet_orchestrator._run_script_json = old_json
+            plet_orchestrator._run_invoke = old_invoke
     finally:
         shutil.rmtree(d)
 
@@ -796,50 +701,28 @@ def test_injectable_runner_override():
 # ---------------------------------------------------------------------------
 
 
-def _install_mock_runner(plet_orchestrator, responses):
-    """Install a mock runner that returns canned responses based on script+command.
+def _install_mock_invoke(plet_orchestrator):
+    """Install a mock _run_invoke that does nothing (returns success).
 
-    responses: dict of (script_name, command) -> (stdout, stderr, rc) or json_dict
-    Lifecycle updates pass through to real subprocess so state.json is modified.
+    The orchestrator now calls module functions directly for everything
+    except invoke.py (Claude subprocess). So we only mock _run_invoke.
+    Returns old_invoke for restoration.
     """
-    old_run = plet_orchestrator._run_script
-    old_json = plet_orchestrator._run_script_json
+    old_invoke = plet_orchestrator._run_invoke
 
-    def mock_run(script_name, args, cwd=None):
-        cmd = args[0] if args else ""
-        # Let lifecycle updates through to real scripts
-        if script_name == "plet_global_state.py" and cmd == "update-lifecycle":
-            return plet_orchestrator._run_script_subprocess(script_name, args, cwd)
-        key = (script_name, cmd)
-        if key in responses:
-            val = responses[key]
-            if isinstance(val, tuple):
-                return val
-            return json.dumps(val), "", 0
-        # Default: success with empty output
+    def mock_invoke(args, cwd=None):
         return "", "", 0
 
-    def mock_json(script_name, args, cwd=None):
-        stdout, stderr, rc = mock_run(script_name, args, cwd)
-        if rc != 0:
-            return None, stderr, rc
-        try:
-            return json.loads(stdout) if stdout else None, stderr, rc
-        except (json.JSONDecodeError, ValueError):
-            return None, stderr, rc
-
-    plet_orchestrator._run_script = mock_run
-    plet_orchestrator._run_script_json = mock_json
-    return old_run, old_json
+    plet_orchestrator._run_invoke = mock_invoke
+    return old_invoke
 
 
-def _restore_runner(plet_orchestrator, old_run, old_json):
-    plet_orchestrator._run_script = old_run
-    plet_orchestrator._run_script_json = old_json
+def _restore_invoke(plet_orchestrator, old_invoke):
+    plet_orchestrator._run_invoke = old_invoke
 
 
 def test_handle_passed_verdict_with_mock():
-    """Rebase-commit succeeds via mock — iteration completes."""
+    """Passed verdict in sequential mode — just marks complete."""
     print("\n## Mock runner — passed verdict (success)")
     import plet_orchestrator
 
@@ -848,498 +731,186 @@ def test_handle_passed_verdict_with_mock():
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            responses = {
-                ("plet_git_ops.py", "rebase-commit"): ("OK — rebased and merged", "", 0),
-            }
-            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-            try:
-                sink = CaptureSink()
-                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-                check("completed = 1", completed == 1)
-                check("not blocked", blocked is False)
-                merged = [e for e in sink.events if e.get("type") == "iteration_merged"]
-                check("merged event", len(merged) == 1)
-            finally:
-                _restore_runner(plet_orchestrator, old_run, old_json)
+            sink = CaptureSink()
+            completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+            check("completed = 1", completed == 1)
+            check("not blocked", blocked is False)
+            complete_events = [e for e in sink.events if e.get("type") == "iteration_complete"]
+            check("complete event", len(complete_events) == 1)
         finally:
             os.chdir(old_cwd)
     finally:
         shutil.rmtree(d)
 
 
-def test_handle_passed_verdict_rebase_commit_requeue():
-    """Rebase-commit fails → requeue (not block). Replaces old merge-squash conflict test."""
-    print("\n## Mock runner — passed verdict (rebase-commit requeue)")
+def test_run_iteration_with_mock():
+    """_run_iteration with mock invoke: implement + verify in project root."""
+    print("\n## Mock runner — run iteration (success)")
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            responses = {
-                ("plet_git_ops.py", "rebase-commit"): ("", "Error: rebase has conflicts", 1),
-            }
-            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-            try:
-                sink = CaptureSink()
-                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-                check("completed = 0 (not merged)", completed == 0)
-                check("not blocked (requeued)", blocked is False)
-                fail_events = [e for e in sink.events if e.get("type") == "rebase_commit_failed"]
-                check("rebase_commit_failed event", len(fail_events) >= 1)
-                gs = load_json(state_json_path(plet_dir))
-                check("lifecycle queued", gs["lifecycles"]["ID_001"] == "queued")
-            finally:
-                _restore_runner(plet_orchestrator, old_run, old_json)
-        finally:
-            os.chdir(old_cwd)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_spawn_iteration_with_mock():
-    """_spawn_iteration with mock: worktree create + implement + verify."""
-    print("\n## Mock runner — spawn iteration (success)")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
-    try:
-        responses = {
-            ("plet_git_iteration.py", "worktree-create"): {
-                "status": "ok",
-                "worktreePath": os.path.join(d, ".plet/worktrees/TEST/ID_001"),
-                "branchName": "plet/TEST/loop1/ID_001",
-            },
-            ("plet_iter_state.py", "start-phase"): ("OK", "", 0),
-            ("plet_invoke.py", "run"): ("OK", "", 0),
-        }
-        old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-        try:
-            # Need to create the worktree dir and state file for iter_state reads
-            wt_dir = os.path.join(d, ".plet/worktrees/TEST/ID_001")
-            wt_plet = os.path.join(wt_dir, "plet")
-            os.makedirs(os.path.join(wt_plet, "state"), exist_ok=True)
-            # Copy iter state with implementVerdict set
-            ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
-            ist["implementVerdict"] = "completed"
-            ist["verifyVerdict"] = "passed"
-            with open(os.path.join(wt_plet, "state", "ID_001.json"), "w") as f:
-                json.dump(ist, f)
-
-            sink = CaptureSink()
-            result = plet_orchestrator._spawn_iteration("ID_001", plet_dir, sink, 0)
-            check("status ok", result["status"] == "ok", f"got: {result.get('status')}")
-            check("verdict passed", result["verdict"] == "passed", f"got: {result.get('verdict')}")
-        finally:
-            _restore_runner(plet_orchestrator, old_run, old_json)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_spawn_iteration_worktree_fail():
-    """_spawn_iteration when worktree creation fails."""
-    print("\n## Mock runner — spawn iteration (worktree fail)")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
-    try:
-        responses = {
-            ("plet_git_iteration.py", "worktree-create"): ("", "Error: git failed", 1),
-        }
-        old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-        try:
-            sink = CaptureSink()
-            result = plet_orchestrator._spawn_iteration("ID_001", plet_dir, sink, 0)
-            check("status error", result["status"] == "error")
-            check("worktree_created false", result["worktree_created"] is False)
-        finally:
-            _restore_runner(plet_orchestrator, old_run, old_json)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_spawn_iteration_no_verdict():
-    """_spawn_iteration when implement doesn't set verdict."""
-    print("\n## Mock runner — spawn iteration (no verdict)")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
-    try:
-        responses = {
-            ("plet_git_iteration.py", "worktree-create"): {
-                "status": "ok",
-                "worktreePath": os.path.join(d, ".plet/worktrees/TEST/ID_001"),
-                "branchName": "plet/TEST/loop1/ID_001",
-            },
-            ("plet_iter_state.py", "start-phase"): ("OK", "", 0),
-            ("plet_invoke.py", "run"): ("OK", "", 0),
-        }
-        old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-        try:
-            # Create worktree dir with state but NO implementVerdict
-            wt_dir = os.path.join(d, ".plet/worktrees/TEST/ID_001")
-            wt_plet = os.path.join(wt_dir, "plet")
-            os.makedirs(os.path.join(wt_plet, "state"), exist_ok=True)
-            ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
-            with open(os.path.join(wt_plet, "state", "ID_001.json"), "w") as f:
-                json.dump(ist, f)
-
-            sink = CaptureSink()
-            result = plet_orchestrator._spawn_iteration("ID_001", plet_dir, sink, 0)
-            check("status error", result["status"] == "error")
-            check("error mentions verdict", "verdict" in result.get("error", ""))
-        finally:
-            _restore_runner(plet_orchestrator, old_run, old_json)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_streaming_loop_with_mock():
-    """_run_streaming_loop with mock: single iteration, passes."""
-    print("\n## Mock runner — streaming loop")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
-    try:
-        wt_dir = os.path.join(d, ".plet/worktrees/TEST/ID_001")
-        wt_plet = os.path.join(wt_dir, "plet")
-        os.makedirs(os.path.join(wt_plet, "state"), exist_ok=True)
-        ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
-        ist["implementVerdict"] = "completed"
-        ist["verifyVerdict"] = "passed"
-        with open(os.path.join(wt_plet, "state", "ID_001.json"), "w") as f:
-            json.dump(ist, f)
-
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            responses = {
-                ("plet_schedule.py", "eligible"): {
-                    "eligible": ["ID_001"],
-                    "counts": {"queued": 1, "complete": 0, "blocked": 0, "implementing": 0, "verifying": 0},
-                    "stuckIterations": [],
-                },
-                ("plet_git_iteration.py", "worktree-create"): {
-                    "status": "ok",
-                    "worktreePath": wt_dir,
-                    "branchName": "plet/TEST/loop1/ID_001",
-                },
-                ("plet_iter_state.py", "start-phase"): ("OK", "", 0),
-                ("plet_invoke.py", "run"): ("OK", "", 0),
-                ("plet_git_ops.py", "merge-squash"): ("OK — merged", "", 0),
-                ("plet_git_iteration.py", "worktree-remove"): ("OK", "", 0),
-                ("plet_schedule.py", "check-breakpoints"): {"result": "miss"},
-            }
-
-            # After first eligible returns ID_001, subsequent calls should return empty
-            call_count = {"eligible": 0}
-            real_responses = dict(responses)
-
-            def smart_run(script_name, args, cwd=None):
-                cmd = args[0] if args else ""
-                if script_name == "plet_schedule.py" and cmd == "eligible":
-                    call_count["eligible"] += 1
-                    if call_count["eligible"] > 1:
-                        return (
-                            json.dumps(
-                                {
-                                    "eligible": [],
-                                    "counts": {
-                                        "queued": 0,
-                                        "complete": 1,
-                                        "blocked": 0,
-                                        "implementing": 0,
-                                        "verifying": 0,
-                                    },
-                                    "stuckIterations": [],
-                                }
-                            ),
-                            "",
-                            0,
-                        )
-                key = (script_name, cmd)
-                if key in real_responses:
-                    val = real_responses[key]
-                    if isinstance(val, tuple):
-                        return val
-                    return json.dumps(val), "", 0
+            # Mock invoke to simulate what a real subagent does: set verdicts
+            def mock_invoke_with_verdicts(args, cwd=None):
+                # args: ["run", plet_dir, "--iter-id", id, "--phase", phase, "--cwd", "."]
+                phase = args[args.index("--phase") + 1] if "--phase" in args else None
+                iter_id = args[args.index("--iter-id") + 1] if "--iter-id" in args else None
+                if iter_id and phase:
+                    ist_path = os.path.join(plet_dir, "state", f"{iter_id}.json")
+                    ist = load_json(ist_path)
+                    if phase == "implement":
+                        ist["implementVerdict"] = "completed"
+                    elif phase == "verify":
+                        ist["verifyVerdict"] = "passed"
+                    with open(ist_path, "w") as f:
+                        json.dump(ist, f)
                 return "", "", 0
 
-            def smart_json(script_name, args, cwd=None):
-                stdout, stderr, rc = smart_run(script_name, args, cwd)
-                if rc != 0:
-                    return None, stderr, rc
-                try:
-                    return json.loads(stdout) if stdout else None, stderr, rc
-                except (json.JSONDecodeError, ValueError):
-                    return None, stderr, rc
+            old_invoke = plet_orchestrator._run_invoke
+            plet_orchestrator._run_invoke = mock_invoke_with_verdicts
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._run_iteration("ID_001", plet_dir, sink, 0, {})
+                check("completed = 1", completed == 1, f"got: {completed}")
+                check("not blocked", blocked is False)
+            finally:
+                plet_orchestrator._run_invoke = old_invoke
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
 
-            old_run, old_json = plet_orchestrator._run_script, plet_orchestrator._run_script_json
-            plet_orchestrator._run_script = smart_run
-            plet_orchestrator._run_script_json = smart_json
+
+def test_run_iteration_no_verdict():
+    """_run_iteration when implement doesn't set verdict — blocks."""
+    print("\n## Mock runner — run iteration (no verdict)")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            # State has no implementVerdict set (default from fixture)
+            old_invoke = _install_mock_invoke(plet_orchestrator)
+            try:
+                sink = CaptureSink()
+                completed, blocked = plet_orchestrator._run_iteration("ID_001", plet_dir, sink, 0, {})
+                check("completed = 0", completed == 0)
+                check("blocked", blocked is True)
+            finally:
+                _restore_invoke(plet_orchestrator, old_invoke)
+        finally:
+            os.chdir(old_cwd)
+    finally:
+        shutil.rmtree(d)
+
+
+def test_sequential_loop_with_mock():
+    """_run_sequential_loop with mock invoke: single iteration, passes."""
+    print("\n## Mock runner — sequential loop")
+    import plet_orchestrator
+
+    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    try:
+        old_cwd = os.getcwd()
+        os.chdir(d)
+        try:
+            # Mock invoke to simulate subagent setting verdicts
+            def mock_invoke_with_verdicts(args, cwd=None):
+                phase = args[args.index("--phase") + 1] if "--phase" in args else None
+                iter_id = args[args.index("--iter-id") + 1] if "--iter-id" in args else None
+                if iter_id and phase:
+                    ist_path = os.path.join(plet_dir, "state", f"{iter_id}.json")
+                    ist = load_json(ist_path)
+                    if phase == "implement":
+                        ist["implementVerdict"] = "completed"
+                    elif phase == "verify":
+                        ist["verifyVerdict"] = "passed"
+                    with open(ist_path, "w") as f:
+                        json.dump(ist, f)
+                return "", "", 0
+
+            old_invoke = plet_orchestrator._run_invoke
+            plet_orchestrator._run_invoke = mock_invoke_with_verdicts
             try:
                 sink = CaptureSink()
                 counts = {"queued": 1, "complete": 0, "blocked": 0, "implementing": 0, "verifying": 0}
-                completed, reason, final_counts, pause_ctx = plet_orchestrator._run_streaming_loop(
-                    plet_dir, sink, None, True, 1, "ws", counts
+                completed, reason, final_counts, pause_ctx = plet_orchestrator._run_sequential_loop(
+                    plet_dir, sink, None, 1, "ws", counts
                 )
                 check("completed = 1", completed == 1, f"got: {completed}")
                 check("reason all_complete", reason == "all_complete", f"got: {reason}")
-                merged = [e for e in sink.events if e.get("type") == "iteration_merged"]
-                check("merged event", len(merged) == 1, f"got: {len(merged)}")
+                complete_events = [e for e in sink.events if e.get("type") == "iteration_complete"]
+                check("complete event", len(complete_events) >= 1, f"got: {len(complete_events)}")
             finally:
-                plet_orchestrator._run_script = old_run
-                plet_orchestrator._run_script_json = old_json
+                plet_orchestrator._run_invoke = old_invoke
         finally:
             os.chdir(old_cwd)
     finally:
         shutil.rmtree(d)
 
 
-# ---------------------------------------------------------------------------
-# Trace file isolation — invoke should get worktree plet dir, not global
-# ---------------------------------------------------------------------------
-
-
-def test_invoke_receives_worktree_plet_dir():
-    """plet_invoke.py run must receive worktree_plet_dir for trace output, not global_plet_dir.
-    Bug: traces written to global plet dir dirty the workstream working tree."""
-    print("\n## Invoke receives worktree plet dir")
+def test_invoke_receives_global_plet_dir():
+    """In sequential mode, invoke receives global_plet_dir (no worktrees)."""
+    print("\n## Invoke receives global plet dir (sequential)")
     import plet_orchestrator
 
     d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
     try:
-        wt_dir = os.path.join(d, ".plet/worktrees/TEST/ID_001")
-        wt_plet = os.path.join(wt_dir, "plet")
-        os.makedirs(os.path.join(wt_plet, "state"), exist_ok=True)
+        # Set verdicts so phases complete
         ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
         ist["implementVerdict"] = "completed"
         ist["verifyVerdict"] = "passed"
-        with open(os.path.join(wt_plet, "state", "ID_001.json"), "w") as f:
+        with open(os.path.join(plet_dir, "state", "ID_001.json"), "w") as f:
             json.dump(ist, f)
 
         invoke_calls = []
 
-        def tracking_run(script_name, args, cwd=None):
-            cmd = args[0] if args else ""
-            if script_name == "plet_global_state.py" and cmd == "update-lifecycle":
-                return plet_orchestrator._run_script_subprocess(script_name, args, cwd)
-            if script_name == "plet_invoke.py" and cmd == "run":
-                invoke_calls.append(args)
+        def tracking_invoke(args, cwd=None):
+            invoke_calls.append(args)
+            # Simulate subagent setting verdicts
+            phase = args[args.index("--phase") + 1] if "--phase" in args else None
+            iter_id = args[args.index("--iter-id") + 1] if "--iter-id" in args else None
+            if iter_id and phase:
+                ist_path = os.path.join(plet_dir, "state", f"{iter_id}.json")
+                ist = load_json(ist_path)
+                if phase == "implement":
+                    ist["implementVerdict"] = "completed"
+                elif phase == "verify":
+                    ist["verifyVerdict"] = "passed"
+                with open(ist_path, "w") as f:
+                    json.dump(ist, f)
             return "", "", 0
 
-        def tracking_json(script_name, args, cwd=None):
-            stdout, stderr, rc = tracking_run(script_name, args, cwd)
-            if rc != 0:
-                return None, stderr, rc
-            try:
-                return json.loads(stdout) if stdout else None, stderr, rc
-            except (json.JSONDecodeError, ValueError):
-                return None, stderr, rc
-
-        responses = {
-            ("plet_git_iteration.py", "worktree-create"): {
-                "status": "ok",
-                "worktreePath": wt_dir,
-                "branchName": "plet/TEST/loop1/ID_001",
-            },
-        }
-
-        old_run = plet_orchestrator._run_script
-        old_json = plet_orchestrator._run_script_json
-
-        def combined_run(script_name, args, cwd=None):
-            cmd = args[0] if args else ""
-            key = (script_name, cmd)
-            if key in responses:
-                val = responses[key]
-                if isinstance(val, tuple):
-                    return val
-                return json.dumps(val), "", 0
-            return tracking_run(script_name, args, cwd)
-
-        def combined_json(script_name, args, cwd=None):
-            stdout, stderr, rc = combined_run(script_name, args, cwd)
-            if rc != 0:
-                return None, stderr, rc
-            try:
-                return json.loads(stdout) if stdout else None, stderr, rc
-            except (json.JSONDecodeError, ValueError):
-                return None, stderr, rc
-
-        plet_orchestrator._run_script = combined_run
-        plet_orchestrator._run_script_json = combined_json
+        old_invoke = plet_orchestrator._run_invoke
+        plet_orchestrator._run_invoke = tracking_invoke
         try:
-            sink = CaptureSink()
-            plet_orchestrator._spawn_iteration("ID_001", plet_dir, sink, 0)
-
-            # Should have 2 invoke calls (implement + verify)
-            assert len(invoke_calls) >= 1, f"Expected invoke calls, got {len(invoke_calls)}"
-
-            for call_args in invoke_calls:
-                # args: ["run", <plet_dir>, "--iter-id", ..., "--phase", ..., "--cwd", ...]
-                # The plet_dir (args[1]) should be the WORKTREE plet dir, not the global one
-                invoke_plet_dir = call_args[1]
-                assert invoke_plet_dir != plet_dir, (
-                    f"Invoke got global plet dir ({plet_dir}) — should get worktree plet dir.\nFull args: {call_args}"
-                )
-        finally:
-            plet_orchestrator._run_script = old_run
-            plet_orchestrator._run_script_json = old_json
-    finally:
-        shutil.rmtree(d)
-
-
-# ---------------------------------------------------------------------------
-# Parallel stop — after ff-merge failure, spawn max 1
-# ---------------------------------------------------------------------------
-
-
-def test_parallel_stop_limits_spawning():
-    """After rebase-commit failure, _get_spawnable returns max 1 when parallel_stopped is True."""
-    print("\n## Parallel stop limits spawning")
-    import plet_orchestrator
-
-    # 3 parallel eligible iterations
-    d, plet_dir = _make_project(
-        lifecycles={"ID_001": "queued", "ID_002": "queued", "ID_003": "queued"},
-        dep_map={"ID_001": [], "ID_002": [], "ID_003": []},
-    )
-    try:
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            responses = {
-                ("plet_schedule.py", "eligible"): {
-                    "eligible": ["ID_001", "ID_002", "ID_003"],
-                    "counts": {"queued": 3, "complete": 0, "blocked": 0, "implementing": 0, "verifying": 0},
-                    "stuckIterations": [],
-                },
-            }
-            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
+            old_cwd = os.getcwd()
+            os.chdir(d)
             try:
                 sink = CaptureSink()
+                plet_orchestrator._run_iteration("ID_001", plet_dir, sink, 0, {})
 
-                # Normal mode: all 3 spawnable
-                normal = plet_orchestrator._get_spawnable(plet_dir, sink, set(), None, 0)
-                assert len(normal) == 3, f"Normal: expected 3 spawnable, got {len(normal)}"
-
-                # After parallel stop: max 1 spawnable
-                result = plet_orchestrator._get_spawnable(plet_dir, sink, set(), None, 0, parallel_stopped=True)
-                assert len(result) == 1, f"Parallel stopped: expected 1 spawnable, got {len(result)}"
+                assert len(invoke_calls) >= 1, f"Expected invoke calls, got {len(invoke_calls)}"
+                for call_args in invoke_calls:
+                    # _run_invoke receives args like ["run", plet_dir, "--iter-id", ...]
+                    # In sequential mode, plet_dir arg should be the global plet_dir
+                    invoke_plet_dir = call_args[1]
+                    assert invoke_plet_dir == plet_dir, (
+                        f"Invoke should get global plet dir ({plet_dir}), got: {invoke_plet_dir}"
+                    )
+                    # --cwd should be "." (project root)
+                    cwd_idx = call_args.index("--cwd") + 1 if "--cwd" in call_args else -1
+                    if cwd_idx > 0:
+                        assert call_args[cwd_idx] == ".", f"Expected --cwd '.', got: {call_args[cwd_idx]}"
             finally:
-                _restore_runner(plet_orchestrator, old_run, old_json)
+                os.chdir(old_cwd)
         finally:
-            os.chdir(old_cwd)
-    finally:
-        shutil.rmtree(d)
-
-
-# ---------------------------------------------------------------------------
-# Requeue reason — orchestrator writes, prompt assembler reads
-# ---------------------------------------------------------------------------
-
-
-def test_rebase_failure_decrements_retries_in_state_json():
-    """On rebase-commit failure, orchestrator decrements remainingRetries in state.json."""
-    print("\n## Requeue reason written to iter state")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
-    try:
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            responses = {
-                ("plet_git_ops.py", "rebase-commit"): ("", "Error: rebase has conflicts", 1),
-            }
-            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-            try:
-                sink = CaptureSink()
-                plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-
-                # Verify remainingRetries was decremented in state.json
-                with open(state_json_path(plet_dir)) as f:
-                    gs = json.load(f)
-                # remainingRetries may not exist yet (default 3, decremented to 2)
-                retries = gs.get("remainingRetries", {})
-                assert retries.get("ID_001", 3) == 2, (
-                    f"Expected remainingRetries=2 in state.json, got: {retries.get('ID_001')}"
-                )
-            finally:
-                _restore_runner(plet_orchestrator, old_run, old_json)
-        finally:
-            os.chdir(old_cwd)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_prompt_has_rebase_in_reference():
-    """Prompt includes rebase-prep guidance via implement.md reference file (always, not conditional)."""
-    print("\n## Prompt has rebase-prep in reference file")
-    import plet_prompt
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
-    try:
-        sections, err = plet_prompt._build_prompt_sections(plet_dir, "ID_001", "implement")
-        assert err is None, f"Prompt assembly failed: {err}"
-
-        # Reference file (implement.md) should mention rebase-prep
-        ref_section = next(s for s in sections if s["name"] == "reference-file")
-        assert "rebase-prep" in ref_section["content"], "implement.md should mention rebase-prep"
-    finally:
-        shutil.rmtree(d)
-
-
-# ---------------------------------------------------------------------------
-# remainingRetries in state.json (not per-iter state)
-# ---------------------------------------------------------------------------
-
-
-def test_remaining_retries_in_global_state():
-    """After rebase-commit failure, remainingRetries is decremented in state.json, not per-iter state."""
-    print("\n## remainingRetries in state.json")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
-    try:
-        # Add remainingRetries to state.json
-        gs_path = state_json_path(plet_dir)
-        with open(gs_path) as f:
-            gs = json.load(f)
-        gs["remainingRetries"] = {"ID_001": 3}
-        with open(gs_path, "w") as f:
-            json.dump(gs, f, indent=2)
-            f.write("\n")
-
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            responses = {
-                ("plet_git_ops.py", "rebase-commit"): ("", "Error: rebase has conflicts", 1),
-            }
-            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-            try:
-                sink = CaptureSink()
-                plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-
-                # Check state.json has decremented remainingRetries
-                with open(gs_path) as f:
-                    gs = json.load(f)
-                assert gs.get("remainingRetries", {}).get("ID_001") == 2, (
-                    f"Expected remainingRetries=2 in state.json, got: {gs.get('remainingRetries')}"
-                )
-
-                # Per-iter state should NOT have remainingRetries (removed in RBS_20)
-                is_path = os.path.join(plet_dir, "state", "ID_001.json")
-                with open(is_path) as f:
-                    ist = json.load(f)
-                assert "remainingRetries" not in ist, "remainingRetries should not be in per-iter state"
-            finally:
-                _restore_runner(plet_orchestrator, old_run, old_json)
-        finally:
-            os.chdir(old_cwd)
+            plet_orchestrator._run_invoke = old_invoke
     finally:
         shutil.rmtree(d)
 
@@ -1377,172 +948,29 @@ def main():
     test_handle_verdict_passed()
     test_end_session()
     test_setup_session()
-    test_get_spawnable_basic()
-    test_get_spawnable_filters_failed()
-    test_get_spawnable_max_iterations_budget()
-    test_get_spawnable_budget_exhausted()
-    test_get_spawnable_nothing_eligible()
-    test_get_spawnable_promotes()
+    test_get_next_eligible_basic()
+    test_get_next_eligible_filters_failed()
+    test_get_next_eligible_budget_exhausted()
+    test_get_next_eligible_nothing_eligible()
+    test_get_next_eligible_promotes()
     test_check_breakpoint_before_miss()
     test_check_breakpoint_before_hit()
     test_check_breakpoint_after_miss()
     test_check_breakpoint_after_hit()
-    test_finalize_iteration_error_no_worktree()
-    test_finalize_iteration_error_with_worktree()
-    test_parse_run_args_sequential()
-    test_parse_run_args_no_sequential()
+    test_parse_run_args_no_sequential_flag()
     test_injectable_runner_exists()
     test_injectable_runner_override()
 
     test_handle_passed_verdict_with_mock()
-    test_handle_passed_verdict_rebase_commit_requeue()
-    test_spawn_iteration_with_mock()
-    test_spawn_iteration_worktree_fail()
-    test_spawn_iteration_no_verdict()
-    test_streaming_loop_with_mock()
+    test_run_iteration_with_mock()
+    test_run_iteration_no_verdict()
+    test_sequential_loop_with_mock()
 
-    # rebase-commit orchestrator tests (RBS_5)
-    test_rebase_commit_success()
-    test_rebase_commit_conflict_requeues()
-    test_rebase_commit_any_error_requeues()
-
-    # trace isolation
-    test_invoke_receives_worktree_plet_dir()
-
-    # parallel stop
-    test_parallel_stop_limits_spawning()
-
-    # requeue reason
-    test_rebase_failure_decrements_retries_in_state_json()
-    test_prompt_has_rebase_in_reference()
-
-    # remainingRetries in state.json
-    test_remaining_retries_in_global_state()
+    # trace isolation (sequential)
+    test_invoke_receives_global_plet_dir()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 1 if failed else 0
-
-
-# ---------------------------------------------------------------------------
-# rebase-commit orchestrator integration tests (RBS_5)
-# ---------------------------------------------------------------------------
-
-
-def test_rebase_commit_success():
-    """_handle_passed_verdict calls rebase-commit (not merge-squash) and completes."""
-    print("\n## Rebase-commit orchestrator — success")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
-    try:
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            called_scripts = []
-
-            def tracking_run(script_name, args, cwd=None):
-                cmd = args[0] if args else ""
-                called_scripts.append((script_name, cmd))
-                if script_name == "plet_global_state.py" and cmd == "update-lifecycle":
-                    return plet_orchestrator._run_script_subprocess(script_name, args, cwd)
-                if script_name == "plet_git_ops.py" and cmd == "rebase-commit":
-                    return "OK — rebased and merged", "", 0
-                return "", "", 0
-
-            def tracking_json(script_name, args, cwd=None):
-                stdout, stderr, rc = tracking_run(script_name, args, cwd)
-                if rc != 0:
-                    return None, stderr, rc
-                try:
-                    return json.loads(stdout) if stdout else None, stderr, rc
-                except (json.JSONDecodeError, ValueError):
-                    return None, stderr, rc
-
-            old_run = plet_orchestrator._run_script
-            old_json = plet_orchestrator._run_script_json
-            plet_orchestrator._run_script = tracking_run
-            plet_orchestrator._run_script_json = tracking_json
-            try:
-                sink = CaptureSink()
-                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-                # Use assert so pytest catches failures
-                git_ops_calls = [(s, c) for s, c in called_scripts if s == "plet_git_ops.py"]
-                assert any(c == "rebase-commit" for _, c in git_ops_calls), (
-                    f"Expected rebase-commit call, got: {git_ops_calls}"
-                )
-                assert not any(c == "merge-squash" for _, c in git_ops_calls), (
-                    f"Should NOT call merge-squash, got: {git_ops_calls}"
-                )
-                assert completed == 1, f"Expected completed=1, got {completed}"
-                assert blocked is False, "Expected not blocked"
-                gs = load_json(state_json_path(plet_dir))
-                assert gs["lifecycles"]["ID_001"] == "complete", f"Expected complete, got {gs['lifecycles']['ID_001']}"
-            finally:
-                plet_orchestrator._run_script = old_run
-                plet_orchestrator._run_script_json = old_json
-        finally:
-            os.chdir(old_cwd)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_rebase_commit_conflict_requeues():
-    """rebase-commit conflict → requeue (not block). No string matching needed."""
-    print("\n## Rebase-commit orchestrator — conflict requeues")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
-    try:
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            responses = {
-                ("plet_git_ops.py", "rebase-commit"): ("", "Error: rebase has conflicts. Rebase aborted.", 1),
-            }
-            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-            try:
-                sink = CaptureSink()
-                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-                assert completed == 0, f"Expected completed=0, got {completed}"
-                assert blocked is False, "Expected requeued (not blocked)"
-                gs = load_json(state_json_path(plet_dir))
-                assert gs["lifecycles"]["ID_001"] == "queued", f"Expected queued, got {gs['lifecycles']['ID_001']}"
-            finally:
-                _restore_runner(plet_orchestrator, old_run, old_json)
-        finally:
-            os.chdir(old_cwd)
-    finally:
-        shutil.rmtree(d)
-
-
-def test_rebase_commit_any_error_requeues():
-    """Any rebase-commit error requeues (not just conflicts). No string matching."""
-    print("\n## Rebase-commit orchestrator — any error requeues")
-    import plet_orchestrator
-
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
-    try:
-        old_cwd = os.getcwd()
-        os.chdir(d)
-        try:
-            # Non-conflict error — should still requeue, not block
-            responses = {
-                ("plet_git_ops.py", "rebase-commit"): ("", "Error: fast-forward merge failed: something", 1),
-            }
-            old_run, old_json = _install_mock_runner(plet_orchestrator, responses)
-            try:
-                sink = CaptureSink()
-                completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-                assert completed == 0, f"Expected completed=0, got {completed}"
-                assert blocked is False, "Expected requeued (not blocked)"
-                gs = load_json(state_json_path(plet_dir))
-                assert gs["lifecycles"]["ID_001"] == "queued", f"Expected queued, got {gs['lifecycles']['ID_001']}"
-            finally:
-                _restore_runner(plet_orchestrator, old_run, old_json)
-        finally:
-            os.chdir(old_cwd)
-    finally:
-        shutil.rmtree(d)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Smoke test for plet_invoke.py with real Claude subprocess.
+"""Smoke test for invoke.py with real Claude subprocess.
 
 NOT part of test_all.py — run manually only when you suspect the mock
 has diverged from real Claude behavior, or after changes to permission
-model, prompt delivery, or plet_invoke.py internals.
+model, prompt delivery, or invoke.py internals.
 
 Expected duration: ~30-60 seconds (small prompt, no tool use required).
 
@@ -11,13 +11,13 @@ Requires:
 - Claude CLI installed and authenticated (`claude --version` works)
 
 Usage:
-    ./skills/plet/tests/smoke_plet_invoke.py
-    ./skills/plet/tests/smoke_plet_invoke.py --skip-cleanup
-    ./skills/plet/tests/smoke_plet_invoke.py --dry-run
+    ./skills/plet/tests/smoke_invoke.py
+    ./skills/plet/tests/smoke_invoke.py --skip-cleanup
+    ./skills/plet/tests/smoke_invoke.py --dry-run
 
 What it exercises:
 1. Claude CLI exists and is authenticated
-2. plet_invoke.py launches Claude with a small prompt
+2. invoke.py launches Claude with a small prompt
 3. Claude produces streaming NDJSON output
 4. Transcript NDJSON is captured to trace/
 
@@ -60,7 +60,7 @@ from util_io import (
     trace_dir_path,
 )
 
-INVOKE_TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_invoke.py")
+INVOKE_TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "invoke.py")
 
 # Small prompt — no tool use, fast response
 SMOKE_PROMPT = "Explain red/green testing and development strategy in 2-3 sentences."
@@ -86,7 +86,7 @@ def check_claude_installed():
 
 
 def check_invoke(plet_dir, cwd):
-    """Run plet_invoke.py with real Claude. Returns (ok, detail, elapsed, stdout)."""
+    """Run invoke.py with real Claude. Returns (ok, detail, elapsed, stdout)."""
     start = time.time()
     result = subprocess.run(
         [sys.executable, INVOKE_TOOL, "run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", cwd],
@@ -211,10 +211,10 @@ def main():
             return 0
         else:
             print(f"Unknown argument: {arg}", file=sys.stderr)
-            print("Usage: smoke_plet_invoke.py [--skip-cleanup] [--dry-run]")
+            print("Usage: smoke_invoke.py [--skip-cleanup] [--dry-run]")
             return 1
 
-    print("\n== smoke_plet_invoke.py ==")
+    print("\n== smoke_invoke.py ==")
     print(f"Prompt: '{SMOKE_PROMPT}'")
     print()
 

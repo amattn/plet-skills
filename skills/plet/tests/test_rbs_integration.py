@@ -20,7 +20,7 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-import plet_git_ops  # noqa: E402
+import git_ops  # noqa: E402
 import plet_orchestrator  # noqa: E402
 from util_io import iter_state_path, state_dir_path, state_json_path  # noqa: E402
 from util_sink import CaptureSink  # noqa: E402
@@ -52,12 +52,12 @@ def run_git_ops(args, cwd=None):
     """Run plet_git_ops via main() with capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
     old_cwd = os.getcwd() if cwd else None
-    sys.argv = ["plet_git_ops", "--no-log"] + args
+    sys.argv = ["git_ops", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         if cwd:
             os.chdir(cwd)
-        code = plet_git_ops.main()
+        code = git_ops.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -222,78 +222,25 @@ def test_mock_audit_rebase_commit_conflict():
         assert "conflict" in combined.lower(), f"Expected 'conflict', got: {combined}"
 
 
-def test_mock_audit_rebase_prep_conflict():
-    """Real rebase-prep conflict output: exit 0, 'conflict' in stdout, rebase in progress."""
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, ws = setup_project(d)
-
-        # Create conflicting branches
-        git(repo, "checkout", "-b", "plet/TEST/loop1/ID_001", ws)
-        with open(os.path.join(repo, "shared.txt"), "w") as f:
-            f.write("iter version\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "iter changes shared")
-        write_iter_state(os.path.join(repo, "plet"), "ID_001")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "state")
-
-        git(repo, "checkout", ws)
-        with open(os.path.join(repo, "shared.txt"), "w") as f:
-            f.write("ws version\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "ws changes shared")
-
-        # Back to iteration branch for rebase-prep
-        git(repo, "checkout", "plet/TEST/loop1/ID_001")
-
-        out, err, rc = run_git_ops(["rebase-prep", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-
-        # rebase-prep returns 0 even on conflict (agent will resolve)
-        assert rc == 0, f"Expected exit 0, got {rc}. err: {err}"
-        assert "conflict" in out.lower(), f"Expected 'conflict' in output, got: {out}"
-        assert "shared.txt" in out, f"Expected file name in output, got: {out}"
-
-        # Rebase should be in progress
-        git_dir = os.path.join(repo, ".git")
-        assert os.path.exists(os.path.join(git_dir, "rebase-merge")) or os.path.exists(
-            os.path.join(git_dir, "rebase-apply")
-        ), "Rebase should be in progress"
-
-        # Clean up: abort the rebase so temp dir cleanup works
-        git(repo, "rebase", "--abort")
-
-
 # ===========================================================================
 # RBS_TEST_2: Integration — _handle_passed_verdict with real git
 # ===========================================================================
 
 
 def test_integration_handle_passed_verdict_real_git():
-    """_handle_passed_verdict with real git — the test we never had for merge-squash."""
+    """_handle_passed_verdict in sequential mode — commits state and marks complete."""
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, ws = setup_project(d, lifecycles={"ID_001": "verifying"})
-        make_iteration_commits(repo, ws, "ID_001")
         git(repo, "checkout", ws)
 
         old_cwd = os.getcwd()
         os.chdir(repo)
         try:
             sink = CaptureSink()
-            completed, blocked, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+            completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
 
             assert completed == 1, f"Expected completed=1, got {completed}"
             assert blocked is False
-
-            # Iteration's file should be on workstream
-            assert os.path.exists(os.path.join(repo, "ID_001_file.txt")), "Iteration file not on workstream"
-
-            # Individual commits preserved (not squashed)
-            log_out, _, _ = git(repo, "log", "--oneline")
-            assert "ID_001" in log_out, f"Iteration commits missing: {log_out}"
-
-            # Linear history (no merge commits)
-            merge_log, _, _ = git(repo, "log", "--merges", "--oneline")
-            assert merge_log.strip() == "", f"Found merge commits: {merge_log}"
 
             # Lifecycle updated
             with open(state_json_path(plet_dir)) as f:
@@ -374,132 +321,16 @@ def test_per_iter_state_not_on_workstream():
 
 
 # ===========================================================================
-# RBS_TEST_4: R11 scenario — per-iter state after failed merge + requeue
+# RBS_TEST_5: Two sequential iterations completing
 # ===========================================================================
 
 
-def test_r11_scenario_state_survives_requeue():
-    """R11's exact bug scenario: rebase-commit fails, requeue, second attempt succeeds.
-    Per-iteration state must not get corrupted."""
+def test_two_sequential_iterations_real_git():
+    """Two iterations completing sequentially — no per-iteration branches needed."""
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, ws = setup_project(
             d, iter_ids=["ID_001", "ID_002"], lifecycles={"ID_001": "verifying", "ID_002": "verifying"}
         )
-
-        # Shared file that will cause conflict
-        shared = os.path.join(repo, "shared.txt")
-        with open(shared, "w") as f:
-            f.write("original\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "base shared file")
-
-        # ID_001 modifies shared.txt
-        git(repo, "checkout", "-b", "plet/TEST/loop1/ID_001", ws)
-        with open(shared, "w") as f:
-            f.write("ID_001 version\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "wip: ID_001 modifies shared")
-        write_iter_state(plet_dir, "ID_001", updated="2026-04-06T01:00:00Z")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: ID_001 state")
-        git(repo, "tag", "plet/TEST/loop1/audit/ID_001/implement-1")
-        git(repo, "tag", "plet/TEST/loop1/audit/ID_001/verify-1")
-
-        # ID_002 modifies shared.txt (same file, will conflict)
-        git(repo, "checkout", ws)
-        git(repo, "checkout", "-b", "plet/TEST/loop1/ID_002", ws)
-        with open(shared, "w") as f:
-            f.write("ID_002 version\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "wip: ID_002 modifies shared")
-        write_iter_state(plet_dir, "ID_002", updated="2026-04-06T01:00:00Z")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: ID_002 state attempt 1")
-        git(repo, "tag", "plet/TEST/loop1/audit/ID_002/implement-1")
-        git(repo, "tag", "plet/TEST/loop1/audit/ID_002/verify-1")
-
-        # Back to workstream — merge ID_001 first (succeeds)
-        git(repo, "checkout", ws)
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: state before rebase-commit ID_001", "--allow-empty")
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        assert rc == 0, f"ID_001 should succeed: {err}"
-
-        # Try rebase-commit ID_002 — should fail (same-line conflict)
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: state before rebase-commit ID_002", "--allow-empty")
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_002"], cwd=repo)
-        assert rc == 1, "ID_002 should fail with conflict"
-
-        # === REQUEUE SIMULATION ===
-
-        # Checkout iter branch, run rebase-prep, resolve conflict
-        git(repo, "checkout", "plet/TEST/loop1/ID_002")
-        out, err, rc = run_git_ops(["rebase-prep", plet_dir, "--iter-id", "ID_002"], cwd=repo)
-        assert rc == 0
-
-        # Resolve the conflict — keep ID_001's changes plus ID_002's additions
-        with open(shared, "w") as f:
-            f.write("ID_001 version\nID_002 additions\n")
-        git(repo, "add", "shared.txt")
-        # Resolve any state file conflicts by accepting workstream version
-        state_json_path(plet_dir)
-        porcelain, _, _ = git(repo, "status", "--porcelain")
-        for line in porcelain.split("\n"):
-            if line.startswith(("UU", "AA")) and line[3:].strip() != "shared.txt":
-                git(repo, "checkout", "--ours", line[3:].strip())
-        git(repo, "add", "-A")
-        # Continue rebase
-        env = dict(os.environ, GIT_EDITOR="true")
-        for _ in range(5):
-            r = sp.run(["git", "-C", repo, "rebase", "--continue"], capture_output=True, text=True, env=env)
-            if r.returncode == 0:
-                break
-            porcelain, _, _ = git(repo, "status", "--porcelain")
-            for line in porcelain.split("\n"):
-                if line.startswith(("UU", "AA")):
-                    git(repo, "checkout", "--theirs", line[3:].strip())
-            git(repo, "add", "-A")
-
-        # Simulate second implement pass — update state with attempt 2
-        write_iter_state(plet_dir, "ID_002", attempts={"implement": 2, "verify": 2}, updated="2026-04-06T03:00:00Z")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: ID_002 state attempt 2")
-
-        # Back to workstream — second rebase-commit
-        git(repo, "checkout", ws)
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: state before rebase-commit ID_002 (attempt 2)", "--allow-empty")
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_002"], cwd=repo)
-        assert rc == 0, f"ID_002 should succeed after requeue: err={err}, out={out}"
-
-        # CRITICAL: per-iteration state must be valid JSON (not corrupted like R11)
-        is_path = iter_state_path(plet_dir, "ID_002")
-        with open(is_path) as f:
-            content = f.read()
-        assert "<<<<<<" not in content, f"CONFLICT MARKERS IN STATE FILE:\n{content[:500]}"
-
-        final_state = json.loads(content)
-        assert final_state["attempts"]["implement"] == 2, f"Expected attempt 2, got: {final_state['attempts']}"
-        assert final_state["lastUpdated"] == "2026-04-06T03:00:00Z"
-
-
-# ===========================================================================
-# RBS_TEST_5: Two parallel iterations completing sequentially
-# ===========================================================================
-
-
-def test_two_parallel_iterations_real_git():
-    """Two iterations from same base, both rebase-commit sequentially. Full integration."""
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, ws = setup_project(
-            d, iter_ids=["ID_001", "ID_002"], lifecycles={"ID_001": "verifying", "ID_002": "verifying"}
-        )
-
-        # Both branches from same base, different files (no conflict)
-        make_iteration_commits(repo, ws, "ID_001", files={"file1.txt": "work 1\n"})
-        git(repo, "checkout", ws)
-        make_iteration_commits(repo, ws, "ID_002", files={"file2.txt": "work 2\n"})
         git(repo, "checkout", ws)
 
         old_cwd = os.getcwd()
@@ -507,21 +338,13 @@ def test_two_parallel_iterations_real_git():
         try:
             # Finalize ID_001
             sink1 = CaptureSink()
-            c1, b1, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink1, 0, {})
+            c1, b1 = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink1, 0, {})
             assert c1 == 1 and not b1, f"ID_001 should complete: c={c1}, b={b1}"
 
-            # Finalize ID_002 — workstream advanced with ID_001
+            # Finalize ID_002
             sink2 = CaptureSink()
-            c2, b2, _ = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink2, 1, {})
+            c2, b2 = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink2, 1, {})
             assert c2 == 2 and not b2, f"ID_002 should complete: c={c2}, b={b2}"
-
-            # Both files on workstream
-            assert os.path.exists(os.path.join(repo, "file1.txt"))
-            assert os.path.exists(os.path.join(repo, "file2.txt"))
-
-            # Linear history
-            merge_log, _, _ = git(repo, "log", "--merges", "--oneline")
-            assert merge_log.strip() == ""
 
             # Both lifecycles complete
             with open(state_json_path(plet_dir)) as f:
@@ -537,137 +360,33 @@ def test_two_parallel_iterations_real_git():
 # ===========================================================================
 
 
-def test_full_requeue_cycle_real_git():
-    """Complete flow: rebase-commit fails → requeue → agent rebases and resolves → succeed.
+def test_sequential_no_conflict_possible():
+    """In sequential mode, no per-iteration branches means no conflicts possible.
 
-    Simulates the 16-step conflict resolution flow from NOTES_PLN_RBS.
-    Uses manual git rebase (not rebase-prep) for reliable conflict resolution in test.
+    This replaces the full requeue cycle test — sequential execution
+    eliminates the entire class of conflict bugs.
     """
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, ws = setup_project(
             d, iter_ids=["ID_001", "ID_002"], lifecycles={"ID_001": "verifying", "ID_002": "verifying"}
         )
-
-        # Shared file that will cause conflict
-        shared = os.path.join(repo, "shared.txt")
-        with open(shared, "w") as f:
-            f.write("original content\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "add shared file")
-
-        # ID_001 modifies shared.txt
-        git(repo, "checkout", "-b", "plet/TEST/loop1/ID_001", ws)
-        with open(shared, "w") as f:
-            f.write("ID_001 changes\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "wip: ID_001")
-        write_iter_state(plet_dir, "ID_001")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: ID_001 state")
-        git(repo, "tag", "plet/TEST/loop1/audit/ID_001/implement-1")
-        git(repo, "tag", "plet/TEST/loop1/audit/ID_001/verify-1")
-
-        # ID_002 modifies shared.txt (same line — will conflict with ID_001)
         git(repo, "checkout", ws)
-        git(repo, "checkout", "-b", "plet/TEST/loop1/ID_002", ws)
-        with open(shared, "w") as f:
-            f.write("ID_002 changes\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "wip: ID_002")
-        write_iter_state(plet_dir, "ID_002")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: ID_002 state")
-        git(repo, "tag", "plet/TEST/loop1/audit/ID_002/implement-1")
-        git(repo, "tag", "plet/TEST/loop1/audit/ID_002/verify-1")
 
-        # --- STEPS 1-4: ID_001 merges, ID_002 fails and requeues ---
-        git(repo, "checkout", ws)
         old_cwd = os.getcwd()
         os.chdir(repo)
         try:
+            # Both pass sequentially — no conflict possible
             sink = CaptureSink()
-            c, _, _ = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
-            assert c == 1, "ID_001 should complete"
+            c1, b1 = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+            assert c1 == 1 and not b1
 
-            sink2 = CaptureSink()
-            c2, b2, _ = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink2, 1, {})
-            assert c2 == 1, "ID_002 should not increment (requeued)"
-            assert b2 is False, "Should requeue, not block"
+            c2, b2 = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink, 1, {})
+            assert c2 == 2 and not b2
 
             with open(state_json_path(plet_dir)) as f:
                 gs = json.load(f)
-            assert gs["lifecycles"]["ID_002"] == "queued"
-        finally:
-            os.chdir(old_cwd)
-
-        # --- STEPS 8-12: Agent rebases iter onto workstream and resolves conflict ---
-        # Commit any pending state changes on workstream (lifecycle → queued was written but not committed)
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: lifecycle update after requeue")
-
-        git(repo, "checkout", "plet/TEST/loop1/ID_002")
-
-        # Manual rebase onto workstream (what rebase-prep does internally)
-        _, stderr, rebase_rc = git(repo, "rebase", ws)
-        assert rebase_rc != 0, "Expected conflict during rebase"
-
-        # Check what files conflict
-        porcelain, _, _ = git(repo, "status", "--porcelain")
-        conflict_files = [ln[3:].strip() for ln in porcelain.split("\n") if ln.startswith(("UU", "AA"))]
-
-        # Resolve ALL conflicts: shared.txt gets combined, everything else accepts theirs
-        with open(os.path.join(repo, "shared.txt"), "w") as f:
-            f.write("ID_001 changes\nID_002 additions\n")
-        for cf in conflict_files:
-            if cf != "shared.txt":
-                git(repo, "checkout", "--theirs", cf)
-        git(repo, "add", "-A")
-
-        # Continue rebase through all conflicting commits
-        env = dict(os.environ, GIT_EDITOR="true")
-        for _ in range(10):
-            r = sp.run(["git", "-C", repo, "rebase", "--continue"], capture_output=True, text=True, env=env)
-            if r.returncode == 0:
-                break
-            if "no rebase in progress" in r.stderr:
-                break  # Already done
-            # Auto-resolve any remaining conflicts
-            git(repo, "add", "-A")
-
-        # Verify: iter branch is on top of workstream
-        _, _, anc_rc = git(repo, "merge-base", "--is-ancestor", ws, "plet/TEST/loop1/ID_002")
-        assert anc_rc == 0, "Workstream must be ancestor of rebased iter branch"
-
-        # --- STEP 13: More implementation work after resolution ---
-        with open(os.path.join(repo, "id002_extra.txt"), "w") as f:
-            f.write("post-conflict work\n")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-m", "wip: ID_002 post-conflict")
-
-        # --- STEPS 15-16: Second rebase-commit succeeds ---
-        git(repo, "checkout", ws)
-        old_cwd = os.getcwd()
-        os.chdir(repo)
-        try:
-            sink3 = CaptureSink()
-            c3, b3, _ = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink3, 1, {})
-            assert c3 == 2, f"ID_002 should complete: c={c3}, msgs={sink3.messages}"
-            assert b3 is False
-
-            # Both iterations' work present on workstream
-            with open(shared) as f:
-                content = f.read()
-            assert "ID_002" in content, f"ID_002 changes missing: {content}"
-            assert os.path.exists(os.path.join(repo, "id002_extra.txt"))
-
-            # CRITICAL: no conflict markers in any state file
-            is_path = iter_state_path(plet_dir, "ID_002")
-            with open(is_path) as f:
-                state_content = f.read()
-            assert "<<<<<<" not in state_content, f"CONFLICT MARKERS in state:\n{state_content[:500]}"
-
-            # State file is valid JSON
-            json.loads(state_content)
+            assert gs["lifecycles"]["ID_001"] == "complete"
+            assert gs["lifecycles"]["ID_002"] == "complete"
         finally:
             os.chdir(old_cwd)
 

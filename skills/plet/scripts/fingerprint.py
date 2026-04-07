@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet fingerprint tool — computes, embeds, and checks fingerprints across
 the three plan artifacts (requirements.md, iterations.md, state.json).
 
@@ -7,11 +6,11 @@ dependent artifacts. Computing, embedding, and comparing these structures is
 purely mechanical — this script makes fingerprint operations deterministic.
 
 Usage:
-    plet_fingerprint.py extract <plet_dir> --type requirements|iterations
+    fingerprint.py extract <plet_dir> --type requirements|iterations
         [--output json [--pretty] [--fields f1,f2]]
-    plet_fingerprint.py embed <plet_dir> --type requirements|iterations|state
+    fingerprint.py embed <plet_dir> --type requirements|iterations|state
         [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_fingerprint.py check <plet_dir> [--level requirements|iterations|all]
+    fingerprint.py check <plet_dir> [--level requirements|iterations|all]
         [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
@@ -81,7 +80,7 @@ MILESTONE_METADATA_RE = re.compile(r"\*\*Milestone:\*\*\s*(MS_\d+)")
 # ---------------------------------------------------------------------------
 
 
-help_hint = make_help_hint("plet_fingerprint")
+help_hint = make_help_hint("fingerprint")
 
 
 def extract_universal_flags(kwargs):
@@ -533,12 +532,12 @@ def cmd_extract(args):
 
 PITFALLS:
     - First argument is plet_dir (directory), not a file path.
-      Use: plet_fingerprint.py extract plet/ --type requirements
-      NOT:  plet_fingerprint.py extract plet/requirements.md --type requirements
+      Use: fingerprint.py extract plet/ --type requirements
+      NOT:  fingerprint.py extract plet/requirements.md --type requirements
     - --type must be "requirements" or "iterations", not "req" or "iter"
 
 USAGE:
-    plet_fingerprint.py extract <plet_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]
+    fingerprint.py extract <plet_dir> --type requirements|iterations [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir        Path to plet directory (e.g., plet/)
     --type          requirements or iterations
@@ -553,8 +552,8 @@ PURPOSE:
     the artifact and produces the correct fingerprint deterministically.
 
 Examples:
-    plet_fingerprint.py extract plet/ --type requirements
-    plet_fingerprint.py extract plet/ --type iterations --output json --pretty
+    fingerprint.py extract plet/ --type requirements
+    fingerprint.py extract plet/ --type iterations --output json --pretty
 """
     cmd_name = "extract"
     hint = help_hint(cmd_name)
@@ -617,7 +616,7 @@ Examples:
 
 
 cmd_extract.usage = "<plet_dir> --type requirements|iterations"  # noqa: E501
-cmd_extract.example = "plet_fingerprint.py extract plet/ --type requirements"  # noqa: E501
+cmd_extract.example = "fingerprint.py extract plet/ --type requirements"  # noqa: E501
 
 
 def cmd_embed(args):
@@ -635,7 +634,7 @@ PITFALLS:
     - --bump is for prose-only changes — if IDs changed, auto-bump fires anyway
 
 USAGE:
-    plet_fingerprint.py embed <plet_dir>
+    fingerprint.py embed <plet_dir>
         --type requirements|iterations|state
         [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
@@ -658,11 +657,11 @@ PURPOSE:
     3. embed --type state         (copy iterations fingerprint to state.json)
 
 Examples:
-    plet_fingerprint.py embed plet/ --type requirements --bump --dry-run
-    plet_fingerprint.py embed plet/ --type requirements --bump
-    plet_fingerprint.py embed plet/ --type iterations --bump
-    plet_fingerprint.py embed plet/ --type state
-    plet_fingerprint.py embed plet/ --type state --output json --pretty
+    fingerprint.py embed plet/ --type requirements --bump --dry-run
+    fingerprint.py embed plet/ --type requirements --bump
+    fingerprint.py embed plet/ --type iterations --bump
+    fingerprint.py embed plet/ --type state
+    fingerprint.py embed plet/ --type state --output json --pretty
 """
     cmd_name = "embed"
     parsed = _parse_fpr_args(args, help_text, cmd_name, VALID_EMBED_TYPES)
@@ -679,7 +678,7 @@ Examples:
 
 
 cmd_embed.usage = "<plet_dir> --type requirements|iterations|state"  # noqa: E501
-cmd_embed.example = "plet_fingerprint.py embed plet/ --type requirements"  # noqa: E501
+cmd_embed.example = "fingerprint.py embed plet/ --type requirements"  # noqa: E501
 
 
 def _dispatch_embed(type_val, artifact_dir, cmd_name, force_bump, dry_run, output_json, pretty, fields):
@@ -1097,7 +1096,7 @@ PITFALLS:
     - "stale" means drift detected, not a tool error
 
 USAGE:
-    plet_fingerprint.py check <plet_dir>
+    fingerprint.py check <plet_dir>
         [--level requirements|iterations|all]
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -1113,9 +1112,9 @@ PURPOSE:
     been updated, this command catches it. The primary staleness gate.
 
 Examples:
-    plet_fingerprint.py check plet/
-    plet_fingerprint.py check plet/ --level requirements
-    plet_fingerprint.py check plet/ --output json --pretty
+    fingerprint.py check plet/
+    fingerprint.py check plet/ --level requirements
+    fingerprint.py check plet/ --output json --pretty
 """
     cmd_name = "check"
     hint = help_hint(cmd_name)
@@ -1183,7 +1182,7 @@ Examples:
 
 
 cmd_check.usage = "<plet_dir>"  # noqa: E501
-cmd_check.example = "plet_fingerprint.py check plet/"  # noqa: E501
+cmd_check.example = "fingerprint.py check plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -1197,7 +1196,7 @@ def main():
         "embed": cmd_embed,
         "check": cmd_check,
     }
-    return dispatch(commands, "plet_fingerprint", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "fingerprint", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
 """plet invoke — launch Claude Code subprocesses with transcript capture.
 
-Assembles prompt via plet_prompt.py, launches claude -p, captures streaming
+Assembles prompt via prompt.py, launches claude -p, captures streaming
 NDJSON to transcript file line by line. Returns subprocess exit code.
 
 Usage:
-    plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify
-        --cwd <worktree_path> [--permission-mode MODE] [--model MODEL]
+    invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify
+        --cwd <project_root> [--permission-mode MODE] [--model MODEL]
         [--max-budget N] [--verbose] [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -50,7 +49,7 @@ VALID_PERMISSION_MODES = ["auto", "bypassPermissions", "default"]
 # ---------------------------------------------------------------------------
 
 
-help_hint = make_help_hint("plet_invoke")
+help_hint = make_help_hint("invoke")
 
 
 def _to_json(data, pretty=False, fields=None):
@@ -102,8 +101,8 @@ def find_claude():
 
 
 def assemble_prompt(plet_dir, iter_id, phase):
-    """Call plet_prompt.py assemble. Returns (prompt_text, error_msg)."""
-    prm_script = os.path.join(scripts_dir(), "plet_prompt.py")
+    """Call prompt.py assemble. Returns (prompt_text, error_msg)."""
+    prm_script = os.path.join(scripts_dir(), "prompt.py")
     result = run([sys.executable, prm_script, "assemble", plet_dir, "--iter-id", iter_id, "--phase", phase])
     if result.returncode != 0:
         return None, f"prompt assembly failed: {result.stderr.strip()}"
@@ -170,7 +169,7 @@ def _build_prompt_with_env(prompt_text, plet_env):
     for key, val in sorted(plet_env.items()):
         env_lines.append(f"- `{key}={val}`")
     env_lines.append("")
-    env_lines.append('Call scripts as: `"$PLET_SCRIPTS_DIR/plet_iter_state.py" ...`')
+    env_lines.append('Call scripts as: `"$PLET_SCRIPTS_DIR/iter_state.py" ...`')
     env_lines.append("**No `python3` prefix** — scripts have shebangs. Direct execution is pre-approved.")
     env_lines.append(
         "Pre-approved (no permission prompt): plet scripts, git, cat, ls, mkdir, chmod, grep, sed, ruff, uv."
@@ -198,7 +197,7 @@ def _log_invocation(
     trace_dir,
 ):
     """Log invocation to trace event and progress.md."""
-    trc_script = os.path.join(scripts_dir(), "plet_trace.py")
+    trc_script = os.path.join(scripts_dir(), "traces.py")
     if os.path.isfile(trc_script):
         invocation_data = json.dumps(
             {
@@ -244,7 +243,7 @@ def _log_invocation(
         "- Transcript: {}\n\n"
         "Full prompt is in the trace event file, not repeated here."
     ).format(phase, attempt, permission_mode, model or "default", max_budget or "none", cwd, len(prompt_text), t_path)
-    ent_script = os.path.join(scripts_dir(), "plet_entries.py")
+    ent_script = os.path.join(scripts_dir(), "entries.py")
     if os.path.isfile(ent_script):
         content_tmp = os.path.join(trace_dir, ".progress_content.tmp")
         with open(content_tmp, "w") as f:
@@ -323,13 +322,13 @@ def cmd_run(args):
 
 PITFALLS:
     - --iter-id, --phase, and --cwd are all REQUIRED
-    - --cwd must be an existing directory (the worktree)
+    - --cwd must be an existing directory (the project root)
     - Transcript appends on retry — never overwrites, never loses data
     - --bare skips hooks/LSP/plugins for faster startup
 
 USAGE:
-    plet_invoke.py run <plet_dir> --iter-id ID_xxx
-        --phase implement|verify --cwd <worktree_path>
+    invoke.py run <plet_dir> --iter-id ID_xxx
+        --phase implement|verify --cwd <project_root>
         [--permission-mode MODE] [--model MODEL] [--max-budget N]
         [--verbose] [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
@@ -350,9 +349,9 @@ PURPOSE:
     debugging and replay.
 
 Examples:
-    plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd .plet/worktrees/TEST/ID_001
-    plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd /tmp/wt --dry-run
-    plet_invoke.py run --iter-id ID_001 --phase verify --cwd /tmp/wt --output json
+    invoke.py run plet/ --iter-id ID_001 --phase implement --cwd .
+    invoke.py run plet/ --iter-id ID_001 --phase implement --cwd . --dry-run
+    invoke.py run --iter-id ID_001 --phase verify --cwd . --output json
 """
     cmd_name = "run"
     hint = help_hint(cmd_name)
@@ -443,8 +442,8 @@ Examples:
     )
 
 
-cmd_run.usage = "<plet_dir> --iter-id ID_xxx --phase implement --cwd <worktree_path>"  # noqa: E501
-cmd_run.example = "plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd .plet/worktrees/PROJ/ID_001"  # noqa: E501
+cmd_run.usage = "<plet_dir> --iter-id ID_xxx --phase implement --cwd <project_root>"  # noqa: E501
+cmd_run.example = "invoke.py run plet/ --iter-id ID_001 --phase implement --cwd ."  # noqa: E501
 
 
 def _build_plet_env(plet_dir, cwd, iter_id, phase, attempt):
@@ -463,7 +462,6 @@ def _build_plet_env(plet_dir, cwd, iter_id, phase, attempt):
         "PLET_AGENT_ID": agent_id,
         "PLET_DIR": os.path.abspath(plet_dir) if plet_dir else "",
         "PLET_PROJECT_DIR": os.path.abspath(cwd),
-        "PLET_WORKTREE_BASE": os.path.abspath(os.path.join(os.path.dirname(plet_dir), ".plet", "worktrees")),
         "PLET_ITER_ID": iter_id,
         "PLET_PHASE": phase,
         "PLET_ATTEMPT": str(attempt),
@@ -554,7 +552,7 @@ def main():
     commands = {
         "run": cmd_run,
     }
-    return dispatch(commands, "plet_invoke", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "invoke", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

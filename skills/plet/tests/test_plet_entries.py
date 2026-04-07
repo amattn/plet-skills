@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Tests for plet_entries.py — runtime artifact entry tool.
+"""Tests for entries.py — runtime artifact entry tool.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_entries.py
+    ./skills/plet/tests/test_entries.py
 
 Creates temp fixtures, runs commands via subprocess, validates output, cleans up.
 
-Tests are written against the ENT spec (specs/plet_entries.md). They exercise
+Tests are written against the ENT spec (specs/entries.md). They exercise
 the new CLI interface with renamed flags, new features, and new validations.
 """
 
@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-import plet_entries  # noqa: E402
+import entries  # noqa: E402
 from util_io import (
     emergent_path as emergent_path_fn,
 )
@@ -35,10 +35,10 @@ failed = 0
 def run(args, expect_exit=0):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
-    sys.argv = ["plet_entries", "--no-log"] + args
+    sys.argv = ["entries", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        code = plet_entries.main()
+        code = entries.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -1818,7 +1818,7 @@ def test_fencing_structure():
 def test_version():
     print("\n## --version flag")
     stdout, _, _ = run(["--version"])
-    check("version output has script name", "plet_entries" in stdout)
+    check("version output has script name", "entries" in stdout)
     check("version output has skill version", "plet skill" in stdout)
 
 
@@ -1826,7 +1826,7 @@ def test_version():
 # Direct import tests (COV_3 — coverage-visible internal helpers)
 # ---------------------------------------------------------------------------
 
-import plet_entries as ent_mod  # noqa: E402
+import entries as ent_mod  # noqa: E402
 
 
 def test_next_em_number_no_file():

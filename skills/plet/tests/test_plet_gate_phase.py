@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_gate_phase.py — phase gate (pre/post, implement/verify).
+"""Tests for gate_phase.py — phase gate (pre/post, implement/verify).
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_gate_phase.py
+    ./skills/plet/tests/test_gate_phase.py
 """
 
 import io
@@ -16,7 +16,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-import plet_gate_phase  # noqa: E402
+import gate_phase  # noqa: E402
 from util_fixture import (
     create_iteration_branch,
     create_workstream_branch,
@@ -36,7 +36,7 @@ from util_fixture import (
 )
 from util_io import progress_path as progress_path_fn
 
-ENT_TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "plet_entries.py")
+ENT_TOOL = os.path.join(os.path.dirname(__file__), "..", "scripts", "entries.py")
 
 passed = 0
 failed = 0
@@ -46,12 +46,12 @@ def run(args, expect_exit=0, cwd=None):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
     old_cwd = os.getcwd() if cwd else None
-    sys.argv = ["plet_gate_phase", "--no-log"] + args
+    sys.argv = ["gate_phase", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         if cwd:
             os.chdir(cwd)
-        code = plet_gate_phase.main()
+        code = gate_phase.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err

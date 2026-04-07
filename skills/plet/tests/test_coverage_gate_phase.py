@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Import-based coverage tests for plet_gate_phase.py.
+"""Import-based coverage tests for gate_phase.py.
 
-The subprocess tests in test_plet_gate_phase.py prove the CLI works but
+The subprocess tests in test_gate_phase.py prove the CLI works but
 coverage can't track through subprocess boundaries effectively — nested
 subprocess calls (gate_phase → git_check, entries, fingerprint) fail in
 temp dirs. These tests call internal functions directly for coverage.
@@ -41,111 +41,111 @@ def check(name, condition, detail=""):
 
 
 def test_check_lifecycle():
-    import plet_gate_phase
+    import gate_phase
 
     gs = {"lifecycles": {"ID_001": "implementing"}}
-    r = plet_gate_phase.check_lifecycle(gs, "ID_001", "implement")
+    r = gate_phase.check_lifecycle(gs, "ID_001", "implement")
     check("implementing + implement = pass", r["status"] == "pass")
 
-    r = plet_gate_phase.check_lifecycle(gs, "ID_001", "verify")
+    r = gate_phase.check_lifecycle(gs, "ID_001", "verify")
     check("implementing + verify = warn", r["status"] == "warn")
 
     gs2 = {"lifecycles": {"ID_001": "verifying"}}
-    r = plet_gate_phase.check_lifecycle(gs2, "ID_001", "verify")
+    r = gate_phase.check_lifecycle(gs2, "ID_001", "verify")
     check("verifying + verify = pass", r["status"] == "pass")
 
     gs3 = {"lifecycles": {"ID_001": "queued"}}
-    r = plet_gate_phase.check_lifecycle(gs3, "ID_001", "implement")
+    r = gate_phase.check_lifecycle(gs3, "ID_001", "implement")
     check("queued + implement = pass", r["status"] == "pass")
 
-    r = plet_gate_phase.check_lifecycle(gs, "ID_999", "implement")
+    r = gate_phase.check_lifecycle(gs, "ID_999", "implement")
     check("missing iter = warn", r["status"] == "warn")
     check("says unknown", "unknown" in r["detail"])
 
 
 def test_check_implement_verdict():
-    import plet_gate_phase
+    import gate_phase
 
-    r = plet_gate_phase.check_implement_verdict({"implementVerdict": "completed"})
+    r = gate_phase.check_implement_verdict({"implementVerdict": "completed"})
     check("set = pass", r["status"] == "pass")
 
-    r = plet_gate_phase.check_implement_verdict({"implementVerdict": None})
+    r = gate_phase.check_implement_verdict({"implementVerdict": None})
     check("null = fail", r["status"] == "fail")
 
-    r = plet_gate_phase.check_implement_verdict({})
+    r = gate_phase.check_implement_verdict({})
     check("missing = fail", r["status"] == "fail")
 
 
 def test_check_verify_verdict():
-    import plet_gate_phase
+    import gate_phase
 
-    r = plet_gate_phase.check_verify_verdict({"verifyVerdict": "passed"})
+    r = gate_phase.check_verify_verdict({"verifyVerdict": "passed"})
     check("set = pass", r["status"] == "pass")
 
-    r = plet_gate_phase.check_verify_verdict({"verifyVerdict": None})
+    r = gate_phase.check_verify_verdict({"verifyVerdict": None})
     check("null = fail", r["status"] == "fail")
 
-    r = plet_gate_phase.check_verify_verdict({})
+    r = gate_phase.check_verify_verdict({})
     check("missing = fail", r["status"] == "fail")
 
 
 def test_check_verdict_consistency():
-    import plet_gate_phase
+    import gate_phase
 
     # Match
     state = {"verifyVerdict": "passed", "verificationReports": [{"verdict": "passed"}]}
-    r = plet_gate_phase.check_verdict_consistency(state)
+    r = gate_phase.check_verdict_consistency(state)
     check("match = pass", r["status"] == "pass")
 
     # Mismatch
     state = {"verifyVerdict": "passed", "verificationReports": [{"verdict": "rejected"}]}
-    r = plet_gate_phase.check_verdict_consistency(state)
+    r = gate_phase.check_verdict_consistency(state)
     check("mismatch = warn", r["status"] == "warn")
 
     # No verdict
-    r = plet_gate_phase.check_verdict_consistency({"verifyVerdict": None, "verificationReports": []})
+    r = gate_phase.check_verdict_consistency({"verifyVerdict": None, "verificationReports": []})
     check("no verdict = warn", r["status"] == "warn")
 
     # No reports
-    r = plet_gate_phase.check_verdict_consistency({"verifyVerdict": "passed", "verificationReports": []})
+    r = gate_phase.check_verdict_consistency({"verifyVerdict": "passed", "verificationReports": []})
     check("no reports = warn", r["status"] == "warn")
 
     # Report missing verdict field
-    r = plet_gate_phase.check_verdict_consistency(
+    r = gate_phase.check_verdict_consistency(
         {"verifyVerdict": "passed", "verificationReports": [{"criteriaResults": []}]}
     )
     check("report no verdict = warn", r["status"] == "warn")
 
 
 def test_check_verification_report():
-    import plet_gate_phase
+    import gate_phase
 
-    r = plet_gate_phase.check_verification_report(
+    r = gate_phase.check_verification_report(
         {"verificationReports": [{"verdict": "passed", "criteriaResults": [{"id": "AC_1"}]}]}
     )
     check("valid = pass", r["status"] == "pass")
 
-    r = plet_gate_phase.check_verification_report({"verificationReports": []})
+    r = gate_phase.check_verification_report({"verificationReports": []})
     check("empty = fail", r["status"] == "fail")
 
-    r = plet_gate_phase.check_verification_report({"verificationReports": [{"verdict": "passed"}]})
+    r = gate_phase.check_verification_report({"verificationReports": [{"verdict": "passed"}]})
     check("missing criteria = fail", r["status"] == "fail")
     check("mentions criteriaResults", "criteriaResults" in r["detail"])
 
 
 def test_check_spec_artifacts():
-    import plet_gate_phase
+    import gate_phase
 
     d = tempfile.mkdtemp()
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(plet_dir)
         make_spec_artifacts(plet_dir)
-        r = plet_gate_phase.check_spec_artifacts(plet_dir)
+        r = gate_phase.check_spec_artifacts(plet_dir)
         check("both exist = pass", r["status"] == "pass")
 
         os.unlink(os.path.join(plet_dir, "requirements.md"))
-        r = plet_gate_phase.check_spec_artifacts(plet_dir)
+        r = gate_phase.check_spec_artifacts(plet_dir)
         check("missing req = fail", r["status"] == "fail")
         check("mentions requirements", "requirements" in r["detail"])
     finally:
@@ -158,46 +158,44 @@ def test_check_spec_artifacts():
 
 
 def test_summarize_checks():
-    import plet_gate_phase
+    import gate_phase
 
     checks = [
         {"name": "a", "status": "pass", "detail": "ok"},
         {"name": "b", "status": "warn", "detail": "hmm"},
         {"name": "c", "status": "fail", "detail": "bad"},
     ]
-    overall, counts, exit_code = plet_gate_phase.summarize_checks(checks)
+    overall, counts, exit_code = gate_phase.summarize_checks(checks)
     check("fail overall", overall == "fail")
     check("exit 1", exit_code == 1)
     check("counts correct", counts["passed"] == 1 and counts["warnings"] == 1 and counts["failed"] == 1)
 
     # Warn only
     checks2 = [{"name": "a", "status": "pass", "detail": "ok"}, {"name": "b", "status": "warn", "detail": "hmm"}]
-    overall2, _, exit_code2 = plet_gate_phase.summarize_checks(checks2)
+    overall2, _, exit_code2 = gate_phase.summarize_checks(checks2)
     check("warn overall", overall2 == "warn")
     check("exit 2", exit_code2 == 2)
 
     # All pass
     checks3 = [{"name": "a", "status": "pass", "detail": "ok"}]
-    overall3, _, exit_code3 = plet_gate_phase.summarize_checks(checks3)
+    overall3, _, exit_code3 = gate_phase.summarize_checks(checks3)
     check("ok overall", overall3 == "ok")
     check("exit 0", exit_code3 == 0)
 
 
 def test_format_text_output():
-    import plet_gate_phase
+    import gate_phase
 
     checks = [
         {"name": "a", "status": "pass", "detail": "ok"},
         {"name": "b", "status": "fail", "detail": "bad"},
     ]
-    text = plet_gate_phase.format_text_output(
-        "post", checks, "fail", {"total": 2, "passed": 1, "failed": 1, "warnings": 0}
-    )
+    text = gate_phase.format_text_output("post", checks, "fail", {"total": 2, "passed": 1, "failed": 1, "warnings": 0})
     check("has FAIL", "FAIL" in text)
     check("has 2 checks", "2 checks" in text)
 
     # Warn output
-    text2 = plet_gate_phase.format_text_output(
+    text2 = gate_phase.format_text_output(
         "pre",
         [{"name": "x", "status": "warn", "detail": "y"}],
         "warn",
@@ -206,7 +204,7 @@ def test_format_text_output():
     check("has WARN", "WARN" in text2)
 
     # OK output
-    text3 = plet_gate_phase.format_text_output(
+    text3 = gate_phase.format_text_output(
         "pre",
         [{"name": "x", "status": "pass", "detail": "y"}],
         "ok",
@@ -234,21 +232,21 @@ def _make_project():
 
 
 def test_run_sta_validate():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
-        r = plet_gate_phase.run_sta_validate(plet_dir, "ID_001")
+        r = gate_phase.run_sta_validate(plet_dir, "ID_001")
         check("valid state = pass", r["status"] == "pass")
 
-        r = plet_gate_phase.run_sta_validate(plet_dir, "ID_999")
+        r = gate_phase.run_sta_validate(plet_dir, "ID_999")
         check("missing state = fail", r["status"] == "fail")
     finally:
         shutil.rmtree(d)
 
 
 def test_run_ent_check():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
@@ -257,7 +255,7 @@ def test_run_ent_check():
             with open(os.path.join(plet_dir, name), "w") as f:
                 f.write(f"# {name}\n")
 
-        results = plet_gate_phase.run_ent_check(plet_dir, "ID_001")
+        results = gate_phase.run_ent_check(plet_dir, "ID_001")
         check("returns 3 checks", len(results) == 3)
         names = [r["name"] for r in results]
         check("has progress", "progress-entry" in names)
@@ -268,11 +266,11 @@ def test_run_ent_check():
 
 
 def test_run_fpr_check():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
-        r = plet_gate_phase.run_fpr_check(plet_dir)
+        r = gate_phase.run_fpr_check(plet_dir)
         check("returns dict", isinstance(r, dict))
         check("has status", r["status"] in ("pass", "warn", "fail"))
     finally:
@@ -280,17 +278,17 @@ def test_run_fpr_check():
 
 
 def test_check_trace_events():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
         # No trace file
-        r = plet_gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
+        r = gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
         check("missing = warn", r["status"] == "warn")
 
         # Create trace file
         make_trace_file(plet_dir, "ID_001", "implement", 1)
-        r = plet_gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
+        r = gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
         check("valid trace = pass", r["status"] == "pass")
 
         # Empty trace file
@@ -298,14 +296,14 @@ def test_check_trace_events():
 
         with open(events_path(plet_dir, "ID_001", "implement", 1), "w") as f:
             f.write("")
-        r = plet_gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
+        r = gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
         check("empty = warn", r["status"] == "warn")
     finally:
         shutil.rmtree(d)
 
 
 def test_run_gtc_checks():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
@@ -319,7 +317,7 @@ def test_run_gtc_checks():
             subprocess.run(["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/workstream"], capture_output=True)
             subprocess.run(["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/ID_001"], capture_output=True)
 
-            results = plet_gate_phase.run_gtc_checks(plet_dir, "ID_001", "implement")
+            results = gate_phase.run_gtc_checks(plet_dir, "ID_001", "implement")
             check("returns list", isinstance(results, list))
             check("has git: checks", any(r["name"].startswith("git:") for r in results))
         finally:
@@ -334,7 +332,7 @@ def test_run_gtc_checks():
 
 
 def test_pre_phase_checks():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
@@ -343,14 +341,14 @@ def test_pre_phase_checks():
         gs = load_and_validate_global_state(plet_dir)
         ist = load_and_validate_iter_state(plet_dir, "ID_001")
         checks = []
-        plet_gate_phase.pre_phase_checks(checks, plet_dir, "ID_001", "implement", ist, gs)
+        gate_phase.pre_phase_checks(checks, plet_dir, "ID_001", "implement", ist, gs)
         names = [c["name"] for c in checks]
         check("has lifecycle-check", "lifecycle-check" in names)
         check("has spec-artifacts (implement)", "spec-artifacts" in names)
         check("has fingerprints (implement)", "fingerprints-consistent" in names)
 
         checks2 = []
-        plet_gate_phase.pre_phase_checks(checks2, plet_dir, "ID_001", "verify", ist, gs)
+        gate_phase.pre_phase_checks(checks2, plet_dir, "ID_001", "verify", ist, gs)
         names2 = [c["name"] for c in checks2]
         check("verify has lifecycle", "lifecycle-check" in names2)
         check("verify no spec-artifacts", "spec-artifacts" not in names2)
@@ -360,7 +358,7 @@ def test_pre_phase_checks():
 
 
 def test_post_phase_checks():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
@@ -381,7 +379,7 @@ def test_post_phase_checks():
             subprocess.run(["git", "add", "-A"], capture_output=True)
             subprocess.run(["git", "commit", "-m", "state"], capture_output=True)
 
-            plet_gate_phase.post_phase_checks(checks, plet_dir, "ID_001", "implement", ist, gs)
+            gate_phase.post_phase_checks(checks, plet_dir, "ID_001", "implement", ist, gs)
             names = [c["name"] for c in checks]
             check("has implement-verdict", "implement-verdict" in names)
             check("has audit-tag", "audit-tag" in names)
@@ -394,7 +392,7 @@ def test_post_phase_checks():
             ist2 = dict(ist)
             ist2["verifyVerdict"] = "passed"
             ist2["verificationReports"] = [{"verdict": "passed", "criteriaResults": []}]
-            plet_gate_phase.post_phase_checks(checks2, plet_dir, "ID_001", "verify", ist2, gs)
+            gate_phase.post_phase_checks(checks2, plet_dir, "ID_001", "verify", ist2, gs)
             names2 = [c["name"] for c in checks2]
             check("verify has verify-verdict", "verify-verdict" in names2)
             check("verify has verification-report", "verification-report" in names2)
@@ -479,14 +477,14 @@ def _capture_cmd(fn, args):
 
 
 def test_cmd_pre_implement():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("implement")
     old_cwd = os.getcwd()
     try:
         os.chdir(d)
         code, out = _capture_cmd(
-            plet_gate_phase.cmd_pre,
+            gate_phase.cmd_pre,
             [plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
         )
         # Pre gate runs checks; may warn on fingerprints but should not crash
@@ -499,14 +497,14 @@ def test_cmd_pre_implement():
 
 
 def test_cmd_pre_verify():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("verify")
     old_cwd = os.getcwd()
     try:
         os.chdir(d)
         code, out = _capture_cmd(
-            plet_gate_phase.cmd_pre,
+            gate_phase.cmd_pre,
             [plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
         )
         check("cmd_pre verify returns int", isinstance(code, int))
@@ -521,14 +519,14 @@ def test_cmd_pre_verify():
 
 
 def test_cmd_pre_json():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("implement")
     old_cwd = os.getcwd()
     try:
         os.chdir(d)
         code, out = _capture_cmd(
-            plet_gate_phase.cmd_pre,
+            gate_phase.cmd_pre,
             [plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"],
         )
         check("cmd_pre json returns int", isinstance(code, int))
@@ -548,7 +546,7 @@ def test_cmd_pre_json():
 
 
 def test_cmd_pre_missing_args():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("implement")
     old_cwd = os.getcwd()
@@ -556,21 +554,21 @@ def test_cmd_pre_missing_args():
         os.chdir(d)
         # Missing --phase
         code, _out = _capture_cmd(
-            plet_gate_phase.cmd_pre,
+            gate_phase.cmd_pre,
             [plet_dir, "--iter-id", "ID_001"],
         )
         check("cmd_pre missing phase = exit 1", code == 1)
 
         # Missing --iter-id
         code2, _out2 = _capture_cmd(
-            plet_gate_phase.cmd_pre,
+            gate_phase.cmd_pre,
             [plet_dir, "--phase", "implement"],
         )
         check("cmd_pre missing iter-id = exit 1", code2 == 1)
 
         # Missing both
         code3, _out3 = _capture_cmd(
-            plet_gate_phase.cmd_pre,
+            gate_phase.cmd_pre,
             [plet_dir],
         )
         check("cmd_pre missing both = exit 1", code3 == 1)
@@ -580,14 +578,14 @@ def test_cmd_pre_missing_args():
 
 
 def test_cmd_pre_invalid_phase():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("implement")
     old_cwd = os.getcwd()
     try:
         os.chdir(d)
         code, _out = _capture_cmd(
-            plet_gate_phase.cmd_pre,
+            gate_phase.cmd_pre,
             [plet_dir, "--iter-id", "ID_001", "--phase", "bogus"],
         )
         check("cmd_pre invalid phase = exit 1", code == 1)
@@ -597,17 +595,17 @@ def test_cmd_pre_invalid_phase():
 
 
 def test_cmd_pre_bad_plet_dir():
-    import plet_gate_phase
+    import gate_phase
 
     code, _out = _capture_cmd(
-        plet_gate_phase.cmd_pre,
+        gate_phase.cmd_pre,
         ["/nonexistent/plet/dir", "--iter-id", "ID_001", "--phase", "implement"],
     )
     check("cmd_pre bad plet dir = exit 1", code == 1)
 
 
 def test_cmd_post_implement():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("implement")
     old_cwd = os.getcwd()
@@ -629,7 +627,7 @@ def test_cmd_post_implement():
         make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
-            plet_gate_phase.cmd_post,
+            gate_phase.cmd_post,
             [plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
         )
         check("cmd_post implement returns int", isinstance(code, int))
@@ -642,7 +640,7 @@ def test_cmd_post_implement():
 
 
 def test_cmd_post_verify():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("verify")
     old_cwd = os.getcwd()
@@ -666,7 +664,7 @@ def test_cmd_post_verify():
         make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="verify", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
-            plet_gate_phase.cmd_post,
+            gate_phase.cmd_post,
             [plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
         )
         check("cmd_post verify returns int", isinstance(code, int))
@@ -678,7 +676,7 @@ def test_cmd_post_verify():
 
 
 def test_cmd_post_json():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("implement")
     old_cwd = os.getcwd()
@@ -698,7 +696,7 @@ def test_cmd_post_json():
         make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
-            plet_gate_phase.cmd_post,
+            gate_phase.cmd_post,
             [plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"],
         )
         check("cmd_post json returns int", isinstance(code, int))
@@ -718,7 +716,7 @@ def test_cmd_post_json():
 
 
 def test_cmd_post_missing_args():
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_gated_project("implement")
     old_cwd = os.getcwd()
@@ -726,14 +724,14 @@ def test_cmd_post_missing_args():
         os.chdir(d)
         # Missing --phase
         code, _out = _capture_cmd(
-            plet_gate_phase.cmd_post,
+            gate_phase.cmd_post,
             [plet_dir, "--iter-id", "ID_001"],
         )
         check("cmd_post missing phase = exit 1", code == 1)
 
         # Missing --iter-id
         code2, _out2 = _capture_cmd(
-            plet_gate_phase.cmd_post,
+            gate_phase.cmd_post,
             [plet_dir, "--phase", "implement"],
         )
         check("cmd_post missing iter-id = exit 1", code2 == 1)
@@ -791,7 +789,7 @@ def main():
 def test_rebase_check_on_top():
     """Rebase check passes when iter branch is on top of workstream."""
     print("\n## rebase-check — on top of workstream")
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
@@ -815,7 +813,7 @@ def test_rebase_check_on_top():
             from util_state import load_and_validate_global_state
 
             gs = load_and_validate_global_state(plet_dir)
-            result = plet_gate_phase.check_rebase_onto_workstream(gs)
+            result = gate_phase.check_rebase_onto_workstream(gs)
             assert result["status"] == "pass", f"Expected pass, got: {result}"
         finally:
             os.chdir(old_cwd)
@@ -826,7 +824,7 @@ def test_rebase_check_on_top():
 def test_rebase_check_behind():
     """Rebase check fails when workstream has advanced past iter branch base."""
     print("\n## rebase-check — behind workstream")
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
@@ -860,7 +858,7 @@ def test_rebase_check_behind():
             from util_state import load_and_validate_global_state
 
             gs = load_and_validate_global_state(plet_dir)
-            result = plet_gate_phase.check_rebase_onto_workstream(gs)
+            result = gate_phase.check_rebase_onto_workstream(gs)
             assert result["status"] == "fail", f"Expected fail, got: {result}"
             assert "rebase-prep" in result["detail"], f"Should mention rebase-prep: {result['detail']}"
         finally:
@@ -872,7 +870,7 @@ def test_rebase_check_behind():
 def test_rebase_check_implement_only():
     """Rebase check only runs for implement phase, not verify."""
     print("\n## rebase-check — implement only")
-    import plet_gate_phase
+    import gate_phase
 
     d, plet_dir = _make_project()
     try:
@@ -889,7 +887,7 @@ def test_rebase_check_implement_only():
 
             # Implement phase should have rebase-check
             impl_checks = []
-            plet_gate_phase.post_phase_checks(impl_checks, plet_dir, "ID_001", "implement", ist, gs)
+            gate_phase.post_phase_checks(impl_checks, plet_dir, "ID_001", "implement", ist, gs)
             impl_names = [c["name"] for c in impl_checks]
             assert "rebase-check" in impl_names, f"implement should have rebase-check: {impl_names}"
 
@@ -898,7 +896,7 @@ def test_rebase_check_implement_only():
             ist2["verifyVerdict"] = "passed"
             ist2["verificationReports"] = [{"verdict": "passed", "criteriaResults": []}]
             verify_checks = []
-            plet_gate_phase.post_phase_checks(verify_checks, plet_dir, "ID_001", "verify", ist2, gs)
+            gate_phase.post_phase_checks(verify_checks, plet_dir, "ID_001", "verify", ist2, gs)
             verify_names = [c["name"] for c in verify_checks]
             assert "rebase-check" not in verify_names, f"verify should NOT have rebase-check: {verify_names}"
         finally:

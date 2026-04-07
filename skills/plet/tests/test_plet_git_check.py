@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_git_check.py — git compliance checks at phase and session boundaries.
+"""Tests for git_check.py — git compliance checks at phase and session boundaries.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_git_check.py
+    ./skills/plet/tests/test_git_check.py
 
 Creates temporary git repos as fixtures. All tests clean up after themselves.
 """
@@ -17,7 +17,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-import plet_git_check  # noqa: E402
+import git_check  # noqa: E402
 from util_fixture import (
     git_run as _shared_git_run,
 )
@@ -40,12 +40,12 @@ def run(args, expect_exit=0, cwd=None):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
     old_cwd = os.getcwd() if cwd else None
-    sys.argv = ["plet_git_check", "--no-log"] + args
+    sys.argv = ["git_check", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         if cwd:
             os.chdir(cwd)
-        code = plet_git_check.main()
+        code = git_check.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -158,7 +158,7 @@ def test_help():
 def test_version():
     print("\n## Version")
     stdout, _, _ = run(["--version"])
-    check("version output", "plet_git_check" in stdout)
+    check("version output", "git_check" in stdout)
 
 
 # ---------------------------------------------------------------------------

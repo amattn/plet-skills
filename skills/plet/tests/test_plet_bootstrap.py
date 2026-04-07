@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_bootstrap.py — project setup for plet operation.
+"""Tests for bootstrap.py — project setup for plet operation.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_bootstrap.py
+    ./skills/plet/tests/test_bootstrap.py
 """
 
 import io
@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from util_fixture import make_temp_git_repo as make_git_repo
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-import plet_bootstrap  # noqa: E402
+import bootstrap  # noqa: E402
 
 passed = 0
 failed = 0
@@ -26,10 +26,10 @@ failed = 0
 def run(args, expect_exit=0):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
-    sys.argv = ["plet_bootstrap", "--no-log"] + args
+    sys.argv = ["bootstrap", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        code = plet_bootstrap.main()
+        code = bootstrap.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -60,7 +60,7 @@ def test_help():
     check("--help has content", len(out) > 20)
 
     out, _, _ = run(["--version"])
-    check("--version has name", "plet_bootstrap" in out)
+    check("--version has name", "bootstrap" in out)
 
     run(["setup", "--help"])
     check("setup --help exits 0", True)

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_git_ops.py — audit-tag and merge-squash for iterations.
+"""Tests for git_ops.py — audit-tag, rebase-commit, and wip-commit for iterations.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_git_ops.py
+    ./skills/plet/tests/test_git_ops.py
 
 Creates temporary git repos as fixtures. All tests clean up after themselves.
 """
@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-import plet_git_ops  # noqa: E402
+import git_ops  # noqa: E402
 from util_io import iter_state_path, state_dir_path, state_json_path
 
 passed = 0
@@ -26,12 +26,12 @@ def run(args, expect_exit=0, cwd=None):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
     old_cwd = os.getcwd() if cwd else None
-    sys.argv = ["plet_git_ops", "--no-log"] + args
+    sys.argv = ["git_ops", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         if cwd:
             os.chdir(cwd)
-        code = plet_git_ops.main()
+        code = git_ops.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -182,12 +182,10 @@ def test_help():
     stdout, _, _ = run(["--help"])
     check("top-level help", True)
     check("mentions audit-tag", "audit-tag" in stdout)
-    check("mentions merge-squash", "merge-squash" in stdout)
     check("mentions rebase-commit", "rebase-commit" in stdout)
-    check("mentions rebase-prep", "rebase-prep" in stdout)
     check("mentions wip-commit", "wip-commit" in stdout)
 
-    for cmd in ["audit-tag", "merge-squash", "rebase-commit", "rebase-prep", "wip-commit"]:
+    for cmd in ["audit-tag", "rebase-commit", "wip-commit"]:
         stdout, _, _ = run([cmd, "--help"])
         check(f"{cmd} --help exits 0", True)
         check(f"{cmd} help has content", len(stdout) > 50)
@@ -196,7 +194,7 @@ def test_help():
 def test_version():
     print("\n## Version")
     stdout, _, _ = run(["--version"])
-    check("version output", "plet_git_ops" in stdout)
+    check("version output", "git_ops" in stdout)
 
 
 # ---------------------------------------------------------------------------
@@ -327,7 +325,7 @@ def test_audit_tag_not_git_repo():
 
 
 # ---------------------------------------------------------------------------
-# Main — audit-tag only (merge-squash tests added after audit-tag is green)
+# Main
 # ---------------------------------------------------------------------------
 
 
@@ -343,20 +341,6 @@ def main():
     test_audit_tag_bad_global_state()
     test_audit_tag_bad_iter_state()
     test_audit_tag_not_git_repo()
-
-    # merge-squash tests
-    test_merge_squash_basic()
-    test_merge_squash_json()
-    test_merge_squash_commit_message()
-    test_merge_squash_commit_body()
-    test_merge_squash_dry_run()
-    test_merge_squash_not_on_workstream()
-    test_merge_squash_nothing_to_merge()
-    test_merge_squash_cleanup_tags()
-    test_merge_squash_cleanup_branches()
-    test_merge_squash_dirty_working_tree()
-    test_merge_squash_conflict()
-    test_merge_squash_iteration_branch_missing()
 
     # rebase-commit tests
     test_rebase_commit_basic()
@@ -378,15 +362,6 @@ def main():
     test_rebase_commit_parallel_same_file_conflict()
     test_rebase_commit_iteration_branch_missing()
 
-    # rebase-prep tests
-    test_rebase_prep_clean()
-    test_rebase_prep_noop()
-    test_rebase_prep_conflict_leaves_rebase_in_progress()
-    test_rebase_prep_conflict_reports_files()
-    test_rebase_prep_conflict_json()
-    test_rebase_prep_clean_json()
-    test_rebase_prep_not_on_iter_branch()
-
     # wip-commit tests
     test_wip_commit_basic()
     test_wip_commit_excludes_trace()
@@ -396,249 +371,6 @@ def main():
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
-
-
-# ---------------------------------------------------------------------------
-# merge-squash tests
-# ---------------------------------------------------------------------------
-
-
-def setup_for_merge_squash(d, cleanup_tags=False, cleanup_branches=False):
-    """Set up a repo ready for merge-squash: workstream + iteration branch with commits."""
-    repo = make_git_repo(d)
-
-    # Create workstream + iteration branch with commits
-    iter_branch, ws_branch = create_iteration_branch_with_commits(repo)
-
-    # Create audit tags
-    git_run(repo, ["tag", "plet/LOGA/loop1/audit/ID_001/implement-1"])
-    # Add a verify commit
-    fpath = os.path.join(repo, "verify_fix.txt")
-    with open(fpath, "w") as f:
-        f.write("verify fix\n")
-    git_run(repo, ["add", "verify_fix.txt"])
-    git_run(repo, ["commit", "-m", "verify fix"])
-    git_run(repo, ["tag", "plet/LOGA/loop1/audit/ID_001/verify-1"])
-
-    # Switch to workstream for merge-squash
-    git_run(repo, ["checkout", ws_branch])
-
-    # Write state files AFTER checkout (so they exist on workstream working tree)
-    iter_state = dict(ITER_STATE)
-    # lifecycle is in state.json.lifecycles (SF_28), not per-iteration state
-    iter_state["attempts"] = {"implement": 1, "verify": 1}
-    iter_state["cleanupTagsAutomatically"] = cleanup_tags
-    iter_state["cleanupBranchesAutomatically"] = cleanup_branches
-    plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
-
-    # Commit state files so working tree is clean
-    git_run(repo, ["add", "plet/"])
-    git_run(repo, ["commit", "-m", "add state files"])
-
-    return repo, plet_dir, iter_branch, ws_branch
-
-
-def test_merge_squash_basic():
-    print("\n## merge-squash — basic")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_merge_squash(d)
-
-        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        check("success message", "OK" in stdout)
-        check("iteration ID in output", "ID_001" in stdout)
-        check("title in output", "Project scaffolding" in stdout)
-
-
-def test_merge_squash_json():
-    print("\n## merge-squash — JSON output")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_merge_squash(d)
-
-        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty"], cwd=repo)
-        data = json.loads(stdout)
-        check("status ok", data["status"] == "ok")
-        check("command", data["command"] == "merge-squash")
-        check("commitMessage present", "commitMessage" in data)
-        check("commitHash present", "commitHash" in data)
-        check("branchDeleted false", data["branchDeleted"] is False)
-
-
-def test_merge_squash_commit_message():
-    print("\n## merge-squash — commit message format")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_merge_squash(d)
-
-        run(["merge-squash", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-
-        # Check the commit message on workstream
-        stdout, _, _ = git_run(repo, ["log", "-1", "--format=%s"])
-        check("title line format", stdout == "plet: [ID_001] - Project scaffolding")
-
-
-def test_merge_squash_commit_body():
-    print("\n## merge-squash — commit body has lifecycle + criteria")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_merge_squash(d)
-
-        run(["merge-squash", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-
-        # Check commit body
-        stdout, _, _ = git_run(repo, ["log", "-1", "--format=%b"])
-        check("body has phases", "implement" in stdout.lower())
-        check("body has criteria", "criteria" in stdout.lower() or "AC_1" in stdout)
-
-
-def test_merge_squash_dry_run():
-    print("\n## merge-squash — dry-run")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, ws = setup_for_merge_squash(d)
-
-        # Get workstream HEAD before
-        before_hash = get_head_hash(repo, short=False)
-
-        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001", "--dry-run"], cwd=repo)
-        check("dry run message", "DRY RUN" in stdout)
-
-        # Workstream HEAD should not have moved
-        after_hash = get_head_hash(repo, short=False)
-        check("no commit created", before_hash == after_hash)
-
-
-def test_merge_squash_not_on_workstream():
-    print("\n## merge-squash — not on workstream branch")
-    with tempfile.TemporaryDirectory() as d:
-        repo = make_git_repo(d)
-
-        # Write state files
-        iter_state = dict(ITER_STATE)
-        # lifecycle is in state.json.lifecycles (SF_28), not per-iteration state
-        iter_state["attempts"] = {"implement": 1, "verify": 1}
-        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
-
-        # Create branches
-        create_workstream_branch(repo)
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001"])
-
-        # Stay on iteration branch (wrong branch)
-        _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
-        check("error mentions workstream", "workstream" in stderr.lower())
-
-
-def test_merge_squash_nothing_to_merge():
-    print("\n## merge-squash — nothing to merge (branches at same commit)")
-    with tempfile.TemporaryDirectory() as d:
-        repo = make_git_repo(d)
-        iter_state = dict(ITER_STATE)
-        # lifecycle is in state.json.lifecycles (SF_28), not per-iteration state
-        iter_state["attempts"] = {"implement": 1, "verify": 1}
-        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
-
-        # Create workstream and iteration at same commit (no work done)
-        ws = create_workstream_branch(repo)
-        git_run(repo, ["branch", "plet/LOGA/loop1/ID_001"])
-        git_run(repo, ["checkout", ws])
-
-        _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
-        check("error mentions no changes", "no change" in stderr.lower() or "already" in stderr.lower())
-
-
-def test_merge_squash_cleanup_tags():
-    print("\n## merge-squash — cleanupTagsAutomatically")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_merge_squash(d, cleanup_tags=True)
-
-        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001", "--output", "json"], cwd=repo)
-        data = json.loads(stdout)
-
-        check("tags cleaned", len(data.get("tagsCleaned", [])) > 0)
-        check("implement tag gone", not tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/implement-1"))
-        check("verify tag gone", not tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/verify-1"))
-
-
-def test_merge_squash_cleanup_branches():
-    print("\n## merge-squash — cleanupBranchesAutomatically")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, iter_branch, _ = setup_for_merge_squash(d, cleanup_branches=True)
-
-        stdout, _, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001", "--output", "json"], cwd=repo)
-        data = json.loads(stdout)
-
-        check("branchDeleted true", data["branchDeleted"] is True)
-        check("iteration branch gone", not branch_exists(repo, iter_branch))
-
-
-def test_merge_squash_dirty_working_tree():
-    print("\n## merge-squash — dirty working tree")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_merge_squash(d)
-
-        # Create uncommitted change
-        with open(os.path.join(repo, "dirty.txt"), "w") as f:
-            f.write("dirty\n")
-
-        _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
-        check("error mentions dirty", "dirty" in stderr.lower() or "clean" in stderr.lower())
-
-
-def test_merge_squash_conflict():
-    """merge-squash with conflicting changes detects the conflict."""
-    print("\n## merge-squash — conflict detection")
-    with tempfile.TemporaryDirectory() as d:
-        repo = make_git_repo(d)
-
-        # Create a shared file on main
-        shared = os.path.join(repo, "shared.txt")
-        with open(shared, "w") as f:
-            f.write("original content\n")
-        git_run(repo, ["add", "-A"])
-        git_run(repo, ["commit", "-m", "base with shared file"])
-
-        # Create workstream
-        ws = "plet/LOGA/loop1/workstream"
-        git_run(repo, ["checkout", "-b", ws])
-
-        # Create iteration branch that modifies shared.txt
-        iter_br = "plet/LOGA/loop1/ID_001"
-        git_run(repo, ["checkout", "-b", iter_br])
-        with open(shared, "w") as f:
-            f.write("iteration change\n")
-        git_run(repo, ["add", "-A"])
-        git_run(repo, ["commit", "-m", "iteration modifies shared"])
-
-        # Back to workstream — make a conflicting change
-        git_run(repo, ["checkout", ws])
-        with open(shared, "w") as f:
-            f.write("workstream conflicting change\n")
-        git_run(repo, ["add", "-A"])
-        git_run(repo, ["commit", "-m", "workstream modifies shared"])
-
-        # Write state files
-        iter_state = dict(ITER_STATE)
-        iter_state["attempts"] = {"implement": 1, "verify": 1}
-        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
-        git_run(repo, ["add", "plet/"])
-        git_run(repo, ["commit", "-m", "state files"])
-
-        out, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
-        combined = out + " " + stderr
-        check("detects conflict", "conflict" in combined.lower(), "out: " + out[:100] + " err: " + stderr[:100])
-        check("mentions merge aborted", "abort" in combined.lower(), "out: " + out[:100])
-
-
-def test_merge_squash_iteration_branch_missing():
-    print("\n## merge-squash — iteration branch doesn't exist")
-    with tempfile.TemporaryDirectory() as d:
-        repo = make_git_repo(d)
-        iter_state = dict(ITER_STATE)
-        # lifecycle is in state.json.lifecycles (SF_28), not per-iteration state
-        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
-
-        # Create workstream but NOT the iteration branch
-        ws = create_workstream_branch(repo)
-        git_run(repo, ["checkout", ws])
-
-        _, stderr, _ = run(["merge-squash", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
-        check("error mentions branch", "branch" in stderr.lower() or "not found" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------
@@ -1194,172 +926,6 @@ def test_rebase_commit_iteration_branch_missing():
 
         _, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
         check("error mentions branch", "branch" in stderr.lower() or "not found" in stderr.lower())
-
-
-# ---------------------------------------------------------------------------
-# rebase-prep tests
-# ---------------------------------------------------------------------------
-
-
-def setup_for_rebase_prep(d, diverge=False, conflict=False):
-    """Set up repo for rebase-prep: on iteration branch, workstream may have advanced.
-
-    diverge=True: workstream has non-conflicting new commits.
-    conflict=True: workstream has conflicting changes (implies diverge).
-    """
-    repo = make_git_repo(d)
-
-    # Create a shared file for conflict scenarios
-    shared = os.path.join(repo, "shared.txt")
-    with open(shared, "w") as f:
-        f.write("line 1: header\nline 2: body\nline 3: footer\n")
-    git_run(repo, ["add", "-A"])
-    git_run(repo, ["commit", "-m", "base with shared file"])
-
-    ws = "plet/LOGA/loop1/workstream"
-    git_run(repo, ["checkout", "-b", ws])
-
-    # Create iteration branch with a commit
-    iter_br = "plet/LOGA/loop1/ID_001"
-    git_run(repo, ["checkout", "-b", iter_br])
-    with open(os.path.join(repo, "iter_work.txt"), "w") as f:
-        f.write("iteration work\n")
-    git_run(repo, ["add", "-A"])
-    git_run(repo, ["commit", "-m", "iteration adds file"])
-
-    if conflict:
-        # Iteration also modifies shared.txt
-        with open(shared, "w") as f:
-            f.write("line 1: header\nline 2: ITER CHANGE\nline 3: footer\n")
-        git_run(repo, ["add", "-A"])
-        git_run(repo, ["commit", "-m", "iteration modifies shared"])
-
-    if diverge or conflict:
-        # Advance workstream with a commit
-        git_run(repo, ["checkout", ws])
-        with open(os.path.join(repo, "ws_new.txt"), "w") as f:
-            f.write("workstream work\n")
-        git_run(repo, ["add", "-A"])
-        git_run(repo, ["commit", "-m", "workstream adds file"])
-
-        if conflict:
-            # Workstream also modifies shared.txt (same line)
-            with open(shared, "w") as f:
-                f.write("line 1: header\nline 2: WS CHANGE\nline 3: footer\n")
-            git_run(repo, ["add", "-A"])
-            git_run(repo, ["commit", "-m", "workstream modifies shared"])
-
-        # Switch back to iteration branch
-        git_run(repo, ["checkout", iter_br])
-
-    # Write state files on iteration branch
-    iter_state = dict(ITER_STATE)
-    iter_state["attempts"] = {"implement": 1, "verify": 0}
-    plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
-    git_run(repo, ["add", "plet/"])
-    git_run(repo, ["commit", "-m", "state files"])
-
-    return repo, plet_dir, iter_br, ws
-
-
-def test_rebase_prep_clean():
-    """Clean rebase — workstream advanced with non-conflicting changes."""
-    print("\n## rebase-prep — clean rebase")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, iter_br, ws = setup_for_rebase_prep(d, diverge=True)
-
-        stdout, _, _ = run(["rebase-prep", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        check("success", "OK" in stdout or "rebased" in stdout.lower())
-        check("no conflicts", "conflict" not in stdout.lower())
-
-        # Should still be on iteration branch
-        current, _, _ = git_run(repo, ["branch", "--show-current"])
-        check("still on iter branch", current == iter_br)
-
-        # Workstream changes should be in history (rebased on top)
-        log_out, _, _ = git_run(repo, ["log", "--oneline"])
-        check("ws commit in history", any("workstream adds" in ln for ln in log_out.split("\n")), log_out[:200])
-
-
-def test_rebase_prep_noop():
-    """No-op rebase — workstream hasn't advanced, nothing to rebase."""
-    print("\n## rebase-prep — no-op (workstream not advanced)")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, iter_br, _ = setup_for_rebase_prep(d, diverge=False)
-
-        stdout, _, _ = run(["rebase-prep", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        check("success", "OK" in stdout or "rebased" in stdout.lower() or "up to date" in stdout.lower())
-
-
-def test_rebase_prep_conflict_leaves_rebase_in_progress():
-    """On conflict, rebase is left in progress — not aborted."""
-    print("\n## rebase-prep — conflict leaves rebase in progress")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_rebase_prep(d, conflict=True)
-
-        stdout, _, _ = run(["rebase-prep", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        check("reports conflict", "conflict" in stdout.lower())
-
-        # Rebase should be in progress (not aborted)
-        git_dir = os.path.join(repo, ".git")
-        rebase_in_progress = os.path.exists(os.path.join(git_dir, "rebase-merge")) or os.path.exists(
-            os.path.join(git_dir, "rebase-apply")
-        )
-        check("rebase in progress", rebase_in_progress)
-
-
-def test_rebase_prep_conflict_reports_files():
-    """On conflict, output includes which files have conflicts."""
-    print("\n## rebase-prep — conflict reports files")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_rebase_prep(d, conflict=True)
-
-        stdout, _, _ = run(["rebase-prep", plet_dir, "--iter-id", "ID_001"], cwd=repo)
-        check("mentions shared.txt", "shared.txt" in stdout)
-
-
-def test_rebase_prep_conflict_json():
-    """JSON output on conflict includes file list."""
-    print("\n## rebase-prep — conflict JSON output")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_rebase_prep(d, conflict=True)
-
-        stdout, _, _ = run(["rebase-prep", plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty"], cwd=repo)
-        data = json.loads(stdout)
-        check("status ok", data["status"] == "ok")
-        check("has conflicts field", "conflicts" in data or "conflictFiles" in data)
-        files = data.get("conflictFiles", data.get("conflicts", []))
-        check("shared.txt in conflicts", any("shared.txt" in f for f in files))
-
-
-def test_rebase_prep_clean_json():
-    """JSON output on clean rebase."""
-    print("\n## rebase-prep — clean JSON output")
-    with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, _, _ = setup_for_rebase_prep(d, diverge=True)
-
-        stdout, _, _ = run(["rebase-prep", plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty"], cwd=repo)
-        data = json.loads(stdout)
-        check("status ok", data["status"] == "ok")
-        check("no conflicts", data.get("conflictFiles", []) == [])
-
-
-def test_rebase_prep_not_on_iter_branch():
-    """Error when not on the iteration branch."""
-    print("\n## rebase-prep — not on iteration branch")
-    with tempfile.TemporaryDirectory() as d:
-        repo = make_git_repo(d)
-
-        iter_state = dict(ITER_STATE)
-        iter_state["attempts"] = {"implement": 1, "verify": 0}
-        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
-
-        # Create branches but stay on main (wrong branch)
-        create_workstream_branch(repo)
-        git_run(repo, ["branch", "plet/LOGA/loop1/ID_001"])
-
-        _, stderr, _ = run(["rebase-prep", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
-        check("error mentions branch", "branch" in stderr.lower() or "iteration" in stderr.lower())
 
 
 # ---------------------------------------------------------------------------

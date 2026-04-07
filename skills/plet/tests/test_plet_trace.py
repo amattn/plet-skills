@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_trace.py — semantic event trace tool.
+"""Tests for trace.py — semantic event trace tool.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_trace.py
+    ./skills/plet/tests/test_trace.py
 
 Red/green, command-by-command. Creates temp fixtures, runs commands
 via subprocess, validates output, cleans up.
@@ -15,8 +15,8 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-import plet_trace  # noqa: E402  (after the sys.path.insert for scripts dir)
-from util_io import events_path, trace_dir_path
+import traces  # noqa: E402
+from util_io import events_path, trace_dir_path  # noqa: E402
 
 passed = 0
 failed = 0
@@ -25,10 +25,10 @@ failed = 0
 def run(args, expect_exit=0):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
-    sys.argv = ["plet_trace", "--no-log"] + args
+    sys.argv = ["traces", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        code = plet_trace.main()
+        code = traces.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -83,7 +83,7 @@ def test_help():
 def test_version():
     print("\n## Version output")
     out, _, _ = run(["--version"])
-    check("has script name", "plet_trace" in out)
+    check("has script name", "traces" in out)
     check("has version", "0.3.2" in out)
 
 

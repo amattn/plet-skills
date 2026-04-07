@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for plet_schedule.py — loop scheduling decisions.
+"""Tests for schedule.py — loop scheduling decisions.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_schedule.py
-    pytest skills/plet/tests/test_plet_schedule.py
+    ./skills/plet/tests/test_schedule.py
+    pytest skills/plet/tests/test_schedule.py
 
 Red/green, command-by-command: eligible first, then check-breakpoints, then check-retry.
 """
@@ -20,7 +20,7 @@ from util_fixture import make_iter_state as _make_iter_state
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-import plet_schedule  # noqa: E402
+import schedule  # noqa: E402
 
 passed = 0
 failed = 0
@@ -29,10 +29,10 @@ failed = 0
 def run(args, expect_exit=0):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
-    sys.argv = ["plet_schedule", "--no-log"] + args
+    sys.argv = ["schedule", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        code = plet_schedule.main()
+        code = schedule.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err

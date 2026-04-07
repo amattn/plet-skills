@@ -4,20 +4,9 @@ version: 0.6.2
 description: "Spec-driven autonomous development orchestrator. Use when the user asks to 'plet', 'start plet', 'plan and execute', 'autonomous loop', 'iterate on this feature', or 'run the dev loop'. Single entry point that reads project state and routes to the correct session: plan (interactive requirements and iteration design), loop (autonomous implementation and verification phases for each iteration), or refine (human-driven triage of emergent items, spec updates, and re-planning)."
 user-invocable: true
 allowed-tools:
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_entries.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_fingerprint.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_trace.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_iteration.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_ops.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_git_check.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_session.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_gate_phase.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_phase.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_prompt.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_invoke.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_schedule.py *)"
-  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_session.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_agent.py *)"
   - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_orchestrator.py *)"
+  - "Bash(${CLAUDE_SKILL_DIR}/scripts/plet_tools.py *)"
 ---
 
 # plet — Spec-Driven Autonomous Development Orchestrator

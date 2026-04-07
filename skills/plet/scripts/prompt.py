@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet prompt — assemble prompts for implement and verify subagents.
 
 Reads reference files, iteration context, requirements, learnings, and state
@@ -6,7 +5,7 @@ from disk; outputs a complete prompt. This is the bridge between plet's
 deterministic state and the non-deterministic subagent.
 
 Usage:
-    plet_prompt.py assemble <plet_dir> --iter-id ID_xxx
+    prompt.py assemble <plet_dir> --iter-id ID_xxx
         --phase implement|verify
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -56,7 +55,7 @@ REFERENCE_FILES = {
 # ---------------------------------------------------------------------------
 
 
-help_hint = make_help_hint("plet_prompt")
+help_hint = make_help_hint("prompt")
 
 
 def refs_dir():
@@ -142,10 +141,10 @@ def _load_required(content, error_msg):
 
 def _build_cli_quick_ref(iter_id, phase, attempt):
     """Build CLI quick reference with iter_id and phase pre-filled."""
-    ist = "plet_iter_state.py"
-    ent = "plet_entries.py"
-    phs = "plet_phase.py"
-    gph = "plet_gate_phase.py"
+    ist = "iter_state.py"
+    ent = "entries.py"
+    phs = "phase.py"
+    gph = "gate_phase.py"
     p = "plet/"
     a = str(attempt)
     crit_phase = "implementation" if phase == "implement" else "verification"
@@ -169,11 +168,11 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
     ]
 
     if phase == "verify":
-        trc = "plet_trace.py"
+        trc = "traces.py"
         lines.extend(
             [
                 "",
-                "# Verify-specific — write BEFORE calling plet_phase.py end:",
+                "# Verify-specific — write BEFORE calling phase.py end:",
                 f"{ist} validate {p} --iter-id {iter_id}",
                 "",
                 "# Trace events (event-type: decision, criterion_update, lifecycle_change, error):",
@@ -200,7 +199,7 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
     lines.extend(
         [
             "",
-            "# Post-gate — call AFTER plet_phase.py end (it commits, gate checks the commit):",
+            "# Post-gate — call AFTER phase.py end (it commits, gate checks the commit):",
             f"{gph} post {p} --iter-id {iter_id} --phase {phase} --output json",
         ]
     )
@@ -304,7 +303,7 @@ PITFALLS:
     - Text output is pipe-friendly: suitable for `... | claude -p`
 
 USAGE:
-    plet_prompt.py assemble <plet_dir> --iter-id ID_xxx
+    prompt.py assemble <plet_dir> --iter-id ID_xxx
         --phase implement|verify
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -317,8 +316,8 @@ PURPOSE:
     files on disk. Guarantees all required sections are present.
 
 Examples:
-    plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement
-    plet_prompt.py assemble --iter-id ID_001 --phase verify --output json --pretty
+    prompt.py assemble plet/ --iter-id ID_001 --phase implement
+    prompt.py assemble --iter-id ID_001 --phase verify --output json --pretty
 """
     cmd_name = "assemble"
     hint = help_hint(cmd_name)
@@ -399,7 +398,7 @@ Examples:
 
 
 cmd_assemble.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_assemble.example = "plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_assemble.example = "prompt.py assemble plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -411,7 +410,7 @@ def main():
     commands = {
         "assemble": cmd_assemble,
     }
-    return dispatch(commands, "plet_prompt", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "prompt", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

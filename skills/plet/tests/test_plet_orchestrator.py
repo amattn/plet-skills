@@ -913,13 +913,13 @@ def test_run_breakpoint_after():
 
 
 # ===========================================================================
-# run — two independent iterations (parallel) (#15)
+# run — two independent iterations (sequential) (#15)
 # ===========================================================================
 
 
-def test_run_two_independent_parallel():
-    """Two independent iterations with no deps both complete."""
-    print("\n## run — two independent iterations (parallel)")
+def test_run_two_independent_sequential():
+    """Two independent iterations with no deps both complete sequentially."""
+    print("\n## run — two independent iterations (sequential)")
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = setup_project(
@@ -964,58 +964,13 @@ def test_run_two_independent_parallel():
 
 
 # ===========================================================================
-# run — sequential flag forces serial (#16)
+# run — dependency chain (#16)
 # ===========================================================================
 
 
-def test_run_sequential_flag():
-    """--sequential flag: both complete, just runs serially."""
-    print("\n## run — --sequential flag")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        plet_dir = setup_project(
-            tmp,
-            iterations=[
-                {"id": "ID_001", "title": "First", "deps": []},
-                {"id": "ID_002", "title": "Second", "deps": []},
-            ],
-        )
-
-        mock_dir = create_mock_claude(tmp)
-        env = os.environ.copy()
-        env.update(
-            {
-                "PATH": mock_dir + ":" + env.get("PATH", ""),
-                "MOCK_PLET_DIR": plet_dir,
-                "MOCK_SCRIPTS_DIR": SCRIPTS_DIR,
-                "MOCK_BEHAVIOR": "pass",
-            }
-        )
-
-        out, err, rc = run(["run", plet_dir, "--allow-stale", "--sequential", "--output", "ndjson"], env=env, cwd=tmp)
-        lines = [json.loads(ln) for ln in out.strip().split("\n") if ln.strip()]
-        result = lines[-1] if lines else {}
-
-        check("exits 0", rc == 0)
-        check(
-            "completes or blocks",
-            result.get("reason") in ("all_complete", "all_blocked_or_complete"),
-            "got: " + str(result.get("reason")),
-        )
-        # At least 1 completes; the other may block due to dirty worktree
-        # (known issue: worktree artifacts can dirty the main working tree)
-        total = result.get("iterationsCompleted", 0) + result.get("iterationsBlocked", 0)
-        check("both reach terminal state", total == 2, f"completed+blocked={total}")
-
-
-# ===========================================================================
-# run — streaming: dep chain spawns immediately (#17)
-# ===========================================================================
-
-
-def test_run_dependency_chain_streaming():
-    """Three iterations in a chain: each spawns as soon as its dep finishes."""
-    print("\n## run — dependency chain streaming")
+def test_run_dependency_chain():
+    """Three iterations in a chain: each runs after its dep finishes."""
+    print("\n## run — dependency chain")
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = setup_project(
@@ -1121,9 +1076,8 @@ def main():
     test_run_stale_fingerprints_blocking()
     test_run_breakpoint_before_partial()
     test_run_breakpoint_after()
-    test_run_two_independent_parallel()
-    test_run_sequential_flag()
-    test_run_dependency_chain_streaming()
+    test_run_two_independent_sequential()
+    test_run_dependency_chain()
     test_run_orchestrator_trace_file()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_gate_session.py — session detection, status, and preflight.
+"""Tests for gate_session.py — session detection, status, and preflight.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_gate_session.py
+    ./skills/plet/tests/test_gate_session.py
 
 Red/green, command-by-command: detect first, then status, then preflight.
 """
@@ -18,7 +18,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-import plet_gate_session  # noqa: E402
+import gate_session  # noqa: E402
 from util_fixture import (
     make_global_state as _shared_make_global_state,
 )
@@ -37,12 +37,12 @@ def run(args, expect_exit=0, cwd=None):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
     old_cwd = os.getcwd() if cwd else None
-    sys.argv = ["plet_gate_session", "--no-log"] + args
+    sys.argv = ["gate_session", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         if cwd:
             os.chdir(cwd)
-        code = plet_gate_session.main()
+        code = gate_session.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err

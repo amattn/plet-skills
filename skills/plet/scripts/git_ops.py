@@ -1,26 +1,22 @@
-#!/usr/bin/env python3
-"""plet git operations — audit-tag, rebase-commit, rebase-prep for iteration workflow.
+"""plet git operations — audit-tag, rebase-commit, wip-commit for iteration workflow.
 
-Audit tags mark phase boundaries on the iteration branch. Rebase-commit rebases
-the iteration branch onto the workstream and fast-forward merges — individual
-commits are preserved. Rebase-prep prepares for conflict resolution.
+Audit tags mark phase boundaries. Rebase-commit rebases the iteration branch
+onto the workstream and fast-forward merges. Wip-commit stages source + state.
 
 Usage:
-    plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
+    git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
         --phase implement|verify [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
-    plet_git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx
+    git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx
         [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    plet_git_ops.py rebase-prep <plet_dir> --iter-id ID_xxx
+    git_ops.py wip-commit <plet_dir> --iter-id ID_xxx
+        --message "description" [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
-    plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx
-        [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
     audit-tag       Create an audit tag marking a phase boundary
     rebase-commit   Rebase iteration onto workstream and fast-forward merge
-    rebase-prep     Rebase iteration onto workstream (leaves conflicts for agent)
-    merge-squash    Merge iteration into workstream as one commit (legacy)
+    wip-commit      Stage source + state, excluding trace/, and commit
 """
 
 import json
@@ -76,7 +72,7 @@ def _err_out(cmd, msg, output_json, pretty):
 # ---------------------------------------------------------------------------
 
 
-help_hint = make_help_hint("plet_git_ops")
+help_hint = make_help_hint("git_ops")
 
 
 def is_git_repo(cwd=None):
@@ -132,7 +128,7 @@ PITFALLS:
     - Attempt number derived from iter state — don't pass it manually
 
 USAGE:
-    plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
+    git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
         --phase implement|verify [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -146,8 +142,8 @@ PURPOSE:
     which moves, tags are fixed anchors.
 
 Examples:
-    plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement
-    plet_git_ops.py audit-tag --iter-id ID_001 --phase verify --dry-run
+    git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement
+    git_ops.py audit-tag --iter-id ID_001 --phase verify --dry-run
 """
     cmd_name = "audit-tag"
     hint = help_hint(cmd_name)
@@ -198,7 +194,7 @@ Examples:
 
 
 cmd_audit_tag.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_audit_tag.example = "plet_git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_audit_tag.example = "git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement"  # noqa: E501
 
 
 def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run):
@@ -246,86 +242,8 @@ def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, outpu
 
 
 # ---------------------------------------------------------------------------
-# merge-squash helpers
+# post-merge cleanup (shared by rebase-commit)
 # ---------------------------------------------------------------------------
-
-
-def _merge_squash_error(cmd_name, msg, output_json, pretty, hint=None):
-    """Build error output for merge-squash. Returns (code, out, err)."""
-    out, err_str = _err_out(cmd_name, msg, output_json, pretty)
-    if hint and err_str:
-        err_str = f"{err_str}\n{hint}"
-    elif hint:
-        err_str = hint
-    return (1, out, err_str)
-
-
-def _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty):
-    """Validate git preconditions for merge-squash. Returns error code or None on success."""
-    if not is_git_repo():
-        return _merge_squash_error(cmd_name, "Error: not inside a git repository", output_json, pretty)
-
-    current_branch = run_git("branch", "--show-current").stdout
-    if current_branch != ws_branch:
-        msg = f"Error: must be on workstream branch {ws_branch}, currently on {current_branch}"
-        return _merge_squash_error(cmd_name, msg, output_json, pretty)
-
-    r = run_git("symbolic-ref", "HEAD")
-    if r.returncode != 0:
-        msg = "Error: HEAD is detached — merge-squash requires a named branch"
-        return _merge_squash_error(cmd_name, msg, output_json, pretty)
-
-    r = run_git("rev-parse", "--verify", "refs/heads/" + iter_branch)
-    if r.returncode != 0:
-        msg = f"Error: iteration branch not found: {iter_branch}"
-        return _merge_squash_error(cmd_name, msg, output_json, pretty)
-
-    r = run_git("merge-base", "--is-ancestor", iter_branch, "HEAD")
-    if r.returncode == 0:
-        msg = (
-            f"Error: iteration branch {iter_branch} has no changes ahead of workstream — already merged or no work done"
-        )
-        return _merge_squash_error(cmd_name, msg, output_json, pretty)
-
-    porcelain = run_git("status", "--porcelain").stdout
-    if porcelain:
-        msg = "Error: working tree is dirty (git status --porcelain non-empty) — commit changes before merge-squash"
-        return _merge_squash_error(cmd_name, msg, output_json, pretty)
-
-    return None
-
-
-def _build_merge_squash_message(iter_state):
-    """Build the commit title and full message for merge-squash."""
-    iter_id = iter_state["iterationId"]
-    title = iter_state["title"]
-    commit_title = f"plet: [{iter_id}] - {title}"
-
-    attempts = iter_state["attempts"]
-    body_lines = []
-    phase_parts = []
-    if attempts.get("implement", 0) > 0:
-        phase_parts.append("implement\u00d7{}".format(attempts["implement"]))
-    if attempts.get("verify", 0) > 0:
-        phase_parts.append("verify\u00d7{}".format(attempts["verify"]))
-    if phase_parts:
-        body_lines.append("Phases: {}".format(", ".join(phase_parts)))
-
-    criteria = iter_state.get("criteria", [])
-    if criteria:
-        total = len(criteria)
-        passed_count = sum(
-            1
-            for c in criteria
-            if c.get("status") == "pass" or (isinstance(c.get("status"), str) and c["status"] == "pass")
-        )
-        body_lines.append(f"Criteria: {passed_count}/{total} passed")
-
-    commit_body = "\n".join(body_lines) if body_lines else ""
-    full_message = commit_title
-    if commit_body:
-        full_message = f"{commit_title}\n\n{commit_body}"
-    return commit_title, full_message
 
 
 def _merge_squash_cleanup(global_state, iter_state, iter_id, iter_branch):
@@ -355,136 +273,6 @@ def _merge_squash_cleanup(global_state, iter_state, iter_id, iter_branch):
             branch_deleted = True
 
     return tags_cleaned, branch_deleted
-
-
-# ---------------------------------------------------------------------------
-# merge-squash (placeholder — tests written next)
-# ---------------------------------------------------------------------------
-
-
-def _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pretty):
-    """Execute the git merge --squash and commit. Returns (commit_hash, error_code)."""
-    r = run_git("merge", "--squash", iter_branch)
-    if r.returncode != 0:
-        combined = r.stdout + " " + r.stderr
-        if "conflict" in combined.lower() or "CONFLICT" in combined:
-            run_git("merge", "--abort")
-            msg = "Error: merge --squash has conflicts. Merge aborted. Orchestrator must resolve or block."
-            return None, _merge_squash_error(cmd_name, msg, output_json, pretty)
-        detail = r.stderr or r.stdout or "(no output)"
-        return None, _merge_squash_error(cmd_name, f"Error: git merge --squash failed: {detail}", output_json, pretty)
-
-    r = run_git("commit", "-m", full_message)
-    if r.returncode != 0:
-        return None, _merge_squash_error(cmd_name, f"Error: git commit failed: {r.stderr}", output_json, pretty)
-
-    return get_head_short(), 0
-
-
-def cmd_merge_squash(args):
-    """Merge all iteration work into a single squashed commit on the workstream branch."""
-    help_text = """IMPORTANT:
-    merge-squash creates one commit per iteration on the workstream.
-    Must be run FROM the workstream branch. Use --dry-run first.
-
-PITFALLS:
-    - Must checkout workstream branch BEFORE running this command
-    - Tag and branch cleanup controlled by per-iteration state fields
-
-USAGE:
-    plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-
-    plet_dir             Path to plet directory (required)
-    --iter-id            Iteration ID (e.g., ID_001)
-
-PURPOSE:
-    Merges all iteration work into a single clean commit on the workstream.
-    Incremental commits stay on the iteration branch. The workstream gets
-    one commit per iteration for clean history.
-
-Examples:
-    plet_git_ops.py merge-squash plet/ --iter-id ID_001
-    plet_git_ops.py merge-squash --iter-id ID_001 --dry-run
-"""
-    cmd_name = "merge-squash"
-    hint = help_hint(cmd_name)
-    result = parse_command(
-        args,
-        help_text,
-        known_flags={"iter_id"},
-        required=["iter_id"],
-        allow_dry_run=True,
-        hint=hint,
-    )
-    if len(result) == 3:
-        return result
-    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
-
-    iter_id = kwargs["iter_id"]
-
-    global_state = load_and_validate_global_state(plet_dir)
-    if isinstance(global_state, tuple):
-        return global_state
-
-    iter_state = load_and_validate_iter_state(plet_dir, iter_id)
-    if isinstance(iter_state, tuple):
-        return iter_state
-
-    ws_branch = derive_workstream_branch(global_state)
-    iter_branch = derive_iteration_branch(global_state, iter_state)
-
-    git_err = _merge_squash_validate_git(ws_branch, iter_branch, cmd_name, output_json, pretty)
-    if git_err is not None:
-        return git_err
-
-    commit_title, full_message = _build_merge_squash_message(iter_state)
-
-    if dry_run:
-        if output_json:
-            data = {
-                "status": "ok",
-                "command": cmd_name,
-                "commitMessage": commit_title,
-                "iterationBranch": iter_branch,
-                "workstreamBranch": ws_branch,
-                "dryRun": True,
-            }
-            return (0, _to_json(data, pretty, fields), "")
-        else:
-            return (0, f"DRY RUN — would merge-squash {iter_branch} to {ws_branch}: {commit_title}", "")
-
-    commit_hash, err_result = _execute_merge_squash(iter_branch, full_message, cmd_name, output_json, pretty)
-    if err_result != 0:
-        return err_result
-
-    tags_cleaned, branch_deleted = _merge_squash_cleanup(
-        global_state, iter_state, iter_state["iterationId"], iter_branch
-    )
-
-    if output_json:
-        data = {
-            "status": "ok",
-            "command": cmd_name,
-            "commitMessage": commit_title,
-            "commitHash": commit_hash,
-            "iterationBranch": iter_branch,
-            "workstreamBranch": ws_branch,
-            "tagsCleaned": tags_cleaned,
-            "branchDeleted": branch_deleted,
-        }
-        return (0, _to_json(data, pretty, fields), "")
-    else:
-        msg = f"OK — merged to workstream: {commit_title} ({commit_hash})"
-        if tags_cleaned:
-            for tc in tags_cleaned:
-                msg += "\n  Tag {} deleted (was at {})".format(tc["tag"], tc["hash"])
-        if branch_deleted:
-            msg += f"\n  Branch {iter_branch} deleted"
-        return (0, msg, "")
-
-
-cmd_merge_squash.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
-cmd_merge_squash.example = "plet_git_ops.py merge-squash plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -601,7 +389,7 @@ PITFALLS:
     - If rebase conflicts, returns error — orchestrator requeues
 
 USAGE:
-    plet_git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (required)
     --iter-id            Iteration ID (e.g., ID_001)
@@ -612,8 +400,8 @@ PURPOSE:
     in the workstream history. Linear history, no merge commits.
 
 Examples:
-    plet_git_ops.py rebase-commit plet/ --iter-id ID_001
-    plet_git_ops.py rebase-commit --iter-id ID_001 --dry-run
+    git_ops.py rebase-commit plet/ --iter-id ID_001
+    git_ops.py rebase-commit --iter-id ID_001 --dry-run
 """
     cmd_name = "rebase-commit"
     hint = help_hint(cmd_name)
@@ -690,115 +478,12 @@ Examples:
 
 
 cmd_rebase_commit.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
-cmd_rebase_commit.example = "plet_git_ops.py rebase-commit plet/ --iter-id ID_001"  # noqa: E501
+cmd_rebase_commit.example = "git_ops.py rebase-commit plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
 # rebase-prep (stub — tests written first, implementation next)
 # ---------------------------------------------------------------------------
-
-
-def cmd_rebase_prep(args):
-    """Rebase iteration branch onto workstream. On conflict, leave rebase in progress for agent to resolve."""
-    help_text = """IMPORTANT:
-    rebase-prep rebases the current iteration branch onto the workstream.
-    Run this FROM the iteration branch, not the workstream.
-    If conflicts occur, the rebase is left in progress — resolve conflicts,
-    then run: git add <file> && git rebase --continue
-
-PITFALLS:
-    - Must be on the iteration branch, not workstream
-    - On conflict, rebase is IN PROGRESS — do not start other git operations
-
-USAGE:
-    plet_git_ops.py rebase-prep <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
-
-    plet_dir             Path to plet directory (required)
-    --iter-id            Iteration ID (e.g., ID_001)
-
-PURPOSE:
-    Rebases iteration branch onto the latest workstream. Used by implement
-    agents after requeue due to merge conflict. On clean rebase, the agent
-    continues normal work. On conflict, the agent resolves and continues.
-
-Examples:
-    plet_git_ops.py rebase-prep plet/ --iter-id ID_001
-"""
-    cmd_name = "rebase-prep"
-    hint = help_hint(cmd_name)
-    result = parse_command(
-        args,
-        help_text,
-        known_flags={"iter_id"},
-        required=["iter_id"],
-        allow_dry_run=False,
-        hint=hint,
-    )
-    if len(result) == 3:
-        return result
-    plet_dir, kwargs, output_json, pretty, fields, _ = result
-
-    iter_id = kwargs["iter_id"]
-
-    global_state = load_and_validate_global_state(plet_dir)
-    if isinstance(global_state, tuple):
-        return global_state
-
-    iter_state = load_and_validate_iter_state(plet_dir, iter_id)
-    if isinstance(iter_state, tuple):
-        return iter_state
-
-    ws_branch = derive_workstream_branch(global_state)
-    iter_branch = derive_iteration_branch(global_state, iter_state)
-
-    # Validate: must be on iter branch, not workstream
-    if not is_git_repo():
-        return _rebase_commit_error("rebase-prep", "Error: not inside a git repository", output_json, pretty)
-
-    current_branch = run_git("branch", "--show-current").stdout
-    if current_branch != iter_branch:
-        msg = f"Error: must be on iteration branch {iter_branch}, currently on {current_branch}"
-        return _rebase_commit_error("rebase-prep", msg, output_json, pretty)
-
-    # Rebase onto workstream
-    r = run_git("rebase", ws_branch)
-    if r.returncode == 0:
-        # Clean rebase — no conflicts
-        if output_json:
-            data = {
-                "status": "ok",
-                "command": "rebase-prep",
-                "rebasedOnto": ws_branch,
-                "conflictFiles": [],
-            }
-            return (0, _to_json(data, pretty, fields), "")
-        return (0, f"OK — rebased {iter_branch} onto {ws_branch}, no conflicts", "")
-
-    # Conflict — leave rebase in progress, report conflicting files
-    conflict_files = []
-    porcelain = run_git("diff", "--name-only", "--diff-filter=U").stdout
-    if porcelain:
-        conflict_files = [f.strip() for f in porcelain.split("\n") if f.strip()]
-
-    if output_json:
-        data = {
-            "status": "ok",
-            "command": "rebase-prep",
-            "rebasedOnto": ws_branch,
-            "conflictFiles": conflict_files,
-        }
-        return (0, _to_json(data, pretty, fields), "")
-
-    files_str = ", ".join(conflict_files) if conflict_files else "(unknown)"
-    msg = (
-        f"OK — rebase in progress. Conflicts in: {files_str}\n"
-        "Resolve, then run: git add <file> && git rebase --continue"
-    )
-    return (0, msg, "")
-
-
-cmd_rebase_prep.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
-cmd_rebase_prep.example = "plet_git_ops.py rebase-prep plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -811,16 +496,16 @@ def cmd_wip_commit(args):
     help_text = """IMPORTANT:
     wip-commit stages source files and plet state/artifacts, but NOT
     plet/trace/. Use this instead of raw git add/commit during implement
-    and verify phases. Transcripts are committed by plet_phase.py end.
+    and verify phases. Transcripts are committed by phase.py end.
 
 PITFALLS:
     - Do NOT use 'git add plet/' — that stages transcripts and creates
       a commit→transcript→commit feedback loop
-    - plet_phase.py end uses 'git add -A' which captures everything
+    - phase.py end uses 'git add -A' which captures everything
       including traces — that's the one place traces get committed
 
 USAGE:
-    plet_git_ops.py wip-commit <plet_dir> --iter-id ID_xxx --message "AC_1 - description"
+    git_ops.py wip-commit <plet_dir> --iter-id ID_xxx --message "AC_1 - description"
 
     plet_dir    Path to plet directory (required)
     --iter-id   Iteration ID (e.g., ID_001)
@@ -832,7 +517,7 @@ PURPOSE:
     the transcript, which dirties plet/, which triggers another commit.
 
 Examples:
-    plet_git_ops.py wip-commit plet/ --iter-id ID_001 --message "AC_1 - tests pass"
+    git_ops.py wip-commit plet/ --iter-id ID_001 --message "AC_1 - tests pass"
 """
     cmd_name = "wip-commit"
     hint = help_hint(cmd_name)
@@ -892,7 +577,7 @@ Examples:
 
 
 cmd_wip_commit.usage = '<plet_dir> --iter-id ID_xxx --message "description"'  # noqa: E501
-cmd_wip_commit.example = 'plet_git_ops.py wip-commit plet/ --iter-id ID_001 --message "AC_1 - tests pass"'  # noqa: E501
+cmd_wip_commit.example = 'git_ops.py wip-commit plet/ --iter-id ID_001 --message "AC_1 - tests pass"'  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -903,12 +588,10 @@ cmd_wip_commit.example = 'plet_git_ops.py wip-commit plet/ --iter-id ID_001 --me
 def main():
     commands = {
         "audit-tag": cmd_audit_tag,
-        "merge-squash": cmd_merge_squash,
         "rebase-commit": cmd_rebase_commit,
-        "rebase-prep": cmd_rebase_prep,
         "wip-commit": cmd_wip_commit,
     }
-    return dispatch(commands, "plet_git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

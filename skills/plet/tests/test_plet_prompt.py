@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_prompt.py — prompt assembly for subagents.
+"""Tests for prompt.py — prompt assembly for subagents.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_prompt.py
+    ./skills/plet/tests/test_prompt.py
 """
 
 import io
@@ -15,7 +15,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 sys.path.insert(0, os.path.dirname(__file__))
 
-import plet_prompt  # noqa: E402
+import prompt  # noqa: E402
 from util_fixture import (
     make_global_state as _shared_make_global_state,
 )
@@ -38,12 +38,12 @@ def run(args, expect_exit=0, cwd=None):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
     old_cwd = os.getcwd() if cwd else None
-    sys.argv = ["plet_prompt", "--no-log"] + args
+    sys.argv = ["prompt", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         if cwd:
             os.chdir(cwd)
-        code = plet_prompt.main()
+        code = prompt.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -257,8 +257,8 @@ def test_cli_ref_implement_content():
         check("criterion phase is implementation", "--phase implementation" in content)
         check("verdict completed", "--verdict completed" in content)
         check("no --report-file", "--report-file" not in content)
-        check("plet_phase.py end", "plet_phase.py end" in content)
-        check("gate post", "plet_gate_phase.py post" in content)
+        check("phase.py end", "phase.py end" in content)
+        check("gate post", "gate_phase.py post" in content)
         check("attempt 1", "attempt=1" in content or "attempt 1" in content)
     finally:
         shutil.rmtree(tmpdir)
@@ -275,7 +275,7 @@ def test_cli_ref_verify_content():
         check("criterion phase is verification", "--phase verification" in content)
         check("verdict passed", "--verdict passed" in content)
         check("has --summary", "--summary" in content)
-        check("plet_phase.py end", "plet_phase.py end" in content)
+        check("phase.py end", "phase.py end" in content)
         check("gate post verify", "--phase verify --output json" in content)
     finally:
         shutil.rmtree(tmpdir)

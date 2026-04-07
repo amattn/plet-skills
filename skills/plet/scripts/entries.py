@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet runtime artifact entry tool — writes correctly-formatted entries to
 progress.md, learnings.md, and emergent.md.
 
@@ -6,17 +5,17 @@ Enforces the entry formats defined in references/formats.md. Agents call this
 instead of composing markdown freehand, eliminating format drift across iterations.
 
 Usage:
-    plet_entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..."
+    entries.py add-progress <artifact_dir> --iter-id ID_xxx --iter-title "..."
         --phase implement --attempt 1 --status COMPLETE --content "..."
         [--content-file path] [--dry-run] [--output json [--pretty]] [--fields f1,f2]
-    plet_entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..."
+    entries.py add-learning <artifact_dir> --iter-id ID_xxx --iter-title "..."
         --category gotcha --title "..." --content "..." [--content-file path]
         --phase implement --attempt 1 [--dry-run] [--output json [--pretty]] [--fields f1,f2]
-    plet_entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..."
+    entries.py add-emergent <artifact_dir> --iter-id ID_xxx --iter-title "..."
         --title "..." --phase implement --category "design decision"
         --content "..." [--content-file path] --attempt 1
         [--dry-run] [--output json [--pretty]] [--fields f1,f2]
-    plet_entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]
+    entries.py check <artifact_dir> --iter-id ID_xxx [--output json [--pretty]] [--fields f1,f2]
 
 Commands:
     add-progress   Append a progress entry to progress.md
@@ -92,7 +91,7 @@ ITER_ID_PATTERN = re.compile(r"^(ID_\d+|proj)$")
 FENCE_PATTERN = re.compile(r'<div id="(plet-|END-plet-)')
 
 
-help_hint = make_help_hint("plet_entries")
+help_hint = make_help_hint("entries")
 
 
 # ---------------------------------------------------------------------------
@@ -313,7 +312,7 @@ PITFALLS:
     - IN_PROGRESS is suppressed from the header line (by design)
 
 USAGE:
-    plet_entries.py add-progress <artifact_dir>
+    entries.py add-progress <artifact_dir>
         --iter-id ID_xxx          Iteration ID (e.g., ID_001) or "proj"
         --iter-title "..."        Iteration title (human-readable)
         --phase PHASE             plan, implement, verify, or refine
@@ -330,7 +329,7 @@ PURPOSE:
     primary activity log — the human-readable narrative of the run.
 
 Examples:
-    plet_entries.py add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \\
+    entries.py add-progress plet/ --iter-id ID_001 --iter-title "Project scaffolding" \\
         --phase implement --attempt 1 --status COMPLETE \\
         --content "Initialized project with pytest, ruff. All checks pass."
 """
@@ -388,7 +387,7 @@ Examples:
 cmd_add_progress.usage = (
     '<artifact_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..."'  # noqa: E501
 )
-cmd_add_progress.example = 'plet_entries.py add-progress plet/ --iter-id ID_001 --iter-title "Scaffolding" --phase implement --attempt 1 --status COMPLETE --content "All checks pass."'  # noqa: E501
+cmd_add_progress.example = 'entries.py add-progress plet/ --iter-id ID_001 --iter-title "Scaffolding" --phase implement --attempt 1 --status COMPLETE --content "All checks pass."'  # noqa: E501
 
 
 def cmd_add_learning(args):
@@ -404,7 +403,7 @@ PITFALLS:
     - Use --iter-title not --title for the iteration title
 
 USAGE:
-    plet_entries.py add-learning <artifact_dir>
+    entries.py add-learning <artifact_dir>
         --iter-id ID_xxx          Iteration ID (e.g., ID_001) or "proj"
         --iter-title "..."        Iteration title (human-readable)
         --category CAT            pattern, gotcha, technique, tool, debug, context
@@ -423,7 +422,7 @@ PURPOSE:
     them to avoid repeating mistakes.
 
 Examples:
-    plet_entries.py add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \\
+    entries.py add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \\
         --category gotcha --title "SQLite WAL mode required" \\
         --content "Default journal mode blocks readers during writes." \\
         --phase implement --attempt 1
@@ -484,7 +483,7 @@ Examples:
 
 
 cmd_add_learning.usage = '<artifact_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." --phase implement --attempt 1'  # noqa: E501
-cmd_add_learning.example = 'plet_entries.py add-learning plet/ --iter-id ID_001 --iter-title "Scaffolding" --category gotcha --title "WAL mode required" --content "Default mode blocks readers." --phase implement --attempt 1'  # noqa: E501
+cmd_add_learning.example = 'entries.py add-learning plet/ --iter-id ID_001 --iter-title "Scaffolding" --category gotcha --title "WAL mode required" --content "Default mode blocks readers." --phase implement --attempt 1'  # noqa: E501
 
 
 def cmd_add_emergent(args):
@@ -500,7 +499,7 @@ PITFALLS:
     - Wrap multi-word categories in quotes: --category "design decision"
 
 USAGE:
-    plet_entries.py add-emergent <artifact_dir>
+    entries.py add-emergent <artifact_dir>
         --iter-id ID_xxx          Iteration ID (e.g., ID_001) or "proj"
         --iter-title "..."        Iteration title (human-readable)
         --title "..."             Short title for the emergent item
@@ -519,7 +518,7 @@ PURPOSE:
     Emergent items are the human triage queue — surfaced during refine sessions.
 
 Examples:
-    plet_entries.py add-emergent plet/ --iter-id ID_002 --iter-title "Core data model" \\
+    entries.py add-emergent plet/ --iter-id ID_002 --iter-title "Core data model" \\
         --title "Chose SQLite over PostgreSQL" --phase implement \\
         --category "design decision" \\
         --content "Requirements say persistent storage. Chose SQLite for simplicity." \\
@@ -590,7 +589,7 @@ Examples:
 
 
 cmd_add_emergent.usage = '<artifact_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." --attempt 1'  # noqa: E501
-cmd_add_emergent.example = 'plet_entries.py add-emergent plet/ --iter-id ID_001 --iter-title "Scaffolding" --title "Chose SQLite" --phase implement --category "design decision" --content "Chose SQLite for simplicity." --attempt 1'  # noqa: E501
+cmd_add_emergent.example = 'entries.py add-emergent plet/ --iter-id ID_001 --iter-title "Scaffolding" --title "Chose SQLite" --phase implement --category "design decision" --content "Chose SQLite for simplicity." --attempt 1'  # noqa: E501
 
 
 def _parse_check_args(args, help_text):
@@ -660,7 +659,7 @@ PITFALLS:
     - Distinguishes "file missing" (NOT_INITIALIZED) from "0 entries" (MISSING)
 
 USAGE:
-    plet_entries.py check <artifact_dir>
+    entries.py check <artifact_dir>
         --iter-id ID_xxx    Iteration ID to check (e.g., ID_001)
         [--output json [--pretty]] [--fields f1,f2]
 
@@ -669,8 +668,8 @@ PURPOSE:
     entries in all three runtime artifacts before proceeding to verification.
 
 Examples:
-    plet_entries.py check plet/ --iter-id ID_001
-    plet_entries.py check plet/ --iter-id ID_002 --output json
+    entries.py check plet/ --iter-id ID_001
+    entries.py check plet/ --iter-id ID_002 --output json
 """
     parsed, parse_err = _parse_check_args(args, help_text)
     if parsed == "help":
@@ -735,7 +734,7 @@ Examples:
 
 
 cmd_check.usage = "<artifact_dir> --iter-id ID_xxx"  # noqa: E501
-cmd_check.example = "plet_entries.py check plet/ --iter-id ID_001"  # noqa: E501
+cmd_check.example = "entries.py check plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -752,7 +751,7 @@ def main():
     }
     return dispatch(
         commands,
-        "plet_entries",
+        "entries",
         SCRIPT_VERSION,
         SKILL_VERSION,
         __doc__,

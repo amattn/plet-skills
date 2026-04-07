@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 """plet gate session tool — session-level gate checks (read-only).
 
 Determines which session to enter, produces status summaries, verifies the
 project environment is ready for work, and checks session health at end.
-All commands are read-only. Paired with plet_session.py for mutating lifecycle.
+All commands are read-only. Paired with session.py for mutating lifecycle.
 
 Usage:
-    plet_gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine
+    gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine
         [--output json [--pretty] [--fields f1,f2]]
-    plet_gate_session.py postflight <plet_dir> --session-type loop|refine
+    gate_session.py postflight <plet_dir> --session-type loop|refine
         [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
@@ -86,7 +85,7 @@ LOOP_LIFECYCLES = {"queued", "implementing", "verifying"}
 # ---------------------------------------------------------------------------
 
 
-help_hint = make_help_hint("plet_gate_session")
+help_hint = make_help_hint("gate_session")
 
 
 def scan_iter_states(plet_dir):
@@ -186,7 +185,7 @@ def cmd_detect(args):
     help_text = """IMPORTANT:
     detect is read-only — it checks project state and prints the session type.
     Text output is bare (plan, loop, or refine) for shell capture:
-    SESSION=$(plet_gate_session.py detect)
+    SESSION=$(gate_session.py detect)
 
 PITFALLS:
     - Required — path to the plet directory
@@ -194,7 +193,7 @@ PITFALLS:
     - ineligible-only iterations return refine (not loop)
 
 USAGE:
-    plet_gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (required)
 
@@ -203,9 +202,9 @@ PURPOSE:
     Implements the OR_2–OR_6 routing logic as deterministic code.
 
 Examples:
-    plet_gate_session.py detect
-    plet_gate_session.py detect plet/
-    plet_gate_session.py detect /path/to/project/plet --output json --pretty
+    gate_session.py detect
+    gate_session.py detect plet/
+    gate_session.py detect /path/to/project/plet --output json --pretty
 """
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
@@ -250,7 +249,7 @@ Examples:
 
 
 cmd_detect.usage = "<plet_dir>"  # noqa: E501
-cmd_detect.example = "plet_gate_session.py detect plet/"  # noqa: E501
+cmd_detect.example = "gate_session.py detect plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -286,7 +285,7 @@ def _check_fingerprints(plet_dir):
     fingerprints = {"consistent": None}
     try:
         scripts_dir = os.path.dirname(os.path.abspath(__file__))
-        fpr_script = os.path.join(scripts_dir, "plet_fingerprint.py")
+        fpr_script = os.path.join(scripts_dir, "fingerprint.py")
         if os.path.isfile(fpr_script):
             fpr_result = run(
                 [sys.executable, fpr_script, "check", plet_dir, "--output", "json"],
@@ -426,10 +425,10 @@ def cmd_status(args):
 PITFALLS:
     - Required — path to the plet directory
     - Requires plet directory to exist (unlike detect which works on fresh projects)
-    - Fingerprint check may be slow — it calls plet_fingerprint.py via subprocess
+    - Fingerprint check may be slow — it calls fingerprint.py via subprocess
 
 USAGE:
-    plet_gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir    Path to plet directory (required)
 
@@ -439,9 +438,9 @@ PURPOSE:
     fingerprint consistency.
 
 Examples:
-    plet_gate_session.py status
-    plet_gate_session.py status plet/
-    plet_gate_session.py status plet/ --output json --pretty
+    gate_session.py status
+    gate_session.py status plet/
+    gate_session.py status plet/ --output json --pretty
 """
     if "-h" in args or "--help" in args:
         return (0, help_text, "")
@@ -526,7 +525,7 @@ Examples:
 
 
 cmd_status.usage = "<plet_dir>"  # noqa: E501
-cmd_status.example = "plet_gate_session.py status plet/"  # noqa: E501
+cmd_status.example = "gate_session.py status plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -537,15 +536,14 @@ cmd_status.example = "plet_gate_session.py status plet/"  # noqa: E501
 def _check_scripts_installed(scripts_dir):
     """Check that all required plet scripts are present."""
     required_scripts = [
-        "plet_global_state.py",
-        "plet_iter_state.py",
-        "plet_entries.py",
-        "plet_fingerprint.py",
-        "plet_trace.py",
-        "plet_git_iteration.py",
-        "plet_git_ops.py",
-        "plet_git_check.py",
-        "plet_invoke.py",
+        "global_state.py",
+        "iter_state.py",
+        "entries.py",
+        "fingerprint.py",
+        "traces.py",
+        "git_ops.py",
+        "git_check.py",
+        "invoke.py",
         "plet_merge_driver.py",
     ]
     missing = [s for s in required_scripts if not os.path.isfile(os.path.join(scripts_dir, s))]
@@ -557,7 +555,7 @@ def _check_scripts_installed(scripts_dir):
 def _check_git_health(scripts_dir, plet_dir):
     """Run git-check (CKS) via subprocess. Returns list of check dicts."""
     checks = []
-    gtc_script = os.path.join(scripts_dir, "plet_git_check.py")
+    gtc_script = os.path.join(scripts_dir, "git_check.py")
     if not os.path.isfile(gtc_script):
         return checks
     sjp = state_json_path(plet_dir)
@@ -602,7 +600,7 @@ def _check_fingerprints_preflight(scripts_dir, plet_dir, plet_dir_exists, sessio
     """Check fingerprint consistency."""
     if session_type == "plan":
         return {"name": "fingerprints-consistent", "status": "skipped", "detail": "plan session, check not applicable"}
-    fpr_script = os.path.join(scripts_dir, "plet_fingerprint.py")
+    fpr_script = os.path.join(scripts_dir, "fingerprint.py")
     if not (os.path.isfile(fpr_script) and plet_dir_exists):
         return {
             "name": "fingerprints-consistent",
@@ -619,7 +617,7 @@ def _check_fingerprints_preflight(scripts_dir, plet_dir, plet_dir_exists, sessio
             return {
                 "name": "fingerprints-consistent",
                 "status": "warn",
-                "detail": "fingerprints stale: {}".format(fpr_data.get("detail", "see plet_fingerprint.py check")),
+                "detail": "fingerprints stale: {}".format(fpr_data.get("detail", "see fingerprint.py check")),
             }
         return {
             "name": "fingerprints-consistent",
@@ -769,7 +767,7 @@ PITFALLS:
     - Required — path to the plet directory
 
 USAGE:
-    plet_gate_session.py preflight <plet_dir>
+    gate_session.py preflight <plet_dir>
         --session-type detect|plan|loop|refine
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -782,9 +780,9 @@ PURPOSE:
     state valid, fingerprints consistent.
 
 Examples:
-    plet_gate_session.py preflight --session-type detect
-    plet_gate_session.py preflight plet/ --session-type loop
-    plet_gate_session.py preflight plet/ --session-type plan --output json --pretty
+    gate_session.py preflight --session-type detect
+    gate_session.py preflight plet/ --session-type loop
+    gate_session.py preflight plet/ --session-type plan --output json --pretty
 """
     cmd_name = "preflight"
     hint = help_hint(cmd_name)
@@ -833,7 +831,7 @@ Examples:
 
 
 cmd_preflight.usage = "<plet_dir> --session-type loop"  # noqa: E501
-cmd_preflight.example = "plet_gate_session.py preflight plet/ --session-type loop"  # noqa: E501
+cmd_preflight.example = "gate_session.py preflight plet/ --session-type loop"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -850,13 +848,13 @@ def cmd_postflight(args):
     better than a dangling open session.
 
     USAGE
-        plet_gate_session.py postflight <plet_dir>
+        gate_session.py postflight <plet_dir>
             --session-type loop|refine
             [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
-        plet_gate_session.py postflight plet/ --session-type loop
-        plet_gate_session.py postflight plet/ --session-type loop --output json --pretty
+        gate_session.py postflight plet/ --session-type loop
+        gate_session.py postflight plet/ --session-type loop --output json --pretty
 
     PURPOSE
         Symmetric with preflight. Called by the orchestrator before end-session.
@@ -962,7 +960,7 @@ def _emit_postflight_result(checks, session_type, output_json, pretty, fields):
 
 
 cmd_postflight.usage = "<plet_dir> --session-type loop"  # noqa: E501
-cmd_postflight.example = "plet_gate_session.py postflight plet/ --session-type loop"  # noqa: E501
+cmd_postflight.example = "gate_session.py postflight plet/ --session-type loop"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -977,7 +975,7 @@ def main():
         "preflight": cmd_preflight,
         "postflight": cmd_postflight,
     }
-    return dispatch(commands, "plet_gate_session", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "gate_session", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

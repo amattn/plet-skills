@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """plet schedule tool — loop scheduling decisions.
 
 Determines which iterations are eligible for work, checks breakpoints, and
@@ -6,10 +5,10 @@ evaluates retry policy. All commands are read-only. The orchestrator calls
 these to make deterministic routing decisions.
 
 Usage:
-    plet_schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]
-    plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx
+    schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+    schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx
         --position before|after [--output json [--pretty] [--fields f1,f2]]
-    plet_schedule.py check-retry <plet_dir> --iter-id ID_xxx
+    schedule.py check-retry <plet_dir> --iter-id ID_xxx
         [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
@@ -53,7 +52,7 @@ VALID_LIFECYCLES = {
 }
 
 
-_help_hint = make_help_hint("plet_schedule")
+_help_hint = make_help_hint("schedule")
 
 
 def _load_eligible_state(plet_dir, hint):
@@ -132,11 +131,11 @@ def cmd_eligible(args):
           "complet" would silently break scheduling if not caught.
 
     USAGE
-        plet_schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]
+        schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
-        plet_schedule.py eligible
-        plet_schedule.py eligible plet/ --output json --pretty
+        schedule.py eligible
+        schedule.py eligible plet/ --output json --pretty
 
     PURPOSE
         Core scheduling function for the loop orchestrator. Called at loop start
@@ -192,7 +191,7 @@ def cmd_eligible(args):
 
 
 cmd_eligible.usage = "<plet_dir>"  # noqa: E501
-cmd_eligible.example = "plet_schedule.py eligible plet/"  # noqa: E501
+cmd_eligible.example = "schedule.py eligible plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -207,13 +206,13 @@ def cmd_check_breakpoints(args):
     arrays always return "miss".
 
     USAGE
-        plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx
+        schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx
             --position before|after
             [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
-        plet_schedule.py check-breakpoints plet/ --iter-id ID_003 --position before
-        plet_schedule.py check-breakpoints plet/ --iter-id ID_003 --position after --output json
+        schedule.py check-breakpoints plet/ --iter-id ID_003 --position before
+        schedule.py check-breakpoints plet/ --iter-id ID_003 --position after --output json
 
     PURPOSE
         Breakpoint enforcement for the orchestrator. Called twice per iteration —
@@ -264,7 +263,7 @@ def cmd_check_breakpoints(args):
 
 
 cmd_check_breakpoints.usage = "<plet_dir> --iter-id ID_xxx --position before|after"  # noqa: E501
-cmd_check_breakpoints.example = "plet_schedule.py check-breakpoints plet/ --iter-id ID_001 --position before"  # noqa: E501
+cmd_check_breakpoints.example = "schedule.py check-breakpoints plet/ --iter-id ID_001 --position before"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -282,11 +281,11 @@ def cmd_check_retry(args):
     strictly decreasing across attempts, extend to 6. Abort if not decreasing.
 
     USAGE
-        plet_schedule.py check-retry <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+        schedule.py check-retry <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
-        plet_schedule.py check-retry plet/ --iter-id ID_002
-        plet_schedule.py check-retry plet/ --iter-id ID_002 --output json --pretty
+        schedule.py check-retry plet/ --iter-id ID_002
+        schedule.py check-retry plet/ --iter-id ID_002 --output json --pretty
 
     PURPOSE
         Retry policy enforcement for the loop orchestrator. Called after a verify
@@ -344,7 +343,7 @@ def cmd_check_retry(args):
 
 
 cmd_check_retry.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
-cmd_check_retry.example = "plet_schedule.py check-retry plet/ --iter-id ID_001"  # noqa: E501
+cmd_check_retry.example = "schedule.py check-retry plet/ --iter-id ID_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -358,7 +357,7 @@ def main():
         "check-breakpoints": cmd_check_breakpoints,
         "check-retry": cmd_check_retry,
     }
-    return dispatch(commands, "plet_schedule", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "schedule", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

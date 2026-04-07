@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for plet_iter_state.py (IST) — per-iteration state management.
+"""Tests for iter_state.py (IST) — per-iteration state management.
 
 Zero dependencies beyond stdlib. Run with:
-    ./skills/plet/tests/test_plet_iter_state.py
+    ./skills/plet/tests/test_iter_state.py
 """
 
 import io
@@ -15,7 +15,7 @@ from util_fixture import make_plet_dir as _make_plet_dir
 from util_fixture import read_iter_state
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-import plet_iter_state  # noqa: E402
+import iter_state  # noqa: E402
 from util_io import iter_state_path
 
 passed = 0
@@ -25,10 +25,10 @@ failed = 0
 def run(args, expect_exit=0):
     """Run via main() with stdout/stderr capture — no subprocess."""
     old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
-    sys.argv = ["plet_iter_state", "--no-log"] + args
+    sys.argv = ["iter_state", "--no-log"] + args
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
-        code = plet_iter_state.main()
+        code = iter_state.main()
         out, err = sys.stdout.getvalue(), sys.stderr.getvalue()
     finally:
         sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
@@ -98,7 +98,7 @@ def test_help():
     check("--help has content", len(out) > 20)
 
     out, _, _ = run(["--version"])
-    check("--version has name", "plet_iter_state" in out)
+    check("--version has name", "iter_state" in out)
 
     for cmd in [
         "init",
@@ -1091,7 +1091,7 @@ def test_validate_missing():
 # Direct import tests (COV_2 — coverage-visible internal helpers)
 # ---------------------------------------------------------------------------
 
-ist_mod = plet_iter_state
+ist_mod = iter_state
 
 
 def test_validate_init_inputs_errors():
