@@ -29,6 +29,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `CASE_STUDY_OLLR_R01.md` | OLLR (oller) | Bash | 3/6 | v0.6.1; rebase-commit works for non-conflicting iters; conflict recovery broken (no rebase-prep injection, no retry check) |
 | `CASE_STUDY_OLLR_R02.md` | OLLR (oller) | Bash | 4/6 | v0.6.1+fixes; retry check works, rebase-prep injected but not followed; need sequential fallback |
 | `CASE_STUDY_OLLR_R03.md` | OLLR (oller) | Bash | 4/6 | v0.6.1+fixes; parallel stop works (ID_005 recovered!); stash bug, auto-restart bug |
+| `CASE_STUDY_OLLR_R04.md` | OLLR (oller) | Bash | **6/6** | v0.6.2; **FIRST fully successful parallel run with conflict recovery** |
 
 ## Stable Labels
 
