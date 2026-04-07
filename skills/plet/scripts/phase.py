@@ -360,7 +360,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
         return (0, f"OK — {phase} phase ended: {verdict} ({', '.join(steps_done)})", "")
 
 
-cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict VALUE --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501
+cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict completed|blocked (implement) or passed|rejected|blocked (verify) --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501
 cmd_end.example = 'phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed --progress-content "Verified: all AC confirmed." --summary "All 5 criteria independently verified."'  # noqa: E501
 
 

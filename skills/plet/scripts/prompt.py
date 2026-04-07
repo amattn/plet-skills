@@ -244,13 +244,7 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
         return None, f"Error: iteration {iter_id} not found in iterations.md"
     sections.append({"name": "iteration-definition", "source": "plet/iterations.md", "content": iter_block})
 
-    # 3. State schema (formats.md removed — CLI handles formatting)
-    schema_content, schema_path = load_reference("state-schema.md")
-    if schema_content is None:
-        return None, f"Error: reference file not found: {schema_path}"
-    sections.append({"name": "state-schema", "source": "references/state-schema.md", "content": schema_content})
-
-    # 5. Requirements
+    # 3. Requirements (formats.md + state-schema.md removed — CLI handles both)
     req_file = requirements_path(plet_dir)
     req_content = load_text(req_file)
     if req_content is None:

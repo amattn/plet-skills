@@ -786,7 +786,7 @@ Examples:
         return (0, f"OK — {iter_id} {kwargs['criterion']} {phase}: {status}", "")
 
 
-cmd_update_criterion.usage = '<plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." --agent-id ID [--red-test "test_name" for verify+fail]'  # noqa: E501
+cmd_update_criterion.usage = '<plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation|verification --status pass|fail|skipped --evidence "..." --agent-id ID [--red-test "test_name" for verify+fail] [--skip-rationale "..." for skipped]'  # noqa: E501
 cmd_update_criterion.example = 'iter_state.py update-criterion plet/ --iter-id ID_001 --criterion AC_1 --phase verification --status fail --evidence "Wrong response shape" --agent-id verify_agent --red-test test_returns_profile'  # noqa: E501
 
 
@@ -895,7 +895,7 @@ Examples:
         return (0, f"OK — {iter_id} {verdict_field}: {verdict}", "")
 
 
-cmd_set_verdict.usage = "<plet_dir> --iter-id ID_xxx --phase implement --verdict completed --agent-id AGENT_ID"  # noqa: E501
+cmd_set_verdict.usage = "<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict completed|blocked (implement) or passed|rejected|blocked (verify) --agent-id AGENT_ID"  # noqa: E501
 cmd_set_verdict.example = (
     "iter_state.py set-verdict plet/ --iter-id ID_001 --phase implement --verdict completed --agent-id agent_abc123"  # noqa: E501
 )

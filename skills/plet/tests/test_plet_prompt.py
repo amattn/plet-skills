@@ -166,7 +166,7 @@ def test_impl_text_output():
 
 
 def test_impl_all_sections():
-    print("\n## assemble — implement has all 8 sections")
+    print("\n## assemble — implement has all 7 sections")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
@@ -177,12 +177,12 @@ def test_impl_all_sections():
         check("cli-quick-reference", "cli-quick-reference" in names)
         check("iteration-definition", "iteration-definition" in names)
         check("no formats section", "formats" not in names)
-        check("state-schema", "state-schema" in names)
+        check("no state-schema section", "state-schema" not in names)
         check("requirements", "requirements" in names)
         check("learnings", "learnings" in names)
         check("iteration-state", "iteration-state" in names)
         check("per-ac-reflection", "per-ac-reflection" in names)
-        check("8 sections", len(data["sections"]) == 8)
+        check("7 sections", len(data["sections"]) == 7)
     finally:
         shutil.rmtree(tmpdir)
 
@@ -206,14 +206,14 @@ def test_impl_reference_file():
 
 
 def test_verify_all_sections():
-    print("\n## assemble — verify has all 8 sections")
+    print("\n## assemble — verify has all 7 sections")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
         stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"])
         data = json.loads(stdout)
         names = [s["name"] for s in data["sections"]]
-        check("8 sections", len(data["sections"]) == 8)
+        check("8 sections", len(data["sections"]) == 7)
         check("reference-file", "reference-file" in names)
         check("cli-quick-reference", "cli-quick-reference" in names)
         check("learnings", "learnings" in names)
@@ -532,7 +532,7 @@ def test_per_ac_reflection_section_count():
         plet_dir = make_plet_dir(tmpdir)
         stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
-        assert len(data["sections"]) == 8, f"expected 9 sections, got {len(data['sections'])}"
+        assert len(data["sections"]) == 7, f"expected 9 sections, got {len(data['sections'])}"
     finally:
         shutil.rmtree(tmpdir)
 

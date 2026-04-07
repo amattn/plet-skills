@@ -35,7 +35,6 @@ Update the per-iteration state file immediately when:
 - Phase activity changes (e.g., `setup` → `red` → `green`)
 - A criterion status changes (e.g., `not_started` → `fail` → `pass`)
 - A verdict is set (e.g., `implementVerdict: "completed"`)
-- Heartbeat interval elapses
 
 Note: Lifecycle transitions are written to `state.json` by the orchestrator (SF_28), not to per-iteration files.
 
@@ -82,10 +81,6 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
       "iterations": ["ID_004"]
     }
   },
-
-  "parallelGroups": [
-    ["ID_002", "ID_003"]
-  ],
 
   "breakpoints": {
     "before": [],
@@ -134,7 +129,7 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 | `lifecycles` | object | yes | `{iteration_id: lifecycle_value}` — iteration lifecycle phases (SF_28). Sole source of lifecycle truth. Written only by the orchestrator. Values: see Lifecycle Values below. |
 | `remainingRetries` | object | no | `{iteration_id: int}` — retry budget per iteration. Starts at 3. Decremented by orchestrator on verify rejection, implement failure, or rebase-commit failure. When 0, `check-retry` returns `abort` and iteration blocks. Orchestrator-owned — NOT in per-iteration state files. |
 | `milestones` | object | yes | `{milestone_id: {name, iterations[]}}` |
-| `parallelGroups` | array of arrays | no | Groups of iterations that can execute concurrently (SF_19) |
+
 | `breakpoints.before` | array of strings | no | Iteration IDs — orchestrator pauses before these (SF_21) |
 | `breakpoints.after` | array of strings | no | Iteration IDs — orchestrator pauses after these (SF_21) |
 | `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after rebase-commit (commit hash logged in progress.md for recovery). Default `false` — tags are kept. Tags mark phase boundaries on the iteration branch (pre-rebase commit hashes). Per-iteration state inherits this value at initialization. (IMP_17) |
@@ -160,8 +155,6 @@ Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
   "iterationId": "ID_001",
   "title": "Project scaffolding",
   "lastUpdated": "2026-03-07T15:30:00Z",
-  "lastHeartbeat": "2026-03-07T15:30:00Z",
-
   "dependencies": [],
 
   "agentId": "agent_abc123",
@@ -245,8 +238,6 @@ Shows state after two full cycles: first verification rejected, second passed. R
   "iterationId": "ID_002",
   "title": "User authentication endpoint",
   "lastUpdated": "2026-03-07T19:30:00Z",
-  "lastHeartbeat": "2026-03-07T19:30:00Z",
-
   "dependencies": ["ID_001"],
 
   "agentId": null,
@@ -342,7 +333,7 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `iterationId` | string | yes | The iteration ID (e.g., `ID_001`) |
 | `title` | string | yes | Human-readable iteration title |
 | `lastUpdated` | string (ISO 8601) | yes | Timestamp of last write (SF_11) |
-| `lastHeartbeat` | string (ISO 8601) | no | Agent heartbeat for stale detection; > 5 min = potentially crashed (SF_20) |
+
 | `dependencies` | array of strings | yes | Iteration IDs that must be `complete` first (SF_9) |
 | `agentId` | string \| null | yes | Agent session ID, null if idle (SF_5) |
 | `phaseActivity` | string (enum) | no | Current phase activity state — phase-specific values (SF_4). Cosmetic only — does NOT drive lifecycle transitions. |
@@ -352,13 +343,10 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | `attempts.implement` | number | yes | Implementation attempt count (SF_22) |
 | `attempts.verify` | number | yes | Verification attempt count (SF_22) |
 | `phaseTimestamps` | object | no | Start/end timestamps per phase per attempt (SF_22) |
-| `elapsedSeconds` | object | no | Time elapsed in seconds per phase attempt (`implement_1`, `verify_1`, etc.) and `total` across all attempts. Updated opportunistically — on heartbeat writes, on any state file write, and at end of each phase. No dedicated writes needed. |
-| ~~`summary`~~ | | | **Removed.** Progress.md entries serve the same purpose. |
-| ~~`filesChanged`~~ | | | **Removed.** Git history (`git diff --name-only`) is the source of truth for changed files. |
+| `elapsedSeconds` | object | no | Time elapsed in seconds per phase attempt (`implement_1`, `verify_1`, etc.) and `total` across all attempts. Updated opportunistically on state file writes and at end of each phase. No dedicated writes needed. |
 | `cleanupTagsAutomatically` | boolean | no | When `true`, audit tags are deleted after rebase-commit (commit hash logged in progress.md for recovery). Inherited from global `state.json` at initialization. Default `false` — tags are kept. (IMP_17) |
 | `cleanupBranchesAutomatically` | boolean | no | When `true`, iteration branch is deleted after rebase-commit to workstream. Inherited from global `state.json` at initialization. Default `false` — branch kept. Independent of `cleanupTagsAutomatically`. |
 | `criteria` | array | yes | Acceptance criteria with two-state model (SF_7) |
-| ~~`lastVerdict`~~ | | | **Removed.** Replaced by `verifyVerdict` (SF_28). |
 | `verificationReports` | array | no | One verification report per verify attempt, ordered by attempt number. See Verification Report below. |
 
 ### Lifecycle Values (SF_3, SF_28)
@@ -386,11 +374,10 @@ Lifecycle is stored in `state.json.lifecycles`, NOT in per-iteration files. The 
 | `verifying` → `blocked` | Orchestrator reads `blocked` verdict or retry exhausted | `state.json` (orchestrator) |
 | `implementing` → `blocked` | Orchestrator reads `implementVerdict: "blocked"` or crash | `state.json` (orchestrator) |
 
-**Pre-spawn setup:** The orchestrator calls IST `start-phase` on `worktree_plet_dir` before spawning the subagent. This clears stale verdicts (implement: both to null, verify: verifyVerdict to null), sets `phaseActivity: "setup"`, increments attempts, and sets timestamps. This prevents stale verdict reads on crash-before-start.
+**Pre-spawn setup:** The orchestrator calls IST `start-phase` before spawning the subagent. This clears stale verdicts (implement: both to null, verify: verifyVerdict to null), sets `phaseActivity: "setup"`, increments attempts, and sets timestamps. This prevents stale verdict reads on crash-before-start.
 
 **Post-gate safety net:** Post-implement gate checks `implementVerdict` not null. Post-verify gate checks `verifyVerdict` not null. If a subagent "does the work but forgets to set the verdict," the gate catches it before exit.
 
-**Two-copy model during iteration:** Per-iteration state files exist in both the global copy (`global_plet_dir`, on workstream branch) and the worktree copy (`worktree_plet_dir`, on iteration branch). The worktree copy is authoritative during the subagent's execution. Lifecycle is NOT in per-iteration files, so the two-copy problem only affects per-iteration data (criteria, verdicts, activity). See NOTES.md § Plet Directory Variables for naming taxonomy.
 
 ### Phase Activity Values (SF_4)
 

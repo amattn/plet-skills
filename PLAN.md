@@ -269,7 +269,7 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | SEQ_33 | GREEN: remove fields from schema + validator. Update fixtures. Remove lastHeartbeat writes from iter_state. | ✓ done |
 | SEQ_34 | Path cleanup: replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | ✓ done |
 | SEQ_35 | Audit + slim formats.md — dropped from prompt injection, content migrated | ✓ done |
-| SEQ_36 | Audit + slim state-schema.md — drop if tools cover everything | |
+| SEQ_36 | Audit + slim state-schema.md — dropped from prompt injection, enum values added to CLI --usage | ✓ done |
 | SEQ_37 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | |
 | SEQ_38 | Slim verify.md — same approach, inline cheatsheet content | |
 | SEQ_39 | Remove cli-cheatsheet.md — obsolete (`plet_agent.py --help` replaces it for agents) | |
