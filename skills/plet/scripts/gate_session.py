@@ -886,6 +886,7 @@ def cmd_postflight(args):
     output_json, pretty, fields, _ = result
 
     checks = run_preflight_checks(plet_dir, session_type)
+    _append_audit_tag_check(checks, plet_dir)
     _append_transient_lifecycle_check(checks, plet_dir)
 
     # Postflight never fails — downgrade all fails to warns
@@ -894,6 +895,55 @@ def cmd_postflight(args):
             c["status"] = "warn"
 
     return _emit_postflight_result(checks, session_type, output_json, pretty, fields)
+
+
+def _append_audit_tag_check(checks, plet_dir):
+    """Verify audit tags exist for all completed iterations."""
+    sjp = state_json_path(plet_dir)
+    if not os.path.isfile(sjp):
+        return
+    gs = load_json(sjp)
+    if not gs or "lifecycles" not in gs:
+        return
+
+    complete_ids = [iid for iid, lc in gs.get("lifecycles", {}).items() if lc == "complete"]
+    if not complete_ids:
+        checks.append({"name": "audit-tags", "status": "pass", "detail": "no completed iterations to check"})
+        return
+
+    project_id = gs.get("projectId", "UNKNOWN")
+    loop_n = gs.get("loopSessionCount", 0)
+    tag_prefix = f"plet/{project_id}/loop{loop_n}/audit/"
+
+    from util_subprocess import run_git
+
+    tag_list = run_git("tag", "-l", tag_prefix + "*").stdout
+    existing_tags = set(tag_list.strip().split("\n")) if tag_list.strip() else set()
+
+    missing = []
+    for iid in sorted(complete_ids):
+        for phase in ("implement", "verify"):
+            # Check any attempt tag exists (e.g., implement-1, implement-2)
+            phase_prefix = f"{tag_prefix}{iid}/{phase}-"
+            if not any(t.startswith(phase_prefix) for t in existing_tags):
+                missing.append(f"{iid}/{phase}")
+
+    if missing:
+        checks.append(
+            {
+                "name": "audit-tags",
+                "status": "warn",
+                "detail": f"missing audit tags: {', '.join(missing)}",
+            }
+        )
+    else:
+        checks.append(
+            {
+                "name": "audit-tags",
+                "status": "pass",
+                "detail": f"audit tags present for {len(complete_ids)} completed iteration(s)",
+            }
+        )
 
 
 def _append_transient_lifecycle_check(checks, plet_dir):
