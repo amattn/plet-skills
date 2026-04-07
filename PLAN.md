@@ -262,22 +262,22 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | SEQ_27 | Removed: learnings/emergent gate checks (no longer required). Removed: check_rebase_onto_workstream, check_audit_tag from post. Removed: branch-exists from git_check. correct-branch checks workstream. | ✓ done |
 | SEQ_28 | RED: tests for emergent ID format `EM_{iter_id}_{N}` — gate validates, rejects old flat `EM_N` | ✓ done |
 | SEQ_29 | GREEN: implement emergent ID validation | ✓ done |
-| SEQ_30 | RED: tests for learnings/emergent per-AC prompt in prompt module | |
-| SEQ_31 | GREEN: add learnings/emergent prompt injection | |
+| SEQ_30 | RED: tests for learnings/emergent per-AC prompt in prompt module | ✓ done |
+| SEQ_31 | GREEN: add learnings/emergent prompt injection | ✓ done |
 | | **Phase 5: Schema + Docs** | |
 | SEQ_32 | RED: tests assert parallelGroup, requeue_reason, lastHeartbeat rejected by validator. remainingRetries only decremented on verify rejection. | |
 | SEQ_33 | GREEN: remove fields from schema + validator. Simplify remainingRetries. Update fixtures. | |
-| SEQ_33b | Path cleanup: centralize ad-hoc `os.path.join` into `util_io.py` derivers, replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | |
-| SEQ_34 | Audit + slim formats.md — drop if CLI covers everything | |
-| SEQ_35 | Audit + slim state-schema.md — drop if tools cover everything | |
-| SEQ_36 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | |
-| SEQ_37 | Slim verify.md — same approach, inline cheatsheet content | |
-| SEQ_38 | Remove cli-cheatsheet.md — obsolete (`plet_agent.py --help` replaces it for agents) | |
-| SEQ_39 | Update SKILL.md — sequential loop, 3 scripts, `phase-start` rename, loop runs ONCE | |
-| SEQ_40 | Update PRD — remove/update parallel, worktree, branch management sections | |
+| SEQ_34 | Path cleanup: centralize ad-hoc `os.path.join` into `util_io.py` derivers, replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | |
+| SEQ_35 | Audit + slim formats.md — drop if CLI covers everything | |
+| SEQ_36 | Audit + slim state-schema.md — drop if tools cover everything | |
+| SEQ_37 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | |
+| SEQ_38 | Slim verify.md — same approach, inline cheatsheet content | |
+| SEQ_39 | Remove cli-cheatsheet.md — obsolete (`plet_agent.py --help` replaces it for agents) | |
+| SEQ_40 | Update SKILL.md — sequential loop, 3 scripts, `phase-start` rename, loop runs ONCE | |
+| SEQ_41 | Update PRD — remove/update parallel, worktree, branch management sections | |
 | | **Phase 6: Validate** | |
-| SEQ_41 | Full test suite + coverage ≥ 87% | |
-| SEQ_42 | Validate with real run (LOGA R15) | |
+| SEQ_42 | Full test suite + coverage ≥ 87% | |
+| SEQ_43 | Validate with real run (LOGA R15) | |
 
 **Red/green summary:** 13 red/green pairs across 5 phases. 2 structural steps (SEQ_12 rename, SEQ_17 orchestrator rewrite). 3 migration/update steps (SEQ_18 allowed-tools, SEQ_19 test migration). 7 doc-only steps (SEQ_34-40). 1 checkpoint (SEQ_11). 2 validation steps (SEQ_41-42).
 

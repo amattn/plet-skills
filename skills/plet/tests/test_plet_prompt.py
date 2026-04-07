@@ -166,7 +166,7 @@ def test_impl_text_output():
 
 
 def test_impl_all_sections():
-    print("\n## assemble — implement has all 8 sections")
+    print("\n## assemble — implement has all 9 sections")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
@@ -181,7 +181,8 @@ def test_impl_all_sections():
         check("requirements", "requirements" in names)
         check("learnings", "learnings" in names)
         check("iteration-state", "iteration-state" in names)
-        check("8 sections", len(data["sections"]) == 8)
+        check("per-ac-reflection", "per-ac-reflection" in names)
+        check("9 sections", len(data["sections"]) == 9)
     finally:
         shutil.rmtree(tmpdir)
 
@@ -205,14 +206,14 @@ def test_impl_reference_file():
 
 
 def test_verify_all_sections():
-    print("\n## assemble — verify has all 8 sections")
+    print("\n## assemble — verify has all 9 sections")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
         stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"])
         data = json.loads(stdout)
         names = [s["name"] for s in data["sections"]]
-        check("8 sections", len(data["sections"]) == 8)
+        check("9 sections", len(data["sections"]) == 9)
         check("reference-file", "reference-file" in names)
         check("cli-quick-reference", "cli-quick-reference" in names)
         check("learnings", "learnings" in names)
@@ -483,6 +484,55 @@ def test_missing_state_file():
         os.unlink(iter_state_path(plet_dir, "ID_001"))
         _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1)
         check("error about state", "state" in stderr.lower() or "not found" in stderr.lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# ===========================================================================
+# SEQ_30: Per-AC reflection prompt (learnings/emergent)
+# ===========================================================================
+
+
+def test_per_ac_reflection_in_implement():
+    """SEQ_30: implement prompt includes per-AC reflection section."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        data = json.loads(stdout)
+        names = [s["name"] for s in data["sections"]]
+        assert "per-ac-reflection" in names, f"per-ac-reflection section missing, got: {names}"
+        section = [s for s in data["sections"] if s["name"] == "per-ac-reflection"][0]
+        content = section["content"]
+        assert "learning" in content.lower(), "per-ac-reflection should mention learnings"
+        assert "emergent" in content.lower(), "per-ac-reflection should mention emergent"
+        assert "add-learning" in content, "per-ac-reflection should include add-learning command"
+        assert "add-emergent" in content, "per-ac-reflection should include add-emergent command"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_per_ac_reflection_in_verify():
+    """SEQ_30: verify prompt includes per-AC reflection section."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"])
+        data = json.loads(stdout)
+        names = [s["name"] for s in data["sections"]]
+        assert "per-ac-reflection" in names, f"per-ac-reflection section missing, got: {names}"
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_per_ac_reflection_section_count():
+    """SEQ_30: prompt now has 9 sections (8 original + per-ac-reflection)."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        data = json.loads(stdout)
+        assert len(data["sections"]) == 9, f"expected 9 sections, got {len(data['sections'])}"
     finally:
         shutil.rmtree(tmpdir)
 

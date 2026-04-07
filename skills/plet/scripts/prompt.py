@@ -282,6 +282,30 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
     state_text = format_iteration_state(state_data, lifecycle=lifecycle)
     sections.append({"name": "iteration-state", "source": "derived", "content": state_text})
 
+    # 8. Per-AC reflection prompt (learnings/emergent)
+    ent = "entries.py"
+    p = "plet/"
+    reflection = "\n".join(
+        [
+            "# Per-AC Reflection",
+            "",
+            "After each acceptance criterion turns GREEN, ask yourself two questions:",
+            "",
+            "1. **Learnings:** Did you discover anything about the codebase, tools, patterns,",
+            "   or environment that would help a future human or autonomous developer?",
+            f'   → `{ent} add-learning {p} --iter-id {iter_id} --iter-title "$TITLE"'
+            f' --category pattern --title "..." --content "..." --phase {phase} --attempt $ATTEMPT`',
+            "",
+            "2. **Emergent:** Did anything come up that wasn't in the spec — a design decision,",
+            "   requirement gap, assumption, or edge case that needs human review in the next refine?",
+            f'   → `{ent} add-emergent {p} --iter-id {iter_id} --iter-title "$TITLE"'
+            f' --title "..." --phase {phase} --category "design decision" --content "..." --attempt $ATTEMPT`',
+            "",
+            "If the answer to both is no, move on. Don't force entries. But don't skip the questions.",
+        ]
+    )
+    sections.append({"name": "per-ac-reflection", "source": "generated", "content": reflection})
+
     return sections, None
 
 
