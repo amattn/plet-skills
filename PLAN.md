@@ -222,43 +222,43 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | Agent-facing | `plet_agent.py` (5 commands) | Implement/verify subagents |
 | Orchestrator | `plet_orchestrator.py` (run) | SKILL.md / human |
 | Plan/refine/diagnostic | `plet_tools.py` (bootstrap, init, fingerprint, validate, detect, status) | Plan/refine agents, diagnostics |
-| Modules | `state.py`, `entries.py`, `git_ops.py`, `gate.py`, `prompt.py`, etc. | Imported by above 3 |
+| Modules | `global_state.py`, `iter_state.py`, `entries.py`, `git_ops.py`, `gate.py`, `prompt.py`, etc. | Imported by above 3 |
 
 **Verify rejection model:** On rejection, orchestrator re-launches implement on the same workstream. Agent reads rejection feedback from state file, fixes code in place, adds more commits. No rollback needed.
 
 | Step | Description | Status |
 |------|-------------|--------|
 | | **Phase 1: Strip Parallel** | |
-| SEQ_1 | RED: tests assert orchestrator runs sequentially — no ThreadPoolExecutor, no concurrent.futures, single iteration at a time | |
-| SEQ_2 | RED: tests assert no worktree-create/worktree-remove calls, no iter branch creation, subagent runs in repo root | |
-| SEQ_3 | RED: tests assert no requeue_reason, no parallel stop flag, no rebase-prep injection in prompt | |
-| SEQ_4 | GREEN: simplify orchestrator — replace `_run_streaming_loop` with simple for-loop. Remove `_spawn_iteration`, `_finalize_iteration`, `_get_spawnable`. Remove worktree/iter branch creation. Remove conflict recovery. Remove parallel-specific tests. | |
-| SEQ_5 | RED: tests assert `rebase-prep` and `merge-squash` commands removed from plet_git_ops.py. `rebase-commit`, `wip-commit`, `audit-tag` still work. | |
-| SEQ_6 | GREEN: remove `rebase-prep` and `merge-squash` from plet_git_ops.py | |
-| SEQ_7 | RED: tests assert plet_invoke.py has no worktree path handling | |
-| SEQ_8 | GREEN: simplify plet_invoke.py — remove worktree paths | |
-| SEQ_9 | RED: tests assert plet_prompt.py has no parallel/requeue context in assembled prompt | |
-| SEQ_10 | GREEN: remove parallel/requeue context from plet_prompt.py | |
-| SEQ_11 | **Checkpoint:** run full test suite. All non-parallel tests pass. Sequential MVP works. | |
+| SEQ_1 | RED: tests assert orchestrator runs sequentially — no ThreadPoolExecutor, no concurrent.futures | ✓ done |
+| SEQ_2 | RED: tests assert no worktree-create/worktree-remove, no iter branch, subagent in repo root | ✓ done |
+| SEQ_3 | RED: tests assert no requeue_reason, no parallel stop flag, no rebase-prep in prompt | ✓ done |
+| SEQ_4 | GREEN: simplify orchestrator — `_run_sequential_loop` replaces `_run_streaming_loop`. Remove spawn/finalize/worktree/conflict recovery. | ✓ done |
+| SEQ_5 | RED: tests assert `rebase-prep` and `merge-squash` removed from git_ops.py | ✓ done |
+| SEQ_6 | GREEN: remove `rebase-prep` and `merge-squash` from git_ops.py | ✓ done |
+| SEQ_7 | RED: tests assert invoke.py has no worktree path handling | ✓ done |
+| SEQ_8 | GREEN: remove PLET_WORKTREE_BASE, worktree examples from invoke.py | ✓ done |
+| SEQ_9 | RED: tests assert prompt.py has no parallel/requeue context | ✓ done (already clean) |
+| SEQ_10 | GREEN: prompt.py already clean — no changes needed | ✓ done |
+| SEQ_11 | **Checkpoint:** 1065 tests pass, 0 fail | ✓ done |
 | | **Phase 2: Module Restructure** | |
-| SEQ_12 | Rename non-entry-point scripts: `plet_global_state.py` → `global_state.py`, `plet_iter_state.py` → `iter_state.py`, etc. Remove shebangs from renamed files. Update all imports. `phase-start` replaces `start-phase`. Delete `plet_git_iteration.py` (worktree commands gone; `branch-name` moves to `util_git.py`). Run test suite — must pass. | |
-| SEQ_13 | RED: tests for `plet_agent.py` — 5 commands dispatch correctly: `update-criterion`, `wip-commit`, `add-learning`, `add-emergent`, `phase-end`. Each delegates to the correct module function. `--help` and `--usage` work. | |
-| SEQ_14 | GREEN: implement `plet_agent.py` | |
-| SEQ_15 | RED: tests for `plet_tools.py` — commands: `init`, `fingerprint`, `validate`, `detect`. Each delegates correctly. | |
-| SEQ_16 | GREEN: implement `plet_tools.py` | |
-| SEQ_17 | Rewrite `plet_orchestrator.py` — import modules directly (`from state import ...`) instead of `_run_script` subprocess calls. `_run_script` pattern survives only for `invoke.run` (launching claude is genuinely a subprocess). Run test suite. | |
-| SEQ_18 | Update `allowed-tools` in SKILL.md: 3 entries (`plet_agent.py *`, `plet_orchestrator.py *`, `plet_tools.py *`). Remove all old entries. | |
-| SEQ_19 | Migrate module-level tests from subprocess to direct import. Keep subprocess tests only for the 3 CLI entry points (dispatch, --help, --usage, exit codes). Run full test suite + coverage. | |
+| SEQ_12 | Rename 15 scripts (remove `plet_` prefix), remove shebangs, delete `plet_git_iteration.py`, rename `trace.py` → `traces.py`. Update all imports across scripts + tests. | ✓ done |
+| SEQ_13 | RED+GREEN: `plet_agent.py` — 5 commands, 27 tests | ✓ done |
+| SEQ_14 | (merged with SEQ_13) | ✓ done |
+| SEQ_15 | RED+GREEN: `plet_tools.py` — 8 commands (incl. fingerprint-extract/embed/check), 23 tests | ✓ done |
+| SEQ_16 | (merged with SEQ_15) | ✓ done |
+| SEQ_17 | Orchestrator direct imports: `_call_cmd`/`_call_cmd_json` replace `_run_script`. Only `_run_invoke` stays subprocess. | ✓ done |
+| SEQ_18 | SKILL.md `allowed-tools`: 14 → 3 entries | ✓ done |
+| SEQ_19 | Tests already use direct import via `module.main()` — no migration needed | ✓ done |
 | | **Phase 3: Infrastructure Automation** | |
-| SEQ_20 | RED: tests for auto-progress — `state.update_criterion()` triggers progress entry when phaseActivity/activityDetail changes. Non-activity changes (elapsed time) do NOT trigger. | |
-| SEQ_21 | GREEN: implement auto-progress in state module | |
-| SEQ_22 | RED: tests for CLI shim trace events — `plet_agent.py` dispatch creates entry event on call, exit event before output. 3-tuple pattern. | |
-| SEQ_23 | GREEN: implement CLI shim trace events in `plet_agent.py` dispatch | |
-| SEQ_24 | RED: tests for `phase-end` — creates phase audit tag, runs slimmed gate checks internally. Orchestrator creates iter + loop tags. | |
-| SEQ_25 | GREEN: implement phase-end with audit tag + integrated gate. Orchestrator writes iter + loop tags. | |
+| SEQ_20 | RED: auto-progress on update-criterion | ✓ done |
+| SEQ_21 | GREEN: `_auto_progress()` in iter_state.py | ✓ done |
+| SEQ_22 | RED: CLI shim trace events | ✓ done |
+| SEQ_23 | GREEN: `_dispatch_with_trace()` in plet_agent.py, cli_entry/cli_exit event types | ✓ done |
+| SEQ_24 | phase-end gate integration: quality gate (hard fail on rc=1, warnings pass) before commit+tag | ✓ done |
+| SEQ_25 | Ordering: add-report → add-progress → append-event → set-verdict → gate-post → git commit → audit-tag | ✓ done |
 | | **Phase 4: Agent Inner Loop** | |
-| SEQ_26 | RED: tests for simplified gate — no parallel checks, learnings/emergent WARN not FAIL | |
-| SEQ_27 | GREEN: simplify gate (now a module called by phase-end, not a standalone CLI) | |
+| SEQ_26 | Gate-post simplified: quality-only (no git/infrastructure checks in post). Git checks pre-only. | ✓ done |
+| SEQ_27 | Removed: learnings/emergent gate checks (no longer required). Removed: check_rebase_onto_workstream, check_audit_tag from post. Removed: branch-exists from git_check. correct-branch checks workstream. | ✓ done |
 | SEQ_28 | RED: tests for emergent ID format `EM_{iter_id}_{N}` — gate validates, rejects old flat `EM_N` | |
 | SEQ_29 | GREEN: implement emergent ID validation | |
 | SEQ_30 | RED: tests for learnings/emergent per-AC prompt in prompt module | |

@@ -1798,7 +1798,8 @@ scripts/
   plet_tools.py       # plan/refine-phase tools: init, fingerprint, validate
 
   # Importable modules (no shebang, no plet_ prefix, not directly callable)
-  state.py               # global + iter state (merge plet_global_state + plet_iter_state)
+  global_state.py        # global state (from plet_global_state)
+  iter_state.py          # iter state (from plet_iter_state)
   entries.py             # learning/emergent formatting + append
   git_ops.py             # audit-tag, wip-commit, rebase-commit
   gate.py                # session + phase gates (merge both)
@@ -1833,13 +1834,15 @@ scripts/
 |---------|------|
 | `run` | Loop phase — the main sequential implement→verify loop |
 
-**plet_tools.py commands:**
+**plet_tools.py commands (as implemented):**
 
 | Command | When |
 |---------|------|
 | `bootstrap` | Before plan — project setup (CLAUDE.md, .gitignore, plet/ dir) |
 | `init` | Plan phase — create state.json + per-iter state files |
-| `fingerprint` | Plan/refine — embed/check fingerprints |
+| `fingerprint-extract` | Plan/refine — extract fingerprints from spec artifacts |
+| `fingerprint-embed` | Plan/refine — embed fingerprints into state.json |
+| `fingerprint-check` | Plan/refine — check fingerprint staleness |
 | `validate` | Diagnostic — schema checks |
 | `detect` | Diagnostic — what phase are we in |
 | `status` | Diagnostic — session summary, iteration states |
@@ -1851,7 +1854,7 @@ scripts/
 4. **Orchestrator imports directly:** `import state; state.update_lifecycle(...)` instead of `_run_script("plet_state.py", [...])`. Faster, native exception handling, no exit-code parsing.
 5. **Allowed-tools:** 3 entries instead of 14.
 
-**What this changes in the orchestrator:** Currently uses `_run_script` / `_run_script_subprocess` / `_run_script_json_subprocess` to call sibling scripts via subprocess. Post-restructure, the orchestrator imports modules directly. The `_run_script` pattern survives only for `plet_invoke.py run` (launching claude — that's genuinely a subprocess).
+**What this changes in the orchestrator:** Currently uses `_run_script` / `_run_script_subprocess` / `_run_script_json_subprocess` to call sibling scripts via subprocess. Post-restructure, the orchestrator imports modules directly (e.g., `import iter_state; iter_state.update_lifecycle(...)`). The `_run_script` pattern survives only for `plet_invoke.py run` (launching claude — that's genuinely a subprocess).
 
 **R14 actual data (validates the design):**
 - `update-activity`: 42 calls = 1 per phase attempt. Pure ceremony — move to orchestrator at `phase-start`.
@@ -1866,9 +1869,47 @@ scripts/
 **Rename:** `start-phase` → `phase-start` (verb-last for consistency with `phase-end`).
 
 **Open questions (not blocking):**
-- Does `plet_tools.py` earn its own script, or fold into `plet_orchestrator.py`?
-- Naming: `state.py` vs `iter_state.py + global_state.py` (keep separate or merge?)
-- Migration: do this as part of PLAN_SEQ or as a prerequisite?
+- `plet_tools.py` — own script or fold into orchestrator? `[decided]` Own script. Three entry points confirmed: `plet_agent.py`, `plet_orchestrator.py`, `plet_tools.py`.
+- State module naming — merge into `state.py` or keep `iter_state.py + global_state.py` separate? `[decided]` Keep separate. Two distinct modules: `iter_state.py` and `global_state.py`.
+- Migration: part of PLAN_SEQ or prerequisite? `[decided]` Part of PLAN_SEQ (Phase 2 handles it via SEQ_12).
+
+#### NOTES_PLN_SEQ_IMPL: Implementation Decisions (2026-04-07)
+
+**trace.py → traces.py:** Renamed to avoid shadowing stdlib `trace` module. Without this, `import trace` in test files resolved to stdlib depending on sys.path ordering. The `s` suffix is minimal and unambiguous.
+
+**plet_tools.py fingerprint commands:** Decided on `fingerprint-extract`, `fingerprint-embed`, `fingerprint-check` as flat hyphenated commands (not nested sub-commands). Matches the `dispatch()` single-level routing and keeps the CLI simple. User confirmed this pattern.
+
+**Orchestrator direct imports:** Replaced `_run_script`/`_run_script_json` subprocess pattern with `_call_cmd`/`_call_cmd_json` which call module functions directly with stdout/stderr capture. Only `_run_invoke` stays subprocess (launching Claude is genuinely a separate process). Injectable via `plet_orchestrator._run_invoke = mock_fn` for testing. ~30% test speedup (35s → 26s) from eliminating subprocess overhead.
+
+**phase-end ordering (decided with user):**
+1. add-report (verify only)
+2. add-progress
+3. append-event (trace)
+4. set-verdict
+5. gate-post — **hard fail** on rc=1 (failures), warnings (rc=2) pass
+6. git commit (only after gate passes)
+7. audit-tag (tags the gate-passing commit)
+
+**Why gate before commit:** If gate fails, nothing is sealed. Agent fixes issues and retries — steps 1-4 are idempotent on retry. The audit tag always marks a commit that passed quality checks.
+
+**Why warnings don't block:** Gate warnings (rc=2) are informational — missing learnings/emergent was downgraded from WARN to removed entirely. Only hard failures (rc=1: missing verdict, missing progress, invalid state) block.
+
+**Gate-post is quality-only (decided with user):** Removed all infrastructure checks from post gate:
+- Removed: git branch checks (branch-exists, correct-branch, clean-worktree, linear-history, no-stashes)
+- Removed: audit-tag existence check
+- Removed: learnings-entry and emergent-entry checks (no longer required)
+- Kept: state-valid, implement/verify-verdict, progress-entry, trace-events, verification-report, verdict-consistency
+- Git infrastructure checks remain in **pre** gate only
+- Audit-tag verification moved to **postflight** (orchestrator calls after all iterations)
+
+**Postflight audit-tag verification:** Added `_append_audit_tag_check` to gate_session.cmd_postflight. Verifies implement and verify audit tags exist for every completed iteration. Missing tags produce a warn (postflight never blocks). This is the infrastructure counterpart to phase-end's quality gate.
+
+**git_check.py sequential simplification:**
+- Removed `check_branch_exists` (no per-iteration branches in sequential mode)
+- `check_correct_branch` now checks workstream branch instead of iteration branch
+- 6 checks → 5 checks in check-iteration
+
+**Learnings/emergent no longer gate-enforced (user decision):** Gate-post no longer checks for learnings or emergent entries. These are still available as agent commands (`add-learning`, `add-emergent`) but are purely optional. The prompt may still ask the agent to reflect after each AC — but there's no gate enforcement.
 
 ### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
