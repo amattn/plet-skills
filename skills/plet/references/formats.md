@@ -1,6 +1,8 @@
 # Runtime Artifact Formats
 
-This document defines the entry formats for the four PLET runtime artifacts. All subagent prompts reference this file.
+> **Human reference only.** These formats are enforced by the CLI tools (`entries.py`, `util_format.py`). Agents use the tools — they don't need to read this file. Not injected into agent prompts.
+
+This document defines the entry formats for the four PLET runtime artifacts.
 
 **Format stability contract (RT_10):** Runtime artifact format changes are additive only — never remove or rename fields. Breaking changes require a major version bump.
 

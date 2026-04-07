@@ -1,6 +1,8 @@
 # State File & Trace Schemas
 
-This document defines the JSON schemas for state files and trace NDJSON lines. All subagent prompts reference this file.
+> **Primarily enforced by scripts.** State file schemas are enforced by `util_state.py` (validation), `global_state.py` and `iter_state.py` (read/write), and `traces.py` (trace events). This file is human reference and is injected into agent prompts for field-level context.
+
+This document defines the JSON schemas for state files and trace NDJSON lines.
 
 **Schema stability contract (SF_13):** State file format changes are additive only — never remove or rename fields. Breaking changes require a major version bump of `schemaVersion`. **Exception during 0.x development:** while schemaVersion major is 0, breaking changes (field removal, renames) are allowed with a minor version bump per semver convention.
 
