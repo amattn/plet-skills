@@ -20,6 +20,7 @@
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
+| PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | deferred — before PLAN_SUB (multi-project grep noise) |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
@@ -290,6 +291,20 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 **PLAN_RBS reconciliation:** PLAN_RBS is now ✓ COMPLETE (25/25). The parallel-specific aspects (conflict recovery, requeue, rebase-prep) are superseded by PLAN_SEQ. The remaining RBS value (linear history via wip-commit + rebase-commit) is covered by Phase 1 (rebase-commit kept) and verified in SEQ_42.
 
 **Depends on:** R14 case study ✓ (baseline: 1h53m parallel, 2h29m sequential estimate).
+
+---
+
+## PLAN_IDR: Iteration ID Rename (deferred)
+
+Rename iteration ID prefix from `ID_` to `ITR_` across the entire system. `ID_` is too generic — in target projects where developers have their own IDs (database IDs, CSS IDs, DOM element IDs), `ID_001` creates grep noise and ambiguity. `ITR_` is unambiguous and plet-specific.
+
+**Scope:** Scripts, tests, reference files, PRD, state file names (`ITR_001.json`), branch names, commit messages, audit tags, `util_id.py` validation, case studies, PLAN.md, NOTES.md. ~1030 tests with `ID_` in fixtures and assertions.
+
+**Timing:** Before PLAN_SUB. Subplets bring multi-project friction where the grep noise becomes a real problem. No urgency before that.
+
+**Approach:** Sweep-level consistency pass. Inventory all `ID_` occurrences, categorize, execute systematically.
+
+See NOTES.md § NOTES_PLN_IDR for rationale.
 
 ---
 

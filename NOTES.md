@@ -1911,6 +1911,22 @@ scripts/
 
 **Learnings/emergent no longer gate-enforced (user decision):** Gate-post no longer checks for learnings or emergent entries. These are still available as agent commands (`add-learning`, `add-emergent`) but are purely optional. The prompt may still ask the agent to reflect after each AC — but there's no gate enforcement.
 
+### NOTES_PLN_IDR: PLAN_IDR — Iteration ID Rename
+
+**Decision (2026-04-07): Rename `ID_` prefix to `ITR_`, deferred until before PLAN_SUB.**
+
+**Problem:** `ID_` is too generic for target projects. In a real codebase, developers have database IDs, CSS IDs, DOM element IDs, etc. Grepping for `ID_` in a target project produces noise. `ID_001` is ambiguous outside the plet context.
+
+**Why `ITR_`:** Unambiguous, plet-specific, short. `IT_` is overloaded (IT as in "information technology"). `ITER_` is longer than necessary. `ITR_` is the sweet spot.
+
+**Why defer:** The rename touches the entire system — scripts, ~1030 tests, reference files, PRD, state file names (`ID_NNN.json` → `ITR_NNN.json`), branch names, commit messages, audit tags, `util_id.py` validation, case studies, PLAN.md, NOTES.md. Large sweep for a cosmetic change that doesn't cause functional issues today. The friction becomes real when subplets (PLAN_SUB) bring multi-project scenarios where external developers work alongside plet in the same repo.
+
+**Approach:** Sweep-level consistency pass. The rename is mechanical — no judgment calls, just find-and-replace with verification. But the volume is high, so it needs a systematic inventory.
+
+**Emergent ID format unaffected:** `EM_{iter_id}_{N}` (e.g., `EM_ITR_001_3`) remains unambiguous because each subplet has its own `emergent.md`. No cross-subplet collision.
+
+**Timing:** Before PLAN_SUB, after PLAN_SEQ. The sequential simplification reduces the surface area (fewer branch/worktree references), making the rename cheaper.
+
 ### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
 **Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.
