@@ -322,6 +322,22 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
     ):
         return (1, "", step_err)
 
+    # Step 6: gate-post checks (integrated — agent no longer calls gate-post separately)
+    from gate_phase import cmd_post as cmd_gate_post
+
+    gate_result = cmd_gate_post([plet_dir, "--iter-id", iter_id, "--phase", phase])
+    gate_rc = gate_result[0] if isinstance(gate_result, tuple) else gate_result
+    gate_passed = gate_rc == 0
+    steps_done.append("gate-post" if gate_passed else "gate-post(warn)")
+
+    # Commit gate-post artifacts (progress entry from gate check)
+    subprocess.run(["git", "add", "-A"], capture_output=True, cwd=project_root)
+    subprocess.run(
+        ["git", "commit", "-m", f"plet: [{iter_id}] {phase} gate-post", "--allow-empty"],
+        capture_output=True,
+        cwd=project_root,
+    )
+
     if output_json:
         from util_cli import filter_fields, now_iso
 
@@ -332,6 +348,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             "verdict": verdict,
             "iterationId": iter_id,
             "steps": steps_done,
+            "gateResult": "pass" if gate_passed else "warn",
             "scriptVersion": SCRIPT_VERSION,
             "timestamp": now_iso(),
         }
@@ -339,7 +356,8 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             data = filter_fields(data, fields)
         return (0, json.dumps(data, indent=2 if pretty else None), "")
     else:
-        return (0, f"OK — {phase} phase ended: {verdict} ({', '.join(steps_done)})", "")
+        gate_msg = " (gate: pass)" if gate_passed else " (gate: warn — check output)"
+        return (0, f"OK — {phase} phase ended: {verdict} ({', '.join(steps_done)}){gate_msg}", "")
 
 
 cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict VALUE --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501
