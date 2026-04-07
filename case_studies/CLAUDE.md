@@ -30,6 +30,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `CASE_STUDY_OLLR_R02.md` | OLLR (oller) | Bash | 4/6 | v0.6.1+fixes; retry check works, rebase-prep injected but not followed; need sequential fallback |
 | `CASE_STUDY_OLLR_R03.md` | OLLR (oller) | Bash | 4/6 | v0.6.1+fixes; parallel stop works (ID_005 recovered!); stash bug, auto-restart bug |
 | `CASE_STUDY_OLLR_R04.md` | OLLR (oller) | Bash | **6/6** | v0.6.2; **FIRST fully successful parallel run with conflict recovery** |
+| `CASE_STUDY_LOGA_R14.md` | LOGA (logalyzer) | Go | **13/13** | v0.6.2; parallel 1h53m = sequential R08; 8 rebase retries; 42 learnings; PLAN_SEQ baseline |
 
 ## Stable Labels
 

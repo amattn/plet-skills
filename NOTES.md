@@ -247,7 +247,7 @@ Each phase has an explicit verdict field written by the subagent as its final ac
 | `implementVerdict` | implement | `completed`, `blocked` (null initially) | lifecycle → verifying handoff |
 | `verifyVerdict` | verify | `passed`, `rejected`, `blocked` (null initially) | `lastVerdict` (removed) |
 
-**Orchestrator calls `start-phase` before spawning subagent** (not the subagent's job). Prevents stale verdict reads on crash-before-start. Verdict clearing:
+**Orchestrator calls `phase-start` before spawning subagent** (not the subagent's job). Prevents stale verdict reads on crash-before-start. Verdict clearing:
 - Implement: clear both `implementVerdict` and `verifyVerdict` to null
 - Verify: clear only `verifyVerdict` to null (`implementVerdict: "completed"` stays)
 
@@ -264,7 +264,7 @@ This refines SF_26: "During the subagent's execution, only the subagent writes t
 The lifecycle extraction (seq 39) splits `plet_state.py` along the ownership boundary:
 
 - **plet_global_state.py** (GST) — state.json: `init`, `update-lifecycle`, `get-lifecycle`, `validate`
-- **plet_iter_state.py** (IST) — per-iteration files with high-level agent-friendly commands: `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `validate`
+- **plet_iter_state.py** (IST) — per-iteration files with high-level agent-friendly commands: `init`, `phase-start`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `validate`
 
 Design principle: commands match agent workflow, not JSON structure. `start-phase` replaces ~5 manual `update-field` calls. `set-verdict` auto-sets `phaseActivity` to `idle`. See specs/NOTES.md for full command design and rationale.
 
@@ -1650,6 +1650,226 @@ First rebase is usually a no-op. When it's not (requeued iteration), it catches 
 - `wip-commit` command excludes `plet/trace/` (breaks transcript feedback loop)
 - Loop runs ONCE — never auto-restart
 
+### NOTES_PLN_SEQ: PLAN_SEQ — Sequential Simplification
+
+**Decision (2026-04-06): Abandon parallel orchestration (PLAN_PAR), simplify to sequential-only.**
+
+**Core goal: agents should spend most of their time implementing or verifying, not dealing with plet mechanics.** R06 showed 53% of implement-phase Bash calls were plet infrastructure. Parallel added more mechanics (worktree lifecycle, branch management, conflict recovery, requeue flow) without delivering net improvement. Simplification means less time on plet plumbing, more time on the user's code.
+
+**Why:** The data is clear. Sequential 0.4.x had a perfect completion record (R06-R08: 39/39 iterations, zero human interventions). Everything since — parallel + merge-squash (0.5.x) and parallel + rebase-commit (0.6.x) — has been fighting git mechanics:
+- 0.5.x parallel: 27/39 (69%), 2 human interventions
+- 0.6.x parallel: 17/24 (71%), multiple interventions
+- R14 (0.6.2): per-iteration pace 2-3x slower than 0.5.x best
+
+The theoretical 46% speedup from parallelism never materialized — overhead and failure recovery ate it.
+
+**What stays:**
+- All script/tooling improvements (gate scripts, plet_phase.py, coverage infra, plet_state.py, etc.)
+- RBS rebase-commit for clean linear history on the workstream
+- Audit tags — tag at end of every phase, every iteration, and every loop
+- One workstream branch per loop (`plet/{projectId}/loop{N}/workstream`)
+- Fresh subagent per iteration (fresh context, same branch)
+
+**What goes:**
+- PLAN_PAR (parallel orchestrator, ThreadPoolExecutor, streaming work queue)
+- Per-iteration branches (`plet/{projectId}/loop{N}/{iter_id}`)
+- Per-iteration worktrees (`.plet/worktrees/...`)
+- All merge conflict handling (no merges = no conflicts)
+- Dynamic parallel stop, requeue flow, conflict recovery
+- `rebase-prep` at start of implement (no conflicts to prep for)
+
+**Maybe:**
+- One worktree per loop for subplets (PLAN_SUB)
+
+**The model:** Sequential iterations, all on one workstream branch, rebase onto main at end. Audit tag each phase/iteration/loop boundary. No branch juggling, no merge conflicts, no worktree lifecycle. This kills the entire class of bugs from R09-R11 by eliminating the thing that caused them.
+
+**What RBS becomes without parallel:** Just the clean linear history benefit. Implement commits wip-commit on workstream, audit tag at phase boundaries. At loop end, the workstream has a nice linear history of all iterations. Rebase onto main before merge.
+
+#### NOTES_PLN_SEQ_OVERHEAD: Agent Overhead Analysis (2026-04-06)
+
+**Estimated overhead (pre-R14):**
+
+Per AC (currently ~5 plet calls each):
+- `plet_iter_state.py update-criterion` — state tracking
+- `plet_git_ops.py wip-commit` — incremental commit
+- `plet_entries.py add-progress` — audit trail
+- `plet_trace.py append-event` — telemetry
+- `plet_entries.py add-learning` — (if any)
+
+Per phase (~5 more):
+- `plet_git_ops.py rebase-prep` — start + end (PLAN_SEQ already removes)
+- `plet_git_ops.py audit-tag` — history preservation
+- `plet_phase.py end` — verdict + gate checks
+- `plet_entries.py add-progress` — phase summary
+
+Estimated: ~30 plet Bash calls vs ~10-15 application calls for a 5-AC iteration. R06 measured 53% infrastructure.
+
+**Actual R14 data (measured from trace files):**
+
+| Command | Total calls | Pattern |
+|---------|------------|---------|
+| `update-activity` | 42 | Exactly 1 per phase attempt (42 attempts total) |
+| `update-criterion` | 42 | Exactly 1 per phase attempt — agents batch all ACs in a single call |
+
+Key finding: agents already batch `update-criterion` — they call it **once per phase**, not once per AC. The per-AC data IS in the state files (detailed evidence per criterion), but agents write it all at once. This means the per-AC call overhead is lower than estimated.
+
+The real overhead comes from the other per-phase calls: progress entries (auto-generated noise → 4,497 lines), trace events, heartbeat, rebase-prep, gate post, and artifact cleanup commits (4-6 commits × 1.6m avg = 20.9m of impl→vfy gap ceremony).
+
+**Implication for `update-activity`:** 42 calls = pure ceremony. Agent calls it once to announce presence. Move to orchestrator — auto-generated at `phase-start` (renamed from `start-phase`). Agent never calls it.
+
+#### NOTES_PLN_SEQ_OQ: Open Questions — What Else Can Be Simplified?
+
+All open. To be considered carefully before implementation.
+
+**OQ_1: What should the agent NOT do anymore?**
+
+- **OQ_1A: Progress entries → auto-generated from state.** `[decided]` Synthesized from `phaseActivity` and `activityDetail` fields in the iter state file. When those fields change (via `update-criterion` or `update-field`), the iter state script auto-generates a progress entry. Agent never thinks about progress. Progress becomes a derived artifact.
+
+- **OQ_1B: Trace files → auto-generated by CLI shim.** `[decided]` The CLI dispatch shim creates a trace event on script entry and another just before output is written to stdout/stderr. The 3-tuple return pattern makes this easy — the shim wraps every script call with entry/exit events. Agent never calls `plet_trace.py`. Zero agent overhead.
+
+- **OQ_1C: Audit tags → phase-end and iter-end scripts.** `[decided]` Phase-end script writes phase-level tags. Iteration-end script writes iter-level tags (may need to create `plet_iter.py end` or similar). Orchestrator writes loop-end tag. Agent never calls `audit-tag`.
+
+- **OQ_1D: wip-commit per criterion → keep.** `[decided]` Keep per-criterion wip-commits (status quo). Worth the overhead for crash recovery.
+
+- **OQ_1E: Gate scripts → keep, but simplify learnings/emergent.** `[decided]` Keep gate scripts — agent needs to clean up after itself. Learnings/emergent: ask after every green AC (not enforced throughout, but prompted at each AC boundary). Two tight questions: "Did you learn anything that might help other human or autonomous developers? → add to learnings. Did anything emergent come up that needs human clarification in the next refine? → add to emergent." Starting with per-AC (B) — can optimize to once-at-end (A) later and compare quality. Gate scripts simplify accordingly.
+
+**OQ_2: What stays as agent responsibility?**
+
+- **OQ_2A: `plet_state.py update-criterion` (per AC).** `[decided]` Keep. Verify agent needs per-AC status to know what to check. Core signal.
+
+- **OQ_2B: `plet_phase.py end` (per phase).** `[decided]` Keep. One call to wrap up.
+
+- **OQ_2C: Learnings/emergent → optional, asked after every green AC.** `[decided]` Per OQ_1E. Two tight questions after each green AC. Starting with per-AC frequency (B) — can optimize to once-at-end (A) later and compare entry quality between approaches.
+
+**OQ_3: Prompt/context payload — burn less context on plet docs?**
+
+- **OQ_3A: Slim `formats.md` maximally, ideally drop.** `[decided]` The CLI interface IS the format. Audit what formats.md contains that isn't already enforced by `plet_state.py` / `plet_entries.py` — if the tools handle it, the docs are redundant context burn. Slim as much as possible; drop entirely if audit shows nothing the tools don't cover.
+
+- **OQ_3B: Slim `state-schema.md` maximally, ideally drop.** `[decided]` Same reasoning as 3A. Audit needed. If `plet_state.py` enforces the schema, agents don't need to internalize it from prose.
+
+- **OQ_3C: Slim `implement.md` — strip parallel/worktree/branch/conflict/rebase + look for other opportunities.** `[decided]` Not just mechanical removal of parallel sections. Be smart — look for anything else that's ceremony, redundant with tooling, or no longer load-bearing post-PLAN_SEQ.
+
+- **OQ_3D: Inline `cli-cheatsheet.md` into both `implement.md` and `verify.md`.** `[decided]` Both agents need the cheatsheet. Inline into each rather than maintaining a separate file. One fewer injected file per phase.
+
+- **OQ_3E: Slim `verify.md` — strip parallel/worktree/branch + look for other opportunities.** `[decided]` Same approach as 3C. Strip the obvious parallel content, then look for more.
+
+**OQ_4: State schema — fields that become unnecessary?**
+
+- **OQ_4A: `parallelGroup` — remove.** `[decided]` No parallel execution.
+
+- **OQ_4B: `remainingRetries` — keep for verify rejections only.** `[decided]` Simplified: only decremented on verify rejection or implement failure. No conflict requeue decrement (that concept is gone). Still useful as a budget to prevent infinite retry loops on genuinely broken iterations.
+
+- **OQ_4C: `requeue_reason` — remove.** `[decided]` No conflict requeue, no prompt injection.
+
+- **OQ_4D: `lastHeartbeat` / stale detection — remove.** `[decided]` Orchestrator waits synchronously for the subprocess. No need to poll for liveness. Heartbeat was designed for parallel where the orchestrator needed to detect stuck agents.
+
+**Post-decision summary — agent's implement phase for a 5-AC iteration:**
+
+Per AC:
+- `plet_state.py update-criterion` — state tracking (auto-generates progress entry + trace event)
+- `plet_git_ops.py wip-commit` — incremental commit
+- (optional) `plet_entries.py add-learning` — after green, if anything learned
+- (optional) `plet_entries.py add-emergent` — after green, if anything emergent
+
+Per phase:
+- `plet_phase.py end` — verdict, gate checks, audit tag
+
+Total: **~12-16 plet calls** (down from ~30). The agent *thinks* about 2 mandatory per AC (update-criterion, wip-commit) + 2 optional reflections per AC + 1 per phase (phase end). Progress, traces, and tags are invisible infrastructure. Learnings/emergent frequency starts at per-AC (B) — compare with once-at-end (A) in a later run.
+
+**What RBS becomes without parallel:** Just the clean linear history benefit. Implement commits wip-commit on workstream, audit tag at phase boundaries. At loop end, the workstream has a nice linear history of all iterations. Rebase onto main before merge.
+
+#### NOTES_PLN_SEQ_SCRIPTS: Script Restructure — Three Entry Points (2026-04-06)
+
+**Decision: Collapse 14 CLI scripts into 3 entry points + importable modules.**
+
+The current 14 `plet_*.py` scripts each have shebangs, CLI dispatch, and subprocess-based tests. This creates:
+- Agent must know 4 different scripts to call 5 commands
+- CLI shim (dispatch logging, auto-trace, auto-progress) must be consistent across 14 files
+- All 2245 tests use `subprocess.run()` — slow (~50s), coverage requires special `coverage_all.sh` harness
+- 14 entries in `allowed-tools`
+
+**Proposed layout:**
+
+```
+scripts/
+  # CLI entry points (shebang, plet_ prefix, allowed-tools, dispatch shim)
+  plet_agent.py          # 5 commands — the agent's entire plet vocabulary
+  plet_orchestrator.py   # run (the loop) + bootstrap + status/diagnostics
+  plet_tools.py       # plan/refine-phase tools: init, fingerprint, validate
+
+  # Importable modules (no shebang, no plet_ prefix, not directly callable)
+  state.py               # global + iter state (merge plet_global_state + plet_iter_state)
+  entries.py             # learning/emergent formatting + append
+  git_ops.py             # audit-tag, wip-commit, rebase-commit
+  gate.py                # session + phase gates (merge both)
+  prompt.py              # prompt assembly
+  invoke.py              # subprocess launch + transcript capture
+  schedule.py            # eligible, breakpoints, retry
+  session.py             # start/end session
+  fingerprint.py         # extract, embed, check
+  trace.py               # validate, query (append-event auto via CLI shim)
+  phase.py               # phase-end composite logic
+  bootstrap.py           # project setup logic
+
+  # Unchanged internal modules
+  util_cli.py            # dispatch, parsing, CLI shim (now only in 3 files)
+  util_io.py / util_id.py / util_state.py / util_format.py
+  util_subprocess.py / util_git.py / util_constants.py
+```
+
+**plet_agent.py commands (agent's entire vocabulary):**
+
+| Command | When | Side effects |
+|---------|------|-------------|
+| `update-criterion` | per AC | Auto-progress, auto-trace |
+| `wip-commit` | per AC | Stages source + plet/ |
+| `add-learning` | per AC (optional) | Append to learnings.md |
+| `add-emergent` | per AC (optional) | EM_{iter_id}_{N} convention |
+| `phase-end` | once per phase | Verdict, gate, audit tag |
+
+**plet_orchestrator.py commands:**
+
+| Command | When |
+|---------|------|
+| `run` | Loop phase — the main sequential implement→verify loop |
+
+**plet_tools.py commands:**
+
+| Command | When |
+|---------|------|
+| `bootstrap` | Before plan — project setup (CLAUDE.md, .gitignore, plet/ dir) |
+| `init` | Plan phase — create state.json + per-iter state files |
+| `fingerprint` | Plan/refine — embed/check fingerprints |
+| `validate` | Diagnostic — schema checks |
+| `detect` | Diagnostic — what phase are we in |
+| `status` | Diagnostic — session summary, iteration states |
+
+**Key benefits:**
+1. **Agent simplicity:** one script, five commands. Agent's entire plet vocabulary.
+2. **CLI shim in 3 files only:** auto-progress, auto-trace, dispatch logging consistent and contained.
+3. **Testing:** modules are directly importable → `from state import cmd_update_lifecycle`. No subprocess overhead. Coverage via native pytest-cov, no `coverage_all.sh` hack. Only 3 entry points need subprocess tests (CLI parsing/dispatch).
+4. **Orchestrator imports directly:** `import state; state.update_lifecycle(...)` instead of `_run_script("plet_state.py", [...])`. Faster, native exception handling, no exit-code parsing.
+5. **Allowed-tools:** 3 entries instead of 14.
+
+**What this changes in the orchestrator:** Currently uses `_run_script` / `_run_script_subprocess` / `_run_script_json_subprocess` to call sibling scripts via subprocess. Post-restructure, the orchestrator imports modules directly. The `_run_script` pattern survives only for `plet_invoke.py run` (launching claude — that's genuinely a subprocess).
+
+**R14 actual data (validates the design):**
+- `update-activity`: 42 calls = 1 per phase attempt. Pure ceremony — move to orchestrator at `phase-start`.
+- `update-criterion`: 42 calls = 1 per phase attempt. Agents already batch all ACs in one call, not per-AC. The per-AC overhead concern was overestimated.
+- The real overhead is the other per-phase calls: progress entries, trace events, heartbeat, rebase-prep, gate post, and artifact cleanup commits.
+
+**Commands kept for internal use (not agent-facing):**
+- `update-activity` — orchestrator calls at `phase-start`
+- `add-progress` — auto-generated by state change hooks
+- `append-event` — auto-generated by CLI shim
+
+**Rename:** `start-phase` → `phase-start` (verb-last for consistency with `phase-end`).
+
+**Open questions (not blocking):**
+- Does `plet_tools.py` earn its own script, or fold into `plet_orchestrator.py`?
+- Naming: `state.py` vs `iter_state.py + global_state.py` (keep separate or merge?)
+- Migration: do this as part of PLAN_SEQ or as a prerequisite?
+
 ### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
 **Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.
@@ -2318,6 +2538,30 @@ FOO_63: `check_implement_verdict` and `check_verify_verdict` in gate_phase.py on
 
 Dead code audit found `plet_global_state.py validate` had zero production callers. Added as the first step in `_setup_session`, before preflight or fingerprint checks. If state.json is corrupt, the orchestrator exits immediately with a clear error rather than proceeding with invalid state. Also found `get-lifecycle` and `plet_trace.py query` have no production callers — kept as diagnostic/query tools for humans and GUI.
 
+#### Emergent ID convention: EM_{iter_id}_{N} — DECIDED (2026-04-06)
+
+R14 showed broken EM numbering from parallel execution — EM_6 appeared twice, EM_7 three times, etc. Agents from different parallel iterations each started their own counter. Sequential fixes the race but the flat `EM_N` convention is fragile regardless. New convention: `EM_{iter_id}_{N}` (e.g., `EM_ID_004_1`, `EM_ID_006_3`). Namespaced to the iteration that produced it. No collisions even in parallel. Greppable per-iteration. Same pattern as the existing plet ID format (`eem_01KNJV4CJS_id001_i2`) but human-readable.
+
+#### Abandon parallel, go sequential — DECIDED (2026-04-06)
+
+PLAN_SEQ. Data: sequential 0.4.x had 100% completion (R06-R08: 39/39, 0 interventions). Parallel 0.5.x-0.6.x had ~70% completion with multiple interventions. R14 (v0.6.2, parallel) achieved 13/13 but wall clock (1h53m) was identical to R08 (sequential) — 8 rebase retries consumed all parallelism savings. Core goal: agents should spend time implementing/verifying, not managing plet mechanics. R06 showed 53% of implement-phase calls were infrastructure; parallel added more.
+
+See NOTES.md § NOTES_PLN_SEQ for full rationale, OQ decisions, and overhead analysis.
+
+#### PLAN_RBS complete, parallel aspects superseded — DECIDED (2026-04-06)
+
+RBS_18-25 all done. The parallel-specific aspects (conflict recovery, requeue flow, rebase-prep) are superseded by PLAN_SEQ which strips parallel entirely. RBS value that remains: linear history via wip-commit + rebase-commit on workstream, rebase onto main at loop end.
+
+#### R14 case study — key findings (2026-04-06)
+
+LOGA R14: v0.6.2, parallel, 13/13, 1h53m. Key findings:
+- **Parallel = zero net speedup.** 8 retries (~95m) consumed the parallelism savings. Wall clock identical to R08 (sequential, 0.4.x).
+- **Sequential estimate: 2h29m.** Sum of first-attempt durations (137.3m) + overhead. 36m slower than R08, but ~18m is impl→vfy gap ceremony (post-gate artifact cleanup, pre-rebase prep) that PLAN_SEQ eliminates.
+- **Impl→vfy gaps are ceremony, not spawn time.** 20.9m total (avg 1.6m/iter) spent on 4-6 artifact cleanup commits between implement-completed and verify-start. With PLAN_SEQ: ~3m total.
+- **Learnings/emergent: 64 entries, 41 genuine (64%).** 14 were parallel-specific (rebase conflict learnings), 7 were template/filler (gate-gaming). The genuine 41 entries (3.2/iter) are a real improvement over R06 (0.2/iter), driven by PLAN_RW reference files + plet_entries.py + plet_prompt.py learnings injection.
+- **Post-gate dirty worktree (EM_9)** is structurally broken — gate writes progress, dirties worktree, agent commits to fix, gate runs again. Recurring across multiple iterations.
+- **Emergent EM ID numbering broken** by parallel execution — agents from different iterations each started their own counter.
+
 #### Phase vocabulary exception — orchestrator and unknown — DECIDED (2026-04-03)
 
 FOO_71: Orchestrator-level script calls had no valid phase value, producing `*-unknown-1-events.ndjson` files. Added `orchestrator` as a valid phase in plet_trace.py, plet_entries.py, and util_cli.py dispatch logger. `unknown` remains the fallback when no `--phase` is provided. Documented the taxonomy exception: trace/entry phases (`plan`, `implement`, `verify`, `refine`, `orchestrator`, `unknown`) are broader than iteration lifecycle phases (`implement`, `verify`). The broader set labels "who did the work" for observability; the narrow set is where we are in the iteration lifecycle.
@@ -2552,6 +2796,35 @@ This ensures consistency across the project — if the root says "files under 30
 **Decision:** Each subplet is a full plet instance driven by one human. The human runs `/plet plan`, `/plet loop`, `/plet refine` independently on each subplet. The parent plet doesn't orchestrate subplets — it decomposes the project during plan phase and creates the `subplets/` directories. After that, each subplet is independent.
 
 No parent-level orchestrator awareness needed. No discovery mechanism. No completion rollup. Humans coordinate between subplets the same way they coordinate between branches — through communication and git. A simple status command scanning `subplets/*/plet/state.json` could provide a dashboard, but it's informational, not orchestration.
+
+### NOTES_SUB_9: One worktree per subplet, human-managed (2026-04-06)
+
+**Decision:** Subplets use one git worktree per subplet, created by the human (or `plet_tools.py` during plan phase), not by the orchestrator. The orchestrator has zero worktree awareness.
+
+```
+my-project/                          # main checkout (parent plet)
+  plet/                              # parent state, requirements, iterations
+  subplets/                          # subplet definitions (created during plan)
+  src/
+
+../my-project-auth/                  # worktree for auth subplet
+  plet/                              # auth's own state, requirements, iterations
+  src/                               # same source tree, different branch
+
+../my-project-billing/               # worktree for billing subplet
+  plet/                              # billing's own state
+  src/
+```
+
+Each worktree is a full checkout on its own branch. Each has its own `plet/` directory with its own state. Each human runs their own Claude Code session inside their worktree. The orchestrator in each worktree is a simple sequential loop — no awareness of siblings.
+
+**Lifecycle:**
+1. Parent plan phase creates subplet definitions and branches
+2. Human (or `plet_tools.py`) creates worktrees — one per subplet, once, lives for duration of subplet work
+3. Each subplet runs independently (plan → loop → refine)
+4. When done, human merges subplet branch back to parent workstream via git
+
+**Why this works with PLAN_SEQ:** The old model had the orchestrator managing per-iteration worktrees within a single loop (created/destroyed per iteration, 42+ lifecycle operations per run). Subplet worktrees are fundamentally different — created once by the human, persist for the full subplet lifecycle, no orchestrator involvement. PLAN_SEQ's removal of orchestrator worktree code does NOT block subplets. `plet_tools.py` can add a convenience command for worktree setup in PLAN_SUB without any orchestrator changes.
 
 ---
 

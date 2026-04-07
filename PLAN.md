@@ -14,11 +14,12 @@
 | PLAN_PY | Python Tooling | ✓ COMPLETE |
 | PLAN_RW | PRD + ORC + SKILL.md + Reference Files Rewrite | ✓ COMPLETE |
 | PLAN_HLP | Subagent CLI Re-learning | ✓ COMPLETE (validated: zero --help in R08) |
-| PLAN_PAR | Parallel Orchestrator | ✓ COMPLETE |
+| PLAN_PAR | Parallel Orchestrator | ✓ COMPLETE (superseded by PLAN_SEQ) |
+| PLAN_SEQ | Sequential Simplification | **Active** — strip parallel, simplify branch model |
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
-| PLAN_RBS | Rebase-over-Squash | 17/25 done — remainingRetries migration, always-rebase, loop-once, cleanup |
+| PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
@@ -195,14 +196,100 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 | RBS_15 | Tests: orchestrator parallel stop flag — RED | ✓ done |
 | RBS_16 | Orchestrator: dynamic parallel stop — on ff-merge fail, spawn max 1 — GREEN | ✓ done |
 | RBS_17 | Prompt requeue directive moved to top of prompt | ✓ done |
-| RBS_18 | Tests: `remainingRetries` in state.json (read/write/decrement) — RED | |
-| RBS_19 | Move `remainingRetries` to state.json, update orchestrator + check-retry — GREEN | |
-| RBS_20 | Remove `remainingRetries` from per-iter state (schema, validator, fixtures) | |
-| RBS_21 | Tests: `requeue_reason` removed from per-iter state — RED | |
-| RBS_22 | Remove `requeue_reason` write + prompt injection — GREEN | |
-| RBS_23 | implement.md: add rebase-prep at START of implement (always, not just requeue) | |
-| RBS_24 | SKILL.md: loop runs ONCE — never auto-restart | |
-| RBS_25 | Validate with real run | |
+| RBS_18 | Tests: `remainingRetries` in state.json (read/write/decrement) — RED | ✓ done |
+| RBS_19 | Move `remainingRetries` to state.json, update orchestrator + check-retry — GREEN | ✓ done |
+| RBS_20 | Remove `remainingRetries` from per-iter state (schema, validator, fixtures) | ✓ done |
+| RBS_21 | Tests: `requeue_reason` removed from per-iter state — RED | ✓ done |
+| RBS_22 | Remove `requeue_reason` write + prompt injection — GREEN | ✓ done |
+| RBS_23 | implement.md: add rebase-prep at START of implement (always, not just requeue) | ✓ done |
+| RBS_24 | SKILL.md: loop runs ONCE — never auto-restart | ✓ done |
+| RBS_25 | Validate with real run | ✓ done |
+
+> **Note:** PLAN_RBS is now ✓ COMPLETE (25/25). The parallel-specific aspects of RBS (conflict recovery, requeue flow, rebase-prep) are superseded by PLAN_SEQ, which strips parallel entirely. See NOTES.md § NOTES_PLN_SEQ and PLAN_SEQ.
+
+---
+
+## PLAN_SEQ: Sequential Simplification
+
+**Goal: agents should spend most of their time implementing or verifying, not dealing with plet mechanics.** Strip parallel orchestration, restructure 14 CLI scripts into 3 entry points + importable modules, simplify branch model to one workstream per loop. Keep RBS for linear history, keep all tooling improvements.
+
+See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhead analysis, and script layout.
+
+**Architecture:**
+
+| Layer | Scripts | Audience |
+|-------|---------|----------|
+| Agent-facing | `plet_agent.py` (5 commands) | Implement/verify subagents |
+| Orchestrator | `plet_orchestrator.py` (run) | SKILL.md / human |
+| Plan/refine/diagnostic | `plet_tools.py` (bootstrap, init, fingerprint, validate, detect, status) | Plan/refine agents, diagnostics |
+| Modules | `state.py`, `entries.py`, `git_ops.py`, `gate.py`, `prompt.py`, etc. | Imported by above 3 |
+
+**Verify rejection model:** On rejection, orchestrator re-launches implement on the same workstream. Agent reads rejection feedback from state file, fixes code in place, adds more commits. No rollback needed.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| | **Phase 1: Strip Parallel** | |
+| SEQ_1 | RED: tests assert orchestrator runs sequentially — no ThreadPoolExecutor, no concurrent.futures, single iteration at a time | |
+| SEQ_2 | RED: tests assert no worktree-create/worktree-remove calls, no iter branch creation, subagent runs in repo root | |
+| SEQ_3 | RED: tests assert no requeue_reason, no parallel stop flag, no rebase-prep injection in prompt | |
+| SEQ_4 | GREEN: simplify orchestrator — replace `_run_streaming_loop` with simple for-loop. Remove `_spawn_iteration`, `_finalize_iteration`, `_get_spawnable`. Remove worktree/iter branch creation. Remove conflict recovery. Remove parallel-specific tests. | |
+| SEQ_5 | RED: tests assert `rebase-prep` and `merge-squash` commands removed from plet_git_ops.py. `rebase-commit`, `wip-commit`, `audit-tag` still work. | |
+| SEQ_6 | GREEN: remove `rebase-prep` and `merge-squash` from plet_git_ops.py | |
+| SEQ_7 | RED: tests assert plet_invoke.py has no worktree path handling | |
+| SEQ_8 | GREEN: simplify plet_invoke.py — remove worktree paths | |
+| SEQ_9 | RED: tests assert plet_prompt.py has no parallel/requeue context in assembled prompt | |
+| SEQ_10 | GREEN: remove parallel/requeue context from plet_prompt.py | |
+| SEQ_11 | **Checkpoint:** run full test suite. All non-parallel tests pass. Sequential MVP works. | |
+| | **Phase 2: Module Restructure** | |
+| SEQ_12 | Rename non-entry-point scripts: `plet_global_state.py` → `global_state.py`, `plet_iter_state.py` → `iter_state.py`, etc. Remove shebangs from renamed files. Update all imports. `phase-start` replaces `start-phase`. Delete `plet_git_iteration.py` (worktree commands gone; `branch-name` moves to `util_git.py`). Run test suite — must pass. | |
+| SEQ_13 | RED: tests for `plet_agent.py` — 5 commands dispatch correctly: `update-criterion`, `wip-commit`, `add-learning`, `add-emergent`, `phase-end`. Each delegates to the correct module function. `--help` and `--usage` work. | |
+| SEQ_14 | GREEN: implement `plet_agent.py` | |
+| SEQ_15 | RED: tests for `plet_tools.py` — commands: `init`, `fingerprint`, `validate`, `detect`. Each delegates correctly. | |
+| SEQ_16 | GREEN: implement `plet_tools.py` | |
+| SEQ_17 | Rewrite `plet_orchestrator.py` — import modules directly (`from state import ...`) instead of `_run_script` subprocess calls. `_run_script` pattern survives only for `invoke.run` (launching claude is genuinely a subprocess). Run test suite. | |
+| SEQ_18 | Update `allowed-tools` in SKILL.md: 3 entries (`plet_agent.py *`, `plet_orchestrator.py *`, `plet_tools.py *`). Remove all old entries. | |
+| SEQ_19 | Migrate module-level tests from subprocess to direct import. Keep subprocess tests only for the 3 CLI entry points (dispatch, --help, --usage, exit codes). Run full test suite + coverage. | |
+| | **Phase 3: Infrastructure Automation** | |
+| SEQ_20 | RED: tests for auto-progress — `state.update_criterion()` triggers progress entry when phaseActivity/activityDetail changes. Non-activity changes (elapsed time) do NOT trigger. | |
+| SEQ_21 | GREEN: implement auto-progress in state module | |
+| SEQ_22 | RED: tests for CLI shim trace events — `plet_agent.py` dispatch creates entry event on call, exit event before output. 3-tuple pattern. | |
+| SEQ_23 | GREEN: implement CLI shim trace events in `plet_agent.py` dispatch | |
+| SEQ_24 | RED: tests for `phase-end` — creates phase audit tag, runs slimmed gate checks internally. Orchestrator creates iter + loop tags. | |
+| SEQ_25 | GREEN: implement phase-end with audit tag + integrated gate. Orchestrator writes iter + loop tags. | |
+| | **Phase 4: Agent Inner Loop** | |
+| SEQ_26 | RED: tests for simplified gate — no parallel checks, learnings/emergent WARN not FAIL | |
+| SEQ_27 | GREEN: simplify gate (now a module called by phase-end, not a standalone CLI) | |
+| SEQ_28 | RED: tests for emergent ID format `EM_{iter_id}_{N}` — gate validates, rejects old flat `EM_N` | |
+| SEQ_29 | GREEN: implement emergent ID validation | |
+| SEQ_30 | RED: tests for learnings/emergent per-AC prompt in prompt module | |
+| SEQ_31 | GREEN: add learnings/emergent prompt injection | |
+| | **Phase 5: Schema + Docs** | |
+| SEQ_32 | RED: tests assert parallelGroup, requeue_reason, lastHeartbeat rejected by validator. remainingRetries only decremented on verify rejection. | |
+| SEQ_33 | GREEN: remove fields from schema + validator. Simplify remainingRetries. Update fixtures. | |
+| SEQ_34 | Audit + slim formats.md — drop if CLI covers everything | |
+| SEQ_35 | Audit + slim state-schema.md — drop if tools cover everything | |
+| SEQ_36 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | |
+| SEQ_37 | Slim verify.md — same approach, inline cheatsheet content | |
+| SEQ_38 | Remove cli-cheatsheet.md — obsolete (`plet_agent.py --help` replaces it for agents) | |
+| SEQ_39 | Update SKILL.md — sequential loop, 3 scripts, `phase-start` rename, loop runs ONCE | |
+| SEQ_40 | Update PRD — remove/update parallel, worktree, branch management sections | |
+| | **Phase 6: Validate** | |
+| SEQ_41 | Full test suite + coverage ≥ 87% | |
+| SEQ_42 | Validate with real run (LOGA R15) | |
+
+**Red/green summary:** 13 red/green pairs across 5 phases. 2 structural steps (SEQ_12 rename, SEQ_17 orchestrator rewrite). 3 migration/update steps (SEQ_18 allowed-tools, SEQ_19 test migration). 7 doc-only steps (SEQ_34-40). 1 checkpoint (SEQ_11). 2 validation steps (SEQ_41-42).
+
+**Phase dependencies:**
+- Phase 1 (strip parallel) → Phase 2 (restructure) — simpler code to restructure
+- Phase 2 (restructure) → Phase 3 (infrastructure) — new entry points must exist for CLI shim
+- Phase 3 (infrastructure) → Phase 4 (agent loop) — gate integration requires phase-end to exist
+- Phase 4 (agent loop) → Phase 5 docs (SEQ_36-37) — reference files reflect final behavior
+- Phase 5 schema (SEQ_32-33) depends on Phase 1 (parallel fields gone from code)
+- Doc steps (SEQ_34-40) can run in parallel with each other
+
+**PLAN_RBS reconciliation:** PLAN_RBS is now ✓ COMPLETE (25/25). The parallel-specific aspects (conflict recovery, requeue, rebase-prep) are superseded by PLAN_SEQ. The remaining RBS value (linear history via wip-commit + rebase-commit) is covered by Phase 1 (rebase-commit kept) and verified in SEQ_42.
+
+**Depends on:** R14 case study ✓ (baseline: 1h53m parallel, 2h29m sequential estimate).
 
 ---
 
@@ -265,6 +352,8 @@ Streaming parallel execution with ThreadPoolExecutor. Conflict recovery via reba
 | PAR_9 | Tests (84 main + 99 coverage) | ✓ done |
 
 **PAR_9 — Tests.** Test parallel with 2-3 independent iterations. Test merge-squash is sequential (git log order). Test `--sequential` fallback. Test breakpoint mid-round. Test one failure doesn't block others. Test conflict rebase-requeue path.
+
+> **Note:** PLAN_PAR is superseded by PLAN_SEQ, which strips parallel execution entirely. The parallel orchestrator was completed and validated (OLLR R01-R04) but the complexity/reliability tradeoff wasn't worth it — sequential 0.4.x had 100% completion (39/39) vs parallel 0.5.x-0.6.x at ~70%. See NOTES.md § NOTES_PLN_SEQ and PLAN_SEQ.
 
 ---
 
