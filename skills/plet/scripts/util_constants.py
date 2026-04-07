@@ -6,6 +6,8 @@ that multiple scripts need to agree on.
 
 # State file schema version — bump when state file format changes.
 # Additive changes = minor bump. Breaking changes = major bump.
+# Written into state.json and state/{iter_id}.json by global_state.py and iter_state.py init.
+# Human reference: references/state-schema.md, references/formats.md
 SCHEMA_VERSION = "0.6.0"
 
 # Plet skill version — matches SKILL.md frontmatter version.
