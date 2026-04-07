@@ -329,7 +329,6 @@ Examples:
         "iterationId": iter_id,
         "title": title,
         "lastUpdated": ts,
-        "lastHeartbeat": ts,
         "dependencies": dependencies,
         "agentId": None,
         "phaseActivity": "idle",
@@ -459,7 +458,6 @@ Examples:
     data["phaseActivity"] = "setup"
     data["activityDetail"] = None
     data["agentId"] = None
-    data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
     # Clear verdicts
@@ -574,7 +572,6 @@ Examples:
     data["phaseActivity"] = phase_activity
     data["activityDetail"] = activity_detail
     data["agentId"] = agent_id
-    data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
     res = {
@@ -748,7 +745,6 @@ Examples:
         target["status"] = target["implementation"]["status"]
 
     data["agentId"] = kwargs["agent_id"]
-    data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
     res = {
@@ -874,7 +870,6 @@ Examples:
     data[verdict_field] = verdict
     data["phaseActivity"] = "idle"
     data["agentId"] = kwargs["agent_id"]
-    data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
     attempt = data.get("attempts", {}).get(phase, 1)
@@ -917,7 +912,7 @@ def cmd_heartbeat(args):
   --iter-id ID_xxx --agent-id <id>
   [--output json [--pretty] [--fields f1,f2]]
 
-Updates lastHeartbeat and agentId only. No --dry-run.
+Updates agentId and lastUpdated only. No --dry-run.
 
 Examples:
   iter_state.py heartbeat plet --iter-id ID_001 --agent-id agent_abc123
@@ -950,7 +945,6 @@ Examples:
         return (1, "", load_err)
 
     ts = now_iso()
-    data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
     data["agentId"] = agent_id
 
@@ -961,7 +955,7 @@ Examples:
             "status": "ok",
             "command": "heartbeat",
             "iterationId": iter_id,
-            "lastHeartbeat": ts,
+            "lastUpdated": ts,
             "scriptVersion": SCRIPT_VERSION,
             "timestamp": now_iso(),
         }
@@ -1131,7 +1125,6 @@ Examples:
     data["verificationReports"].append(report)
 
     data["agentId"] = agent_id
-    data["lastHeartbeat"] = ts
     data["lastUpdated"] = ts
 
     res = {

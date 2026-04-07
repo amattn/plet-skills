@@ -279,7 +279,7 @@ def test_init_defaults():
         check("refineSessionCount 0", data.get("refineSessionCount") == 0)
         check("sessionHistory empty", data.get("sessionHistory") == [])
         check("breakpoints default", data.get("breakpoints") == {"before": [], "after": []})
-        check("parallelGroups empty", data.get("parallelGroups") == [])
+        check("no parallelGroups", "parallelGroups" not in data)
         check("cleanupTagsAutomatically false", data.get("cleanupTagsAutomatically") is False)
         check("cleanupBranchesAutomatically false", data.get("cleanupBranchesAutomatically") is False)
         check("lastUpdated present", "lastUpdated" in data)

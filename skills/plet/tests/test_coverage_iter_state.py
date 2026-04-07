@@ -823,7 +823,7 @@ def test_cmd_heartbeat_basic():
         check("heartbeat = 0", rc == 0)
         data = read_iter_state(plet_dir)
         check("heartbeat agent set", data["agentId"] == "agent_abc123")
-        check("heartbeat ts updated", data["lastHeartbeat"] != "2026-03-07T14:00:00Z")
+        check("no lastHeartbeat field", "lastHeartbeat" not in data)
     finally:
         shutil.rmtree(d)
 
@@ -848,7 +848,7 @@ def test_cmd_heartbeat_json():
         check("heartbeat json = 0", rc == 0)
         data = json.loads(output)
         check("heartbeat json command", data["command"] == "heartbeat")
-        check("heartbeat json has ts", "lastHeartbeat" in data)
+        check("heartbeat json has ts", "lastUpdated" in data)
     finally:
         shutil.rmtree(d)
 

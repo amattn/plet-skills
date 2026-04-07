@@ -59,7 +59,6 @@ def make_global_state(plet_dir, project_id="TEST", loop_count=0, refine_count=0,
         "refineSessionCount": refine_count,
         "dependencyMap": {},
         "milestones": [],
-        "parallelGroups": [],
     }
     if session_history is not None:
         state["sessionHistory"] = session_history

@@ -242,7 +242,6 @@ Examples:
         "dependencyMap": dep_map,
         "lifecycles": lifecycles,
         "milestones": milestones,
-        "parallelGroups": [],
         "breakpoints": {"before": [], "after": []},
         "cleanupTagsAutomatically": False,
         "cleanupBranchesAutomatically": False,

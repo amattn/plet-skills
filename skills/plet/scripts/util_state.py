@@ -56,8 +56,11 @@ OPTIONAL_FIELDS = {
     "sessionHistory": list,
     "breakpoints": dict,
     "cleanupTagsAutomatically": bool,
-    "parallelGroups": list,
     "lifecycles": dict,
+}
+
+DEPRECATED_GLOBAL_FIELDS = {
+    "parallelGroups": "field 'parallelGroups' is deprecated — parallel execution removed (PLAN_SEQ)",
 }
 
 
@@ -101,6 +104,10 @@ def validate_global_state(data):
         if field in data and not isinstance(data[field], expected_type):
             errors.append(f"field '{field}' must be {expected_type.__name__}, got {type(data[field]).__name__}")
 
+    for field, msg in DEPRECATED_GLOBAL_FIELDS.items():
+        if field in data:
+            errors.append(msg)
+
     if "lifecycles" in data and isinstance(data["lifecycles"], dict):
         for iter_id, lc in data["lifecycles"].items():
             if not isinstance(lc, str) or lc not in VALID_LIFECYCLES:
@@ -122,7 +129,6 @@ OPTIONAL_DEFAULTS = {
     "sessionHistory": [],
     "breakpoints": {"before": [], "after": []},
     "cleanupTagsAutomatically": False,
-    "parallelGroups": [],
     "lifecycles": {},
 }
 
@@ -190,7 +196,6 @@ ITER_OPTIONAL_DEFAULTS = {
     "verificationReports": [],
     "implementVerdict": None,
     "verifyVerdict": None,
-    "lastHeartbeat": None,
 }
 
 
@@ -217,6 +222,7 @@ DEPRECATED_ITER_FIELDS = {
     ),
     "agentActivity": "field 'agentActivity' is deprecated — use 'phaseActivity' (SF_28)",
     "lastVerdict": "field 'lastVerdict' is deprecated — use 'implementVerdict' and 'verifyVerdict' (SF_28)",
+    "lastHeartbeat": "field 'lastHeartbeat' is deprecated — heartbeat removed (PLAN_SEQ, sequential orchestration)",
 }
 
 

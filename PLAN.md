@@ -265,8 +265,8 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | SEQ_30 | RED: tests for learnings/emergent per-AC prompt in prompt module | ✓ done |
 | SEQ_31 | GREEN: add learnings/emergent prompt injection | ✓ done |
 | | **Phase 5: Schema + Docs** | |
-| SEQ_32 | RED: tests assert parallelGroup, requeue_reason, lastHeartbeat rejected by validator. remainingRetries only decremented on verify rejection. | |
-| SEQ_33 | GREEN: remove fields from schema + validator. Simplify remainingRetries. Update fixtures. | |
+| SEQ_32 | RED: tests assert parallelGroup, lastHeartbeat rejected by validator | ✓ done |
+| SEQ_33 | GREEN: remove fields from schema + validator. Update fixtures. Remove lastHeartbeat writes from iter_state. | ✓ done |
 | SEQ_34 | Path cleanup: centralize ad-hoc `os.path.join` into `util_io.py` derivers, replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | |
 | SEQ_35 | Audit + slim formats.md — drop if CLI covers everything | |
 | SEQ_36 | Audit + slim state-schema.md — drop if tools cover everything | |

@@ -320,7 +320,6 @@ def test_update_activity():
     check("phaseActivity", data["phaseActivity"] == "writing_tests")
     check("activityDetail", data["activityDetail"] == "writing failing test for AC_1")
     check("agentId set", data["agentId"] == AGENT_ID)
-    check("lastHeartbeat updated", data["lastHeartbeat"] is not None)
 
 
 def test_update_activity_invalid():
@@ -761,13 +760,14 @@ def test_heartbeat():
     print("\n## heartbeat — basic")
     d = make_plet_dir()
     init_iter(d)
-    old_hb = read_iter_state(d).get("lastHeartbeat")
+    old_updated = read_iter_state(d).get("lastUpdated")
     out, _, _ = run(["heartbeat", d, "--iter-id", "ID_001", "--agent-id", AGENT_ID])
     check("OK in output", "OK" in out)
 
     data = read_iter_state(d)
     check("agentId set", data["agentId"] == AGENT_ID)
-    check("lastHeartbeat updated", data["lastHeartbeat"] != old_hb or old_hb is not None)
+    check("lastUpdated updated", data["lastUpdated"] != old_updated or old_updated is not None)
+    check("no lastHeartbeat field", "lastHeartbeat" not in data)
 
 
 def test_heartbeat_json():
@@ -777,7 +777,7 @@ def test_heartbeat_json():
     out, _, _ = run(["heartbeat", d, "--iter-id", "ID_001", "--agent-id", AGENT_ID, "--output", "json"])
     data = json.loads(out)
     check("status ok", data["status"] == "ok")
-    check("lastHeartbeat present", "lastHeartbeat" in data)
+    check("lastUpdated present", "lastUpdated" in data)
 
 
 def test_heartbeat_missing_agent_id():

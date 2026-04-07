@@ -385,7 +385,7 @@ def test_optional_fields_absent():
         "milestones": {},
         "iterationsFingerprint": {},
         # No: loopSessionCount, refineSessionCount, sessionHistory,
-        #     breakpoints, cleanupTagsAutomatically, parallelGroups
+        #     breakpoints, cleanupTagsAutomatically
     }
 
     with tempfile.TemporaryDirectory() as d:
@@ -398,7 +398,6 @@ def test_optional_fields_absent():
         check("sessionHistory injected", result["sessionHistory"] == [])
         check("breakpoints injected", result["breakpoints"] == {"before": [], "after": []})
         check("cleanupTagsAutomatically injected", result["cleanupTagsAutomatically"] is False)
-        check("parallelGroups injected", result["parallelGroups"] == [])
 
 
 def test_optional_fields_present():
@@ -409,7 +408,6 @@ def test_optional_fields_present():
     state["sessionHistory"] = []
     state["breakpoints"] = {"before": [], "after": []}
     state["cleanupTagsAutomatically"] = True
-    state["parallelGroups"] = [["ID_001", "ID_002"]]
 
     with tempfile.TemporaryDirectory() as d:
         write_state(d, state)
@@ -472,6 +470,51 @@ def main():
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
+
+
+# ---------------------------------------------------------------------------
+# SEQ_32: Reject parallel-era fields
+# ---------------------------------------------------------------------------
+
+
+def test_global_parallel_groups_rejected():
+    """SEQ_32: parallelGroups must be rejected from state.json."""
+    import util_state
+
+    state = dict(VALID_STATE)
+    state["parallelGroups"] = [["ID_001", "ID_002"]]
+    errors = util_state.validate_global_state(state)
+    assert any("parallelGroups" in e for e in errors), f"parallelGroups should be rejected, got errors: {errors}"
+
+
+def test_global_parallel_groups_absent_ok():
+    """SEQ_32: state.json without parallelGroups validates fine."""
+    import util_state
+
+    state = dict(VALID_STATE)
+    state.pop("parallelGroups", None)
+    errors = util_state.validate_global_state(state)
+    assert not any("parallelGroups" in e for e in errors), f"absent parallelGroups should not error, got: {errors}"
+
+
+def test_iter_last_heartbeat_rejected():
+    """SEQ_32: lastHeartbeat must be rejected from per-iteration state."""
+    import util_state
+
+    state = dict(VALID_ITER_STATE)
+    state["lastHeartbeat"] = "2026-04-07T12:00:00Z"
+    errors = util_state.validate_iter_state(state)
+    assert any("lastHeartbeat" in e for e in errors), f"lastHeartbeat should be rejected, got errors: {errors}"
+
+
+def test_iter_last_heartbeat_absent_ok():
+    """SEQ_32: per-iter state without lastHeartbeat validates fine."""
+    import util_state
+
+    state = dict(VALID_ITER_STATE)
+    state.pop("lastHeartbeat", None)
+    errors = util_state.validate_iter_state(state)
+    assert not any("lastHeartbeat" in e for e in errors), f"absent lastHeartbeat should not error, got: {errors}"
 
 
 # ---------------------------------------------------------------------------
@@ -548,7 +591,6 @@ def test_iter_minimal():
         check("verificationReports default", result["verificationReports"] == [])
         check("implementVerdict default", result["implementVerdict"] is None)
         check("verifyVerdict default", result["verifyVerdict"] is None)
-        check("lastHeartbeat default", result["lastHeartbeat"] is None)
 
 
 def test_iter_file_not_found():
@@ -709,7 +751,6 @@ def test_iter_optional_defaults():
         "verificationReports",
         "implementVerdict",
         "verifyVerdict",
-        "lastHeartbeat",
     ]:
         state.pop(key, None)
 

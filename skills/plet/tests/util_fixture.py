@@ -72,7 +72,6 @@ VALID_GLOBAL_STATE = {
     "loopSessionCount": 0,
     "refineSessionCount": 0,
     "sessionHistory": [],
-    "parallelGroups": [],
     "breakpoints": {"before": [], "after": []},
     "iterationsFingerprint": {},
 }
@@ -115,7 +114,6 @@ def make_global_state(
         "loopSessionCount": loop_session,
         "refineSessionCount": refine_session,
         "sessionHistory": session_history if session_history is not None else [],
-        "parallelGroups": [],
         "breakpoints": breakpoints if breakpoints is not None else {"before": [], "after": []},
         "iterationsFingerprint": {},
     }
@@ -178,7 +176,6 @@ def make_iter_state(
         "iterationId": iter_id,
         "title": title,
         "lastUpdated": "2026-03-07T14:00:00Z",
-        "lastHeartbeat": "2026-03-07T14:00:00Z",
         "dependencies": dependencies if dependencies is not None else [],
         "agentId": agent_id,
         "phaseActivity": phase_activity,
