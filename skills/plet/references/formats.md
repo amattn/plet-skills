@@ -262,7 +262,7 @@ The OAuth provider's sandbox environment returns HTTP 500 on all token refresh r
 
 ---
 
-### EM_N: [short title]
+### EM_{iter_id}_{N}: [short title]
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
 **Iteration:** [ID_xxx] [iteration title]
@@ -278,7 +278,7 @@ The OAuth provider's sandbox environment returns HTTP 500 on all token refresh r
 
 ### ID Assignment
 
-Emergent items use `EM_N` IDs with append-only numbering (GC_1). The next available number is always the highest existing EM ID + 1.
+Emergent items use `EM_{iter_id}_{N}` IDs — scoped to the iteration, with append-only numbering (GC_1). The next available number for a given iteration is the highest existing N + 1. Example: `EM_ID_001_1`, `EM_ID_001_2`, `EM_ID_002_1`.
 
 ### Outcome Values
 
@@ -299,7 +299,7 @@ Agents always set `Outcome: pending`. Only the Refine session (human-driven) cha
 
 ---
 
-### EM_1: Chose SQLite over PostgreSQL for local storage
+### EM_ID_002_1: Chose SQLite over PostgreSQL for local storage
 **PletId:** `eem_01JD8X3800_id002_i1`
 **Timestamp:** 2026-03-07T15:10:00Z
 **Iteration:** [ID_002] Core data model
@@ -316,7 +316,7 @@ The requirements specify "persistent storage" without specifying a database engi
 
 ---
 
-### EM_2: API rate limiting not specified
+### EM_ID_003_1: API rate limiting not specified
 **PletId:** `eem_01JD8X3Q00_id003_v1`
 **Timestamp:** 2026-03-07T16:00:00Z
 **Iteration:** [ID_003] API endpoints
@@ -330,7 +330,7 @@ The API endpoints have no rate limiting. The requirements don't mention it, but 
 <div id="END-plet-eem_01JD8X3Q00_id003_v1"></div>
 ```
 
-**Note:** `EM_N` and plet IDs are distinct. `EM_N` is the semantic ID for the emergent item — human-facing, stable, referenced in refine conversations ("let's discuss EM_3"). The plet ID is structural — used for git merge fencing, cross-references from JSON, and decodable to time/iteration/phase. Both coexist on every emergent entry.
+**Note:** `EM_{iter_id}_{N}` and plet IDs are distinct. `EM_{iter_id}_{N}` is the semantic ID for the emergent item — human-facing, stable, scoped to the iteration, referenced in refine conversations ("let's discuss EM_ID_002_1"). The plet ID is structural — used for git merge fencing, cross-references from JSON, and decodable to time/iteration/phase. Both coexist on every emergent entry.
 
 ### Blocker Entry
 
@@ -341,7 +341,7 @@ When an agent blocks, the emergent entry describes what the human needs to resol
 
 ---
 
-### EM_3: OAuth provider sandbox returning 500 on token refresh
+### EM_ID_003_2: OAuth provider sandbox returning 500 on token refresh
 **PletId:** `eem_01JD8X4200_id003_i2`
 **Timestamp:** 2026-03-07T16:45:00Z
 **Iteration:** [ID_003] OAuth integration

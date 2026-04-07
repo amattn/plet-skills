@@ -209,7 +209,7 @@ Update activity and detail via `plet_iter_state.py update-activity` as you trans
 
 ## Runtime Artifact Writes (IMP_9)
 
-Append to runtime artifacts **as things come up during work**, not only at the end.
+Append to runtime artifacts **as things come up during work**, not only at the end. Keep individual entries under ~4KB — if longer, split into multiple entries.
 
 ### When to Write
 
@@ -351,17 +351,25 @@ Write detailed trace entries capturing:
 
 ### 2. progress.md
 
-Append a `BLOCKED` entry (see `references/formats.md` for the blocker entry format):
-- What work was completed
-- What work remains
-- Files changed so far
+Append a `BLOCKED` progress entry. Include what was completed and what remains:
+
+```bash
+entries.py add-progress plet/ --iter-id {iter_id} --iter-title "{title}" \
+    --phase implement --attempt {N} --status BLOCKED \
+    --content "Blocked: {reason}. Completed: {list}. Remaining: {list}."
+```
 
 ### 3. emergent.md
 
-Append a `blocker` category entry:
-- What the human needs to resolve
-- Specific actions the human can take
-- Any relevant error details or links
+Append a `blocker` category emergent entry describing what the human needs to resolve:
+
+```bash
+entries.py add-emergent plet/ --iter-id {iter_id} --iter-title "{title}" \
+    --phase implement --category blocker \
+    --title "{short description of what's blocking}" \
+    --content "What needs resolving: {details}. Actions the human can take: {list}." \
+    --attempt {N}
+```
 
 ### 4. learnings.md
 

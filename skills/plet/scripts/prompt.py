@@ -244,13 +244,7 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
         return None, f"Error: iteration {iter_id} not found in iterations.md"
     sections.append({"name": "iteration-definition", "source": "plet/iterations.md", "content": iter_block})
 
-    # 3. Formats guide
-    fmt_content, fmt_path = load_reference("formats.md")
-    if fmt_content is None:
-        return None, f"Error: reference file not found: {fmt_path}"
-    sections.append({"name": "formats", "source": "references/formats.md", "content": fmt_content})
-
-    # 4. State schema
+    # 3. State schema (formats.md removed — CLI handles formatting)
     schema_content, schema_path = load_reference("state-schema.md")
     if schema_content is None:
         return None, f"Error: reference file not found: {schema_path}"
@@ -294,12 +288,14 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
             "1. **Learnings:** Did you discover anything about the codebase, tools, patterns,",
             "   or environment that would help a future human or autonomous developer?",
             f'   → `{ent} add-learning {p} --iter-id {iter_id} --iter-title "$TITLE"'
-            f' --category pattern --title "..." --content "..." --phase {phase} --attempt $ATTEMPT`',
+            f' --category CATEGORY --title "..." --content "..." --phase {phase} --attempt $ATTEMPT`',
+            "   Categories: pattern, gotcha, technique, tool, debug, context",
             "",
             "2. **Emergent:** Did anything come up that wasn't in the spec — a design decision,",
             "   requirement gap, assumption, or edge case that needs human review in the next refine?",
             f'   → `{ent} add-emergent {p} --iter-id {iter_id} --iter-title "$TITLE"'
-            f' --title "..." --phase {phase} --category "design decision" --content "..." --attempt $ATTEMPT`',
+            f' --title "..." --phase {phase} --category CATEGORY --content "..." --attempt $ATTEMPT`',
+            "   Categories: design decision, requirement gap, assumption, scope question, edge case, blocker",
             "",
             "If the answer to both is no, move on. Don't force entries. But don't skip the questions.",
         ]
