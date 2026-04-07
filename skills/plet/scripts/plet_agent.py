@@ -20,6 +20,7 @@ Commands:
     phase-end          Set verdict, run gate checks, create audit tag (once per phase)
 """
 
+import json
 import os
 import sys
 
@@ -37,6 +38,64 @@ from phase import cmd_end as cmd_phase_end  # noqa: E402
 from util_constants import SKILL_VERSION  # noqa: E402
 
 
+def _emit_trace_event(event_type, command, exit_code=None):
+    """Emit a trace event to the NDJSON trace file if plet env vars are set.
+
+    Uses PLET_DIR, PLET_ITER_ID, PLET_PHASE, PLET_ATTEMPT from environment
+    (set by the orchestrator before launching the subagent).
+    """
+    plet_dir = os.environ.get("PLET_DIR")
+    iter_id = os.environ.get("PLET_ITER_ID")
+    phase = os.environ.get("PLET_PHASE")
+    attempt = os.environ.get("PLET_ATTEMPT", "1")
+
+    if not plet_dir or not iter_id or not phase:
+        return  # Not in a plet context — skip silently
+
+    from traces import cmd_append_event
+
+    data = {"command": command}
+    if exit_code is not None:
+        data["exitCode"] = exit_code
+
+    cmd_append_event(
+        [
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--phase",
+            phase,
+            "--attempt",
+            attempt,
+            "--event-type",
+            event_type,
+            "--data",
+            json.dumps(data),
+        ]
+    )
+
+
+def _dispatch_with_trace(commands, args):
+    """Dispatch a command with entry/exit trace events."""
+    # Parse command name from args (before --no-log stripping)
+    command = None
+    for arg in args:
+        if not arg.startswith("-") and arg != "--no-log" and arg in commands:
+            command = arg
+            break
+
+    if command:
+        _emit_trace_event("cli_entry", command)
+
+    # Run the actual dispatch
+    rc = dispatch(commands, "plet_agent", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+
+    if command:
+        _emit_trace_event("cli_exit", command, exit_code=rc)
+
+    return rc
+
+
 def main():
     commands = {
         "update-criterion": cmd_update_criterion,
@@ -45,7 +104,7 @@ def main():
         "add-emergent": cmd_add_emergent,
         "phase-end": cmd_phase_end,
     }
-    return dispatch(commands, "plet_agent", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return _dispatch_with_trace(commands, sys.argv[1:])
 
 
 if __name__ == "__main__":

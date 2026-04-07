@@ -124,6 +124,34 @@ def _parse_init_data(plet_dir, iter_id, kwargs):
     return dependencies, criteria_input, path, None
 
 
+def _auto_progress(plet_dir, iter_id, iter_title, phase, attempt, criterion_id, status):
+    """Auto-generate a progress entry after a criterion update.
+
+    Called by cmd_update_criterion after writing state. The agent never
+    calls add-progress manually for criterion updates.
+    """
+    from entries import cmd_add_progress
+
+    content = f"{criterion_id}: {status}"
+    cmd_add_progress(
+        [
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--iter-title",
+            iter_title,
+            "--phase",
+            phase,
+            "--attempt",
+            str(attempt),
+            "--status",
+            "IN_PROGRESS",
+            "--content",
+            content,
+        ]
+    )
+
+
 def _load_state(plet_dir, iter_id, hint):
     """Load per-iteration state file. Returns (data, path, err)."""
     path = iter_state_path(plet_dir, iter_id)
@@ -742,6 +770,18 @@ Examples:
             return (0, f"DRY RUN — {iter_id} {kwargs['criterion']} {phase}: {status}", "")
 
     atomic_write_json(path, data, update_timestamp=False)
+
+    # Auto-progress: generate a progress entry for this criterion update
+    _auto_progress(
+        plet_dir,
+        iter_id,
+        data.get("title", iter_id),
+        "implement" if phase == "implementation" else "verify",
+        data.get("attempts", {}).get("implement" if phase == "implementation" else "verify", 1),
+        kwargs["criterion"],
+        status,
+    )
+
     if output_json:
         res["scriptVersion"] = SCRIPT_VERSION
         res["timestamp"] = now_iso()

@@ -58,6 +58,8 @@ VALID_EVENT_TYPES = [
     "activity_change",
     "error",
     "invocation",
+    "cli_entry",
+    "cli_exit",
 ]
 
 VALID_PHASES = ["implement", "verify", "orchestrator", "unknown"]
