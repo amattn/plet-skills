@@ -27,6 +27,8 @@ import sys
 # Add scripts dir to path for sibling imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import fingerprint  # noqa: E402
+import git_check  # noqa: E402
 from util_cli import (
     UNIVERSAL_FLAGS_READ,
     dispatch,
@@ -53,7 +55,7 @@ from util_state import (
     load_and_validate_global_state,
     load_and_validate_iter_state,
 )
-from util_subprocess import run, run_git
+from util_subprocess import run_git
 
 SCRIPT_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
@@ -284,15 +286,17 @@ def _check_fingerprints(plet_dir):
     """Run fingerprint consistency check. Returns dict with 'consistent' key."""
     fingerprints = {"consistent": None}
     try:
-        scripts_dir = os.path.dirname(os.path.abspath(__file__))
-        fpr_script = os.path.join(scripts_dir, "fingerprint.py")
-        if os.path.isfile(fpr_script):
-            fpr_result = run(
-                [sys.executable, fpr_script, "check", plet_dir, "--output", "json"],
-            )
-            if fpr_result.returncode == 0:
-                fpr_data = json.loads(fpr_result.stdout)
-                fingerprints["consistent"] = fpr_data.get("consistent", None)
+        import io as _io
+
+        old_out, old_err = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = _io.StringIO(), _io.StringIO()
+        try:
+            rc, out, err = fingerprint.cmd_check([plet_dir, "--output", "json"])
+        finally:
+            sys.stdout, sys.stderr = old_out, old_err
+        if rc == 0:
+            fpr_data = json.loads(out)
+            fingerprints["consistent"] = fpr_data.get("consistent", None)
     except Exception:
         pass  # Graceful degradation
     return fingerprints
@@ -425,7 +429,6 @@ def cmd_status(args):
 PITFALLS:
     - Required — path to the plet directory
     - Requires plet directory to exist (unlike detect which works on fresh projects)
-    - Fingerprint check may be slow — it calls fingerprint.py via subprocess
 
 USAGE:
     gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]
@@ -552,26 +555,28 @@ def _check_scripts_installed(scripts_dir):
     return {"name": "scripts-installed", "status": "pass", "detail": "all plet scripts found"}
 
 
-def _check_git_health(scripts_dir, plet_dir):
-    """Run git-check (CKS) via subprocess. Returns list of check dicts."""
+def _check_git_health(plet_dir):
+    """Run git-check (CKS) via direct import. Returns list of check dicts."""
     checks = []
-    gtc_script = os.path.join(scripts_dir, "git_check.py")
-    if not os.path.isfile(gtc_script):
-        return checks
     sjp = state_json_path(plet_dir)
     sdp = state_dir_path(plet_dir)
     if os.path.isfile(sjp) and os.path.isdir(sdp):
-        gtc_result = run(
-            [sys.executable, gtc_script, "check-session", sjp, sdp, "--output", "json"],
-        )
+        import io as _io
+
+        old_out, old_err = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = _io.StringIO(), _io.StringIO()
         try:
-            gtc_data = json.loads(gtc_result.stdout)
+            rc, out, err = git_check.cmd_check_session([sjp, sdp, "--output", "json"])
+        finally:
+            sys.stdout, sys.stderr = old_out, old_err
+        try:
+            gtc_data = json.loads(out)
             for gc in gtc_data.get("checks", []):
                 checks.append(
                     {"name": "git:{}".format(gc["name"]), "status": gc["status"], "detail": gc.get("detail", "")}
                 )
         except (json.JSONDecodeError, KeyError):
-            checks.append({"name": "git-check", "status": "warn", "detail": "could not parse GTC output"})
+            checks.append({"name": "git-check", "status": "warn", "detail": "could not parse git_check output"})
     else:
         r = run_git("rev-parse", "--git-dir")
         status = "pass" if r.returncode == 0 else "warn"
@@ -596,20 +601,26 @@ def _check_spec_artifacts(plet_dir, plet_dir_exists):
     return {"name": "spec-artifacts", "status": "fail", "detail": "missing: {}".format(", ".join(missing))}
 
 
-def _check_fingerprints_preflight(scripts_dir, plet_dir, plet_dir_exists, session_type):
+def _check_fingerprints_preflight(plet_dir, plet_dir_exists, session_type):
     """Check fingerprint consistency."""
     if session_type == "plan":
         return {"name": "fingerprints-consistent", "status": "skipped", "detail": "plan session, check not applicable"}
-    fpr_script = os.path.join(scripts_dir, "fingerprint.py")
-    if not (os.path.isfile(fpr_script) and plet_dir_exists):
+    if not plet_dir_exists:
         return {
             "name": "fingerprints-consistent",
             "status": "pass",
-            "detail": "no plet directory or fingerprint script (fresh project)",
+            "detail": "no plet directory (fresh project)",
         }
     try:
-        fpr_result = run([sys.executable, fpr_script, "check", plet_dir, "--output", "json"])
-        fpr_data = json.loads(fpr_result.stdout)
+        import io as _io
+
+        old_out, old_err = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = _io.StringIO(), _io.StringIO()
+        try:
+            rc, out, err = fingerprint.cmd_check([plet_dir, "--output", "json"])
+        finally:
+            sys.stdout, sys.stderr = old_out, old_err
+        fpr_data = json.loads(out)
         fpr_status = fpr_data.get("status", "error")
         if fpr_status == "ok":
             return {"name": "fingerprints-consistent", "status": "pass", "detail": "fingerprints consistent"}
@@ -617,7 +628,7 @@ def _check_fingerprints_preflight(scripts_dir, plet_dir, plet_dir_exists, sessio
             return {
                 "name": "fingerprints-consistent",
                 "status": "warn",
-                "detail": "fingerprints stale: {}".format(fpr_data.get("detail", "see fingerprint.py check")),
+                "detail": "fingerprints stale: {}".format(fpr_data.get("detail", "see fingerprint check")),
             }
         return {
             "name": "fingerprints-consistent",
@@ -653,7 +664,7 @@ def run_preflight_checks(plet_dir, session_type):
     checks.append(_check_scripts_installed(scripts_dir))
 
     # 2. git-check (CKS)
-    checks.extend(_check_git_health(scripts_dir, plet_dir))
+    checks.extend(_check_git_health(plet_dir))
 
     # 3. claude-md-exists
     project_root = os.path.dirname(os.path.abspath(plet_dir)) if os.path.isabs(plet_dir) else os.getcwd()
@@ -694,7 +705,7 @@ def run_preflight_checks(plet_dir, session_type):
         checks.append({"name": "state-valid", "status": "pass", "detail": "no state.json (fresh project)"})
 
     # 7. fingerprints-consistent
-    checks.append(_check_fingerprints_preflight(scripts_dir, plet_dir, plet_dir_exists, session_type))
+    checks.append(_check_fingerprints_preflight(plet_dir, plet_dir_exists, session_type))
 
     # 8. merge-driver
     checks.append(_check_merge_driver(session_type))

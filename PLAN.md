@@ -267,7 +267,7 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | | **Phase 5: Schema + Docs** | |
 | SEQ_32 | RED: tests assert parallelGroup, lastHeartbeat rejected by validator | ✓ done |
 | SEQ_33 | GREEN: remove fields from schema + validator. Update fixtures. Remove lastHeartbeat writes from iter_state. | ✓ done |
-| SEQ_34 | Path cleanup: centralize ad-hoc `os.path.join` into `util_io.py` derivers, replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | |
+| SEQ_34 | Path cleanup: replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | ✓ done |
 | SEQ_35 | Audit + slim formats.md — drop if CLI covers everything | |
 | SEQ_36 | Audit + slim state-schema.md — drop if tools cover everything | |
 | SEQ_37 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | |

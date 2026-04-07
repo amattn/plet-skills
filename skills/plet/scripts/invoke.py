@@ -22,6 +22,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import entries  # noqa: E402
+import prompt as prompt_mod  # noqa: E402
+import traces  # noqa: E402
 from util_cli import (
     dispatch,
     filter_fields,
@@ -35,7 +38,6 @@ from util_io import (
     transcript_path,
     validate_plet_dir,
 )
-from util_subprocess import run
 
 SCRIPT_VERSION = "0.3.3"
 from util_constants import SKILL_VERSION  # noqa: E402
@@ -101,12 +103,18 @@ def find_claude():
 
 
 def assemble_prompt(plet_dir, iter_id, phase):
-    """Call prompt.py assemble. Returns (prompt_text, error_msg)."""
-    prm_script = os.path.join(scripts_dir(), "prompt.py")
-    result = run([sys.executable, prm_script, "assemble", plet_dir, "--iter-id", iter_id, "--phase", phase])
-    if result.returncode != 0:
-        return None, f"prompt assembly failed: {result.stderr.strip()}"
-    return result.stdout, None
+    """Call prompt.py assemble via direct import. Returns (prompt_text, error_msg)."""
+    import io as _io
+
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = _io.StringIO(), _io.StringIO()
+    try:
+        rc, out, err = prompt_mod.cmd_assemble([plet_dir, "--iter-id", iter_id, "--phase", phase])
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    if rc != 0:
+        return None, f"prompt assembly failed: {err}"
+    return out, None
 
 
 def build_claude_command(prompt, phase, iter_id, attempt, permission_mode, model, max_budget, verbose):
@@ -197,26 +205,26 @@ def _log_invocation(
     trace_dir,
 ):
     """Log invocation to trace event and progress.md."""
-    trc_script = os.path.join(scripts_dir(), "traces.py")
-    if os.path.isfile(trc_script):
-        invocation_data = json.dumps(
-            {
-                "cwd": cwd,
-                "permissionMode": permission_mode,
-                "promptLength": len(prompt_text),
-                "model": model or "default",
-                "maxBudget": max_budget or "none",
-                "verbose": verbose,
-                "bare": True,
-                "transcriptPath": t_path,
-                "prompt": prompt_text,
-            }
-        )
-        run(
+    import io as _io
+
+    invocation_data = json.dumps(
+        {
+            "cwd": cwd,
+            "permissionMode": permission_mode,
+            "promptLength": len(prompt_text),
+            "model": model or "default",
+            "maxBudget": max_budget or "none",
+            "verbose": verbose,
+            "bare": True,
+            "transcriptPath": t_path,
+            "prompt": prompt_text,
+        }
+    )
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = _io.StringIO(), _io.StringIO()
+    try:
+        traces.cmd_append_event(
             [
-                sys.executable,
-                trc_script,
-                "append-event",
                 plet_dir,
                 "--iter-id",
                 iter_id,
@@ -230,6 +238,8 @@ def _log_invocation(
                 invocation_data,
             ]
         )
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
 
     iter_title = state_data.get("title", iter_id)
     progress_content = (
@@ -243,16 +253,14 @@ def _log_invocation(
         "- Transcript: {}\n\n"
         "Full prompt is in the trace event file, not repeated here."
     ).format(phase, attempt, permission_mode, model or "default", max_budget or "none", cwd, len(prompt_text), t_path)
-    ent_script = os.path.join(scripts_dir(), "entries.py")
-    if os.path.isfile(ent_script):
-        content_tmp = os.path.join(trace_dir, ".progress_content.tmp")
-        with open(content_tmp, "w") as f:
-            f.write(progress_content)
-        ent_result = run(
+    content_tmp = os.path.join(trace_dir, ".progress_content.tmp")
+    with open(content_tmp, "w") as f:
+        f.write(progress_content)
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = _io.StringIO(), _io.StringIO()
+    try:
+        rc, out, err = entries.cmd_add_progress(
             [
-                sys.executable,
-                ent_script,
-                "add-progress",
                 plet_dir,
                 "--iter-id",
                 iter_id,
@@ -269,10 +277,12 @@ def _log_invocation(
                 "--allow-fences",
             ]
         )
-        if ent_result.returncode != 0:
-            print(f"Warning: progress entry failed: {ent_result.stderr.strip()}", file=sys.stderr)
-        if os.path.isfile(content_tmp):
-            os.unlink(content_tmp)
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    if rc != 0:
+        print(f"Warning: progress entry failed: {err}", file=sys.stderr)
+    if os.path.isfile(content_tmp):
+        os.unlink(content_tmp)
 
 
 def _default_launcher(cmd, cwd, env):

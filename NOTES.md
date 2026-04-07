@@ -1911,6 +1911,14 @@ scripts/
 
 **Learnings/emergent no longer gate-enforced (user decision):** Gate-post no longer checks for learnings or emergent entries. These are still available as agent commands (`add-learning`, `add-emergent`) but are purely optional. The prompt may still ask the agent to reflect after each AC — but there's no gate enforcement.
 
+**SEQ_37-38 design discussion (pending, 2026-04-07):** Before implementing the implement.md and verify.md rewrites, do a design discussion covering:
+- **High-level org audit:** What's the current structure, what works, what doesn't?
+- **Minimize agent wandering:** Everything should be a clear, short checklist. Agents should never wonder "what do I do next?" — the reference file should be a sequence of steps, not prose to interpret.
+- **Old script names:** Both files still reference the old 14-script names (pre-SEQ_12 rename). Must update to 3-entry-point model (`plet_agent.py`, `plet_orchestrator.py`, `plet_tools.py`).
+- **Per-AC reflection:** Fold into the per-AC flow inline (after update-criterion, before wip-commit) rather than the current generated prompt section (SEQ_31). May drop the generated prompt section entirely — the commands are already in the CLI quick reference.
+- **update-activity:** May need to bring back as an agent-facing command. Currently moved to orchestrator at phase-start, but agents may need to signal what they're doing (e.g., "reading context", "writing tests", "running tests"). Revisit whether the overhead is worth the observability.
+- **Cheatsheet inline:** cli-cheatsheet.md content gets inlined into both files (SEQ_39 removes the separate file).
+
 ### NOTES_PLN_IDR: PLAN_IDR — Iteration ID Rename
 
 **Decision (2026-04-07): Rename `ID_` prefix to `ITR_`, deferred until before PLAN_SUB.**

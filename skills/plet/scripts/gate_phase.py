@@ -21,6 +21,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import entries  # noqa: E402
+import fingerprint  # noqa: E402
+import git_check  # noqa: E402
+import iter_state  # noqa: E402
+import traces  # noqa: E402
 from util_cli import (
     dispatch,
     filter_fields,
@@ -40,7 +45,7 @@ from util_state import (
     load_and_validate_global_state,
     load_and_validate_iter_state,
 )
-from util_subprocess import run, run_git
+from util_subprocess import run_git
 
 SCRIPT_VERSION = "0.3.3"
 from util_constants import SKILL_VERSION  # noqa: E402
@@ -55,28 +60,28 @@ LIFECYCLE_BY_PHASE = {
 
 
 # ---------------------------------------------------------------------------
-# Subprocess helpers
+# Direct-import helpers
 # ---------------------------------------------------------------------------
 
 
 help_hint = make_help_hint("gate_phase")
 
 
-def scripts_dir():
-    return os.path.dirname(os.path.abspath(__file__))
+def _call_cmd_json(cmd_func, args):
+    """Call a module command directly, parse JSON output. Returns (parsed_json, rc)."""
+    import io as _io
 
-
-def run_tool(script_name, args):
-    """Run a sibling plet script via subprocess. Returns (parsed_json, raw_result)."""
-    script_path = os.path.join(scripts_dir(), script_name)
-    if not os.path.isfile(script_path):
-        return None, None
-    result = run([sys.executable, script_path] + args)
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = _io.StringIO(), _io.StringIO()
     try:
-        data = json.loads(result.stdout)
-        return data, result
+        rc, out, err = cmd_func(args + ["--output", "json"])
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    try:
+        data = json.loads(out)
+        return data, rc
     except (json.JSONDecodeError, ValueError):
-        return None, result
+        return None, rc
 
 
 # ---------------------------------------------------------------------------
@@ -87,23 +92,18 @@ def run_tool(script_name, args):
 def run_gtc_checks(plet_dir, iter_id, phase):
     """Call GTC check-iteration. Returns list of check dicts with git: prefix."""
     checks = []
-    data, result = run_tool(
-        "git_check.py",
+    data, rc = _call_cmd_json(
+        git_check.cmd_check_iteration,
         [
-            "check-iteration",
             plet_dir,
             "--iter-id",
             iter_id,
             "--phase",
             phase,
-            "--output",
-            "json",
         ],
     )
-    if data is None and result is None:
-        checks.append({"name": "git-check", "status": "fail", "detail": "git_check.py not found"})
-    elif data is None:
-        checks.append({"name": "git-check", "status": "fail", "detail": "could not parse git_check.py output"})
+    if data is None:
+        checks.append({"name": "git-check", "status": "fail", "detail": "could not parse git_check output"})
     else:
         for gc in data.get("checks", []):
             checks.append(
@@ -119,22 +119,17 @@ def run_gtc_checks(plet_dir, iter_id, phase):
 def run_sta_validate(plet_dir, iter_id):
     """Call IST validate. Returns a check dict."""
     is_path = iter_state_path(plet_dir, iter_id)
-    data, result = run_tool(
-        "iter_state.py",
+    data, rc = _call_cmd_json(
+        iter_state.cmd_validate,
         [
-            "validate",
             plet_dir,
             "--iter-id",
             iter_id,
-            "--output",
-            "json",
         ],
     )
-    if data is None and result is None:
-        return {"name": "state-valid", "status": "fail", "detail": "iter_state.py not found"}
     if data is None:
-        return {"name": "state-valid", "status": "fail", "detail": "could not parse iter_state.py output"}
-    if result.returncode == 0:
+        return {"name": "state-valid", "status": "fail", "detail": "could not parse iter_state output"}
+    if rc == 0:
         return {"name": "state-valid", "status": "pass", "detail": f"{os.path.basename(is_path)} valid"}
     errors = data.get("errors", [])
     detail = "; ".join(errors[:3]) if errors else "validation failed"
@@ -215,22 +210,16 @@ def check_audit_tag(global_state, iter_state, phase, cwd=None):
 def run_ent_check(plet_dir, iter_id):
     """Call ENT check. Returns 3 check dicts (progress FAIL, learnings WARN, emergent WARN)."""
     checks = []
-    data, result = run_tool(
-        "entries.py",
+    data, rc = _call_cmd_json(
+        entries.cmd_check,
         [
-            "check",
             plet_dir,
             "--iter-id",
             iter_id,
-            "--output",
-            "json",
         ],
     )
-    if data is None and result is None:
-        checks.append({"name": "progress-entry", "status": "fail", "detail": "entries.py not found"})
-        return checks
     if data is None:
-        checks.append({"name": "progress-entry", "status": "fail", "detail": "could not parse entries.py output"})
+        checks.append({"name": "progress-entry", "status": "fail", "detail": "could not parse entries output"})
         return checks
 
     artifacts = data.get("artifacts", {})
@@ -268,10 +257,10 @@ def check_trace_events(plet_dir, iter_id, phase, attempt):
             "detail": f"trace events file empty for {iter_id} {phase}-{attempt}",
         }
 
-    data, result = run_tool(
-        "traces.py", ["validate", plet_dir, "--iter-id", iter_id, "--phase", phase, "--attempt", str(attempt)]
+    data, rc = _call_cmd_json(
+        traces.cmd_validate, [plet_dir, "--iter-id", iter_id, "--phase", phase, "--attempt", str(attempt)]
     )
-    if result is not None and result.returncode != 0:
+    if rc != 0:
         return {
             "name": "trace-events",
             "status": "warn",
@@ -302,22 +291,17 @@ def check_spec_artifacts(plet_dir):
 
 def run_fpr_check(plet_dir):
     """Call FPR check. Implement pre only."""
-    data, result = run_tool(
-        "fingerprint.py",
+    data, rc = _call_cmd_json(
+        fingerprint.cmd_check,
         [
-            "check",
             plet_dir,
-            "--output",
-            "json",
         ],
     )
-    if data is None and result is None:
-        return {"name": "fingerprints-consistent", "status": "warn", "detail": "fingerprint.py not found"}
     if data is None:
         return {
             "name": "fingerprints-consistent",
             "status": "warn",
-            "detail": "could not parse fingerprint.py output",
+            "detail": "could not parse fingerprint output",
         }
     consistent = data.get("consistent", None)
     if consistent is True:
@@ -457,9 +441,8 @@ def format_text_output(command, checks, overall, counts):
 
 def _log_gate_to_progress(cmd, checks, plet_dir, iter_id, iter_state, phase, overall, counts, exit_code):
     """Log gate result to progress.md via entries.py."""
-    ent_script = os.path.join(scripts_dir(), "entries.py")
     progress_path_val = os.path.join(plet_dir, "progress.md")
-    if not (os.path.isfile(ent_script) and os.path.isfile(progress_path_val)):
+    if not os.path.isfile(progress_path_val):
         return
 
     iter_title = iter_state.get("title", iter_id)
@@ -479,26 +462,30 @@ def _log_gate_to_progress(cmd, checks, plet_dir, iter_id, iter_state, phase, ove
     )
     attempt = iter_state.get("attempts", {}).get(phase, 1)
     gate_status = "COMPLETE" if exit_code == 0 else "IN_PROGRESS"
-    run(
-        [
-            sys.executable,
-            ent_script,
-            "add-progress",
-            plet_dir,
-            "--iter-id",
-            iter_id,
-            "--iter-title",
-            iter_title,
-            "--phase",
-            phase,
-            "--attempt",
-            str(attempt),
-            "--status",
-            gate_status,
-            "--content",
-            content,
-        ]
-    )
+    import io as _io
+
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = _io.StringIO(), _io.StringIO()
+    try:
+        entries.cmd_add_progress(
+            [
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--iter-title",
+                iter_title,
+                "--phase",
+                phase,
+                "--attempt",
+                str(attempt),
+                "--status",
+                gate_status,
+                "--content",
+                content,
+            ]
+        )
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
 
 
 def run_gate(cmd, args, phase_specific_pre_fn, phase_specific_post_fn):
