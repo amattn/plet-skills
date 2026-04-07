@@ -260,13 +260,14 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | | **Phase 4: Agent Inner Loop** | |
 | SEQ_26 | Gate-post simplified: quality-only (no git/infrastructure checks in post). Git checks pre-only. | ✓ done |
 | SEQ_27 | Removed: learnings/emergent gate checks (no longer required). Removed: check_rebase_onto_workstream, check_audit_tag from post. Removed: branch-exists from git_check. correct-branch checks workstream. | ✓ done |
-| SEQ_28 | RED: tests for emergent ID format `EM_{iter_id}_{N}` — gate validates, rejects old flat `EM_N` | |
-| SEQ_29 | GREEN: implement emergent ID validation | |
+| SEQ_28 | RED: tests for emergent ID format `EM_{iter_id}_{N}` — gate validates, rejects old flat `EM_N` | ✓ done |
+| SEQ_29 | GREEN: implement emergent ID validation | ✓ done |
 | SEQ_30 | RED: tests for learnings/emergent per-AC prompt in prompt module | |
 | SEQ_31 | GREEN: add learnings/emergent prompt injection | |
 | | **Phase 5: Schema + Docs** | |
 | SEQ_32 | RED: tests assert parallelGroup, requeue_reason, lastHeartbeat rejected by validator. remainingRetries only decremented on verify rejection. | |
 | SEQ_33 | GREEN: remove fields from schema + validator. Simplify remainingRetries. Update fixtures. | |
+| SEQ_33b | Path cleanup: centralize ad-hoc `os.path.join` into `util_io.py` derivers, replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | |
 | SEQ_34 | Audit + slim formats.md — drop if CLI covers everything | |
 | SEQ_35 | Audit + slim state-schema.md — drop if tools cover everything | |
 | SEQ_36 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | |

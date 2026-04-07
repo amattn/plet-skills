@@ -494,7 +494,7 @@ def test_emergent_entry_format():
                 "1",
             ]
         )
-        # Output: "OK — eem_xxx EM_1"
+        # Output: "OK — eem_xxx EM_ID_002_1"
         check("output starts with OK", stdout.startswith("OK"))
         after_ok = stdout.split(" — ", 1)[1]
         parts = after_ok.split()
@@ -505,8 +505,8 @@ def test_emergent_entry_format():
             content = f.read()
 
         check("type prefix is eem", plet_id.startswith("eem_"))
-        check("EM_1 assigned", em_id == "EM_1")
-        check("has EM heading", "### EM_1: Chose SQLite" in content)
+        check("EM_ID_002_1 assigned", em_id == "EM_ID_002_1")
+        check("has EM heading", "### EM_ID_002_1: Chose SQLite" in content)
         check("has PletId", f"**PletId:** `{plet_id}`" in content)
         check("has Timestamp", "**Timestamp:** 20" in content)
         # Unified format: Iteration field (replaces Source)
@@ -520,7 +520,7 @@ def test_emergent_entry_format():
 
 
 def test_emergent_auto_numbering():
-    print("\n## Emergent EM_N auto-numbering")
+    print("\n## Emergent EM_{iter_id}_{N} auto-numbering")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         base_args = [
@@ -542,15 +542,15 @@ def test_emergent_auto_numbering():
 
         stdout1, _, _ = run(base_args + ["--title", "First"])
         em1 = stdout1.split()[-1]
-        check("first entry is EM_1", em1 == "EM_1")
+        check("first entry is EM_ID_001_1", em1 == "EM_ID_001_1")
 
         stdout2, _, _ = run(base_args + ["--title", "Second"])
         em2 = stdout2.split()[-1]
-        check("second entry is EM_2", em2 == "EM_2")
+        check("second entry is EM_ID_001_2", em2 == "EM_ID_001_2")
 
         stdout3, _, _ = run(base_args + ["--title", "Third"])
         em3 = stdout3.split()[-1]
-        check("third entry is EM_3", em3 == "EM_3")
+        check("third entry is EM_ID_001_3", em3 == "EM_ID_001_3")
 
 
 def test_emergent_category_validation():
@@ -1833,7 +1833,7 @@ def test_next_em_number_no_file():
     print("\n## next_em_number — no emergent.md (direct import)")
     d = tempfile.mkdtemp()
     try:
-        result = ent_mod.next_em_number(d)
+        result = ent_mod.next_em_number(d, "ID_001")
         check("returns 1 when no file", result == 1)
     finally:
         import shutil
@@ -1847,9 +1847,134 @@ def test_next_em_number_with_entries():
     try:
         em_path = os.path.join(d, "emergent.md")
         with open(em_path, "w") as f:
-            f.write("### EM_1: First\n### EM_3: Third\n")
-        result = ent_mod.next_em_number(d)
+            f.write("### EM_ID_001_1: First\n### EM_ID_001_3: Third\n")
+        result = ent_mod.next_em_number(d, "ID_001")
         check("returns 4 (max+1)", result == 4)
+    finally:
+        import shutil
+
+        shutil.rmtree(d)
+
+
+# ---------------------------------------------------------------------------
+# SEQ_28: Emergent ID format EM_{iter_id}_{N} (RED tests)
+# ---------------------------------------------------------------------------
+
+
+def test_emergent_id_includes_iter_id():
+    """SEQ_28: emergent ID must be EM_{iter_id}_{N}, not flat EM_N."""
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        stdout, _, _ = run(
+            [
+                "add-emergent",
+                d,
+                "--iter-id",
+                "ID_002",
+                "--iter-title",
+                "Core data model",
+                "--title",
+                "Chose SQLite",
+                "--phase",
+                "implement",
+                "--category",
+                "design decision",
+                "--content",
+                "Chose SQLite for simplicity.",
+                "--attempt",
+                "1",
+            ]
+        )
+        # Output should end with EM_ID_002_1, not EM_1
+        em_id = stdout.split()[-1]
+        assert em_id == "EM_ID_002_1", f"expected EM_ID_002_1, got: {em_id}"
+
+        with open(emergent_path_fn(d)) as f:
+            content = f.read()
+        assert "### EM_ID_002_1: Chose SQLite" in content, f"heading EM_ID_002_1 not found in:\n{content}"
+
+
+def test_emergent_id_auto_numbering_per_iter():
+    """SEQ_28: EM_{iter_id}_{N} numbering is per-iteration."""
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        base = [
+            "add-emergent",
+            d,
+            "--iter-id",
+            "ID_001",
+            "--iter-title",
+            "Test",
+            "--phase",
+            "implement",
+            "--category",
+            "assumption",
+            "--content",
+            "test",
+            "--attempt",
+            "1",
+        ]
+
+        stdout1, _, _ = run(base + ["--title", "First"])
+        em1 = stdout1.split()[-1]
+        assert em1 == "EM_ID_001_1", f"expected EM_ID_001_1, got: {em1}"
+
+        stdout2, _, _ = run(base + ["--title", "Second"])
+        em2 = stdout2.split()[-1]
+        assert em2 == "EM_ID_001_2", f"expected EM_ID_001_2, got: {em2}"
+
+        # Different iter_id starts at 1
+        base2 = list(base)
+        base2[3] = "ID_003"  # --iter-id
+        stdout3, _, _ = run(base2 + ["--title", "Other iter"])
+        em3 = stdout3.split()[-1]
+        assert em3 == "EM_ID_003_1", f"expected EM_ID_003_1, got: {em3}"
+
+
+def test_emergent_id_reference_id_json():
+    """SEQ_28: JSON output referenceId uses EM_{iter_id}_{N} format."""
+    with tempfile.TemporaryDirectory() as d:
+        make_artifacts(d)
+        stdout, _, _ = run(
+            [
+                "add-emergent",
+                d,
+                "--iter-id",
+                "ID_005",
+                "--iter-title",
+                "Auth",
+                "--title",
+                "Token choice",
+                "--phase",
+                "verify",
+                "--category",
+                "design decision",
+                "--content",
+                "JWT chosen.",
+                "--attempt",
+                "1",
+                "--output",
+                "json",
+            ]
+        )
+        data = json.loads(stdout)
+        ref_id = data.get("referenceId", "")
+        assert ref_id == "EM_ID_005_1", f"expected EM_ID_005_1, got: {ref_id}"
+
+
+def test_next_em_number_scoped_to_iter():
+    """SEQ_28: next_em_number scoped to iter_id, reads EM_{iter_id}_{N} format."""
+    d = tempfile.mkdtemp()
+    try:
+        em_path = os.path.join(d, "emergent.md")
+        with open(em_path, "w") as f:
+            f.write("### EM_ID_001_1: First\n### EM_ID_001_3: Third\n### EM_ID_002_1: Other\n")
+        result = ent_mod.next_em_number(d, "ID_001")
+        assert result == 4, f"ID_001: expected 4, got: {result}"
+        result2 = ent_mod.next_em_number(d, "ID_002")
+        assert result2 == 2, f"ID_002: expected 2, got: {result2}"
+        result3 = ent_mod.next_em_number(d, "ID_099")
+        assert result3 == 1, f"ID_099: expected 1, got: {result3}"
     finally:
         import shutil
 
@@ -1957,6 +2082,7 @@ def main():
     test_version()
     test_next_em_number_no_file()
     test_next_em_number_with_entries()
+    # SEQ_28 tests use assert (pytest-native), not check() — run via pytest only
     test_resolve_content_missing()
     test_resolve_content_both()
     test_validate_check_iter_id_proj()

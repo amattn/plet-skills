@@ -99,14 +99,16 @@ help_hint = make_help_hint("entries")
 # ---------------------------------------------------------------------------
 
 
-def next_em_number(artifact_dir):
-    """Find the next available EM_N number by scanning emergent.md."""
+def next_em_number(artifact_dir, iter_id):
+    """Find the next available EM_{iter_id}_{N} number by scanning emergent.md."""
     em_path = emergent_path(artifact_dir)
     if not os.path.exists(em_path):
         return 1
     with open(em_path) as f:
         content = f.read()
-    numbers = [int(m) for m in re.findall(r"### EM_(\d+):", content)]
+    # Match EM_{iter_id}_{N} where iter_id is fixed, N is the sequence number
+    pattern = rf"### EM_{re.escape(iter_id)}_(\d+):"
+    numbers = [int(m) for m in re.findall(pattern, content)]
     return max(numbers) + 1 if numbers else 1
 
 
@@ -555,16 +557,18 @@ Examples:
     attempt = kwargs["_attempt_int"]
     content_text = kwargs["_content_text"]
     phase = kwargs["phase"]
-    em_number = next_em_number(artifact_dir)
+    iter_id = kwargs["iter_id"]
+    em_number = next_em_number(artifact_dir, iter_id)
 
     em_path = emergent_path(artifact_dir)
     _ensure_artifact_file(em_path)
 
-    plet_id = generate_plet_id(TYPE_PREFIXES["emergent"], kwargs["iter_id"], phase, attempt)
+    em_ref = f"EM_{iter_id}_{em_number}"
+    plet_id = generate_plet_id(TYPE_PREFIXES["emergent"], iter_id, phase, attempt)
     entry = build_emergent_entry(
         plet_id,
-        em_number,
-        kwargs["iter_id"],
+        em_ref,
+        iter_id,
         kwargs["iter_title"],
         kwargs["title"],
         phase,
@@ -579,12 +583,12 @@ Examples:
         cmd_name,
         plet_id,
         em_path,
-        {"referenceId": f"EM_{em_number}", "category": kwargs["category"], "iteration": kwargs["iter_id"]},
+        {"referenceId": em_ref, "category": kwargs["category"], "iteration": iter_id},
         dry_run,
         output_json,
         pretty,
         fields,
-        text_suffix=f" EM_{em_number}",
+        text_suffix=f" {em_ref}",
     )
 
 

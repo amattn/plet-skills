@@ -85,14 +85,14 @@ def build_learning_entry(plet_id, iteration, title, category, entry_title, conte
     return "\n".join(lines)
 
 
-def build_emergent_entry(plet_id, em_number, iteration, title, entry_title, phase, category, content_text):
+def build_emergent_entry(plet_id, em_ref, iteration, title, entry_title, phase, category, content_text):
     """Build an emergent.md entry string per formats.md RT_3."""
     lines = [
         f'<div id="plet-{plet_id}"></div>',
         "",
         "---",
         "",
-        f"### EM_{em_number}: {entry_title}",
+        f"### {em_ref}: {entry_title}",
         f"**PletId:** `{plet_id}`",
         f"**Timestamp:** {now_iso()}",
         f"**Iteration:** [{iteration}] {title}",
