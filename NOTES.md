@@ -1958,7 +1958,7 @@ Surface area audit: 7 literal `"ITR_NNN"` in scripts, 1174 in tests, 430 `iter_i
 **Why not part of verify:** Verify's job is checking correctness against acceptance criteria. Refactoring is about improving the codebase that's already correct. Different goals, different context needs. Verify sees one iteration; refactor needs to see everything.
 
 **Design sketch:**
-- Synthetic iteration: `ITR_RFT_MS1`, `ITR_RFT_MS2`, etc. — one per milestone
+- Synthetic iteration: `ITR_RFT_MS_1`, `ITR_RFT_MS_2`, etc. — one per milestone
 - Not in the original dependency map — injected by orchestrator when milestone completes
 - Implement phase: agent audits codebase for patterns, inconsistencies, tech debt. Applies fixes. Runs tests.
 - Verify phase: agent checks that all tests pass, no regressions, refactoring was mechanical (no behavior changes)
@@ -1967,7 +1967,7 @@ Surface area audit: 7 literal `"ITR_NNN"` in scripts, 1174 in tests, 430 `iter_i
 
 **Decision (2026-04-05): Milestones as native execution barriers.** Milestones are not cosmetic groupings — they're integration points. Every iteration in MS_2 implicitly depends on all of MS_1 being complete (plus any explicit within-milestone deps). This eliminates cross-milestone parallelism by design: you don't start building MS_2 features on an un-integrated, un-refactored MS_1 foundation.
 
-The refactor iteration (`ITR_RFT_MS1`) is the last iteration in each milestone. All MS_2 iterations depend on it. The dependency map encodes this — the orchestrator doesn't need milestone awareness, it just follows the DAG.
+The refactor iteration (`ITR_RFT_MS_1`) is the last iteration in each milestone. All MS_2 iterations depend on it. The dependency map encodes this — the orchestrator doesn't need milestone awareness, it just follows the DAG.
 
 **Implication for plan phase:** Milestone definition becomes a first-class design decision, not a labeling step. The plan phase must guide users to define milestones as self-contained, buildable increments:
 - Each milestone should be a coherent feature set that integrates as a unit
@@ -1977,7 +1977,7 @@ The refactor iteration (`ITR_RFT_MS1`) is the last iteration in each milestone. 
 
 **Implementation:** Plan phase generates the dependency map with milestone barriers:
 1. Within-milestone deps: explicit, per-iteration (same as today)
-2. Cross-milestone deps: implicit barrier — all MS_N+1 iterations depend on ITR_RFT_MSN
+2. Cross-milestone deps: implicit barrier — all MS_N+1 iterations depend on ITR_RFT_MS_N
 3. Refactor iteration added to each milestone during plan decomposition
 4. User reviews refactor iterations alongside regular ones
 
@@ -1989,7 +1989,7 @@ The orchestrator changes zero — it sees the DAG and follows it. The streaming 
 
 **Q: Refactor budget?** A: Single attempt — one implement + one verify. Block if verify fails. Trivial fix-ups (typos, missed imports) handled in-place during the single attempt, same as verify's fix-in-place pattern. If verify fails, human reviews in refine. Refactoring shouldn't spiral.
 
-**Q: Minimum milestone size?** A: Always included. The refactor looks at the entire codebase, not just the milestone's iterations. Even a single-iteration milestone might reveal patterns in older code. User can remove `ITR_RFT_MSN` during plan review if not needed.
+**Q: Minimum milestone size?** A: Always included. The refactor looks at the entire codebase, not just the milestone's iterations. Even a single-iteration milestone might reveal patterns in older code. User can remove `ITR_RFT_MS_N` during plan review if not needed.
 
 **Q: Acceptance criteria generation?** A: Three layers:
 1. **Refactor goals** — defined once during plan phase, project-level. Defaults (ruff clean, McCabe ≤15, coverage holds, all tests pass) plus user-specified goals ("files under 300 lines", "consistent error handling", "extract shared patterns when 3+ duplicates"). These apply to every refactor iteration.
@@ -2030,7 +2030,7 @@ A refactor that breaks tests reverts all changes, sets `refactorChanges: false`,
 1. **When introduced:** During milestone definition (Step 5), right before milestones — natural integration point.
 2. **Refactor goals:** Defaults + user-specified. Defaults are pattern-oriented + artifact-oriented (not quality ratchets — those are already enforced by linter/test suite). Discussion ongoing about exact defaults. Quality ratchet items (ruff clean, McCabe, coverage) don't belong as refactor goals — they're NFRs.
 3. **Where goals live:** New section in requirements.md — "Refactor Policy and Goals", placed before milestone definitions. Refactor iterations in iterations.md reference the policy.
-4. **Removable:** Yes — user deletes `ITR_RFT_MSN` during review like any iteration. No special mechanism.
+4. **Removable:** Yes — user deletes `ITR_RFT_MS_N` during review like any iteration. No special mechanism.
 5. **Presentation:** Grouped summary — all refactor iterations presented together at the end, not interleaved. Needs real-run validation.
 6. **Placement in requirements.md:** Still open — between §4.5 and §5 (quality-adjacent) vs before §9 (milestone-adjacent). Leaning toward quality-adjacent but not decided.
 
