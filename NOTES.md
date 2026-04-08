@@ -2632,6 +2632,26 @@ Observed when comparing /fast-chat (session-kit) against NL/NLR conventions in p
 
 The three-layer compaction defense (CLAUDE.md POST-COMPACTION RULE → PLET.md MANDATORY ACKNOWLEDGMENT → auto-memory MEMORY.md) appears to be working. Observed 2 compactions in a single session (2026-03-09) — both times, the agent immediately produced "I have just read CLAUDE.md and PLET.md." without prompting. This is the canary behaving as designed, not a false positive: the agent re-read the files and acknowledged before continuing work. Continue monitoring across sessions and across different repos to confirm reliability.
 
+### NOTES_MON_7: Infrastructure overhead fixed tax
+
+LOGA R15: ~20 plet tool calls per agent invocation as a fixed tax regardless of iteration complexity. Implement agents 35-48% infra overhead, verify agents ~59%. Overall ~40-45%. The fixed calls include: setup activity, read context (3-5 calls), update-criterion per AC, wip-commit per AC, add-learning, add-emergent, phase-end. Most are necessary. Worth monitoring whether auto-emit reduces the explicit call count enough to move the needle (OLLR R07: explicit calls down 32%, but total state changes up 72%).
+
+### NOTES_MON_8: Dead activity enum values
+
+LOGA R15 (199 calls) and OLLR R06 (79 calls): `committing` and `verifying` are defined phase-activity values that no agent ever uses. Effective vocabulary is 4 values: `setup`, `implementing`, `running_checks`, `wrapping_up`. With auto-emit, `committing` and `wrapping_up` are now set automatically. Consider pruning unused values or documenting they're for edge cases only.
+
+### NOTES_MON_9: Learnings quantity pattern
+
+LOGA R15: exactly 2 learnings per iteration (1 implement, 1 verify), 26 total. Eerily consistent — suggests agents produce artifacts to meet an implied quota rather than when genuinely useful. OLLR R07 (post-PLAN_VER): 5 learnings for 6 iterations — dropped from R06's 12. The leaner verify.md may reduce verify-phase learnings. Monitor whether quality improves even as quantity drops.
+
+### NOTES_MON_10: progress.md volume scaling
+
+OLLR runs: ~235 lines/iteration. LOGA R15: ~223 lines/iteration. Auto-progress from CLI shim events (SEQ_20-21) is the primary driver. At this rate, a 20-iteration project produces ~4500 lines. May need a summary/compaction strategy if this becomes unwieldy for agent context windows.
+
+### NOTES_MON_11: Coverage gap from auto-emit
+
+`plet_agent.py` at 54% coverage (lines 107-147: `_auto_update_activity` untested). Overall coverage 90.74% vs 91% threshold. The auto-emit function needs dedicated tests. Not blocking IDR but should be fixed before next version bump.
+
 ---
 
 ## NOTES_GUI: GUI Design

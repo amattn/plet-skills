@@ -27,6 +27,17 @@ verify.md rewritten to match what agents actually do well (functional verificati
 - `util_cli.py` dispatch now injects `skillVersion`, `scriptVersion`, and `submoduleVersion` into all JSON output automatically. Individual commands no longer set version fields manually.
 - `prompt.py` 0.3.3: CLI quick ref updated (5→6 commands, "after each criterion").
 
+### Iteration ID Rename (PLAN_IDR)
+
+`ID_` prefix renamed to `ITR_` across the entire system. `ID_` was too generic — grep noise in target projects where developers have database IDs, CSS IDs, etc. `ITR_` is unambiguous and plet-specific.
+
+- 17 scripts: validation regexes, help text, examples, reserved prefix sets
+- 36 test files + fixtures: ~1174 literal occurrences
+- 30 doc files: reference files, SKILL.md, PRD, specs, PLET.md
+- Hard cut (no transition period), historical artifacts left as-is
+- Emergent IDs: `EM_ID_001_1` → `EM_ITR_001_1`
+- State file names: `ITR_001.json` (pattern only, no migration for existing projects)
+
 ### $PLET_ITER_ID Environment Variable
 
 Reference file examples updated: `{iteration_id}` and `{iter_id}` placeholders replaced with `$PLET_ITER_ID` env var, matching the existing `$PLET_AGENT_ID` pattern.
