@@ -312,6 +312,202 @@ def test_subprocess_dispatch():
 
 
 # ===========================================================================
+# Auto-activity and trace emit (coverage for _auto_update_activity, _emit_trace_event)
+# ===========================================================================
+
+
+def test_emit_trace_event_with_env():
+    """_emit_trace_event writes events when PLET env vars are set."""
+    print("\n## _emit_trace_event with env")
+    import json
+    import shutil
+
+    from util_io import events_path
+
+    d, plet_dir = _make_project()
+    try:
+        old_env = {}
+        env_vars = {
+            "PLET_DIR": plet_dir,
+            "PLET_ITER_ID": "ITR_001",
+            "PLET_PHASE": "implement",
+            "PLET_ATTEMPT": "1",
+        }
+        for k, v in env_vars.items():
+            old_env[k] = os.environ.get(k)
+            os.environ[k] = v
+        try:
+            plet_agent._emit_trace_event("cli_entry", "update-criterion")
+            plet_agent._emit_trace_event("cli_exit", "update-criterion", exit_code=0)
+
+            path = events_path(plet_dir, "ITR_001", "implement", 1)
+            check("trace file created", os.path.isfile(path), f"path: {path}")
+            if os.path.isfile(path):
+                with open(path) as f:
+                    events = [json.loads(ln) for ln in f if ln.strip()]
+                check("2 events", len(events) == 2, f"got {len(events)}")
+                check("entry type", events[0].get("type") == "cli_entry")
+                check("exit type", events[1].get("type") == "cli_exit")
+                check("exit has exitCode", events[1].get("data", {}).get("exitCode") == 0)
+        finally:
+            for k, v in old_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+    finally:
+        shutil.rmtree(d)
+
+
+def test_emit_trace_event_no_env():
+    """_emit_trace_event silently skips when env vars missing."""
+    print("\n## _emit_trace_event without env")
+    old_dir = os.environ.pop("PLET_DIR", None)
+    old_id = os.environ.pop("PLET_ITER_ID", None)
+    try:
+        # Should not raise
+        plet_agent._emit_trace_event("cli_entry", "test")
+        check("no crash without env", True)
+    finally:
+        if old_dir is not None:
+            os.environ["PLET_DIR"] = old_dir
+        if old_id is not None:
+            os.environ["PLET_ITER_ID"] = old_id
+
+
+def test_auto_update_activity_criterion():
+    """_auto_update_activity updates phaseActivity for update-criterion."""
+    print("\n## _auto_update_activity for update-criterion")
+    import shutil
+
+    d, plet_dir = _make_project()
+    try:
+        old_env = {}
+        env_vars = {
+            "PLET_DIR": plet_dir,
+            "PLET_ITER_ID": "ITR_001",
+            "PLET_AGENT_ID": "test_agent",
+        }
+        for k, v in env_vars.items():
+            old_env[k] = os.environ.get(k)
+            os.environ[k] = v
+        try:
+            plet_agent._auto_update_activity(
+                "update-criterion",
+                [
+                    "update-criterion",
+                    plet_dir,
+                    "--iter-id",
+                    "ITR_001",
+                    "--criterion",
+                    "AC_1",
+                    "--phase",
+                    "implementation",
+                    "--status",
+                    "pass",
+                    "--evidence",
+                    "tests green",
+                    "--agent-id",
+                    "test_agent",
+                ],
+            )
+            ist = load_json(iter_state_path(plet_dir, "ITR_001"))
+            check(
+                "phaseActivity updated",
+                ist.get("phaseActivity") == "running_checks",
+                f"got: {ist.get('phaseActivity')}",
+            )
+            check(
+                "activityDetail has AC_1",
+                "AC_1" in (ist.get("activityDetail") or ""),
+                f"got: {ist.get('activityDetail')}",
+            )
+        finally:
+            for k, v in old_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+    finally:
+        shutil.rmtree(d)
+
+
+def test_auto_update_activity_wip_commit():
+    """_auto_update_activity updates for wip-commit."""
+    print("\n## _auto_update_activity for wip-commit")
+    import shutil
+
+    d, plet_dir = _make_project()
+    try:
+        old_env = {}
+        env_vars = {
+            "PLET_DIR": plet_dir,
+            "PLET_ITER_ID": "ITR_001",
+            "PLET_AGENT_ID": "test_agent",
+        }
+        for k, v in env_vars.items():
+            old_env[k] = os.environ.get(k)
+            os.environ[k] = v
+        try:
+            plet_agent._auto_update_activity(
+                "wip-commit",
+                ["wip-commit", plet_dir, "--iter-id", "ITR_001", "--message", "AC_1 done"],
+            )
+            ist = load_json(iter_state_path(plet_dir, "ITR_001"))
+            check(
+                "phaseActivity is committing",
+                ist.get("phaseActivity") == "committing",
+                f"got: {ist.get('phaseActivity')}",
+            )
+            check(
+                "activityDetail has message",
+                "AC_1 done" in (ist.get("activityDetail") or ""),
+                f"got: {ist.get('activityDetail')}",
+            )
+        finally:
+            for k, v in old_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+    finally:
+        shutil.rmtree(d)
+
+
+def test_auto_update_activity_no_env():
+    """_auto_update_activity silently skips without env vars."""
+    print("\n## _auto_update_activity without env")
+    old_dir = os.environ.pop("PLET_DIR", None)
+    old_id = os.environ.pop("PLET_ITER_ID", None)
+    old_agent = os.environ.pop("PLET_AGENT_ID", None)
+    try:
+        plet_agent._auto_update_activity("update-criterion", ["update-criterion", "plet/"])
+        check("no crash without env", True)
+    finally:
+        if old_dir is not None:
+            os.environ["PLET_DIR"] = old_dir
+        if old_id is not None:
+            os.environ["PLET_ITER_ID"] = old_id
+        if old_agent is not None:
+            os.environ["PLET_AGENT_ID"] = old_agent
+
+
+def test_auto_update_activity_unmapped_command():
+    """_auto_update_activity skips for commands not in the mapping."""
+    print("\n## _auto_update_activity for unmapped command")
+    os.environ["PLET_DIR"] = "/tmp"
+    os.environ["PLET_ITER_ID"] = "ITR_001"
+    os.environ["PLET_AGENT_ID"] = "test"
+    try:
+        plet_agent._auto_update_activity("add-learning", ["add-learning", "plet/"])
+        check("unmapped command skips silently", True)
+    finally:
+        os.environ.pop("PLET_DIR", None)
+        os.environ.pop("PLET_ITER_ID", None)
+        os.environ.pop("PLET_AGENT_ID", None)
+
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 
@@ -328,6 +524,14 @@ def main():
     test_add_emergent_dispatches()
     test_phase_end_dispatches()
     test_subprocess_dispatch()
+
+    # Coverage for auto-activity and trace emit
+    test_emit_trace_event_with_env()
+    test_emit_trace_event_no_env()
+    test_auto_update_activity_criterion()
+    test_auto_update_activity_wip_commit()
+    test_auto_update_activity_no_env()
+    test_auto_update_activity_unmapped_command()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
