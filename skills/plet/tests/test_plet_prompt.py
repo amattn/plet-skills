@@ -211,11 +211,11 @@ def test_refactor_iteration_uses_refactor_md():
             plet_dir,
             project_id="TEST",
             loop_session=1,
-            lifecycles={"ITR_RFT_MS_1": "implementing"},
+            lifecycles={"ITR_RFT_1": "implementing"},
         )
         _shared_make_iter_state(
             plet_dir,
-            iter_id="ITR_RFT_MS_1",
+            iter_id="ITR_RFT_1",
             title="Milestone 1 refactor",
             attempts={"implement": 1, "verify": 0},
             criteria=[{"id": "AC_1", "description": "Extract duplicated logic", "status": "pending"}],
@@ -223,12 +223,12 @@ def test_refactor_iteration_uses_refactor_md():
         with open(requirements_path(plet_dir), "w") as f:
             f.write("# Requirements\n\n## FR_1: Test\n")
         with open(iterations_path(plet_dir), "w") as f:
-            f.write("# Iterations\n\n## ITR_RFT_MS_1 — Milestone 1 refactor\n\nRefactor goals.\n")
+            f.write("# Iterations\n\n## ITR_RFT_1 — Milestone 1 refactor\n\nRefactor goals.\n")
         with open(learnings_path(plet_dir), "w") as f:
             f.write("# Learnings\n")
 
         stdout, stderr, rc = run(
-            ["assemble", plet_dir, "--iter-id", "ITR_RFT_MS_1", "--phase", "implement", "--output", "json"]
+            ["assemble", plet_dir, "--iter-id", "ITR_RFT_1", "--phase", "implement", "--output", "json"]
         )
         check("exits 0", rc == 0, f"stderr: {stderr}")
         data = json.loads(stdout)

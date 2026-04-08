@@ -404,7 +404,7 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 
 Milestone-boundary refactor via synthetic iteration. Milestones are execution barriers. Refactor iterations use the standard implement→verify lifecycle with a specialized reference file — no new phase, no schema changes. Single attempt, always included, user can remove. See NOTES.md § NOTES_PLN_RFT + § NOTES_PLN_RFT_SIMPLIFY for design decisions and simplification rationale.
 
-**Architecture:** `ITR_RFT_MS_N` is a normal iteration. `prompt.py` detects the `ITR_RFT_` prefix and injects `refactor.md` instead of `implement.md`. Standard verdicts, standard lifecycle, standard gate. No new phase values, no schema migration, no custom orchestrator routing.
+**Architecture:** `ITR_RFT_N` is a normal iteration. `prompt.py` detects the `ITR_RFT_` prefix and injects `refactor.md` instead of `implement.md`. Standard verdicts, standard lifecycle, standard gate. No new phase values, no schema migration, no custom orchestrator routing.
 
 | Step | Description | Status |
 |------|-------------|--------|

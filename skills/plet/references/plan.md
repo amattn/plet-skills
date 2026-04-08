@@ -243,7 +243,7 @@ Generate a structured requirements document saved to `plet/requirements.md`. Fol
 
 ## 9b. Refactor Policy
 
-Default refactor goals applied at each milestone boundary (via `ITR_RFT_MS_N`):
+Default refactor goals applied at each milestone boundary (via `ITR_RFT_N`):
 
 **Pattern-oriented (always):**
 1. Extract duplicated logic when 3+ copies exist across files
@@ -482,7 +482,7 @@ This prevents starting MS_2 work on an un-integrated MS_1 foundation. Each miles
 
 ### Refactor Iterations
 
-Each milestone includes a synthetic refactor iteration (`ITR_RFT_MS_N`) as its final iteration. All MS_N+1 iterations depend on it (via the milestone barrier). The refactor iteration:
+Each milestone includes a synthetic refactor iteration (`ITR_RFT_N`) as its final iteration. All MS_N+1 iterations depend on it (via the milestone barrier). The refactor iteration:
 
 - Uses the standard implement→verify lifecycle (no special phase)
 - Gets `refactor.md` as its reference file instead of `implement.md` (prompt.py routing)
@@ -490,7 +490,7 @@ Each milestone includes a synthetic refactor iteration (`ITR_RFT_MS_N`) as its f
 - Agent discovers specifics by reading the codebase, churn analysis, learnings, and emergent items
 - Single attempt — if verify fails, it blocks and the human reviews in refine
 
-**Always included by default.** The user can remove `ITR_RFT_MS_N` during iteration review if the milestone is too small to warrant refactoring. Present them grouped at the end of each milestone, not interleaved.
+**Always included by default.** The user can remove `ITR_RFT_N` during iteration review if the milestone is too small to warrant refactoring. Present them grouped at the end of each milestone, not interleaved.
 
 ### Milestone Assignment (PL_14)
 
