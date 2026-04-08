@@ -643,6 +643,150 @@ cmd_check_session.example = "git_check.py check-session plet/"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
+# churn — file commit frequency analysis
+# ---------------------------------------------------------------------------
+
+
+def _get_merge_base(ref1, ref2):
+    """Get the merge base between two refs. Returns commit hash or None."""
+    result = run_git("merge-base", ref1, ref2)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def _count_file_commits(since_ref=None):
+    """Count commits per file since a ref. Returns dict {path: count}."""
+    args = ["log", "--name-only", "--format="]
+    if since_ref:
+        args.append(f"{since_ref}..HEAD")
+    result = run_git(*args)
+    if result.returncode != 0:
+        return {}
+
+    counts = {}
+    for line in result.stdout.strip().split("\n"):
+        line = line.strip()
+        if line:
+            counts[line] = counts.get(line, 0) + 1
+    return counts
+
+
+def cmd_churn(args):  # noqa: C901
+    """Analyze file churn — files sorted by commit count, outliers flagged."""
+    help_text = """USAGE:
+    git_check.py churn <plet_dir> [--top N] [--since REF]
+        [--output json [--pretty] [--fields f1,f2]]
+
+    plet_dir    Path to plet directory (required)
+    --top       Show top N files (default: 20)
+    --since     Git ref to count from (default: workstream branch point)
+
+PURPOSE:
+    Lists files by commit frequency since the workstream started.
+    High-churn files are likely god objects or kitchen-sink modules.
+    Files with > 2x median commit count are flagged as outliers.
+
+Examples:
+    git_check.py churn plet/
+    git_check.py churn plet/ --top 10 --output json
+    git_check.py churn plet/ --since HEAD~20
+"""
+    cmd_name = "churn"
+    hint = help_hint(cmd_name)
+
+    if "-h" in args or "--help" in args:
+        return (0, help_text, "")
+
+    result = parse_command(args, help_text, {"top", "since"}, [], False, hint)
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, _dry_run = result
+
+    top = 20
+    if "top" in kwargs:
+        try:
+            top = int(kwargs["top"])
+            if top < 1:
+                raise ValueError()
+        except (ValueError, TypeError):
+            return (1, "", f"Error: --top must be a positive integer\n{hint}")
+
+    if not is_git_repo():
+        return (1, "", "Error: not inside a git repository")
+
+    # Determine the since ref
+    since_ref = kwargs.get("since")
+    if not since_ref:
+        # Default: find where workstream diverged from its parent
+        global_state = load_and_validate_global_state(plet_dir)
+        if not isinstance(global_state, tuple):
+            from util_git import active_session_branch
+
+            branch = active_session_branch(global_state)
+            if branch:
+                # Find where the workstream branched from
+                # Use merge-base with main/master or the parent branch
+                for parent in ("main", "master"):
+                    base = _get_merge_base(parent, "HEAD")
+                    if base:
+                        since_ref = base
+                        break
+
+    # Count commits per file
+    counts = _count_file_commits(since_ref)
+    if not counts:
+        if output_json:
+            data = {"status": "ok", "command": cmd_name, "files": [], "totalFiles": 0}
+            return (0, _to_json(data, pretty, fields), "")
+        return (0, "No file changes found.", "")
+
+    # Sort by commit count descending
+    sorted_files = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
+
+    # Calculate median for outlier detection
+    all_counts = sorted(counts.values())
+    n = len(all_counts)
+    median = (all_counts[n // 2 - 1] + all_counts[n // 2]) / 2 if n % 2 == 0 else all_counts[n // 2]
+    outlier_threshold = median * 2
+
+    # Build results (top N)
+    file_results = []
+    for path, count in sorted_files[:top]:
+        file_results.append(
+            {
+                "path": path,
+                "commits": count,
+                "outlier": count > outlier_threshold,
+            }
+        )
+
+    if output_json:
+        data = {
+            "status": "ok",
+            "command": cmd_name,
+            "files": file_results,
+            "totalFiles": len(counts),
+            "median": median,
+            "outlierThreshold": outlier_threshold,
+            "sinceRef": since_ref or "all",
+        }
+        return (0, _to_json(data, pretty, fields), "")
+
+    # Text output
+    lines = [f"File churn (top {min(top, len(sorted_files))}, {len(counts)} total):"]
+    for fr in file_results:
+        flag = " ← OUTLIER" if fr["outlier"] else ""
+        lines.append(f"  {fr['commits']:3d}  {fr['path']}{flag}")
+    lines.append(f"\nMedian: {median:.0f} commits, outlier threshold: > {outlier_threshold:.0f}")
+    return (0, "\n".join(lines), "")
+
+
+cmd_churn.usage = "<plet_dir> [--top N] [--since REF]"
+cmd_churn.example = "git_check.py churn plet/ --top 10 --output json"
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -651,6 +795,7 @@ def main():
     commands = {
         "check-iteration": cmd_check_iteration,
         "check-session": cmd_check_session,
+        "churn": cmd_churn,
     }
     return dispatch(commands, "git_check", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 

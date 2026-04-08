@@ -40,6 +40,7 @@ from fingerprint import cmd_check as cmd_fingerprint_check  # noqa: E402
 from fingerprint import cmd_embed as cmd_fingerprint_embed  # noqa: E402
 from fingerprint import cmd_extract as cmd_fingerprint_extract  # noqa: E402
 from gate_session import cmd_detect, cmd_status  # noqa: E402
+from git_check import cmd_churn  # noqa: E402
 from global_state import cmd_init, cmd_validate  # noqa: E402
 from util_constants import SKILL_VERSION  # noqa: E402
 
@@ -51,6 +52,7 @@ def main():
         "validate": cmd_validate,
         "detect": cmd_detect,
         "status": cmd_status,
+        "churn": cmd_churn,
         "fingerprint-extract": cmd_fingerprint_extract,
         "fingerprint-embed": cmd_fingerprint_embed,
         "fingerprint-check": cmd_fingerprint_check,
