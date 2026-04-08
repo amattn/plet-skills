@@ -47,7 +47,7 @@ from util_state import (
 )
 from util_subprocess import run_git
 
-SUBMODULE_VERSION = "0.3.3"
+SUBMODULE_VERSION = "0.4.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]

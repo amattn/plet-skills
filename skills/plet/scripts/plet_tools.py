@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import dispatch  # noqa: E402
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.2.0"
 # Import command functions from modules
 from bootstrap import cmd_setup as cmd_bootstrap  # noqa: E402
 from fingerprint import cmd_check as cmd_fingerprint_check  # noqa: E402

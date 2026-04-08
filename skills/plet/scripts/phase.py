@@ -25,7 +25,7 @@ import os
 import subprocess
 import sys
 
-SUBMODULE_VERSION = "0.3.3"
+SUBMODULE_VERSION = "0.4.0"
 from util_cli import (  # noqa: E402
     dispatch,
     parse_command,

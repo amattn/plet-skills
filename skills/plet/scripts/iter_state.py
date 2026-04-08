@@ -58,7 +58,7 @@ from util_state import (
 )
 
 SCRIPT_NAME = "iter_state"
-SUBMODULE_VERSION = "0.3.4"
+SUBMODULE_VERSION = "0.4.0"
 
 UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
 UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run"}

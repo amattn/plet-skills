@@ -140,6 +140,26 @@ This repo has multiple NOTES.md files. When writing notes, route to the correct 
 
 **Don't forget:** When bumping `SKILL_VERSION`, update util_constants.py + SKILL.md frontmatter + pyproject.toml + `uv lock` (4 locations). Do NOT bump plugin.json or marketplace.json unless the human asks. When the human asks to bump plugin version, update both `plugin.json` and `marketplace.json plugins[0].version` to match. When bumping `SCRIPT_VERSION`, check if tests assert the version string.
 
+## SemVer Audit
+
+Periodic audit to catch version bumps that were missed during development (despite the "bump when you change" rule above). Run before publishing or when the human requests it.
+
+**Step 1 — Inventory.** List every file with a version and its current value. Grep for `VERSION`, `version` in scripts, `util_constants.py`, SKILL.md frontmatter, `pyproject.toml`, plugin.json, marketplace.json.
+
+**Step 2 — Diff since last publish.** Find the last publish commit (`git log --grep="publish"`). For each versioned file, check `git log <publish_commit>..HEAD -- <file>` to see if it changed. Present a table of files, current versions, and whether they changed.
+
+**Step 3 — Propose bumps.** For each changed file, propose bump type (patch/minor/major) based on what changed. Present for approval. Remember: SKILL_VERSION and distribution versions are human-directed — don't bump without asking.
+
+**Step 4 — Execute bumps.** After approval:
+1. Bump version strings in script files
+2. Bump `SCHEMA_VERSION` in `util_constants.py` if state schema changed
+3. Update any tests that assert exact version strings (grep for the old version value)
+4. Update `CHANGELOG.md` — add entries to the current version section
+5. If `SKILL_VERSION` changed: update `util_constants.py` + SKILL.md frontmatter + `pyproject.toml` + run `uv lock`
+6. Run full test suite to verify
+
+**Step 5 — Verify.** Confirm all tests pass, no stale version references remain.
+
 ## NOTES.md Discipline
 
 **Update NOTES.md after every decision, before moving to the next topic.** This is not optional and not deferrable. The pattern of "I'll catch up on notes later" always fails — decisions accumulate faster than memory, and by the end of a session the rationale is lost.

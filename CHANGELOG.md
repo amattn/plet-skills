@@ -4,6 +4,30 @@ All notable changes to the plet skill are documented here.
 
 ## 0.7.0 (2026-04-08)
 
+The largest release since plet's inception. Parallel orchestration (PLAN_PAR) has been reverted. Any wallclock gains from concurrency were consumed by branch management overhead, merge conflict recovery, and agent context spent on git mechanics rather than user code. Sequential execution is *surprisingly and unexpectedly* faster in practice. PLAN_SEQ strips parallel entirely: 14 CLI scripts consolidated into 3 entry points, ~1050 lines removed from agent prompts, and all reference files (implement.md, verify.md, formats.md, state-schema.md) audited and rewritten for efficacy and efficiency. Iteration IDs renamed from `ID_` to `ITR_` for grep clarity in target projects (PLAN_IDR). Milestone-boundary refactoring added as a first-class feature via synthetic iterations (PLAN_RFT). LOGA benchmarks (same project, 13/13 iterations, all runs):
+
+| Run | Version | Mode | Wall clock | Retries |
+|-----|---------|------|-----------|---------|
+| R06 | 0.4.x | sequential | 184m | 0 |
+| R08 | 0.4.x | sequential | 113m | 0 |
+| R14 | 0.6.2 | parallel | 113m | 8 |
+| **R15** | **0.7.0** | **sequential** | **92m** | **0** |
+
+### Refactor Loop (PLAN_RFT)
+
+Milestone-boundary refactor via synthetic iteration. No new phase or schema — reuses implement→verify lifecycle with a specialized reference file.
+
+- `refactor.md` reference file — signal categories (structural, pattern, emergent-only), defer-vs-fix guidance, per-criterion workflow
+- `prompt.py` routing: `ITR_RFT_*` prefix → injects `refactor.md` instead of `implement.md`
+- `plet_tools.py` 0.2.0: new `churn` command — files by commit count, flag outliers
+- Milestone barriers in plan.md dependency map template
+
+### Schema Version 0.7.0
+
+- `parallelGroups` rejected (deprecated — parallel removed)
+- `lastHeartbeat` rejected (deprecated — heartbeat removed)
+- `ITR_` prefix in validation regexes
+
 ### update-activity Restoration + Auto-Emit
 
 `update-activity` was stripped from reference files during 0.7.0 slimming. OLLR R05 confirmed zero activity updates during work — external consumers had no signal. Restored and improved.
@@ -20,12 +44,6 @@ verify.md rewritten to match what agents actually do well (functional verificati
 - **Removed from verify:** VF_9 (Code Quality), broad VF_8 (test suite design), broad VF_10 (security audit) — migrating to refactor.md (PLAN_RFT). Fix-in-place (Path B) removed entirely. Anti-Slop Bias + Convergence Signal collapsed into "Verification Rigor". Artifact Audit removed (gate enforces). Pre-flight moved to implement (verify trusts the gate). Verify-start wip-commit removed.
 - **Added:** Verify-first independence (don't read state file until after independent verification). Criterion type guidance table (behavioral, structural, negative, documentation, integration). "After All Criterion Workflows Complete" section for evidence comparison.
 - **Restructured:** Result-first verification is now the main per-criterion loop. Rejection Protocol promoted from "Path C" to top-level. Phase-end as paragraph, not checklist.
-
-### Version Injection Centralization
-
-- `SCRIPT_VERSION` renamed to `SUBMODULE_VERSION` across all 15 scripts (cosmetic — same values).
-- `util_cli.py` dispatch now injects `skillVersion`, `scriptVersion`, and `submoduleVersion` into all JSON output automatically. Individual commands no longer set version fields manually.
-- `prompt.py` 0.3.3: CLI quick ref updated (5→6 commands, "after each criterion").
 
 ### Iteration ID Rename (PLAN_IDR)
 
