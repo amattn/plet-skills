@@ -43,7 +43,7 @@ def _make_project(lifecycles=None, with_specs=True, with_git=True):
     plet_dir = os.path.join(d, "plet")
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     if lifecycles is None:
-        lifecycles = {"ID_001": "queued"}
+        lifecycles = {"ITR_001": "queued"}
     make_global_state(plet_dir, dep_map={k: [] for k in lifecycles}, lifecycles=lifecycles)
     for iid in lifecycles:
         make_iter_state(plet_dir, iid)
@@ -82,7 +82,7 @@ def test_cmd_detect_fresh():
 def test_cmd_detect_loop():
     import gate_session
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         rc = exit_code(gate_session.cmd_detect([plet_dir]))
         check("queued = 0 (loop)", rc == 0)
@@ -93,7 +93,7 @@ def test_cmd_detect_loop():
 def test_cmd_detect_refine():
     import gate_session
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "complete"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "complete"})
     try:
         rc = exit_code(gate_session.cmd_detect([plet_dir]))
         check("complete = 0 (refine)", rc == 0)
@@ -105,7 +105,7 @@ def test_cmd_detect_json():
 
     import gate_session
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         result = gate_session.cmd_detect([plet_dir, "--output", "json"])
         rc = result[0] if isinstance(result, tuple) else result
@@ -134,7 +134,7 @@ def test_cmd_status_help():
 def test_cmd_status_basic():
     import gate_session
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "complete", "ID_002": "implementing", "ID_003": "blocked"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "complete", "ITR_002": "implementing", "ITR_003": "blocked"})
     try:
         rc = exit_code(gate_session.cmd_status([plet_dir]))
         check("status = 0", rc == 0)
@@ -146,7 +146,7 @@ def test_cmd_status_json():
 
     import gate_session
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "complete", "ID_002": "blocked"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "complete", "ITR_002": "blocked"})
     try:
         result = gate_session.cmd_status([plet_dir, "--output", "json"])
         rc = result[0] if isinstance(result, tuple) else result
@@ -407,7 +407,7 @@ def test_cmd_postflight_help():
 def test_cmd_postflight_basic():
     import gate_session
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "complete"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "complete"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
@@ -424,7 +424,7 @@ def test_cmd_postflight_basic():
 def test_cmd_postflight_transient():
     import gate_session
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "implementing"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "implementing"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
@@ -441,7 +441,7 @@ def test_cmd_postflight_json():
 
     import gate_session
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "complete"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "complete"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
@@ -504,7 +504,7 @@ def test_detect_session_type_all_states():
         shutil.rmtree(d)
 
     # Loop
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued", "ID_002": "implementing"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued", "ITR_002": "implementing"})
     try:
         st, reason, _ = gate_session.detect_session_type(plet_dir)
         check("queued+implementing = loop", st == "loop")
@@ -513,7 +513,7 @@ def test_detect_session_type_all_states():
         shutil.rmtree(d)
 
     # Refine (all complete)
-    d, plet_dir = _make_project(lifecycles={"ID_001": "complete", "ID_002": "complete"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "complete", "ITR_002": "complete"})
     try:
         st, _, _ = gate_session.detect_session_type(plet_dir)
         check("all complete = refine", st == "refine")
@@ -521,7 +521,7 @@ def test_detect_session_type_all_states():
         shutil.rmtree(d)
 
     # Refine (blocked + complete)
-    d, plet_dir = _make_project(lifecycles={"ID_001": "blocked", "ID_002": "complete"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "blocked", "ITR_002": "complete"})
     try:
         st, _, _ = gate_session.detect_session_type(plet_dir)
         check("blocked+complete = refine", st == "refine")
@@ -529,7 +529,7 @@ def test_detect_session_type_all_states():
         shutil.rmtree(d)
 
     # Refine (all ineligible)
-    d, plet_dir = _make_project(lifecycles={"ID_001": "ineligible"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "ineligible"})
     try:
         st, _, _ = gate_session.detect_session_type(plet_dir)
         check("all ineligible = refine", st == "refine")

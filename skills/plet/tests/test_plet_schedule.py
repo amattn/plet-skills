@@ -130,14 +130,14 @@ def test_eligible_single_queued_no_deps():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "queued"})
 
         out, err, _ = run(["eligible", plet_dir])
-        check("single queued returns ID_001", out == "ID_001", "got: " + out)
+        check("single queued returns ITR_001", out == "ITR_001", "got: " + out)
 
         out, err, _ = run(["eligible", plet_dir, "--output", "json"])
         data = json.loads(out)
-        check("json eligible contains ID_001", data["eligible"] == ["ID_001"])
+        check("json eligible contains ITR_001", data["eligible"] == ["ITR_001"])
         check("json counts eligible=1", data["counts"]["eligible"] == 1)
         check(
             "json counts queued=0",
@@ -156,7 +156,7 @@ def test_eligible_implementing_not_eligible():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "implementing"})
 
         out, err, _ = run(["eligible", plet_dir])
         check("implementing not eligible", out == "none", "got: " + out)
@@ -179,19 +179,19 @@ def test_eligible_linear_chain():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_001": [],
-                "ID_002": ["ID_001"],
-                "ID_003": ["ID_002"],
+                "ITR_001": [],
+                "ITR_002": ["ITR_001"],
+                "ITR_003": ["ITR_002"],
             },
             lifecycles={
-                "ID_001": "complete",
-                "ID_002": "queued",
-                "ID_003": "queued",
+                "ITR_001": "complete",
+                "ITR_002": "queued",
+                "ITR_003": "queued",
             },
         )
 
         out, err, _ = run(["eligible", plet_dir])
-        check("chain: only B eligible", out == "ID_002", "got: " + out)
+        check("chain: only B eligible", out == "ITR_002", "got: " + out)
 
 
 # ===========================================================================
@@ -205,57 +205,57 @@ def test_eligible_diamond_dependency():
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         dep_map = {
-            "ID_001": [],
-            "ID_002": ["ID_001"],
-            "ID_003": ["ID_001"],
-            "ID_004": ["ID_002", "ID_003"],
+            "ITR_001": [],
+            "ITR_002": ["ITR_001"],
+            "ITR_003": ["ITR_001"],
+            "ITR_004": ["ITR_002", "ITR_003"],
         }
         # A complete, B+C queued, D queued
         make_global_state(
             plet_dir,
             dep_map=dep_map,
             lifecycles={
-                "ID_001": "complete",
-                "ID_002": "queued",
-                "ID_003": "queued",
-                "ID_004": "queued",
+                "ITR_001": "complete",
+                "ITR_002": "queued",
+                "ITR_003": "queued",
+                "ITR_004": "queued",
             },
         )
 
         out, err, _ = run(["eligible", plet_dir])
         lines = out.strip().split("\n")
-        check("diamond: B and C eligible", sorted(lines) == ["ID_002", "ID_003"], "got: " + str(lines))
-        check("diamond: D not eligible (deps not complete)", "ID_004" not in lines)
+        check("diamond: B and C eligible", sorted(lines) == ["ITR_002", "ITR_003"], "got: " + str(lines))
+        check("diamond: D not eligible (deps not complete)", "ITR_004" not in lines)
 
         # Now complete B, C still queued — D still not eligible
         make_global_state(
             plet_dir,
             dep_map=dep_map,
             lifecycles={
-                "ID_001": "complete",
-                "ID_002": "complete",
-                "ID_003": "queued",
-                "ID_004": "queued",
+                "ITR_001": "complete",
+                "ITR_002": "complete",
+                "ITR_003": "queued",
+                "ITR_004": "queued",
             },
         )
         out, err, _ = run(["eligible", plet_dir])
         lines = out.strip().split("\n")
-        check("diamond partial: C eligible", "ID_003" in lines)
-        check("diamond partial: D not yet (C not complete)", "ID_004" not in lines)
+        check("diamond partial: C eligible", "ITR_003" in lines)
+        check("diamond partial: D not yet (C not complete)", "ITR_004" not in lines)
 
         # Complete C too — now D is eligible
         make_global_state(
             plet_dir,
             dep_map=dep_map,
             lifecycles={
-                "ID_001": "complete",
-                "ID_002": "complete",
-                "ID_003": "complete",
-                "ID_004": "queued",
+                "ITR_001": "complete",
+                "ITR_002": "complete",
+                "ITR_003": "complete",
+                "ITR_004": "queued",
             },
         )
         out, err, _ = run(["eligible", plet_dir])
-        check("diamond resolved: D eligible", out.strip() == "ID_004", "got: " + out)
+        check("diamond resolved: D eligible", out.strip() == "ITR_004", "got: " + out)
 
 
 # ===========================================================================
@@ -271,20 +271,20 @@ def test_eligible_parallel_independent():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_001": [],
-                "ID_002": [],
-                "ID_003": [],
+                "ITR_001": [],
+                "ITR_002": [],
+                "ITR_003": [],
             },
             lifecycles={
-                "ID_001": "queued",
-                "ID_002": "queued",
-                "ID_003": "queued",
+                "ITR_001": "queued",
+                "ITR_002": "queued",
+                "ITR_003": "queued",
             },
         )
 
         out, err, _ = run(["eligible", plet_dir])
         lines = out.strip().split("\n")
-        check("all three eligible", sorted(lines) == ["ID_001", "ID_002", "ID_003"], "got: " + str(lines))
+        check("all three eligible", sorted(lines) == ["ITR_001", "ITR_002", "ITR_003"], "got: " + str(lines))
 
 
 # ===========================================================================
@@ -300,27 +300,27 @@ def test_eligible_lifecycle_filtering():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_001": [],
-                "ID_002": [],
-                "ID_003": [],
-                "ID_004": [],
-                "ID_005": [],
-                "ID_006": [],
-                "ID_007": [],
+                "ITR_001": [],
+                "ITR_002": [],
+                "ITR_003": [],
+                "ITR_004": [],
+                "ITR_005": [],
+                "ITR_006": [],
+                "ITR_007": [],
             },
             lifecycles={
-                "ID_001": "queued",
-                "ID_002": "ineligible",
-                "ID_003": "implementing",
-                "ID_004": "verifying",
-                "ID_005": "complete",
-                "ID_006": "blocked",
-                "ID_007": "withdrawn",
+                "ITR_001": "queued",
+                "ITR_002": "ineligible",
+                "ITR_003": "implementing",
+                "ITR_004": "verifying",
+                "ITR_005": "complete",
+                "ITR_006": "blocked",
+                "ITR_007": "withdrawn",
             },
         )
 
         out, err, _ = run(["eligible", plet_dir])
-        check("only queued is eligible", out == "ID_001", "got: " + out)
+        check("only queued is eligible", out == "ITR_001", "got: " + out)
 
         out, err, _ = run(["eligible", plet_dir, "--output", "json"])
         data = json.loads(out)
@@ -343,12 +343,12 @@ def test_eligible_missing_iter_state_file():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_global_state(plet_dir, dep_map={"ID_001": [], "ID_002": ["ID_001"]}, lifecycles={"ID_001": "complete"})
-        # ID_002 lifecycle intentionally missing
+        make_global_state(plet_dir, dep_map={"ITR_001": [], "ITR_002": ["ITR_001"]}, lifecycles={"ITR_001": "complete"})
+        # ITR_002 lifecycle intentionally missing
 
         out, err, _ = run(["eligible", plet_dir], expect_exit=1)
         check("missing state file exits 1", True)
-        check("error mentions ID_002", "ID_002" in err or "ID_002" in out, "stderr: " + err)
+        check("error mentions ITR_002", "ITR_002" in err or "ITR_002" in out, "stderr: " + err)
 
 
 # ===========================================================================
@@ -361,7 +361,7 @@ def test_eligible_invalid_lifecycle_value():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "complet"})  # typo
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "complet"})  # typo
 
         out, err, _ = run(["eligible", plet_dir], expect_exit=1)
         check("invalid lifecycle exits 1", True)
@@ -381,20 +381,20 @@ def test_eligible_sorted_output():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_003": [],
-                "ID_001": [],
-                "ID_002": [],
+                "ITR_003": [],
+                "ITR_001": [],
+                "ITR_002": [],
             },
             lifecycles={
-                "ID_001": "queued",
-                "ID_002": "queued",
-                "ID_003": "queued",
+                "ITR_001": "queued",
+                "ITR_002": "queued",
+                "ITR_003": "queued",
             },
         )
 
         out, err, _ = run(["eligible", plet_dir])
         lines = out.strip().split("\n")
-        check("output sorted", lines == ["ID_001", "ID_002", "ID_003"], "got: " + str(lines))
+        check("output sorted", lines == ["ITR_001", "ITR_002", "ITR_003"], "got: " + str(lines))
 
 
 # ===========================================================================
@@ -410,14 +410,14 @@ def test_eligible_stuck_blocked_dep():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_001": [],
-                "ID_002": ["ID_001"],
-                "ID_003": ["ID_002"],
+                "ITR_001": [],
+                "ITR_002": ["ITR_001"],
+                "ITR_003": ["ITR_002"],
             },
             lifecycles={
-                "ID_001": "blocked",
-                "ID_002": "queued",
-                "ID_003": "queued",
+                "ITR_001": "blocked",
+                "ITR_002": "queued",
+                "ITR_003": "queued",
             },
         )
 
@@ -427,17 +427,17 @@ def test_eligible_stuck_blocked_dep():
         check("stuckIterations present", "stuckIterations" in data, "keys: " + str(list(data.keys())))
         stuck = data.get("stuckIterations", [])
         stuck_ids = [s["iterationId"] for s in stuck]
-        check("ID_002 is stuck", "ID_002" in stuck_ids, "got: " + str(stuck_ids))
-        # ID_003 depends on ID_002 which is queued (not blocked) — not directly stuck.
-        # Transitive stuckness (ID_002 is stuck so ID_003 is transitively stuck) is
+        check("ITR_002 is stuck", "ITR_002" in stuck_ids, "got: " + str(stuck_ids))
+        # ITR_003 depends on ITR_002 which is queued (not blocked) — not directly stuck.
+        # Transitive stuckness (ITR_002 is stuck so ITR_003 is transitively stuck) is
         # a future concern. Direct detection catches the important case.
-        check("ID_003 not directly stuck (dep is queued)", "ID_003" not in stuck_ids, "got: " + str(stuck_ids))
+        check("ITR_003 not directly stuck (dep is queued)", "ITR_003" not in stuck_ids, "got: " + str(stuck_ids))
 
         # Check unsatisfiable deps reported
-        id002_stuck = [s for s in stuck if s["iterationId"] == "ID_002"][0]
+        id002_stuck = [s for s in stuck if s["iterationId"] == "ITR_002"][0]
         check(
-            "ID_002 unsatisfiable dep is ID_001",
-            "ID_001" in id002_stuck["unsatisfiableDeps"],
+            "ITR_002 unsatisfiable dep is ITR_001",
+            "ITR_001" in id002_stuck["unsatisfiableDeps"],
             "got: " + str(id002_stuck.get("unsatisfiableDeps")),
         )
 
@@ -455,12 +455,12 @@ def test_eligible_stuck_withdrawn_dep():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_001": [],
-                "ID_002": ["ID_001"],
+                "ITR_001": [],
+                "ITR_002": ["ITR_001"],
             },
             lifecycles={
-                "ID_001": "withdrawn",
-                "ID_002": "queued",
+                "ITR_001": "withdrawn",
+                "ITR_002": "queued",
             },
         )
 
@@ -468,8 +468,8 @@ def test_eligible_stuck_withdrawn_dep():
         data = json.loads(out)
         stuck = data.get("stuckIterations", [])
         check(
-            "ID_002 stuck on withdrawn dep",
-            len(stuck) == 1 and stuck[0]["iterationId"] == "ID_002",
+            "ITR_002 stuck on withdrawn dep",
+            len(stuck) == 1 and stuck[0]["iterationId"] == "ITR_002",
             "got: " + str(stuck),
         )
 
@@ -487,18 +487,18 @@ def test_eligible_stuck_text_output():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_001": [],
-                "ID_002": ["ID_001"],
+                "ITR_001": [],
+                "ITR_002": ["ITR_001"],
             },
             lifecycles={
-                "ID_001": "blocked",
-                "ID_002": "queued",
+                "ITR_001": "blocked",
+                "ITR_002": "queued",
             },
         )
 
         out, err, _ = run(["eligible", plet_dir])
         check("text mentions stuck", "stuck" in out.lower(), "got: " + out)
-        check("text mentions ID_002", "ID_002" in out, "got: " + out)
+        check("text mentions ITR_002", "ITR_002" in out, "got: " + out)
 
 
 # ===========================================================================
@@ -514,12 +514,12 @@ def test_eligible_not_stuck_dep_queued():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_001": [],
-                "ID_002": ["ID_001"],
+                "ITR_001": [],
+                "ITR_002": ["ITR_001"],
             },
             lifecycles={
-                "ID_001": "queued",
-                "ID_002": "queued",
+                "ITR_001": "queued",
+                "ITR_002": "queued",
             },
         )
 
@@ -542,12 +542,12 @@ def test_eligible_not_stuck_dep_implementing():
         make_global_state(
             plet_dir,
             dep_map={
-                "ID_001": [],
-                "ID_002": ["ID_001"],
+                "ITR_001": [],
+                "ITR_002": ["ITR_001"],
             },
             lifecycles={
-                "ID_001": "implementing",
-                "ID_002": "queued",
+                "ITR_001": "implementing",
+                "ITR_002": "queued",
             },
         )
 
@@ -587,7 +587,7 @@ def test_check_breakpoints_missing_args():
         check("missing args exits 1", True)
 
         # Missing --position
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001"], expect_exit=1)
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_001"], expect_exit=1)
         check("missing position exits 1", True)
 
         # Missing --iter-id
@@ -595,7 +595,9 @@ def test_check_breakpoints_missing_args():
         check("missing iter-id exits 1", True)
 
         # Invalid --position
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "during"], expect_exit=1)
+        out, err, _ = run(
+            ["check-breakpoints", plet_dir, "--iter-id", "ITR_001", "--position", "during"], expect_exit=1
+        )
         check("invalid position exits 1", True)
         check("error mentions valid values", "before" in err and "after" in err, "stderr: " + err)
 
@@ -612,10 +614,10 @@ def test_check_breakpoints_no_field():
         plet_dir = os.path.join(tmp, "plet")
         make_global_state(plet_dir)  # no breakpoints kwarg
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "before"])
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_001", "--position", "before"])
         check("no breakpoints field returns miss", out == "miss", "got: " + out)
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "after"])
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_001", "--position", "after"])
         check("no breakpoints field after also miss", out == "miss", "got: " + out)
 
 
@@ -631,7 +633,7 @@ def test_check_breakpoints_empty_arrays():
         plet_dir = os.path.join(tmp, "plet")
         make_global_state(plet_dir, breakpoints={"before": [], "after": []})
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "before"])
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_001", "--position", "before"])
         check("empty before array returns miss", out == "miss", "got: " + out)
 
 
@@ -648,19 +650,19 @@ def test_check_breakpoints_hit_before():
         make_global_state(
             plet_dir,
             breakpoints={
-                "before": ["ID_001", "ID_003"],
-                "after": ["ID_002"],
+                "before": ["ITR_001", "ITR_003"],
+                "after": ["ITR_002"],
             },
         )
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "before"])
-        check("ID_001 before is hit", out == "hit", "got: " + out)
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_001", "--position", "before"])
+        check("ITR_001 before is hit", out == "hit", "got: " + out)
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_002", "--position", "before"])
-        check("ID_002 before is miss", out == "miss", "got: " + out)
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_002", "--position", "before"])
+        check("ITR_002 before is miss", out == "miss", "got: " + out)
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_003", "--position", "before"])
-        check("ID_003 before is hit", out == "hit", "got: " + out)
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_003", "--position", "before"])
+        check("ITR_003 before is hit", out == "hit", "got: " + out)
 
 
 # ===========================================================================
@@ -676,16 +678,16 @@ def test_check_breakpoints_hit_after():
         make_global_state(
             plet_dir,
             breakpoints={
-                "before": ["ID_001"],
-                "after": ["ID_002", "ID_004"],
+                "before": ["ITR_001"],
+                "after": ["ITR_002", "ITR_004"],
             },
         )
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_002", "--position", "after"])
-        check("ID_002 after is hit", out == "hit", "got: " + out)
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_002", "--position", "after"])
+        check("ITR_002 after is hit", out == "hit", "got: " + out)
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "after"])
-        check("ID_001 after is miss", out == "miss", "got: " + out)
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_001", "--position", "after"])
+        check("ITR_001 after is miss", out == "miss", "got: " + out)
 
 
 # ===========================================================================
@@ -701,23 +703,23 @@ def test_check_breakpoints_json_output():
         make_global_state(
             plet_dir,
             breakpoints={
-                "before": ["ID_003"],
+                "before": ["ITR_003"],
                 "after": [],
             },
         )
 
         out, err, _ = run(
-            ["check-breakpoints", plet_dir, "--iter-id", "ID_003", "--position", "before", "--output", "json"]
+            ["check-breakpoints", plet_dir, "--iter-id", "ITR_003", "--position", "before", "--output", "json"]
         )
         data = json.loads(out)
         check("json status ok", data["status"] == "ok")
         check("json command", data["command"] == "check-breakpoints")
         check("json result hit", data["result"] == "hit")
-        check("json iterationId", data["iterationId"] == "ID_003")
+        check("json iterationId", data["iterationId"] == "ITR_003")
         check("json position", data["position"] == "before")
 
         out, err, _ = run(
-            ["check-breakpoints", plet_dir, "--iter-id", "ID_999", "--position", "before", "--output", "json"]
+            ["check-breakpoints", plet_dir, "--iter-id", "ITR_999", "--position", "before", "--output", "json"]
         )
         data = json.loads(out)
         check("json result miss", data["result"] == "miss")
@@ -735,7 +737,9 @@ def test_check_breakpoints_missing_state_json():
         plet_dir = os.path.join(tmp, "plet")
         os.makedirs(plet_dir)
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_001", "--position", "before"], expect_exit=1)
+        out, err, _ = run(
+            ["check-breakpoints", plet_dir, "--iter-id", "ITR_001", "--position", "before"], expect_exit=1
+        )
         check("missing state.json exits 1", True)
 
 
@@ -749,9 +753,9 @@ def test_check_breakpoints_iter_not_in_dep_map():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_global_state(plet_dir, dep_map={"ID_001": []}, breakpoints={"before": ["ID_999"], "after": []})
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, breakpoints={"before": ["ITR_999"], "after": []})
 
-        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ID_999", "--position", "before"])
+        out, err, _ = run(["check-breakpoints", plet_dir, "--iter-id", "ITR_999", "--position", "before"])
         check("ID not in dep map still checks breakpoints", out == "hit", "got: " + out)
 
 
@@ -778,7 +782,7 @@ def test_check_retry_missing_args():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_iter_state(plet_dir, "ID_001")
+        make_iter_state(plet_dir, "ITR_001")
 
         out, err, _ = run(["check-retry", plet_dir], expect_exit=1)
         check("missing iter-id exits 1", True)
@@ -796,9 +800,9 @@ def test_check_retry_missing_state_file():
         plet_dir = os.path.join(tmp, "plet")
         os.makedirs(os.path.join(plet_dir, "state"))
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"], expect_exit=1)
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001"], expect_exit=1)
         check("missing state file exits 1", True)
-        check("error mentions ID_001", "ID_001" in err or "ID_001" in out, "stderr: " + err)
+        check("error mentions ITR_001", "ITR_001" in err or "ITR_001" in out, "stderr: " + err)
 
 
 # ===========================================================================
@@ -811,10 +815,10 @@ def test_check_retry_no_reports():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_iter_state(plet_dir, "ID_001")
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        make_iter_state(plet_dir, "ITR_001")
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "queued"})
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001"])
         check("remainingRetries=3 returns continue", out == "continue", "got: " + out)
 
 
@@ -828,10 +832,10 @@ def test_check_retry_empty_reports():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_iter_state(plet_dir, "ID_001", verification_reports=[])
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        make_iter_state(plet_dir, "ITR_001", verification_reports=[])
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "queued"})
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001"])
         check("remainingRetries=3 returns continue", out == "continue", "got: " + out)
 
 
@@ -856,10 +860,10 @@ def test_check_retry_single_report_under_limit():
                 ],
             }
         ]
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 1, "verify": 1}, verification_reports=reports)
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        make_iter_state(plet_dir, "ITR_001", attempts={"implement": 1, "verify": 1}, verification_reports=reports)
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "queued"})
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001"])
         check("single report under limit returns continue", out == "continue", "got: " + out)
 
 
@@ -873,21 +877,21 @@ def test_check_retry_remaining_retries_positive():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 1, "verify": 1})
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        make_iter_state(plet_dir, "ITR_001", attempts={"implement": 1, "verify": 1})
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "queued"})
         # Set remainingRetries in state.json
         gp = os.path.join(plet_dir, "state.json")
         with open(gp) as f:
             gs = json.load(f)
-        gs["remainingRetries"] = {"ID_001": 2}
+        gs["remainingRetries"] = {"ITR_001": 2}
         with open(gp, "w") as f:
             json.dump(gs, f, indent=2)
             f.write("\n")
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001"])
         check("remainingRetries=2 returns continue", out == "continue", "got: " + out)
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001", "--output", "json"])
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001", "--output", "json"])
         data = json.loads(out)
         check("json decision continue", data["decision"] == "continue")
         check("json remainingRetries", data["remainingRetries"] == 2)
@@ -903,20 +907,20 @@ def test_check_retry_remaining_retries_zero():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 3, "verify": 3})
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        make_iter_state(plet_dir, "ITR_001", attempts={"implement": 3, "verify": 3})
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "queued"})
         gp = os.path.join(plet_dir, "state.json")
         with open(gp) as f:
             gs = json.load(f)
-        gs["remainingRetries"] = {"ID_001": 0}
+        gs["remainingRetries"] = {"ITR_001": 0}
         with open(gp, "w") as f:
             json.dump(gs, f, indent=2)
             f.write("\n")
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001"])
         check("remainingRetries=0 returns abort", out == "abort", "got: " + out)
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001", "--output", "json"])
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001", "--output", "json"])
         data = json.loads(out)
         check("json decision abort", data["decision"] == "abort")
         check("json remainingRetries 0", data["remainingRetries"] == 0)
@@ -932,17 +936,17 @@ def test_check_retry_remaining_retries_one():
 
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
-        make_iter_state(plet_dir, "ID_001", attempts={"implement": 2, "verify": 2})
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "queued"})
+        make_iter_state(plet_dir, "ITR_001", attempts={"implement": 2, "verify": 2})
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "queued"})
         gp = os.path.join(plet_dir, "state.json")
         with open(gp) as f:
             gs = json.load(f)
-        gs["remainingRetries"] = {"ID_001": 1}
+        gs["remainingRetries"] = {"ITR_001": 1}
         with open(gp, "w") as f:
             json.dump(gs, f, indent=2)
             f.write("\n")
 
-        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ID_001"])
+        out, err, _ = run(["check-retry", plet_dir, "--iter-id", "ITR_001"])
         check("remainingRetries=1 returns continue", out == "continue", "got: " + out)
 
 

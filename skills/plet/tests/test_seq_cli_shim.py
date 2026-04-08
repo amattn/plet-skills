@@ -40,10 +40,10 @@ def _make_project():
     plet_dir = os.path.join(d, "plet")
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
-    make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
+    make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "implementing"})
     make_iter_state(
         plet_dir,
-        "ID_001",
+        "ITR_001",
         title="Add logging",
         criteria=[
             {
@@ -64,7 +64,7 @@ def _make_project():
     return d, plet_dir
 
 
-def _read_trace_events(plet_dir, iter_id="ID_001", phase="implement", attempt=1):
+def _read_trace_events(plet_dir, iter_id="ITR_001", phase="implement", attempt=1):
     """Read trace events from the NDJSON file."""
     path = events_path(plet_dir, iter_id, phase, attempt)
     if not os.path.isfile(path):
@@ -90,7 +90,7 @@ def test_cli_shim_creates_trace_events():
         env.update(
             {
                 "PLET_DIR": plet_dir,
-                "PLET_ITER_ID": "ID_001",
+                "PLET_ITER_ID": "ITR_001",
                 "PLET_PHASE": "implement",
                 "PLET_ATTEMPT": "1",
             }
@@ -104,7 +104,7 @@ def test_cli_shim_creates_trace_events():
                 "update-criterion",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--criterion",
                 "AC_1",
                 "--phase",

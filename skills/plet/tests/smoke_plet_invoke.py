@@ -89,7 +89,7 @@ def check_invoke(plet_dir, cwd):
     """Run invoke.py with real Claude. Returns (ok, detail, elapsed, stdout)."""
     start = time.time()
     result = subprocess.run(
-        [sys.executable, INVOKE_TOOL, "run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", cwd],
+        [sys.executable, INVOKE_TOOL, "run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", cwd],
         capture_output=True,
         text=True,
         timeout=120,  # 2 minute timeout — small prompt should be fast
@@ -113,7 +113,7 @@ def check_invoke(plet_dir, cwd):
     return True, f"{len(lines)} output lines ({json_lines} NDJSON), {elapsed:.1f}s", elapsed, result.stdout
 
 
-def check_transcript(plet_dir, iter_id="ID_001", phase="implement"):
+def check_transcript(plet_dir, iter_id="ITR_001", phase="implement"):
     """Check if transcript was captured (any attempt number)."""
     trace_dir = trace_dir_path(plet_dir)
     if not os.path.isdir(trace_dir):
@@ -132,7 +132,7 @@ def check_transcript(plet_dir, iter_id="ID_001", phase="implement"):
     return True, f"{best}: {size} bytes, {line_count} lines"
 
 
-def check_events(plet_dir, iter_id="ID_001"):
+def check_events(plet_dir, iter_id="ITR_001"):
     """Check if events file was written."""
     trace_dir = trace_dir_path(plet_dir)
     if not os.path.isdir(trace_dir):
@@ -155,11 +155,11 @@ def setup_project(tmpdir):
     repo = make_git_repo(tmpdir)
     plet_dir = os.path.join(repo, "plet")
 
-    make_global_state(plet_dir, project_id="SMOKE", loop_session=1, lifecycles={"ID_001": "implementing"})
+    make_global_state(plet_dir, project_id="SMOKE", loop_session=1, lifecycles={"ITR_001": "implementing"})
 
     # attempts.implement = 0 so invoke treats this as attempt 1
     make_iter_state(
-        plet_dir, iter_id="ID_001", title="Smoke test iteration", attempts={"implement": 0, "verify": 0}, criteria=[]
+        plet_dir, iter_id="ITR_001", title="Smoke test iteration", attempts={"implement": 0, "verify": 0}, criteria=[]
     )
 
     # Minimal spec artifacts
@@ -168,7 +168,7 @@ def setup_project(tmpdir):
         f.write(f"# Requirements\n\n## FR_1: Smoke Test\n\n{SMOKE_PROMPT}\n")
     with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
         f.write(
-            "# Iterations\n\n## ID_001 — Smoke test iteration\n\n"
+            "# Iterations\n\n## ITR_001 — Smoke test iteration\n\n"
             f"{SMOKE_PROMPT}\n\n### Acceptance Criteria\n\nNone — this is a smoke test.\n"
         )
     with open(os.path.join(plet_dir, "learnings.md"), "w") as f:
@@ -179,7 +179,7 @@ def setup_project(tmpdir):
     subprocess.run(["git", "-C", repo, "add", "-A"], capture_output=True)
     subprocess.run(["git", "-C", repo, "commit", "-m", "smoke setup"], capture_output=True)
     create_workstream_branch(repo, project_id="SMOKE")
-    create_iteration_branch(repo, project_id="SMOKE", iter_id="ID_001")
+    create_iteration_branch(repo, project_id="SMOKE", iter_id="ITR_001")
 
     return repo, plet_dir
 
@@ -236,7 +236,7 @@ def main():
     if dry_run:
         print("\n## Dry Run — skipping invoke")
         print("  To invoke manually:")
-        print(f"  python3 {INVOKE_TOOL} run {plet_dir} --iter-id ID_001 --phase implement --cwd {repo}")
+        print(f"  python3 {INVOKE_TOOL} run {plet_dir} --iter-id ITR_001 --phase implement --cwd {repo}")
         if not skip_cleanup:
             shutil.rmtree(tmpdir, ignore_errors=True)
             print("  Cleaned up.")

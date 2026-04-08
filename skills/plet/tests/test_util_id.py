@@ -87,8 +87,8 @@ def test_normalize_iteration():
     print("\n## normalize_iteration")
     import util_id
 
-    check("ID_001 -> id001", util_id.normalize_iteration("ID_001") == "id001")
-    check("ID_42 -> id42", util_id.normalize_iteration("ID_42") == "id42")
+    check("ITR_001 -> id001", util_id.normalize_iteration("ITR_001") == "id001")
+    check("ITR_42 -> id42", util_id.normalize_iteration("ITR_42") == "id42")
     check("proj stays proj", util_id.normalize_iteration("proj") == "proj")
 
 
@@ -116,7 +116,7 @@ def test_generate_plet_id():
     print("\n## generate_plet_id — structure")
     import util_id
 
-    pid = util_id.generate_plet_id("epr", "ID_001", "implement", 1)
+    pid = util_id.generate_plet_id("epr", "ITR_001", "implement", 1)
     parts = pid.split("_")
     check("starts with prefix", parts[0] == "epr")
     check("4 segments", len(parts) == 4)
@@ -129,11 +129,11 @@ def test_generate_plet_id_prefixes():
     print("\n## generate_plet_id — different prefixes")
     import util_id
 
-    check("epr prefix", util_id.generate_plet_id("epr", "ID_001", "implement", 1).startswith("epr_"))
-    check("eln prefix", util_id.generate_plet_id("eln", "ID_002", "verify", 1).startswith("eln_"))
-    check("eem prefix", util_id.generate_plet_id("eem", "ID_003", "refine", 2).startswith("eem_"))
-    check("tev prefix", util_id.generate_plet_id("tev", "ID_001", "implement", 1).startswith("tev_"))
-    check("vrp prefix", util_id.generate_plet_id("vrp", "ID_001", "verify", 1).startswith("vrp_"))
+    check("epr prefix", util_id.generate_plet_id("epr", "ITR_001", "implement", 1).startswith("epr_"))
+    check("eln prefix", util_id.generate_plet_id("eln", "ITR_002", "verify", 1).startswith("eln_"))
+    check("eem prefix", util_id.generate_plet_id("eem", "ITR_003", "refine", 2).startswith("eem_"))
+    check("tev prefix", util_id.generate_plet_id("tev", "ITR_001", "implement", 1).startswith("tev_"))
+    check("vrp prefix", util_id.generate_plet_id("vrp", "ITR_001", "verify", 1).startswith("vrp_"))
 
 
 def test_generate_plet_id_uniqueness():
@@ -142,7 +142,7 @@ def test_generate_plet_id_uniqueness():
 
     ids = set()
     for _i in range(5):
-        pid = util_id.generate_plet_id("epr", "ID_001", "implement", 1)
+        pid = util_id.generate_plet_id("epr", "ITR_001", "implement", 1)
         ids.add(pid)
         time.sleep(0.002)  # 2ms gap for timestamp uniqueness
     check("unique IDs across calls", len(ids) == 5)

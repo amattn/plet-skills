@@ -43,22 +43,22 @@ def check(name, condition, detail=""):
 def test_check_lifecycle():
     import gate_phase
 
-    gs = {"lifecycles": {"ID_001": "implementing"}}
-    r = gate_phase.check_lifecycle(gs, "ID_001", "implement")
+    gs = {"lifecycles": {"ITR_001": "implementing"}}
+    r = gate_phase.check_lifecycle(gs, "ITR_001", "implement")
     check("implementing + implement = pass", r["status"] == "pass")
 
-    r = gate_phase.check_lifecycle(gs, "ID_001", "verify")
+    r = gate_phase.check_lifecycle(gs, "ITR_001", "verify")
     check("implementing + verify = warn", r["status"] == "warn")
 
-    gs2 = {"lifecycles": {"ID_001": "verifying"}}
-    r = gate_phase.check_lifecycle(gs2, "ID_001", "verify")
+    gs2 = {"lifecycles": {"ITR_001": "verifying"}}
+    r = gate_phase.check_lifecycle(gs2, "ITR_001", "verify")
     check("verifying + verify = pass", r["status"] == "pass")
 
-    gs3 = {"lifecycles": {"ID_001": "queued"}}
-    r = gate_phase.check_lifecycle(gs3, "ID_001", "implement")
+    gs3 = {"lifecycles": {"ITR_001": "queued"}}
+    r = gate_phase.check_lifecycle(gs3, "ITR_001", "implement")
     check("queued + implement = pass", r["status"] == "pass")
 
-    r = gate_phase.check_lifecycle(gs, "ID_999", "implement")
+    r = gate_phase.check_lifecycle(gs, "ITR_999", "implement")
     check("missing iter = warn", r["status"] == "warn")
     check("says unknown", "unknown" in r["detail"])
 
@@ -225,8 +225,8 @@ def _make_project():
     plet_dir = os.path.join(d, "plet")
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
-    make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
-    make_iter_state(plet_dir, "ID_001", attempts={"implement": 1, "verify": 0})
+    make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "implementing"})
+    make_iter_state(plet_dir, "ITR_001", attempts={"implement": 1, "verify": 0})
     make_spec_artifacts(plet_dir)
     return d, plet_dir
 
@@ -236,10 +236,10 @@ def test_run_sta_validate():
 
     d, plet_dir = _make_project()
     try:
-        r = gate_phase.run_sta_validate(plet_dir, "ID_001")
+        r = gate_phase.run_sta_validate(plet_dir, "ITR_001")
         check("valid state = pass", r["status"] == "pass")
 
-        r = gate_phase.run_sta_validate(plet_dir, "ID_999")
+        r = gate_phase.run_sta_validate(plet_dir, "ITR_999")
         check("missing state = fail", r["status"] == "fail")
     finally:
         shutil.rmtree(d)
@@ -255,7 +255,7 @@ def test_run_ent_check():
             with open(os.path.join(plet_dir, name), "w") as f:
                 f.write(f"# {name}\n")
 
-        results = gate_phase.run_ent_check(plet_dir, "ID_001")
+        results = gate_phase.run_ent_check(plet_dir, "ITR_001")
         check("returns 1 check", len(results) == 1, f"got {len(results)}")
         names = [r["name"] for r in results]
         check("has progress", "progress-entry" in names)
@@ -281,20 +281,20 @@ def test_check_trace_events():
     d, plet_dir = _make_project()
     try:
         # No trace file
-        r = gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
+        r = gate_phase.check_trace_events(plet_dir, "ITR_001", "implement", 1)
         check("missing = warn", r["status"] == "warn")
 
         # Create trace file
-        make_trace_file(plet_dir, "ID_001", "implement", 1)
-        r = gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
+        make_trace_file(plet_dir, "ITR_001", "implement", 1)
+        r = gate_phase.check_trace_events(plet_dir, "ITR_001", "implement", 1)
         check("valid trace = pass", r["status"] == "pass")
 
         # Empty trace file
         from util_io import events_path
 
-        with open(events_path(plet_dir, "ID_001", "implement", 1), "w") as f:
+        with open(events_path(plet_dir, "ITR_001", "implement", 1), "w") as f:
             f.write("")
-        r = gate_phase.check_trace_events(plet_dir, "ID_001", "implement", 1)
+        r = gate_phase.check_trace_events(plet_dir, "ITR_001", "implement", 1)
         check("empty = warn", r["status"] == "warn")
     finally:
         shutil.rmtree(d)
@@ -313,9 +313,9 @@ def test_run_gtc_checks():
             subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
             subprocess.run(["git", "-C", d, "commit", "-m", "state"], capture_output=True)
             subprocess.run(["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/workstream"], capture_output=True)
-            subprocess.run(["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/ID_001"], capture_output=True)
+            subprocess.run(["git", "-C", d, "checkout", "-b", "plet/TEST/loop1/ITR_001"], capture_output=True)
 
-            results = gate_phase.run_gtc_checks(plet_dir, "ID_001", "implement")
+            results = gate_phase.run_gtc_checks(plet_dir, "ITR_001", "implement")
             check("returns list", isinstance(results, list))
             check("has git: checks", any(r["name"].startswith("git:") for r in results))
         finally:
@@ -337,16 +337,16 @@ def test_pre_phase_checks():
         from util_state import load_and_validate_global_state, load_and_validate_iter_state
 
         gs = load_and_validate_global_state(plet_dir)
-        ist = load_and_validate_iter_state(plet_dir, "ID_001")
+        ist = load_and_validate_iter_state(plet_dir, "ITR_001")
         checks = []
-        gate_phase.pre_phase_checks(checks, plet_dir, "ID_001", "implement", ist, gs)
+        gate_phase.pre_phase_checks(checks, plet_dir, "ITR_001", "implement", ist, gs)
         names = [c["name"] for c in checks]
         check("has lifecycle-check", "lifecycle-check" in names)
         check("has spec-artifacts (implement)", "spec-artifacts" in names)
         check("has fingerprints (implement)", "fingerprints-consistent" in names)
 
         checks2 = []
-        gate_phase.pre_phase_checks(checks2, plet_dir, "ID_001", "verify", ist, gs)
+        gate_phase.pre_phase_checks(checks2, plet_dir, "ITR_001", "verify", ist, gs)
         names2 = [c["name"] for c in checks2]
         check("verify has lifecycle", "lifecycle-check" in names2)
         check("verify no spec-artifacts", "spec-artifacts" not in names2)
@@ -368,7 +368,7 @@ def test_post_phase_checks():
         from util_state import load_and_validate_global_state, load_and_validate_iter_state
 
         gs = load_and_validate_global_state(plet_dir)
-        ist = load_and_validate_iter_state(plet_dir, "ID_001")
+        ist = load_and_validate_iter_state(plet_dir, "ITR_001")
         checks = []
 
         old_cwd = os.getcwd()
@@ -377,7 +377,7 @@ def test_post_phase_checks():
             subprocess.run(["git", "add", "-A"], capture_output=True)
             subprocess.run(["git", "commit", "-m", "state"], capture_output=True)
 
-            gate_phase.post_phase_checks(checks, plet_dir, "ID_001", "implement", ist, gs)
+            gate_phase.post_phase_checks(checks, plet_dir, "ITR_001", "implement", ist, gs)
             names = [c["name"] for c in checks]
             check("has implement-verdict", "implement-verdict" in names)
             check("no audit-tag in post", "audit-tag" not in names)
@@ -390,7 +390,7 @@ def test_post_phase_checks():
             ist2 = dict(ist)
             ist2["verifyVerdict"] = "passed"
             ist2["verificationReports"] = [{"verdict": "passed", "criteriaResults": []}]
-            gate_phase.post_phase_checks(checks2, plet_dir, "ID_001", "verify", ist2, gs)
+            gate_phase.post_phase_checks(checks2, plet_dir, "ITR_001", "verify", ist2, gs)
             names2 = [c["name"] for c in checks2]
             check("verify has verify-verdict", "verify-verdict" in names2)
             check("verify has verification-report", "verification-report" in names2)
@@ -424,13 +424,13 @@ def _make_gated_project(phase="implement"):
     lifecycle = "implementing" if phase == "implement" else "verifying"
     make_global_state(
         plet_dir,
-        dep_map={"ID_001": []},
-        lifecycles={"ID_001": lifecycle},
+        dep_map={"ITR_001": []},
+        lifecycles={"ITR_001": lifecycle},
         loop_session=1,
     )
     make_iter_state(
         plet_dir,
-        "ID_001",
+        "ITR_001",
         attempts={"implement": 1, "verify": 1 if phase == "verify" else 0},
     )
     make_spec_artifacts(plet_dir)
@@ -479,7 +479,7 @@ def test_cmd_pre_implement():
         os.chdir(d)
         code, out = _capture_cmd(
             gate_phase.cmd_pre,
-            [plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "implement"],
         )
         # Pre gate runs checks; may warn on fingerprints but should not crash
         check("cmd_pre implement returns int", isinstance(code, int))
@@ -499,7 +499,7 @@ def test_cmd_pre_verify():
         os.chdir(d)
         code, out = _capture_cmd(
             gate_phase.cmd_pre,
-            [plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "verify"],
         )
         check("cmd_pre verify returns int", isinstance(code, int))
         check("cmd_pre verify has output", len(out) > 0)
@@ -521,7 +521,7 @@ def test_cmd_pre_json():
         os.chdir(d)
         code, out = _capture_cmd(
             gate_phase.cmd_pre,
-            [plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"],
         )
         check("cmd_pre json returns int", isinstance(code, int))
         try:
@@ -549,7 +549,7 @@ def test_cmd_pre_missing_args():
         # Missing --phase
         code, _out = _capture_cmd(
             gate_phase.cmd_pre,
-            [plet_dir, "--iter-id", "ID_001"],
+            [plet_dir, "--iter-id", "ITR_001"],
         )
         check("cmd_pre missing phase = exit 1", code == 1)
 
@@ -580,7 +580,7 @@ def test_cmd_pre_invalid_phase():
         os.chdir(d)
         code, _out = _capture_cmd(
             gate_phase.cmd_pre,
-            [plet_dir, "--iter-id", "ID_001", "--phase", "bogus"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "bogus"],
         )
         check("cmd_pre invalid phase = exit 1", code == 1)
     finally:
@@ -593,7 +593,7 @@ def test_cmd_pre_bad_plet_dir():
 
     code, _out = _capture_cmd(
         gate_phase.cmd_pre,
-        ["/nonexistent/plet/dir", "--iter-id", "ID_001", "--phase", "implement"],
+        ["/nonexistent/plet/dir", "--iter-id", "ITR_001", "--phase", "implement"],
     )
     check("cmd_pre bad plet dir = exit 1", code == 1)
 
@@ -609,20 +609,20 @@ def test_cmd_post_implement():
         # Post-implement needs: implementVerdict set, entries, trace
         make_iter_state(
             plet_dir,
-            "ID_001",
+            "ITR_001",
             attempts={"implement": 1, "verify": 0},
             implement_verdict="readyForVerification",
         )
-        make_trace_file(plet_dir, "ID_001", "implement", 1)
+        make_trace_file(plet_dir, "ITR_001", "implement", 1)
 
         # Create audit tag
         from util_fixture import make_audit_tag
 
-        make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1)
+        make_audit_tag(d, project_id="TEST", iter_id="ITR_001", phase="implement", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
             gate_phase.cmd_post,
-            [plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "implement"],
         )
         check("cmd_post implement returns int", isinstance(code, int))
         check("cmd_post implement has output", len(out) > 0)
@@ -644,22 +644,22 @@ def test_cmd_post_verify():
         # Post-verify needs: verifyVerdict, verificationReports, entries, trace
         make_iter_state(
             plet_dir,
-            "ID_001",
+            "ITR_001",
             attempts={"implement": 1, "verify": 1},
             verify_verdict="passed",
             verification_reports=[
                 {"verdict": "passed", "criteriaResults": [{"criterionId": "AC_1", "status": "pass", "evidence": "ok"}]}
             ],
         )
-        make_trace_file(plet_dir, "ID_001", "verify", 1)
+        make_trace_file(plet_dir, "ITR_001", "verify", 1)
 
         from util_fixture import make_audit_tag
 
-        make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="verify", attempt=1, loop_session=1)
+        make_audit_tag(d, project_id="TEST", iter_id="ITR_001", phase="verify", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
             gate_phase.cmd_post,
-            [plet_dir, "--iter-id", "ID_001", "--phase", "verify"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "verify"],
         )
         check("cmd_post verify returns int", isinstance(code, int))
         check("cmd_post verify has output", len(out) > 0)
@@ -679,19 +679,19 @@ def test_cmd_post_json():
 
         make_iter_state(
             plet_dir,
-            "ID_001",
+            "ITR_001",
             attempts={"implement": 1, "verify": 0},
             implement_verdict="readyForVerification",
         )
-        make_trace_file(plet_dir, "ID_001", "implement", 1)
+        make_trace_file(plet_dir, "ITR_001", "implement", 1)
 
         from util_fixture import make_audit_tag
 
-        make_audit_tag(d, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1)
+        make_audit_tag(d, project_id="TEST", iter_id="ITR_001", phase="implement", attempt=1, loop_session=1)
 
         code, out = _capture_cmd(
             gate_phase.cmd_post,
-            [plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"],
         )
         check("cmd_post json returns int", isinstance(code, int))
         try:
@@ -701,7 +701,7 @@ def test_cmd_post_json():
             check("cmd_post json has checks", "checks" in data)
             check("cmd_post json has command=post", data.get("command") == "post")
             check("cmd_post json has phase=implement", data.get("phase") == "implement")
-            check("cmd_post json has iterationId", data.get("iterationId") == "ID_001")
+            check("cmd_post json has iterationId", data.get("iterationId") == "ITR_001")
         except (json.JSONDecodeError, ValueError) as e:
             check("cmd_post json is valid JSON", False, str(e))
     finally:
@@ -719,7 +719,7 @@ def test_cmd_post_missing_args():
         # Missing --phase
         code, _out = _capture_cmd(
             gate_phase.cmd_post,
-            [plet_dir, "--iter-id", "ID_001"],
+            [plet_dir, "--iter-id", "ITR_001"],
         )
         check("cmd_post missing phase = exit 1", code == 1)
 
@@ -797,7 +797,7 @@ def test_rebase_check_on_top():
             # loopSessionCount=0 in _make_project → loop0
             ws = "plet/TEST/loop0/workstream"
             subprocess.run(["git", "branch", ws], capture_output=True)
-            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop0/ID_001", ws], capture_output=True)
+            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop0/ITR_001", ws], capture_output=True)
             # Add a commit on iter branch
             with open(os.path.join(d, "test.txt"), "w") as f:
                 f.write("test\n")
@@ -833,7 +833,7 @@ def test_rebase_check_behind():
             subprocess.run(["git", "branch", ws], capture_output=True)
 
             # Create iteration branch
-            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop0/ID_001", ws], capture_output=True)
+            subprocess.run(["git", "checkout", "-b", "plet/TEST/loop0/ITR_001", ws], capture_output=True)
             with open(os.path.join(d, "iter.txt"), "w") as f:
                 f.write("iter work\n")
             subprocess.run(["git", "add", "-A"], capture_output=True)
@@ -847,7 +847,7 @@ def test_rebase_check_behind():
             subprocess.run(["git", "commit", "-m", "ws advance"], capture_output=True)
 
             # Back to iter branch — now behind workstream
-            subprocess.run(["git", "checkout", "plet/TEST/loop0/ID_001"], capture_output=True)
+            subprocess.run(["git", "checkout", "plet/TEST/loop0/ITR_001"], capture_output=True)
 
             from util_state import load_and_validate_global_state
 
@@ -877,11 +877,11 @@ def test_rebase_check_not_in_post():
             from util_state import load_and_validate_global_state, load_and_validate_iter_state
 
             gs = load_and_validate_global_state(plet_dir)
-            ist = load_and_validate_iter_state(plet_dir, "ID_001")
+            ist = load_and_validate_iter_state(plet_dir, "ITR_001")
 
             # Implement phase should NOT have rebase-check in post
             impl_checks = []
-            gate_phase.post_phase_checks(impl_checks, plet_dir, "ID_001", "implement", ist, gs)
+            gate_phase.post_phase_checks(impl_checks, plet_dir, "ITR_001", "implement", ist, gs)
             impl_names = [c["name"] for c in impl_checks]
             assert "rebase-check" not in impl_names, f"implement post should NOT have rebase-check: {impl_names}"
 
@@ -890,7 +890,7 @@ def test_rebase_check_not_in_post():
             ist2["verifyVerdict"] = "passed"
             ist2["verificationReports"] = [{"verdict": "passed", "criteriaResults": []}]
             verify_checks = []
-            gate_phase.post_phase_checks(verify_checks, plet_dir, "ID_001", "verify", ist2, gs)
+            gate_phase.post_phase_checks(verify_checks, plet_dir, "ITR_001", "verify", ist2, gs)
             verify_names = [c["name"] for c in verify_checks]
             assert "rebase-check" not in verify_names, f"verify post should NOT have rebase-check: {verify_names}"
         finally:

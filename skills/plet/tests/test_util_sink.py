@@ -191,11 +191,11 @@ def test_orchestrator_promote_eligible_with_sink():
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
         make_global_state(
             plet_dir,
-            dep_map={"ID_001": [], "ID_002": ["ID_001"]},
-            lifecycles={"ID_001": "complete", "ID_002": "ineligible"},
+            dep_map={"ITR_001": [], "ITR_002": ["ITR_001"]},
+            lifecycles={"ITR_001": "complete", "ITR_002": "ineligible"},
         )
-        make_iter_state(plet_dir, "ID_001")
-        make_iter_state(plet_dir, "ID_002")
+        make_iter_state(plet_dir, "ITR_001")
+        make_iter_state(plet_dir, "ITR_002")
         make_spec_artifacts(plet_dir)
         for name in ["progress.md", "learnings.md", "emergent.md"]:
             with open(os.path.join(plet_dir, name), "w") as f:
@@ -211,7 +211,7 @@ def test_orchestrator_promote_eligible_with_sink():
         check("sink accepted", True)
         dep_events = [e for e in sink.events if e.get("type") == "dependency_promotion"]
         check("promotion event captured", len(dep_events) == 1, f"got {len(dep_events)}")
-        check("promoted ID_002", dep_events[0].get("iterationId") == "ID_002" if dep_events else False)
+        check("promoted ITR_002", dep_events[0].get("iterationId") == "ITR_002" if dep_events else False)
     finally:
         shutil.rmtree(d)
 

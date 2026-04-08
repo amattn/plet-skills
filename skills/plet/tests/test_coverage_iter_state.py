@@ -30,7 +30,7 @@ def check(name, condition, detail=""):
         print("  FAIL  {}{}".format(name, ": " + detail if detail else ""))
 
 
-def _make_project(iter_id="ID_001", criteria=None, with_phase=None, **iter_kwargs):
+def _make_project(iter_id="ITR_001", criteria=None, with_phase=None, **iter_kwargs):
     """Create a plet dir with a per-iteration state file. Returns (tmpdir, plet_dir).
 
     If with_phase is set (e.g. "implement"), calls cmd_start_phase to set up
@@ -114,7 +114,7 @@ def test_cmd_init_basic():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--title",
                     "Scaffolding",
                     "--dependencies",
@@ -125,8 +125,8 @@ def test_cmd_init_basic():
             )
         )
         check("init basic = 0", rc == 0)
-        data = read_iter_state(plet_dir, "ID_001")
-        check("init iterationId", data["iterationId"] == "ID_001")
+        data = read_iter_state(plet_dir, "ITR_001")
+        check("init iterationId", data["iterationId"] == "ITR_001")
         check("init title", data["title"] == "Scaffolding")
         check("init criteria count", len(data["criteria"]) == 1)
         check("init criteria status", data["criteria"][0]["status"] == "not_started")
@@ -144,7 +144,7 @@ def test_cmd_init_exists_error():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--title",
                     "Dup",
                     "--dependencies",
@@ -198,7 +198,7 @@ def test_cmd_init_json():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_002",
+                "ITR_002",
                 "--title",
                 "JSON test",
                 "--dependencies",
@@ -213,7 +213,7 @@ def test_cmd_init_json():
         data = json.loads(output)
         check("init json status ok", data["status"] == "ok")
         check("init json command", data["command"] == "init")
-        check("init json iterationId", data["iterationId"] == "ID_002")
+        check("init json iterationId", data["iterationId"] == "ITR_002")
     finally:
         shutil.rmtree(d)
 
@@ -230,7 +230,7 @@ def test_cmd_init_with_deps_and_criteria():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--title",
                 "Dep",
                 "--dependencies",
@@ -244,19 +244,19 @@ def test_cmd_init_with_deps_and_criteria():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_002",
+                    "ITR_002",
                     "--title",
                     "Dependent",
                     "--dependencies",
-                    '["ID_001"]',
+                    '["ITR_001"]',
                     "--criteria",
                     '[{"id":"AC_1","description":"a"},{"id":"AC_2","description":"b"}]',
                 ]
             )
         )
         check("init deps = 0", rc == 0)
-        data = read_iter_state(plet_dir, "ID_002")
-        check("init deps list", data["dependencies"] == ["ID_001"])
+        data = read_iter_state(plet_dir, "ITR_002")
+        check("init deps list", data["dependencies"] == ["ITR_001"])
         check("init multi criteria", len(data["criteria"]) == 2)
     finally:
         shutil.rmtree(d)
@@ -284,7 +284,7 @@ def test_cmd_start_phase_implement():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                 ]
@@ -309,7 +309,7 @@ def test_cmd_start_phase_verify():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "verify",
                 ]
@@ -335,7 +335,7 @@ def test_cmd_start_phase_already_started():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                 ]
@@ -358,7 +358,7 @@ def test_cmd_start_phase_json():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--output",
@@ -396,7 +396,7 @@ def test_cmd_update_activity_basic():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase-activity",
                     "writing_tests",
                     "--activity-detail",
@@ -425,7 +425,7 @@ def test_cmd_update_activity_json():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase-activity",
                 "implementing",
                 "--activity-detail",
@@ -455,7 +455,7 @@ def test_cmd_update_activity_missing_args():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--activity-detail",
                     "x",
                     "--agent-id",
@@ -478,7 +478,7 @@ def test_cmd_update_activity_invalid_activity():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase-activity",
                     "bogus_activity",
                     "--activity-detail",
@@ -515,7 +515,7 @@ def test_cmd_update_criterion_pass():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--criterion",
                     "AC_1",
                     "--phase",
@@ -549,7 +549,7 @@ def test_cmd_update_criterion_fail():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--criterion",
                     "AC_1",
                     "--phase",
@@ -585,7 +585,7 @@ def test_cmd_update_criterion_missing_criterion():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--criterion",
                     "AC_999",
                     "--phase",
@@ -614,7 +614,7 @@ def test_cmd_update_criterion_json():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--criterion",
                 "AC_1",
                 "--phase",
@@ -648,7 +648,7 @@ def test_cmd_update_criterion_invalid_phase():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--criterion",
                     "AC_1",
                     "--phase",
@@ -689,7 +689,7 @@ def test_cmd_set_verdict_implement():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                     "--verdict",
@@ -721,7 +721,7 @@ def test_cmd_set_verdict_verify():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "verify",
                     "--verdict",
@@ -748,7 +748,7 @@ def test_cmd_set_verdict_json():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--verdict",
@@ -777,7 +777,7 @@ def test_cmd_set_verdict_invalid_verdict():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                     "--verdict",
@@ -814,7 +814,7 @@ def test_cmd_heartbeat_basic():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--agent-id",
                     "agent_abc123",
                 ]
@@ -838,7 +838,7 @@ def test_cmd_heartbeat_json():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--agent-id",
                 "agent_x",
                 "--output",
@@ -863,7 +863,7 @@ def test_cmd_heartbeat_missing_agent_id():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                 ]
             )
         )
@@ -908,7 +908,7 @@ def test_cmd_add_report_basic():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--verdict",
                     "passed",
                     "--summary",
@@ -959,7 +959,7 @@ def test_cmd_add_report_json():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--verdict",
                 "passed",
                 "--summary",
@@ -996,7 +996,7 @@ def test_cmd_add_report_invalid_verdict():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--verdict",
                     "completed",  # not valid for reports
                     "--summary",
@@ -1030,7 +1030,7 @@ def test_cmd_add_report_missing_findings():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--verdict",
                     "passed",
                     "--summary",
@@ -1069,7 +1069,7 @@ def test_cmd_validate_valid():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                 ]
             )
         )
@@ -1087,16 +1087,16 @@ def test_cmd_validate_invalid():
         state_dir = os.path.join(plet_dir, "state")
         os.makedirs(state_dir, exist_ok=True)
         # Write intentionally invalid state
-        path = os.path.join(state_dir, "ID_001.json")
+        path = os.path.join(state_dir, "ITR_001.json")
         with open(path, "w") as f:
-            json.dump({"schemaVersion": "0.2.0", "iterationId": "ID_001"}, f)
+            json.dump({"schemaVersion": "0.2.0", "iterationId": "ITR_001"}, f)
             f.write("\n")
         rc = exit_code(
             iter_state.cmd_validate(
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                 ]
             )
         )
@@ -1115,7 +1115,7 @@ def test_cmd_validate_json():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--output",
                 "json",
             ],
@@ -1137,16 +1137,16 @@ def test_cmd_validate_invalid_json():
         plet_dir = os.path.join(d, "plet")
         state_dir = os.path.join(plet_dir, "state")
         os.makedirs(state_dir, exist_ok=True)
-        path = os.path.join(state_dir, "ID_001.json")
+        path = os.path.join(state_dir, "ITR_001.json")
         with open(path, "w") as f:
-            json.dump({"schemaVersion": "0.2.0", "iterationId": "ID_001"}, f)
+            json.dump({"schemaVersion": "0.2.0", "iterationId": "ITR_001"}, f)
             f.write("\n")
         rc, output = _capture(
             iter_state.cmd_validate,
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--output",
                 "json",
             ],
@@ -1171,7 +1171,7 @@ def test_cmd_validate_missing_file():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_999",
+                    "ITR_999",
                 ]
             )
         )

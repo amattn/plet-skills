@@ -118,7 +118,7 @@ def write_iter_state(plet_dir, iter_id, attempts=None, updated="2026-04-06T00:00
 def setup_project(d, iter_ids=None, lifecycles=None):
     """Create a complete project: repo + state + workstream. Returns (repo, plet_dir, ws_branch)."""
     if iter_ids is None:
-        iter_ids = ["ID_001"]
+        iter_ids = ["ITR_001"]
     if lifecycles is None:
         lifecycles = {iid: "verifying" for iid in iter_ids}
 
@@ -182,10 +182,10 @@ def test_mock_audit_rebase_commit_success():
     """Real rebase-commit success output matches mock assumptions (exit 0, 'OK' in stdout)."""
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, ws = setup_project(d)
-        make_iteration_commits(repo, ws, "ID_001")
+        make_iteration_commits(repo, ws, "ITR_001")
         git(repo, "checkout", ws)
 
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         assert rc == 0, f"Expected exit 0, got {rc}. stderr: {err}"
         assert "OK" in out, f"Expected 'OK' in output, got: {out}"
@@ -199,12 +199,12 @@ def test_mock_audit_rebase_commit_conflict():
         repo, plet_dir, ws = setup_project(d)
 
         # Iteration modifies a file
-        git(repo, "checkout", "-b", "plet/TEST/loop1/ID_001", ws)
+        git(repo, "checkout", "-b", "plet/TEST/loop1/ITR_001", ws)
         with open(os.path.join(repo, "shared.txt"), "w") as f:
             f.write("iter version\n")
         git(repo, "add", "-A")
         git(repo, "commit", "-m", "iter changes shared")
-        write_iter_state(os.path.join(repo, "plet"), "ID_001")
+        write_iter_state(os.path.join(repo, "plet"), "ITR_001")
         git(repo, "add", "-A")
         git(repo, "commit", "-m", "state")
 
@@ -215,7 +215,7 @@ def test_mock_audit_rebase_commit_conflict():
         git(repo, "add", "-A")
         git(repo, "commit", "-m", "ws changes shared")
 
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         assert rc == 1, f"Expected exit 1, got {rc}"
         combined = out + " " + err
@@ -230,14 +230,14 @@ def test_mock_audit_rebase_commit_conflict():
 def test_integration_handle_passed_verdict_real_git():
     """_handle_passed_verdict in sequential mode — commits state and marks complete."""
     with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, ws = setup_project(d, lifecycles={"ID_001": "verifying"})
+        repo, plet_dir, ws = setup_project(d, lifecycles={"ITR_001": "verifying"})
         git(repo, "checkout", ws)
 
         old_cwd = os.getcwd()
         os.chdir(repo)
         try:
             sink = CaptureSink()
-            completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+            completed, blocked = plet_orchestrator._handle_passed_verdict("ITR_001", plet_dir, sink, 0, {})
 
             assert completed == 1, f"Expected completed=1, got {completed}"
             assert blocked is False
@@ -245,7 +245,7 @@ def test_integration_handle_passed_verdict_real_git():
             # Lifecycle updated
             with open(state_json_path(plet_dir)) as f:
                 gs = json.load(f)
-            assert gs["lifecycles"]["ID_001"] == "complete"
+            assert gs["lifecycles"]["ITR_001"] == "complete"
         finally:
             os.chdir(old_cwd)
 
@@ -260,55 +260,55 @@ def test_state_json_divergence_lifecycle_update():
     Rebase should handle this cleanly — iter didn't modify state.json."""
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, ws = setup_project(
-            d, iter_ids=["ID_001", "ID_002"], lifecycles={"ID_001": "verifying", "ID_002": "implementing"}
+            d, iter_ids=["ITR_001", "ITR_002"], lifecycles={"ITR_001": "verifying", "ITR_002": "implementing"}
         )
 
-        # Create iteration branch for ID_001
-        make_iteration_commits(repo, ws, "ID_001")
+        # Create iteration branch for ITR_001
+        make_iteration_commits(repo, ws, "ITR_001")
 
-        # Back to workstream — simulate lifecycle update for ID_002
+        # Back to workstream — simulate lifecycle update for ITR_002
         git(repo, "checkout", ws)
         with open(state_json_path(plet_dir)) as f:
             gs = json.load(f)
-        gs["lifecycles"]["ID_002"] = "complete"
+        gs["lifecycles"]["ITR_002"] = "complete"
         gs["lastUpdated"] = "2026-04-06T02:00:00Z"
         with open(state_json_path(plet_dir), "w") as f:
             json.dump(gs, f, indent=2)
             f.write("\n")
         git(repo, "add", "-A")
-        git(repo, "commit", "-m", "lifecycle: ID_002 complete")
+        git(repo, "commit", "-m", "lifecycle: ITR_002 complete")
 
-        # Rebase-commit ID_001 — state.json diverged on workstream
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        # Rebase-commit ITR_001 — state.json diverged on workstream
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         assert rc == 0, f"Should succeed (iter didn't modify state.json). err: {err}"
 
         # Verify workstream state.json has the lifecycle update
         with open(state_json_path(plet_dir)) as f:
             gs = json.load(f)
-        assert gs["lifecycles"]["ID_002"] == "complete", f"Lost lifecycle update: {gs['lifecycles']}"
+        assert gs["lifecycles"]["ITR_002"] == "complete", f"Lost lifecycle update: {gs['lifecycles']}"
 
 
 def test_per_iter_state_not_on_workstream():
     """Per-iteration state is only modified on iteration branch.
     Workstream's copy is unchanged since plan init. No conflict expected."""
     with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, ws = setup_project(d, lifecycles={"ID_001": "verifying"})
+        repo, plet_dir, ws = setup_project(d, lifecycles={"ITR_001": "verifying"})
 
         # Read workstream's per-iter state (initialized during plan)
-        is_path = iter_state_path(plet_dir, "ID_001")
+        is_path = iter_state_path(plet_dir, "ITR_001")
         with open(is_path) as f:
             json.load(f)
 
         # Create iteration with state modifications
-        make_iteration_commits(repo, ws, "ID_001")
+        make_iteration_commits(repo, ws, "ITR_001")
         git(repo, "checkout", ws)
 
         # Simulate orchestrator's "state before rebase-commit" commit
         git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: state before rebase-commit ID_001", "--allow-empty")
+        git(repo, "commit", "-m", "plet: state before rebase-commit ITR_001", "--allow-empty")
 
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         assert rc == 0, f"Should succeed. err: {err}"
 
@@ -329,28 +329,28 @@ def test_two_sequential_iterations_real_git():
     """Two iterations completing sequentially — no per-iteration branches needed."""
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, ws = setup_project(
-            d, iter_ids=["ID_001", "ID_002"], lifecycles={"ID_001": "verifying", "ID_002": "verifying"}
+            d, iter_ids=["ITR_001", "ITR_002"], lifecycles={"ITR_001": "verifying", "ITR_002": "verifying"}
         )
         git(repo, "checkout", ws)
 
         old_cwd = os.getcwd()
         os.chdir(repo)
         try:
-            # Finalize ID_001
+            # Finalize ITR_001
             sink1 = CaptureSink()
-            c1, b1 = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink1, 0, {})
-            assert c1 == 1 and not b1, f"ID_001 should complete: c={c1}, b={b1}"
+            c1, b1 = plet_orchestrator._handle_passed_verdict("ITR_001", plet_dir, sink1, 0, {})
+            assert c1 == 1 and not b1, f"ITR_001 should complete: c={c1}, b={b1}"
 
-            # Finalize ID_002
+            # Finalize ITR_002
             sink2 = CaptureSink()
-            c2, b2 = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink2, 1, {})
-            assert c2 == 2 and not b2, f"ID_002 should complete: c={c2}, b={b2}"
+            c2, b2 = plet_orchestrator._handle_passed_verdict("ITR_002", plet_dir, sink2, 1, {})
+            assert c2 == 2 and not b2, f"ITR_002 should complete: c={c2}, b={b2}"
 
             # Both lifecycles complete
             with open(state_json_path(plet_dir)) as f:
                 gs = json.load(f)
-            assert gs["lifecycles"]["ID_001"] == "complete"
-            assert gs["lifecycles"]["ID_002"] == "complete"
+            assert gs["lifecycles"]["ITR_001"] == "complete"
+            assert gs["lifecycles"]["ITR_002"] == "complete"
         finally:
             os.chdir(old_cwd)
 
@@ -368,7 +368,7 @@ def test_sequential_no_conflict_possible():
     """
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, ws = setup_project(
-            d, iter_ids=["ID_001", "ID_002"], lifecycles={"ID_001": "verifying", "ID_002": "verifying"}
+            d, iter_ids=["ITR_001", "ITR_002"], lifecycles={"ITR_001": "verifying", "ITR_002": "verifying"}
         )
         git(repo, "checkout", ws)
 
@@ -377,16 +377,16 @@ def test_sequential_no_conflict_possible():
         try:
             # Both pass sequentially — no conflict possible
             sink = CaptureSink()
-            c1, b1 = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+            c1, b1 = plet_orchestrator._handle_passed_verdict("ITR_001", plet_dir, sink, 0, {})
             assert c1 == 1 and not b1
 
-            c2, b2 = plet_orchestrator._handle_passed_verdict("ID_002", plet_dir, sink, 1, {})
+            c2, b2 = plet_orchestrator._handle_passed_verdict("ITR_002", plet_dir, sink, 1, {})
             assert c2 == 2 and not b2
 
             with open(state_json_path(plet_dir)) as f:
                 gs = json.load(f)
-            assert gs["lifecycles"]["ID_001"] == "complete"
-            assert gs["lifecycles"]["ID_002"] == "complete"
+            assert gs["lifecycles"]["ITR_001"] == "complete"
+            assert gs["lifecycles"]["ITR_002"] == "complete"
         finally:
             os.chdir(old_cwd)
 
@@ -400,14 +400,14 @@ def test_dirty_workstream_stash_r12_scenario():
     """R12 bug: workstream has uncommitted lifecycle updates when rebase-commit runs.
     rebase-commit must stash dirty state, rebase, ff-merge, then pop stash."""
     with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, ws = setup_project(d, lifecycles={"ID_001": "verifying"})
-        make_iteration_commits(repo, ws, "ID_001")
+        repo, plet_dir, ws = setup_project(d, lifecycles={"ITR_001": "verifying"})
+        make_iteration_commits(repo, ws, "ITR_001")
         git(repo, "checkout", ws)
 
         # Simulate orchestrator lifecycle updates — dirty workstream state.json
         with open(state_json_path(plet_dir)) as f:
             gs = json.load(f)
-        gs["lifecycles"]["ID_001"] = "implementing"
+        gs["lifecycles"]["ITR_001"] = "implementing"
         gs["lastUpdated"] = "2026-04-06T07:00:00Z"
         with open(state_json_path(plet_dir), "w") as f:
             json.dump(gs, f, indent=2)
@@ -418,11 +418,11 @@ def test_dirty_workstream_stash_r12_scenario():
         assert porcelain.strip() != "", "Workstream should be dirty"
 
         # rebase-commit should handle this via stash/pop
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
         assert rc == 0, f"Should succeed with dirty workstream. err: {err}"
 
         # Iteration's file should be on workstream
-        assert os.path.exists(os.path.join(repo, "ID_001_file.txt"))
+        assert os.path.exists(os.path.join(repo, "ITR_001_file.txt"))
 
         # Lifecycle updates should be preserved (stash popped)
         with open(state_json_path(plet_dir)) as f:
@@ -435,8 +435,8 @@ def test_dirty_workstream_stash_r12_scenario():
 def test_noop_rebase_already_on_top():
     """Iteration already rebased onto workstream — rebase is no-op, ff-merge works."""
     with tempfile.TemporaryDirectory() as d:
-        repo, plet_dir, ws = setup_project(d, lifecycles={"ID_001": "verifying"})
-        iter_br = make_iteration_commits(repo, ws, "ID_001")
+        repo, plet_dir, ws = setup_project(d, lifecycles={"ITR_001": "verifying"})
+        iter_br = make_iteration_commits(repo, ws, "ITR_001")
 
         # Manually rebase (simulating rebase-prep already done)
         git(repo, "checkout", iter_br)
@@ -444,7 +444,7 @@ def test_noop_rebase_already_on_top():
 
         # rebase-commit should handle the no-op
         git(repo, "checkout", ws)
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
         assert rc == 0, f"No-op rebase should succeed: {err}"
         assert "OK" in out
 
@@ -453,24 +453,24 @@ def test_rebase_after_prior_state_commits():
     """Workstream has 'state before rebase-commit' from prior iteration."""
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, ws = setup_project(
-            d, iter_ids=["ID_001", "ID_002"], lifecycles={"ID_001": "verifying", "ID_002": "verifying"}
+            d, iter_ids=["ITR_001", "ITR_002"], lifecycles={"ITR_001": "verifying", "ITR_002": "verifying"}
         )
 
-        make_iteration_commits(repo, ws, "ID_001", files={"file1.txt": "work 1\n"})
+        make_iteration_commits(repo, ws, "ITR_001", files={"file1.txt": "work 1\n"})
         git(repo, "checkout", ws)
-        make_iteration_commits(repo, ws, "ID_002", files={"file2.txt": "work 2\n"})
+        make_iteration_commits(repo, ws, "ITR_002", files={"file2.txt": "work 2\n"})
         git(repo, "checkout", ws)
 
-        # Orchestrator flow for ID_001
+        # Orchestrator flow for ITR_001
         git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: state before rebase-commit ID_001", "--allow-empty")
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        git(repo, "commit", "-m", "plet: state before rebase-commit ITR_001", "--allow-empty")
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
         assert rc == 0
 
-        # Orchestrator flow for ID_002 — workstream has state commits + ID_001's commits
+        # Orchestrator flow for ITR_002 — workstream has state commits + ITR_001's commits
         git(repo, "add", "-A")
-        git(repo, "commit", "-m", "plet: state before rebase-commit ID_002", "--allow-empty")
-        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ID_002"], cwd=repo)
+        git(repo, "commit", "-m", "plet: state before rebase-commit ITR_002", "--allow-empty")
+        out, err, rc = run_git_ops(["rebase-commit", plet_dir, "--iter-id", "ITR_002"], cwd=repo)
         assert rc == 0, f"Should succeed: {err}"
 
         # Both files present

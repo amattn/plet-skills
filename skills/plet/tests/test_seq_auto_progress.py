@@ -35,10 +35,10 @@ def _make_project():
     plet_dir = os.path.join(d, "plet")
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
-    make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
+    make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "implementing"})
     make_iter_state(
         plet_dir,
-        "ID_001",
+        "ITR_001",
         title="Add logging",
         criteria=[
             {
@@ -75,7 +75,7 @@ def test_update_criterion_generates_progress():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--criterion",
                 "AC_1",
                 "--phase",
@@ -123,7 +123,7 @@ def test_dry_run_does_not_generate_progress():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--criterion",
                 "AC_1",
                 "--phase",

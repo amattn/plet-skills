@@ -43,7 +43,7 @@ def _make_project(lifecycles=None, dep_map=None):
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
     if lifecycles is None:
-        lifecycles = {"ID_001": "queued"}
+        lifecycles = {"ITR_001": "queued"}
     if dep_map is None:
         dep_map = {k: [] for k in lifecycles}
     make_global_state(plet_dir, dep_map=dep_map, lifecycles=lifecycles)
@@ -91,17 +91,17 @@ def test_make_result_breakpoint():
     import plet_orchestrator
 
     counts = {"queued": 2, "complete": 1, "blocked": 0, "implementing": 0, "verifying": 0, "ineligible": 0}
-    pause = {"iterationId": "ID_003", "phase": None, "error": None}
+    pause = {"iterationId": "ITR_003", "phase": None, "error": None}
     r = plet_orchestrator._make_result("breakpoint_before", counts, pause_context=pause, completed=1)
     check("reason breakpoint", r["reason"] == "breakpoint_before")
-    check("pauseContext id", r["pauseContext"]["iterationId"] == "ID_003")
+    check("pauseContext id", r["pauseContext"]["iterationId"] == "ITR_003")
 
 
 def test_make_result_stuck():
     import plet_orchestrator
 
     counts = {"queued": 0, "complete": 1, "blocked": 1, "implementing": 0, "verifying": 0, "ineligible": 1}
-    stuck = [{"iterationId": "ID_003", "unsatisfiableDeps": ["ID_002"]}]
+    stuck = [{"iterationId": "ITR_003", "unsatisfiableDeps": ["ITR_002"]}]
     r = plet_orchestrator._make_result("all_blocked_or_complete", counts, stuck_iterations=stuck)
     check("has stuck", "stuckIterations" in r)
     check("stuck count", len(r["stuckIterations"]) == 1)
@@ -205,7 +205,7 @@ def test_check_nothing_to_do_has_eligible():
     import plet_orchestrator
 
     counts = {"queued": 2, "complete": 0, "blocked": 0, "implementing": 0, "verifying": 0}
-    r = plet_orchestrator._check_nothing_to_do(["ID_001"], counts, [], TextSink())
+    r = plet_orchestrator._check_nothing_to_do(["ITR_001"], counts, [], TextSink())
     check("eligible = None (continue)", r is None)
 
 
@@ -269,13 +269,13 @@ def test_promote_eligible_basic():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "complete", "ID_002": "ineligible"},
-        dep_map={"ID_001": [], "ID_002": ["ID_001"]},
+        lifecycles={"ITR_001": "complete", "ITR_002": "ineligible"},
+        dep_map={"ITR_001": [], "ITR_002": ["ITR_001"]},
     )
     try:
         plet_orchestrator._promote_eligible(plet_dir, CaptureSink())
         gs = load_json(state_json_path(plet_dir))
-        check("ID_002 promoted to queued", gs["lifecycles"]["ID_002"] == "queued")
+        check("ITR_002 promoted to queued", gs["lifecycles"]["ITR_002"] == "queued")
     finally:
         shutil.rmtree(d)
 
@@ -284,13 +284,13 @@ def test_promote_eligible_deps_not_met():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "implementing", "ID_002": "ineligible"},
-        dep_map={"ID_001": [], "ID_002": ["ID_001"]},
+        lifecycles={"ITR_001": "implementing", "ITR_002": "ineligible"},
+        dep_map={"ITR_001": [], "ITR_002": ["ITR_001"]},
     )
     try:
         plet_orchestrator._promote_eligible(plet_dir, CaptureSink())
         gs = load_json(state_json_path(plet_dir))
-        check("ID_002 still ineligible", gs["lifecycles"]["ID_002"] == "ineligible")
+        check("ITR_002 still ineligible", gs["lifecycles"]["ITR_002"] == "ineligible")
     finally:
         shutil.rmtree(d)
 
@@ -299,13 +299,13 @@ def test_promote_eligible_no_deps_but_ineligible():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "ineligible"},
-        dep_map={"ID_001": []},
+        lifecycles={"ITR_001": "ineligible"},
+        dep_map={"ITR_001": []},
     )
     try:
         plet_orchestrator._promote_eligible(plet_dir, CaptureSink())
         gs = load_json(state_json_path(plet_dir))
-        check("no-dep ineligible promoted", gs["lifecycles"]["ID_001"] == "queued")
+        check("no-dep ineligible promoted", gs["lifecycles"]["ITR_001"] == "queued")
     finally:
         shutil.rmtree(d)
 
@@ -314,8 +314,8 @@ def test_promote_eligible_with_sink():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "complete", "ID_002": "ineligible"},
-        dep_map={"ID_001": [], "ID_002": ["ID_001"]},
+        lifecycles={"ITR_001": "complete", "ITR_002": "ineligible"},
+        dep_map={"ITR_001": [], "ITR_002": ["ITR_001"]},
     )
     try:
         sink = CaptureSink()
@@ -345,13 +345,13 @@ def test_promote_eligible_missing_state():
 def test_handle_verdict_none():
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "verifying"})
     try:
-        completed, blocked = plet_orchestrator._handle_verify_verdict(None, "ID_001", plet_dir, CaptureSink(), 0, {})
+        completed, blocked = plet_orchestrator._handle_verify_verdict(None, "ITR_001", plet_dir, CaptureSink(), 0, {})
         check("none verdict = blocked", blocked is True)
         check("completed unchanged", completed == 0)
         gs = load_json(state_json_path(plet_dir))
-        check("lifecycle blocked", gs["lifecycles"]["ID_001"] == "blocked")
+        check("lifecycle blocked", gs["lifecycles"]["ITR_001"] == "blocked")
     finally:
         shutil.rmtree(d)
 
@@ -359,14 +359,14 @@ def test_handle_verdict_none():
 def test_handle_verdict_blocked():
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "verifying"})
     try:
         completed, blocked = plet_orchestrator._handle_verify_verdict(
-            "blocked", "ID_001", plet_dir, CaptureSink(), 0, {}
+            "blocked", "ITR_001", plet_dir, CaptureSink(), 0, {}
         )
         check("blocked verdict = blocked", blocked is True)
         gs = load_json(state_json_path(plet_dir))
-        check("lifecycle blocked", gs["lifecycles"]["ID_001"] == "blocked")
+        check("lifecycle blocked", gs["lifecycles"]["ITR_001"] == "blocked")
     finally:
         shutil.rmtree(d)
 
@@ -374,15 +374,15 @@ def test_handle_verdict_blocked():
 def test_handle_verdict_rejected_retry():
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "verifying"})
     try:
         # check-retry on a fresh iteration with 0 attempts returns "first"
         completed, blocked = plet_orchestrator._handle_verify_verdict(
-            "rejected", "ID_001", plet_dir, CaptureSink(), 0, {}
+            "rejected", "ITR_001", plet_dir, CaptureSink(), 0, {}
         )
         check("rejected = not blocked (retry)", blocked is False)
         gs = load_json(state_json_path(plet_dir))
-        check("lifecycle queued (retry)", gs["lifecycles"]["ID_001"] == "queued")
+        check("lifecycle queued (retry)", gs["lifecycles"]["ITR_001"] == "queued")
     finally:
         shutil.rmtree(d)
 
@@ -391,18 +391,18 @@ def test_handle_verdict_passed():
     """Passed verdict: no rebase-commit needed (sequential), just mark complete."""
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "verifying"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
             completed, blocked = plet_orchestrator._handle_verify_verdict(
-                "passed", "ID_001", plet_dir, CaptureSink(), 0, {}
+                "passed", "ITR_001", plet_dir, CaptureSink(), 0, {}
             )
             check("passed = not blocked", blocked is False)
             check("completed incremented", completed == 1)
             gs2 = load_json(state_json_path(plet_dir))
-            check("lifecycle complete", gs2["lifecycles"]["ID_001"] == "complete")
+            check("lifecycle complete", gs2["lifecycles"]["ITR_001"] == "complete")
         finally:
             os.chdir(old_cwd)
     finally:
@@ -417,7 +417,7 @@ def test_handle_verdict_passed():
 def test_end_session():
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "complete"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "complete"})
     try:
         # Start a session so there's one to end
         import session
@@ -454,7 +454,7 @@ def test_end_session():
 def test_setup_session():
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
@@ -492,13 +492,13 @@ def test_get_next_eligible_basic():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "queued", "ID_002": "queued"},
-        dep_map={"ID_001": [], "ID_002": []},
+        lifecycles={"ITR_001": "queued", "ITR_002": "queued"},
+        dep_map={"ITR_001": [], "ITR_002": []},
     )
     try:
         result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), None, 0)
         check("returns single id", isinstance(result, str), f"got: {result}")
-        check("is first eligible", result == "ID_001", f"got: {result}")
+        check("is first eligible", result == "ITR_001", f"got: {result}")
     finally:
         shutil.rmtree(d)
 
@@ -507,12 +507,12 @@ def test_get_next_eligible_filters_failed():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "queued", "ID_002": "queued"},
-        dep_map={"ID_001": [], "ID_002": []},
+        lifecycles={"ITR_001": "queued", "ITR_002": "queued"},
+        dep_map={"ITR_001": [], "ITR_002": []},
     )
     try:
-        result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), {"ID_001"}, None, 0)
-        check("filters failed", result == "ID_002", f"got: {result}")
+        result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), {"ITR_001"}, None, 0)
+        check("filters failed", result == "ITR_002", f"got: {result}")
     finally:
         shutil.rmtree(d)
 
@@ -521,8 +521,8 @@ def test_get_next_eligible_budget_exhausted():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "queued"},
-        dep_map={"ID_001": []},
+        lifecycles={"ITR_001": "queued"},
+        dep_map={"ITR_001": []},
     )
     try:
         result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), 2, 2)
@@ -535,8 +535,8 @@ def test_get_next_eligible_nothing_eligible():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "complete"},
-        dep_map={"ID_001": []},
+        lifecycles={"ITR_001": "complete"},
+        dep_map={"ITR_001": []},
     )
     try:
         result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), None, 0)
@@ -549,12 +549,12 @@ def test_get_next_eligible_promotes():
     import plet_orchestrator
 
     d, plet_dir = _make_project(
-        lifecycles={"ID_001": "complete", "ID_002": "ineligible"},
-        dep_map={"ID_001": [], "ID_002": ["ID_001"]},
+        lifecycles={"ITR_001": "complete", "ITR_002": "ineligible"},
+        dep_map={"ITR_001": [], "ITR_002": ["ITR_001"]},
     )
     try:
         result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), None, 0)
-        check("promoted ID_002", result == "ID_002", f"got: {result}")
+        check("promoted ITR_002", result == "ITR_002", f"got: {result}")
     finally:
         shutil.rmtree(d)
 
@@ -574,7 +574,7 @@ def test_check_breakpoint_before_miss():
         import util_io
 
         util_io.atomic_write_json(state_json_path(plet_dir), gs)
-        check("miss = False", plet_orchestrator._check_breakpoint_before("ID_001", plet_dir, CaptureSink()) is False)
+        check("miss = False", plet_orchestrator._check_breakpoint_before("ITR_001", plet_dir, CaptureSink()) is False)
     finally:
         shutil.rmtree(d)
 
@@ -587,13 +587,13 @@ def test_check_breakpoint_before_hit():
     d, plet_dir = _make_project()
     try:
         gs = load_json(state_json_path(plet_dir))
-        gs["breakpoints"] = {"before": ["ID_001"], "after": []}
+        gs["breakpoints"] = {"before": ["ITR_001"], "after": []}
         import util_io
 
         util_io.atomic_write_json(state_json_path(plet_dir), gs)
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
-        hit = plet_orchestrator._check_breakpoint_before("ID_001", plet_dir, CaptureSink())
+        hit = plet_orchestrator._check_breakpoint_before("ITR_001", plet_dir, CaptureSink())
         sys.stdout = old_stdout
         check("hit = True", hit is True)
     finally:
@@ -610,7 +610,7 @@ def test_check_breakpoint_after_miss():
         import util_io
 
         util_io.atomic_write_json(state_json_path(plet_dir), gs)
-        check("miss = False", plet_orchestrator._check_breakpoint_after("ID_001", plet_dir, CaptureSink()) is False)
+        check("miss = False", plet_orchestrator._check_breakpoint_after("ITR_001", plet_dir, CaptureSink()) is False)
     finally:
         shutil.rmtree(d)
 
@@ -623,13 +623,13 @@ def test_check_breakpoint_after_hit():
     d, plet_dir = _make_project()
     try:
         gs = load_json(state_json_path(plet_dir))
-        gs["breakpoints"] = {"before": [], "after": ["ID_001"]}
+        gs["breakpoints"] = {"before": [], "after": ["ITR_001"]}
         import util_io
 
         util_io.atomic_write_json(state_json_path(plet_dir), gs)
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
-        hit = plet_orchestrator._check_breakpoint_after("ID_001", plet_dir, CaptureSink())
+        hit = plet_orchestrator._check_breakpoint_after("ITR_001", plet_dir, CaptureSink())
         sys.stdout = old_stdout
         check("hit = True", hit is True)
     finally:
@@ -675,7 +675,7 @@ def test_injectable_runner_override():
         calls.append(args)
         return "", "", 0
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         old_invoke = plet_orchestrator._run_invoke
         plet_orchestrator._run_invoke = mock_invoke
@@ -684,7 +684,7 @@ def test_injectable_runner_override():
             # which calls the real module directly — no mock needed.
             # Just verify it works with real modules.
             result = plet_orchestrator._get_next_eligible(plet_dir, CaptureSink(), set(), None, 0)
-            check("eligible returns ID", result == "ID_001", f"got: {result}")
+            check("eligible returns ID", result == "ITR_001", f"got: {result}")
 
             # Verify _run_invoke is overridable by checking our mock is installed
             plet_orchestrator._run_invoke(["test"], cwd=".")
@@ -726,13 +726,13 @@ def test_handle_passed_verdict_with_mock():
     print("\n## Mock runner — passed verdict (success)")
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "verifying"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "verifying"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
             sink = CaptureSink()
-            completed, blocked = plet_orchestrator._handle_passed_verdict("ID_001", plet_dir, sink, 0, {})
+            completed, blocked = plet_orchestrator._handle_passed_verdict("ITR_001", plet_dir, sink, 0, {})
             check("completed = 1", completed == 1)
             check("not blocked", blocked is False)
             complete_events = [e for e in sink.events if e.get("type") == "iteration_complete"]
@@ -748,7 +748,7 @@ def test_run_iteration_with_mock():
     print("\n## Mock runner — run iteration (success)")
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
@@ -773,7 +773,7 @@ def test_run_iteration_with_mock():
             plet_orchestrator._run_invoke = mock_invoke_with_verdicts
             try:
                 sink = CaptureSink()
-                completed, blocked = plet_orchestrator._run_iteration("ID_001", plet_dir, sink, 0, {})
+                completed, blocked = plet_orchestrator._run_iteration("ITR_001", plet_dir, sink, 0, {})
                 check("completed = 1", completed == 1, f"got: {completed}")
                 check("not blocked", blocked is False)
             finally:
@@ -789,7 +789,7 @@ def test_run_iteration_no_verdict():
     print("\n## Mock runner — run iteration (no verdict)")
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
@@ -798,7 +798,7 @@ def test_run_iteration_no_verdict():
             old_invoke = _install_mock_invoke(plet_orchestrator)
             try:
                 sink = CaptureSink()
-                completed, blocked = plet_orchestrator._run_iteration("ID_001", plet_dir, sink, 0, {})
+                completed, blocked = plet_orchestrator._run_iteration("ITR_001", plet_dir, sink, 0, {})
                 check("completed = 0", completed == 0)
                 check("blocked", blocked is True)
             finally:
@@ -814,7 +814,7 @@ def test_sequential_loop_with_mock():
     print("\n## Mock runner — sequential loop")
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
@@ -859,13 +859,13 @@ def test_invoke_receives_global_plet_dir():
     print("\n## Invoke receives global plet dir (sequential)")
     import plet_orchestrator
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         # Set verdicts so phases complete
-        ist = load_json(os.path.join(plet_dir, "state", "ID_001.json"))
+        ist = load_json(os.path.join(plet_dir, "state", "ITR_001.json"))
         ist["implementVerdict"] = "completed"
         ist["verifyVerdict"] = "passed"
-        with open(os.path.join(plet_dir, "state", "ID_001.json"), "w") as f:
+        with open(os.path.join(plet_dir, "state", "ITR_001.json"), "w") as f:
             json.dump(ist, f)
 
         invoke_calls = []
@@ -893,7 +893,7 @@ def test_invoke_receives_global_plet_dir():
             os.chdir(d)
             try:
                 sink = CaptureSink()
-                plet_orchestrator._run_iteration("ID_001", plet_dir, sink, 0, {})
+                plet_orchestrator._run_iteration("ITR_001", plet_dir, sink, 0, {})
 
                 assert len(invoke_calls) >= 1, f"Expected invoke calls, got {len(invoke_calls)}"
                 for call_args in invoke_calls:

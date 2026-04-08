@@ -112,7 +112,7 @@ def test_plet_id_format():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -159,7 +159,7 @@ def test_plet_id_phases():
                     "add-learning",
                     d,
                     "--iter-id",
-                    "ID_005",
+                    "ITR_005",
                     "--iter-title",
                     "Test",
                     "--category",
@@ -221,7 +221,7 @@ def test_progress_entry_format():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_003",
+                "ITR_003",
                 "--iter-title",
                 "OAuth integration",
                 "--phase",
@@ -242,10 +242,10 @@ def test_progress_entry_format():
         check("starts with header", content.startswith("# Progress"))
         check("has start fence", f'<div id="plet-{plet_id}"></div>' in content)
         check("has end fence", f'<div id="END-plet-{plet_id}"></div>' in content)
-        check("has heading with status", "### [ID_003] implement-2 — BLOCKED" in content)
+        check("has heading with status", "### [ITR_003] implement-2 — BLOCKED" in content)
         check("has PletId field", f"**PletId:** `{plet_id}`" in content)
         check("has Timestamp field", "**Timestamp:** 20" in content)
-        check("has Iteration field", "**Iteration:** [ID_003] OAuth integration" in content)
+        check("has Iteration field", "**Iteration:** [ITR_003] OAuth integration" in content)
         check("has Phase field", "**Phase:** implement" in content)
         check("has Attempt field", "**Attempt:** 2" in content)
         check("no Files changed section", "**Files changed:**" not in content)
@@ -263,7 +263,7 @@ def test_progress_no_files():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -291,7 +291,7 @@ def test_progress_in_progress_header_suppression():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_002",
+                "ITR_002",
                 "--iter-title",
                 "Core data model",
                 "--phase",
@@ -309,9 +309,9 @@ def test_progress_in_progress_header_suppression():
         # Header should NOT have " — IN_PROGRESS"
         check(
             "header has no IN_PROGRESS suffix",
-            "### [ID_002] implement-1\n" in content or "### [ID_002] impl-1 \n" in content.rstrip(),
-            "content near header: " + content[content.index("### [ID_002]") : content.index("### [ID_002]") + 60]
-            if "### [ID_002]" in content
+            "### [ITR_002] implement-1\n" in content or "### [ITR_002] impl-1 \n" in content.rstrip(),
+            "content near header: " + content[content.index("### [ITR_002]") : content.index("### [ITR_002]") + 60]
+            if "### [ITR_002]" in content
             else "header not found",
         )
         check("IN_PROGRESS not in header line", "implement-1 — IN_PROGRESS" not in content)
@@ -328,7 +328,7 @@ def test_progress_status_validation():
                     "add-progress",
                     d,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--iter-title",
                     "Test",
                     "--phase",
@@ -348,7 +348,7 @@ def test_progress_status_validation():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -379,7 +379,7 @@ def test_learning_entry_format():
                 "add-learning",
                 d,
                 "--iter-id",
-                "ID_002",
+                "ITR_002",
                 "--iter-title",
                 "Core data model",
                 "--category",
@@ -405,7 +405,7 @@ def test_learning_entry_format():
         check("has category heading", "### [gotcha] WAL mode required" in content)
         check("has PletId", f"**PletId:** `{plet_id}`" in content)
         check("has Timestamp", "**Timestamp:** 20" in content)
-        check("has Iteration field with title", "**Iteration:** [ID_002] Core data model" in content)
+        check("has Iteration field with title", "**Iteration:** [ITR_002] Core data model" in content)
         check("has Phase field", "**Phase:** implement" in content)
         # Unified format: **Content:** marker
         check("has Content marker", "**Content:**" in content)
@@ -423,7 +423,7 @@ def test_learning_category_validation():
                     "add-learning",
                     d,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--iter-title",
                     "Test",
                     "--category",
@@ -445,7 +445,7 @@ def test_learning_category_validation():
                 "add-learning",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--category",
@@ -479,7 +479,7 @@ def test_emergent_entry_format():
                 "add-emergent",
                 d,
                 "--iter-id",
-                "ID_002",
+                "ITR_002",
                 "--iter-title",
                 "Core data model",
                 "--title",
@@ -494,7 +494,7 @@ def test_emergent_entry_format():
                 "1",
             ]
         )
-        # Output: "OK — eem_xxx EM_ID_002_1"
+        # Output: "OK — eem_xxx EM_ITR_002_1"
         check("output starts with OK", stdout.startswith("OK"))
         after_ok = stdout.split(" — ", 1)[1]
         parts = after_ok.split()
@@ -505,12 +505,12 @@ def test_emergent_entry_format():
             content = f.read()
 
         check("type prefix is eem", plet_id.startswith("eem_"))
-        check("EM_ID_002_1 assigned", em_id == "EM_ID_002_1")
-        check("has EM heading", "### EM_ID_002_1: Chose SQLite" in content)
+        check("EM_ITR_002_1 assigned", em_id == "EM_ITR_002_1")
+        check("has EM heading", "### EM_ITR_002_1: Chose SQLite" in content)
         check("has PletId", f"**PletId:** `{plet_id}`" in content)
         check("has Timestamp", "**Timestamp:** 20" in content)
         # Unified format: Iteration field (replaces Source)
-        check("has Iteration field", "**Iteration:** [ID_002] Core data model" in content)
+        check("has Iteration field", "**Iteration:** [ITR_002] Core data model" in content)
         check("has Phase field", "**Phase:** implement" in content)
         check("has Category field", "**Category:** design decision" in content)
         check("has Outcome pending", "**Outcome:** pending" in content)
@@ -527,7 +527,7 @@ def test_emergent_auto_numbering():
             "add-emergent",
             d,
             "--iter-id",
-            "ID_001",
+            "ITR_001",
             "--iter-title",
             "Test",
             "--phase",
@@ -542,15 +542,15 @@ def test_emergent_auto_numbering():
 
         stdout1, _, _ = run(base_args + ["--title", "First"])
         em1 = stdout1.split()[-1]
-        check("first entry is EM_ID_001_1", em1 == "EM_ID_001_1")
+        check("first entry is EM_ITR_001_1", em1 == "EM_ITR_001_1")
 
         stdout2, _, _ = run(base_args + ["--title", "Second"])
         em2 = stdout2.split()[-1]
-        check("second entry is EM_ID_001_2", em2 == "EM_ID_001_2")
+        check("second entry is EM_ITR_001_2", em2 == "EM_ITR_001_2")
 
         stdout3, _, _ = run(base_args + ["--title", "Third"])
         em3 = stdout3.split()[-1]
-        check("third entry is EM_ID_001_3", em3 == "EM_ID_001_3")
+        check("third entry is EM_ITR_001_3", em3 == "EM_ITR_001_3")
 
 
 def test_emergent_category_validation():
@@ -571,7 +571,7 @@ def test_emergent_category_validation():
                     "add-emergent",
                     d,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--iter-title",
                     "Test",
                     "--title",
@@ -593,7 +593,7 @@ def test_emergent_category_validation():
                 "add-emergent",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--title",
@@ -626,7 +626,7 @@ def test_check_all_present():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -644,7 +644,7 @@ def test_check_all_present():
                 "add-learning",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--category",
@@ -664,7 +664,7 @@ def test_check_all_present():
                 "add-emergent",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--title",
@@ -679,7 +679,7 @@ def test_check_all_present():
                 "1",
             ]
         )
-        stdout, _, _ = run(["check", d, "--iter-id", "ID_001"])
+        stdout, _, _ = run(["check", d, "--iter-id", "ITR_001"])
         check("reports OK", "OK" in stdout and "all artifacts" in stdout)
 
 
@@ -692,7 +692,7 @@ def test_check_missing():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -706,7 +706,7 @@ def test_check_missing():
             ]
         )
         stdout, stderr, _ = run(
-            ["check", d, "--iter-id", "ID_001"],
+            ["check", d, "--iter-id", "ITR_001"],
             expect_exit=1,
         )
         combined = stdout + stderr
@@ -723,7 +723,7 @@ def test_check_not_initialized():
         with open(progress_path_fn(d), "w") as f:
             f.write("# Progress\n\n")
         stdout, stderr, _ = run(
-            ["check", d, "--iter-id", "ID_001"],
+            ["check", d, "--iter-id", "ITR_001"],
             expect_exit=1,
         )
         combined = stdout + stderr
@@ -738,7 +738,7 @@ def test_check_not_initialized_json():
         with open(progress_path_fn(d), "w") as f:
             f.write("# Progress\n\n")
         stdout, _, _ = run(
-            ["check", d, "--iter-id", "ID_001", "--output", "json"],
+            ["check", d, "--iter-id", "ITR_001", "--output", "json"],
             expect_exit=1,
         )
         data = json.loads(stdout)
@@ -751,7 +751,7 @@ def test_check_not_initialized_json():
 
 
 def test_check_rejects_proj():
-    """ENT_CHK_PRE_3: check only accepts ID_N+, not proj."""
+    """ENT_CHK_PRE_3: check only accepts ITR_N+, not proj."""
     print("\n## Check — rejects proj")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
@@ -767,7 +767,7 @@ def test_check_no_entries():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         stdout, stderr, _ = run(
-            ["check", d, "--iter-id", "ID_999"],
+            ["check", d, "--iter-id", "ITR_999"],
             expect_exit=1,
         )
         combined = stdout + stderr
@@ -780,13 +780,13 @@ def test_check_no_false_positives():
     print("\n## Check — no false positives from content cross-references")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
-        # Add entries for ID_001 that mention ID_003 in content
+        # Add entries for ITR_001 that mention ITR_003 in content
         run(
             [
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -796,7 +796,7 @@ def test_check_no_false_positives():
                 "--status",
                 "COMPLETE",
                 "--content",
-                "This relates to [ID_003] work done earlier.",
+                "This relates to [ITR_003] work done earlier.",
             ]
         )
         run(
@@ -804,7 +804,7 @@ def test_check_no_false_positives():
                 "add-learning",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--category",
@@ -812,7 +812,7 @@ def test_check_no_false_positives():
                 "--title",
                 "Cross-ref",
                 "--content",
-                "See [ID_003] for the prerequisite pattern.",
+                "See [ITR_003] for the prerequisite pattern.",
                 "--phase",
                 "implement",
                 "--attempt",
@@ -824,11 +824,11 @@ def test_check_no_false_positives():
                 "add-emergent",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--title",
-                "Ref to ID_003",
+                "Ref to ITR_003",
                 "--phase",
                 "implement",
                 "--category",
@@ -836,19 +836,19 @@ def test_check_no_false_positives():
                 "--attempt",
                 "1",
                 "--content",
-                "Assumed [ID_003] approach is correct.",
+                "Assumed [ITR_003] approach is correct.",
             ]
         )
-        # ID_003 has NO actual entries — only cross-references in ID_001 content
+        # ITR_003 has NO actual entries — only cross-references in ITR_001 content
         _, stderr, _ = run(
-            ["check", d, "--iter-id", "ID_003"],
+            ["check", d, "--iter-id", "ITR_003"],
             expect_exit=1,
         )
         combined = stderr
         check(
-            "ID_003 not falsely present",
+            "ITR_003 not falsely present",
             "INCOMPLETE" in combined,
-            "should report INCOMPLETE for ID_003 which has no real entries",
+            "should report INCOMPLETE for ITR_003 which has no real entries",
         )
 
 
@@ -868,7 +868,7 @@ def test_phase_validation():
                     "add-progress",
                     d,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--iter-title",
                     "Test",
                     "--phase",
@@ -888,7 +888,7 @@ def test_phase_validation():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -934,7 +934,7 @@ def test_auto_create_artifact_file():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -961,7 +961,7 @@ def test_attempt_validation():
             "add-progress",
             d,
             "--iter-id",
-            "ID_001",
+            "ITR_001",
             "--iter-title",
             "Test",
             "--phase",
@@ -983,7 +983,7 @@ def test_attempt_validation():
 
 
 def test_iter_id_validation():
-    """ENT_ERR_18: --iter-id must match ID_N+ or 'proj'."""
+    """ENT_ERR_18: --iter-id must match ITR_N+ or 'proj'."""
     print("\n## iter-id format validation")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
@@ -1003,10 +1003,10 @@ def test_iter_id_validation():
         ]
 
         # Valid
-        run(base + ["--iter-id", "ID_001"])
-        check("accepts ID_001", True)
-        run(base + ["--iter-id", "ID_99"])
-        check("accepts ID_99", True)
+        run(base + ["--iter-id", "ITR_001"])
+        check("accepts ITR_001", True)
+        run(base + ["--iter-id", "ITR_99"])
+        check("accepts ITR_99", True)
         run(base + ["--iter-id", "proj"])
         check("accepts proj", True)
 
@@ -1043,7 +1043,7 @@ def test_fence_rejection():
                     "add-progress",
                     d,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--iter-title",
                     "Test",
                     "--phase",
@@ -1064,7 +1064,7 @@ def test_fence_rejection():
                     "add-learning",
                     d,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--iter-title",
                     "Test",
                     "--category",
@@ -1096,7 +1096,7 @@ def test_fence_rejection_content_file():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1131,7 +1131,7 @@ def test_allow_fences_flag():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1153,7 +1153,7 @@ def test_allow_fences_flag():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1190,7 +1190,7 @@ def test_allow_fences_content_file():
                 "add-learning",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--category",
@@ -1224,7 +1224,7 @@ def test_empty_content():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1253,7 +1253,7 @@ def test_empty_content_file():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1288,7 +1288,7 @@ def test_content_file():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1322,7 +1322,7 @@ def test_content_file_learning():
                 "add-learning",
                 d,
                 "--iter-id",
-                "ID_002",
+                "ITR_002",
                 "--iter-title",
                 "Core data model",
                 "--category",
@@ -1358,7 +1358,7 @@ def test_content_file_emergent():
                 "add-emergent",
                 d,
                 "--iter-id",
-                "ID_002",
+                "ITR_002",
                 "--iter-title",
                 "Core data model",
                 "--title",
@@ -1394,7 +1394,7 @@ def test_content_and_content_file_exclusive():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1423,7 +1423,7 @@ def test_content_file_not_found():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1460,7 +1460,7 @@ def test_dry_run():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1491,7 +1491,7 @@ def test_dry_run_on_check():
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
         _, stderr, _ = run(
-            ["check", d, "--iter-id", "ID_001", "--dry-run"],
+            ["check", d, "--iter-id", "ITR_001", "--dry-run"],
             expect_exit=1,
         )
         check("check rejects --dry-run", "dry" in stderr.lower() or "not available" in stderr.lower())
@@ -1511,7 +1511,7 @@ def test_json_output_progress():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1544,7 +1544,7 @@ def test_json_output_pretty():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1575,7 +1575,7 @@ def test_json_output_error():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1606,7 +1606,7 @@ def test_pretty_without_json():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1638,7 +1638,7 @@ def test_fields_filter():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1672,7 +1672,7 @@ def test_fields_without_json():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1705,7 +1705,7 @@ def test_duplicate_flags():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1741,7 +1741,7 @@ def test_multiple_appends():
                     "add-learning",
                     d,
                     "--iter-id",
-                    f"ID_00{i + 1}",
+                    f"ITR_00{i + 1}",
                     "--iter-title",
                     f"Test {i + 1}",
                     "--category",
@@ -1785,7 +1785,7 @@ def test_fencing_structure():
                 "add-progress",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -1833,7 +1833,7 @@ def test_next_em_number_no_file():
     print("\n## next_em_number — no emergent.md (direct import)")
     d = tempfile.mkdtemp()
     try:
-        result = ent_mod.next_em_number(d, "ID_001")
+        result = ent_mod.next_em_number(d, "ITR_001")
         check("returns 1 when no file", result == 1)
     finally:
         import shutil
@@ -1847,8 +1847,8 @@ def test_next_em_number_with_entries():
     try:
         em_path = os.path.join(d, "emergent.md")
         with open(em_path, "w") as f:
-            f.write("### EM_ID_001_1: First\n### EM_ID_001_3: Third\n")
-        result = ent_mod.next_em_number(d, "ID_001")
+            f.write("### EM_ITR_001_1: First\n### EM_ITR_001_3: Third\n")
+        result = ent_mod.next_em_number(d, "ITR_001")
         check("returns 4 (max+1)", result == 4)
     finally:
         import shutil
@@ -1870,7 +1870,7 @@ def test_emergent_id_includes_iter_id():
                 "add-emergent",
                 d,
                 "--iter-id",
-                "ID_002",
+                "ITR_002",
                 "--iter-title",
                 "Core data model",
                 "--title",
@@ -1885,13 +1885,13 @@ def test_emergent_id_includes_iter_id():
                 "1",
             ]
         )
-        # Output should end with EM_ID_002_1, not EM_1
+        # Output should end with EM_ITR_002_1, not EM_1
         em_id = stdout.split()[-1]
-        assert em_id == "EM_ID_002_1", f"expected EM_ID_002_1, got: {em_id}"
+        assert em_id == "EM_ITR_002_1", f"expected EM_ITR_002_1, got: {em_id}"
 
         with open(emergent_path_fn(d)) as f:
             content = f.read()
-        assert "### EM_ID_002_1: Chose SQLite" in content, f"heading EM_ID_002_1 not found in:\n{content}"
+        assert "### EM_ITR_002_1: Chose SQLite" in content, f"heading EM_ITR_002_1 not found in:\n{content}"
 
 
 def test_emergent_id_auto_numbering_per_iter():
@@ -1902,7 +1902,7 @@ def test_emergent_id_auto_numbering_per_iter():
             "add-emergent",
             d,
             "--iter-id",
-            "ID_001",
+            "ITR_001",
             "--iter-title",
             "Test",
             "--phase",
@@ -1917,18 +1917,18 @@ def test_emergent_id_auto_numbering_per_iter():
 
         stdout1, _, _ = run(base + ["--title", "First"])
         em1 = stdout1.split()[-1]
-        assert em1 == "EM_ID_001_1", f"expected EM_ID_001_1, got: {em1}"
+        assert em1 == "EM_ITR_001_1", f"expected EM_ITR_001_1, got: {em1}"
 
         stdout2, _, _ = run(base + ["--title", "Second"])
         em2 = stdout2.split()[-1]
-        assert em2 == "EM_ID_001_2", f"expected EM_ID_001_2, got: {em2}"
+        assert em2 == "EM_ITR_001_2", f"expected EM_ITR_001_2, got: {em2}"
 
         # Different iter_id starts at 1
         base2 = list(base)
-        base2[3] = "ID_003"  # --iter-id
+        base2[3] = "ITR_003"  # --iter-id
         stdout3, _, _ = run(base2 + ["--title", "Other iter"])
         em3 = stdout3.split()[-1]
-        assert em3 == "EM_ID_003_1", f"expected EM_ID_003_1, got: {em3}"
+        assert em3 == "EM_ITR_003_1", f"expected EM_ITR_003_1, got: {em3}"
 
 
 def test_emergent_id_reference_id_json():
@@ -1940,7 +1940,7 @@ def test_emergent_id_reference_id_json():
                 "add-emergent",
                 d,
                 "--iter-id",
-                "ID_005",
+                "ITR_005",
                 "--iter-title",
                 "Auth",
                 "--title",
@@ -1959,7 +1959,7 @@ def test_emergent_id_reference_id_json():
         )
         data = json.loads(stdout)
         ref_id = data.get("referenceId", "")
-        assert ref_id == "EM_ID_005_1", f"expected EM_ID_005_1, got: {ref_id}"
+        assert ref_id == "EM_ITR_005_1", f"expected EM_ITR_005_1, got: {ref_id}"
 
 
 def test_next_em_number_scoped_to_iter():
@@ -1968,13 +1968,13 @@ def test_next_em_number_scoped_to_iter():
     try:
         em_path = os.path.join(d, "emergent.md")
         with open(em_path, "w") as f:
-            f.write("### EM_ID_001_1: First\n### EM_ID_001_3: Third\n### EM_ID_002_1: Other\n")
-        result = ent_mod.next_em_number(d, "ID_001")
-        assert result == 4, f"ID_001: expected 4, got: {result}"
-        result2 = ent_mod.next_em_number(d, "ID_002")
-        assert result2 == 2, f"ID_002: expected 2, got: {result2}"
-        result3 = ent_mod.next_em_number(d, "ID_099")
-        assert result3 == 1, f"ID_099: expected 1, got: {result3}"
+            f.write("### EM_ITR_001_1: First\n### EM_ITR_001_3: Third\n### EM_ITR_002_1: Other\n")
+        result = ent_mod.next_em_number(d, "ITR_001")
+        assert result == 4, f"ITR_001: expected 4, got: {result}"
+        result2 = ent_mod.next_em_number(d, "ITR_002")
+        assert result2 == 2, f"ITR_002: expected 2, got: {result2}"
+        result3 = ent_mod.next_em_number(d, "ITR_099")
+        assert result3 == 1, f"ITR_099: expected 1, got: {result3}"
     finally:
         import shutil
 

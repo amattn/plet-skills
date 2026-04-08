@@ -372,9 +372,9 @@ def extract_iterations_fingerprint(text):
 
     for line in filtered.split("\n"):
         # Check for iteration heading
-        iter_heading = re.match(r"^###\s+ID_(\d+)", line)
+        iter_heading = re.match(r"^###\s+ITR_(\d+)", line)
         if iter_heading:
-            current_iter_id = f"ID_{iter_heading.group(1)}"
+            current_iter_id = f"ITR_{iter_heading.group(1)}"
             continue
 
         # Check for milestone metadata

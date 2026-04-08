@@ -61,13 +61,13 @@ def check(name, condition, detail=""):
 PROGRESS_HEADER = "# Progress\n\n"
 
 PROGRESS_ORCHESTRATOR_ENTRY = """\
-### [2026-03-31 10:00:00 UTC] ID_001 implement-1 — IN_PROGRESS
+### [2026-03-31 10:00:00 UTC] ITR_001 implement-1 — IN_PROGRESS
 
 **Phase:** orchestrator | **Attempt:** 1 | **Status:** IN_PROGRESS
 
 Loop 1 active. Branch: plet/LOGA/loop1/workstream.
 
-### [2026-03-31 10:00:05 UTC] ID_001 implement-1 — COMPLETE
+### [2026-03-31 10:00:05 UTC] ITR_001 implement-1 — COMPLETE
 
 **Phase:** orchestrator | **Attempt:** 1 | **Status:** COMPLETE
 
@@ -78,14 +78,14 @@ all passed
 """
 
 PROGRESS_SUBAGENT_ENTRY = """\
-### [2026-03-31 10:01:30 UTC] ID_001 implement-1 — IN_PROGRESS
+### [2026-03-31 10:01:30 UTC] ITR_001 implement-1 — IN_PROGRESS
 
 **Phase:** implement | **Attempt:** 1 | **Status:** IN_PROGRESS
 
 Starting implementation of user authentication endpoint.
 Reading requirements and acceptance criteria.
 
-### [2026-03-31 10:03:45 UTC] ID_001 implement-1 — COMPLETE
+### [2026-03-31 10:03:45 UTC] ITR_001 implement-1 — COMPLETE
 
 **Phase:** implement | **Attempt:** 1 | **Status:** COMPLETE
 
@@ -101,7 +101,7 @@ Red/green discipline followed: wrote failing tests first for each AC.
 LEARNINGS_HEADER = "# Learnings\n\n"
 
 LEARNINGS_ORCHESTRATOR_ENTRY = """\
-### [2026-03-31 10:00:02 UTC] ID_001 implement-1 — Pattern: Preflight catches stale fingerprints
+### [2026-03-31 10:00:02 UTC] ITR_001 implement-1 — Pattern: Preflight catches stale fingerprints
 
 **Category:** pattern | **Phase:** orchestrator | **Attempt:** 1
 
@@ -112,7 +112,7 @@ Running `fingerprint.py embed` resolved it.
 """
 
 LEARNINGS_SUBAGENT_ENTRY = """\
-### [2026-03-31 10:02:15 UTC] ID_001 implement-1 — Pattern: Use conftest.py for shared fixtures
+### [2026-03-31 10:02:15 UTC] ITR_001 implement-1 — Pattern: Use conftest.py for shared fixtures
 
 **Category:** pattern | **Phase:** implement | **Attempt:** 1
 
@@ -120,7 +120,7 @@ Shared test fixtures (mock OAuth provider, test tokens) belong in
 conftest.py rather than duplicated across test files. This project
 uses pytest, so conftest.py is auto-discovered.
 
-### [2026-03-31 10:03:30 UTC] ID_001 implement-1 — Gotcha: PKCE requires S256 method
+### [2026-03-31 10:03:30 UTC] ITR_001 implement-1 — Gotcha: PKCE requires S256 method
 
 **Category:** gotcha | **Phase:** implement | **Attempt:** 1
 
@@ -133,7 +133,7 @@ the base64url encoding needs `urlsafe_b64encode` with padding stripped.
 EMERGENT_HEADER = "# Emergent\n\n"
 
 EMERGENT_SUBAGENT_ENTRY = """\
-### [2026-03-31 10:02:45 UTC] ID_001 implement-1 — Design Decision: Token storage approach
+### [2026-03-31 10:02:45 UTC] ITR_001 implement-1 — Design Decision: Token storage approach
 
 **Category:** design decision | **Phase:** implement | **Attempt:** 1
 
@@ -158,7 +158,7 @@ TRACE_ORCHESTRATOR_ENTRY = (
             "pletId": "inv_abc001",
             "timestamp": "2026-03-31T10:00:00Z",
             "type": "invocation",
-            "iterationId": "ID_001",
+            "iterationId": "ITR_001",
             "phase": "implement",
             "attempt": 1,
             "data": {"prompt_length": 45230, "model": "claude-opus-4-6"},
@@ -173,7 +173,7 @@ TRACE_SUBAGENT_ENTRIES = (
             "pletId": "tev_abc002",
             "timestamp": "2026-03-31T10:00:05Z",
             "type": "activity_change",
-            "iterationId": "ID_001",
+            "iterationId": "ITR_001",
             "phase": "implement",
             "attempt": 1,
             "data": {"activity": "reading_requirements"},
@@ -185,7 +185,7 @@ TRACE_SUBAGENT_ENTRIES = (
             "pletId": "tev_abc003",
             "timestamp": "2026-03-31T10:01:30Z",
             "type": "activity_change",
-            "iterationId": "ID_001",
+            "iterationId": "ITR_001",
             "phase": "implement",
             "attempt": 1,
             "data": {"activity": "writing_tests"},
@@ -197,7 +197,7 @@ TRACE_SUBAGENT_ENTRIES = (
             "pletId": "tev_abc004",
             "timestamp": "2026-03-31T10:02:45Z",
             "type": "decision",
-            "iterationId": "ID_001",
+            "iterationId": "ITR_001",
             "phase": "implement",
             "attempt": 1,
             "data": {"decision": "encrypted file storage for tokens"},
@@ -209,7 +209,7 @@ TRACE_SUBAGENT_ENTRIES = (
             "pletId": "tev_abc005",
             "timestamp": "2026-03-31T10:03:45Z",
             "type": "activity_change",
-            "iterationId": "ID_001",
+            "iterationId": "ITR_001",
             "phase": "implement",
             "attempt": 1,
             "data": {"activity": "idle"},

@@ -73,10 +73,10 @@ def _make_project():
     plet_dir = os.path.join(d, "plet")
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
-    make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
+    make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "implementing"})
     make_iter_state(
         plet_dir,
-        "ID_001",
+        "ITR_001",
         criteria=[
             {
                 "id": "AC_1",
@@ -146,7 +146,7 @@ def test_update_criterion_dispatches():
                 "update-criterion",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--criterion",
                 "AC_1",
                 "--phase",
@@ -161,7 +161,7 @@ def test_update_criterion_dispatches():
         )
         check("update-criterion exits 0", rc == 0, f"err: {err}")
         # Verify state was updated
-        ist = load_json(iter_state_path(plet_dir, "ID_001"))
+        ist = load_json(iter_state_path(plet_dir, "ITR_001"))
         ac1 = ist["criteria"][0] if ist and ist.get("criteria") else {}
         check(
             "AC_1 updated",
@@ -190,7 +190,7 @@ def test_wip_commit_dispatches():
                     "wip-commit",
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--message",
                     "AC_1 tests pass",
                 ]
@@ -214,7 +214,7 @@ def test_add_learning_dispatches():
                 "add-learning",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -249,7 +249,7 @@ def test_add_emergent_dispatches():
                 "add-emergent",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--iter-title",
                 "Test",
                 "--phase",
@@ -287,7 +287,7 @@ def test_phase_end_dispatches():
                     "phase-end",
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                     "--verdict",

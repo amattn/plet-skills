@@ -45,7 +45,7 @@ def _make_project(lifecycles=None, iters=None):
     plet_dir = os.path.join(d, "plet")
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     if lifecycles is None:
-        lifecycles = {"ID_001": "implementing"}
+        lifecycles = {"ITR_001": "implementing"}
     if iters is None:
         iters = list(lifecycles.keys())
     make_global_state(plet_dir, dep_map={i: [] for i in iters}, lifecycles=lifecycles)
@@ -128,8 +128,8 @@ def test_derive_branches():
     import git_check
 
     gs = {"projectId": "LOGA", "loopSessionCount": 2, "sessionHistory": []}
-    ist = {"iterationId": "ID_001"}
-    check("iteration branch", git_check.derive_iteration_branch(gs, ist) == "plet/LOGA/loop2/ID_001")
+    ist = {"iterationId": "ITR_001"}
+    check("iteration branch", git_check.derive_iteration_branch(gs, ist) == "plet/LOGA/loop2/ITR_001")
     check("workstream branch", git_check.derive_workstream_branch(gs) == "plet/LOGA/loop2/workstream")
 
 
@@ -285,7 +285,7 @@ def test_check_no_stashes():
 def test_load_iter_states():
     import git_check
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued", "ID_002": "implementing"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued", "ITR_002": "implementing"})
     try:
         sd = os.path.join(plet_dir, "state")
         states = git_check._load_iter_states(sd, plet_dir)
@@ -312,14 +312,16 @@ def test_check_workstream_exists():
         os.chdir(d)
         try:
             _create_branches(d)
-            ws_exists, r = git_check._check_workstream_exists("plet/TEST/loop1/workstream", {"ID_001": "implementing"})
+            ws_exists, r = git_check._check_workstream_exists("plet/TEST/loop1/workstream", {"ITR_001": "implementing"})
             check("exists = pass", r["status"] == "pass")
             check("ws_exists true", ws_exists is True)
 
-            ws_exists, r = git_check._check_workstream_exists("plet/TEST/loop99/workstream", {"ID_001": "implementing"})
+            ws_exists, r = git_check._check_workstream_exists(
+                "plet/TEST/loop99/workstream", {"ITR_001": "implementing"}
+            )
             check("missing + active = fail", r["status"] == "fail")
 
-            ws_exists, r = git_check._check_workstream_exists("plet/TEST/loop99/workstream", {"ID_001": "ineligible"})
+            ws_exists, r = git_check._check_workstream_exists("plet/TEST/loop99/workstream", {"ITR_001": "ineligible"})
             check("missing + all ineligible = pass", r["status"] == "pass")
         finally:
             os.chdir(old_cwd)
@@ -332,20 +334,20 @@ def test_is_orphaned_plet_worktree():
 
     prefix = "plet/TEST/loop1/"
     ws = "plet/TEST/loop1/workstream"
-    lifecycles = {"ID_001": "implementing", "ID_002": "complete"}
+    lifecycles = {"ITR_001": "implementing", "ITR_002": "complete"}
 
     # Active iteration — not orphaned
-    wt = {"path": "/tmp/wt", "branch": "plet/TEST/loop1/ID_001"}
+    wt = {"path": "/tmp/wt", "branch": "plet/TEST/loop1/ITR_001"}
     r = git_check._is_orphaned_plet_worktree(wt, prefix, ws, lifecycles)
     check("active = not orphaned", r is None)
 
     # Complete iteration — orphaned
-    wt2 = {"path": "/tmp/wt2", "branch": "plet/TEST/loop1/ID_002"}
+    wt2 = {"path": "/tmp/wt2", "branch": "plet/TEST/loop1/ITR_002"}
     r = git_check._is_orphaned_plet_worktree(wt2, prefix, ws, lifecycles)
     check("complete = orphaned", r is not None)
 
     # Unknown iteration — orphaned
-    wt3 = {"path": "/tmp/wt3", "branch": "plet/TEST/loop1/ID_999"}
+    wt3 = {"path": "/tmp/wt3", "branch": "plet/TEST/loop1/ITR_999"}
     r = git_check._is_orphaned_plet_worktree(wt3, prefix, ws, lifecycles)
     check("unknown = orphaned", r is not None)
 
@@ -363,23 +365,23 @@ def test_is_orphaned_plet_worktree():
 def test_check_orphaned_branches():
     import git_check
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "queued"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "queued"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            ws = _create_branches(d, iter_ids=["ID_001"])
+            ws = _create_branches(d, iter_ids=["ITR_001"])
             prefix = "plet/TEST/loop1/"
 
-            iter_states = [{"_valid": True, "iterationId": "ID_001"}]
+            iter_states = [{"_valid": True, "iterationId": "ITR_001"}]
             r = git_check._check_orphaned_branches(prefix, ws, iter_states)
             check("no orphans = pass", r["status"] == "pass")
 
             # Create orphan branch
-            subprocess.run(["git", "-C", d, "branch", "plet/TEST/loop1/ID_999"], capture_output=True)
+            subprocess.run(["git", "-C", d, "branch", "plet/TEST/loop1/ITR_999"], capture_output=True)
             r = git_check._check_orphaned_branches(prefix, ws, iter_states)
             check("orphan found = warn", r["status"] == "warn")
-            check("mentions ID_999", "ID_999" in r["detail"])
+            check("mentions ITR_999", "ITR_999" in r["detail"])
         finally:
             os.chdir(old_cwd)
     finally:
@@ -389,21 +391,21 @@ def test_check_orphaned_branches():
 def test_check_unmerged_complete():
     import git_check
 
-    d, plet_dir = _make_project(lifecycles={"ID_001": "complete"})
+    d, plet_dir = _make_project(lifecycles={"ITR_001": "complete"})
     try:
         old_cwd = os.getcwd()
         os.chdir(d)
         try:
-            ws = _create_branches(d, iter_ids=["ID_001"])
-            # ID_001 branch exists but not merged to workstream
-            subprocess.run(["git", "-C", d, "checkout", "plet/TEST/loop1/ID_001"], capture_output=True)
+            ws = _create_branches(d, iter_ids=["ITR_001"])
+            # ITR_001 branch exists but not merged to workstream
+            subprocess.run(["git", "-C", d, "checkout", "plet/TEST/loop1/ITR_001"], capture_output=True)
             with open(os.path.join(d, "impl.txt"), "w") as f:
                 f.write("work\n")
             subprocess.run(["git", "-C", d, "add", "-A"], capture_output=True)
             subprocess.run(["git", "-C", d, "commit", "-m", "work"], capture_output=True)
             subprocess.run(["git", "-C", d, "checkout", ws], capture_output=True)
 
-            r = git_check._check_unmerged_complete({"ID_001": "complete"}, "TEST", 1, ws, True)
+            r = git_check._check_unmerged_complete({"ITR_001": "complete"}, "TEST", 1, ws, True)
             check("unmerged = fail", r["status"] == "fail")
 
             # No complete iterations
@@ -412,8 +414,8 @@ def test_check_unmerged_complete():
             check("says no complete", "no complete" in r["detail"])
 
             # Branch deleted (already cleaned up)
-            subprocess.run(["git", "-C", d, "branch", "-D", "plet/TEST/loop1/ID_001"], capture_output=True)
-            r = git_check._check_unmerged_complete({"ID_001": "complete"}, "TEST", 1, ws, True)
+            subprocess.run(["git", "-C", d, "branch", "-D", "plet/TEST/loop1/ITR_001"], capture_output=True)
+            r = git_check._check_unmerged_complete({"ITR_001": "complete"}, "TEST", 1, ws, True)
             check("deleted branch = pass", r["status"] == "pass")
         finally:
             os.chdir(old_cwd)
@@ -433,7 +435,7 @@ def _make_iteration_project(lifecycles=None, loop_session=1):
     can run from cwd. Returns (tmpdir, plet_dir).
     """
     if lifecycles is None:
-        lifecycles = {"ID_001": "implementing"}
+        lifecycles = {"ITR_001": "implementing"}
     d = tempfile.mkdtemp()
     make_git_repo(d)
     plet_dir = os.path.join(d, "plet")
@@ -479,7 +481,7 @@ def test_cmd_check_iteration_basic_pass():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                 ]
@@ -507,7 +509,7 @@ def test_cmd_check_iteration_json_output():
             [
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--output",
@@ -522,7 +524,7 @@ def test_cmd_check_iteration_json_output():
         check("json has status", "status" in data)
         check("json has checks", "checks" in data)
         check("json has command", data.get("command") == "check-iteration")
-        check("json has iterationId", data.get("iterationId") == "ID_001")
+        check("json has iterationId", data.get("iterationId") == "ITR_001")
     finally:
         os.chdir(old_cwd)
         shutil.rmtree(d)
@@ -540,7 +542,7 @@ def test_cmd_check_iteration_missing_args():
         check("missing args exits 1", rc == 1)
 
         # Missing --phase only
-        rc = exit_code(git_check.cmd_check_iteration([plet_dir, "--iter-id", "ID_001"]))
+        rc = exit_code(git_check.cmd_check_iteration([plet_dir, "--iter-id", "ITR_001"]))
         check("missing phase exits 1", rc == 1)
     finally:
         os.chdir(old_cwd)
@@ -559,7 +561,7 @@ def test_cmd_check_iteration_invalid_phase():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "build",
                 ]
@@ -579,15 +581,15 @@ def test_cmd_check_iteration_not_git_repo():
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
-        make_iter_state(plet_dir, "ID_001")
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "implementing"})
+        make_iter_state(plet_dir, "ITR_001")
         os.chdir(d)
         rc = exit_code(
             git_check.cmd_check_iteration(
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                 ]
@@ -613,7 +615,7 @@ def test_cmd_check_iteration_missing_state():
                 [
                     os.path.join(d, "plet"),
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                 ]
@@ -638,7 +640,7 @@ def test_cmd_check_iteration_missing_iter_state():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_999",
+                    "ITR_999",
                     "--phase",
                     "implement",
                 ]
@@ -665,7 +667,7 @@ def test_cmd_check_iteration_wrong_branch():
                 [
                     plet_dir,
                     "--iter-id",
-                    "ID_001",
+                    "ITR_001",
                     "--phase",
                     "implement",
                 ]
@@ -689,7 +691,7 @@ def _make_session_project(lifecycles=None, loop_session=1):
     Returns (tmpdir, plet_dir). Caller must clean up tmpdir.
     """
     if lifecycles is None:
-        lifecycles = {"ID_001": "implementing"}
+        lifecycles = {"ITR_001": "implementing"}
     d = tempfile.mkdtemp()
     make_git_repo(d)
     plet_dir = os.path.join(d, "plet")
@@ -813,16 +815,16 @@ def test_cmd_check_session_orphaned_worktree():
     """Detect orphaned worktrees for completed/unknown iterations."""
     import git_check
 
-    d, plet_dir = _make_session_project(lifecycles={"ID_001": "complete"})
+    d, plet_dir = _make_session_project(lifecycles={"ITR_001": "complete"})
     old_cwd = os.getcwd()
     try:
         os.chdir(d)
         # Create an iteration branch for the complete iteration
-        iter_branch = "plet/TEST/loop1/ID_001"
+        iter_branch = "plet/TEST/loop1/ITR_001"
         subprocess.run(["git", "-C", d, "branch", iter_branch], capture_output=True)
 
         # Create a worktree for that branch (orphaned because lifecycle is complete)
-        wt_dir = os.path.join(d, "worktree_ID_001")
+        wt_dir = os.path.join(d, "worktree_ITR_001")
         subprocess.run(
             ["git", "-C", d, "worktree", "add", wt_dir, iter_branch],
             capture_output=True,
@@ -853,8 +855,8 @@ def test_cmd_check_session_not_git_repo():
     try:
         plet_dir = os.path.join(d, "plet")
         os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
-        make_global_state(plet_dir, dep_map={"ID_001": []}, lifecycles={"ID_001": "implementing"})
-        make_iter_state(plet_dir, "ID_001")
+        make_global_state(plet_dir, dep_map={"ITR_001": []}, lifecycles={"ITR_001": "implementing"})
+        make_iter_state(plet_dir, "ITR_001")
         os.chdir(d)
         rc = exit_code(git_check.cmd_check_session([plet_dir]))
         check("session not git repo exits 1", rc == 1)

@@ -88,18 +88,18 @@ def test_make_global_state_custom():
     with tempfile.TemporaryDirectory() as d:
         make_global_state(
             d,
-            dep_map={"ID_001": [], "ID_002": ["ID_001"]},
-            lifecycles={"ID_001": "complete", "ID_002": "queued"},
+            dep_map={"ITR_001": [], "ITR_002": ["ITR_001"]},
+            lifecycles={"ITR_001": "complete", "ITR_002": "queued"},
             project_id="LOGA",
             loop_session=3,
-            breakpoints={"before": ["ID_002"], "after": []},
+            breakpoints={"before": ["ITR_002"], "after": []},
         )
         data = read_global_state(d)
         check("custom projectId", data["projectId"] == "LOGA")
         check("custom dep_map", len(data["dependencyMap"]) == 2)
-        check("custom lifecycles", data["lifecycles"]["ID_001"] == "complete")
+        check("custom lifecycles", data["lifecycles"]["ITR_001"] == "complete")
         check("custom loop_session", data["loopSessionCount"] == 3)
-        check("custom breakpoints", data["breakpoints"]["before"] == ["ID_002"])
+        check("custom breakpoints", data["breakpoints"]["before"] == ["ITR_002"])
 
 
 def test_make_global_state_overrides():
@@ -122,8 +122,8 @@ def test_make_iter_state_defaults():
         path = make_iter_state(d)
         check("file exists", os.path.isfile(path))
         data = read_iter_state(d)
-        check("iterationId", data["iterationId"] == "ID_001")
-        check("title auto", data["title"] == "Test iteration ID_001")
+        check("iterationId", data["iterationId"] == "ITR_001")
+        check("title auto", data["title"] == "Test iteration ITR_001")
         check("no lifecycle", "lifecycle" not in data)
         check("phaseActivity idle", data["phaseActivity"] == "idle")
         check("agentId null", data["agentId"] is None)
@@ -142,7 +142,7 @@ def test_make_iter_state_custom():
         os.makedirs(os.path.join(d, "state"), exist_ok=True)
         make_iter_state(
             d,
-            iter_id="ID_003",
+            iter_id="ITR_003",
             title="Custom title",
             attempts={"implement": 2, "verify": 1},
             phase_activity="writing_tests",
@@ -154,8 +154,8 @@ def test_make_iter_state_custom():
                 {"id": "AC_1", "description": "Test", "status": "pass", "implementation": None, "verification": None}
             ],
         )
-        data = read_iter_state(d, "ID_003")
-        check("custom iter_id", data["iterationId"] == "ID_003")
+        data = read_iter_state(d, "ITR_003")
+        check("custom iter_id", data["iterationId"] == "ITR_003")
         check("custom title", data["title"] == "Custom title")
         check("custom attempts", data["attempts"]["implement"] == 2)
         check("custom phaseActivity", data["phaseActivity"] == "writing_tests")
@@ -212,8 +212,8 @@ def test_create_branches():
         out, _, _ = git_run(d, ["branch", "--show-current"])
         check("on workstream", out == ws)
 
-        ib = create_iteration_branch(d, "PROJ", "ID_001", 2, num_commits=2)
-        check("iteration branch name", ib == "plet/PROJ/loop2/ID_001")
+        ib = create_iteration_branch(d, "PROJ", "ITR_001", 2, num_commits=2)
+        check("iteration branch name", ib == "plet/PROJ/loop2/ITR_001")
         out, _, _ = git_run(d, ["log", "--oneline"])
         lines = out.strip().split("\n")
         check("has 2 impl commits + initial", len(lines) >= 3)
@@ -278,13 +278,13 @@ def test_valid_global_state_constant():
 def test_make_trace_file():
     print("\n## make_trace_file")
     with tempfile.TemporaryDirectory() as d:
-        path = make_trace_file(d, "ID_001", "implement", 1)
+        path = make_trace_file(d, "ITR_001", "implement", 1)
         check("trace file exists", os.path.isfile(path))
         with open(path) as f:
             line = f.readline()
             event = json.loads(line)
         check("has type", event["type"] == "activity_change")
-        check("has iterationId", event["iterationId"] == "ID_001")
+        check("has iterationId", event["iterationId"] == "ITR_001")
         check("has phase", event["phase"] == "implement")
 
     # Custom events
@@ -323,7 +323,7 @@ def test_make_verification_report():
 def test_write_raw_state():
     print("\n## write_raw_state")
     with tempfile.TemporaryDirectory() as d:
-        path = os.path.join(d, "state", "ID_001.json")
+        path = os.path.join(d, "state", "ITR_001.json")
         write_raw_state(path, {"bad": "data"})
         check("file exists", os.path.isfile(path))
         with open(path) as f:
@@ -347,8 +347,8 @@ def test_make_audit_tag():
     print("\n## make_audit_tag")
     with tempfile.TemporaryDirectory() as d:
         make_git_repo(d)
-        tag = make_audit_tag(d, "PROJ", "ID_001", "implement", 1, loop_session=2)
-        check("tag name format", tag == "plet/PROJ/loop2/audit/ID_001/implement-1")
+        tag = make_audit_tag(d, "PROJ", "ITR_001", "implement", 1, loop_session=2)
+        check("tag name format", tag == "plet/PROJ/loop2/audit/ITR_001/implement-1")
         out, _, rc = git_run(d, ["tag", "-l", tag])
         check("tag exists in repo", rc == 0 and tag in out)
 

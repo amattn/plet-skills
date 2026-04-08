@@ -62,12 +62,12 @@ VALID_STATE = {
     "lastUpdated": "2026-03-07T14:00:00Z",
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer"},
-    "dependencyMap": {"ID_001": [], "ID_002": ["ID_001"]},
-    "milestones": {"MS_1": {"name": "MVP", "iterations": ["ID_001", "ID_002"]}},
-    "lifecycles": {"ID_001": "queued", "ID_002": "ineligible"},
+    "dependencyMap": {"ITR_001": [], "ITR_002": ["ITR_001"]},
+    "milestones": {"MS_1": {"name": "MVP", "iterations": ["ITR_001", "ITR_002"]}},
+    "lifecycles": {"ITR_001": "queued", "ITR_002": "ineligible"},
     "iterationsFingerprint": {
         "lastNonTrivialUpdate": "2026-03-07T14:00:00Z",
-        "iterations": {"MS_1": ["ID_001", "ID_002"]},
+        "iterations": {"MS_1": ["ITR_001", "ITR_002"]},
     },
 }
 
@@ -156,7 +156,7 @@ def test_validate_invalid_lifecycle_in_lifecycles():
     print("\n## validate — invalid lifecycle value in lifecycles")
     with tempfile.TemporaryDirectory() as d:
         state = dict(VALID_STATE)
-        state["lifecycles"] = {"ID_001": "running"}
+        state["lifecycles"] = {"ITR_001": "running"}
         write_raw_state(d, state)
         _, err, _ = run(["validate", d], expect_exit=1)
         check("rejects invalid lifecycle", "running" in err or "invalid" in err.lower())
@@ -179,11 +179,11 @@ def test_init_basic():
                 "--project-name",
                 "Log Analyzer",
                 "--dependency-map",
-                '{"ID_001":[],"ID_002":["ID_001"]}',
+                '{"ITR_001":[],"ITR_002":["ITR_001"]}',
                 "--milestones",
-                '{"MS_1":{"name":"MVP","iterations":["ID_001","ID_002"]}}',
+                '{"MS_1":{"name":"MVP","iterations":["ITR_001","ITR_002"]}}',
                 "--iterations-fingerprint",
-                '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z","iterations":{"MS_1":["ID_001","ID_002"]}}',
+                '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z","iterations":{"MS_1":["ITR_001","ITR_002"]}}',
             ]
         )
         check("exits 0", True)
@@ -199,7 +199,7 @@ def test_init_basic():
         check("schemaVersion", data["schemaVersion"] == "0.6.0")
         check("projectId", data["projectId"] == "LOGA")
         check("project.name", data["project"]["name"] == "Log Analyzer")
-        check("dependencyMap", data["dependencyMap"] == {"ID_001": [], "ID_002": ["ID_001"]})
+        check("dependencyMap", data["dependencyMap"] == {"ITR_001": [], "ITR_002": ["ITR_001"]})
 
 
 def test_init_lifecycles_auto():
@@ -214,7 +214,7 @@ def test_init_lifecycles_auto():
                 "--project-name",
                 "Test",
                 "--dependency-map",
-                '{"ID_001":[],"ID_002":["ID_001"],"ID_003":[]}',
+                '{"ITR_001":[],"ITR_002":["ITR_001"],"ITR_003":[]}',
                 "--milestones",
                 "{}",
                 "--iterations-fingerprint",
@@ -225,9 +225,9 @@ def test_init_lifecycles_auto():
             data = json.load(f)
 
         lc = data.get("lifecycles", {})
-        check("ID_001 queued (no deps)", lc.get("ID_001") == "queued")
-        check("ID_002 ineligible (has deps)", lc.get("ID_002") == "ineligible")
-        check("ID_003 queued (no deps)", lc.get("ID_003") == "queued")
+        check("ITR_001 queued (no deps)", lc.get("ITR_001") == "queued")
+        check("ITR_002 ineligible (has deps)", lc.get("ITR_002") == "ineligible")
+        check("ITR_003 queued (no deps)", lc.get("ITR_003") == "queued")
 
 
 def test_init_creates_state_dir():
@@ -367,7 +367,7 @@ def test_init_json_output():
                 "--project-name",
                 "Test",
                 "--dependency-map",
-                '{"ID_001":[]}',
+                '{"ITR_001":[]}',
                 "--milestones",
                 "{}",
                 "--iterations-fingerprint",
@@ -395,7 +395,7 @@ def test_init_dry_run():
                 "--project-name",
                 "Test",
                 "--dependency-map",
-                '{"ID_001":[]}',
+                '{"ITR_001":[]}',
                 "--milestones",
                 "{}",
                 "--iterations-fingerprint",
@@ -416,7 +416,7 @@ def test_init_dry_run():
                 "--project-name",
                 "Test",
                 "--dependency-map",
-                '{"ID_001":[]}',
+                '{"ITR_001":[]}',
                 "--milestones",
                 "{}",
                 "--iterations-fingerprint",
@@ -466,20 +466,20 @@ def test_update_lifecycle_basic():
     print("\n## update-lifecycle — basic transition")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "implementing"])
+        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "implementing"])
         check("exits 0", True)
         check("transition in output", "queued" in out and "implementing" in out)
 
         with open(os.path.join(d, "state.json")) as f:
             data = json.load(f)
-        check("lifecycle updated", data["lifecycles"]["ID_001"] == "implementing")
+        check("lifecycle updated", data["lifecycles"]["ITR_001"] == "implementing")
 
 
 def test_update_lifecycle_same_value():
     print("\n## update-lifecycle — same value (no-op)")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued"])
+        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "queued"])
         check("exits 0", True)
         check("already in output", "already" in out.lower())
 
@@ -488,19 +488,19 @@ def test_update_lifecycle_new_iter():
     print("\n## update-lifecycle — new iteration ID (not in lifecycles)")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_099", "--lifecycle", "queued"])
+        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ITR_099", "--lifecycle", "queued"])
         check("exits 0", True)
 
         with open(os.path.join(d, "state.json")) as f:
             data = json.load(f)
-        check("ID_099 added", data["lifecycles"].get("ID_099") == "queued")
+        check("ITR_099 added", data["lifecycles"].get("ITR_099") == "queued")
 
 
 def test_update_lifecycle_invalid_value():
     print("\n## update-lifecycle — invalid lifecycle value")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "running"], expect_exit=1)
+        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "running"], expect_exit=1)
         check("rejects invalid", "running" in err or "invalid" in err.lower())
 
 
@@ -513,7 +513,7 @@ def test_update_lifecycle_json_output():
                 "update-lifecycle",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--lifecycle",
                 "implementing",
                 "--output",
@@ -531,7 +531,7 @@ def test_update_lifecycle_json_noop():
     print("\n## update-lifecycle — JSON output no-op")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued", "--output", "json"])
+        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "queued", "--output", "json"])
         data = json.loads(out)
         check("changed false", data["changed"] is False)
 
@@ -540,7 +540,7 @@ def test_update_lifecycle_new_iter_json():
     print("\n## update-lifecycle — new iter JSON (from null)")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_099", "--lifecycle", "queued", "--output", "json"])
+        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ITR_099", "--lifecycle", "queued", "--output", "json"])
         data = json.loads(out)
         check("from null", data["from"] is None)
         check("to queued", data["to"] == "queued")
@@ -550,7 +550,7 @@ def test_update_lifecycle_new_iter_json():
 def test_update_lifecycle_missing_state():
     print("\n## update-lifecycle — state.json not found")
     with tempfile.TemporaryDirectory() as d:
-        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued"], expect_exit=1)
+        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "queued"], expect_exit=1)
         check("error mentions state.json", "state.json" in err)
 
 
@@ -559,7 +559,7 @@ def test_update_lifecycle_updates_timestamp():
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
         old_ts = VALID_STATE["lastUpdated"]
-        run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "implementing"])
+        run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "implementing"])
         with open(os.path.join(d, "state.json")) as f:
             data = json.load(f)
         check("lastUpdated changed", data["lastUpdated"] != old_ts)
@@ -576,8 +576,8 @@ def test_get_lifecycle_all():
         write_raw_state(d, VALID_STATE)
         out, _, _ = run(["get-lifecycle", d])
         check("exits 0", True)
-        check("ID_001 in output", "ID_001" in out)
-        check("ID_002 in output", "ID_002" in out)
+        check("ITR_001 in output", "ITR_001" in out)
+        check("ITR_002 in output", "ITR_002" in out)
         check("total in output", "total" in out.lower() or "2" in out)
 
 
@@ -585,9 +585,9 @@ def test_get_lifecycle_single():
     print("\n## get-lifecycle — single iteration")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["get-lifecycle", d, "--iter-id", "ID_001"])
+        out, _, _ = run(["get-lifecycle", d, "--iter-id", "ITR_001"])
         check("exits 0", True)
-        check("ID_001 in output", "ID_001" in out)
+        check("ITR_001 in output", "ITR_001" in out)
         check("queued in output", "queued" in out)
 
 
@@ -595,8 +595,8 @@ def test_get_lifecycle_not_found():
     print("\n## get-lifecycle — iteration not found")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        _, err, _ = run(["get-lifecycle", d, "--iter-id", "ID_099"], expect_exit=1)
-        check("error mentions ID_099", "ID_099" in err)
+        _, err, _ = run(["get-lifecycle", d, "--iter-id", "ITR_099"], expect_exit=1)
+        check("error mentions ITR_099", "ITR_099" in err)
 
 
 def test_get_lifecycle_json_all():
@@ -606,8 +606,8 @@ def test_get_lifecycle_json_all():
         out, _, _ = run(["get-lifecycle", d, "--output", "json"])
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
-        check("lifecycles has ID_001", "ID_001" in data["lifecycles"])
-        check("lifecycles has ID_002", "ID_002" in data["lifecycles"])
+        check("lifecycles has ITR_001", "ITR_001" in data["lifecycles"])
+        check("lifecycles has ITR_002", "ITR_002" in data["lifecycles"])
         check("counts present", "counts" in data)
         check("total 2", data["total"] == 2)
         check("counts queued 1", data["counts"]["queued"] == 1)
@@ -619,11 +619,11 @@ def test_get_lifecycle_json_single():
     print("\n## get-lifecycle — JSON single iteration (same shape)")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["get-lifecycle", d, "--iter-id", "ID_001", "--output", "json"])
+        out, _, _ = run(["get-lifecycle", d, "--iter-id", "ITR_001", "--output", "json"])
         data = json.loads(out)
         check("status ok", data["status"] == "ok")
         check("lifecycles has one entry", len(data["lifecycles"]) == 1)
-        check("lifecycles.ID_001", data["lifecycles"]["ID_001"] == "queued")
+        check("lifecycles.ITR_001", data["lifecycles"]["ITR_001"] == "queued")
         check("counts present", "counts" in data)
         check("total 1", data["total"] == 1)
 
@@ -632,12 +632,12 @@ def test_get_lifecycle_sorted():
     print("\n## get-lifecycle — sorted by iteration ID")
     with tempfile.TemporaryDirectory() as d:
         state = dict(VALID_STATE)
-        state["lifecycles"] = {"ID_003": "queued", "ID_001": "complete", "ID_002": "implementing"}
+        state["lifecycles"] = {"ITR_003": "queued", "ITR_001": "complete", "ITR_002": "implementing"}
         write_raw_state(d, state)
         out, _, _ = run(["get-lifecycle", d])
         lines = [ln for ln in out.strip().split("\n") if ln.startswith("ID_")]
         ids = [ln.split(":")[0].strip() for ln in lines]
-        check("sorted order", ids == ["ID_001", "ID_002", "ID_003"])
+        check("sorted order", ids == ["ITR_001", "ITR_002", "ITR_003"])
 
 
 def test_get_lifecycle_empty():
@@ -741,7 +741,7 @@ def test_update_lifecycle_invalid_json_in_file():
         os.makedirs(os.path.dirname(sjp), exist_ok=True)
         with open(sjp, "w") as f:
             f.write("not json {{")
-        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued"], expect_exit=1)
+        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "queued"], expect_exit=1)
         check("error mentions invalid JSON", "invalid" in err.lower() or "json" in err.lower())
 
 
@@ -750,7 +750,7 @@ def test_update_lifecycle_invalid_state_schema():
     with tempfile.TemporaryDirectory() as d:
         # Write JSON that passes load_json but fails validate_global_state
         write_raw_state(d, {"not": "a valid state"})
-        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "queued"], expect_exit=1)
+        _, err, _ = run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "queued"], expect_exit=1)
         check("exits 1", True)
         check("error returned", len(err) > 0)
 
@@ -769,7 +769,7 @@ def test_update_lifecycle_dry_run_json():
                 "update-lifecycle",
                 d,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--lifecycle",
                 "implementing",
                 "--dry-run",
@@ -784,19 +784,19 @@ def test_update_lifecycle_dry_run_json():
         # State should NOT have been written
         with open(os.path.join(d, "state.json")) as f:
             state = json.load(f)
-        check("lifecycle not changed", state["lifecycles"]["ID_001"] == "queued")
+        check("lifecycle not changed", state["lifecycles"]["ITR_001"] == "queued")
 
 
 def test_update_lifecycle_dry_run_text():
     print("\n## update-lifecycle — dry-run text output")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ID_001", "--lifecycle", "implementing", "--dry-run"])
+        out, _, _ = run(["update-lifecycle", d, "--iter-id", "ITR_001", "--lifecycle", "implementing", "--dry-run"])
         check("DRY RUN in output", "DRY RUN" in out)
         # lifecycle not modified
         with open(os.path.join(d, "state.json")) as f:
             state = json.load(f)
-        check("lifecycle not changed", state["lifecycles"]["ID_001"] == "queued")
+        check("lifecycle not changed", state["lifecycles"]["ITR_001"] == "queued")
 
 
 # ---------------------------------------------------------------------------
@@ -808,10 +808,10 @@ def test_get_lifecycle_not_found_json():
     print("\n## get-lifecycle — single iteration not found (JSON output)")
     with tempfile.TemporaryDirectory() as d:
         write_raw_state(d, VALID_STATE)
-        out, _, _ = run(["get-lifecycle", d, "--iter-id", "ID_999", "--output", "json"], expect_exit=1)
+        out, _, _ = run(["get-lifecycle", d, "--iter-id", "ITR_999", "--output", "json"], expect_exit=1)
         data = json.loads(out)
         check("status error", data["status"] == "error")
-        check("error mentions ID_999", "ID_999" in data.get("error", ""))
+        check("error mentions ITR_999", "ITR_999" in data.get("error", ""))
 
 
 # ---------------------------------------------------------------------------

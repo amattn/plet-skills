@@ -79,13 +79,13 @@ def make_plet_dir(tmpdir):
         plet_dir,
         project_id="TEST",
         loop_session=1,
-        lifecycles={"ID_001": "implementing"},
+        lifecycles={"ITR_001": "implementing"},
     )
 
     # Iter state — NO lifecycle field (SF_28)
     _shared_make_iter_state(
         plet_dir,
-        iter_id="ID_001",
+        iter_id="ITR_001",
         title="Project scaffolding",
         attempts={"implement": 1, "verify": 0},
         criteria=[{"id": "AC_1", "description": "pytest runs with exit 0", "status": "pending"}],
@@ -98,11 +98,11 @@ def make_plet_dir(tmpdir):
     # Iterations
     with open(iterations_path(plet_dir), "w") as f:
         f.write(
-            "# Iterations\n\n## ID_001 — Project scaffolding\n\n"
+            "# Iterations\n\n## ITR_001 — Project scaffolding\n\n"
             "Set up the project with pytest and basic structure.\n\n"
             "### Acceptance Criteria\n\n"
             "- AC_1: pytest runs with exit 0\n\n"
-            "## ID_002 — Add authentication\n\n"
+            "## ITR_002 — Add authentication\n\n"
             "Implement OAuth flow.\n"
         )
 
@@ -143,7 +143,7 @@ def test_invalid_phase():
     print("\n## assemble — invalid --phase")
     tmpdir = tempfile.mkdtemp()
     try:
-        _, stderr, _ = run(["assemble", tmpdir, "--iter-id", "ID_001", "--phase", "bogus"], expect_exit=1, cwd=tmpdir)
+        _, stderr, _ = run(["assemble", tmpdir, "--iter-id", "ITR_001", "--phase", "bogus"], expect_exit=1, cwd=tmpdir)
         check("error about phase", "invalid" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -154,10 +154,10 @@ def test_impl_text_output():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, rc = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement"])
+        stdout, _, rc = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"])
         check("exit 0", rc == 0)
         check("has reference content", "implement" in stdout.lower())
-        check("has iteration definition", "ID_001" in stdout)
+        check("has iteration definition", "ITR_001" in stdout)
         check("has requirements", "Requirements" in stdout or "FR_1" in stdout)
         check("has learnings", "Learnings" in stdout or "conftest" in stdout)
         check("has state context", "implementing" in stdout or "AC_1" in stdout)
@@ -170,7 +170,7 @@ def test_impl_all_sections():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         names = [s["name"] for s in data["sections"]]
         check("reference-file", "reference-file" in names)
@@ -192,7 +192,7 @@ def test_impl_reference_file():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         ref = [s for s in data["sections"] if s["name"] == "reference-file"][0]
         check("source is implement.md", "implement.md" in ref["source"])
@@ -210,7 +210,7 @@ def test_verify_all_sections():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "verify", "--output", "json"])
         data = json.loads(stdout)
         names = [s["name"] for s in data["sections"]]
         check("8 sections", len(data["sections"]) == 7)
@@ -226,7 +226,7 @@ def test_verify_reference_file():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "verify", "--output", "json"])
         data = json.loads(stdout)
         ref = [s for s in data["sections"] if s["name"] == "reference-file"][0]
         check("source is verify.md", "verify.md" in ref["source"])
@@ -241,7 +241,7 @@ def test_verify_reference_file():
 
 def _get_cli_ref(plet_dir, phase):
     """Helper: get CLI quick reference content for a phase."""
-    stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", phase, "--output", "json"])
+    stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", phase, "--output", "json"])
     data = json.loads(stdout)
     refs = [s for s in data["sections"] if s["name"] == "cli-quick-reference"]
     return refs[0]["content"] if refs else ""
@@ -253,7 +253,7 @@ def test_cli_ref_implement_content():
     try:
         plet_dir = make_plet_dir(tmpdir)
         content = _get_cli_ref(plet_dir, "implement")
-        check("iter_id pre-filled", "ID_001" in content)
+        check("iter_id pre-filled", "ITR_001" in content)
         check("phase=implement header", "phase=implement" in content)
         check("criterion phase is implementation", "--phase implementation" in content)
         check("verdict completed", "--verdict completed" in content)
@@ -271,7 +271,7 @@ def test_cli_ref_verify_content():
     try:
         plet_dir = make_plet_dir(tmpdir)
         content = _get_cli_ref(plet_dir, "verify")
-        check("iter_id pre-filled", "ID_001" in content)
+        check("iter_id pre-filled", "ITR_001" in content)
         check("phase=verify header", "phase=verify" in content)
         check("criterion phase is verification", "--phase verification" in content)
         check("verdict passed", "--verdict passed" in content)
@@ -288,7 +288,7 @@ def test_cli_ref_attempt_from_state():
     try:
         plet_dir = make_plet_dir(tmpdir)
         # Update state to show attempt 2
-        state_file = os.path.join(plet_dir, "state", "ID_001.json")
+        state_file = os.path.join(plet_dir, "state", "ITR_001.json")
         with open(state_file) as f:
             state = json.load(f)
         state["attempts"]["implement"] = 2
@@ -310,7 +310,7 @@ def test_learnings_always_present():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         learnings = [s for s in data["sections"] if s["name"] == "learnings"][0]
         check("has content", len(learnings["content"]) > 0)
@@ -327,7 +327,7 @@ def test_learnings_empty_file():
         # Overwrite learnings with empty file
         with open(learnings_path(plet_dir), "w") as f:
             f.write("")
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         learnings = [s for s in data["sections"] if s["name"] == "learnings"]
         check("learnings section exists", len(learnings) == 1)
@@ -344,7 +344,7 @@ def test_learnings_missing_file():
     try:
         plet_dir = make_plet_dir(tmpdir)
         os.unlink(learnings_path(plet_dir))
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         learnings = [s for s in data["sections"] if s["name"] == "learnings"]
         check("learnings section exists", len(learnings) == 1)
@@ -362,12 +362,12 @@ def test_iteration_extraction():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         iter_def = [s for s in data["sections"] if s["name"] == "iteration-definition"][0]
-        check("contains ID_001", "ID_001" in iter_def["content"])
+        check("contains ITR_001", "ITR_001" in iter_def["content"])
         check("contains scaffolding", "scaffolding" in iter_def["content"].lower())
-        check("does not contain ID_002", "ID_002" not in iter_def["content"])
+        check("does not contain ITR_002", "ITR_002" not in iter_def["content"])
     finally:
         shutil.rmtree(tmpdir)
 
@@ -377,8 +377,8 @@ def test_iteration_not_found():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ID_999", "--phase", "implement"], expect_exit=1)
-        check("error about iteration", "ID_999" in stderr or "not found" in stderr.lower())
+        _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ITR_999", "--phase", "implement"], expect_exit=1)
+        check("error about iteration", "ITR_999" in stderr or "not found" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
 
@@ -393,10 +393,10 @@ def test_state_formatted():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         state_sec = [s for s in data["sections"] if s["name"] == "iteration-state"][0]
-        check("has iteration id", "ID_001" in state_sec["content"])
+        check("has iteration id", "ITR_001" in state_sec["content"])
         check("has lifecycle", "implementing" in state_sec["content"])
         check("has criteria", "AC_1" in state_sec["content"])
         check("source is derived", state_sec["source"] == "derived")
@@ -414,11 +414,11 @@ def test_json_structure():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("command assemble", data["command"] == "assemble")
-        check("iterationId", data["iterationId"] == "ID_001")
+        check("iterationId", data["iterationId"] == "ITR_001")
         check("phase", data["phase"] == "implement")
         check("has totalLength", "totalLength" in data)
         check("totalLength > 0", data["totalLength"] > 0)
@@ -439,7 +439,7 @@ def test_total_length_accurate():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         actual = sum(len(s["content"]) for s in data["sections"])
         check("totalLength matches", data["totalLength"] == actual)
@@ -458,7 +458,7 @@ def test_missing_requirements():
     try:
         plet_dir = make_plet_dir(tmpdir)
         os.unlink(requirements_path(plet_dir))
-        _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1)
+        _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"], expect_exit=1)
         check("error about requirements", "requirements" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -470,7 +470,7 @@ def test_missing_iterations():
     try:
         plet_dir = make_plet_dir(tmpdir)
         os.unlink(iterations_path(plet_dir))
-        _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1)
+        _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"], expect_exit=1)
         check("error about iterations", "iterations" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -481,8 +481,8 @@ def test_missing_state_file():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        os.unlink(iter_state_path(plet_dir, "ID_001"))
-        _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1)
+        os.unlink(iter_state_path(plet_dir, "ITR_001"))
+        _, stderr, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"], expect_exit=1)
         check("error about state", "state" in stderr.lower() or "not found" in stderr.lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -498,7 +498,7 @@ def test_per_ac_reflection_in_implement():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         names = [s["name"] for s in data["sections"]]
         assert "per-ac-reflection" in names, f"per-ac-reflection section missing, got: {names}"
@@ -517,7 +517,7 @@ def test_per_ac_reflection_in_verify():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "verify", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "verify", "--output", "json"])
         data = json.loads(stdout)
         names = [s["name"] for s in data["sections"]]
         assert "per-ac-reflection" in names, f"per-ac-reflection section missing, got: {names}"
@@ -530,7 +530,7 @@ def test_per_ac_reflection_section_count():
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
-        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"])
+        stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         assert len(data["sections"]) == 7, f"expected 9 sections, got {len(data['sections'])}"
     finally:

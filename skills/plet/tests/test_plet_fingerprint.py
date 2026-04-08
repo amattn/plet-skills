@@ -106,27 +106,27 @@ A test project.
 
 ITERATIONS_MD = """# Iterations
 
-### ID_001: Project scaffolding
+### ITR_001: Project scaffolding
 
 **Milestone:** MS_1
 **Dependencies:** none
 **Requirements:** FR_1
 
-### ID_002: Core functionality
+### ITR_002: Core functionality
 
 **Milestone:** MS_1
-**Dependencies:** ID_001
+**Dependencies:** ITR_001
 **Requirements:** FR_2, FR_3
 
-### ID_003: Beta features
+### ITR_003: Beta features
 
 **Milestone:** MS_2
-**Dependencies:** ID_001, ID_002
+**Dependencies:** ITR_001, ITR_002
 **Requirements:** NF_1, NF_2
 
 ## Withdrawn
 
-### ID_004: Removed feature
+### ITR_004: Removed feature
 
 **Milestone:** MS_2
 **Dependencies:** none
@@ -210,9 +210,9 @@ def test_extract_iterations():
         fp = json.loads(stdout)
 
         check("has lastNonTrivialUpdate", "lastNonTrivialUpdate" in fp)
-        check("MS_1 has ID_001, ID_002", fp["iterations"]["MS_1"] == ["ID_001", "ID_002"])
-        check("MS_2 has ID_003 only", fp["iterations"]["MS_2"] == ["ID_003"])
-        check("ID_004 excluded (withdrawn)", "ID_004" not in fp["iterations"].get("MS_2", []))
+        check("MS_1 has ITR_001, ITR_002", fp["iterations"]["MS_1"] == ["ITR_001", "ITR_002"])
+        check("MS_2 has ITR_003 only", fp["iterations"]["MS_2"] == ["ITR_003"])
+        check("ITR_004 excluded (withdrawn)", "ITR_004" not in fp["iterations"].get("MS_2", []))
 
 
 def test_extract_json_output():
@@ -574,13 +574,13 @@ def test_withdrawn_section_exclusion():
         stdout, _, _ = run(["extract", d, "--type", "iterations"])
         fp = json.loads(stdout)
 
-        # ID_004 is in the Withdrawn section — should be excluded
+        # ITR_004 is in the Withdrawn section — should be excluded
         all_ids = []
         for ids in fp["iterations"].values():
             all_ids.extend(ids)
-        check("ID_004 excluded", "ID_004" not in all_ids)
-        check("ID_001 included", "ID_001" in all_ids)
-        check("ID_003 included", "ID_003" in all_ids)
+        check("ITR_004 excluded", "ITR_004" not in all_ids)
+        check("ITR_001 included", "ITR_001" in all_ids)
+        check("ITR_003 included", "ITR_003" in all_ids)
 
 
 # ---------------------------------------------------------------------------

@@ -41,7 +41,7 @@ def write_state(tmpdir, data):
     return path
 
 
-def write_iter_state(tmpdir, data, iter_id="ID_001"):
+def write_iter_state(tmpdir, data, iter_id="ITR_001"):
     """Write an iter state file into tmpdir/state/{iter_id}.json and return its path."""
     state_dir = os.path.join(tmpdir, "state")
     os.makedirs(state_dir, exist_ok=True)
@@ -57,13 +57,13 @@ VALID_STATE = {
     "lastUpdated": "2026-03-07T14:00:00Z",
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer", "description": "A log analysis tool"},
-    "dependencyMap": {"ID_001": [], "ID_002": ["ID_001"]},
-    "milestones": {"MS_1": {"name": "MVP", "iterations": ["ID_001", "ID_002"]}},
+    "dependencyMap": {"ITR_001": [], "ITR_002": ["ITR_001"]},
+    "milestones": {"MS_1": {"name": "MVP", "iterations": ["ITR_001", "ITR_002"]}},
     "loopSessionCount": 1,
     "refineSessionCount": 0,
     "iterationsFingerprint": {
         "lastNonTrivialUpdate": "2026-03-07T14:30:00Z",
-        "iterations": {"MS_1": ["ID_001", "ID_002"]},
+        "iterations": {"MS_1": ["ITR_001", "ITR_002"]},
     },
 }
 
@@ -482,7 +482,7 @@ def test_global_parallel_groups_rejected():
     import util_state
 
     state = dict(VALID_STATE)
-    state["parallelGroups"] = [["ID_001", "ID_002"]]
+    state["parallelGroups"] = [["ITR_001", "ITR_002"]]
     errors = util_state.validate_global_state(state)
     assert any("parallelGroups" in e for e in errors), f"parallelGroups should be rejected, got errors: {errors}"
 
@@ -523,7 +523,7 @@ def test_iter_last_heartbeat_absent_ok():
 
 VALID_ITER_STATE = {
     "schemaVersion": "0.2.0",
-    "iterationId": "ID_001",
+    "iterationId": "ITR_001",
     "title": "Project scaffolding",
     "lastUpdated": "2026-03-07T14:00:00Z",
     "dependencies": [],
@@ -548,11 +548,11 @@ def test_iter_valid():
     import util_state
 
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, VALID_ITER_STATE, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, VALID_ITER_STATE, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
 
         check("returns dict", isinstance(result, dict))
-        check("iterationId", result["iterationId"] == "ID_001")
+        check("iterationId", result["iterationId"] == "ITR_001")
         check("title", result["title"] == "Project scaffolding")
         check("no lifecycle field", "lifecycle" not in result)
         check("attempts.implement", result["attempts"]["implement"] == 1)
@@ -566,18 +566,18 @@ def test_iter_minimal():
 
     minimal = {
         "schemaVersion": "0.2.0",
-        "iterationId": "ID_002",
+        "iterationId": "ITR_002",
         "title": "Core feature",
         "lastUpdated": "2026-03-07T14:00:00Z",
-        "dependencies": ["ID_001"],
+        "dependencies": ["ITR_001"],
         "agentId": None,
         "attempts": {"implement": 0, "verify": 0},
         "criteria": [],
     }
 
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, minimal, "ID_002")
-        result = util_state.load_and_validate_iter_state(d, "ID_002")
+        write_iter_state(d, minimal, "ITR_002")
+        result = util_state.load_and_validate_iter_state(d, "ITR_002")
 
         check("returns dict", isinstance(result, dict))
         check("agentId null ok", result["agentId"] is None)
@@ -598,8 +598,8 @@ def test_iter_file_not_found():
     import util_state
 
     with tempfile.TemporaryDirectory() as d:
-        # plet_dir exists but state/ID_001.json does not
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        # plet_dir exists but state/ITR_001.json does not
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("returns None", result is None)
 
 
@@ -610,11 +610,11 @@ def test_iter_invalid_json():
     with tempfile.TemporaryDirectory() as d:
         state_dir = os.path.join(d, "state")
         os.makedirs(state_dir, exist_ok=True)
-        path = os.path.join(state_dir, "ID_001.json")
+        path = os.path.join(state_dir, "ITR_001.json")
         with open(path, "w") as f:
             f.write("not json {{{")
 
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("returns None", result is None)
 
 
@@ -638,8 +638,8 @@ def test_iter_missing_required_fields():
         state = dict(VALID_ITER_STATE)
         del state[field]
         with tempfile.TemporaryDirectory() as d:
-            write_iter_state(d, state, "ID_001")
-            result = util_state.load_and_validate_iter_state(d, "ID_001")
+            write_iter_state(d, state, "ITR_001")
+            result = util_state.load_and_validate_iter_state(d, "ITR_001")
             check(f"missing {field} rejected", result is None)
 
 
@@ -662,8 +662,8 @@ def test_iter_wrong_types():
         state = dict(VALID_ITER_STATE)
         state[field] = bad_value
         with tempfile.TemporaryDirectory() as d:
-            write_iter_state(d, state, "ID_001")
-            result = util_state.load_and_validate_iter_state(d, "ID_001")
+            write_iter_state(d, state, "ITR_001")
+            result = util_state.load_and_validate_iter_state(d, "ITR_001")
             check(f"{field} wrong type rejected", result is None)
 
 
@@ -677,8 +677,8 @@ def test_iter_invalid_iteration_id():
         state = dict(VALID_ITER_STATE)
         state["iterationId"] = iid
         with tempfile.TemporaryDirectory() as d:
-            write_iter_state(d, state, "ID_001")
-            result = util_state.load_and_validate_iter_state(d, "ID_001")
+            write_iter_state(d, state, "ITR_001")
+            result = util_state.load_and_validate_iter_state(d, "ITR_001")
             check(f"rejects '{iid}'", result is None)
 
 
@@ -689,8 +689,8 @@ def test_iter_lifecycle_field_rejected():
     state = dict(VALID_ITER_STATE)
     state["lifecycle"] = "implementing"  # valid value, but field itself is deprecated
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("lifecycle field rejected", result is None)
 
 
@@ -702,36 +702,36 @@ def test_iter_attempts_validation():
     state = dict(VALID_ITER_STATE)
     state["attempts"] = {"verify": 0}
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("missing attempts.implement rejected", result is None)
 
     # Missing verify key
     state["attempts"] = {"implement": 0}
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("missing attempts.verify rejected", result is None)
 
     # Negative value
     state["attempts"] = {"implement": -1, "verify": 0}
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("negative attempt rejected", result is None)
 
     # String value
     state["attempts"] = {"implement": "1", "verify": 0}
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("string attempt rejected", result is None)
 
     # Zero is valid
     state["attempts"] = {"implement": 0, "verify": 0}
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("zero attempts valid", result is not None)
 
 
@@ -755,8 +755,8 @@ def test_iter_optional_defaults():
         state.pop(key, None)
 
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
 
         check("returns dict", result is not None)
         check("phaseActivity injected", result["phaseActivity"] == "idle")
@@ -781,7 +781,7 @@ def test_iter_validate_function():
 
 SF28_ITER_STATE = {
     "schemaVersion": "0.2.0",
-    "iterationId": "ID_001",
+    "iterationId": "ITR_001",
     "title": "Project scaffolding",
     "lastUpdated": "2026-03-07T14:00:00Z",
     "dependencies": [],
@@ -802,8 +802,8 @@ def test_iter_no_lifecycle_validates():
     import util_state
 
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, SF28_ITER_STATE, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, SF28_ITER_STATE, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("no lifecycle validates", result is not None)
 
 
@@ -814,8 +814,8 @@ def test_iter_lifecycle_rejected():
     state = dict(SF28_ITER_STATE)
     state["lifecycle"] = "implementing"
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("lifecycle rejected", result is None)
 
 
@@ -826,8 +826,8 @@ def test_iter_agentActivity_rejected():  # noqa: N802
     state = dict(SF28_ITER_STATE)
     state["agentActivity"] = "idle"
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("agentActivity rejected", result is None)
 
 
@@ -838,8 +838,8 @@ def test_iter_lastVerdict_rejected():  # noqa: N802
     state = dict(SF28_ITER_STATE)
     state["lastVerdict"] = "passed"
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("lastVerdict rejected", result is None)
 
 
@@ -848,8 +848,8 @@ def test_iter_phaseActivity_accepted():  # noqa: N802
     import util_state
 
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, SF28_ITER_STATE, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, SF28_ITER_STATE, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("returns dict", result is not None)
         check("phaseActivity present", result.get("phaseActivity") == "setup")
 
@@ -862,16 +862,16 @@ def test_iter_verdicts_accepted():
     state["implementVerdict"] = "readyForVerification"
     state["verifyVerdict"] = "passed"
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("returns dict", result is not None)
         check("implementVerdict", result.get("implementVerdict") == "readyForVerification")
         check("verifyVerdict", result.get("verifyVerdict") == "passed")
 
     # Null verdicts (initial state)
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, SF28_ITER_STATE, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, SF28_ITER_STATE, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("null implementVerdict ok", result.get("implementVerdict") is None)
         check("null verifyVerdict ok", result.get("verifyVerdict") is None)
 
@@ -880,8 +880,8 @@ def test_iter_verdicts_accepted():
     del state2["implementVerdict"]
     del state2["verifyVerdict"]
     with tempfile.TemporaryDirectory() as d:
-        write_iter_state(d, state2, "ID_001")
-        result = util_state.load_and_validate_iter_state(d, "ID_001")
+        write_iter_state(d, state2, "ITR_001")
+        result = util_state.load_and_validate_iter_state(d, "ITR_001")
         check("absent implementVerdict defaults to None", result.get("implementVerdict") is None)
         check("absent verifyVerdict defaults to None", result.get("verifyVerdict") is None)
 
@@ -899,12 +899,12 @@ def test_global_lifecycles_optional():
 
     # With lifecycles
     state = dict(VALID_STATE)
-    state["lifecycles"] = {"ID_001": "complete", "ID_002": "queued"}
+    state["lifecycles"] = {"ITR_001": "complete", "ITR_002": "queued"}
     with tempfile.TemporaryDirectory() as d:
         write_state(d, state)
         result = util_state.load_and_validate_global_state(d)
         check("validates with lifecycles", result is not None)
-        check("lifecycles preserved", result is not None and result["lifecycles"]["ID_001"] == "complete")
+        check("lifecycles preserved", result is not None and result["lifecycles"]["ITR_001"] == "complete")
 
 
 def test_global_lifecycles_validated():
@@ -924,7 +924,7 @@ def test_global_lifecycles_invalid_value():
     import util_state
 
     state = dict(VALID_STATE)
-    state["lifecycles"] = {"ID_001": "complete", "ID_002": "running"}
+    state["lifecycles"] = {"ITR_001": "complete", "ITR_002": "running"}
     with tempfile.TemporaryDirectory() as d:
         write_state(d, state)
         result = util_state.load_and_validate_global_state(d)

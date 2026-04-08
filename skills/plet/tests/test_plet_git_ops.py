@@ -71,7 +71,7 @@ def make_git_repo(tmpdir):
     return tmpdir
 
 
-def write_state_files(repo, global_data, iter_data, iter_id="ID_001"):
+def write_state_files(repo, global_data, iter_data, iter_id="ITR_001"):
     """Write plet/state.json and plet/state/{iter_id}.json, return plet_dir."""
     plet_dir = os.path.join(repo, "plet")
     os.makedirs(plet_dir, exist_ok=True)
@@ -105,7 +105,7 @@ GLOBAL_STATE = {
 
 ITER_STATE = {
     "schemaVersion": "0.2.0",
-    "iterationId": "ID_001",
+    "iterationId": "ITR_001",
     "title": "Project scaffolding",
     "lastUpdated": "2026-03-07T14:00:00Z",
     "dependencies": [],
@@ -138,7 +138,7 @@ def create_workstream_branch(repo):
 def create_iteration_branch_with_commits(repo, num_commits=3):
     """Create iteration branch from workstream with some commits."""
     ws = create_workstream_branch(repo)
-    branch = "plet/LOGA/loop1/ID_001"
+    branch = "plet/LOGA/loop1/ITR_001"
     git_run(repo, ["checkout", "-b", branch, ws])
     for i in range(num_commits):
         fpath = os.path.join(repo, f"file_{i}.txt")
@@ -209,10 +209,10 @@ def test_audit_tag_basic():
         plet_dir = write_state_files(repo, GLOBAL_STATE, ITER_STATE)
         create_iteration_branch_with_commits(repo)
 
-        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], cwd=repo)
+        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"], cwd=repo)
         check("success message", "OK" in stdout)
         check("tag name in output", "audit" in stdout and "implement-1" in stdout)
-        check("tag exists", tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/implement-1"))
+        check("tag exists", tag_exists(repo, "plet/LOGA/loop1/audit/ITR_001/implement-1"))
 
 
 def test_audit_tag_verify_phase():
@@ -224,8 +224,8 @@ def test_audit_tag_verify_phase():
         plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
         create_iteration_branch_with_commits(repo)
 
-        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "verify"], cwd=repo)
-        check("verify tag exists", tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/verify-1"))
+        stdout, _, _ = run(["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "verify"], cwd=repo)
+        check("verify tag exists", tag_exists(repo, "plet/LOGA/loop1/audit/ITR_001/verify-1"))
 
 
 def test_audit_tag_json_output():
@@ -236,7 +236,7 @@ def test_audit_tag_json_output():
         create_iteration_branch_with_commits(repo)
 
         stdout, _, _ = run(
-            ["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json", "--pretty"],
+            ["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json", "--pretty"],
             cwd=repo,
         )
         data = json.loads(stdout)
@@ -256,11 +256,11 @@ def test_audit_tag_idempotent():
         create_iteration_branch_with_commits(repo)
 
         # Create tag first time
-        run(["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], cwd=repo)
+        run(["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"], cwd=repo)
 
         # Create again — should succeed (force-update)
         stdout, _, _ = run(
-            ["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--output", "json"], cwd=repo
+            ["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"], cwd=repo
         )
         data = json.loads(stdout)
         check("replaced true", data["replaced"] is True)
@@ -275,10 +275,10 @@ def test_audit_tag_dry_run():
         create_iteration_branch_with_commits(repo)
 
         stdout, _, _ = run(
-            ["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--dry-run"], cwd=repo
+            ["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--dry-run"], cwd=repo
         )
         check("dry run message", "DRY RUN" in stdout)
-        check("tag NOT created", not tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/implement-1"))
+        check("tag NOT created", not tag_exists(repo, "plet/LOGA/loop1/audit/ITR_001/implement-1"))
 
 
 def test_audit_tag_invalid_phase():
@@ -287,7 +287,7 @@ def test_audit_tag_invalid_phase():
         repo = make_git_repo(d)
         plet_dir = write_state_files(repo, GLOBAL_STATE, ITER_STATE)
 
-        _, stderr, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "plan"], expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "plan"], expect_exit=1, cwd=repo)
         check("error mentions invalid", "invalid" in stderr)
 
 
@@ -298,7 +298,7 @@ def test_audit_tag_bad_global_state():
         plet_dir = write_state_files(repo, {"not": "valid"}, ITER_STATE)
 
         _, stderr, _ = run(
-            ["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=repo
+            ["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"], expect_exit=1, cwd=repo
         )
         check("error from validation", "error" in stderr.lower())
 
@@ -310,7 +310,7 @@ def test_audit_tag_bad_iter_state():
         plet_dir = write_state_files(repo, GLOBAL_STATE, {"not": "valid"})
 
         _, stderr, _ = run(
-            ["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=repo
+            ["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"], expect_exit=1, cwd=repo
         )
         check("error from validation", "error" in stderr.lower())
 
@@ -320,7 +320,9 @@ def test_audit_tag_not_git_repo():
     with tempfile.TemporaryDirectory() as d:
         plet_dir = write_state_files(d, GLOBAL_STATE, ITER_STATE)
 
-        _, stderr, _ = run(["audit-tag", plet_dir, "--iter-id", "ID_001", "--phase", "implement"], expect_exit=1, cwd=d)
+        _, stderr, _ = run(
+            ["audit-tag", plet_dir, "--iter-id", "ITR_001", "--phase", "implement"], expect_exit=1, cwd=d
+        )
         check("error mentions git", "git" in stderr.lower())
 
 
@@ -386,14 +388,14 @@ def setup_for_rebase_commit(d, cleanup_tags=False, cleanup_branches=False):
     iter_branch, ws_branch = create_iteration_branch_with_commits(repo)
 
     # Create audit tags
-    git_run(repo, ["tag", "plet/LOGA/loop1/audit/ID_001/implement-1"])
+    git_run(repo, ["tag", "plet/LOGA/loop1/audit/ITR_001/implement-1"])
     # Add a verify commit
     fpath = os.path.join(repo, "verify_fix.txt")
     with open(fpath, "w") as f:
         f.write("verify fix\n")
     git_run(repo, ["add", "verify_fix.txt"])
     git_run(repo, ["commit", "-m", "verify fix"])
-    git_run(repo, ["tag", "plet/LOGA/loop1/audit/ID_001/verify-1"])
+    git_run(repo, ["tag", "plet/LOGA/loop1/audit/ITR_001/verify-1"])
 
     # Switch to workstream for rebase-commit
     git_run(repo, ["checkout", ws_branch])
@@ -417,9 +419,9 @@ def test_rebase_commit_basic():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, _, _ = setup_for_rebase_commit(d)
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
         check("success message", "OK" in stdout)
-        check("iteration ID in output", "ID_001" in stdout)
+        check("iteration ID in output", "ITR_001" in stdout)
 
 
 def test_rebase_commit_preserves_commits():
@@ -428,7 +430,7 @@ def test_rebase_commit_preserves_commits():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, _, _ = setup_for_rebase_commit(d)
 
-        run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         # Check that individual commits are on workstream (not squashed into one)
         log_out, _, _ = git_run(repo, ["log", "--oneline"])
@@ -445,7 +447,9 @@ def test_rebase_commit_json():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, _, _ = setup_for_rebase_commit(d)
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001", "--output", "json", "--pretty"], cwd=repo)
+        stdout, _, _ = run(
+            ["rebase-commit", plet_dir, "--iter-id", "ITR_001", "--output", "json", "--pretty"], cwd=repo
+        )
         data = json.loads(stdout)
         check("status ok", data["status"] == "ok")
         check("command", data["command"] == "rebase-commit")
@@ -458,7 +462,7 @@ def test_rebase_commit_linear_history():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, _, _ = setup_for_rebase_commit(d)
 
-        run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         # Check no merge commits
         log_out, _, _ = git_run(repo, ["log", "--merges", "--oneline"])
@@ -472,7 +476,7 @@ def test_rebase_commit_dry_run():
 
         before_hash = get_head_hash(repo, short=False)
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001", "--dry-run"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001", "--dry-run"], cwd=repo)
         check("dry run message", "DRY RUN" in stdout)
 
         after_hash = get_head_hash(repo, short=False)
@@ -489,10 +493,10 @@ def test_rebase_commit_not_on_workstream():
         plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
         create_workstream_branch(repo)
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001"])
+        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ITR_001"])
 
         # Stay on iteration branch (wrong branch)
-        _, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], expect_exit=1, cwd=repo)
         check("error mentions workstream", "workstream" in stderr.lower())
 
 
@@ -505,10 +509,10 @@ def test_rebase_commit_nothing_to_merge():
         plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state)
 
         ws = create_workstream_branch(repo)
-        git_run(repo, ["branch", "plet/LOGA/loop1/ID_001"])
+        git_run(repo, ["branch", "plet/LOGA/loop1/ITR_001"])
         git_run(repo, ["checkout", ws])
 
-        _, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], expect_exit=1, cwd=repo)
         check("error mentions no changes", "no change" in stderr.lower() or "already" in stderr.lower())
 
 
@@ -517,12 +521,12 @@ def test_rebase_commit_cleanup_tags():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, _, _ = setup_for_rebase_commit(d, cleanup_tags=True)
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001", "--output", "json"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001", "--output", "json"], cwd=repo)
         data = json.loads(stdout)
 
         check("tags cleaned", len(data.get("tagsCleaned", [])) > 0)
-        check("implement tag gone", not tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/implement-1"))
-        check("verify tag gone", not tag_exists(repo, "plet/LOGA/loop1/audit/ID_001/verify-1"))
+        check("implement tag gone", not tag_exists(repo, "plet/LOGA/loop1/audit/ITR_001/implement-1"))
+        check("verify tag gone", not tag_exists(repo, "plet/LOGA/loop1/audit/ITR_001/verify-1"))
 
 
 def test_rebase_commit_cleanup_branches():
@@ -530,7 +534,7 @@ def test_rebase_commit_cleanup_branches():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, iter_branch, _ = setup_for_rebase_commit(d, cleanup_branches=True)
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001", "--output", "json"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001", "--output", "json"], cwd=repo)
         data = json.loads(stdout)
 
         check("branchDeleted true", data["branchDeleted"] is True)
@@ -555,7 +559,7 @@ def test_rebase_commit_conflict():
         git_run(repo, ["checkout", "-b", ws])
 
         # Create iteration branch that modifies shared.txt
-        iter_br = "plet/LOGA/loop1/ID_001"
+        iter_br = "plet/LOGA/loop1/ITR_001"
         git_run(repo, ["checkout", "-b", iter_br])
         with open(shared, "w") as f:
             f.write("iteration change\n")
@@ -576,7 +580,7 @@ def test_rebase_commit_conflict():
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state files"])
 
-        out, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
+        out, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], expect_exit=1, cwd=repo)
         combined = out + " " + stderr
         check("detects conflict", "conflict" in combined.lower(), "out: " + out[:100] + " err: " + stderr[:100])
 
@@ -596,7 +600,7 @@ def test_rebase_commit_workstream_advanced():
         git_run(repo, ["checkout", "-b", ws])
 
         # Create iteration branch with a commit
-        iter_br = "plet/LOGA/loop1/ID_001"
+        iter_br = "plet/LOGA/loop1/ITR_001"
         git_run(repo, ["checkout", "-b", iter_br])
         with open(os.path.join(repo, "iter_file.txt"), "w") as f:
             f.write("iteration work\n")
@@ -617,7 +621,7 @@ def test_rebase_commit_workstream_advanced():
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state files"])
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
         check("success", "OK" in stdout)
 
         # Both files should exist on workstream
@@ -641,7 +645,7 @@ def test_rebase_commit_sequential_two_iterations():
         get_head_hash(repo, short=False)
 
         # Create iter 1 branch
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001"])
+        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ITR_001"])
         with open(os.path.join(repo, "file_iter1.txt"), "w") as f:
             f.write("iter 1\n")
         git_run(repo, ["add", "-A"])
@@ -649,7 +653,7 @@ def test_rebase_commit_sequential_two_iterations():
 
         # Create iter 2 branch (from same base)
         git_run(repo, ["checkout", ws])
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_002"])
+        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ITR_002"])
         with open(os.path.join(repo, "file_iter2.txt"), "w") as f:
             f.write("iter 2\n")
         git_run(repo, ["add", "-A"])
@@ -663,26 +667,26 @@ def test_rebase_commit_sequential_two_iterations():
         iter_state_1["attempts"] = {"implement": 1, "verify": 1}
         global_state = dict(GLOBAL_STATE)
         global_state["lifecycles"] = {}
-        plet_dir = write_state_files(repo, global_state, iter_state_1, iter_id="ID_001")
+        plet_dir = write_state_files(repo, global_state, iter_state_1, iter_id="ITR_001")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state for iter 1"])
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
         check("iter 1 success", "OK" in stdout)
 
         # Now write state for iter 2 and merge it
         iter_state_2 = dict(ITER_STATE)
-        iter_state_2["iterationId"] = "ID_002"
+        iter_state_2["iterationId"] = "ITR_002"
         iter_state_2["title"] = "Second iteration"
         iter_state_2["attempts"] = {"implement": 1, "verify": 1}
-        is_path = os.path.join(repo, "plet", "state", "ID_002.json")
+        is_path = os.path.join(repo, "plet", "state", "ITR_002.json")
         with open(is_path, "w") as f:
             json.dump(iter_state_2, f, indent=2)
             f.write("\n")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state for iter 2"])
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_002"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_002"], cwd=repo)
         check("iter 2 success", "OK" in stdout)
 
         # Both files should exist
@@ -709,7 +713,7 @@ def test_rebase_commit_conflict_clean_state():
         ws = "plet/LOGA/loop1/workstream"
         git_run(repo, ["checkout", "-b", ws])
 
-        iter_br = "plet/LOGA/loop1/ID_001"
+        iter_br = "plet/LOGA/loop1/ITR_001"
         git_run(repo, ["checkout", "-b", iter_br])
         with open(shared, "w") as f:
             f.write("iteration version\n")
@@ -728,7 +732,7 @@ def test_rebase_commit_conflict_clean_state():
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state files"])
 
-        run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
+        run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], expect_exit=1, cwd=repo)
 
         # Working tree should be clean (no conflict markers, no rebase in progress)
         porcelain, _, _ = git_run(repo, ["status", "--porcelain"])
@@ -751,7 +755,7 @@ def test_rebase_commit_preserves_messages():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, _, _ = setup_for_rebase_commit(d)
 
-        run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         log_out, _, _ = git_run(repo, ["log", "--oneline"])
         check("commit 0 message", any("commit 0" in ln for ln in log_out.split("\n")))
@@ -766,7 +770,7 @@ def test_rebase_commit_state_files_survive():
     with tempfile.TemporaryDirectory() as d:
         repo, plet_dir, _, _ = setup_for_rebase_commit(d)
 
-        run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         # state.json should still exist and be valid
         gs_path = os.path.join(plet_dir, "state.json")
@@ -776,7 +780,7 @@ def test_rebase_commit_state_files_survive():
         check("state.json valid", gs["projectId"] == "LOGA")
 
         # Per-iteration state should exist
-        is_path = os.path.join(plet_dir, "state", "ID_001.json")
+        is_path = os.path.join(plet_dir, "state", "ITR_001.json")
         check("iter state exists", os.path.exists(is_path))
 
 
@@ -797,7 +801,7 @@ def test_rebase_commit_parallel_same_file_no_conflict():
         git_run(repo, ["checkout", "-b", ws])
 
         # Iter 1 modifies section A (line 2)
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001"])
+        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ITR_001"])
         with open(shared, "w") as f:
             f.write(
                 "line 1: header\nline 2: section A MODIFIED BY ITER 1\nline 3: gap\nline 4: section B\nline 5: footer\n"
@@ -807,7 +811,7 @@ def test_rebase_commit_parallel_same_file_no_conflict():
 
         # Iter 2 modifies section B (line 4) — from same base
         git_run(repo, ["checkout", ws])
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_002"])
+        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ITR_002"])
         with open(shared, "w") as f:
             f.write(
                 "line 1: header\nline 2: section A\nline 3: gap\nline 4: section B MODIFIED BY ITER 2\nline 5: footer\n"
@@ -819,26 +823,26 @@ def test_rebase_commit_parallel_same_file_no_conflict():
         git_run(repo, ["checkout", ws])
         iter_state_1 = dict(ITER_STATE)
         iter_state_1["attempts"] = {"implement": 1, "verify": 1}
-        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state_1, iter_id="ID_001")
+        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state_1, iter_id="ITR_001")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state for iter 1"])
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
         check("iter 1 success", "OK" in stdout)
 
         # Now merge iter 2 — touches same file but different section
         iter_state_2 = dict(ITER_STATE)
-        iter_state_2["iterationId"] = "ID_002"
+        iter_state_2["iterationId"] = "ITR_002"
         iter_state_2["title"] = "Second iteration"
         iter_state_2["attempts"] = {"implement": 1, "verify": 1}
-        is_path = os.path.join(repo, "plet", "state", "ID_002.json")
+        is_path = os.path.join(repo, "plet", "state", "ITR_002.json")
         with open(is_path, "w") as f:
             json.dump(iter_state_2, f, indent=2)
             f.write("\n")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state for iter 2"])
 
-        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_002"], cwd=repo)
+        stdout, _, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_002"], cwd=repo)
         check("iter 2 success", "OK" in stdout)
 
         # Both modifications should be present
@@ -864,7 +868,7 @@ def test_rebase_commit_parallel_same_file_conflict():
         git_run(repo, ["checkout", "-b", ws])
 
         # Iter 1 changes the line
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_001"])
+        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ITR_001"])
         with open(shared, "w") as f:
             f.write("iter 1 version of the line\n")
         git_run(repo, ["add", "-A"])
@@ -872,7 +876,7 @@ def test_rebase_commit_parallel_same_file_conflict():
 
         # Iter 2 changes the same line
         git_run(repo, ["checkout", ws])
-        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ID_002"])
+        git_run(repo, ["checkout", "-b", "plet/LOGA/loop1/ITR_002"])
         with open(shared, "w") as f:
             f.write("iter 2 version of the line\n")
         git_run(repo, ["add", "-A"])
@@ -882,25 +886,25 @@ def test_rebase_commit_parallel_same_file_conflict():
         git_run(repo, ["checkout", ws])
         iter_state_1 = dict(ITER_STATE)
         iter_state_1["attempts"] = {"implement": 1, "verify": 1}
-        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state_1, iter_id="ID_001")
+        plet_dir = write_state_files(repo, GLOBAL_STATE, iter_state_1, iter_id="ITR_001")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state for iter 1"])
 
-        run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], cwd=repo)
+        run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], cwd=repo)
 
         # Merge iter 2 — should fail (same line modified)
         iter_state_2 = dict(ITER_STATE)
-        iter_state_2["iterationId"] = "ID_002"
+        iter_state_2["iterationId"] = "ITR_002"
         iter_state_2["title"] = "Second iteration"
         iter_state_2["attempts"] = {"implement": 1, "verify": 1}
-        is_path = os.path.join(repo, "plet", "state", "ID_002.json")
+        is_path = os.path.join(repo, "plet", "state", "ITR_002.json")
         with open(is_path, "w") as f:
             json.dump(iter_state_2, f, indent=2)
             f.write("\n")
         git_run(repo, ["add", "plet/"])
         git_run(repo, ["commit", "-m", "state for iter 2"])
 
-        out, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_002"], expect_exit=1, cwd=repo)
+        out, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_002"], expect_exit=1, cwd=repo)
         combined = out + " " + stderr
         check("detects conflict", "conflict" in combined.lower(), combined[:200])
 
@@ -924,7 +928,7 @@ def test_rebase_commit_iteration_branch_missing():
         ws = create_workstream_branch(repo)
         git_run(repo, ["checkout", ws])
 
-        _, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ID_001"], expect_exit=1, cwd=repo)
+        _, stderr, _ = run(["rebase-commit", plet_dir, "--iter-id", "ITR_001"], expect_exit=1, cwd=repo)
         check("error mentions branch", "branch" in stderr.lower() or "not found" in stderr.lower())
 
 
@@ -942,7 +946,7 @@ def setup_for_wip_commit(d):
 
     # Create workstream + iteration branch
     ws = create_workstream_branch(repo)
-    iter_br = "plet/LOGA/loop1/ID_001"
+    iter_br = "plet/LOGA/loop1/ITR_001"
     git_run(repo, ["checkout", "-b", iter_br, ws])
 
     # Commit state files on iter branch
@@ -956,7 +960,7 @@ def setup_for_wip_commit(d):
     # Create trace file (transcript — should NOT be committed by wip-commit)
     trace_dir = os.path.join(plet_dir, "trace")
     os.makedirs(trace_dir, exist_ok=True)
-    with open(os.path.join(trace_dir, "ID_001-implement-1-transcript.ndjson"), "w") as f:
+    with open(os.path.join(trace_dir, "ITR_001-implement-1-transcript.ndjson"), "w") as f:
         f.write('{"type":"system","subtype":"init"}\n')
 
     # Create progress entry (should be committed by wip-commit)
@@ -973,14 +977,14 @@ def test_wip_commit_basic():
         repo, plet_dir, _ = setup_for_wip_commit(d)
 
         stdout, _, _ = run(
-            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "AC_1 - tests pass"],
+            ["wip-commit", plet_dir, "--iter-id", "ITR_001", "--message", "AC_1 - tests pass"],
             cwd=repo,
         )
         check("success", "OK" in stdout)
 
         # Check commit message format
         log_out, _, _ = git_run(repo, ["log", "-1", "--format=%s"])
-        check("message prefixed", log_out == "wip: [ID_001] AC_1 - tests pass")
+        check("message prefixed", log_out == "wip: [ITR_001] AC_1 - tests pass")
 
 
 def test_wip_commit_excludes_trace():
@@ -990,7 +994,7 @@ def test_wip_commit_excludes_trace():
         repo, plet_dir, _ = setup_for_wip_commit(d)
 
         run(
-            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "AC_1 - test"],
+            ["wip-commit", plet_dir, "--iter-id", "ITR_001", "--message", "AC_1 - test"],
             cwd=repo,
         )
 
@@ -1008,7 +1012,7 @@ def test_wip_commit_includes_state():
         repo, plet_dir, _ = setup_for_wip_commit(d)
 
         # Modify per-iteration state
-        is_path = os.path.join(plet_dir, "state", "ID_001.json")
+        is_path = os.path.join(plet_dir, "state", "ITR_001.json")
         with open(is_path) as f:
             data = json.load(f)
         data["phaseActivity"] = "coding"
@@ -1017,12 +1021,12 @@ def test_wip_commit_includes_state():
             f.write("\n")
 
         run(
-            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "state update"],
+            ["wip-commit", plet_dir, "--iter-id", "ITR_001", "--message", "state update"],
             cwd=repo,
         )
 
         diff_out, _, _ = git_run(repo, ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"])
-        check("state file committed", "plet/state/ID_001.json" in diff_out)
+        check("state file committed", "plet/state/ITR_001.json" in diff_out)
 
 
 def test_wip_commit_excludes_all_trace_files():
@@ -1034,15 +1038,15 @@ def test_wip_commit_excludes_all_trace_files():
         # Add event files and orchestrator trace
         trace_dir = os.path.join(plet_dir, "trace")
         for fname in [
-            "ID_001-implement-1-events.ndjson",
-            "ID_001-unknown-1-events.ndjson",
+            "ITR_001-implement-1-events.ndjson",
+            "ITR_001-unknown-1-events.ndjson",
             "orchestrator.ndjson",
         ]:
             with open(os.path.join(trace_dir, fname), "w") as f:
                 f.write('{"type":"test"}\n')
 
         run(
-            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "AC_1 - test"],
+            ["wip-commit", plet_dir, "--iter-id", "ITR_001", "--message", "AC_1 - test"],
             cwd=repo,
         )
 
@@ -1065,7 +1069,7 @@ def test_wip_commit_nothing_to_commit():
 
         # wip-commit with nothing to commit — should not error
         stdout, stderr, rc = run(
-            ["wip-commit", plet_dir, "--iter-id", "ID_001", "--message", "no changes"],
+            ["wip-commit", plet_dir, "--iter-id", "ITR_001", "--message", "no changes"],
             cwd=repo,
         )
         # Either succeeds with "nothing to commit" or exits 0

@@ -127,7 +127,7 @@ def test_active_loop_number_iteration_branch():
 
     state = {
         "sessionHistory": [
-            {"branch": "plet/PROJ/loop5/ID_001", "endedAt": None},
+            {"branch": "plet/PROJ/loop5/ITR_001", "endedAt": None},
         ],
         "loopSessionCount": 1,
     }
@@ -211,8 +211,8 @@ def test_derive_branch_name_iteration():
     import util_git
 
     state = {"projectId": "LOGA", "loopSessionCount": 3, "refineSessionCount": 0}
-    result = util_git.derive_branch_name(state, "iteration", iter_id="ID_001")
-    check("iteration branch", result == "plet/LOGA/loop3/ID_001")
+    result = util_git.derive_branch_name(state, "iteration", iter_id="ITR_001")
+    check("iteration branch", result == "plet/LOGA/loop3/ITR_001")
 
 
 def test_derive_branch_name_workstream():

@@ -66,8 +66,8 @@ VALID_GLOBAL_STATE = {
     "lastUpdated": "2026-03-07T14:00:00Z",
     "projectId": "TEST",
     "project": {"name": "Test Project"},
-    "dependencyMap": {"ID_001": [], "ID_002": ["ID_001"]},
-    "lifecycles": {"ID_001": "queued", "ID_002": "ineligible"},
+    "dependencyMap": {"ITR_001": [], "ITR_002": ["ITR_001"]},
+    "lifecycles": {"ITR_001": "queued", "ITR_002": "ineligible"},
     "milestones": {},
     "loopSessionCount": 0,
     "refineSessionCount": 0,
@@ -134,7 +134,7 @@ def make_global_state(
 
 def make_iter_state(
     plet_dir,
-    iter_id="ID_001",
+    iter_id="ITR_001",
     title=None,
     attempts=None,
     criteria=None,
@@ -152,7 +152,7 @@ def make_iter_state(
 
     Args:
         plet_dir: path to plet directory
-        iter_id: iteration ID. Default: "ID_001".
+        iter_id: iteration ID. Default: "ITR_001".
         title: iteration title. Default: "Test iteration {iter_id}".
         attempts: attempts dict. Default: {"implement": 0, "verify": 0}.
         criteria: criteria list. Default: [].
@@ -200,7 +200,7 @@ def make_iter_state(
     return path
 
 
-def read_iter_state(plet_dir, iter_id="ID_001"):
+def read_iter_state(plet_dir, iter_id="ITR_001"):
     """Read and parse a per-iteration state file."""
     path = iter_state_path(plet_dir, iter_id)
     with open(path) as f:
@@ -258,7 +258,7 @@ def create_workstream_branch(repo, project_id="TEST", loop_session=1):
     return branch
 
 
-def create_iteration_branch(repo, project_id="TEST", iter_id="ID_001", loop_session=1, num_commits=0):
+def create_iteration_branch(repo, project_id="TEST", iter_id="ITR_001", loop_session=1, num_commits=0):
     """Create an iteration branch off the current branch.
 
     Optionally creates num_commits dummy commits on it.
@@ -297,7 +297,7 @@ def make_spec_artifacts(plet_dir):
     with open(req_path, "w") as f:
         f.write("# Requirements\n\n## FR_1\nTest requirement\n")
     with open(iter_path, "w") as f:
-        f.write("# Iterations\n\n## ID_001\nTest iteration\n")
+        f.write("# Iterations\n\n## ITR_001\nTest iteration\n")
     return req_path, iter_path
 
 
@@ -320,7 +320,7 @@ def make_runtime_artifacts(plet_dir):
 # ---------------------------------------------------------------------------
 
 
-def make_trace_file(plet_dir, iter_id="ID_001", phase="implement", attempt=1, events=None):
+def make_trace_file(plet_dir, iter_id="ITR_001", phase="implement", attempt=1, events=None):
     """Create an NDJSON trace events file.
 
     Args:
@@ -397,7 +397,7 @@ def write_raw_state(path, data):
 # ---------------------------------------------------------------------------
 
 
-def make_audit_tag(repo, project_id="TEST", iter_id="ID_001", phase="implement", attempt=1, loop_session=1):
+def make_audit_tag(repo, project_id="TEST", iter_id="ITR_001", phase="implement", attempt=1, loop_session=1):
     """Create a plet audit tag in the repo.
 
     Tag format: plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}

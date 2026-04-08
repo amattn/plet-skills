@@ -314,7 +314,9 @@ def test_path_derivation():
     print("\n## path derivation functions")
     check("state_json_path", util_io.state_json_path("plet") == os.path.join("plet", "state.json"))
     check("state_dir_path", util_io.state_dir_path("plet") == os.path.join("plet", "state"))
-    check("iter_state_path", util_io.iter_state_path("plet", "ID_001") == os.path.join("plet", "state", "ID_001.json"))
+    check(
+        "iter_state_path", util_io.iter_state_path("plet", "ITR_001") == os.path.join("plet", "state", "ITR_001.json")
+    )
     check("requirements_path", util_io.requirements_path("plet") == os.path.join("plet", "requirements.md"))
     check("iterations_path", util_io.iterations_path("plet") == os.path.join("plet", "iterations.md"))
     check("progress_path", util_io.progress_path("plet") == os.path.join("plet", "progress.md"))
@@ -323,13 +325,13 @@ def test_path_derivation():
     check("trace_dir_path", util_io.trace_dir_path("plet") == os.path.join("plet", "trace"))
     check(
         "events_path",
-        util_io.events_path("plet", "ID_001", "implement", 1)
-        == os.path.join("plet", "trace", "ID_001-implement-1-events.ndjson"),
+        util_io.events_path("plet", "ITR_001", "implement", 1)
+        == os.path.join("plet", "trace", "ITR_001-implement-1-events.ndjson"),
     )
     check(
         "transcript_path",
-        util_io.transcript_path("plet", "ID_001", "verify", 2)
-        == os.path.join("plet", "trace", "ID_001-verify-2-transcript.ndjson"),
+        util_io.transcript_path("plet", "ITR_001", "verify", 2)
+        == os.path.join("plet", "trace", "ITR_001-verify-2-transcript.ndjson"),
     )
     check(
         "custom plet_dir",
@@ -371,8 +373,8 @@ def test_convenience_loaders():
         # Create test files
         with open(os.path.join(plet_dir, "state.json"), "w") as f:
             json.dump({"projectId": "TEST"}, f)
-        with open(os.path.join(plet_dir, "state", "ID_001.json"), "w") as f:
-            json.dump({"iterationId": "ID_001"}, f)
+        with open(os.path.join(plet_dir, "state", "ITR_001.json"), "w") as f:
+            json.dump({"iterationId": "ITR_001"}, f)
         with open(os.path.join(plet_dir, "requirements.md"), "w") as f:
             f.write("# Requirements\n")
         with open(os.path.join(plet_dir, "iterations.md"), "w") as f:
@@ -384,15 +386,15 @@ def test_convenience_loaders():
         with open(os.path.join(plet_dir, "emergent.md"), "w") as f:
             f.write("# Emergent\n")
         os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
-        with open(os.path.join(plet_dir, "trace", "ID_001-implement-1-events.ndjson"), "w") as f:
+        with open(os.path.join(plet_dir, "trace", "ITR_001-implement-1-events.ndjson"), "w") as f:
             f.write('{"event":"start"}\n')
 
         # Test loaders
         data = util_io.load_global_state_json(plet_dir)
         check("load_global_state_json", data is not None and data["projectId"] == "TEST")
 
-        data = util_io.load_iter_state_json(plet_dir, "ID_001")
-        check("load_iter_state_json", data is not None and data["iterationId"] == "ID_001")
+        data = util_io.load_iter_state_json(plet_dir, "ITR_001")
+        check("load_iter_state_json", data is not None and data["iterationId"] == "ITR_001")
 
         text = util_io.load_requirements_md(plet_dir)
         check("load_requirements_md", text is not None and "Requirements" in text)
@@ -409,7 +411,7 @@ def test_convenience_loaders():
         text = util_io.load_emergent_md(plet_dir)
         check("load_emergent_md", text is not None and "Emergent" in text)
 
-        text = util_io.load_events_ndjson(plet_dir, "ID_001", "implement", 1)
+        text = util_io.load_events_ndjson(plet_dir, "ITR_001", "implement", 1)
         check("load_events_ndjson", text is not None and "start" in text)
 
         # Test missing files return None

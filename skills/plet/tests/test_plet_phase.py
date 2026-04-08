@@ -106,7 +106,7 @@ def setup_project(tmpdir, phase="implement", verdict_field=None, verdict_value=N
     plet_dir = os.path.join(tmpdir, "plet")
 
     lifecycle = "implementing" if phase == "implement" else "verifying"
-    make_global_state(plet_dir, lifecycles={"ID_001": lifecycle}, loop_session=1)
+    make_global_state(plet_dir, lifecycles={"ITR_001": lifecycle}, loop_session=1)
 
     iter_kwargs = {
         "criteria": [
@@ -138,7 +138,7 @@ def setup_project(tmpdir, phase="implement", verdict_field=None, verdict_value=N
             "start-phase",
             plet_dir,
             "--iter-id",
-            "ID_001",
+            "ITR_001",
             "--phase",
             phase,
         ],
@@ -182,7 +182,7 @@ def test_end_implement_happy_path():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--verdict",
@@ -196,7 +196,7 @@ def test_end_implement_happy_path():
         check("exit 0", rc == 0)
 
         # 1. Verdict set
-        ist = load_json(iter_state_path(plet_dir, "ID_001"))
+        ist = load_json(iter_state_path(plet_dir, "ITR_001"))
         check("implementVerdict set", ist.get("implementVerdict") == "completed", f"got: {ist.get('implementVerdict')}")
 
         # 2. Progress entry written
@@ -205,7 +205,7 @@ def test_end_implement_happy_path():
         check("progress entry exists", "COMPLETE" in prog or "scaffolding" in prog, f"progress length: {len(prog)}")
 
         # 3. Trace event written
-        ep = events_path(plet_dir, "ID_001", "implement", "1")
+        ep = events_path(plet_dir, "ITR_001", "implement", "1")
         check("events file exists", os.path.isfile(ep), f"expected: {ep}")
         if os.path.isfile(ep):
             with open(ep) as f:
@@ -249,7 +249,7 @@ def test_end_verify_happy_path():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "verify",
                 "--verdict",
@@ -264,7 +264,7 @@ def test_end_verify_happy_path():
 
         check("exit 0", rc == 0)
 
-        ist = load_json(iter_state_path(plet_dir, "ID_001"))
+        ist = load_json(iter_state_path(plet_dir, "ITR_001"))
         check("verifyVerdict set", ist.get("verifyVerdict") == "passed", f"got: {ist.get('verifyVerdict')}")
 
         with open(progress_path(plet_dir)) as f:
@@ -302,7 +302,7 @@ def test_end_missing_args():
 
         # Missing --verdict
         _, err, rc = run(
-            ["end", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--progress-content", "test"],
+            ["end", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--progress-content", "test"],
             expect_exit=1,
             cwd=tmpdir,
         )
@@ -310,7 +310,7 @@ def test_end_missing_args():
 
         # Missing --phase
         _, err, rc = run(
-            ["end", plet_dir, "--iter-id", "ID_001", "--verdict", "completed", "--progress-content", "test"],
+            ["end", plet_dir, "--iter-id", "ITR_001", "--verdict", "completed", "--progress-content", "test"],
             expect_exit=1,
             cwd=tmpdir,
         )
@@ -318,7 +318,7 @@ def test_end_missing_args():
 
         # Missing --progress-content
         _, err, rc = run(
-            ["end", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--verdict", "completed"],
+            ["end", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--verdict", "completed"],
             expect_exit=1,
             cwd=tmpdir,
         )
@@ -344,7 +344,7 @@ def test_end_invalid_verdict():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--verdict",
@@ -377,7 +377,7 @@ def test_end_blocked_verdict():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--verdict",
@@ -389,7 +389,7 @@ def test_end_blocked_verdict():
         )
         check("exit 0", rc == 0)
 
-        ist = load_json(iter_state_path(plet_dir, "ID_001"))
+        ist = load_json(iter_state_path(plet_dir, "ITR_001"))
         check("implementVerdict blocked", ist.get("implementVerdict") == "blocked")
 
         with open(progress_path(plet_dir)) as f:
@@ -410,7 +410,7 @@ def test_end_verify_missing_summary():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "verify",
                 "--verdict",
@@ -436,7 +436,7 @@ def test_end_invalid_phase():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "review",
                 "--verdict",
@@ -485,7 +485,7 @@ def test_end_verify_with_report_file():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "verify",
                 "--verdict",
@@ -499,7 +499,7 @@ def test_end_verify_with_report_file():
         )
         check("exit 0", rc == 0)
 
-        ist = load_json(iter_state_path(plet_dir, "ID_001"))
+        ist = load_json(iter_state_path(plet_dir, "ITR_001"))
         reports = ist.get("verificationReports", [])
         check("report exists", len(reports) >= 1)
         if reports:
@@ -524,7 +524,7 @@ def test_end_verify_auto_report():
                 "update-criterion",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--criterion",
                 "AC_1",
                 "--phase",
@@ -547,7 +547,7 @@ def test_end_verify_auto_report():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "verify",
                 "--verdict",
@@ -562,7 +562,7 @@ def test_end_verify_auto_report():
         check("exit 0", rc == 0)
 
         # Check report was written
-        ist = load_json(iter_state_path(plet_dir, "ID_001"))
+        ist = load_json(iter_state_path(plet_dir, "ITR_001"))
         reports = ist.get("verificationReports", [])
         check("report exists", len(reports) >= 1)
         if reports:
@@ -588,7 +588,7 @@ def test_end_implement_json_output():
                 "end",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--verdict",
@@ -606,7 +606,7 @@ def test_end_implement_json_output():
         check("command end", data["command"] == "end")
         check("phase implement", data["phase"] == "implement")
         check("verdict completed", data["verdict"] == "completed")
-        check("iterationId", data["iterationId"] == "ID_001")
+        check("iterationId", data["iterationId"] == "ITR_001")
         check("steps non-empty", len(data.get("steps", [])) > 0)
     finally:
         shutil.rmtree(tmpdir)

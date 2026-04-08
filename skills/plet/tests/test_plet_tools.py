@@ -77,7 +77,7 @@ def _make_project(lifecycles=None):
     os.makedirs(os.path.join(plet_dir, "state"), exist_ok=True)
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
     if lifecycles is None:
-        lifecycles = {"ID_001": "queued"}
+        lifecycles = {"ITR_001": "queued"}
     make_global_state(plet_dir, dep_map={k: [] for k in lifecycles}, lifecycles=lifecycles)
     for iid in lifecycles:
         make_iter_state(plet_dir, iid)

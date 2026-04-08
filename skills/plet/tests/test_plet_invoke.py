@@ -129,11 +129,11 @@ def make_plet_dir(tmpdir):
         f.write("\n")
 
     # Iter state
-    with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
+    with open(iter_state_path(plet_dir, "ITR_001"), "w") as f:
         json.dump(
             {
                 "schemaVersion": "0.2.0",
-                "iterationId": "ID_001",
+                "iterationId": "ITR_001",
                 "title": "Test",
                 "lastUpdated": "2026-03-28T00:00:00Z",
                 "lifecycle": "implementing",
@@ -150,7 +150,7 @@ def make_plet_dir(tmpdir):
     with open(requirements_path(plet_dir), "w") as f:
         f.write("# Requirements\n")
     with open(iterations_path(plet_dir), "w") as f:
-        f.write("# Iterations\n\n## ID_001 — Test\n\nTest iteration.\n")
+        f.write("# Iterations\n\n## ITR_001 — Test\n\nTest iteration.\n")
     with open(learnings_path(plet_dir), "w") as f:
         f.write("")
 
@@ -193,7 +193,7 @@ def test_invalid_phase():
     tmpdir = tempfile.mkdtemp()
     try:
         _, stderr, _ = run(
-            ["run", tmpdir, "--iter-id", "ID_001", "--phase", "bogus", "--cwd", tmpdir], expect_exit=1, cwd=tmpdir
+            ["run", tmpdir, "--iter-id", "ITR_001", "--phase", "bogus", "--cwd", tmpdir], expect_exit=1, cwd=tmpdir
         )
         check("error about phase", "invalid" in stderr.lower())
     finally:
@@ -210,7 +210,7 @@ def test_cwd_not_found():
                 "run",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--cwd",
@@ -234,7 +234,7 @@ def test_dry_run():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
-        stdout, _, rc = run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt, "--dry-run"])
+        stdout, _, rc = run(["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt, "--dry-run"])
         check("exit 0", rc == 0)
         check("shows claude command", "claude" in stdout)
         check("shows -p", "-p" in stdout)
@@ -257,7 +257,7 @@ def test_dry_run_json():
                 "run",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--cwd",
@@ -286,7 +286,7 @@ def test_dry_run_with_model():
                 "run",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--cwd",
@@ -312,7 +312,7 @@ def test_dry_run_permission_mode():
                 "run",
                 plet_dir,
                 "--iter-id",
-                "ID_001",
+                "ITR_001",
                 "--phase",
                 "implement",
                 "--cwd",
@@ -340,11 +340,11 @@ def test_launch_and_capture():
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
         stdout, _, rc = run(
-            ["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env
+            ["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env
         )
         check("exit 0", rc == 0)
         # Check transcript was written
-        transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
+        transcript = transcript_path(plet_dir, "ITR_001", "implement", 1)
         check("transcript exists", os.path.isfile(transcript))
         if os.path.isfile(transcript):
             with open(transcript) as f:
@@ -372,11 +372,11 @@ def test_exit_code_passthrough():
         env["PATH"] = mock_bin + os.pathsep + env.get("PATH", "")
 
         _, _, rc = run(
-            ["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=1, env=env
+            ["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=1, env=env
         )
         check("exit 1 passed through", rc == 1)
         # Transcript should still exist
-        transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
+        transcript = transcript_path(plet_dir, "ITR_001", "implement", 1)
         check("transcript still written", os.path.isfile(transcript))
     finally:
         shutil.rmtree(tmpdir)
@@ -390,7 +390,7 @@ def test_json_output_after_launch():
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
         stdout, _, _ = run(
-            ["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt, "--output", "json"],
+            ["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt, "--output", "json"],
             expect_exit=0,
             env=env,
         )
@@ -400,7 +400,7 @@ def test_json_output_after_launch():
         check("has transcriptPath", "transcriptPath" in data)
         check("has transcriptLines", "transcriptLines" in data and data["transcriptLines"] >= 3)
         check("has elapsedSeconds", "elapsedSeconds" in data)
-        check("has iterationId", data["iterationId"] == "ID_001")
+        check("has iterationId", data["iterationId"] == "ITR_001")
         check("has phase", data["phase"] == "implement")
         check("has attempt", data["attempt"] == 1)
     finally:
@@ -414,15 +414,15 @@ def test_transcript_append_not_overwrite():
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
-        transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
+        transcript = transcript_path(plet_dir, "ITR_001", "implement", 1)
 
         # First run
-        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
+        run(["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         with open(transcript) as f:
             first_lines = len(f.readlines())
 
         # Second run (same attempt — should append)
-        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
+        run(["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         with open(transcript) as f:
             total_lines = len(f.readlines())
 
@@ -441,9 +441,9 @@ def test_trace_dir_created():
         env = create_mock_claude(tmpdir)
         # Remove trace dir
         shutil.rmtree(trace_dir_path(plet_dir))
-        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
+        run(["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         check("trace dir created", os.path.isdir(trace_dir_path(plet_dir)))
-        transcript = transcript_path(plet_dir, "ID_001", "implement", 1)
+        transcript = transcript_path(plet_dir, "ITR_001", "implement", 1)
         check("transcript written", os.path.isfile(transcript))
     finally:
         shutil.rmtree(tmpdir)
@@ -456,9 +456,9 @@ def test_invocation_trace_event():
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
         env = create_mock_claude(tmpdir)
-        run(["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
+        run(["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         # TRC writes to plet_dir/trace/{iter_id}-{phase}-{attempt}-events.ndjson
-        events_file = events_path(plet_dir, "ID_001", "implement", 1)
+        events_file = events_path(plet_dir, "ITR_001", "implement", 1)
         check("events file exists", os.path.isfile(events_file))
         if os.path.isfile(events_file):
             with open(events_file) as f:
@@ -486,7 +486,7 @@ def test_invocation_progress_entry():
         with open(progress_path(plet_dir), "w") as f:
             f.write("")
         stdout, stderr, _ = run(
-            ["run", plet_dir, "--iter-id", "ID_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env
+            ["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env
         )
         prog_path = progress_path(plet_dir)
         with open(prog_path) as f:
@@ -662,7 +662,7 @@ def test_build_claude_command_with_options():
     print("\n## build_claude_command — with model and max_budget")
     import invoke
 
-    cmd = invoke.build_claude_command("prompt", "verify", "ID_001", 2, "auto", "sonnet", 5, True)
+    cmd = invoke.build_claude_command("prompt", "verify", "ITR_001", 2, "auto", "sonnet", 5, True)
     check("has model", "--model" in cmd and "sonnet" in cmd)
     check("has max-budget", "--max-budget-usd" in cmd and "5" in cmd)
 

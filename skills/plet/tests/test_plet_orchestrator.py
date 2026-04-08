@@ -78,7 +78,7 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
     os.makedirs(os.path.join(plet_dir, "trace"), exist_ok=True)
 
     if iterations is None:
-        iterations = [{"id": "ID_001", "title": "Test iteration", "deps": []}]
+        iterations = [{"id": "ITR_001", "title": "Test iteration", "deps": []}]
     if dep_map is None:
         dep_map = {it["id"]: it["deps"] for it in iterations}
 
@@ -233,12 +233,12 @@ def test_run_nothing_eligible():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "Done", "deps": []},
+                {"id": "ITR_001", "title": "Done", "deps": []},
             ],
         )
         # Set iteration to complete in state.json.lifecycles (SF_28)
         gs = load_json(state_json_path(plet_dir))
-        gs["lifecycles"]["ID_001"] = "complete"
+        gs["lifecycles"]["ITR_001"] = "complete"
         with open(state_json_path(plet_dir), "w") as f:
             json.dump(gs, f)
 
@@ -266,7 +266,7 @@ def test_run_single_iteration_happy_path():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "Test iteration", "deps": []},
+                {"id": "ITR_001", "title": "Test iteration", "deps": []},
             ],
         )
         mock_dir = create_mock_claude(tmp, behavior="pass")
@@ -311,7 +311,7 @@ def test_run_single_iteration_happy_path():
 
         # Verify lifecycle in state.json (SF_28)
         gs_after = load_json(state_json_path(plet_dir))
-        lc = gs_after.get("lifecycles", {}).get("ID_001") if gs_after else None
+        lc = gs_after.get("lifecycles", {}).get("ITR_001") if gs_after else None
         check("lifecycle complete in state.json", lc == "complete", "got: " + str(lc))
 
         # Verify session history closed
@@ -332,7 +332,7 @@ def test_run_reject_then_pass_on_retry():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "Retry test", "deps": []},
+                {"id": "ITR_001", "title": "Retry test", "deps": []},
             ],
         )
         mock_dir = create_mock_claude(tmp)
@@ -361,7 +361,7 @@ def test_run_reject_then_pass_on_retry():
         check("iterationsCompleted 1", result.get("iterationsCompleted") == 1)
 
         gs_after = load_json(state_json_path(plet_dir))
-        lc = gs_after.get("lifecycles", {}).get("ID_001") if gs_after else None
+        lc = gs_after.get("lifecycles", {}).get("ITR_001") if gs_after else None
         check("final lifecycle complete", lc == "complete", "got: " + str(lc))
 
 
@@ -377,8 +377,8 @@ def test_run_two_iteration_dependency_chain():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "First", "deps": []},
-                {"id": "ID_002", "title": "Second (depends on first)", "deps": ["ID_001"]},
+                {"id": "ITR_001", "title": "First", "deps": []},
+                {"id": "ITR_002", "title": "Second (depends on first)", "deps": ["ITR_001"]},
             ],
         )
         mock_dir = create_mock_claude(tmp)
@@ -404,18 +404,18 @@ def test_run_two_iteration_dependency_chain():
             "got: " + str(result.get("iterationsCompleted")),
         )
 
-        # Verify ordering: ID_001 completed before ID_002 started
+        # Verify ordering: ITR_001 completed before ITR_002 started
         complete_events = [ln for ln in lines if ln.get("type") == "iteration_complete"]
         complete_ids = [ln.get("iterationId") for ln in complete_events]
-        check("ID_001 completed", "ID_001" in complete_ids)
-        check("ID_002 completed", "ID_002" in complete_ids)
+        check("ITR_001 completed", "ITR_001" in complete_ids)
+        check("ITR_002 completed", "ITR_002" in complete_ids)
         if len(complete_ids) >= 2:
-            check("ID_001 before ID_002", complete_ids.index("ID_001") < complete_ids.index("ID_002"))
+            check("ITR_001 before ITR_002", complete_ids.index("ITR_001") < complete_ids.index("ITR_002"))
 
         gs_after = load_json(state_json_path(plet_dir))
         lcs = gs_after.get("lifecycles", {}) if gs_after else {}
-        check("ID_001 lifecycle complete", lcs.get("ID_001") == "complete")
-        check("ID_002 lifecycle complete", lcs.get("ID_002") == "complete")
+        check("ITR_001 lifecycle complete", lcs.get("ITR_001") == "complete")
+        check("ITR_002 lifecycle complete", lcs.get("ITR_002") == "complete")
 
 
 # ===========================================================================
@@ -430,13 +430,13 @@ def test_run_breakpoint_before():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "Breakpointed", "deps": []},
+                {"id": "ITR_001", "title": "Breakpointed", "deps": []},
             ],
         )
 
         # Add breakpoint to state.json
         gs = load_json(state_json_path(plet_dir))
-        gs["breakpoints"] = {"before": ["ID_001"], "after": []}
+        gs["breakpoints"] = {"before": ["ITR_001"], "after": []}
         with open(state_json_path(plet_dir), "w") as f:
             json.dump(gs, f)
         # Commit the change
@@ -465,7 +465,7 @@ def test_run_breakpoint_before():
             "got: " + str(result.get("reason")),
         )
         pause = result.get("pauseContext", {})
-        check("pauseContext has ID_001", pause and pause.get("iterationId") == "ID_001", "got: " + str(pause))
+        check("pauseContext has ITR_001", pause and pause.get("iterationId") == "ITR_001", "got: " + str(pause))
 
         # No iteration should have started
         impl_starts = [ln for ln in lines if ln.get("type") == "iteration_start"]
@@ -494,30 +494,30 @@ def test_run_mixed_outcome_pass_block_stuck():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "Will pass", "deps": []},
-                {"id": "ID_002", "title": "Will exhaust retries", "deps": []},
-                {"id": "ID_003", "title": "Depends on ID_002", "deps": ["ID_002"]},
+                {"id": "ITR_001", "title": "Will pass", "deps": []},
+                {"id": "ITR_002", "title": "Will exhaust retries", "deps": []},
+                {"id": "ITR_003", "title": "Depends on ITR_002", "deps": ["ITR_002"]},
             ],
         )
         mock_dir = create_mock_claude(tmp)
 
-        # ID_001 passes, ID_002 always rejects (MOCK_BEHAVIOR=pass means all pass,
+        # ITR_001 passes, ITR_002 always rejects (MOCK_BEHAVIOR=pass means all pass,
         # so we need a per-iteration behavior). Simplify: use "reject_then_pass"
         # which rejects on first verify, passes on second. To get exhaustion,
         # we'd need 3+ rejects. For now, test with reject_then_pass and verify
-        # the retry flow works for ID_002 too (both eventually pass).
+        # the retry flow works for ITR_002 too (both eventually pass).
         #
         # For a true exhaustion test, we'd need a "always_reject" behavior.
-        # Let's test the mixed outcome differently: make ID_002 pass but ID_003
-        # stuck because we manually set ID_002 to blocked before running.
+        # Let's test the mixed outcome differently: make ITR_002 pass but ITR_003
+        # stuck because we manually set ITR_002 to blocked before running.
 
-        # Pre-block ID_002 in state.json.lifecycles so ID_003 is stuck (SF_28)
+        # Pre-block ITR_002 in state.json.lifecycles so ITR_003 is stuck (SF_28)
         gs = load_json(state_json_path(plet_dir))
-        gs["lifecycles"]["ID_002"] = "blocked"
+        gs["lifecycles"]["ITR_002"] = "blocked"
         with open(state_json_path(plet_dir), "w") as f:
             json.dump(gs, f)
         subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
-        subprocess.run(["git", "commit", "-m", "block ID_002"], cwd=tmp, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "block ITR_002"], cwd=tmp, capture_output=True)
 
         env = os.environ.copy()
         env.update(
@@ -540,7 +540,7 @@ def test_run_mixed_outcome_pass_block_stuck():
             "got: " + str(result.get("reason")),
         )
         check(
-            "iterationsCompleted 1 (ID_001 only)",
+            "iterationsCompleted 1 (ITR_001 only)",
             result.get("iterationsCompleted") == 1,
             "got: " + str(result.get("iterationsCompleted")),
         )
@@ -550,15 +550,15 @@ def test_run_mixed_outcome_pass_block_stuck():
             "got: " + str(result.get("iterationsBlocked")),
         )
 
-        # ID_003 should be stuck (dep on blocked ID_002)
+        # ITR_003 should be stuck (dep on blocked ITR_002)
         stuck = result.get("stuckIterations", [])
         stuck_ids = [s.get("iterationId") for s in stuck] if stuck else []
-        check("ID_003 is stuck", "ID_003" in stuck_ids, "stuckIterations: " + str(stuck_ids))
+        check("ITR_003 is stuck", "ITR_003" in stuck_ids, "stuckIterations: " + str(stuck_ids))
 
         gs_after = load_json(state_json_path(plet_dir))
         lcs = gs_after.get("lifecycles", {}) if gs_after else {}
-        check("ID_001 complete", lcs.get("ID_001") == "complete")
-        check("ID_003 still queued (stuck)", lcs.get("ID_003") == "queued", "got: " + str(lcs.get("ID_003")))
+        check("ITR_001 complete", lcs.get("ITR_001") == "complete")
+        check("ITR_003 still queued (stuck)", lcs.get("ITR_003") == "queued", "got: " + str(lcs.get("ITR_003")))
 
 
 # ===========================================================================
@@ -573,8 +573,8 @@ def test_run_max_iterations_limit():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "First", "deps": []},
-                {"id": "ID_002", "title": "Second", "deps": []},
+                {"id": "ITR_001", "title": "First", "deps": []},
+                {"id": "ITR_002", "title": "Second", "deps": []},
             ],
         )
         mock_dir = create_mock_claude(tmp)
@@ -626,7 +626,7 @@ def test_run_no_commits_blocks_iteration():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "No commits test", "deps": []},
+                {"id": "ITR_001", "title": "No commits test", "deps": []},
             ],
         )
         mock_dir = create_mock_claude(tmp)
@@ -653,7 +653,7 @@ def test_run_no_commits_blocks_iteration():
 
         # Iteration should be blocked in state.json (no commits = handoff didn't happen)
         gs_after = load_json(state_json_path(plet_dir))
-        lc = gs_after.get("lifecycles", {}).get("ID_001") if gs_after else None
+        lc = gs_after.get("lifecycles", {}).get("ITR_001") if gs_after else None
         check("lifecycle blocked", lc == "blocked", "got: " + str(lc))
 
 
@@ -669,15 +669,15 @@ def test_run_crash_recovery_resume():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "Already done", "deps": []},
-                {"id": "ID_002", "title": "Needs work", "deps": []},
+                {"id": "ITR_001", "title": "Already done", "deps": []},
+                {"id": "ITR_002", "title": "Needs work", "deps": []},
             ],
         )
 
-        # Simulate a crashed session: ID_001 already complete, session active
+        # Simulate a crashed session: ITR_001 already complete, session active
         # Set lifecycle in state.json (SF_28)
         gs = load_json(state_json_path(plet_dir))
-        gs["lifecycles"]["ID_001"] = "complete"
+        gs["lifecycles"]["ITR_001"] = "complete"
         gs["loopSessionCount"] = 1
         gs["sessionHistory"] = [
             {
@@ -724,10 +724,10 @@ def test_run_crash_recovery_resume():
 
         check("reason all_complete", result.get("reason") == "all_complete", "got: " + str(result.get("reason")))
 
-        # ID_001 was already complete, ID_002 should now be complete
+        # ITR_001 was already complete, ITR_002 should now be complete
         gs_after = load_json(state_json_path(plet_dir))
-        lc2 = gs_after.get("lifecycles", {}).get("ID_002") if gs_after else None
-        check("ID_002 complete", lc2 == "complete", "got: " + str(lc2))
+        lc2 = gs_after.get("lifecycles", {}).get("ITR_002") if gs_after else None
+        check("ITR_002 complete", lc2 == "complete", "got: " + str(lc2))
 
         # Session should be ended now
         gs = load_json(state_json_path(plet_dir))
@@ -750,7 +750,7 @@ def test_run_stale_fingerprints_blocking():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "Test", "deps": []},
+                {"id": "ITR_001", "title": "Test", "deps": []},
             ],
         )
 
@@ -805,13 +805,13 @@ def test_run_breakpoint_before_partial():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "First", "deps": []},
-                {"id": "ID_002", "title": "Breakpointed", "deps": []},
+                {"id": "ITR_001", "title": "First", "deps": []},
+                {"id": "ITR_002", "title": "Breakpointed", "deps": []},
             ],
         )
 
         gs = load_json(state_json_path(plet_dir))
-        gs["breakpoints"] = {"before": ["ID_002"], "after": []}
+        gs["breakpoints"] = {"before": ["ITR_002"], "after": []}
         with open(state_json_path(plet_dir), "w") as f:
             json.dump(gs, f)
         subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
@@ -839,8 +839,8 @@ def test_run_breakpoint_before_partial():
             "got: " + str(result.get("reason")),
         )
 
-        # ID_001 may run (spawned before breakpoint hit on ID_002)
-        # ID_002 must NOT have started
+        # ITR_001 may run (spawned before breakpoint hit on ITR_002)
+        # ITR_002 must NOT have started
         bp_events = [ln for ln in lines if ln.get("type") == "breakpoint_hit"]
         check("breakpoint hit emitted", len(bp_events) > 0, "got: " + str(len(bp_events)))
 
@@ -858,13 +858,13 @@ def test_run_breakpoint_after():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "First", "deps": []},
-                {"id": "ID_002", "title": "Second", "deps": ["ID_001"]},
+                {"id": "ITR_001", "title": "First", "deps": []},
+                {"id": "ITR_002", "title": "Second", "deps": ["ITR_001"]},
             ],
         )
 
         gs = load_json(state_json_path(plet_dir))
-        gs["breakpoints"] = {"before": [], "after": ["ID_001"]}
+        gs["breakpoints"] = {"before": [], "after": ["ITR_001"]}
         with open(state_json_path(plet_dir), "w") as f:
             json.dump(gs, f)
         subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
@@ -892,21 +892,21 @@ def test_run_breakpoint_after():
             "got: " + str(result.get("reason")),
         )
 
-        # ID_001 should have completed (breakpoint-after doesn't stop current iteration)
+        # ITR_001 should have completed (breakpoint-after doesn't stop current iteration)
         check(
             "iterationsCompleted 1",
             result.get("iterationsCompleted") == 1,
             "got: " + str(result.get("iterationsCompleted")),
         )
 
-        # ID_002 should NOT have started (pause prevents next spawns)
+        # ITR_002 should NOT have started (pause prevents next spawns)
         gs_after = load_json(state_json_path(plet_dir))
         lcs = gs_after.get("lifecycles", {}) if gs_after else {}
-        check("ID_001 complete", lcs.get("ID_001") == "complete", "got: " + str(lcs.get("ID_001")))
+        check("ITR_001 complete", lcs.get("ITR_001") == "complete", "got: " + str(lcs.get("ITR_001")))
         check(
-            "ID_002 still queued or ineligible",
-            lcs.get("ID_002") in ("queued", "ineligible"),
-            "got: " + str(lcs.get("ID_002")),
+            "ITR_002 still queued or ineligible",
+            lcs.get("ITR_002") in ("queued", "ineligible"),
+            "got: " + str(lcs.get("ITR_002")),
         )
 
 
@@ -923,8 +923,8 @@ def test_run_two_independent_sequential():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "First", "deps": []},
-                {"id": "ID_002", "title": "Second", "deps": []},
+                {"id": "ITR_001", "title": "First", "deps": []},
+                {"id": "ITR_002", "title": "Second", "deps": []},
             ],
         )
 
@@ -957,8 +957,8 @@ def test_run_two_independent_sequential():
 
         gs_after = load_json(state_json_path(plet_dir))
         lcs = gs_after.get("lifecycles", {}) if gs_after else {}
-        check("ID_001 complete", lcs.get("ID_001") == "complete", "got: " + str(lcs.get("ID_001")))
-        check("ID_002 complete", lcs.get("ID_002") == "complete", "got: " + str(lcs.get("ID_002")))
+        check("ITR_001 complete", lcs.get("ITR_001") == "complete", "got: " + str(lcs.get("ITR_001")))
+        check("ITR_002 complete", lcs.get("ITR_002") == "complete", "got: " + str(lcs.get("ITR_002")))
 
 
 # ===========================================================================
@@ -974,9 +974,9 @@ def test_run_dependency_chain():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "First", "deps": []},
-                {"id": "ID_002", "title": "Second", "deps": ["ID_001"]},
-                {"id": "ID_003", "title": "Third", "deps": ["ID_002"]},
+                {"id": "ITR_001", "title": "First", "deps": []},
+                {"id": "ITR_002", "title": "Second", "deps": ["ITR_001"]},
+                {"id": "ITR_003", "title": "Third", "deps": ["ITR_002"]},
             ],
         )
 
@@ -1004,9 +1004,9 @@ def test_run_dependency_chain():
 
         gs_after = load_json(state_json_path(plet_dir))
         lcs = gs_after.get("lifecycles", {}) if gs_after else {}
-        check("ID_001 complete", lcs.get("ID_001") == "complete")
-        check("ID_002 complete", lcs.get("ID_002") == "complete")
-        check("ID_003 complete", lcs.get("ID_003") == "complete")
+        check("ITR_001 complete", lcs.get("ITR_001") == "complete")
+        check("ITR_002 complete", lcs.get("ITR_002") == "complete")
+        check("ITR_003 complete", lcs.get("ITR_003") == "complete")
 
 
 # ===========================================================================
@@ -1022,7 +1022,7 @@ def test_run_orchestrator_trace_file():
         plet_dir = setup_project(
             tmp,
             iterations=[
-                {"id": "ID_001", "title": "First", "deps": []},
+                {"id": "ITR_001", "title": "First", "deps": []},
             ],
         )
 

@@ -27,7 +27,7 @@ def _parse_name(argv):
             m = re.match(r"plet/(ID_\d+)/(implement|verify)-(\d+)", argv[i + 1])
             if m:
                 return m.group(1), m.group(2), int(m.group(3))
-    return "ID_001", "implement", 1
+    return "ITR_001", "implement", 1
 
 
 def main(argv):

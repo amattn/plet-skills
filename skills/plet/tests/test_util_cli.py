@@ -50,8 +50,8 @@ def test_parse_kwargs_basic():
 
 def test_parse_kwargs_hyphens_to_underscores():
     print("\n## parse_kwargs — hyphens converted to underscores")
-    result = util_cli.parse_kwargs(["--iter-id", "ID_001"])
-    check("hyphen to underscore", result == {"iter_id": "ID_001"})
+    result = util_cli.parse_kwargs(["--iter-id", "ITR_001"])
+    check("hyphen to underscore", result == {"iter_id": "ITR_001"})
 
 
 def test_parse_kwargs_bare_flag():
@@ -138,14 +138,14 @@ def test_require_kwargs_with_help():
 
 def test_validate_known_flags_all_known():
     print("\n## validate_known_flags — all known")
-    kwargs = {"iter_id": "ID_001", "output": "json", "pretty": True}
+    kwargs = {"iter_id": "ITR_001", "output": "json", "pretty": True}
     result = util_cli.validate_known_flags(kwargs, {"iter_id", "output", "pretty"})
     check("returns None when all known", result is None)
 
 
 def test_validate_known_flags_unknown():
     print("\n## validate_known_flags — unknown flag")
-    kwargs = {"iter_id": "ID_001", "banana": "yellow"}
+    kwargs = {"iter_id": "ITR_001", "banana": "yellow"}
     result = util_cli.validate_known_flags(kwargs, {"iter_id", "output", "pretty"})
     check("returns error tuple on unknown", isinstance(result, tuple) and result[0] == 1)
     check("error mentions --banana", "--banana" in result[2], "error: " + result[2])
@@ -168,7 +168,7 @@ def test_validate_known_flags_empty_kwargs():
 def test_validate_known_flags_hyphen_conversion():
     print("\n## validate_known_flags — hyphen to underscore")
     # parse_kwargs converts --iter-id to iter_id, so known_flags uses underscores
-    kwargs = {"iter_id": "ID_001", "dry_run": True}
+    kwargs = {"iter_id": "ITR_001", "dry_run": True}
     result = util_cli.validate_known_flags(kwargs, {"iter_id", "dry_run"})
     check("underscore flags match", result is None)
 
@@ -658,11 +658,11 @@ def make_test_plet_dir():
             f,
         )
         f.write("\n")
-    with open(iter_state_path(plet_dir, "ID_001"), "w") as f:
+    with open(iter_state_path(plet_dir, "ITR_001"), "w") as f:
         json.dump(
             {
                 "schemaVersion": "0.2.0",
-                "iterationId": "ID_001",
+                "iterationId": "ITR_001",
                 "title": "Test",
                 "lastUpdated": "2026-03-29T00:00:00Z",
                 "dependencies": [],
@@ -688,7 +688,7 @@ def test_invocation_logging_enabled():
     tmpdir, plet_dir = make_test_plet_dir()
     try:
         result = subprocess.run(
-            [sys.executable, STATE_TOOL, "validate", plet_dir, "--iter-id", "ID_001"],
+            [sys.executable, STATE_TOOL, "validate", plet_dir, "--iter-id", "ITR_001"],
             capture_output=True,
             text=True,
         )
@@ -716,7 +716,7 @@ def test_invocation_logging_suppressed():
     tmpdir, plet_dir = make_test_plet_dir()
     try:
         result = subprocess.run(
-            [sys.executable, STATE_TOOL, "--no-log", "validate", plet_dir, "--iter-id", "ID_001"],
+            [sys.executable, STATE_TOOL, "--no-log", "validate", plet_dir, "--iter-id", "ITR_001"],
             capture_output=True,
             text=True,
         )
@@ -741,7 +741,7 @@ def test_nolog_cascades():
         env = os.environ.copy()
         env["PLET_NO_LOG"] = "1"
         result = subprocess.run(
-            [sys.executable, STATE_TOOL, "validate", plet_dir, "--iter-id", "ID_001"],
+            [sys.executable, STATE_TOOL, "validate", plet_dir, "--iter-id", "ITR_001"],
             capture_output=True,
             text=True,
             env=env,
@@ -771,7 +771,7 @@ def test_log_script_invocation_direct():
         util_cli._log_script_invocation(
             "plet_test",
             "validate",
-            [plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "implement"],
             0,
             "0.7.0",
             "0.1.0",
@@ -818,7 +818,7 @@ def test_log_script_invocation_phase_normalization():
         util_cli._log_script_invocation(
             "plet_test",
             "update",
-            [plet_dir, "--iter-id", "ID_001", "--phase", "implementation"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "implementation"],
             0,
             "0.7.0",
             "0.1.0",
@@ -835,7 +835,7 @@ def test_log_script_invocation_phase_normalization():
         util_cli._log_script_invocation(
             "plet_test",
             "update",
-            [plet_dir, "--iter-id", "ID_001", "--phase", "invalid_phase"],
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "invalid_phase"],
             0,
             "0.7.0",
             "0.1.0",
@@ -855,7 +855,7 @@ def test_extract_plet_dir():
     print("\n## _extract_plet_dir — finds plet dir from args")
     tmpdir, plet_dir = make_test_plet_dir()
     try:
-        result = util_cli._extract_plet_dir([plet_dir, "--iter-id", "ID_001"])
+        result = util_cli._extract_plet_dir([plet_dir, "--iter-id", "ITR_001"])
         check("finds dir arg", result == plet_dir)
 
         result = util_cli._extract_plet_dir(["--flag", "value"])
@@ -866,13 +866,13 @@ def test_extract_plet_dir():
 
 def test_extract_from_args():
     print("\n## _extract_from_args — extracts flag values")
-    result = util_cli._extract_from_args(["--iter-id", "ID_001", "--phase", "implement"], "iter_id")
-    check("finds iter_id", result == "ID_001")
+    result = util_cli._extract_from_args(["--iter-id", "ITR_001", "--phase", "implement"], "iter_id")
+    check("finds iter_id", result == "ITR_001")
 
-    result = util_cli._extract_from_args(["--iter-id", "ID_001", "--phase", "implement"], "phase")
+    result = util_cli._extract_from_args(["--iter-id", "ITR_001", "--phase", "implement"], "phase")
     check("finds phase", result == "implement")
 
-    result = util_cli._extract_from_args(["--iter-id", "ID_001"], "phase")
+    result = util_cli._extract_from_args(["--iter-id", "ITR_001"], "phase")
     check("missing returns None", result is None)
 
 
