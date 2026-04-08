@@ -2053,8 +2053,48 @@ Note on #7: `churn` command added to PLAN_RFT scope — natural home in plet_git
 
 **Still open:**
 
-1. **refactor.md reference file content.** Agent audit procedure, AC proposal format, defer-vs-fix guidance, test failure handling (revert + emergent), time budget behavior. **Update (2026-04-07):** refactor.md will also absorb VF_9 (code quality), broad VF_8 (test suite design), and broad VF_10 (security audit) from verify.md. See NOTES_PLN_VER.
-2. **§Refactor Policy placement in requirements.md.** Between §4.5 and §5 (quality-adjacent) vs before §9 (milestone-adjacent). Leaning quality-adjacent.
+1. **§Refactor Policy placement in requirements.md.** Between §4.5 and §5 (quality-adjacent) vs before §9 (milestone-adjacent). Leaning quality-adjacent.
+
+#### NOTES_PLN_RFT_SIMPLIFY: Simplification (2026-04-08)
+
+**Decision: Don't create a new phase — use implement→verify with a different reference file.**
+
+The original design proposed `--phase refactor` as a third phase with its own lifecycle state (`refactoring`), custom verdict fields (`refactorChanges`/`refactorDeferrals` booleans), custom orchestrator routing (skip verify if no changes, auto-revert on failure), and schema changes across 5+ modules. PLAN_SEQ taught us that every piece of infrastructure has to be maintained, tested, and debugged through real runs. The parallel orchestrator looked right on paper and took months to prove it didn't work. Simpler won every time.
+
+**Refactor iterations are implement→verify iterations with a different reference file.** A refactor iteration IS an implementation iteration — the agent audits, fixes, and tests, then verify checks the work. The difference is the *guidance* (what the agent looks for), not the *lifecycle*.
+
+Concrete mechanism:
+- `ITR_RFT_MS_1` is a normal iteration in the dependency map
+- `prompt.py` detects the `ITR_RFT_` prefix and injects `refactor.md` instead of `implement.md`
+- Standard `implementVerdict: completed|blocked`, standard lifecycle, standard gate
+- The verify agent follows normal `verify.md`
+
+**What this eliminates:**
+- No new `--phase refactor` value (no validator changes, no gate changes, no trace changes, no entries changes)
+- No new `refactoring` lifecycle state
+- No `refactorChanges`/`refactorDeferrals` custom verdict fields
+- No schema migration
+- No custom orchestrator routing (skip verify, auto-revert)
+- No time budget mechanism
+- No "refactor can't block" special case — blocks like any other iteration, human reviews in refine
+
+**Standard verdicts, not custom booleans.** The `refactorChanges`/`refactorDeferrals` pair was information that's already observable: "Did code change?" = `git diff`. "Were deferrals filed?" = count of emergent entries. Use standard `implementVerdict: completed|blocked`.
+
+**Separate milestone barriers from refactor iterations.** Two independent features:
+1. Milestone barriers — all MS_2 iterations depend on all MS_1 being complete. Pure dependency graph change at plan time. No scripts, no phases.
+2. Refactor iterations — synthetic iteration at each barrier with refactor guidance.
+
+Build (1) first. It's independently valuable. Then (2) is just adding `ITR_RFT_MS_N` iterations to the plan with the right deps.
+
+**Refactor goals should be minimal at plan time.** One AC per goal: "Extract duplicated logic when 3+ copies exist." The refactor agent discovers specifics at runtime by reading the codebase. Over-specifying plan-time ACs constrains the agent before it's seen the code.
+
+**Refactor can block (single attempt).** Simplest flow: if verify fails, it blocks like any other iteration. Human reviews in refine. No special revert-and-file-emergent mechanism. This is the normal flow — no special handling needed.
+
+**Build churn command first.** `plet_tools.py churn` is independently useful, low-risk, gives the refactor agent concrete data, and a human can run it after any loop.
+
+**No time budget mechanism.** Adds testing burden for marginal value. Agents have natural context limits. If too large, agent blocks. Human reviews in refine.
+
+**Estimated effort:** ~2 days vs ~2 weeks for the original design. Most of the work is writing `refactor.md` (the reference file). The prompt routing is ~5 lines. Milestone barriers are plan-phase guidance + dependency generation.
 
 ---
 

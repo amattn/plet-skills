@@ -402,20 +402,20 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 
 ## PLAN_RFT: Refactor Loop
 
-Milestone-boundary refactor via synthetic iteration. Milestones are execution barriers. `--phase refactor` is a distinct phase. Single attempt, always included, user can remove. See NOTES.md § NOTES_PLN_RFT for design decisions and rationale.
+Milestone-boundary refactor via synthetic iteration. Milestones are execution barriers. Refactor iterations use the standard implement→verify lifecycle with a specialized reference file — no new phase, no schema changes. Single attempt, always included, user can remove. See NOTES.md § NOTES_PLN_RFT + § NOTES_PLN_RFT_SIMPLIFY for design decisions and simplification rationale.
+
+**Architecture:** `ITR_RFT_MS_N` is a normal iteration. `prompt.py` detects the `ITR_RFT_` prefix and injects `refactor.md` instead of `implement.md`. Standard verdicts, standard lifecycle, standard gate. No new phase values, no schema migration, no custom orchestrator routing.
 
 | Step | Description | Status |
 |------|-------------|--------|
-| RFT_1 | Plan phase: make milestones native (barrier deps in dependency map) | |
-| RFT_2 | Plan phase: auto-generate ITR_RFT_MS_N per milestone + refactor goals | |
-| RFT_3 | Reference file: refactor.md (audit procedure, AC patterns, emergent pipeline) | |
-| RFT_4 | State schema: "refactor" as valid phase alongside implement/verify | |
-| RFT_5 | Prompt assembly: plet_prompt.py supports phase=refactor | |
-| RFT_6 | Script updates: gate, trace, entries accept phase=refactor | |
-| RFT_7 | plet_git_check.py `churn` command — files by commit count, flag outliers | |
-| RFT_8 | Test with real run | |
+| RFT_1 | `plet_tools.py churn` command — files by commit count, flag outliers. Independently useful. | |
+| RFT_2 | Milestone barriers in dependency map (plan phase guidance + dependency generation) | |
+| RFT_3 | `refactor.md` reference file — audit procedure, AC patterns, defer-vs-fix, emergent pipeline. Absorbs VF_9 (code quality), broad VF_8 (test quality), broad VF_10 (security audit) from verify. | |
+| RFT_4 | `prompt.py` routing: `ITR_RFT_*` prefix → inject `refactor.md` instead of `implement.md` | |
+| RFT_5 | Plan phase: auto-generate `ITR_RFT_MS_N` per milestone + refactor goals section in requirements.md | |
+| RFT_6 | Validate with real run | |
 
-**Depends on:** FOO_70.
+**What was removed from original design (see NOTES_PLN_RFT_SIMPLIFY):** No `--phase refactor` (use implement). No `refactoring` lifecycle. No `refactorChanges`/`refactorDeferrals` verdict fields. No custom orchestrator routing. No time budget mechanism. No auto-revert special case.
 
 ---
 
