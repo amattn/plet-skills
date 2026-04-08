@@ -200,6 +200,45 @@ def test_impl_reference_file():
         shutil.rmtree(tmpdir)
 
 
+def test_refactor_iteration_uses_refactor_md():
+    print("\n## assemble — ITR_RFT_* uses refactor.md")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = os.path.join(tmpdir, "plet")
+        os.makedirs(state_dir_path(plet_dir), exist_ok=True)
+
+        _shared_make_global_state(
+            plet_dir,
+            project_id="TEST",
+            loop_session=1,
+            lifecycles={"ITR_RFT_MS_1": "implementing"},
+        )
+        _shared_make_iter_state(
+            plet_dir,
+            iter_id="ITR_RFT_MS_1",
+            title="Milestone 1 refactor",
+            attempts={"implement": 1, "verify": 0},
+            criteria=[{"id": "AC_1", "description": "Extract duplicated logic", "status": "pending"}],
+        )
+        with open(requirements_path(plet_dir), "w") as f:
+            f.write("# Requirements\n\n## FR_1: Test\n")
+        with open(iterations_path(plet_dir), "w") as f:
+            f.write("# Iterations\n\n## ITR_RFT_MS_1 — Milestone 1 refactor\n\nRefactor goals.\n")
+        with open(learnings_path(plet_dir), "w") as f:
+            f.write("# Learnings\n")
+
+        stdout, stderr, rc = run(
+            ["assemble", plet_dir, "--iter-id", "ITR_RFT_MS_1", "--phase", "implement", "--output", "json"]
+        )
+        check("exits 0", rc == 0, f"stderr: {stderr}")
+        data = json.loads(stdout)
+        ref = [s for s in data["sections"] if s["name"] == "reference-file"][0]
+        check("source is refactor.md", "refactor.md" in ref["source"], f"got: {ref['source']}")
+        check("content mentions refactoring", "refactor" in ref["content"].lower())
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 # ===========================================================================
 # assemble tests — verify phase
 # ===========================================================================
@@ -550,6 +589,7 @@ def main():
     test_impl_text_output()
     test_impl_all_sections()
     test_impl_reference_file()
+    test_refactor_iteration_uses_refactor_md()
     test_verify_all_sections()
     test_verify_reference_file()
     test_cli_ref_implement_content()

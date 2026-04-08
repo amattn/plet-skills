@@ -241,6 +241,26 @@ Generate a structured requirements document saved to `plet/requirements.md`. Fol
 ## 9. Release Milestones
 [Deferred — finalize after section-by-section review (Step 4) is complete. Requirements change during review, so milestones defined before review are based on stale input. (FOO_26)]
 
+## 9b. Refactor Policy
+
+Default refactor goals applied at each milestone boundary (via `ITR_RFT_MS_N`):
+
+**Pattern-oriented (always):**
+1. Extract duplicated logic when 3+ copies exist across files
+2. Flag files over 500 lines — split only if there's a clear seam
+3. Consolidate scattered constants/config into centralized locations
+4. Reduce excessive special-case branching (if/elif chains that grew organically)
+
+**Artifact-oriented (always):**
+5. Review emergent.md for deferred cleanup items from this milestone
+6. Review learnings.md entries from this milestone's iterations
+7. Run `plet_tools.py churn` to identify high-churn files
+
+**Project-specific goals (user adds during plan review):**
+[e.g., "files under 300 lines", "consistent error handling pattern", "extract shared test fixtures"]
+
+[Present defaults to user during Step 5. User approves, modifies, or adds project-specific goals. Written to requirements.md before iteration decomposition.]
+
 ## 10. Resolved Questions
 [Table: #, question, decision]
 
@@ -363,14 +383,15 @@ The user may batch answers or go one-by-one — follow their lead.
 
 ---
 
-## Step 5: Finalize Milestones (FOO_26)
+## Step 5: Finalize Milestones + Refactor Policy (FOO_26)
 
-After all requirement sections are reviewed and approved, finalize §9 Release Milestones in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
+After all requirement sections are reviewed and approved, finalize §9 Release Milestones and §9b Refactor Policy in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
 
 1. Draft milestones based on approved requirements
 2. Present to user for review with the R/O stable tail
-3. **Silence is not approval** — re-present after changes, wait for O
-4. Write to disk, verify, commit (`plet: [plan] approve milestones`)
+3. Present the default refactor policy (§9b template). Ask if the user wants to add project-specific goals or modify defaults.
+4. **Silence is not approval** — re-present after changes, wait for O
+5. Write to disk, verify, commit (`plet: [plan] approve milestones + refactor policy`)
 
 ---
 
@@ -438,29 +459,38 @@ As a [persona], I want [goal] so that [benefit].
 
 - Each iteration lists which iterations must be `complete` before it can start
 - Dependencies form a DAG (directed acyclic graph), not a strict sequence
-- Independent iterations can run in parallel
+- Independent iterations run sequentially in topological order
 
 ### Dependency Graph Validation
 
 Present the dependency graph visually during iteration review. Ask the user to confirm the ordering makes sense.
 
-**When in doubt, add the dependency.** Missing dependencies are the most dangerous planning error — an agent starts work before prerequisite code exists, wastes a cycle, and must self-correct. False dependencies (unnecessary deps that reduce parallelism) are harmless — they only slow things down slightly. Always err on the side of adding a dependency rather than omitting one.
-
-**File-level conflicts matter for parallel execution.** Dependencies aren't just about logical ordering — they also prevent merge conflicts. If two iterations modify the same file (e.g., both add routes to `router.go`, both modify `config.yaml`), one should depend on the other even if the features are logically independent. Iterations in the same parallel round run in separate worktrees and rebase-commit sequentially to the workstream. If they touch the same files, the second rebase may conflict. Adding a dependency between them forces sequential execution of those two iterations while keeping the rest of the graph parallel.
-
-When defining iterations, ask: "could these two iterations modify the same file?" If yes, add a dependency. Common patterns that need dependencies:
-- Shared configuration files (config, env, manifests)
-- Shared routing/registration files (routers, middleware chains, plugin registries)
-- Shared type definitions or interfaces that multiple features extend
-- Test helper files that multiple iterations add fixtures to
-
-If a conflict does occur at runtime, the orchestrator requeues the iteration (no attempt burned — scheduling luck, not agent failure). On the next pass, the implement agent runs `rebase-prep` to rebase onto the updated workstream and resolves conflicts before continuing. This is safe but costs a full iteration cycle. A dependency costs nothing.
+**When in doubt, add the dependency.** Missing dependencies are the most dangerous planning error — an agent starts work before prerequisite code exists, wastes a cycle, and must self-correct. False dependencies (unnecessary deps) are harmless — they only affect ordering. Always err on the side of adding a dependency rather than omitting one.
 
 If an agent discovers a missing dependency during execution, it self-corrects without blocking — fixes the DAG in place, sets itself to `ineligible`, and documents across all four runtime artifacts. The loop continues and the iteration auto-queues when the missing dep completes. See `references/implement.md` for the full self-correction procedure (IMP_24).
 
-### Parallel Groups (PL_13)
+### Milestone Barriers
 
-Identify which iterations can run in parallel (no dependency relationship) and note them. These become `parallelGroups` in `state.json`.
+**Milestones are execution barriers, not cosmetic labels.** Every iteration in MS_2 implicitly depends on ALL iterations in MS_1 being complete. This is encoded in the dependency map — no special orchestrator logic needed.
+
+When generating the dependency map:
+1. Within-milestone deps: explicit, per-iteration (as defined by the user)
+2. Cross-milestone deps: implicit barrier — every MS_N+1 iteration depends on all MS_N iterations
+3. The orchestrator follows the DAG — it doesn't need milestone awareness
+
+This prevents starting MS_2 work on an un-integrated MS_1 foundation. Each milestone is a coherent, complete increment.
+
+### Refactor Iterations
+
+Each milestone includes a synthetic refactor iteration (`ITR_RFT_MS_N`) as its final iteration. All MS_N+1 iterations depend on it (via the milestone barrier). The refactor iteration:
+
+- Uses the standard implement→verify lifecycle (no special phase)
+- Gets `refactor.md` as its reference file instead of `implement.md` (prompt.py routing)
+- Has minimal acceptance criteria from the project's refactor goals (see § Refactor Policy in requirements.md)
+- Agent discovers specifics by reading the codebase, churn analysis, learnings, and emergent items
+- Single attempt — if verify fails, it blocks and the human reviews in refine
+
+**Always included by default.** The user can remove `ITR_RFT_MS_N` during iteration review if the milestone is too small to warrant refactoring. Present them grouped at the end of each milestone, not interleaved.
 
 ### Milestone Assignment (PL_14)
 
@@ -506,7 +536,6 @@ After all iterations are approved:
    - `project`: name and description
    - `dependencyMap`: `{iteration_id: [dependency_ids]}`
    - `milestones`: `{milestone_id: {name, iterations[]}}`
-   - `parallelGroups`: groups of concurrent iterations
    - `breakpoints`: `{before: [], after: []}`
    - `iterationsFingerprint`: copy from iterations.md
 

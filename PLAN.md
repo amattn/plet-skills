@@ -409,10 +409,10 @@ Milestone-boundary refactor via synthetic iteration. Milestones are execution ba
 | Step | Description | Status |
 |------|-------------|--------|
 | RFT_1 | `plet_tools.py churn` command — files by commit count, flag outliers. Independently useful. | ✓ done |
-| RFT_2 | Milestone barriers in dependency map (plan phase guidance + dependency generation) | |
-| RFT_3 | `refactor.md` reference file — audit procedure, AC patterns, defer-vs-fix, emergent pipeline. Absorbs VF_9 (code quality), broad VF_8 (test quality), broad VF_10 (security audit) from verify. | |
-| RFT_4 | `prompt.py` routing: `ITR_RFT_*` prefix → inject `refactor.md` instead of `implement.md` | |
-| RFT_5 | Plan phase: auto-generate `ITR_RFT_MS_N` per milestone + refactor goals section in requirements.md | |
+| RFT_2 | Milestone barriers in dependency map (plan.md § Milestone Barriers) | ✓ done |
+| RFT_3 | `refactor.md` reference file — audit procedure, signal categories, defer-vs-fix, per-criterion workflow | ✓ done |
+| RFT_4 | `prompt.py` routing: `ITR_RFT_*` prefix → inject `refactor.md` instead of `implement.md` (~2 lines) | ✓ done |
+| RFT_5 | Plan phase: refactor iterations + §9b Refactor Policy template in plan.md | ✓ done |
 | RFT_6 | Validate with real run | |
 
 **What was removed from original design (see NOTES_PLN_RFT_SIMPLIFY):** No `--phase refactor` (use implement). No `refactoring` lifecycle. No `refactorChanges`/`refactorDeferrals` verdict fields. No custom orchestrator routing. No time budget mechanism. No auto-revert special case.
