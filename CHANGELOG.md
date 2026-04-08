@@ -2,6 +2,89 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.7.0 (2026-04-07)
+
+### Sequential Simplification (PLAN_SEQ)
+
+Parallel orchestration removed. 14 CLI scripts consolidated into 3 entry points. Agent prompt ~1050 lines lighter. Tests 2x faster.
+
+**Architecture — 3 entry points replace 14:**
+
+| Script | Commands | Audience |
+|--------|----------|----------|
+| `plet_agent.py` | `update-criterion`, `wip-commit`, `add-learning`, `add-emergent`, `phase-end` | Implement/verify subagents |
+| `plet_orchestrator.py` | `run` | SKILL.md / human |
+| `plet_tools.py` | `bootstrap`, `init`, `validate`, `detect`, `status`, `fingerprint-extract/embed/check` | Plan/refine agents, diagnostics |
+
+15 importable modules (no shebang, no `plet_` prefix) live alongside the 3 entry points.
+
+**Parallel infrastructure removed:**
+- ThreadPoolExecutor, concurrent.futures, streaming work queue
+- Per-iteration branches (`plet/{projectId}/loop{N}/{iter_id}`)
+- Per-iteration worktrees (`.plet/worktrees/`)
+- Merge conflict handling, requeue flow, dynamic parallel stop
+- `rebase-prep` and `merge-squash` commands (git_ops.py)
+- `plet_git_iteration.py` (worktree-create/remove) — deleted entirely
+- `PLET_WORKTREE_BASE` env var
+
+**Orchestrator rewrite:**
+- Direct module imports via `_call_cmd`/`_call_cmd_json` replace `_run_script` subprocess calls
+- Only `_run_invoke` (launching Claude) stays subprocess
+- `_run_sequential_loop` replaces `_run_streaming_loop` — simple while loop
+- Test suite: 50s → 21s from eliminating subprocess overhead
+
+**phase-end redesign (7-step flow):**
+1. add-report (verify only)
+2. add-progress
+3. append-event (trace)
+4. set-verdict
+5. gate-post quality checks — **hard fail** on failures, warnings pass
+6. git commit (only after gate passes)
+7. audit-tag (tags the gate-passing commit)
+
+Gate-post is now quality-only (no infrastructure checks). Agent calls one command instead of two (phase-end + gate-post).
+
+**Infrastructure automation:**
+- **Auto-progress:** `update-criterion` auto-generates progress entries. Agent never calls `add-progress` for criterion updates.
+- **CLI shim trace events:** `plet_agent.py` dispatch creates `cli_entry`/`cli_exit` trace events automatically. Agent never calls trace manually.
+- **Postflight audit-tag verification:** Orchestrator postflight verifies implement and verify audit tags exist for all completed iterations.
+
+**Gate simplification:**
+- Post gate: removed git checks (branch, clean-worktree, stashes), audit-tag check, learnings/emergent checks
+- Post gate now checks only: state-valid, verdict set, progress entries, trace events, verification report
+- Git checks remain in pre gate only
+- `check-iteration` checks workstream branch (not iteration branch), removed `branch-exists` check
+
+**Doc slimming:**
+- `implement.md`: 523 → 326 lines. Stripped parallel/worktree/rebase-prep, all script refs → `plet_agent.py`
+- `verify.md`: 561 → 297 lines. Same treatment.
+- `cli-cheatsheet.md`: Deleted. `plet_agent.py --help` replaces it.
+- `formats.md` + `state-schema.md`: Dropped from agent prompt injection (~1050 lines saved). Kept as human reference.
+- Prompt CLI quick reference: rewritten for `plet_agent.py` 5-command vocabulary
+
+**Schema changes:**
+- `parallelGroups`: deprecated (moved to DEPRECATED_GLOBAL_FIELDS)
+- `lastHeartbeat`: deprecated (moved to DEPRECATED_ITER_FIELDS)
+- Emergent IDs: `EM_1` → `EM_{iter_id}_{N}` (iteration-scoped)
+- Per-AC reflection prompt injected into both implement and verify prompts
+
+**SKILL.md v0.7.0:**
+- `allowed-tools`: 14 entries → 3
+- Removed parallel execution, worktree, iteration branch references
+- Reference files table shows formats.md/state-schema.md as human-only
+- Enforcement scripts section: 3 entry points + simplified examples
+
+**PRD updated:**
+- ~30 edits removing parallel/worktree/merge-squash language
+- New § 7.5 Perspective on Parallel Execution (history, data, decision rationale)
+- Script inventory updated, IMP_20 removed, SF_19 deprecated
+
+**Metrics:**
+- Tests: 1041 passed, 0 failed
+- Coverage: 91.26%
+- Test speed: 21s (was 50s)
+- Net lines: ~3300 removed
+
 ## 0.6.2 (2026-04-06)
 
 ### Parallel Conflict Resolution (PLAN_RBS completion)
