@@ -20,8 +20,9 @@
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
-| PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | deferred — before PLAN_SUB (multi-project grep noise) |
+| PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | **Next** — after SEQ/VER close |
 | PLAN_VER | Verify Phase Rewrite | 8/9 — VER_9 (real run validation) pending |
+| PLAN_FIX | Small Fixes Backlog | 4 items (P2-P3) from R05/R06 case studies |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
@@ -278,7 +279,7 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | SEQ_41 | Update PRD — remove/update parallel, worktree, branch management sections | ✓ done |
 | | **Phase 6: Validate** | |
 | SEQ_42 | Full test suite + coverage ≥ 87% | ✓ done (1041 tests, 91% coverage) |
-| SEQ_43 | Validate with real run (LOGA R15) | blocked on PLAN_VER (verify.md rewrite) |
+| SEQ_43 | Validate with real run (LOGA R15) | **in progress** |
 
 **Red/green summary:** 13 red/green pairs across 5 phases. 2 structural steps (SEQ_12 rename, SEQ_17 orchestrator rewrite). 3 migration/update steps (SEQ_18 allowed-tools, SEQ_19 test migration). 7 doc-only steps (SEQ_34-40). 1 checkpoint (SEQ_11). 2 validation steps (SEQ_41-42).
 
@@ -348,7 +349,7 @@ Rewrite verify.md to match what agents actually do well (functional verification
 | VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to refactor.md | ✓ done (NOTES_PLN_RFT updated) |
 | | **Phase 4: Validate** | |
 | VER_8 | Test suite passes | ✓ done (1041 tests, 91% coverage) |
-| VER_9 | Validate with real run (OLLR R06 or LOGA R15) | LOGA R15 in progress (baseline); R16 will validate |
+| VER_9 | Validate with real run (OLLR R07) | **in progress** |
 
 **verify.md outline:**
 
@@ -383,6 +384,19 @@ Rewrite verify.md to match what agents actually do well (functional verification
 ```
 
 **Depends on:** None. PLAN_RFT depends on VER (VF_9 migration).
+
+---
+
+## PLAN_FIX: Small Fixes Backlog
+
+Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can be picked off individually.
+
+| Step | Description | Source | Priority | Status |
+|------|-------------|--------|----------|--------|
+| FIX_1 | `activity_change` trace events — `iter_state.py cmd_update_activity` writes state but doesn't emit trace event, gap for timeline reconstruction | R06 REC_1 | P2 | |
+| FIX_2 | oneLiner truncation in auto-report builder — `"Independently verified: read oller"` cut mid-word | R05/R06 | P2 | |
+| FIX_3 | progress.md volume — ~1400 lines for 6 iters from auto-progress CLI shim, may need throttling or consolidation for larger projects | R05/R06 | P2 | |
+| FIX_4 | `unknown-phase` trace files — `PLET_PHASE` not set before CLI shim fires, creates `*-unknown-1-events.ndjson` | R05 | P3 | |
 
 ---
 
