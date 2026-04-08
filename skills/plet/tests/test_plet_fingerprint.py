@@ -176,7 +176,7 @@ def test_help_all_commands():
 def test_version():
     print("\n## Version")
     stdout, _, _ = run(["--version"])
-    check("version output", "fingerprint" in stdout and "0.3.2" in stdout)
+    check("version output", "fingerprint" in stdout and "0.3.3" in stdout)
 
 
 def test_extract_requirements():

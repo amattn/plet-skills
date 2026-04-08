@@ -12,6 +12,9 @@ The largest release since plet's inception. Parallel orchestration (PLAN_PAR) ha
 | R08 | 0.4.x | sequential | 113m | 0 |
 | R14 | 0.6.2 | parallel | 113m | 8 |
 | **R15** | **0.7.0** | **sequential** | **92m** | **0** |
+| **R16** | **0.7.0** | **sequential** | **110m (94m adj.)** | **0** |
+
+R16 has 16 iterations (13 regular + 3 refactor). Adjusted wall clock excludes refactor overhead (~16m). Per-regular-iteration time (6.7m) is the fastest ever.
 
 ### Refactor Loop (PLAN_RFT)
 
@@ -55,6 +58,22 @@ verify.md rewritten to match what agents actually do well (functional verificati
 - Hard cut (no transition period), historical artifacts left as-is
 - Emergent IDs: `EM_ID_001_1` → `EM_ITR_001_1`
 - State file names: `ITR_001.json` (pattern only, no migration for existing projects)
+
+### ITR_RFT_N Validator Fix + Regex Consolidation
+
+All iteration ID validators now accept both `ITR_NNN` (normal) and `ITR_RFT_N` (refactor) formats. Canonical patterns consolidated into `util_constants.py` (`ITER_ID_RE`, `ITER_ID_OR_PROJ_RE`) — four scripts import instead of defining local copies.
+
+- `validate_global_state` now checks `lifecycles` and `dependencyMap` keys match `ITR_` pattern — legacy `ID_` keys are rejected
+- `iter_state.py` 0.4.1: accepts `ITR_RFT_N` in init validation
+- `fingerprint.py` 0.3.3: parses `ITR_RFT_` iteration headings
+
+### Per-AC Reflection Step
+
+Added inline reflection step to both implement.md and verify.md per-criterion workflows. LOGA R16 confirmed learnings regression at scale (26→2) — the PLAN_VER reference file changes had removed artifact guidance from the workflow loop. The reflection step asks "any learnings or emergent?" after each criterion, keeping it in the agent's workflow path.
+
+### Plan Phase Init Sequence
+
+`plan.md` Step 10 split into two explicit steps: global init (`plet_tools.py init` creates `state.json` only) then per-iteration init (`iter_state.py init` per iteration with title, deps, criteria). Corrects false claim that global init creates per-iteration files. Legacy migration checklist rewritten as structured checklist (file contents vs filesystem renames).
 
 ### $PLET_ITER_ID Environment Variable
 

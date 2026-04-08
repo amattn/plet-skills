@@ -41,7 +41,7 @@ from util_cli import (
 )
 from util_io import atomic_write_json, iterations_path, load_json, load_text, requirements_path, state_json_path
 
-SUBMODULE_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.3"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_EXTRACT_TYPES = ["requirements", "iterations"]
