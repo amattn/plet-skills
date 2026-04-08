@@ -22,8 +22,8 @@
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
 | PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | ✓ COMPLETE (16/16) — validated OLLR R08 |
 | PLAN_VER | Verify Phase Rewrite | ✓ COMPLETE (9/9) — validated OLLR R07 |
-| PLAN_FIX | Small Fixes Backlog | 4 items (P2-P3) from R05/R06 case studies |
-| PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
+| PLAN_FIX | Small Fixes Backlog | 3/4 done (FIX_3 deferred) |
+| PLAN_RFT | Refactor Loop | ✓ COMPLETE (6/6) — validated LOGA R16 (refactor agent extracted real code) |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -413,7 +413,7 @@ Milestone-boundary refactor via synthetic iteration. Milestones are execution ba
 | RFT_3 | `refactor.md` reference file — audit procedure, signal categories, defer-vs-fix, per-criterion workflow | ✓ done |
 | RFT_4 | `prompt.py` routing: `ITR_RFT_*` prefix → inject `refactor.md` instead of `implement.md` (~2 lines) | ✓ done |
 | RFT_5 | Plan phase: refactor iterations + §9b Refactor Policy template in plan.md | ✓ done |
-| RFT_6 | Validate with real run | |
+| RFT_6 | Validate with real run | ✓ done (LOGA R16 — ITR_RFT_3 extracted real duplication) |
 
 **What was removed from original design (see NOTES_PLN_RFT_SIMPLIFY):** No `--phase refactor` (use implement). No `refactoring` lifecycle. No `refactorChanges`/`refactorDeferrals` verdict fields. No custom orchestrator routing. No time budget mechanism. No auto-revert special case.
 

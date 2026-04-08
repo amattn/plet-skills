@@ -36,6 +36,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `CASE_STUDY_OLLR_R07.md` | OLLR (oller) | Bash | **6/6** | v0.7.0+VER+auto; verify-first confirmed; 136 activity changes (54 explicit + 82 auto); 21m |
 | `CASE_STUDY_LOGA_R15.md` | LOGA (logalyzer) | Go | **13/13** | v0.7.0; fastest LOGA ever (92m, was 113m); 199 activity calls; SEQ_43 validated; PLAN_VER baseline |
 | `CASE_STUDY_OLLR_R08.md` | OLLR (oller) | Bash | **6/6** | ITR_ prefix validated (IDR_16); 18m fastest OLLR; zero learnings/emergent regression; auto-emit not firing |
+| `CASE_STUDY_LOGA_R16.md` | LOGA (logalyzer) | Go | **16/16** | Full 0.7.0 stack; RFT validated (extracted real code); 110m (94m adj.); 413 activity signals; learnings 26→2 regression |
 
 ## Stable Labels
 
