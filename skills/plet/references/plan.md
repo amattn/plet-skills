@@ -30,9 +30,9 @@ If `plet/requirements.md` already exists:
 1. Read it — offer to **update** rather than replace
 2. Read `plet/emergent.md` for pending items — triage with the user before planning
 3. Read `plet/learnings.md` for patterns that suggest spec changes — incorporate into requirements
-4. Check for legacy conventions and offer to update:
-   - **`ID_` prefix:** Older projects may use `ID_001` instead of `ITR_001`. The scripts require `ITR_` — `ID_` will fail validation. Rename iteration IDs in `iterations.md`, state files, and `state.json` dependency maps before running the loop. This is a straightforward find-and-replace (`ID_` → `ITR_`).
-   - **Milestones without barriers:** Older projects may have milestones as cosmetic labels with no `ITR_RFT_N` refactor iterations and no cross-milestone dependencies. The loop works fine without them. Offer to add barriers and refactor iterations if the user is re-planning or adding new milestones.
+4. **MANDATORY: Check for legacy conventions and fix before proceeding:**
+   - **`ID_` prefix → `ITR_`:** Older projects use `ID_001` instead of `ITR_001`. **Scripts and validators reject `ID_` — the loop will fail.** You MUST rename before the loop can run. Rename in ALL locations: `iterations.md` headings, `state.json` (dependencyMap keys, lifecycles keys, milestones iteration lists), per-iteration state files (both filenames `ID_001.json` → `ITR_001.json` and the `iterationId` field inside), and `requirements.md` if it references iteration IDs. This is a mechanical find-and-replace (`ID_` → `ITR_`) but must be thorough — a single missed reference will fail validation.
+   - **Milestones without barriers:** Older projects may have milestones as cosmetic labels with no `ITR_RFT_N` refactor iterations and no cross-milestone dependencies. The loop works fine without them. Offer to add barriers and refactor iterations if the user is re-planning or adding new milestones. **Refactor iterations MUST use `ITR_RFT_N` IDs** (e.g., `ITR_RFT_1`), not sequential IDs — the prefix triggers prompt routing.
 
 ### Specs Exist but State Missing
 
@@ -490,10 +490,14 @@ This prevents starting MS_2 work on an un-integrated, un-refactored MS_1 foundat
 
 ### Refactor Iterations
 
-Each milestone includes a synthetic refactor iteration (`ITR_RFT_N`) as its final iteration. All MS_N+1 iterations depend on it (via the milestone barrier). The refactor iteration:
+Each milestone includes a synthetic refactor iteration as its final iteration. All MS_N+1 iterations depend on it (via the milestone barrier).
+
+**CRITICAL — Naming convention: refactor iterations MUST use the `ITR_RFT_N` ID format** (e.g., `ITR_RFT_1`, `ITR_RFT_2`, `ITR_RFT_3`). Do NOT use sequential IDs like `ITR_014`. The `ITR_RFT_` prefix is load-bearing — `prompt.py` uses it to inject `refactor.md` instead of `implement.md`. Without the prefix, the agent gets the wrong reference file and implements instead of refactoring.
+
+The refactor iteration:
 
 - Uses the standard implement→verify lifecycle (no special phase)
-- Gets `refactor.md` as its reference file instead of `implement.md` (prompt.py routing)
+- Gets `refactor.md` as its reference file instead of `implement.md` (routed by `ITR_RFT_` prefix)
 - Has minimal acceptance criteria from the project's refactor goals (see § Refactor Policy in requirements.md)
 - Agent discovers specifics by reading the codebase, churn analysis, learnings, and emergent items
 - Single attempt — if verify fails, it blocks and the human reviews in refine

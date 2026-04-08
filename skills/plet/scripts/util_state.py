@@ -77,6 +77,23 @@ def _validate_session_count(errors, data, field):
         errors.append(f"field '{field}' must be int, got float")
 
 
+def _validate_iter_id_keys(errors, data):
+    """Check that iteration ID keys in lifecycles and dependencyMap match ITR_N+ pattern."""
+    if "lifecycles" in data and isinstance(data["lifecycles"], dict):
+        for iter_id, lc in data["lifecycles"].items():
+            if not ITER_ID_RE.match(iter_id):
+                errors.append(f"lifecycles: key '{iter_id}' does not match pattern ITR_N+ (e.g., ITR_001)")
+            if not isinstance(lc, str) or lc not in VALID_LIFECYCLES:
+                errors.append(
+                    "lifecycles.{}: invalid lifecycle '{}' (valid: {})".format(iter_id, lc, ", ".join(VALID_LIFECYCLES))
+                )
+
+    if "dependencyMap" in data and isinstance(data["dependencyMap"], dict):
+        for iter_id, _deps in data["dependencyMap"].items():
+            if not ITER_ID_RE.match(iter_id):
+                errors.append(f"dependencyMap: key '{iter_id}' does not match pattern ITR_N+ (e.g., ITR_001)")
+
+
 def validate_global_state(data):
     """Validate all fields in a parsed state.json dict.
 
@@ -108,12 +125,7 @@ def validate_global_state(data):
         if field in data:
             errors.append(msg)
 
-    if "lifecycles" in data and isinstance(data["lifecycles"], dict):
-        for iter_id, lc in data["lifecycles"].items():
-            if not isinstance(lc, str) or lc not in VALID_LIFECYCLES:
-                errors.append(
-                    "lifecycles.{}: invalid lifecycle '{}' (valid: {})".format(iter_id, lc, ", ".join(VALID_LIFECYCLES))
-                )
+    _validate_iter_id_keys(errors, data)
 
     _validate_session_count(errors, data, "loopSessionCount")
     _validate_session_count(errors, data, "refineSessionCount")

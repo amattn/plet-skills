@@ -931,5 +931,27 @@ def test_global_lifecycles_invalid_value():
         check("invalid lifecycle value in lifecycles rejected", result is None)
 
 
+def test_global_legacy_id_prefix_rejected():
+    print("\n## global: legacy ID_ prefix rejected in lifecycles and dependencyMap keys")
+    import util_state
+
+    # ID_ in lifecycles
+    state = dict(VALID_STATE)
+    state["lifecycles"] = {"ID_001": "queued"}
+    state["dependencyMap"] = {"ID_001": []}
+    with tempfile.TemporaryDirectory() as d:
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
+        check("ID_ prefix in lifecycles rejected", result is None)
+
+    # ITR_ should pass
+    state["lifecycles"] = {"ITR_001": "queued"}
+    state["dependencyMap"] = {"ITR_001": []}
+    with tempfile.TemporaryDirectory() as d:
+        write_state(d, state)
+        result = util_state.load_and_validate_global_state(d)
+        check("ITR_ prefix in lifecycles accepted", result is not None)
+
+
 if __name__ == "__main__":
     sys.exit(main())
