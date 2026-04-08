@@ -2096,6 +2096,16 @@ Build (1) first. It's independently valuable. Then (2) is just adding `ITR_RFT_M
 
 **Estimated effort:** ~2 days vs ~2 weeks for the original design. Most of the work is writing `refactor.md` (the reference file). The prompt routing is ~5 lines. Milestone barriers are plan-phase guidance + dependency generation.
 
+#### NOTES_PLN_RFT_CHURN: Churn Analysis of plet-skills (2026-04-08)
+
+Ran `churn` on the plet-skills repo itself to validate the tool and see what it reveals.
+
+**Finding: churn in this repo is sweep-driven, not structural.** The two script outliers (`prompt.py` at 9, `iter_state.py` at 7 commits since PLAN_SEQ start) were touched by the same cross-cutting sweeps: PLAN_SEQ rename, PLAN_IDR rename, version centralization, schema deprecation. Not "god objects that keep getting patched" — files that contain things every sweep touches (enum values, help text, version strings).
+
+**Finding: size is a better signal than churn for this codebase.** Largest scripts: `fingerprint.py` (1203), `iter_state.py` (1185), `gate_session.py` (1049), `traces.py` (825). Each is self-contained — many commands but each command is independent. The only marginal candidate for extraction is `gate_session.py`'s preflight check suite, which is a long sequential list that could become its own module. Cosmetic, not urgent.
+
+**Implication for refactor.md:** The churn command is more useful for target projects (where agents accumulate tech debt across iterations) than for plet-skills itself. The reference file should guide agents to look at churn output as a starting point, but not rely on it exclusively — size, complexity, and pattern signals (from NOTES_PLN_RFT Tier 2 heuristics) are complementary.
+
 ---
 
 Autonomous agents accumulate tech debt iteration by iteration — each implementation subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. Regular refactoring should be built into the loop to mitigate this.

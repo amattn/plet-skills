@@ -408,7 +408,7 @@ Milestone-boundary refactor via synthetic iteration. Milestones are execution ba
 
 | Step | Description | Status |
 |------|-------------|--------|
-| RFT_1 | `plet_tools.py churn` command — files by commit count, flag outliers. Independently useful. | |
+| RFT_1 | `plet_tools.py churn` command — files by commit count, flag outliers. Independently useful. | ✓ done |
 | RFT_2 | Milestone barriers in dependency map (plan phase guidance + dependency generation) | |
 | RFT_3 | `refactor.md` reference file — audit procedure, AC patterns, defer-vs-fix, emergent pipeline. Absorbs VF_9 (code quality), broad VF_8 (test quality), broad VF_10 (security audit) from verify. | |
 | RFT_4 | `prompt.py` routing: `ITR_RFT_*` prefix → inject `refactor.md` instead of `implement.md` | |
