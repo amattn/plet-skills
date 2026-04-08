@@ -1529,7 +1529,7 @@ def test_json_output_progress():
         data = json.loads(stdout)
         check("JSON has status=ok", data.get("status") == "ok")
         check("JSON has command", data.get("command") == "add-progress")
-        check("JSON has scriptVersion", "scriptVersion" in data)
+        check("JSON has submoduleVersion", "submoduleVersion" in data)
         check("JSON has timestamp", "timestamp" in data)
         check("JSON has pletId", "pletId" in data)
         check("JSON has path", "path" in data)

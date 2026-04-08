@@ -42,7 +42,7 @@ from util_state import (
     load_and_validate_iter_state,
 )
 
-SCRIPT_VERSION = "0.5.0"
+SUBMODULE_VERSION = "0.5.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -50,7 +50,7 @@ VALID_PHASES = ["implement", "verify"]
 
 def _to_json(data, pretty=False, fields=None):
     """Build JSON output string with version/timestamp."""
-    data["scriptVersion"] = SCRIPT_VERSION
+    data["submoduleVersion"] = SUBMODULE_VERSION
     data["timestamp"] = now_iso()
     if fields:
         data = filter_fields(data, fields)
@@ -61,7 +61,13 @@ def _err_out(cmd, msg, output_json, pretty):
     """Build error output. Returns (out, err) — out has JSON if requested."""
     if output_json:
         return json.dumps(
-            {"status": "error", "command": cmd, "error": msg, "scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()},
+            {
+                "status": "error",
+                "command": cmd,
+                "error": msg,
+                "submoduleVersion": SUBMODULE_VERSION,
+                "timestamp": now_iso(),
+            },
             indent=2 if pretty else None,
         ), ""
     return "", msg
@@ -591,7 +597,7 @@ def main():
         "rebase-commit": cmd_rebase_commit,
         "wip-commit": cmd_wip_commit,
     }
-    return dispatch(commands, "git_ops", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "git_ops", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

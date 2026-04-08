@@ -48,7 +48,7 @@ from util_format import build_emergent_entry, build_learning_entry, build_progre
 from util_id import generate_plet_id, normalize_iteration
 from util_io import atomic_append, emergent_path, learnings_path, load_text, progress_path
 
-SCRIPT_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PROGRESS_STATUSES = [
@@ -175,7 +175,7 @@ def resolve_content(kwargs, allow_fences=False):
 
 def _to_json(data, pretty=False, fields=None):
     """Return JSON string for output."""
-    data["scriptVersion"] = SCRIPT_VERSION
+    data["submoduleVersion"] = SUBMODULE_VERSION
     data["timestamp"] = now_iso()
     if fields is not None:
         data = filter_fields(data, fields)
@@ -191,7 +191,7 @@ def _err_json(command, message, pretty=False, extra=None):
         "status": "error",
         "command": command,
         "error": message,
-        "scriptVersion": SCRIPT_VERSION,
+        "submoduleVersion": SUBMODULE_VERSION,
         "timestamp": now_iso(),
     }
     if extra:
@@ -756,7 +756,7 @@ def main():
     return dispatch(
         commands,
         "entries",
-        SCRIPT_VERSION,
+        SUBMODULE_VERSION,
         SKILL_VERSION,
         __doc__,
         no_log_commands={"add-progress", "add-learning", "add-emergent"},

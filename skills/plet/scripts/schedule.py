@@ -38,7 +38,7 @@ from util_io import (
     state_json_path,
 )
 
-SCRIPT_VERSION = "0.4.1"
+SUBMODULE_VERSION = "0.4.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_LIFECYCLES = {
@@ -173,7 +173,7 @@ def cmd_eligible(args):
             "stuckIterations": stuck_iterations,
             "counts": counts,
         }
-        data["scriptVersion"] = SCRIPT_VERSION
+        data["submoduleVersion"] = SUBMODULE_VERSION
         data["timestamp"] = now_iso()
         if fields:
             data = filter_fields(data, fields)
@@ -252,7 +252,7 @@ def cmd_check_breakpoints(args):
             "position": position,
             "result": result,
         }
-        data["scriptVersion"] = SCRIPT_VERSION
+        data["submoduleVersion"] = SUBMODULE_VERSION
         data["timestamp"] = now_iso()
         if fields:
             data = filter_fields(data, fields)
@@ -332,7 +332,7 @@ def cmd_check_retry(args):
             "attemptsUsed": attempts,
             "remainingRetries": remaining,
         }
-        data["scriptVersion"] = SCRIPT_VERSION
+        data["submoduleVersion"] = SUBMODULE_VERSION
         data["timestamp"] = now_iso()
         if fields:
             data = filter_fields(data, fields)
@@ -357,7 +357,7 @@ def main():
         "check-breakpoints": cmd_check_breakpoints,
         "check-retry": cmd_check_retry,
     }
-    return dispatch(commands, "schedule", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "schedule", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

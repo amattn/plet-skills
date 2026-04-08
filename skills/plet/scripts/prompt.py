@@ -39,7 +39,7 @@ from util_io import (
     validate_plet_dir,
 )
 
-SCRIPT_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -328,7 +328,7 @@ Examples:
                 "status": "error",
                 "command": cmd_name,
                 "error": err,
-                "scriptVersion": SCRIPT_VERSION,
+                "submoduleVersion": SUBMODULE_VERSION,
                 "timestamp": now_iso(),
             }
             return (1, json.dumps(data, indent=2 if pretty else None), "")
@@ -343,7 +343,7 @@ Examples:
                 "status": "error",
                 "command": cmd_name,
                 "error": err,
-                "scriptVersion": SCRIPT_VERSION,
+                "submoduleVersion": SUBMODULE_VERSION,
                 "timestamp": now_iso(),
             }
             return (1, json.dumps(data, indent=2 if pretty else None), "")
@@ -361,7 +361,7 @@ Examples:
             "phase": phase,
             "sections": sections,
             "totalLength": total_length,
-            "scriptVersion": SCRIPT_VERSION,
+            "submoduleVersion": SUBMODULE_VERSION,
             "timestamp": now_iso(),
         }
         if fields:
@@ -391,7 +391,7 @@ def main():
     commands = {
         "assemble": cmd_assemble,
     }
-    return dispatch(commands, "prompt", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "prompt", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

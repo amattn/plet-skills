@@ -25,7 +25,7 @@ import os
 import subprocess
 import sys
 
-SCRIPT_VERSION = "0.3.3"
+SUBMODULE_VERSION = "0.3.3"
 from util_cli import (  # noqa: E402
     dispatch,
     parse_command,
@@ -350,7 +350,7 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
             "verdict": verdict,
             "iterationId": iter_id,
             "steps": steps_done,
-            "scriptVersion": SCRIPT_VERSION,
+            "submoduleVersion": SUBMODULE_VERSION,
             "timestamp": now_iso(),
         }
         if fields:
@@ -368,7 +368,7 @@ def main():
     commands = {
         "end": cmd_end,
     }
-    return dispatch(commands, "phase", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "phase", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

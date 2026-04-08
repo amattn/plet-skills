@@ -769,7 +769,13 @@ def test_log_script_invocation_direct():
         old_val = os.environ.pop("PLET_NO_LOG", None)
 
         util_cli._log_script_invocation(
-            "plet_test", "validate", [plet_dir, "--iter-id", "ID_001", "--phase", "implement"], 0, "0.1.0"
+            "plet_test",
+            "validate",
+            [plet_dir, "--iter-id", "ID_001", "--phase", "implement"],
+            0,
+            "0.7.0",
+            "0.1.0",
+            None,
         )
 
         # Check progress entry
@@ -810,7 +816,13 @@ def test_log_script_invocation_phase_normalization():
 
         # "implementation" should normalize to "implement"
         util_cli._log_script_invocation(
-            "plet_test", "update", [plet_dir, "--iter-id", "ID_001", "--phase", "implementation"], 0, "0.1.0"
+            "plet_test",
+            "update",
+            [plet_dir, "--iter-id", "ID_001", "--phase", "implementation"],
+            0,
+            "0.7.0",
+            "0.1.0",
+            None,
         )
 
         from util_io import trace_dir_path
@@ -821,7 +833,13 @@ def test_log_script_invocation_phase_normalization():
 
         # Invalid phase should skip logging
         util_cli._log_script_invocation(
-            "plet_test", "update", [plet_dir, "--iter-id", "ID_001", "--phase", "invalid_phase"], 0, "0.1.0"
+            "plet_test",
+            "update",
+            [plet_dir, "--iter-id", "ID_001", "--phase", "invalid_phase"],
+            0,
+            "0.7.0",
+            "0.1.0",
+            None,
         )
         all_files = os.listdir(tdir) if os.path.isdir(tdir) else []
         invalid_files = [f for f in all_files if "invalid" in f]

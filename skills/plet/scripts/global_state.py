@@ -51,7 +51,7 @@ from util_state import (
 )
 
 SCRIPT_NAME = "global_state"
-SCRIPT_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.2"
 
 PROJECT_ID_RE = re.compile(r"^[A-Z][A-Z0-9]{2,5}$")
 
@@ -60,7 +60,7 @@ _help_hint = make_help_hint("global_state")
 
 def _to_json(data, pretty=False, fields=None):
     """Build JSON output string with version/timestamp."""
-    data["scriptVersion"] = SCRIPT_VERSION
+    data["submoduleVersion"] = SUBMODULE_VERSION
     data["timestamp"] = now_iso()
     if fields:
         data = filter_fields(data, fields)
@@ -514,7 +514,7 @@ def main():
     return dispatch(
         commands,
         SCRIPT_NAME,
-        SCRIPT_VERSION,
+        SUBMODULE_VERSION,
         SKILL_VERSION,
         __doc__,
     )

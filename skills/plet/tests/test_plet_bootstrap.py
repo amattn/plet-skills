@@ -502,7 +502,7 @@ def test_check_json_pretty():
         run(["setup", d])
         out, _, _ = run(["check", d, "--output", "json", "--pretty"], expect_exit=2)
         data = json.loads(out)
-        check("has scriptVersion", "scriptVersion" in data)
+        check("has submoduleVersion", "submoduleVersion" in data)
         check("is indented", "\n" in out)
     finally:
         shutil.rmtree(d)

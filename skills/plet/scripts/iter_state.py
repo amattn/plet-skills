@@ -58,7 +58,7 @@ from util_state import (
 )
 
 SCRIPT_NAME = "iter_state"
-SCRIPT_VERSION = "0.3.4"
+SUBMODULE_VERSION = "0.3.4"
 
 UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
 UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run"}
@@ -209,7 +209,7 @@ Exit 0 if valid, exit 1 if invalid or error.
                     "path": path,
                     "errors": ["file not found or invalid JSON"],
                     "errorCount": 1,
-                    "scriptVersion": SCRIPT_VERSION,
+                    "submoduleVersion": SUBMODULE_VERSION,
                     "timestamp": now_iso(),
                 }
             )
@@ -226,7 +226,7 @@ Exit 0 if valid, exit 1 if invalid or error.
                 "path": path,
                 "errors": errors,
                 "errorCount": len(errors),
-                "scriptVersion": SCRIPT_VERSION,
+                "submoduleVersion": SUBMODULE_VERSION,
                 "timestamp": now_iso(),
             }
         )
@@ -361,7 +361,7 @@ Examples:
                 "iterationId": iter_id,
                 "criteriaCount": criteria_count,
                 "dryRun": True,
-                "scriptVersion": SCRIPT_VERSION,
+                "submoduleVersion": SUBMODULE_VERSION,
                 "timestamp": now_iso(),
             }
             return (0, json.dumps(payload), "")
@@ -381,7 +381,7 @@ Examples:
             "path": path,
             "iterationId": iter_id,
             "criteriaCount": criteria_count,
-            "scriptVersion": SCRIPT_VERSION,
+            "submoduleVersion": SUBMODULE_VERSION,
             "timestamp": now_iso(),
         }
         return (0, json.dumps(payload), "")
@@ -484,7 +484,7 @@ Examples:
     if dry_run:
         res["dryRun"] = True
         if output_json:
-            res["scriptVersion"] = SCRIPT_VERSION
+            res["submoduleVersion"] = SUBMODULE_VERSION
             res["timestamp"] = now_iso()
             return (0, json.dumps(res), "")
         else:
@@ -493,7 +493,7 @@ Examples:
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        res["scriptVersion"] = SCRIPT_VERSION
+        res["submoduleVersion"] = SUBMODULE_VERSION
         res["timestamp"] = now_iso()
         return (0, json.dumps(res), "")
     else:
@@ -585,7 +585,7 @@ Examples:
     if dry_run:
         res["dryRun"] = True
         if output_json:
-            res["scriptVersion"] = SCRIPT_VERSION
+            res["submoduleVersion"] = SUBMODULE_VERSION
             res["timestamp"] = now_iso()
             return (0, json.dumps(res), "")
         else:
@@ -594,7 +594,7 @@ Examples:
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        res["scriptVersion"] = SCRIPT_VERSION
+        res["submoduleVersion"] = SUBMODULE_VERSION
         res["timestamp"] = now_iso()
         return (0, json.dumps(res), "")
     else:
@@ -759,7 +759,7 @@ Examples:
     if dry_run:
         res["dryRun"] = True
         if output_json:
-            res["scriptVersion"] = SCRIPT_VERSION
+            res["submoduleVersion"] = SUBMODULE_VERSION
             res["timestamp"] = now_iso()
             return (0, json.dumps(res), "")
         else:
@@ -779,7 +779,7 @@ Examples:
     )
 
     if output_json:
-        res["scriptVersion"] = SCRIPT_VERSION
+        res["submoduleVersion"] = SUBMODULE_VERSION
         res["timestamp"] = now_iso()
         return (0, json.dumps(res), "")
     else:
@@ -880,7 +880,7 @@ Examples:
     if dry_run:
         res["dryRun"] = True
         if output_json:
-            res["scriptVersion"] = SCRIPT_VERSION
+            res["submoduleVersion"] = SUBMODULE_VERSION
             res["timestamp"] = now_iso()
             return (0, json.dumps(res), "")
         else:
@@ -888,7 +888,7 @@ Examples:
 
     atomic_write_json(path, data, update_timestamp=False)
     if output_json:
-        res["scriptVersion"] = SCRIPT_VERSION
+        res["submoduleVersion"] = SUBMODULE_VERSION
         res["timestamp"] = now_iso()
         return (0, json.dumps(res), "")
     else:
@@ -956,7 +956,7 @@ Examples:
             "command": "heartbeat",
             "iterationId": iter_id,
             "lastUpdated": ts,
-            "scriptVersion": SCRIPT_VERSION,
+            "submoduleVersion": SUBMODULE_VERSION,
             "timestamp": now_iso(),
         }
         return (0, json.dumps(payload), "")
@@ -1138,7 +1138,7 @@ Examples:
     if dry_run:
         res["dryRun"] = True
         if output_json:
-            res["scriptVersion"] = SCRIPT_VERSION
+            res["submoduleVersion"] = SUBMODULE_VERSION
             res["timestamp"] = now_iso()
             return (0, json.dumps(res), "")
         else:
@@ -1147,7 +1147,7 @@ Examples:
     atomic_write_json(path, data, update_timestamp=False)
 
     if output_json:
-        res["scriptVersion"] = SCRIPT_VERSION
+        res["submoduleVersion"] = SUBMODULE_VERSION
         res["timestamp"] = now_iso()
         return (0, json.dumps(res), "")
     else:
@@ -1177,7 +1177,7 @@ def main():
     return dispatch(
         commands,
         SCRIPT_NAME,
-        SCRIPT_VERSION,
+        SUBMODULE_VERSION,
         SKILL_VERSION,
         __doc__,
     )

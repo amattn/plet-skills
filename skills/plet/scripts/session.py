@@ -36,7 +36,7 @@ from util_io import (
     state_json_path,
 )
 
-SCRIPT_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 COUNTER_KEY = {
@@ -257,7 +257,7 @@ def _emit_session_result(session_number, branch, session_type, project_id, resum
             "branch": branch,
             "projectId": project_id,
             "resumed": resumed,
-            "scriptVersion": SCRIPT_VERSION,
+            "submoduleVersion": SUBMODULE_VERSION,
             "timestamp": now_iso(),
         }
         if fields:
@@ -342,7 +342,7 @@ def cmd_end_session(args):
                 "endedAt": last["endedAt"],
                 "alreadyEnded": True,
             }
-            data.update({"scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()})
+            data.update({"submoduleVersion": SUBMODULE_VERSION, "timestamp": now_iso()})
             if fields:
                 data = filter_fields(data, fields)
             return (0, json.dumps(data, indent=2 if pretty else None), "")
@@ -375,7 +375,7 @@ def cmd_end_session(args):
             "endedAt": end_time,
             "alreadyEnded": False,
         }
-        data.update({"scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()})
+        data.update({"submoduleVersion": SUBMODULE_VERSION, "timestamp": now_iso()})
         if fields:
             data = filter_fields(data, fields)
         return (0, json.dumps(data, indent=2 if pretty else None), "")
@@ -401,7 +401,7 @@ def main():
         "start-session": cmd_start_session,
         "end-session": cmd_end_session,
     }
-    return dispatch(commands, "session", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "session", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

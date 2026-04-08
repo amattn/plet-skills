@@ -40,7 +40,7 @@ from util_state import (
 )
 from util_subprocess import run_git
 
-SCRIPT_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -48,7 +48,7 @@ VALID_PHASES = ["implement", "verify"]
 
 def _to_json(data, pretty=False, fields=None):
     """Build JSON output string with version/timestamp."""
-    data["scriptVersion"] = SCRIPT_VERSION
+    data["submoduleVersion"] = SUBMODULE_VERSION
     data["timestamp"] = now_iso()
     if fields:
         data = filter_fields(data, fields)
@@ -58,7 +58,13 @@ def _to_json(data, pretty=False, fields=None):
 def _err_json(cmd, msg, pretty=False):
     """Build JSON error output string."""
     return json.dumps(
-        {"status": "error", "command": cmd, "error": msg, "scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()},
+        {
+            "status": "error",
+            "command": cmd,
+            "error": msg,
+            "submoduleVersion": SUBMODULE_VERSION,
+            "timestamp": now_iso(),
+        },
         indent=2 if pretty else None,
     )
 
@@ -646,7 +652,7 @@ def main():
         "check-iteration": cmd_check_iteration,
         "check-session": cmd_check_session,
     }
-    return dispatch(commands, "git_check", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "git_check", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

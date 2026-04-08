@@ -41,7 +41,7 @@ from util_cli import (
 )
 from util_io import atomic_write_json, iterations_path, load_json, load_text, requirements_path, state_json_path
 
-SCRIPT_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_EXTRACT_TYPES = ["requirements", "iterations"]
@@ -108,7 +108,7 @@ def extract_universal_flags(kwargs):
 
 def _to_json(data, pretty=False, fields=None):
     """Return JSON output string (does not print)."""
-    data["scriptVersion"] = SCRIPT_VERSION
+    data["submoduleVersion"] = SUBMODULE_VERSION
     data["timestamp"] = now_iso()
     if fields is not None:
         data = filter_fields(data, fields)
@@ -124,7 +124,7 @@ def _err_json(command, message, pretty=False, extra=None):
         "status": "error",
         "command": command,
         "error": message,
-        "scriptVersion": SCRIPT_VERSION,
+        "submoduleVersion": SUBMODULE_VERSION,
         "timestamp": now_iso(),
     }
     if extra:
@@ -1196,7 +1196,7 @@ def main():
         "embed": cmd_embed,
         "check": cmd_check,
     }
-    return dispatch(commands, "fingerprint", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "fingerprint", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

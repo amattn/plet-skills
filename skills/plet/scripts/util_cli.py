@@ -135,15 +135,44 @@ def now_iso():
     return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _handle_command_result(result):
+def _inject_versions(out, skill_version, script_version, submodule_version):
+    """Inject version fields into JSON output string. Returns modified string.
+
+    Attempts to parse out as JSON. If successful, adds skillVersion,
+    scriptVersion, and (if present) submoduleVersion. If not JSON, returns
+    out unchanged.
+    """
+    if not out:
+        return out
+    try:
+        data = json.loads(out)
+    except (json.JSONDecodeError, TypeError):
+        return out
+    if not isinstance(data, dict):
+        return out
+    data["skillVersion"] = skill_version
+    data["scriptVersion"] = script_version
+    if submodule_version:
+        data["submoduleVersion"] = submodule_version
+    # Preserve original formatting (pretty vs compact)
+    indent = 2 if "\n" in out and out.strip().startswith("{") else None
+    return json.dumps(data, indent=indent)
+
+
+def _handle_command_result(result, skill_version=None, script_version=None, submodule_version=None):
     """Route command result to stdout/stderr. Returns exit code.
 
     Supports two return patterns:
     - int: bare exit code (legacy, function printed directly)
     - (int, str, str): (code, stdout, stderr) — function returns output, dispatch prints
+
+    When version params are provided, injects skillVersion/scriptVersion/submoduleVersion
+    into JSON output before writing.
     """
     if isinstance(result, tuple) and len(result) == 3:
         code, out, err = result
+        if out and skill_version:
+            out = _inject_versions(out, skill_version, script_version, submodule_version)
         if out:
             sys.stdout.write(out if out.endswith("\n") else out + "\n")
         if err:
@@ -228,12 +257,17 @@ def dispatch(commands, script_name, script_version, skill_version, doc, argv=Non
         )
         return 1
 
-    result = commands[cmd](args)
-    exit_code = _handle_command_result(result)
+    # Introspect command function's module for SUBMODULE_VERSION
+    cmd_func = commands[cmd]
+    cmd_module = sys.modules.get(getattr(cmd_func, "__module__", ""), None)
+    submodule_version = getattr(cmd_module, "SUBMODULE_VERSION", None)
+
+    result = cmd_func(args)
+    exit_code = _handle_command_result(result, skill_version, script_version, submodule_version)
 
     # Log invocation (unless excluded or --no-log)
     if not no_log and cmd not in no_log_commands:
-        _log_script_invocation(script_name, cmd, args, exit_code, script_version)
+        _log_script_invocation(script_name, cmd, args, exit_code, skill_version, script_version, submodule_version)
 
     return exit_code
 
@@ -269,7 +303,7 @@ def _extract_plet_dir(args):
     return DEFAULT_PLET_DIR
 
 
-def _log_script_invocation(script_name, command, args, exit_code, script_version):
+def _log_script_invocation(script_name, command, args, exit_code, skill_version, script_version, submodule_version):
     """Log a script invocation to trace event + progress entry.
 
     Uses direct imports (no subprocess) for zero overhead.
@@ -342,7 +376,9 @@ def _log_script_invocation(script_name, command, args, exit_code, script_version
                         "command": command,
                         "args": args,
                         "exitCode": exit_code,
+                        "skillVersion": skill_version,
                         "scriptVersion": script_version,
+                        **({"submoduleVersion": submodule_version} if submodule_version else {}),
                     },
                 }
             )

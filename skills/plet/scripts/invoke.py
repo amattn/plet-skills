@@ -39,7 +39,7 @@ from util_io import (
     validate_plet_dir,
 )
 
-SCRIPT_VERSION = "0.3.3"
+SUBMODULE_VERSION = "0.3.3"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -56,7 +56,7 @@ help_hint = make_help_hint("invoke")
 
 def _to_json(data, pretty=False, fields=None):
     """Build JSON output string with version/timestamp."""
-    data["scriptVersion"] = SCRIPT_VERSION
+    data["submoduleVersion"] = SUBMODULE_VERSION
     data["timestamp"] = now_iso()
     if fields:
         data = filter_fields(data, fields)
@@ -67,7 +67,13 @@ def _err_out(cmd, msg, output_json, pretty):
     """Build error output. Returns (out, err) — out has JSON if requested."""
     if output_json:
         return json.dumps(
-            {"status": "error", "command": cmd, "error": msg, "scriptVersion": SCRIPT_VERSION, "timestamp": now_iso()},
+            {
+                "status": "error",
+                "command": cmd,
+                "error": msg,
+                "submoduleVersion": SUBMODULE_VERSION,
+                "timestamp": now_iso(),
+            },
             indent=2 if pretty else None,
         ), ""
     return "", msg
@@ -558,7 +564,7 @@ def main():
     commands = {
         "run": cmd_run,
     }
-    return dispatch(commands, "invoke", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "invoke", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":

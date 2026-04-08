@@ -228,7 +228,7 @@ def test_extract_json_output():
         check("type requirements", data["type"] == "requirements")
         check("has path", "path" in data)
         check("has fingerprint", "fingerprint" in data)
-        check("has scriptVersion", "scriptVersion" in data)
+        check("has submoduleVersion", "submoduleVersion" in data)
         check("has timestamp", "timestamp" in data)
 
 

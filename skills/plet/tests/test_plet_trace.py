@@ -821,7 +821,7 @@ def test_append_json_output():
         check("json status ok", data["status"] == "ok")
         check("json command", data["command"] == "append-event")
         check("json has pletId", data["pletId"].startswith("tev_"))
-        check("json has scriptVersion", "scriptVersion" in data)
+        check("json has submoduleVersion", "submoduleVersion" in data)
         check("json has event", "event" in data)
 
 

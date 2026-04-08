@@ -38,7 +38,7 @@ from util_cli import (
 from util_constants import SKILL_VERSION
 
 SCRIPT_NAME = "bootstrap"
-SCRIPT_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.2"
 
 UNIVERSAL_FLAGS_READ = {"output", "pretty", "fields"}
 UNIVERSAL_FLAGS_WRITE = UNIVERSAL_FLAGS_READ | {"dry_run", "force"}
@@ -374,7 +374,7 @@ Examples:
                     "dryRun": True,
                     "actions": [],
                     "summary": {},
-                    "scriptVersion": SCRIPT_VERSION,
+                    "submoduleVersion": SUBMODULE_VERSION,
                 }
             )
         else:
@@ -409,7 +409,7 @@ Examples:
                 "warnings": warnings,
                 "errors": errors,
             },
-            "scriptVersion": SCRIPT_VERSION,
+            "submoduleVersion": SUBMODULE_VERSION,
             "timestamp": now_iso(),
         }
         if fields:
@@ -631,7 +631,7 @@ Examples:
             "command": "check",
             "checks": checks,
             "summary": {"passed": passed, "failed": failed, "warnings": warnings},
-            "scriptVersion": SCRIPT_VERSION,
+            "submoduleVersion": SUBMODULE_VERSION,
             "timestamp": now_iso(),
         }
         if fields:
@@ -670,7 +670,7 @@ def main():
     return dispatch(
         commands,
         SCRIPT_NAME,
-        SCRIPT_VERSION,
+        SUBMODULE_VERSION,
         SKILL_VERSION,
         __doc__,
     )

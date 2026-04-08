@@ -48,7 +48,7 @@ from util_cli import (
 from util_id import generate_plet_id
 from util_io import atomic_append, events_path, load_text, trace_dir_path
 
-SCRIPT_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.3.2"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_EVENT_TYPES = [
@@ -165,7 +165,7 @@ help_hint = make_help_hint("traces")
 
 def json_response(data, flags):
     """Format a JSON response string, applying --pretty and --fields. Returns string."""
-    data["scriptVersion"] = SCRIPT_VERSION
+    data["submoduleVersion"] = SUBMODULE_VERSION
     data["timestamp"] = now_iso()
     if flags["fields"] is not None:
         data = filter_fields(data, flags["fields"])
@@ -814,7 +814,7 @@ def main():
     return dispatch(
         COMMANDS,
         "trace",
-        SCRIPT_VERSION,
+        SUBMODULE_VERSION,
         SKILL_VERSION,
         __doc__,
         no_log_commands={"append-event"},

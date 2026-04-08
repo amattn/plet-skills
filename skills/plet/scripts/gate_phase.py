@@ -47,7 +47,7 @@ from util_state import (
 )
 from util_subprocess import run_git
 
-SCRIPT_VERSION = "0.3.3"
+SUBMODULE_VERSION = "0.3.3"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -578,7 +578,7 @@ Examples:
             "phase": phase,
             "checks": checks,
             "summary": counts,
-            "scriptVersion": SCRIPT_VERSION,
+            "submoduleVersion": SUBMODULE_VERSION,
             "timestamp": now_iso(),
         }
         if fields:
@@ -654,7 +654,7 @@ def main():
         "pre": cmd_pre,
         "post": cmd_post,
     }
-    return dispatch(commands, "gate_phase", SCRIPT_VERSION, SKILL_VERSION, __doc__)
+    return dispatch(commands, "gate_phase", SUBMODULE_VERSION, SKILL_VERSION, __doc__)
 
 
 if __name__ == "__main__":
