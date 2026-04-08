@@ -62,7 +62,7 @@ Both commands are read-only — `--dry-run` is NOT applicable (nothing to dry-ru
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GIM_PRE_CMD_1 | Usage: `plet_gate_impl.py pre <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GIM_PRE_CMD_1 | Usage: `plet_gate_impl.py pre <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -73,7 +73,7 @@ Both commands are read-only — `--dry-run` is NOT applicable (nothing to dry-ru
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GIM_PRE_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. Derives `state.json` and `state/{iter_id}.json` internally. | P0 |
-| GIM_PRE_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to locate per-iteration state file. | P0 |
+| GIM_PRE_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`). Required. Used to locate per-iteration state file. | P0 |
 
 #### Outputs (GIM_PRE_OUT)
 
@@ -145,7 +145,7 @@ GIM pre delegates to existing tools and aggregates results. Each tool is called 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GIM_PST_CMD_1 | Usage: `plet_gate_impl.py post <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GIM_PST_CMD_1 | Usage: `plet_gate_impl.py post <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -156,7 +156,7 @@ GIM pre delegates to existing tools and aggregates results. Each tool is called 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GIM_PST_INP_1 | `plet_dir` — (optional) path to plet directory. Default: `plet/`. Derives `state.json` and `state/{iter_id}.json` internally. | P0 |
-| GIM_PST_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to locate per-iteration state file and check entries. | P0 |
+| GIM_PST_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`). Required. Used to locate per-iteration state file and check entries. | P0 |
 
 #### Outputs (GIM_PST_OUT)
 
@@ -262,12 +262,12 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GIM_AFL_1: Normal implement phase
 
 1. Orchestrator prepares iteration for implementation
-2. Orchestrator calls: `plet_gate_impl.py pre plet/ --iter-id ID_001 --output json`
+2. Orchestrator calls: `plet_gate_impl.py pre plet/ --iter-id ITR_001 --output json`
 3. If exit 1 (fail): abort iteration, report issues
 4. If exit 2 (warn): log warnings to progress.md, continue
 5. Orchestrator spawns implement subagent
 6. Implement subagent does its work (coding, testing, etc.)
-7. **Subagent** calls: `plet_gate_impl.py post plet/ --iter-id ID_001 --output json`
+7. **Subagent** calls: `plet_gate_impl.py post plet/ --iter-id ITR_001 --output json`
 8. If exit 1 (fail): subagent self-corrects (adds missing entries, fixes state) and re-runs post
 9. Subagent repeats step 7-8 until post-gate passes
 10. Subagent exits — its exit signals "post-gate passed"
@@ -289,15 +289,15 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GIM_EXM_1: Pre-gate — all passing
 
 ```bash
-plet_gate_impl.py pre plet/ --iter-id ID_001
+plet_gate_impl.py pre plet/ --iter-id ITR_001
 # PASS: pre — 10 passed
 # PASS: git:in-progress-operation — no interrupted git operations
-# PASS: git:branch-exists — plet/LOGA/loop1/ID_001 exists
-# PASS: git:correct-branch — on plet/LOGA/loop1/ID_001
+# PASS: git:branch-exists — plet/LOGA/loop1/ITR_001 exists
+# PASS: git:correct-branch — on plet/LOGA/loop1/ITR_001
 # PASS: git:clean-worktree — no uncommitted changes
 # PASS: git:linear-history — no merge commits since workstream divergence
 # PASS: git:no-stashes — stash list empty
-# PASS: state-valid — plet/state/ID_001.json valid
+# PASS: state-valid — plet/state/ITR_001.json valid
 # PASS: lifecycle-check — lifecycle is implementing
 # PASS: spec-artifacts — requirements.md and iterations.md exist
 # PASS: fingerprints-consistent — all fingerprints consistent
@@ -307,37 +307,37 @@ plet_gate_impl.py pre plet/ --iter-id ID_001
 ### GIM_EXM_2: Post-gate — missing progress entry
 
 ```bash
-plet_gate_impl.py post plet/ --iter-id ID_001
+plet_gate_impl.py post plet/ --iter-id ITR_001
 # FAIL: post — 1 failed, 2 warnings
 # PASS: git:in-progress-operation — no interrupted git operations
-# PASS: git:branch-exists — plet/LOGA/loop1/ID_001 exists
-# PASS: git:correct-branch — on plet/LOGA/loop1/ID_001
+# PASS: git:branch-exists — plet/LOGA/loop1/ITR_001 exists
+# PASS: git:correct-branch — on plet/LOGA/loop1/ITR_001
 # PASS: git:clean-worktree — no uncommitted changes
 # PASS: git:linear-history — no merge commits since workstream divergence
 # PASS: git:no-stashes — stash list empty
-# PASS: state-valid — plet/state/ID_001.json valid
-# FAIL: progress-entry — 0 progress entries for ID_001
-# WARN: learnings-entry — 0 learnings entries for ID_001
-# WARN: emergent-entry — 0 emergent entries for ID_001
-# WARN: trace-events — no trace events file for ID_001 implement-1
+# PASS: state-valid — plet/state/ITR_001.json valid
+# FAIL: progress-entry — 0 progress entries for ITR_001
+# WARN: learnings-entry — 0 learnings entries for ITR_001
+# WARN: emergent-entry — 0 emergent entries for ITR_001
+# WARN: trace-events — no trace events file for ITR_001 implement-1
 # 11 checks: 7 passed, 1 failed, 3 warnings
 ```
 
 ### GIM_EXM_3: Post-gate — JSON output
 
 ```bash
-plet_gate_impl.py post plet/ --iter-id ID_001 --output json --pretty
+plet_gate_impl.py post plet/ --iter-id ITR_001 --output json --pretty
 # {
 #   "status": "fail",
 #   "command": "post",
-#   "iterationId": "ID_001",
+#   "iterationId": "ITR_001",
 #   "checks": [
 #     {"name": "git:in-progress-operation", "status": "pass", "detail": "..."},
 #     ...
-#     {"name": "progress-entry", "status": "fail", "detail": "0 progress entries for ID_001"},
-#     {"name": "learnings-entry", "status": "warn", "detail": "0 learnings entries for ID_001"},
-#     {"name": "emergent-entry", "status": "warn", "detail": "0 emergent entries for ID_001"},
-#     {"name": "trace-events", "status": "warn", "detail": "no trace events file for ID_001 implement-1"}
+#     {"name": "progress-entry", "status": "fail", "detail": "0 progress entries for ITR_001"},
+#     {"name": "learnings-entry", "status": "warn", "detail": "0 learnings entries for ITR_001"},
+#     {"name": "emergent-entry", "status": "warn", "detail": "0 emergent entries for ITR_001"},
+#     {"name": "trace-events", "status": "warn", "detail": "no trace events file for ITR_001 implement-1"}
 #   ],
 #   "summary": {"total": 11, "passed": 7, "failed": 1, "warnings": 3},
 #   ...

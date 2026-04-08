@@ -60,7 +60,7 @@ The loop continues until all iterations are `complete` or `blocked`. Refine can 
 ```
 project (LOGA)
   └─ session (plan, loop1, refine1, loop2, ...)
-       └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
+       └─ iteration (ITR_001, ITR_002, ...)       ← loop sessions only
             └─ phase (implement, verify)
 ```
 
@@ -88,15 +88,15 @@ my-project/                             # target project root
     ├── iterations.md                   # spec: iteration definitions with acceptance criteria
     ├── state.json                      # state: global project state, dependency map, fingerprints
     ├── state/                          # state: per-iteration lifecycle and criteria status
-    │   ├── ID_001.json
-    │   ├── ID_002.json
+    │   ├── ITR_001.json
+    │   ├── ITR_002.json
     │   └── ...
     ├── progress.md                     # runtime: activity log (audience: humans)
     ├── learnings.md                    # runtime: knowledge base (audience: agents)
     ├── emergent.md                     # runtime: triage queue (audience: humans)
     └── trace/                          # trace: execution telemetry
-        ├── ID_001-implement-1-transcript.ndjson    # raw I/O (orchestrator-captured)
-        ├── ID_001-implement-1-events.ndjson       # semantic events (subagent-written)
+        ├── ITR_001-implement-1-transcript.ndjson    # raw I/O (orchestrator-captured)
+        ├── ITR_001-implement-1-events.ndjson       # semantic events (subagent-written)
         └── ...
 ```
 
@@ -125,7 +125,7 @@ my-project/                             # target project root
 - Refine branch: `plet/{projectId}/refine{N}/workstream`
 - Audit tags: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
 - Archive tags: `archive/plet/{projectId}/loop{N}/{path}` (post-run cleanup)
-- Commits: `plet: [ID_xxx] {phase}-{attempt} - {title}` (squashed per phase)
+- Commits: `plet: [ITR_xxx] {phase}-{attempt} - {title}` (squashed per phase)
 
 **6. Memory** (institutional knowledge, checked into repo root)
 - `CLAUDE.md` — project-specific instructions
@@ -139,10 +139,10 @@ my-project/                             # target project root
 
 ### ID and Filename Conventions
 
-- All IDs use underscore format: `XX_N` (e.g., `FR_1`, `ID_003`, `MS_1`)
+- All IDs use underscore format: `XX_N` (e.g., `FR_1`, `ITR_003`, `MS_1`)
 - Sub-groups: `XX_YY_N` (e.g., `UI_NAV_1`)
 - Append-only numbering — deleted items leave gaps, never renumber or reuse
-- Filenames use zero-padded IDs: `ID_001.json`, not `ID_1.json`
+- Filenames use zero-padded IDs: `ITR_001.json`, not `ITR_1.json`
 
 ## Commit Conventions (target projects)
 
@@ -150,13 +150,13 @@ When plet commits in a target project, it uses this format:
 
 ### Title line
 ```
-plet: [ID_xxx] {phase}-{attempt} - {title}
+plet: [ITR_xxx] {phase}-{attempt} - {title}
 ```
 
 Examples:
-- `plet: [ID_001] implement-1 - Project scaffolding`
-- `plet: [ID_002] implement-2 - User authentication endpoint`
-- `plet: [ID_002] verify-1 - User authentication endpoint`
+- `plet: [ITR_001] implement-1 - Project scaffolding`
+- `plet: [ITR_002] implement-2 - User authentication endpoint`
+- `plet: [ITR_002] verify-1 - User authentication endpoint`
 
 ### Rules
 - One squashed commit per phase attempt (incremental commits are squashed at phase end)

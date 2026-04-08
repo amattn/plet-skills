@@ -68,7 +68,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <plet_dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <plet_dir> --iter-id ITR_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -79,7 +79,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | ENT_APR_INP_1 | `plet_dir` — required positional. Path to plet directory. Path derivation via `util_io` functions. | P0 |
-| ENT_APR_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`) or `proj` for project-level | P0 |
+| ENT_APR_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`) or `proj` for project-level | P0 |
 | ENT_APR_INP_3 | `--iter-title` — iteration title (human-readable) | P0 |
 | ENT_APR_INP_4 | `--phase` — `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_APR_INP_5 | `--attempt` — attempt number (positive integer) | P0 |
@@ -116,7 +116,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_APR_PRE_1 | `{plet_dir}/progress.md` — auto-created if missing | P0 |
 | ENT_APR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--phase`, `--attempt`, `--status`, and one of `--content` or `--content-file` | P0 |
-| ENT_APR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
+| ENT_APR_PRE_3 | `--iter-id` matches pattern `ITR_N+` or is `proj` | P0 |
 | ENT_APR_PRE_4 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_APR_PRE_5 | `--status` is a valid progress status | P0 |
 | ENT_APR_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
@@ -144,7 +144,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 | ENT_APR_BHV_5 | If no files changed, produce `- (none)` in files list | P1 |
 | ENT_APR_BHV_6 | If `--content-file` provided, read file contents as content text | P0 |
 | ENT_APR_BHV_7 | Reject content containing fence patterns (`<div id="plet-` or `<div id="END-plet-`) with error. Applies regardless of content source (`--content` or `--content-file`). Bypassed when `--allow-fences` is set. | P0 |
-| ENT_APR_BHV_8 | When `--status IN_PROGRESS`, suppress status from the header line. Header becomes `### [ID_xxx] phase-N` instead of `### [ID_xxx] phase-N — IN_PROGRESS`. All other statuses are printed. | P0 |
+| ENT_APR_BHV_8 | When `--status IN_PROGRESS`, suppress status from the header line. Header becomes `### [ITR_xxx] phase-N` instead of `### [ITR_xxx] phase-N — IN_PROGRESS`. All other statuses are printed. | P0 |
 
 ---
 
@@ -162,7 +162,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <plet_dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <plet_dir> --iter-id ITR_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -210,7 +210,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_ALR_PRE_1 | `{plet_dir}/learnings.md` — auto-created if missing | P0 |
 | ENT_ALR_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--category`, `--title`, `--content`, `--phase`, `--attempt` | P0 |
-| ENT_ALR_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
+| ENT_ALR_PRE_3 | `--iter-id` matches pattern `ITR_N+` or is `proj` | P0 |
 | ENT_ALR_PRE_4 | `--category` is a valid learning category | P0 |
 | ENT_ALR_PRE_5 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_ALR_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
@@ -254,7 +254,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <plet_dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <plet_dir> --iter-id ITR_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -302,7 +302,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_AEM_PRE_1 | `{plet_dir}/emergent.md` — auto-created if missing | P0 |
 | ENT_AEM_PRE_2 | All required args present: `--iter-id`, `--iter-title`, `--title`, `--phase`, `--category`, `--content`, `--attempt` | P0 |
-| ENT_AEM_PRE_3 | `--iter-id` matches pattern `ID_N+` or is `proj` | P0 |
+| ENT_AEM_PRE_3 | `--iter-id` matches pattern `ITR_N+` or is `proj` | P0 |
 | ENT_AEM_PRE_4 | `--category` is a valid emergent category | P0 |
 | ENT_AEM_PRE_5 | `--phase` is `plan`, `implement`, `verify`, or `refine` | P0 |
 | ENT_AEM_PRE_6 | `--attempt` is a positive integer (> 0) | P0 |
@@ -349,7 +349,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -400,7 +400,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 |----|-------------|----------|
 | ENT_CHK_PRE_1 | `plet_dir` exists | P0 |
 | ENT_CHK_PRE_2 | All required args present: `--iter-id` | P0 |
-| ENT_CHK_PRE_3 | `--iter-id` matches pattern `ID_N+` only. `proj` is not accepted — the R_7 mandatory entry rule is per-iteration, and project-level entries are optional milestones. | P0 |
+| ENT_CHK_PRE_3 | `--iter-id` matches pattern `ITR_N+` only. `proj` is not accepted — the R_7 mandatory entry rule is per-iteration, and project-level entries are optional milestones. | P0 |
 
 Missing artifact files are distinguished from "initialized but no entries" — see BHV_4. Both count as 0 entries and contribute to exit 1, but the output tells the caller whether the problem is "not initialized" vs "no entries written."
 
@@ -470,7 +470,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 | ENT_ERR_15 | Empty content → `Error: content must not be empty` (applies to both `--content ""` and empty `--content-file`) | P0 |
 | ENT_ERR_16 | ~~`--files` is not a JSON array~~ — `--files` flag removed. | — |
 | ENT_ERR_17 | `--content-file` not readable → `Error: cannot read content file: {path}: {reason}` | P0 |
-| ENT_ERR_18 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ID_N+ or 'proj'` | P0 |
+| ENT_ERR_18 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ITR_N+ or 'proj'` | P0 |
 | ENT_ERR_19 | `--attempt` zero or negative → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
 
 ## 6. Formats (ENT_FMT)
@@ -490,7 +490,7 @@ All errors produce clean messages per UNV_ERR_4. In JSON mode, errors produce st
 |---------|--------|---------|
 | Type prefix | `epr` (progress), `eln` (learning), `eem` (emergent) | `epr` |
 | Timestamp | 10-char Crockford Base32 (milliseconds since epoch) | `01JD8X3K7M` |
-| Iteration | lowercase, no underscore: `ID_001` → `id001`, or `proj` | `id001` |
+| Iteration | lowercase, no underscore: `ITR_001` → `id001`, or `proj` | `id001` |
 | Phase | `i` (implement), `v` (verify), `r` (refine), `p` (plan) + attempt number | `i1` |
 
 Full example: `epr_01JD8X3K7M_id001_i1`
@@ -511,7 +511,7 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 
 ### ENT_AFL_2: Pre-verify gate check
 
-1. Gate script calls `plet_entries.py check plet/ --iter-id ID_001`
+1. Gate script calls `plet_entries.py check plet/ --iter-id ITR_001`
 2. If exit 0 → proceed to verification
 3. If exit 1 → block verification, report missing artifacts
 
@@ -532,14 +532,14 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 ```bash
 # After implementing AC_1 successfully
 plet_entries.py add-progress plet/ \
-    --iter-id ID_001 --iter-title "Project scaffolding" \
+    --iter-id ITR_001 --iter-title "Project scaffolding" \
     --phase implement --attempt 1 --status COMPLETE \
     --content "Initialized project with pytest, ruff. All checks pass."
 # OK — epr_01JD8X3K7M_id001_i1
 
 # Record what was learned
 plet_entries.py add-learning plet/ \
-    --iter-id ID_001 --iter-title "Project scaffolding" \
+    --iter-id ITR_001 --iter-title "Project scaffolding" \
     --category technique \
     --title "ruff config needs explicit rule selection" \
     --content "Default ruff config has no rules enabled. Must add select = ['E', 'F', 'W'] to pyproject.toml." \
@@ -548,7 +548,7 @@ plet_entries.py add-learning plet/ \
 
 # Record a design decision discovered during implementation
 plet_entries.py add-emergent plet/ \
-    --iter-id ID_001 --iter-title "Project scaffolding" \
+    --iter-id ITR_001 --iter-title "Project scaffolding" \
     --title "Chose SQLite over PostgreSQL" --phase implement \
     --category "design decision" \
     --content "Requirements say persistent storage without specifying engine. Chose SQLite for simplicity and zero-dep setup." \
@@ -560,22 +560,22 @@ plet_entries.py add-emergent plet/ \
 
 ```bash
 # Check that entries exist before allowing verification
-plet_entries.py check plet/ --iter-id ID_001
-#   OK — progress: 1 entry(ies) for ID_001
-#   OK — learnings: 1 entry(ies) for ID_001
-#   OK — emergent: 1 entry(ies) for ID_001
-# OK — all artifacts have entries for ID_001
+plet_entries.py check plet/ --iter-id ITR_001
+#   OK — progress: 1 entry(ies) for ITR_001
+#   OK — learnings: 1 entry(ies) for ITR_001
+#   OK — emergent: 1 entry(ies) for ITR_001
+# OK — all artifacts have entries for ITR_001
 
 # Check with JSON output for programmatic use
-plet_entries.py check plet/ --iter-id ID_002 --output json
-# {"status":"error","command":"check","iteration":"ID_002","progress":0,"learnings":0,"emergent":0,"allPresent":false,...}
+plet_entries.py check plet/ --iter-id ITR_002 --output json
+# {"status":"error","command":"check","iteration":"ITR_002","progress":0,"learnings":0,"emergent":0,"allPresent":false,...}
 ```
 
 ### ENT_EXM_3: Dry-run preview
 
 ```bash
 plet_entries.py add-progress plet/ --dry-run \
-    --iter-id ID_003 --iter-title "API endpoints" \
+    --iter-id ITR_003 --iter-title "API endpoints" \
     --phase implement --attempt 1 --status COMPLETE \
     --content "GET and POST endpoints implemented."
 # DRY RUN — would append progress entry epr_01JD8X3KAQ_id003_i1 to plet/progress.md
@@ -597,11 +597,11 @@ plet_entries.py add-progress plet/ \
 ```bash
 # Mid-implementation checkpoint — record progress before phase ends
 plet_entries.py add-progress plet/ \
-    --iter-id ID_002 --iter-title "Core data model" \
+    --iter-id ITR_002 --iter-title "Core data model" \
     --phase implement --attempt 1 --status IN_PROGRESS \
     --content "SQLite schema created, CRUD operations implemented. Still working on migration logic."
 # OK — epr_01JD8X3KCS_id002_i1
-# Header in progress.md: ### [ID_002] implement-1
+# Header in progress.md: ### [ITR_002] implement-1
 # (no " — IN_PROGRESS" suffix per ENT_APR_BHV_8)
 ```
 
@@ -683,14 +683,14 @@ See `specs/conventions.md` for universal requirements.
 | 7 | FOO_44: multiline content support? | Resolved — `--content-file` added (ENT_APR_INP_9). All three commands unified to `--content`/`--content-file`. |
 | 8 | Unified entry format? | Yes — all three entry types share KV metadata on top, `**Content:**` marker, freeform content block until end fence. See specs/NOTES.md for full rationale. |
 | 9 | Fencing safety? | Reject content containing fence patterns by default. Agent-first: fail loudly rather than silently escaping. `--allow-fences` overrides for legitimate cases (e.g., logging prompts that include format examples). |
-| 10 | IN_PROGRESS visual noise? | `--status` stays required (consistency). IN_PROGRESS is suppressed from the header line — entry just shows `### [ID_xxx] phase-N`. All other statuses printed. See ENT_APR_BHV_8. |
+| 10 | IN_PROGRESS visual noise? | `--status` stays required (consistency). IN_PROGRESS is suppressed from the header line — entry just shows `### [ITR_xxx] phase-N`. All other statuses printed. See ENT_APR_BHV_8. |
 | 11 | BLOCKED --work-completed/--work-remaining? | No new flags. BLOCKED details are content guidance for agents. Recoverable from state files/tests/git if omitted. ENT_FUT_5 withdrawn. |
 
 ## Open Questions
 
 | # | Question | Context |
 |---|----------|---------|
-| 1 | What would a project-level (`proj`) check look like? Could verify plan session milestones exist, or that refine entries were written. Different from R_7 per-iteration gating — more of a session-completeness check. | ENT_CHK_PRE_3 currently restricts to ID_N+. If proj check is useful, it would need its own criteria for what "complete" means at project level. |
+| 1 | What would a project-level (`proj`) check look like? Could verify plan session milestones exist, or that refine entries were written. Different from R_7 per-iteration gating — more of a session-completeness check. | ENT_CHK_PRE_3 currently restricts to ITR_N+. If proj check is useful, it would need its own criteria for what "complete" means at project level. |
 
 ## 15. Future Considerations (ENT_FUT)
 

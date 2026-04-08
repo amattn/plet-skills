@@ -190,7 +190,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
     "withdrawn": N
   },
   "milestones": {
-    "MS_1": {"name": "...", "complete": N, "total": N, "iterations": {"ID_001": "complete", "ID_002": "implementing"}}
+    "MS_1": {"name": "...", "complete": N, "total": N, "iterations": {"ITR_001": "complete", "ITR_002": "implementing"}}
   },
   "blockers": [
     {"iterationId": "...", "title": "..."}
@@ -466,8 +466,8 @@ plet_gate_session.py status plet/
 # Iterations: 13 total
 #   complete: 5 | implementing: 1 | verifying: 0 | queued: 3
 #   ineligible: 3 | blocked: 1 | withdrawn: 0
-# Blockers: ID_008 — OAuth provider sandbox returning 500
-# Active agents: ID_004 (phaseActivity: running_checks)
+# Blockers: ITR_008 — OAuth provider sandbox returning 500
+# Active agents: ITR_004 (phaseActivity: running_checks)
 # Fingerprints: consistent
 # Milestones:
 #   MS_1 (Scaffolding & Core): 3/3 complete

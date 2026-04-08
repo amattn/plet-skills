@@ -20,7 +20,7 @@ All three runtime artifact entry types share the same structural pattern:
 4. **KV metadata** — `**Key:** value` lines. The first four are always in this order:
    1. `**PletId:**` — unique entry identifier
    2. `**Timestamp:**` — ISO 8601 UTC
-   3. `**Iteration:**` — `[ID_xxx] [iteration title]`
+   3. `**Iteration:**` — `[ITR_xxx] [iteration title]`
    4. `**Phase:**` — `plan | implement | verify | refine`
 
    Remaining KV fields are type-specific (Category, Outcome, etc.).
@@ -52,14 +52,14 @@ All agents read `progress.md`, `learnings.md`, and `emergent.md` at the start of
 
 Every runtime artifact entry gets a globally unique plet ID per the Plet ID Scheme defined in `prd.md` (section 3.6). Runtime artifact entries use the following context segments after the type prefix and Crockford timestamp:
 
-- **Iteration:** iteration ID lowercased, underscores removed (e.g., `ID_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`.
+- **Iteration:** iteration ID lowercased, underscores removed (e.g., `ITR_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`.
 - **Phase/attempt:** `p1` (plan session 1), `i1` (implement attempt 1), `v2` (verify attempt 2), `r1` (refine session 1)
 
 Examples:
 - `epr_01JD8X3K7M_id001_i1` — progress entry, implement attempt 1
 - `eln_01JD8X3K7M_id002_i1` — learnings entry, implement attempt 1
 - `eem_01JD8X3800_id002_i1` — emergent entry, implement attempt 1
-- `epr_01JD8X3K7M_id005_r1` — progress entry, refine session 1, for iteration ID_005
+- `epr_01JD8X3K7M_id005_r1` — progress entry, refine session 1, for iteration ITR_005
 - `epr_01JD8X3K7M_proj_r1` — progress entry, refine session 1, project-level (e.g., stage summary)
 
 **Fencing (SF_25):** Each entry is wrapped in start/end fences for git merge safety and programmatic parsing:
@@ -83,11 +83,11 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 
 ---
 
-### [ID_xxx] phase-N — STATUS (optional clarifying info)
-<!-- STATUS is suppressed when IN_PROGRESS — header becomes just: ### [ID_xxx] phase-N -->
+### [ITR_xxx] phase-N — STATUS (optional clarifying info)
+<!-- STATUS is suppressed when IN_PROGRESS — header becomes just: ### [ITR_xxx] phase-N -->
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
-**Iteration:** [ID_xxx] [iteration title]
+**Iteration:** [ITR_xxx] [iteration title]
 **Phase:** plan | implement | verify | refine
 **Attempt:** N
 
@@ -101,7 +101,7 @@ The `plet-` prefix is HTML namespace hygiene. The plet ID (e.g., `epr_01JD8X3K7M
 
 | Status | Meaning |
 |--------|---------|
-| `IN_PROGRESS` | Work underway — interim checkpoint, not a terminal status. **Suppressed from header line** — entry shows `### [ID_xxx] phase-N` without status suffix. |
+| `IN_PROGRESS` | Work underway — interim checkpoint, not a terminal status. **Suppressed from header line** — entry shows `### [ITR_xxx] phase-N` without status suffix. |
 | `COMPLETE` | Phase finished successfully |
 | `BLOCKED` | Agent encountered an unresolvable issue |
 | `FAILED` | Phase failed, will be retried |
@@ -117,10 +117,10 @@ Any phase may append parenthetical metadata for clarity, e.g., `COMPLETE (passed
 
 ---
 
-### [ID_001] implement-1 — COMPLETE
+### [ITR_001] implement-1 — COMPLETE
 **PletId:** `epr_01JD8X3K7M_id001_i1`
 **Timestamp:** 2026-03-07T14:30:00Z
-**Iteration:** [ID_001] Project scaffolding
+**Iteration:** [ITR_001] Project scaffolding
 **Phase:** implement
 **Attempt:** 1
 
@@ -139,10 +139,10 @@ When an agent blocks, the progress entry must include what was completed and wha
 
 ---
 
-### [ID_003] implement-2 — BLOCKED
+### [ITR_003] implement-2 — BLOCKED
 **PletId:** `epr_01JD8X4200_id003_i2`
 **Timestamp:** 2026-03-07T16:45:00Z
-**Iteration:** [ID_003] OAuth integration
+**Iteration:** [ITR_003] OAuth integration
 **Phase:** implement
 **Attempt:** 2
 
@@ -179,7 +179,7 @@ Implemented OAuth redirect flow and token exchange. Blocked on token refresh —
 ### [category] [short title]
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
-**Iteration:** [ID_xxx] [iteration title]
+**Iteration:** [ITR_xxx] [iteration title]
 **Phase:** plan | implement | verify | refine
 
 **Content:**
@@ -211,7 +211,7 @@ If none of these categories fit, use the closest one and also create an `emergen
 ### [gotcha] SQLite WAL mode required for concurrent reads
 **PletId:** `eln_01JD8X3K7M_id002_i1`
 **Timestamp:** 2026-03-07T15:20:00Z
-**Iteration:** [ID_002] Core data model
+**Iteration:** [ITR_002] Core data model
 **Phase:** implement
 
 **Content:**
@@ -226,7 +226,7 @@ The default SQLite journal mode blocks readers during writes. Tests with concurr
 ### [pattern] Error codes use 12-digit debug numbers
 **PletId:** `eln_01JD8X2R00_id001_i1`
 **Timestamp:** 2026-03-07T14:35:00Z
-**Iteration:** [ID_001] Project scaffolding
+**Iteration:** [ITR_001] Project scaffolding
 **Phase:** implement
 
 **Content:**
@@ -241,7 +241,7 @@ Every error string in this project includes a unique 12-digit debug number at th
 ### [debug] OAuth token refresh returns 500 in sandbox
 **PletId:** `eln_01JD8X4200_id003_i2`
 **Timestamp:** 2026-03-07T16:45:00Z
-**Iteration:** [ID_003] OAuth integration
+**Iteration:** [ITR_003] OAuth integration
 **Phase:** implement
 
 **Content:**
@@ -267,7 +267,7 @@ The OAuth provider's sandbox environment returns HTTP 500 on all token refresh r
 ### EM_{iter_id}_{N}: [short title]
 **PletId:** `{pletId}`
 **Timestamp:** YYYY-MM-DDTHH:MM:SSZ
-**Iteration:** [ID_xxx] [iteration title]
+**Iteration:** [ITR_xxx] [iteration title]
 **Phase:** plan | implement | verify | refine
 **Category:** design decision | requirement gap | assumption | scope question | edge case | blocker
 **Outcome:** pending
@@ -304,7 +304,7 @@ Agents always set `Outcome: pending`. Only the Refine session (human-driven) cha
 ### EM_ID_002_1: Chose SQLite over PostgreSQL for local storage
 **PletId:** `eem_01JD8X3800_id002_i1`
 **Timestamp:** 2026-03-07T15:10:00Z
-**Iteration:** [ID_002] Core data model
+**Iteration:** [ITR_002] Core data model
 **Phase:** implement
 **Category:** design decision
 **Outcome:** pending
@@ -321,7 +321,7 @@ The requirements specify "persistent storage" without specifying a database engi
 ### EM_ID_003_1: API rate limiting not specified
 **PletId:** `eem_01JD8X3Q00_id003_v1`
 **Timestamp:** 2026-03-07T16:00:00Z
-**Iteration:** [ID_003] API endpoints
+**Iteration:** [ITR_003] API endpoints
 **Phase:** verify
 **Category:** requirement gap
 **Outcome:** pending
@@ -346,7 +346,7 @@ When an agent blocks, the emergent entry describes what the human needs to resol
 ### EM_ID_003_2: OAuth provider sandbox returning 500 on token refresh
 **PletId:** `eem_01JD8X4200_id003_i2`
 **Timestamp:** 2026-03-07T16:45:00Z
-**Iteration:** [ID_003] OAuth integration
+**Iteration:** [ITR_003] OAuth integration
 **Phase:** implement
 **Category:** blocker
 **Outcome:** pending
@@ -375,9 +375,9 @@ plet/trace/{iteration_id}-{phase}-{attempt}-transcript.ndjson
 Contains all assistant text, tool use, tool results, errors, and system messages in Claude Code's native JSONL format. **Subagents do not write this file.** How it's captured depends on the invocation style: *subprocess mode* — `plet_invoke.py` captures streaming JSONL output from `claude -p --output-format stream-json` in real time; *subagent mode* (future) — the orchestrator locates the log file produced by the native subagent and copies/renames it after the subagent concludes.
 
 Examples:
-- `ID_001-implement-1-transcript.ndjson` — ID_001, implementation phase, attempt 1
-- `ID_001-verify-1-transcript.ndjson` — ID_001, verification phase, attempt 1
-- `ID_002-implement-2-transcript.ndjson` — ID_002, implementation phase, attempt 2 (retry)
+- `ITR_001-implement-1-transcript.ndjson` — ITR_001, implementation phase, attempt 1
+- `ITR_001-verify-1-transcript.ndjson` — ITR_001, verification phase, attempt 1
+- `ITR_002-implement-2-transcript.ndjson` — ITR_002, implementation phase, attempt 2 (retry)
 
 ### Semantic Events (subagent-written via `plet_trace.py`)
 
@@ -388,10 +388,10 @@ plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson
 Written by the subagent during work via `plet_trace.py append-event`. Contains high-level semantic events: decisions, criterion status changes, lifecycle transitions (orchestrator-driven per SF_28), phase activity changes, verdict signals, errors and recovery actions. Each line is a valid JSON object following the schema in `references/state-schema.md`.
 
 Examples:
-- `ID_001-implement-1-events.ndjson`
-- `ID_001-verify-1-events.ndjson`
+- `ITR_001-implement-1-events.ndjson`
+- `ITR_001-verify-1-events.ndjson`
 
-Filenames use zero-padded IDs (GC_3): `ID_001`, not `ID_1`.
+Filenames use zero-padded IDs (GC_3): `ITR_001`, not `ITR_1`.
 
 ### GUI Integration
 

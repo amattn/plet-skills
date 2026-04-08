@@ -70,7 +70,7 @@ Gate scripts (GIM, GVR) need to verify git state is correct before and after eac
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKI_CMD_1 | Usage: `plet_git_check.py check-iteration <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTC_CKI_CMD_1 | Usage: `plet_git_check.py check-iteration <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -81,7 +81,7 @@ Gate scripts (GIM, GVR) need to verify git state is correct before and after eac
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTC_CKI_INP_1 | `plet_dir` — required positional. Script derives `{plet_dir}/state.json` and loads via `util_state.load_and_validate_global_state()`. Provides `projectId`, `loopSessionCount`. | P0 |
-| GTC_CKI_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Script derives `{plet_dir}/state/{iter_id}.json` and loads via `util_state.load_and_validate_iter_state()`. Provides `iterationId`. | P0 |
+| GTC_CKI_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`). Script derives `{plet_dir}/state/{iter_id}.json` and loads via `util_state.load_and_validate_iter_state()`. Provides `iterationId`. | P0 |
 | GTC_CKI_INP_3 | `--phase` — `implement` or `verify`. Determines the expected branch context. | P0 |
 
 #### Outputs (GTC_CKI_OUT)
@@ -296,7 +296,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_1: Gate script pre-phase check
 
 1. Orchestrator spawns gate script (GIM or GVR) before phase begins
-2. Gate script calls: `plet_git_check.py check-iteration --iter-id ID_001 --phase implement --output json`
+2. Gate script calls: `plet_git_check.py check-iteration --iter-id ITR_001 --phase implement --output json`
 3. Gate script parses JSON: checks `status` and individual check results
 4. If exit 1 (`"fail"`): gate script blocks the phase, reports violations to orchestrator
 5. If exit 2 (`"warn"`): gate script proceeds, logs warnings to progress.md
@@ -305,7 +305,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_2: Gate script post-phase check
 
 1. Subagent finishes phase (implement or verify)
-2. Gate script calls: `plet_git_check.py check-iteration --iter-id ID_001 --phase verify --output json`
+2. Gate script calls: `plet_git_check.py check-iteration --iter-id ITR_001 --phase verify --output json`
 3. Gate script verifies phase left git state clean
 4. If exit 1: gate script reports violations to orchestrator (may not block — depends on severity)
 5. If exit 2: gate script logs warnings to progress.md
@@ -334,11 +334,11 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_EXM_1: check-iteration — all passing
 
 ```bash
-plet_git_check.py check-iteration --iter-id ID_001 --phase implement
+plet_git_check.py check-iteration --iter-id ITR_001 --phase implement
 # PASS: check-iteration — 6 passed
 # PASS: in-progress-operation — no interrupted git operations
-# PASS: branch-exists — plet/LOGA/loop1/ID_001 exists
-# PASS: correct-branch — on plet/LOGA/loop1/ID_001
+# PASS: branch-exists — plet/LOGA/loop1/ITR_001 exists
+# PASS: correct-branch — on plet/LOGA/loop1/ITR_001
 # PASS: clean-worktree — no uncommitted changes
 # PASS: linear-history — no merge commits since workstream divergence
 # PASS: no-stashes — stash list empty
@@ -348,11 +348,11 @@ plet_git_check.py check-iteration --iter-id ID_001 --phase implement
 ### GTC_EXM_2: check-iteration — violations found
 
 ```bash
-plet_git_check.py check-iteration --iter-id ID_001 --phase implement
+plet_git_check.py check-iteration --iter-id ITR_001 --phase implement
 # FAIL: check-iteration — 2 failed, 1 warning
 # PASS: in-progress-operation — no interrupted git operations
-# PASS: branch-exists — plet/LOGA/loop1/ID_001 exists
-# FAIL: correct-branch — expected plet/LOGA/loop1/ID_001, on main
+# PASS: branch-exists — plet/LOGA/loop1/ITR_001 exists
+# FAIL: correct-branch — expected plet/LOGA/loop1/ITR_001, on main
 # FAIL: clean-worktree — 3 uncommitted changes (2 modified, 1 untracked)
 # PASS: linear-history — no merge commits since workstream divergence
 # WARN: no-stashes — 2 stashes found
@@ -362,17 +362,17 @@ plet_git_check.py check-iteration --iter-id ID_001 --phase implement
 ### GTC_EXM_3: check-iteration — JSON output
 
 ```bash
-plet_git_check.py check-iteration --iter-id ID_001 \
+plet_git_check.py check-iteration --iter-id ITR_001 \
     --phase implement --output json --pretty
 # {
 #   "status": "fail",
 #   "command": "check-iteration",
-#   "iterationId": "ID_001",
+#   "iterationId": "ITR_001",
 #   "phase": "implement",
 #   "checks": [
 #     {"name": "in-progress-operation", "status": "pass", "detail": "no interrupted git operations"},
-#     {"name": "branch-exists", "status": "pass", "detail": "plet/LOGA/loop1/ID_001 exists"},
-#     {"name": "correct-branch", "status": "fail", "detail": "expected plet/LOGA/loop1/ID_001, on main"},
+#     {"name": "branch-exists", "status": "pass", "detail": "plet/LOGA/loop1/ITR_001 exists"},
+#     {"name": "correct-branch", "status": "fail", "detail": "expected plet/LOGA/loop1/ITR_001, on main"},
 #     {"name": "clean-worktree", "status": "pass", "detail": "no uncommitted changes"},
 #     {"name": "linear-history", "status": "pass", "detail": "no merge commits since workstream divergence"},
 #     {"name": "no-stashes", "status": "warn", "detail": "2 stashes found"}
@@ -390,7 +390,7 @@ plet_git_check.py check-session
 # WARN: check-session — 1 warning
 # PASS: in-progress-operation — no interrupted git operations
 # PASS: workstream-exists — plet/LOGA/loop1/workstream exists
-# WARN: orphaned-worktrees — 1 orphaned worktree: /tmp/plet-ID_015-impl2 (branch: plet/LOGA/loop1/ID_015)
+# WARN: orphaned-worktrees — 1 orphaned worktree: /tmp/plet-ITR_015-impl2 (branch: plet/LOGA/loop1/ITR_015)
 # PASS: orphaned-branches — no plet branches without state files
 # PASS: no-stashes — stash list empty
 # PASS: unmerged-complete — all 3 complete iterations merged to workstream

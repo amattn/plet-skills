@@ -21,8 +21,8 @@ This document defines the JSON schemas for state files and trace NDJSON lines.
 2. Rename the temp file to the target path (POSIX rename is atomic)
 
 ```
-Write to:  plet/state/.ID_001.json.tmp
-Rename to: plet/state/ID_001.json
+Write to:  plet/state/.ITR_001.json.tmp
+Rename to: plet/state/ITR_001.json
 ```
 
 **Acceptable for v1:** Direct file writes (e.g., Claude Code's Write tool) are acceptable because each state file has a single writer (one subagent per iteration), so concurrent write corruption is not a risk. External readers that encounter a partial write get a transient parse error and retry on next poll. Use atomic rename when practical; don't let the atomicity concern block work.
@@ -58,33 +58,33 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
   },
 
   "dependencyMap": {
-    "ID_001": [],
-    "ID_002": ["ID_001"],
-    "ID_003": ["ID_001"],
-    "ID_004": ["ID_002", "ID_003"]
+    "ITR_001": [],
+    "ITR_002": ["ITR_001"],
+    "ITR_003": ["ITR_001"],
+    "ITR_004": ["ITR_002", "ITR_003"]
   },
 
   "lifecycles": {
-    "ID_001": "complete",
-    "ID_002": "implementing",
-    "ID_003": "queued",
-    "ID_004": "ineligible"
+    "ITR_001": "complete",
+    "ITR_002": "implementing",
+    "ITR_003": "queued",
+    "ITR_004": "ineligible"
   },
 
   "milestones": {
     "MS_1": {
       "name": "Scaffolding & Core",
-      "iterations": ["ID_001", "ID_002", "ID_003"]
+      "iterations": ["ITR_001", "ITR_002", "ITR_003"]
     },
     "MS_2": {
       "name": "API & Frontend",
-      "iterations": ["ID_004"]
+      "iterations": ["ITR_004"]
     }
   },
 
   "breakpoints": {
     "before": [],
-    "after": ["ID_003"]
+    "after": ["ITR_003"]
   },
 
   "cleanupTagsAutomatically": false,
@@ -109,8 +109,8 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
     },
     "lastNonTrivialUpdate": "2026-03-07T15:00:00Z",
     "iterations": {
-      "MS_1": ["ID_001", "ID_002", "ID_003"],
-      "MS_2": ["ID_004"]
+      "MS_1": ["ITR_001", "ITR_002", "ITR_003"],
+      "MS_2": ["ITR_004"]
     }
   }
 }
@@ -145,14 +145,14 @@ Project-wide metadata, dependency graph, and fingerprints. Read by the orchestra
 
 Runtime state for a single iteration. Written by the subagent (sole writer during execution per SF_26). Read by the orchestrator (from worktree after subagent exits), verification agents, and external GUI consumers. Lifecycle is NOT stored here — see `state.json.lifecycles` (SF_28).
 
-Filenames use zero-padded IDs (GC_3): `ID_001.json`, not `ID_1.json`.
+Filenames use zero-padded IDs (GC_3): `ITR_001.json`, not `ITR_1.json`.
 
 ### Example: Mid-Implementation
 
 ```json
 {
   "schemaVersion": "0.3.0",
-  "iterationId": "ID_001",
+  "iterationId": "ITR_001",
   "title": "Project scaffolding",
   "lastUpdated": "2026-03-07T15:30:00Z",
   "dependencies": [],
@@ -235,10 +235,10 @@ Shows state after two full cycles: first verification rejected, second passed. R
 ```json
 {
   "schemaVersion": "0.3.0",
-  "iterationId": "ID_002",
+  "iterationId": "ITR_002",
   "title": "User authentication endpoint",
   "lastUpdated": "2026-03-07T19:30:00Z",
-  "dependencies": ["ID_001"],
+  "dependencies": ["ITR_001"],
 
   "agentId": null,
   "phaseActivity": "idle",
@@ -330,7 +330,7 @@ Shows state after two full cycles: first verification rejected, second passed. R
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `schemaVersion` | string | yes | Semver for schema evolution (SF_12) |
-| `iterationId` | string | yes | The iteration ID (e.g., `ID_001`) |
+| `iterationId` | string | yes | The iteration ID (e.g., `ITR_001`) |
 | `title` | string | yes | Human-readable iteration title |
 | `lastUpdated` | string (ISO 8601) | yes | Timestamp of last write (SF_11) |
 
@@ -414,7 +414,7 @@ The `activityDetail` string provides human-readable context, e.g.:
 - `"red: writing failing test for AC_3"`
 - `"green: all tests passing"`
 - `"running linter — 2 warnings found, fixing"`
-- `"committing: plet: [ID_001] implement-1 - Project scaffolding"`
+- `"committing: plet: [ITR_001] implement-1 - Project scaffolding"`
 
 ### Verdict Values (SF_28)
 
@@ -567,7 +567,7 @@ Each line in a `-events.ndjson` file is a JSON object capturing one semantic eve
 {
   "timestamp": "2026-03-07T15:20:01Z",
   "type": "decision",
-  "iterationId": "ID_001",
+  "iterationId": "ITR_001",
   "phase": "implement",
   "attempt": 1,
   "data": {}
@@ -587,10 +587,10 @@ Each line in a `-events.ndjson` file is a JSON object capturing one semantic eve
 ### Example Semantic Event Lines
 
 ```ndjson
-{"timestamp":"2026-03-07T15:00:00Z","type":"lifecycle_change","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"from":"queued","to":"implementing"}}
-{"timestamp":"2026-03-07T15:00:01Z","type":"activity_change","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"activity":"setup","detail":"reading requirements.md and learnings.md"}}
-{"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"description":"Using pytest over unittest for testing","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}}
-{"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update","iterationId":"ID_001","phase":"implement","attempt":1,"data":{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}}
+{"timestamp":"2026-03-07T15:00:00Z","type":"lifecycle_change","iterationId":"ITR_001","phase":"implement","attempt":1,"data":{"from":"queued","to":"implementing"}}
+{"timestamp":"2026-03-07T15:00:01Z","type":"activity_change","iterationId":"ITR_001","phase":"implement","attempt":1,"data":{"activity":"setup","detail":"reading requirements.md and learnings.md"}}
+{"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ITR_001","phase":"implement","attempt":1,"data":{"description":"Using pytest over unittest for testing","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}}
+{"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update","iterationId":"ITR_001","phase":"implement","attempt":1,"data":{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}}
 ```
 
 ### Raw I/O Transcript

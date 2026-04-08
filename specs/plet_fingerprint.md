@@ -111,7 +111,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FPR_EXT_BHV_1 | For `--type requirements`: scan for requirement IDs matching `XX_N` pattern, group by prefix. Scan for milestone IDs matching `MS_N` pattern. Extract `lastNonTrivialUpdate` from existing fingerprint block if present, otherwise default per FPR_EXT_BHV_6. Exclude content under "Future Considerations" and "Open Questions" headings (SY_8). | P0 |
-| FPR_EXT_BHV_2 | For `--type iterations`: scan for iteration IDs matching `ID_N+` pattern, group by milestone using the `**Milestone:** MS_N` metadata line within each iteration definition. Scan for the embedded requirements fingerprint. Extract `lastNonTrivialUpdate` from existing fingerprint block if present, otherwise default per FPR_EXT_BHV_6. Exclude content under "Withdrawn" heading (same section-exclusion pattern as SY_8). | P0 |
+| FPR_EXT_BHV_2 | For `--type iterations`: scan for iteration IDs matching `ITR_N+` pattern, group by milestone using the `**Milestone:** MS_N` metadata line within each iteration definition. Scan for the embedded requirements fingerprint. Extract `lastNonTrivialUpdate` from existing fingerprint block if present, otherwise default per FPR_EXT_BHV_6. Exclude content under "Withdrawn" heading (same section-exclusion pattern as SY_8). | P0 |
 | FPR_EXT_BHV_3 | Output structure for requirements: `{"lastNonTrivialUpdate":"...","milestones":[...],"requirements":{"PREFIX":[...],...}}` (SY_1) | P0 |
 | FPR_EXT_BHV_4 | Output structure for iterations: `{"requirementsFingerprint":{...},"lastNonTrivialUpdate":"...","iterations":{"MS_N":[...],...}}` (SY_2) | P0 |
 | FPR_EXT_BHV_5 | Requirement IDs are sorted within each prefix group. Milestone IDs are sorted. Iteration IDs are sorted within each milestone group. Deterministic output for the same input. | P0 |
@@ -348,8 +348,8 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
   "requirementsFingerprint": { ... },
   "lastNonTrivialUpdate": "2026-03-07T15:00:00Z",
   "iterations": {
-    "MS_1": ["ID_001", "ID_002"],
-    "MS_2": ["ID_003", "ID_004"]
+    "MS_1": ["ITR_001", "ITR_002"],
+    "MS_2": ["ITR_003", "ITR_004"]
   }
 }
 ```
@@ -362,9 +362,9 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 |---------|---------|---------|
 | `XX_N+` (2+ uppercase letters, underscore, digits) | Requirement IDs: `FR_1`, `NF_2`, `DX_1` | `extract --type requirements` |
 | `MS_N+` | Milestone IDs: `MS_1`, `MS_2` | `extract --type requirements` |
-| `ID_N+` | Iteration IDs: `ID_001`, `ID_002` | `extract --type iterations` |
+| `ITR_N+` | Iteration IDs: `ITR_001`, `ITR_002` | `extract --type iterations` |
 
-**Scanning rules (disambiguation):** The `XX_N+` pattern overlaps with `MS_N` and `ID_N`. When scanning requirements.md: `MS_` prefix → milestones array, all other `XX_N+` → requirements grouped by prefix. `ID_` prefix is never scanned in requirements.md. When scanning iterations.md: only `ID_N+` is scanned for iteration IDs. `MS_` and `ID_` are reserved prefixes — requirement IDs must not use them (see PRD § ID Conventions).
+**Scanning rules (disambiguation):** The `XX_N+` pattern overlaps with `MS_N` and `ID_N`. When scanning requirements.md: `MS_` prefix → milestones array, all other `XX_N+` → requirements grouped by prefix. `ID_` prefix is never scanned in requirements.md. When scanning iterations.md: only `ITR_N+` is scanned for iteration IDs. `MS_` and `ID_` are reserved prefixes — requirement IDs must not use them (see PRD § ID Conventions).
 
 ## 7. Agent Flows (FPR_AFL)
 
@@ -455,7 +455,7 @@ plet_fingerprint.py check plet/
 plet_fingerprint.py check plet/
 #   OK — requirements: fingerprint matches iterations.md
 #   STALE — iterations: state.json has older fingerprint
-#     added: ID_005
+#     added: ITR_005
 #     timestamp mismatch: state has 2026-03-07T15:00:00Z, iterations has 2026-03-07T18:00:00Z
 # STALE — run refine or re-embed to fix
 ```
@@ -473,7 +473,7 @@ plet_fingerprint.py check plet/ --output json --pretty
 #     "iterations": {
 #       "consistent": false,
 #       "details": "state.json has older fingerprint",
-#       "added": ["ID_005"],
+#       "added": ["ITR_005"],
 #       "removed": [],
 #       "timestampMismatch": true
 #     }
@@ -547,7 +547,7 @@ See `specs/conventions.md` for universal requirements.
 | FPR_CRT_9 | Missing files | check on incomplete artifact dir | Remove one file, verify specific error |
 | FPR_CRT_10 | Auto-bump detection | Timestamp not bumped when IDs change, or bumped when they don't | Add an ID, embed without --bump, verify autoBumped=true. Embed again with no changes, verify autoBumped=false. |
 | FPR_CRT_11 | Lenient read / strict write | Malformed fingerprint not self-healed | Write fingerprint with unsorted arrays or missing fields, embed, verify output is correct structure |
-| FPR_CRT_12 | Reserved prefix disambiguation | MS_ or ID_ in requirements.md leaks into requirements group | Add MS_1 and ID_001 to requirements.md, verify they appear in milestones array / are excluded, not in requirements group |
+| FPR_CRT_12 | Reserved prefix disambiguation | MS_ or ID_ in requirements.md leaks into requirements group | Add MS_1 and ITR_001 to requirements.md, verify they appear in milestones array / are excluded, not in requirements group |
 
 ## 13. Testing & Verification (FPR_TST)
 

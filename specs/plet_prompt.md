@@ -61,7 +61,7 @@ Assemble is read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRM_ASM_CMD_1 | Usage: `plet_prompt.py assemble <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| PRM_ASM_CMD_1 | Usage: `plet_prompt.py assemble <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -205,14 +205,14 @@ The prompt is assembled from sections in a specific order. The order matters —
 ### PRM_AFL_1: Invoke calls assemble before launching subprocess
 
 1. `plet_invoke.py` prepares to launch subagent
-2. Calls: `plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement`
+2. Calls: `plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement`
 3. Captures stdout (the assembled prompt text)
 4. Pipes prompt to: `claude -p "{prompt}" --output-format stream-json`
 
 ### PRM_AFL_2: Human debugging — preview prompt
 
 1. Human wants to see what an implement agent would receive
-2. Runs: `plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement`
+2. Runs: `plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement`
 3. Reviews the output — checks that learnings are included, iteration definition is correct, etc.
 4. Optionally: `--output json` to see section breakdown and total length
 
@@ -221,14 +221,14 @@ The prompt is assembled from sections in a specific order. The order matters —
 ### PRM_EXM_1: Implement prompt assembly
 
 ```bash
-plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement
+plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement
 # # Reference: Implementation Guide
 #
 # [full contents of implement.md]
 #
 # # Iteration Definition
 #
-# ## ID_001 — Project scaffolding
+# ## ITR_001 — Project scaffolding
 # ...acceptance criteria...
 #
 # # Formats Guide
@@ -249,7 +249,7 @@ plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement
 #
 # # Iteration State
 #
-# Iteration: ID_001 — Project scaffolding
+# Iteration: ITR_001 — Project scaffolding
 # Lifecycle: implementing  (from state.json.lifecycles)
 # Attempt: implement-1, verify-0
 # Criteria: 3 total, 0 passed, 0 failed
@@ -259,11 +259,11 @@ plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement
 ### PRM_EXM_2: JSON output with section metadata
 
 ```bash
-plet_prompt.py assemble plet/ --iter-id ID_001 --phase implement --output json --pretty
+plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "assemble",
-#   "iterationId": "ID_001",
+#   "iterationId": "ITR_001",
 #   "phase": "implement",
 #   "sections": [
 #     {"name": "reference-file", "source": "references/implement.md", "content": "..."},

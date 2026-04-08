@@ -164,19 +164,19 @@ Real, copy-pasteable command sequences with realistic data. More expansive than 
 
 ```bash
 # Step 1: Set up
-plet_SCRIPTNAME.py init plet/state/ID_001.json \
-    --iter-id ID_001 --title "Project scaffolding" \
+plet_SCRIPTNAME.py init plet/state/ITR_001.json \
+    --iter-id ITR_001 --title "Project scaffolding" \
     --dependencies '[]' \
     --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
 
 # Step 2: Update
-plet_SCRIPTNAME.py update-criterion plet/state/ID_001.json \
+plet_SCRIPTNAME.py update-criterion plet/state/ITR_001.json \
     --criterion AC_1 --phase implementation --status pass \
     --evidence "All tests green (12s)" --elapsed 45
 
 # Step 3: Verify result
-plet_SCRIPTNAME.py validate plet/state/ID_001.json
-# Output: OK — plet/state/ID_001.json is valid
+plet_SCRIPTNAME.py validate plet/state/ITR_001.json
+# Output: OK — plet/state/ITR_001.json is valid
 ```
 
 ## 9. Dependencies on Other Scripts (DEP)

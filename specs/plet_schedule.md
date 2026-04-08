@@ -80,7 +80,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 {
   "status": "ok",
   "command": "eligible",
-  "eligible": ["ID_002", "ID_003"],
+  "eligible": ["ITR_002", "ITR_003"],
   "stuckIterations": [],
   "counts": {
     "eligible": 2,
@@ -121,8 +121,8 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 | SCH_ELG_BHV_1 | Eligible = `lifecycles.{id}` is `queued` AND all dependencies have `lifecycles.{dep}` == `complete`. Iterations with lifecycle `ineligible`, `implementing`, `verifying`, `complete`, `blocked`, or `withdrawn` are never eligible. All lifecycle reads from `state.json.lifecycles` (SF_28). | P0 |
 | SCH_ELG_BHV_2 | Iterations with empty dependency lists (`[]`) are eligible if their lifecycle is `queued` — they have no prerequisites. | P0 |
 | SCH_ELG_BHV_3 | The `counts` object in JSON output provides a full lifecycle census from `state.json.lifecycles`. One file read instead of N — the core optimization of lifecycle extraction. | P1 |
-| SCH_ELG_BHV_4 | Output order: sorted by iteration ID ascending (e.g., `ID_001` before `ID_002`). | P0 |
-| SCH_ELG_BHV_5 | **Stuck iteration detection:** After evaluating eligibility, check for `queued` iterations whose dependencies can never be satisfied — any dep with lifecycle `blocked`, `withdrawn`, or `ineligible` (not `complete` and not `queued`). These are stuck. Report them in the `stuckIterations` array in JSON output. Each entry: `{"iterationId": "ID_004", "unsatisfiableDeps": ["ID_002"]}`. Circular dependencies are a special case: all iterations in the cycle are stuck because none can reach `complete` first. Text mode: print `stuck: ID_004 (blocked dep: ID_002)` after the eligible list. | P0 |
+| SCH_ELG_BHV_4 | Output order: sorted by iteration ID ascending (e.g., `ITR_001` before `ITR_002`). | P0 |
+| SCH_ELG_BHV_5 | **Stuck iteration detection:** After evaluating eligibility, check for `queued` iterations whose dependencies can never be satisfied — any dep with lifecycle `blocked`, `withdrawn`, or `ineligible` (not `complete` and not `queued`). These are stuck. Report them in the `stuckIterations` array in JSON output. Each entry: `{"iterationId": "ITR_004", "unsatisfiableDeps": ["ITR_002"]}`. Circular dependencies are a special case: all iterations in the cycle are stuck because none can reach `complete` first. Text mode: print `stuck: ITR_004 (blocked dep: ITR_002)` after the eligible list. | P0 |
 
 ### 3.2 check-breakpoints (BKP)
 
@@ -138,7 +138,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_BKP_CMD_1 | Usage: `plet_schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SCH_BKP_CMD_1 | Usage: `plet_schedule.py check-breakpoints <plet_dir> --iter-id ITR_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, atomic (single file read)
 
@@ -165,7 +165,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 {
   "status": "ok",
   "command": "check-breakpoints",
-  "iterationId": "ID_003",
+  "iterationId": "ITR_003",
   "position": "after",
   "result": "hit",
   "scriptVersion": "0.1.0",
@@ -208,7 +208,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_RTY_CMD_1 | Usage: `plet_schedule.py check-retry <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SCH_RTY_CMD_1 | Usage: `plet_schedule.py check-retry <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, atomic (single file read)
 
@@ -234,7 +234,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 {
   "status": "ok",
   "command": "check-retry",
-  "iterationId": "ID_002",
+  "iterationId": "ITR_002",
   "decision": "continue",
   "reason": "Failure count strictly decreasing: 5 → 3 → 1. Extended limit (6 max).",
   "attemptsUsed": {
@@ -326,32 +326,32 @@ Retry policy implements IMP_14. The decision tree:
 2. If empty and all iterations `complete` → end session
 3. If empty and some `blocked` → report to SKILL.md, end session
 4. For each eligible ID:
-   a. `plet_schedule.py check-breakpoints plet/ --iter-id ID_xxx --position before` → if `hit`, pause and return to SKILL.md
+   a. `plet_schedule.py check-breakpoints plet/ --iter-id ITR_xxx --position before` → if `hit`, pause and return to SKILL.md
    b. Spawn implement + verify subagents (via plet_invoke.py)
    c. Read `implementVerdict`/`verifyVerdict` from worktree per-iteration state
-   d. If `verifyVerdict == "rejected"`: `plet_schedule.py check-retry plet/ --iter-id ID_xxx` → if `abort`, mark blocked; if `continue`, set lifecycle to `queued` via GST
+   d. If `verifyVerdict == "rejected"`: `plet_schedule.py check-retry plet/ --iter-id ITR_xxx` → if `abort`, mark blocked; if `continue`, set lifecycle to `queued` via GST
    e. If `verifyVerdict == "passed"`: merge-squash, set lifecycle to `complete` via GST
-   f. `plet_schedule.py check-breakpoints plet/ --iter-id ID_xxx --position after` → if `hit`, pause
+   f. `plet_schedule.py check-breakpoints plet/ --iter-id ITR_xxx --position after` → if `hit`, pause
 5. Loop back to step 1 (re-evaluate eligible)
 
 ### SCH_AFL_2: Human debugging — check what's eligible
 
 ```bash
 plet_schedule.py eligible plet/
-# ID_003
-# ID_005
+# ITR_003
+# ITR_005
 
 plet_schedule.py eligible plet/ --output json --pretty
-# { "eligible": ["ID_003", "ID_005"], "counts": { ... } }
+# { "eligible": ["ITR_003", "ITR_005"], "counts": { ... } }
 ```
 
 ### SCH_AFL_3: Human debugging — check retry status
 
 ```bash
-plet_schedule.py check-retry plet/ --iter-id ID_002
+plet_schedule.py check-retry plet/ --iter-id ITR_002
 # continue
 
-plet_schedule.py check-retry plet/ --iter-id ID_002 --output json --pretty
+plet_schedule.py check-retry plet/ --iter-id ITR_002 --output json --pretty
 # { "decision": "continue", "reason": "Failure count: 5 → 3. Strictly decreasing...", ... }
 ```
 
@@ -362,25 +362,25 @@ plet_schedule.py check-retry plet/ --iter-id ID_002 --output json --pretty
 ```bash
 # Check what's ready
 plet_schedule.py eligible plet/
-# ID_002
-# ID_003
+# ITR_002
+# ITR_003
 
-# Check breakpoints before ID_002
-plet_schedule.py check-breakpoints plet/ --iter-id ID_002 --position before
+# Check breakpoints before ITR_002
+plet_schedule.py check-breakpoints plet/ --iter-id ITR_002 --position before
 # miss
 
-# ... (spawn implement + verify for ID_002) ...
+# ... (spawn implement + verify for ITR_002) ...
 
-# After verify rejects ID_002 — should we retry?
-plet_schedule.py check-retry plet/ --iter-id ID_002
+# After verify rejects ITR_002 — should we retry?
+plet_schedule.py check-retry plet/ --iter-id ITR_002
 # continue
 
 # After second verify rejects with more failures — retry?
-plet_schedule.py check-retry plet/ --iter-id ID_002
+plet_schedule.py check-retry plet/ --iter-id ITR_002
 # abort
 
-# Check breakpoints after ID_003
-plet_schedule.py check-breakpoints plet/ --iter-id ID_003 --position after
+# Check breakpoints after ITR_003
+plet_schedule.py check-breakpoints plet/ --iter-id ITR_003 --position after
 # hit
 # (orchestrator pauses, returns control to SKILL.md)
 ```
@@ -389,13 +389,13 @@ plet_schedule.py check-breakpoints plet/ --iter-id ID_003 --position after
 
 ```bash
 plet_schedule.py eligible plet/ --output json
-# {"status":"ok","command":"eligible","eligible":["ID_002","ID_003"],"counts":{"eligible":2,"queued":0,"implementing":0,"verifying":0,"complete":3,"blocked":0,"withdrawn":0,"ineligible":1},"scriptVersion":"0.1.0","timestamp":"2026-03-29T12:00:00Z"}
+# {"status":"ok","command":"eligible","eligible":["ITR_002","ITR_003"],"counts":{"eligible":2,"queued":0,"implementing":0,"verifying":0,"complete":3,"blocked":0,"withdrawn":0,"ineligible":1},"scriptVersion":"0.1.0","timestamp":"2026-03-29T12:00:00Z"}
 
-plet_schedule.py check-retry plet/ --iter-id ID_002 --output json --pretty
+plet_schedule.py check-retry plet/ --iter-id ITR_002 --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "check-retry",
-#   "iterationId": "ID_002",
+#   "iterationId": "ITR_002",
 #   "decision": "abort",
 #   "reason": "Failure count not decreasing: 3 → 4. Retry limit reached (3 attempts).",
 #   "attemptsUsed": { "implement": 3, "verify": 3 },

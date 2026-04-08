@@ -82,7 +82,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_ATG_CMD_1 | Usage: `plet_git_ops.py audit-tag <plet_dir> --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_ATG_CMD_1 | Usage: `plet_git_ops.py audit-tag <plet_dir> --iter-id ITR_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates git tag), idempotent (re-tagging same commit with same name succeeds or can use `--force`)
 
@@ -93,7 +93,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_ATG_INP_1 | `plet_dir` — required positional. Path to plet directory. Derives `{plet_dir}/state.json` (global state) and `{plet_dir}/state/{iter_id}.json` (iter state) internally. Global state provides `projectId`, `loopSessionCount`. | P0 |
-| GTO_ATG_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to locate `{plet_dir}/state/{iter_id}.json`. Iter state provides `iterationId`, `attempts`. | P0 |
+| GTO_ATG_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`). Required. Used to locate `{plet_dir}/state/{iter_id}.json`. Iter state provides `iterationId`, `attempts`. | P0 |
 | GTO_ATG_INP_3 | `--phase` — `implement` or `verify`. Required because lifecycle may be mid-transition when this is called. Attempt number derived from iter state's `attempts[phase]`. | P0 |
 
 #### Outputs (GTO_ATG_OUT)
@@ -165,7 +165,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_MSQ_CMD_1 | Usage: `plet_git_ops.py merge-squash <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_MSQ_CMD_1 | Usage: `plet_git_ops.py merge-squash <plet_dir> --iter-id ITR_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates commit on workstream), not idempotent (running twice creates a duplicate commit)
 
@@ -176,7 +176,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GTO_MSQ_INP_1 | `plet_dir` — required positional. Path to plet directory. Derives `{plet_dir}/state.json` (global state) and `{plet_dir}/state/{iter_id}.json` (iter state) internally. Global state provides `projectId`, `loopSessionCount`. | P0 |
-| GTO_MSQ_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Used to locate `{plet_dir}/state/{iter_id}.json`. Iter state provides `iterationId`, `title`, `cleanupTagsAutomatically`, `cleanupBranchesAutomatically`. | P0 |
+| GTO_MSQ_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`). Required. Used to locate `{plet_dir}/state/{iter_id}.json`. Iter state provides `iterationId`, `title`, `cleanupTagsAutomatically`, `cleanupBranchesAutomatically`. | P0 |
 
 #### Outputs (GTO_MSQ_OUT)
 
@@ -272,7 +272,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 | GTO_ERR_4 | `plet_dir` is a file → `Error: expected a directory, got file: {path}` | P0 |
 | GTO_ERR_18 | Global state validation failure (`{plet_dir}/state.json`) → error from `util_state.load_and_validate_global_state()` | P0 |
 | GTO_ERR_19 | Iter state validation failure (`{plet_dir}/state/{iter_id}.json`) → error from `util_state.load_and_validate_iter_state()` | P0 |
-| GTO_ERR_20 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ID_N+` | P0 |
+| GTO_ERR_20 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ITR_N+` | P0 |
 | GTO_ERR_5 | Not a git repo → `Error: not inside a git repository` | P0 |
 | GTO_ERR_6 | Nothing to merge → `Error: iteration branch {branch} has no changes ahead of workstream` | P0 |
 | GTO_ERR_7 | Dirty working tree → `Error: working tree is dirty (git status --porcelain non-empty) — commit changes before merge-squash` | P0 |
@@ -300,8 +300,8 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 ### GTO_AFL_1: Phase end — audit tag (implement or verify)
 
 1. Subagent finishes phase (implement or verify)
-2. Orchestrator runs: `plet_git_ops.py audit-tag --iter-id ID_001 --phase implement`
-3. Tag created: `plet/LOGA/loop1/audit/ID_001/implement-1` at current HEAD
+2. Orchestrator runs: `plet_git_ops.py audit-tag --iter-id ITR_001 --phase implement`
+3. Tag created: `plet/LOGA/loop1/audit/ITR_001/implement-1` at current HEAD
 4. Incremental commits stay on iteration branch (no squashing)
 5. If verify: same flow with `--phase verify`. Tag always created even if verify made no commits (consistent audit trail)
 
@@ -309,9 +309,9 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 1. Iteration reaches `complete` lifecycle (all phases done, all criteria pass)
 2. Orchestrator checks out workstream: `git checkout plet/LOGA/loop1/workstream`
-3. Orchestrator runs: `plet_git_ops.py merge-squash --iter-id ID_001`
-4. One commit on workstream: `plet: [ID_001] - Project scaffolding`
-5. If `cleanupTagsAutomatically`: all audit tags for ID_001 deleted, hashes logged
+3. Orchestrator runs: `plet_git_ops.py merge-squash --iter-id ITR_001`
+4. One commit on workstream: `plet: [ITR_001] - Project scaffolding`
+5. If `cleanupTagsAutomatically`: all audit tags for ITR_001 deleted, hashes logged
 6. If `cleanupBranchesAutomatically`: iteration branch deleted
 7. Orchestrator logs results to progress.md and trace
 
@@ -321,16 +321,16 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 ```bash
 # During iteration: audit-tag at each phase end
-plet_git_ops.py audit-tag --iter-id ID_001 --phase implement
-# OK — created audit tag plet/LOGA/loop1/audit/ID_001/implement-1 at abc1234
+plet_git_ops.py audit-tag --iter-id ITR_001 --phase implement
+# OK — created audit tag plet/LOGA/loop1/audit/ITR_001/implement-1 at abc1234
 
-plet_git_ops.py audit-tag --iter-id ID_001 --phase verify
-# OK — created audit tag plet/LOGA/loop1/audit/ID_001/verify-1 at def5678
+plet_git_ops.py audit-tag --iter-id ITR_001 --phase verify
+# OK — created audit tag plet/LOGA/loop1/audit/ITR_001/verify-1 at def5678
 
 # After iteration completes: merge-squash to workstream
 git checkout plet/LOGA/loop1/workstream
-plet_git_ops.py merge-squash --iter-id ID_001
-# OK — merged to workstream: plet: [ID_001] - Project scaffolding (ghi9012)
+plet_git_ops.py merge-squash --iter-id ITR_001
+# OK — merged to workstream: plet: [ITR_001] - Project scaffolding (ghi9012)
 #   Phases: implement×1, verify×1
 #   Criteria: 3/3 passed
 ```
@@ -339,30 +339,30 @@ plet_git_ops.py merge-squash --iter-id ID_001
 
 ```bash
 git checkout plet/LOGA/loop1/workstream
-plet_git_ops.py merge-squash --iter-id ID_001
-# OK — merged to workstream: plet: [ID_001] - Project scaffolding (ghi9012)
-#   Tag plet/LOGA/loop1/audit/ID_001/implement-1 deleted (was at abc1234)
-#   Tag plet/LOGA/loop1/audit/ID_001/verify-1 deleted (was at def5678)
-#   Branch plet/LOGA/loop1/ID_001 deleted
+plet_git_ops.py merge-squash --iter-id ITR_001
+# OK — merged to workstream: plet: [ITR_001] - Project scaffolding (ghi9012)
+#   Tag plet/LOGA/loop1/audit/ITR_001/implement-1 deleted (was at abc1234)
+#   Tag plet/LOGA/loop1/audit/ITR_001/verify-1 deleted (was at def5678)
+#   Branch plet/LOGA/loop1/ITR_001 deleted
 ```
 
 ### GTO_EXM_3: Dry-run merge-squash
 
 ```bash
-plet_git_ops.py merge-squash --iter-id ID_001 --dry-run
-# DRY RUN — would merge-squash plet/LOGA/loop1/ID_001 to workstream: plet: [ID_001] - Project scaffolding
+plet_git_ops.py merge-squash --iter-id ITR_001 --dry-run
+# DRY RUN — would merge-squash plet/LOGA/loop1/ITR_001 to workstream: plet: [ITR_001] - Project scaffolding
 ```
 
 ### GTO_EXM_4: JSON output
 
 ```bash
-plet_git_ops.py merge-squash --iter-id ID_001 --output json --pretty
+plet_git_ops.py merge-squash --iter-id ITR_001 --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "merge-squash",
-#   "commitMessage": "plet: [ID_001] - Project scaffolding",
+#   "commitMessage": "plet: [ITR_001] - Project scaffolding",
 #   "commitHash": "ghi9012",
-#   "iterationBranch": "plet/LOGA/loop1/ID_001",
+#   "iterationBranch": "plet/LOGA/loop1/ITR_001",
 #   "workstreamBranch": "plet/LOGA/loop1/workstream",
 #   "tagsCleaned": [],
 #   "branchDeleted": false,
@@ -407,7 +407,7 @@ See `specs/conventions.md` for universal requirements.
 |----|------|---------------|----------------------|
 | GTO_CRT_1 | Audit tag creation | Tag not created or wrong name | Create tag, verify it exists with correct name pointing to HEAD |
 | GTO_CRT_2 | Merge-squash correctness | Changes lost or wrong files | Create commits on iteration branch, merge-squash to workstream, verify all changes present |
-| GTO_CRT_3 | Commit message format | Wrong convention | Merge-squash, verify message matches `plet: [ID_xxx] - title` (no phase) |
+| GTO_CRT_3 | Commit message format | Wrong convention | Merge-squash, verify message matches `plet: [ITR_xxx] - title` (no phase) |
 | GTO_CRT_4 | Must be on workstream | Runs from wrong branch | Call merge-squash from iteration branch, verify error |
 | GTO_CRT_5 | Nothing to merge | Silent no-op | Call merge-squash when branches at same commit, verify error |
 | GTO_CRT_6 | Dirty working tree | Uncommitted changes included | Create uncommitted changes on workstream, verify merge-squash errors |

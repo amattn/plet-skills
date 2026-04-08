@@ -144,13 +144,13 @@ Use `plet_agent.py` for all runtime artifact entries:
 
 ```bash
 # Learning entry
-plet_agent.py add-learning plet/ --iter-id ID_002 --iter-title "Core data model" \
+plet_agent.py add-learning plet/ --iter-id ITR_002 --iter-title "Core data model" \
     --category gotcha --title "SQLite WAL mode required" \
     --content "Default journal mode blocks readers during writes." \
     --phase implement --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
-plet_agent.py add-emergent plet/ --iter-id ID_002 --iter-title "Core data model" \
+plet_agent.py add-emergent plet/ --iter-id ITR_002 --iter-title "Core data model" \
     --title "Chose SQLite over PostgreSQL" --phase implement \
     --category "design decision" \
     --content "Requirements say persistent storage without specifying engine." \

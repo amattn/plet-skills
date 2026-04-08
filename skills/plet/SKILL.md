@@ -373,7 +373,7 @@ All branches namespaced under `plet/{projectId}/`. Agents never commit or merge 
 | Purpose | Pattern | Example |
 |---------|---------|---------|
 | Loop workstream | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
-| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ITR_001/implement-1` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 
 **Key rules:**

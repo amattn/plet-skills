@@ -58,7 +58,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| INV_RUN_CMD_1 | Usage: `plet_invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify --cwd <worktree_path> [--max-budget N] [--model MODEL] [--permission-mode MODE] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| INV_RUN_CMD_1 | Usage: `plet_invoke.py run <plet_dir> --iter-id ITR_xxx --phase implement|verify --cwd <worktree_path> [--max-budget N] [--model MODEL] [--permission-mode MODE] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (launches subprocess that modifies files), not idempotent (each run produces new transcript)
 
@@ -182,7 +182,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 ### INV_AFL_1: Orchestrator launches implement subagent
 
 1. Orchestrator creates worktree via GTI
-2. Calls: `plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd .plet/worktrees/TEST/ID_001`
+2. Calls: `plet_invoke.py run plet/ --iter-id ITR_001 --phase implement --cwd .plet/worktrees/TEST/ITR_001`
 3. INV assembles prompt via PRM
 4. INV launches `claude -p` in the worktree
 5. INV captures transcript line by line
@@ -192,7 +192,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 ### INV_AFL_2: Dry-run preview
 
 1. Human wants to see what command would be run
-2. `plet_invoke.py run plet/ --iter-id ID_001 --phase implement --cwd /tmp/wt --dry-run`
+2. `plet_invoke.py run plet/ --iter-id ITR_001 --phase implement --cwd /tmp/wt --dry-run`
 3. Prints full `claude -p "..." --output-format stream-json --permission-mode auto ...`
 4. Exit 0
 
@@ -201,35 +201,35 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 ### INV_EXM_1: Launch implement subagent
 
 ```bash
-plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
-    --cwd .plet/worktrees/TEST/ID_001
+plet_invoke.py run plet/ --iter-id ITR_001 --phase implement \
+    --cwd .plet/worktrees/TEST/ITR_001
 # OK — implement subprocess exited 0
 ```
 
 ### INV_EXM_2: Dry-run
 
 ```bash
-plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
-    --cwd .plet/worktrees/TEST/ID_001 --dry-run
+plet_invoke.py run plet/ --iter-id ITR_001 --phase implement \
+    --cwd .plet/worktrees/TEST/ITR_001 --dry-run
 # DRY RUN — would execute:
 # claude -p "..." --output-format stream-json --permission-mode auto \
-#   --no-session-persistence --name "plet/ID_001/implement-1"
-# Transcript would be written to: plet/trace/ID_001-implement-1-transcript.ndjson
+#   --no-session-persistence --name "plet/ITR_001/implement-1"
+# Transcript would be written to: plet/trace/ITR_001-implement-1-transcript.ndjson
 ```
 
 ### INV_EXM_3: JSON output
 
 ```bash
-plet_invoke.py run plet/ --iter-id ID_001 --phase implement \
-    --cwd .plet/worktrees/TEST/ID_001 --output json --pretty
+plet_invoke.py run plet/ --iter-id ITR_001 --phase implement \
+    --cwd .plet/worktrees/TEST/ITR_001 --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "run",
-#   "iterationId": "ID_001",
+#   "iterationId": "ITR_001",
 #   "phase": "implement",
 #   "attempt": 1,
 #   "subprocessExitCode": 0,
-#   "transcriptPath": "plet/trace/ID_001-implement-1-transcript.ndjson",
+#   "transcriptPath": "plet/trace/ITR_001-implement-1-transcript.ndjson",
 #   "transcriptLines": 847,
 #   "elapsedSeconds": 142,
 #   ...

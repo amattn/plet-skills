@@ -88,7 +88,7 @@ Both commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PRE_CMD_1 | Usage: `plet_gate_phase.py pre <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GPH_PRE_CMD_1 | Usage: `plet_gate_phase.py pre <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 
@@ -173,7 +173,7 @@ All pre-gates run git-check and state-valid. Additional checks depend on `--phas
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PST_CMD_1 | Usage: `plet_gate_phase.py post <plet_dir> --iter-id ID_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GPH_PST_CMD_1 | Usage: `plet_gate_phase.py post <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 
@@ -297,12 +297,12 @@ Post-gate re-verifies git and state, then checks artifacts. Verify adds verdict 
 ### GPH_AFL_1: Normal phase execution
 
 1. Orchestrator prepares iteration
-2. Orchestrator calls: `plet_gate_phase.py pre plet/ --iter-id ID_001 --phase implement --output json`
+2. Orchestrator calls: `plet_gate_phase.py pre plet/ --iter-id ITR_001 --phase implement --output json`
 3. If exit 1 (fail): abort, report issues
 4. If exit 2 (warn): log warnings, continue
 5. Orchestrator spawns subagent
 6. Subagent does its work
-7. **Subagent** calls: `plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement --output json`
+7. **Subagent** calls: `plet_gate_phase.py post plet/ --iter-id ITR_001 --phase implement --output json`
 8. If exit 1 (fail): subagent self-corrects and re-runs post
 9. Subagent repeats 7-8 until passes
 10. Subagent exits — its exit signals "post-gate passed"
@@ -324,15 +324,15 @@ Post-gate re-verifies git and state, then checks artifacts. Verify adds verdict 
 ### GPH_EXM_1: Implement pre-gate — all passing
 
 ```bash
-plet_gate_phase.py pre plet/ --iter-id ID_001 --phase implement
+plet_gate_phase.py pre plet/ --iter-id ITR_001 --phase implement
 # OK: pre — 10 passed
 # PASS: git:in-progress-operation — no interrupted git operations
-# PASS: git:branch-exists — plet/LOGA/loop1/ID_001 exists
-# PASS: git:correct-branch — on plet/LOGA/loop1/ID_001
+# PASS: git:branch-exists — plet/LOGA/loop1/ITR_001 exists
+# PASS: git:correct-branch — on plet/LOGA/loop1/ITR_001
 # PASS: git:clean-worktree — no uncommitted changes
 # PASS: git:linear-history — no merge commits
 # PASS: git:no-stashes — stash list empty
-# PASS: state-valid — ID_001.json valid
+# PASS: state-valid — ITR_001.json valid
 # PASS: lifecycle-check — lifecycle is implementing
 # PASS: spec-artifacts — requirements.md and iterations.md exist
 # PASS: fingerprints-consistent — all fingerprints consistent
@@ -342,15 +342,15 @@ plet_gate_phase.py pre plet/ --iter-id ID_001 --phase implement
 ### GPH_EXM_2: Verify pre-gate — simpler
 
 ```bash
-plet_gate_phase.py pre plet/ --iter-id ID_001 --phase verify
+plet_gate_phase.py pre plet/ --iter-id ITR_001 --phase verify
 # OK: pre — 8 passed
 # PASS: git:in-progress-operation — no interrupted git operations
-# PASS: git:branch-exists — plet/LOGA/loop1/ID_001 exists
-# PASS: git:correct-branch — on plet/LOGA/loop1/ID_001
+# PASS: git:branch-exists — plet/LOGA/loop1/ITR_001 exists
+# PASS: git:correct-branch — on plet/LOGA/loop1/ITR_001
 # PASS: git:clean-worktree — no uncommitted changes
 # PASS: git:linear-history — no merge commits
 # PASS: git:no-stashes — stash list empty
-# PASS: state-valid — ID_001.json valid
+# PASS: state-valid — ITR_001.json valid
 # PASS: lifecycle-check — lifecycle is verifying
 # 8 checks: 8 passed, 0 failed, 0 warnings
 ```
@@ -358,15 +358,15 @@ plet_gate_phase.py pre plet/ --iter-id ID_001 --phase verify
 ### GPH_EXM_3: Verify post-gate — missing entries + verdict
 
 ```bash
-plet_gate_phase.py post plet/ --iter-id ID_001 --phase verify
+plet_gate_phase.py post plet/ --iter-id ITR_001 --phase verify
 # FAIL: post — 3 failed, 3 warnings
 # PASS: git:in-progress-operation — no interrupted git operations
 # ...
-# PASS: state-valid — ID_001.json valid
-# FAIL: progress-entry — 0 progress entries for ID_001
-# WARN: learnings-entry — 0 learnings entries for ID_001
-# WARN: emergent-entry — 0 emergent entries for ID_001
-# WARN: trace-events — no trace events file for ID_001 verify-1
+# PASS: state-valid — ITR_001.json valid
+# FAIL: progress-entry — 0 progress entries for ITR_001
+# WARN: learnings-entry — 0 learnings entries for ITR_001
+# WARN: emergent-entry — 0 emergent entries for ITR_001
+# WARN: trace-events — no trace events file for ITR_001 verify-1
 # FAIL: verify-verdict — verifyVerdict is null
 # FAIL: verification-report — verificationReports is empty
 # WARN: verdict-consistency — skipped (no verdict set)
@@ -376,18 +376,18 @@ plet_gate_phase.py post plet/ --iter-id ID_001 --phase verify
 ### GPH_EXM_4: Implement post-gate — JSON output
 
 ```bash
-plet_gate_phase.py post plet/ --iter-id ID_001 --phase implement --output json --pretty
+plet_gate_phase.py post plet/ --iter-id ITR_001 --phase implement --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "post",
-#   "iterationId": "ID_001",
+#   "iterationId": "ITR_001",
 #   "phase": "implement",
 #   "checks": [
 #     {"name": "git:in-progress-operation", "status": "pass", "detail": "..."},
 #     ...
-#     {"name": "progress-entry", "status": "pass", "detail": "1 progress entries for ID_001"},
-#     {"name": "learnings-entry", "status": "pass", "detail": "1 learnings entries for ID_001"},
-#     {"name": "emergent-entry", "status": "pass", "detail": "1 emergent entries for ID_001"},
+#     {"name": "progress-entry", "status": "pass", "detail": "1 progress entries for ITR_001"},
+#     {"name": "learnings-entry", "status": "pass", "detail": "1 learnings entries for ITR_001"},
+#     {"name": "emergent-entry", "status": "pass", "detail": "1 emergent entries for ITR_001"},
 #     {"name": "trace-events", "status": "pass", "detail": "trace events file valid (512 bytes)"}
 #   ],
 #   "summary": {"total": 10, "passed": 10, "failed": 0, "warnings": 0},

@@ -41,7 +41,7 @@ Most commands are high-level workflow operations. `update-field` is the low-leve
 - **`add-report`** (RPT) — Append a verification report to `verificationReports`. Called by verify subagent. Mutating, atomic.
 - **`validate`** (VAL) — Check a per-iteration state file against the schema. Read-only, idempotent.
 
-All commands take `<plet_dir>` as required first positional arg and `--iter-id ID_xxx` (required except `init`) per UNV_CMD_16. Paths derived via `util_io.iter_state_path()`.
+All commands take `<plet_dir>` as required first positional arg and `--iter-id ITR_xxx` (required except `init`) per UNV_CMD_16. Paths derived via `util_io.iter_state_path()`.
 
 Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session, orchestrator reading) or `worktree_plet_dir` (subagent writing). IST doesn't know or care which copy it's operating on.
 
@@ -71,7 +71,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_INI_CMD_1 | Usage: `plet_iter_state.py init <plet_dir> --iter-id ID_xxx --title "..." --dependencies '["ID_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dependencies-file path] [--criteria-file path] [--cleanup-tags] [--cleanup-branches] [--no-verify-deps] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_INI_CMD_1 | Usage: `plet_iter_state.py init <plet_dir> --iter-id ITR_xxx --title "..." --dependencies '["ITR_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dependencies-file path] [--criteria-file path] [--cleanup-tags] [--cleanup-branches] [--no-verify-deps] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, non-idempotent (errors if file exists), atomic
 
@@ -82,7 +82,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | IST_INI_INP_1 | `plet_dir` — required first positional arg | P0 |
-| IST_INI_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. Must match `ID_\d+` pattern. | P0 |
+| IST_INI_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`). Required. Must match `ID_\d+` pattern. | P0 |
 | IST_INI_INP_3 | `--title` — human-readable iteration title. Required. | P0 |
 | IST_INI_INP_4 | `--dependencies` — JSON array of iteration IDs. Required (unless `--dependencies-file`). Empty array `[]` if none. | P0 |
 | IST_INI_INP_5 | `--criteria` — JSON array of `{"id":"AC_1","description":"..."}` objects. Required (unless `--criteria-file`). | P0 |
@@ -145,7 +145,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_STP_CMD_1 | Usage: `plet_iter_state.py start-phase <plet_dir> --iter-id ID_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_STP_CMD_1 | Usage: `plet_iter_state.py start-phase <plet_dir> --iter-id ITR_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (increments attempt counter), atomic
 
@@ -208,7 +208,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_UPA_CMD_1 | Usage: `plet_iter_state.py update-activity <plet_dir> --iter-id ID_xxx --phase-activity setup|red|green|... [--activity-detail "..."] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_UPA_CMD_1 | Usage: `plet_iter_state.py update-activity <plet_dir> --iter-id ITR_xxx --phase-activity setup|red|green|... [--activity-detail "..."] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -252,7 +252,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_UPC_CMD_1 | Usage: `plet_iter_state.py update-criterion <plet_dir> --iter-id ID_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." [--one-liner "..."] [--red-test TEST_NAME|none] [--no-test-rationale "..."] [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_UPC_CMD_1 | Usage: `plet_iter_state.py update-criterion <plet_dir> --iter-id ITR_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." [--one-liner "..."] [--red-test TEST_NAME|none] [--no-test-rationale "..."] [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -303,7 +303,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_SVD_CMD_1 | Usage: `plet_iter_state.py set-verdict <plet_dir> --iter-id ID_xxx --phase implement|verify --verdict completed|blocked|passed|rejected --agent-id <id> [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_SVD_CMD_1 | Usage: `plet_iter_state.py set-verdict <plet_dir> --iter-id ITR_xxx --phase implement|verify --verdict completed|blocked|passed|rejected --agent-id <id> [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -351,7 +351,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_HBT_CMD_1 | Usage: `plet_iter_state.py heartbeat <plet_dir> --iter-id ID_xxx --agent-id <id> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_HBT_CMD_1 | Usage: `plet_iter_state.py heartbeat <plet_dir> --iter-id ITR_xxx --agent-id <id> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic. No `--dry-run` (trivial operation).
 
@@ -378,7 +378,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_RPT_CMD_1 | Usage: `plet_iter_state.py add-report <plet_dir> --iter-id ID_xxx --verdict passed --summary "..." --criteria-results '[...]' --findings '[...]' --related-entries '[...]' --agent-id <id> [--criteria-results-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_RPT_CMD_1 | Usage: `plet_iter_state.py add-report <plet_dir> --iter-id ITR_xxx --verdict passed --summary "..." --criteria-results '[...]' --findings '[...]' --related-entries '[...]' --agent-id <id> [--criteria-results-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -430,7 +430,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_VAL_CMD_1 | Usage: `plet_iter_state.py validate <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_VAL_CMD_1 | Usage: `plet_iter_state.py validate <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent
 
@@ -465,7 +465,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 |----|-------------|----------|
 | IST_ERR_1 | Missing `plet_dir` → `Error: plet_dir is required` + help hint | P0 |
 | IST_ERR_2 | Missing required args → print full HELP for that command | P0 |
-| IST_ERR_3 | Invalid `--iter-id` pattern → `Error: iterationId 'xxx' does not match pattern ID_N+` | P0 |
+| IST_ERR_3 | Invalid `--iter-id` pattern → `Error: iterationId 'xxx' does not match pattern ITR_N+` | P0 |
 | IST_ERR_4 | Invalid `--phase` value → `Error: invalid phase 'xxx' (valid: implement, verify)` | P0 |
 | IST_ERR_5 | Invalid `--verdict` for type → `Error: invalid verdict 'xxx' for implement (valid: completed, blocked)` | P0 |
 | IST_ERR_6 | State file not found → `Error: state file not found at {path}` | P0 |
@@ -494,25 +494,25 @@ References `state-schema.md` § Per-Iteration State for the full schema.
 
 ```bash
 # Plan session: create per-iteration state file
-plet_iter_state.py init plet --iter-id ID_001 --title "Project scaffolding" \
+plet_iter_state.py init plet --iter-id ITR_001 --title "Project scaffolding" \
   --dependencies '[]' \
   --criteria '[{"id":"AC_1","description":"Tests pass"},{"id":"AC_2","description":"Lint clean"}]'
 
 # Orchestrator: pre-spawn setup
-plet_iter_state.py start-phase plet --iter-id ID_001 --phase implement
+plet_iter_state.py start-phase plet --iter-id ITR_001 --phase implement
 
 # Subagent: activity updates
-plet_iter_state.py update-activity plet --iter-id ID_001 --phase-activity red --activity-detail "writing failing test for AC_1"
-plet_iter_state.py update-activity plet --iter-id ID_001 --phase-activity green --activity-detail "implementing to pass AC_1"
+plet_iter_state.py update-activity plet --iter-id ITR_001 --phase-activity red --activity-detail "writing failing test for AC_1"
+plet_iter_state.py update-activity plet --iter-id ITR_001 --phase-activity green --activity-detail "implementing to pass AC_1"
 
 # Subagent: criterion update
-plet_iter_state.py update-criterion plet --iter-id ID_001 --criterion AC_1 --phase implementation --status pass --evidence "pytest exits 0"
+plet_iter_state.py update-criterion plet --iter-id ITR_001 --criterion AC_1 --phase implementation --status pass --evidence "pytest exits 0"
 
 # Subagent: set verdict (final act)
-plet_iter_state.py set-verdict plet --iter-id ID_001 --phase implement --verdict completed --agent-id agent_abc123
+plet_iter_state.py set-verdict plet --iter-id ITR_001 --phase implement --verdict completed --agent-id agent_abc123
 
 # Verify subagent: add verification report
-plet_iter_state.py add-report plet --iter-id ID_001 \
+plet_iter_state.py add-report plet --iter-id ITR_001 \
   --verdict passed \
   --summary "All criteria pass verification." \
   --criteria-results '[{"id":"AC_1","status":"pass","oneLiner":"Tests solid"}]' \
@@ -521,10 +521,10 @@ plet_iter_state.py add-report plet --iter-id ID_001 \
   --agent-id agent_def456
 
 # Verify subagent: set verdict
-plet_iter_state.py set-verdict plet --iter-id ID_001 --phase verify --verdict passed --agent-id agent_def456
+plet_iter_state.py set-verdict plet --iter-id ITR_001 --phase verify --verdict passed --agent-id agent_def456
 
 # Validate
-plet_iter_state.py validate plet --iter-id ID_001
+plet_iter_state.py validate plet --iter-id ITR_001
 ```
 
 ## 9. Dependencies (IST_DEP)

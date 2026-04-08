@@ -102,7 +102,7 @@ Canonical definitions for plet's vocabulary, document terms, artifact categories
 ```
 project (LOGA)
   └─ session (plan, loop1, refine1, loop2, ...)
-       └─ iteration (ID_001, ID_002, ...)       ← loop sessions only
+       └─ iteration (ITR_001, ITR_002, ...)       ← loop sessions only
             └─ phase (implement, verify)
 ```
 
@@ -111,10 +111,10 @@ project (LOGA)
 project (LOGA)
 ├─ plan session
 ├─ loop session (loop1)
-│  ├─ iteration (ID_001)
+│  ├─ iteration (ITR_001)
 │  │  ├─ implement phase
 │  │  └─ verify phase
-│  ├─ iteration (ID_002)
+│  ├─ iteration (ITR_002)
 │  │  └─ ...
 │  └─ ...
 ├─ refine session (refine1)
@@ -131,7 +131,7 @@ project (LOGA)
 |-------|------|---------|---------|
 | 0 | **project** | yes | LOGA |
 | 1 | **session** | yes | loop session, refine session, plan session |
-| 2 | **iteration** | yes | ID_001 (loop sessions only) |
+| 2 | **iteration** | yes | ITR_001 (loop sessions only) |
 | 3 | **phase** | yes | implement phase, verify phase |
 
 - **Session** = a `/plet` invocation: plan session, loop session, refine session
@@ -178,7 +178,7 @@ project (LOGA)
 - Audit tags: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` (pre-squash preservation)
 - Refine branch: `plet/{projectId}/refine{N}/workstream`
 - Archive tags: `archive/plet/{projectId}/loop{N}/{path}`
-- Commits: `plet: [ID_xxx] phase-N - title` (squashed per phase)
+- Commits: `plet: [ITR_xxx] phase-N - title` (squashed per phase)
 
 **6. Memory** (institutional knowledge, checked-in)
 - `CLAUDE.md` — project-specific instructions
@@ -210,7 +210,7 @@ Iteration status is tracked at two levels with distinct ownership:
 
 | Level | Field | Location | Owner | Purpose |
 |-------|-------|----------|-------|---------|
-| **Loop lifecycle** | `lifecycles.ID_xxx` | state.json (global) | Orchestrator | Which phase the iteration is in |
+| **Loop lifecycle** | `lifecycles.ITR_xxx` | state.json (global) | Orchestrator | Which phase the iteration is in |
 | **Phase activity** | `phaseActivity` | per-iteration file (worktree) | Subagent | What the agent is doing right now |
 
 **Loop lifecycle values** (orchestrator writes these):
@@ -460,7 +460,7 @@ After `start-session` increments `loopSessionCount`, the orchestrator now runs `
 
 #### Dependency promotion in orchestrator (2026-04-01)
 
-**Bug:** After ID_001 completed in LOGA Run 5, ID_002 stayed `ineligible` instead of promoting to `queued`. The orchestrator called `schedule.py eligible` which only returns `queued` iterations with all deps complete. But nothing ever changed `ineligible` → `queued` when deps were satisfied.
+**Bug:** After ITR_001 completed in LOGA Run 5, ITR_002 stayed `ineligible` instead of promoting to `queued`. The orchestrator called `schedule.py eligible` which only returns `queued` iterations with all deps complete. But nothing ever changed `ineligible` → `queued` when deps were satisfied.
 
 **Fix:** Added `_promote_eligible()` to orchestrator — after each iteration completes, scans all `ineligible` iterations and promotes to `queued` when all dependencies are `complete`. Called before each `eligible()` check.
 
@@ -772,8 +772,8 @@ Example fingerprint structures:
   "requirementsFingerprint": { "...": "..." },
   "lastNonTrivialUpdate": "2026-03-07T15:00:00Z",
   "iterations": {
-    "MS_1": ["ID_001", "ID_002"],
-    "MS_2": ["ID_003", "ID_004"]
+    "MS_1": ["ITR_001", "ITR_002"],
+    "MS_2": ["ITR_003", "ITR_004"]
   }
 }
 ```
@@ -842,12 +842,12 @@ All branches and tags are namespaced under `plet/{projectId}/`. Agents never com
 | Purpose | Pattern | Example |
 |---------|---------|---------|
 | Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
-| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
-| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
+| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ITR_001` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ITR_001/implement-1` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
 | Subplet loop | `plet/{projectId}/subplet/{subId}/loop{N}/workstream` | `plet/LOGA/subplet/PRSR/loop1/workstream` |
-| Subplet iteration | `plet/{projectId}/subplet/{subId}/loop{N}/{iteration_id}` | `plet/LOGA/subplet/PRSR/loop1/ID_001` |
+| Subplet iteration | `plet/{projectId}/subplet/{subId}/loop{N}/{iteration_id}` | `plet/LOGA/subplet/PRSR/loop1/ITR_001` |
 
 - `loop{N}` driven by `loopSessionCount` in state.json; `refine{N}` driven by `refineSessionCount`
 - Iteration branches persist across implement and verify phases
@@ -868,7 +868,7 @@ Short project identifier defined during plan session (Step 2, alongside project 
 
 **Examples:** `LOGA` (log analyzer), `AUTH` (auth service), `UUGEN` (UUID generator).
 
-**Subplet branch convention (hypothetical/future):** Subplets use a literal `subplet/` path segment: `plet/LOGA/subplet/PRSR/loop/ID_001`. Self-documenting — the `subplet/` segment makes the hierarchy obvious. The common case (no subplets) stays clean: `plet/LOGA/loop/ID_001`. Length is manageable since subplets are already the complex case, and sub-sub-plets are off the table so it never gets deeper.
+**Subplet branch convention (hypothetical/future):** Subplets use a literal `subplet/` path segment: `plet/LOGA/subplet/PRSR/loop/ITR_001`. Self-documenting — the `subplet/` segment makes the hierarchy obvious. The common case (no subplets) stays clean: `plet/LOGA/loop/ITR_001`. Length is manageable since subplets are already the complex case, and sub-sub-plets are off the table so it never gets deeper.
 
 **Rejected subplet ID alternatives:**
 - Underscore-joined flat ID (`LOGA_PRSR`) — consistent format but loses visual hierarchy, overloads underscore delimiter already used in requirement IDs
@@ -1068,7 +1068,7 @@ Append-only array in `state.json` (`sessionHistory`) tracking the sequence of lo
 
 #### `proj` sentinel for project-level plet IDs
 
-Refine-phase entries that aren't tied to a specific iteration (stage summaries, triage summaries) use `proj` as the iteration context segment: `epr_01JD8X3K7M_proj_r1`. Per-iteration refine entries (re-queuing ID_005) still use the iteration ID: `epr_01JD8X3K7M_id005_r1`. Keeps the plet ID segment structure consistent and parseable.
+Refine-phase entries that aren't tied to a specific iteration (stage summaries, triage summaries) use `proj` as the iteration context segment: `epr_01JD8X3K7M_proj_r1`. Per-iteration refine entries (re-queuing ITR_005) still use the iteration ID: `epr_01JD8X3K7M_id005_r1`. Keeps the plet ID segment structure consistent and parseable.
 
 **Subplets note:** `proj` is unambiguous within a single plet directory. In a multi-subplet scenario, each subplet has its own artifacts, so `proj` stays scoped. See Multi-Developer Analysis open threads for cross-subplet plet ID considerations.
 
@@ -1123,7 +1123,7 @@ Discovered during the refine.md build: we designed RF_16 (cascading consistency 
 Where `{type}` is `branch` or `tag`, and the original ref name is preserved verbatim to track naming convention changes across runs.
 
 **Example:**
-- `casestudy/logalyzer/run1/branch/plet/loop/ID_001` (was branch `plet/loop/ID_001`)
+- `casestudy/logalyzer/run1/branch/plet/loop/ITR_001` (was branch `plet/loop/ITR_001`)
 - `casestudy/logalyzer/run1/branch/logalyzer_workstream` (was branch `logalyzer_workstream`)
 
 **Purpose:** Preserve all git artifacts from a case study run for later analysis. Branches and tags are artifacts — their original names are part of the record. If plet's naming convention changes between runs, the verbatim names make that visible.
@@ -1159,11 +1159,11 @@ Case studies live in `case_studies/` at project root. Considered: `examples/` (m
 
 #### Trace files — on by default, configurable (CASE_LOGA_R01_REC_8) — DECIDED (2026-03-10)
 
-Traces are a real feature, on by default, can be disabled via config. The logalyzer run only generated traces for ID_001 — that's a bug in execution, not a spec problem. The format definition in state-schema.md stays. When config artifacts are designed, add a toggle to disable trace generation. Rejected: removing traces entirely (loses traceability), mandating with no opt-out (too rigid).
+Traces are a real feature, on by default, can be disabled via config. The logalyzer run only generated traces for ITR_001 — that's a bug in execution, not a spec problem. The format definition in state-schema.md stays. When config artifacts are designed, add a toggle to disable trace generation. Rejected: removing traces entirely (loses traceability), mandating with no opt-out (too rigid).
 
 #### Branch isolation via git worktrees (CASE_LOGA_R01_REC_11) — DECIDED (2026-03-10)
 
-Parallel agents each get their own git worktree for their iteration branch. True filesystem isolation — agents can't contaminate each other's branches. Claude Code supports `isolation: "worktree"` on subagents natively. The logalyzer run proved that branch discipline alone fails (ID_006 work on ID_011 branch). Worktree directory naming is left to Claude Code — plet controls the branch name (already defined), not the filesystem path. Rejected: sequential-only (loses parallelism), shared working directory with branch discipline (fragile, proven to fail), separate full clones (overkill when worktrees exist), plet-controlled worktree paths (unnecessary, Claude Code handles creation/cleanup).
+Parallel agents each get their own git worktree for their iteration branch. True filesystem isolation — agents can't contaminate each other's branches. Claude Code supports `isolation: "worktree"` on subagents natively. The logalyzer run proved that branch discipline alone fails (ITR_006 work on ITR_011 branch). Worktree directory naming is left to Claude Code — plet controls the branch name (already defined), not the filesystem path. Rejected: sequential-only (loses parallelism), shared working directory with branch discipline (fragile, proven to fail), separate full clones (overkill when worktrees exist), plet-controlled worktree paths (unnecessary, Claude Code handles creation/cleanup).
 
 #### Artifact quality monitoring (CASE_LOGA_R01_REC_10) — DECIDED (2026-03-10)
 
@@ -1198,8 +1198,8 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 
 **Discoveries during archival:**
 
-- **Run 1 archiving was incomplete.** 11 of 16 branches had been tagged previously; 4 were missing (ID_006, ID_007, ID_010, ID_012). Caught by systematically comparing local branches against existing tags.
-- **ID_007 had no branch at all** — it was already deleted without being tagged. The verify commit (`b279b73`) was reachable from other branches so it wasn't orphaned, but it had no dedicated tag. Created tag from the known commit.
+- **Run 1 archiving was incomplete.** 11 of 16 branches had been tagged previously; 4 were missing (ITR_006, ITR_007, ITR_010, ITR_012). Caught by systematically comparing local branches against existing tags.
+- **ITR_007 had no branch at all** — it was already deleted without being tagged. The verify commit (`b279b73`) was reachable from other branches so it wasn't orphaned, but it had no dedicated tag. Created tag from the known commit.
 - **None of the run 1 iteration branches were merged into main.** The logalyzer implementation code lives entirely on iteration branches (now archived as tags). Main only has the case study analysis and plet skill improvements. This makes sense — the logalyzer code isn't the product, the plet observations are.
 - **5 of 8 existing tags matched their branch tips exactly.** Verified with `git rev-parse` comparison before deleting any branches. The 4 missing tags were created first, then all 8 branches deleted. Zero orphan commits, zero data loss.
 
@@ -1207,14 +1207,14 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 1. Listed all local branches and all tags
 2. For each branch to delete: checked if a matching tag existed and if SHAs matched
 3. For branches without tags: created tags at branch tips before deletion
-4. For ID_007 (no branch): confirmed commit `b279b73` was reachable and created tag
+4. For ITR_007 (no branch): confirmed commit `b279b73` was reachable and created tag
 5. Post-cleanup: verified local and origin tags matched (pushed 4 new tags)
 
 **Final state:** 4 local branches (`main`, `casestudy/logalyzer/plan-checkpoint`, 2 worktree-agent branches) + 16 archive tags on both local and origin.
 
 #### Linear history and green/rebase/green invariant (2026-03-10)
 
-**Problem:** Run 1 agents created merge commits (e.g., `3b825f4 Merge branch 'plet/loop/ID_006'`) despite PLET.md and SKILL.md specifying rebase + fast-forward. Root cause: verify.md had a plain `git merge` command (lines 395-402), contradicting the stated convention. execute.md had no mention of rebase at all.
+**Problem:** Run 1 agents created merge commits (e.g., `3b825f4 Merge branch 'plet/loop/ITR_006'`) despite PLET.md and SKILL.md specifying rebase + fast-forward. Root cause: verify.md had a plain `git merge` command (lines 395-402), contradicting the stated convention. execute.md had no mention of rebase at all.
 
 **Decision:** Linear history is a hard requirement, not a preference. Never create merge commits. Added the **green/rebase/green invariant**: all tests must pass before the rebase AND again after the rebase, before the fast-forward merge. This prevents silent breakage when two independently-green branches are combined.
 
@@ -1429,13 +1429,13 @@ These bugs were likely causing a significant portion of the --help lookups — a
 
 **Decision: spawn + finalize split.** `_process_single_iteration` split into `_spawn_iteration` (worktree + implement + verify — parallelizable, returns result dict) and `_finalize_iteration` (verdict + merge-squash + cleanup — sequential on workstream). Breakpoints and max-iterations stay in the serial wrapper for now, move to the main loop in PAR_6. The split is the prerequisite for ThreadPoolExecutor in PAR_3.
 
-**Design: Round-based → streaming execution (revised 2026-04-04).** Initial implementation used synchronized rounds (spawn all → wait all → finalize all → next round). User pointed out this is suboptimal: if ID_001 finishes before ID_002 and ID_003, its dependent ID_004 should spawn immediately, not wait for the round to complete.
+**Design: Round-based → streaming execution (revised 2026-04-04).** Initial implementation used synchronized rounds (spawn all → wait all → finalize all → next round). User pointed out this is suboptimal: if ITR_001 finishes before ITR_002 and ITR_003, its dependent ITR_004 should spawn immediately, not wait for the round to complete.
 
 Revised design: **streaming work queue.** ThreadPoolExecutor stays full as long as there's eligible work. As each iteration completes, it's finalized immediately (merge-squash), newly eligible iterations are checked and spawned. No synchronized round boundaries.
 
 **Decision: Breakpoints are gentle pauses (2026-04-04).** A breakpoint (before or after) means "stop spawning new work." Everything already in-flight runs to completion and gets merged. Breakpoint-before is checked at spawn time — if hit, that iteration doesn't spawn AND no further iterations spawn. Breakpoint-after is checked after finalization — if hit, no further iterations spawn. In both cases, all active iterations finish normally.
 
-Example: ID_001, ID_002, ID_003 running. ID_001 finishes, promotes ID_004 and ID_005. ID_005 has breakpoint-before. When checking ID_005, the breakpoint fires — ID_005 doesn't spawn, no further spawns happen. ID_002, ID_003, ID_004 (if already spawned) all run to completion and merge. Then pause.
+Example: ITR_001, ITR_002, ITR_003 running. ITR_001 finishes, promotes ITR_004 and ITR_005. ITR_005 has breakpoint-before. When checking ITR_005, the breakpoint fires — ITR_005 doesn't spawn, no further spawns happen. ITR_002, ITR_003, ITR_004 (if already spawned) all run to completion and merge. Then pause.
 
 ### NOTES_PLN_COV: PLAN_COV — Coverage Infrastructure
 
@@ -1506,7 +1506,7 @@ Key simplifications:
 
 1. Orchestrator runs `rebase-commit` → fails (conflict)
 2. Orchestrator sets lifecycle → `queued`, writes `requeue_reason: "rebase_conflict"` to iter state
-3. Prompt assembler sees requeue reason, injects exact command: `plet_git_ops.py rebase-prep plet/ --iter-id ID_002`
+3. Prompt assembler sees requeue reason, injects exact command: `plet_git_ops.py rebase-prep plet/ --iter-id ITR_002`
 4. Implement agent runs `rebase-prep` — rebase starts, conflicts reported (which files)
 5. Agent resolves conflicts, `git add`, `git rebase --continue`
 6. Agent continues normal implement flow
@@ -1520,12 +1520,12 @@ Branch state on requeue: leave as-is (option A). The `rebase-prep` command in th
 ```
 FIRST PASS (normal)
 ═══════════════════
-1. Orchestrator spawns ID_002 → implement agent runs in worktree
+1. Orchestrator spawns ITR_002 → implement agent runs in worktree
 2. Implement agent: write code, tests, commit wip commits
 3. Verify agent: checks acceptance criteria, passes
 4. Orchestrator: runs rebase-commit
    → git rebase workstream ID_002_branch
-   → CONFLICT (ID_001 merged to workstream while ID_002 was running)
+   → CONFLICT (ITR_001 merged to workstream while ITR_002 was running)
    → git rebase --abort
    → returns error
 
@@ -1537,9 +1537,9 @@ REQUEUE
 
 SECOND PASS (requeued)
 ══════════════════════
-8.  Orchestrator spawns ID_002 again → implement agent runs in worktree
+8.  Orchestrator spawns ITR_002 again → implement agent runs in worktree
 9.  Prompt includes: "⚠️ Requeued due to merge conflict.
-     Run: plet_git_ops.py rebase-prep plet/ --iter-id ID_002"
+     Run: plet_git_ops.py rebase-prep plet/ --iter-id ITR_002"
 10. Agent runs rebase-prep
     → git rebase workstream
     → CONFLICT in shared.txt
@@ -1566,17 +1566,17 @@ If another iteration merges between steps 9 and 14 with a conflicting change, st
 
 **Decision (2026-04-06): Audit tags stay at pre-rebase commit hashes.** After rebase, rebased commits have new hashes. Tags still point at old (pre-rebase) commits — they're still reachable (git doesn't GC tagged commits). Historical reference, not navigational. Simplest approach. `cleanupTagsAutomatically` handles deletion for projects that want it.
 
-**Architectural fix — stash/pop pattern (2026-04-06, revised after R12):** The orchestrator writes lifecycle updates to `state.json` on workstream during iterations (implementing → verifying). These dirty the workstream working tree. The original fix (pre-commit without `--allow-empty`) still caused rebase conflicts because the committed state.json diverged from the iteration branch's copy. R12 confirmed: even the first iteration (ID_001) conflicted on state.json.
+**Architectural fix — stash/pop pattern (2026-04-06, revised after R12):** The orchestrator writes lifecycle updates to `state.json` on workstream during iterations (implementing → verifying). These dirty the workstream working tree. The original fix (pre-commit without `--allow-empty`) still caused rebase conflicts because the committed state.json diverged from the iteration branch's copy. R12 confirmed: even the first iteration (ITR_001) conflicted on state.json.
 
 Final fix: `_execute_rebase_commit` stashes dirty workstream files before rebase, pops after ff-merge. No pre-commit at all — the stash preserves lifecycle updates without creating divergent commits. Rebase-commit has its own validator that skips the dirty-tree check.
 
-**Safety valve (2026-04-06):** Rebase requeue burns a retry (`remainingRetries` decremented). Prevents infinite loops like R12. Validated in OLLR R02 — ID_004 blocked after 3 attempts (no infinite loop).
+**Safety valve (2026-04-06):** Rebase requeue burns a retry (`remainingRetries` decremented). Prevents infinite loops like R12. Validated in OLLR R02 — ITR_004 blocked after 3 attempts (no infinite loop).
 
 **Rebase-prep prompt injection (2026-04-06):** On rebase-commit failure, orchestrator writes `requeue_reason: "rebase_conflict"` to iter state. Prompt assembler injects rebase-prep directive. **OLLR R02 result: injected but agent didn't follow it.** Agent re-implemented from old branch point each time. Agent-driven conflict resolution via prompt injection is unreliable.
 
 **OLLR R01/R02 parallel conflict findings (2026-04-06):**
 
-The rebase-commit model works well for non-conflicting parallel iterations (OLLR: ID_003, ID_005 both succeeded). But when iterations conflict on the same files, the recovery flow fails:
+The rebase-commit model works well for non-conflicting parallel iterations (OLLR: ITR_003, ITR_005 both succeeded). But when iterations conflict on the same files, the recovery flow fails:
 
 1. **Agent can't/won't rebase-prep.** Prompt injection was generated but agent didn't follow. Complex multi-step git operations (rebase-prep → resolve → git add → rebase --continue) are too fragile as agent instructions.
 2. **Each retry is a full implement+verify cycle wasted.** The code was correct every time — only the merge failed. ~20 min wasted per conflict.
@@ -1924,11 +1924,11 @@ scripts/
 
 **Decision (2026-04-07): Rename `ID_` prefix to `ITR_`, deferred until before PLAN_SUB.**
 
-**Problem:** `ID_` is too generic for target projects. In a real codebase, developers have database IDs, CSS IDs, DOM element IDs, etc. Grepping for `ID_` in a target project produces noise. `ID_001` is ambiguous outside the plet context.
+**Problem:** `ID_` is too generic for target projects. In a real codebase, developers have database IDs, CSS IDs, DOM element IDs, etc. Grepping for `ID_` in a target project produces noise. `ITR_001` is ambiguous outside the plet context.
 
 **Why `ITR_`:** Unambiguous, plet-specific, short. `IT_` is overloaded (IT as in "information technology"). `ITER_` is longer than necessary. `ITR_` is the sweet spot.
 
-**Why defer:** The rename touches the entire system — scripts, ~1030 tests, reference files, PRD, state file names (`ID_NNN.json` → `ITR_NNN.json`), branch names, commit messages, audit tags, `util_id.py` validation, case studies, PLAN.md, NOTES.md. Large sweep for a cosmetic change that doesn't cause functional issues today. The friction becomes real when subplets (PLAN_SUB) bring multi-project scenarios where external developers work alongside plet in the same repo.
+**Why defer:** The rename touches the entire system — scripts, ~1030 tests, reference files, PRD, state file names (`ITR_NNN.json` → `ITR_NNN.json`), branch names, commit messages, audit tags, `util_id.py` validation, case studies, PLAN.md, NOTES.md. Large sweep for a cosmetic change that doesn't cause functional issues today. The friction becomes real when subplets (PLAN_SUB) bring multi-project scenarios where external developers work alongside plet in the same repo.
 
 **Approach:** Sweep-level consistency pass. The rename is mechanical — no judgment calls, just find-and-replace with verification. But the volume is high, so it needs a systematic inventory.
 
@@ -1938,12 +1938,12 @@ scripts/
 
 **Scoping decisions (2026-04-08):**
 
-Surface area audit: 7 literal `"ID_NNN"` in scripts, 1174 in tests, 430 `iter_id` variable references (no change — variable name stays), 5 reference files, PRD, specs. ~1200 total renames.
+Surface area audit: 7 literal `"ITR_NNN"` in scripts, 1174 in tests, 430 `iter_id` variable references (no change — variable name stays), 5 reference files, PRD, specs. ~1200 total renames.
 
 - **Historical artifacts left as-is.** Case studies and historical NOTES document runs that used `ID_` prefix. Rewriting history adds no value. Only active/forward-looking content is renamed (scripts, tests, reference files, SKILL.md, PRD, specs, active NOTES sections).
 - **Category-by-category execution.** Scripts first (7 literals, verify green), then util_id/util_state (validation regex), then tests (bulk 1174), then docs. Multiple commits, each verified green. Smaller commits make breakage debuggable.
 - **Hard cut, no transition period.** `ITR_` only — no dual-accept regex. All consumers are in this repo. No external API to worry about.
-- **State file names: pattern only.** `ID_001.json` → `ITR_001.json` in script path derivation code. Actual files in target projects are created fresh each run — no migration needed.
+- **State file names: pattern only.** `ITR_001.json` → `ITR_001.json` in script path derivation code. Actual files in target projects are created fresh each run — no migration needed.
 
 ### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
@@ -2433,10 +2433,10 @@ State file management — `init`, `update-criterion`, `update-field`, `validate`
 Runtime artifact entry writer. Addresses FOO_29 (learnings/emergent regression) and FOO_33 (progress.md incomplete). Same pattern as plet_state.py — agents call a tool instead of composing markdown freehand.
 
 **Commands:**
-- `add-progress <dir> --iter-id ID_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json]`
-- `add-learning <dir> --iter-id ID_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json]`
-- `add-emergent <dir> --iter-id ID_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json]`
-- `check <dir> --iter-id ID_xxx` — reports which artifacts have entries, exits 1 if any are missing (pre-verify gate for R_7)
+- `add-progress <dir> --iter-id ITR_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--files '["path — desc"]'] [--dry-run] [--output json]`
+- `add-learning <dir> --iter-id ITR_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--dry-run] [--output json]`
+- `add-emergent <dir> --iter-id ITR_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--dry-run] [--output json]`
+- `check <dir> --iter-id ITR_xxx` — reports which artifacts have entries, exits 1 if any are missing (pre-verify gate for R_7)
 
 **Features:**
 - Generates correct Crockford Base32 plet IDs automatically (RT_11)
@@ -2467,9 +2467,9 @@ Plet ID generation. The composable ID scheme (type prefix + Crockford Base32 tim
 PRD refs: RT_11, Plet ID Scheme
 
 **What it would do:**
-- `generate --type epr --iter-id ID_001 --phase implement --attempt 1` — generate a correct plet ID
+- `generate --type epr --iter-id ITR_001 --phase implement --attempt 1` — generate a correct plet ID
 - Handles Crockford Base32 encoding (not standard base32 — excludes I/L/O/U, specific casing)
-- Handles iteration ID normalization (ID_001 → id001)
+- Handles iteration ID normalization (ITR_001 → id001)
 - Handles phase/attempt encoding (implement-1 → i1, verify-2 → v2, refine-1 → r1)
 
 **Why it matters:** Crockford Base32 is uncommon — agents will approximate with standard base32 or invent their own encoding. Incorrect IDs break cross-referencing and merge fencing (SF_25).
@@ -2495,8 +2495,8 @@ Verification report scaffolding. The report structure is detailed (VF_21–VF_24
 PRD refs: VF_21–VF_24
 
 **What it would do:**
-- `scaffold --iter-id ID_001 --attempt 1` — read state file criteria, generate report skeleton with correct plet ID, empty criteriaResults for each AC, empty findings array
-- `finalize --iter-id ID_001 --verdict passed` — validate completed report (all criteria have results, verdict is consistent with criteria statuses), write to state file's verificationReports array
+- `scaffold --iter-id ITR_001 --attempt 1` — read state file criteria, generate report skeleton with correct plet ID, empty criteriaResults for each AC, empty findings array
+- `finalize --iter-id ITR_001 --verdict passed` — validate completed report (all criteria have results, verdict is consistent with criteria statuses), write to state file's verificationReports array
 - Generates the vrp plet ID automatically (uses plet_id.py internally or shared logic)
 
 **Why it matters:** The report is the most structured output the verify agent produces. It has nested arrays, cross-references, and a specific append-only contract. Scaffolding it means the agent fills in judgments (evidence, findings) while the tool handles structure.
@@ -2508,8 +2508,8 @@ Trace event writer. Trace coverage improved dramatically in SPARK (51 files) but
 PRD refs: IMP_10, RT_4, RT_5
 
 **What it would do:**
-- `emit --event phase_start --iter-id ID_xxx --phase implement --attempt 1` — append canonical event to trace file
-- `emit --event criterion_start --iter-id ID_xxx --criterion AC_1` — track criterion-level timing
+- `emit --event phase_start --iter-id ITR_xxx --phase implement --attempt 1` — append canonical event to trace file
+- `emit --event criterion_start --iter-id ITR_xxx --criterion AC_1` — track criterion-level timing
 - Enforces the event schema from formats.md automatically
 
 ### NOTES_TBR_8: plet_graph.py (candidate) ○ medium

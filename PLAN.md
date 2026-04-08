@@ -141,7 +141,7 @@ Real artifacts exist archived as `casestudy/logalyzer/run1/*` and `casestudy/tod
 - `examples/requirements-snippet.md` — sample requirements.md excerpt
 - `examples/iterations-snippet.md` — sample iterations.md excerpt
 - `examples/state.json` — sample global state file
-- `examples/state/ID_001.json` — sample per-iteration state file
+- `examples/state/ITR_001.json` — sample per-iteration state file
 - `examples/progress-snippet.md` — sample progress.md entries
 - `examples/learnings-snippet.md` — sample learnings.md entries
 - `examples/emergent-snippet.md` — sample emergent.md entries
@@ -306,14 +306,14 @@ Category-by-category execution. Hard cut (no transition period). Historical arti
 | Step | Description | Status |
 |------|-------------|--------|
 | | **Phase 1: Script Internals** | |
-| IDR_1 | `util_id.py` — update normalization (`ID_001 -> id001` → `ITR_001 -> itr001`), ID pattern regex, docstrings | |
+| IDR_1 | `util_id.py` — update normalization (`ITR_001 -> id001` → `ITR_001 -> itr001`), ID pattern regex, docstrings | |
 | IDR_2 | `util_state.py` — update validation regex for iteration IDs | |
 | IDR_3 | `util_io.py` — update `iter_state_path` if it hardcodes `ID_` pattern | |
-| IDR_4 | Remaining scripts — update literal `"ID_NNN"` in help text, examples, docstrings (7 occurrences) | |
+| IDR_4 | Remaining scripts — update literal `"ITR_NNN"` in help text, examples, docstrings (7 occurrences) | |
 | IDR_5 | **Checkpoint:** tests pass (existing tests still use `ID_`, so tests that validate the prefix will fail — this is expected red) | |
 | | **Phase 2: Tests** | |
 | IDR_6 | `util_fixture.py` — update default iteration IDs in fixture builders | |
-| IDR_7 | Bulk rename `"ID_NNN"` → `"ITR_NNN"` across all 36 test files (~1174 occurrences) | |
+| IDR_7 | Bulk rename `"ITR_NNN"` → `"ITR_NNN"` across all 36 test files (~1174 occurrences) | |
 | IDR_8 | **Checkpoint:** all tests green | |
 | | **Phase 3: Entry Points** | |
 | IDR_9 | `plet_agent.py`, `plet_tools.py`, `plet_orchestrator.py` — update help text, examples | |

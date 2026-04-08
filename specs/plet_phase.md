@@ -66,7 +66,7 @@
 #### Definition (CMD)
 
 ```
-plet_phase.py end <plet_dir> --iter-id ID_xxx --phase implement|verify
+plet_phase.py end <plet_dir> --iter-id ITR_xxx --phase implement|verify
     --verdict VALUE --progress-content "..." [--report-file PATH]
     [--output json [--pretty] [--fields f1,f2]]
 ```
@@ -78,7 +78,7 @@ plet_phase.py end <plet_dir> --iter-id ID_xxx --phase implement|verify
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PHS_END_INP_1 | `plet_dir` — required positional. Path to plet directory. | P0 |
-| PHS_END_INP_2 | `--iter-id` — required. Iteration ID (e.g., ID_001). | P0 |
+| PHS_END_INP_2 | `--iter-id` — required. Iteration ID (e.g., ITR_001). | P0 |
 | PHS_END_INP_3 | `--phase` — required. `implement` or `verify`. | P0 |
 | PHS_END_INP_4 | `--verdict` — required. Implement: `completed` or `blocked`. Verify: `passed`, `rejected`, or `blocked`. | P0 |
 | PHS_END_INP_5 | `--progress-content` — required. Freeform content for the completion progress entry. | P0 |
@@ -101,7 +101,7 @@ plet_phase.py end <plet_dir> --iter-id ID_xxx --phase implement|verify
   "command": "end",
   "phase": "implement",
   "verdict": "completed",
-  "iterationId": "ID_001",
+  "iterationId": "ITR_001",
   "steps": ["set-verdict", "add-progress", "append-event", "audit-tag", "git-commit"],
   "scriptVersion": "0.1.0"
 }
@@ -144,20 +144,20 @@ Inherited from the underlying scripts. See IST, ENT, TRC, GTO specs for edge cas
 
 ```bash
 # Implement phase — completed
-plet_phase.py end plet/ --iter-id ID_001 --phase implement --verdict completed \
+plet_phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed \
     --progress-content "Implemented: project scaffolding. 5 AC, all green."
 
 # Verify phase — passed with report
-plet_phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed \
+plet_phase.py end plet/ --iter-id ITR_001 --phase verify --verdict passed \
     --progress-content "Verified: all 5 AC independently confirmed." \
     --report-file /tmp/report.json
 
 # Implement phase — blocked
-plet_phase.py end plet/ --iter-id ID_001 --phase implement --verdict blocked \
+plet_phase.py end plet/ --iter-id ITR_001 --phase implement --verdict blocked \
     --progress-content "Blocked: spec ambiguous on AC_3 — need clarification."
 
 # JSON output
-plet_phase.py end plet/ --iter-id ID_001 --phase implement --verdict completed \
+plet_phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed \
     --progress-content "Done." --output json --pretty
 ```
 

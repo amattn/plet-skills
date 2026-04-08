@@ -65,7 +65,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_INI_CMD_1 | Usage: `plet_global_state.py init <global_plet_dir> --project-id PROJ --project-name "Name" --dependency-map '{"ID_001":[],...}' --milestones '{"MS_1":{...}}' --iterations-fingerprint '{"..."}' [--dependency-map-file path] [--milestones-file path] [--iterations-fingerprint-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_INI_CMD_1 | Usage: `plet_global_state.py init <global_plet_dir> --project-id PROJ --project-name "Name" --dependency-map '{"ITR_001":[],...}' --milestones '{"MS_1":{...}}' --iterations-fingerprint '{"..."}' [--dependency-map-file path] [--milestones-file path] [--iterations-fingerprint-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, non-idempotent (errors if file exists), atomic
 
@@ -78,8 +78,8 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 | GST_INI_INP_1 | `global_plet_dir` — required first positional arg. Path to the global plet directory (workstream copy). State.json only exists here, not in worktrees. | P0 |
 | GST_INI_INP_2 | `--project-id` — project ID (3-6 chars, uppercase alphanumeric, starts with letter). Required. | P0 |
 | GST_INI_INP_3 | `--project-name` — human-readable project name. Required. | P0 |
-| GST_INI_INP_4 | `--dependency-map` — JSON string: `{"ID_001":[], "ID_002":["ID_001"]}`. Required. | P0 |
-| GST_INI_INP_5 | `--milestones` — JSON string: `{"MS_1":{"name":"MVP","iterations":["ID_001"]}}`. Required. | P0 |
+| GST_INI_INP_4 | `--dependency-map` — JSON string: `{"ITR_001":[], "ITR_002":["ITR_001"]}`. Required. | P0 |
+| GST_INI_INP_5 | `--milestones` — JSON string: `{"MS_1":{"name":"MVP","iterations":["ITR_001"]}}`. Required. | P0 |
 | GST_INI_INP_6 | `--iterations-fingerprint` — JSON string with iterations fingerprint object. Required (unless `--iterations-fingerprint-file` provided). | P0 |
 | GST_INI_INP_7 | `--project-description` — optional project description string. | P1 |
 | GST_INI_INP_8 | `--dependency-map-file` — path to JSON file, alternative to `--dependency-map` string. Mutually exclusive with `--dependency-map`. | P1 |
@@ -138,7 +138,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_ULC_CMD_1 | Usage: `plet_global_state.py update-lifecycle <global_plet_dir> --iter-id ID_xxx --lifecycle implementing [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_ULC_CMD_1 | Usage: `plet_global_state.py update-lifecycle <global_plet_dir> --iter-id ITR_xxx --lifecycle implementing [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (lastUpdated changes), atomic
 
@@ -149,7 +149,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GST_ULC_INP_1 | `global_plet_dir` — required first positional arg | P0 |
-| GST_ULC_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Required. | P0 |
+| GST_ULC_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`). Required. | P0 |
 | GST_ULC_INP_3 | `--lifecycle` — target lifecycle value. Required. Must be one of: `ineligible`, `queued`, `implementing`, `verifying`, `complete`, `blocked`, `withdrawn`. | P0 |
 
 #### Outputs (GST_ULC_OUT)
@@ -202,7 +202,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_GLC_CMD_1 | Usage: `plet_global_state.py get-lifecycle <global_plet_dir> [--iter-id ID_xxx] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_GLC_CMD_1 | Usage: `plet_global_state.py get-lifecycle <global_plet_dir> [--iter-id ITR_xxx] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -244,7 +244,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 | GST_GLC_BHV_2 | When `--iter-id` is omitted: return full lifecycles map + summary counts | P0 |
 | GST_GLC_BHV_3 | Summary counts include all lifecycle values (zero counts shown) for consistent parsing | P0 |
 | GST_GLC_BHV_4 | If `lifecycles` field is missing from state.json (pre-migration), return empty map with zero counts | P1 |
-| GST_GLC_BHV_5 | Output sorted by iteration ID (ID_001, ID_002, ...) — both text and JSON. Predictable order for agents and humans. | P0 |
+| GST_GLC_BHV_5 | Output sorted by iteration ID (ITR_001, ITR_002, ...) — both text and JSON. Predictable order for agents and humans. | P0 |
 
 ---
 
@@ -351,7 +351,7 @@ References `state-schema.md` § Global State for the full state.json schema.
 | ID | Flow | Steps |
 |----|------|-------|
 | GST_AFL_1 | Plan session initialization | 1. Plan agent calls `plet_global_state.py init` with project metadata. 2. Script creates state.json with lifecycles auto-initialized from dependency map. 3. Plan agent then calls `plet_iter_state.py init` for each iteration. |
-| GST_AFL_2 | Orchestrator lifecycle transition | 1. Orchestrator decides lifecycle transition (e.g., implement returned, verdict is "completed"). 2. Calls `plet_global_state.py update-lifecycle --iter-id ID_001 --lifecycle verifying`. 3. Script atomically updates state.json. |
+| GST_AFL_2 | Orchestrator lifecycle transition | 1. Orchestrator decides lifecycle transition (e.g., implement returned, verdict is "completed"). 2. Calls `plet_global_state.py update-lifecycle --iter-id ITR_001 --lifecycle verifying`. 3. Script atomically updates state.json. |
 | GST_AFL_3 | Schedule eligible check | 1. Schedule script calls `plet_global_state.py get-lifecycle --output json`. 2. Receives full lifecycles map + counts. 3. Evaluates eligibility using lifecycles + dependency map (from state.json, same file read). |
 
 ## 8. Examples (GST_EXM)
@@ -361,20 +361,20 @@ References `state-schema.md` § Global State for the full state.json schema.
 plet_global_state.py init plet \
   --project-id LOGA \
   --project-name "Log Analyzer" \
-  --dependency-map '{"ID_001":[],"ID_002":["ID_001"],"ID_003":["ID_001"]}' \
-  --milestones '{"MS_1":{"name":"MVP","iterations":["ID_001","ID_002","ID_003"]}}' \
-  --iterations-fingerprint '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z","iterations":{"MS_1":["ID_001","ID_002","ID_003"]}}'
+  --dependency-map '{"ITR_001":[],"ITR_002":["ITR_001"],"ITR_003":["ITR_001"]}' \
+  --milestones '{"MS_1":{"name":"MVP","iterations":["ITR_001","ITR_002","ITR_003"]}}' \
+  --iterations-fingerprint '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z","iterations":{"MS_1":["ITR_001","ITR_002","ITR_003"]}}'
 
 # Update lifecycle (orchestrator only)
-plet_global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle implementing
+plet_global_state.py update-lifecycle plet --iter-id ITR_001 --lifecycle implementing
 
 # Get single lifecycle
-plet_global_state.py get-lifecycle plet --iter-id ID_001
-# → ID_001: implementing
+plet_global_state.py get-lifecycle plet --iter-id ITR_001
+# → ITR_001: implementing
 
 # Get all lifecycles (JSON — same shape as single, just more entries)
 plet_global_state.py get-lifecycle plet --output json
-# → {"status":"ok","command":"get-lifecycle","lifecycles":{"ID_001":"implementing","ID_002":"ineligible","ID_003":"queued"},"counts":{"ineligible":1,"queued":1,"implementing":1,"verifying":0,"complete":0,"blocked":0,"withdrawn":0},"total":3}
+# → {"status":"ok","command":"get-lifecycle","lifecycles":{"ITR_001":"implementing","ITR_002":"ineligible","ITR_003":"queued"},"counts":{"ineligible":1,"queued":1,"implementing":1,"verifying":0,"complete":0,"blocked":0,"withdrawn":0},"total":3}
 
 # Validate
 plet_global_state.py validate plet
@@ -444,4 +444,4 @@ plet_global_state.py validate plet
 
 | # | Question | Context |
 |---|----------|---------|
-| 1 | Should `update-lifecycle` append a *semantic* progress entry beyond the dispatch auto-log? | `util_cli.dispatch()` already auto-logs every invocation to trace + progress.md (invocation-level: script name, command, args, exit code). The question is whether `update-lifecycle` should also append a richer, semantic entry like "ID_001: implementing → verifying (implement completed)". Trade-off: richer progress log vs coupling GST to plet_entries.py. The auto-log captures *that* it was called; a semantic entry captures *what it means*. |
+| 1 | Should `update-lifecycle` append a *semantic* progress entry beyond the dispatch auto-log? | `util_cli.dispatch()` already auto-logs every invocation to trace + progress.md (invocation-level: script name, command, args, exit code). The question is whether `update-lifecycle` should also append a richer, semantic entry like "ITR_001: implementing → verifying (implement completed)". Trade-off: richer progress log vs coupling GST to plet_entries.py. The auto-log captures *that* it was called; a semantic entry captures *what it means*. |

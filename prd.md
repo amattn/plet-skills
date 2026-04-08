@@ -49,15 +49,15 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 |----|-------------|----------|
 | GC_1 | All IDs use underscore format: `XXX_N` where the prefix is usually 3, but can be 2-4 uppercase letters (e.g., `FRS_1`, `IMP_3`, `MST_1`, `EMR_5`). Sub-groups use `XXX_YYY_N` (e.g., `UI_NAV_1`) when there is a logical grouping or large item count. IDs use append-only numbering: new items get the next available number, deleted items leave gaps, numbers don't imply ordering (document position determines order), IDs are stable once assigned (never renumber, never reuse). This applies globally to requirement IDs, iteration IDs, milestone IDs, and emergent item IDs. **Reserved prefixes:** `MS_` (milestones) and `ID_` (iterations) must not be used for requirement IDs — fingerprint scanning uses these prefixes to disambiguate ID types. Follows the [/stable-label convention](https://github.com/amattn/session-kit): greppable, append-only, one grep always finds exactly one definition. | P0 |
 | GC_2 | Agents prefer making a decision and documenting it in emergent.md over blocking. Blocking is a last resort reserved for situations where no reasonable decision can be made without human input. | P0 |
-| GC_3 | When IDs appear in filenames (e.g., `ID_001.json`, `ID_001-implement-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order in file browsers. Zero-padding is not required in artifact content or prose. | P0 |
+| GC_3 | When IDs appear in filenames (e.g., `ITR_001.json`, `ITR_001-implement-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order in file browsers. Zero-padding is not required in artifact content or prose. | P0 |
 
 **Branch and tag conventions:**
 
 | Purpose | Pattern | Example |
 |---------|---------|---------|
 | Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
-| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
-| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
+| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ITR_001` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ITR_001/implement-1` |
 | Plan | `plet/{projectId}/plan1/workstream` | `plet/LOGA/plan1/workstream` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
@@ -120,8 +120,8 @@ Example fingerprint structure:
   "requirementsFingerprint": { ... },
   "lastNonTrivialUpdate": "2026-03-07T15:00:00Z",
   "iterations": {
-    "MS_1": ["ID_001", "ID_002"],
-    "MS_2": ["ID_003", "ID_004"]
+    "MS_1": ["ITR_001", "ITR_002"],
+    "MS_2": ["ITR_003", "ITR_004"]
   }
 }
 ```
@@ -235,7 +235,7 @@ Independent verification in a fresh context window. The verification agent verif
 | VF_11 | Spec gaps: identify implemented behavior that isn't covered by the spec. Flag as emergent items for a refine session. | P0 |
 | VF_12 | Anti-slop bias: assume the first correct version contains hidden debt. Don't rubber-stamp because tests pass — look deeper. | P0 |
 | VF_13 | Convergence signal: an iteration is genuinely complete when verification critiques reduce to cosmetic/stylistic issues only | P0 |
-| VF_14 | If all criteria pass verification, the verify agent sets `verifyVerdict: "passed"`. The orchestrator then writes `lifecycles.ID_xxx = "complete"` to state.json (iteration frozen). The verify agent does NOT write lifecycle — see IMP_8, SF_28. | P0 |
+| VF_14 | If all criteria pass verification, the verify agent sets `verifyVerdict: "passed"`. The orchestrator then writes `lifecycles.ITR_xxx = "complete"` to state.json (iteration frozen). The verify agent does NOT write lifecycle — see IMP_8, SF_28. | P0 |
 | VF_15 | If issues are found that are minor and obvious to fix (typos, missing edge case tests, small corrections): add new acceptance criteria, fix with red/green discipline, then complete. For anything substantial, cycle back to implementation per VF_16. | P0 |
 | VF_16 | If issues are found that cannot be fixed in this context: add new criteria set to `fail`, write failing tests (red step) for each test-expressible issue as a concrete handoff to the next implementation agent, set `verifyVerdict: "rejected"`, document in emergent.md and learnings.md. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule. For issues that aren't test-expressible (e.g., architectural concerns), document why no red test was created. The orchestrator reads `verifyVerdict` from per-iteration state and writes lifecycle → `queued` (retry) or `blocked` (retry exhausted) to state.json — the verify agent does NOT write lifecycle (SF_28). | P0 |
 | VF_17 | The verification agent appends to progress.md, learnings.md, and emergent.md following atomic write semantics | P0 |
@@ -289,7 +289,7 @@ Plet IDs are a composable, globally unique identifier scheme used across plet ar
 
 | Context Segment | Description |
 |-----------------|-------------|
-| iteration | Iteration ID normalized: lowercase, underscores removed (`ID_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`. |
+| iteration | Iteration ID normalized: lowercase, underscores removed (`ITR_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`. |
 | phase_attempt | Phase and attempt: `p1` (plan session 1), `i1` (implement attempt 1), `v2` (verify attempt 2), `r1` (refine session 1) |
 
 **Known type prefixes:**
@@ -360,7 +360,7 @@ Python scripts shipped in `skills/plet/scripts/` that enforce compliance determi
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ES_1 | All scripts take `<plet_dir>` as optional first positional arg (default: `plet/`). Scripts derive all paths internally via `util_io` path functions. Commands needing per-iteration context add `--iter-id ID_xxx`. (UNV_CMD_16) | P0 |
+| ES_1 | All scripts take `<plet_dir>` as optional first positional arg (default: `plet/`). Scripts derive all paths internally via `util_io` path functions. Commands needing per-iteration context add `--iter-id ITR_xxx`. (UNV_CMD_16) | P0 |
 | ES_2 | All scripts support `--output json`, `--pretty`, `--fields` for structured machine-readable output. Default is human-readable text. (UNV_CMD_15, UNV_CMD_18, UNV_CMD_19) | P0 |
 | ES_3 | Shared CLI helpers (`get_plet_dir`, `extract_output_flags`, `filter_fields`, `parse_command`) live in `util_cli.py`. Each script defines local `_to_json()` / `_err_json()` helpers for JSON output (return strings, never print). (UNV_CMD_26) | P0 |
 | ES_4 | Exit codes: 0 = success, 1 = error. Check/gate commands additionally use 2 = warnings only (no failures). (UNV_CMD_14) | P0 |
@@ -574,35 +574,35 @@ plet/
 ├── iterations.md            # Iteration definitions (plan artifact)
 ├── state.json               # Global state (runtime)
 ├── state/
-│   ├── ID_001.json          # Per-iteration state
-│   ├── ID_002.json
+│   ├── ITR_001.json          # Per-iteration state
+│   ├── ITR_002.json
 │   └── ...
 ├── progress.md              # What was done (runtime artifact)
 ├── learnings.md             # Agent-facing knowledge (runtime artifact)
 ├── emergent.md              # Human-facing items (runtime artifact)
 └── trace/
-    ├── ID_001-implement-1-transcript.ndjson  # Raw I/O (captured by plet_invoke.py)
-    ├── ID_001-implement-1-events.ndjson     # Semantic events (written by subagent)
-    ├── ID_001-verify-1-transcript.ndjson
-    ├── ID_001-verify-1-events.ndjson
+    ├── ITR_001-implement-1-transcript.ndjson  # Raw I/O (captured by plet_invoke.py)
+    ├── ITR_001-implement-1-events.ndjson     # Semantic events (written by subagent)
+    ├── ITR_001-verify-1-transcript.ndjson
+    ├── ITR_001-verify-1-events.ndjson
     └── ...
 ```
 
 ### 7.4 Dependency Graph and Sequential Execution
 
 ```
-   ID_001 (scaffolding)
+   ITR_001 (scaffolding)
       │
       ├──────────┐
       ▼          ▼
-   ID_002     ID_003      ← independent: run sequentially in topological order
+   ITR_002     ITR_003      ← independent: run sequentially in topological order
       │          │
       ├──────────┘
       ▼
-   ID_004 (depends on both ID_002 and ID_003)
+   ITR_004 (depends on both ITR_002 and ITR_003)
       │
       ▼
-   ID_005
+   ITR_005
 ```
 
 Iterations are executed sequentially, one at a time, in dependency order. Independent iterations (no dependency relationship) are run in topological order. The orchestrator evaluates the dependency graph after each iteration completes to identify the next eligible work.

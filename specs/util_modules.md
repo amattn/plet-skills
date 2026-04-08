@@ -86,7 +86,7 @@ Plet ID generation — Crockford Base32 timestamps and context segments.
 | `generate_plet_id(type_prefix, iteration, phase, attempt)` | Full plet ID: `{prefix}_{crockford32}_{iter}_{phase}{attempt}` |
 | `crockford_encode(n)` | Encode integer as Crockford Base32 string. |
 | `crockford_timestamp()` | Current time as 10-char Crockford Base32 (milliseconds). |
-| `normalize_iteration(iter_id)` | `ID_001` → `id001` (lowercase, no underscores). |
+| `normalize_iteration(iter_id)` | `ITR_001` → `id001` (lowercase, no underscores). |
 | `phase_attempt_segment(phase, attempt)` | `implement`, 1 → `i1`. |
 
 ## util_state.py

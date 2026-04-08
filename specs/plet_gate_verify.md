@@ -62,7 +62,7 @@ Both commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GVR_PRE_CMD_1 | Usage: `plet_gate_verify.py pre <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GVR_PRE_CMD_1 | Usage: `plet_gate_verify.py pre <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 
@@ -143,7 +143,7 @@ Simpler than GIM pre — only git and state, plus lifecycle check.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GVR_PST_CMD_1 | Usage: `plet_gate_verify.py post <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GVR_PST_CMD_1 | Usage: `plet_gate_verify.py post <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 
@@ -260,12 +260,12 @@ Identical checks to GIM post — git, state, entries, trace. Phase is `verify` i
 ### GVR_AFL_1: Normal verify phase
 
 1. Orchestrator prepares iteration for verification
-2. Orchestrator calls: `plet_gate_verify.py pre plet/ --iter-id ID_001 --output json`
+2. Orchestrator calls: `plet_gate_verify.py pre plet/ --iter-id ITR_001 --output json`
 3. If exit 1 (fail): abort, report issues
 4. If exit 2 (warn): log warnings, continue
 5. Orchestrator spawns verify subagent
 6. Verify subagent does its work (criterion checks, code review, testing)
-7. **Subagent** calls: `plet_gate_verify.py post plet/ --iter-id ID_001 --output json`
+7. **Subagent** calls: `plet_gate_verify.py post plet/ --iter-id ITR_001 --output json`
 8. If exit 1 (fail): subagent self-corrects and re-runs post
 9. Subagent repeats 7-8 until post-gate passes
 10. Subagent exits — its exit signals "post-gate passed"
@@ -287,15 +287,15 @@ Identical checks to GIM post — git, state, entries, trace. Phase is `verify` i
 ### GVR_EXM_1: Pre-gate — all passing
 
 ```bash
-plet_gate_verify.py pre plet/ --iter-id ID_001
+plet_gate_verify.py pre plet/ --iter-id ITR_001
 # OK: pre — 8 passed
 # PASS: git:in-progress-operation — no interrupted git operations
-# PASS: git:branch-exists — plet/LOGA/loop1/ID_001 exists
-# PASS: git:correct-branch — on plet/LOGA/loop1/ID_001
+# PASS: git:branch-exists — plet/LOGA/loop1/ITR_001 exists
+# PASS: git:correct-branch — on plet/LOGA/loop1/ITR_001
 # PASS: git:clean-worktree — no uncommitted changes
 # PASS: git:linear-history — no merge commits since workstream divergence
 # PASS: git:no-stashes — stash list empty
-# PASS: state-valid — ID_001.json valid
+# PASS: state-valid — ITR_001.json valid
 # PASS: lifecycle-check — lifecycle is verifying
 # 8 checks: 8 passed, 0 failed, 0 warnings
 ```
@@ -303,19 +303,19 @@ plet_gate_verify.py pre plet/ --iter-id ID_001
 ### GVR_EXM_2: Post-gate — missing progress entry
 
 ```bash
-plet_gate_verify.py post plet/ --iter-id ID_001
+plet_gate_verify.py post plet/ --iter-id ITR_001
 # FAIL: post — 2 failed, 3 warnings
 # PASS: git:in-progress-operation — no interrupted git operations
-# PASS: git:branch-exists — plet/LOGA/loop1/ID_001 exists
-# PASS: git:correct-branch — on plet/LOGA/loop1/ID_001
+# PASS: git:branch-exists — plet/LOGA/loop1/ITR_001 exists
+# PASS: git:correct-branch — on plet/LOGA/loop1/ITR_001
 # PASS: git:clean-worktree — no uncommitted changes
 # PASS: git:linear-history — no merge commits since workstream divergence
 # PASS: git:no-stashes — stash list empty
-# PASS: state-valid — ID_001.json valid
-# FAIL: progress-entry — 0 progress entries for ID_001
-# WARN: learnings-entry — 0 learnings entries for ID_001
-# WARN: emergent-entry — 0 emergent entries for ID_001
-# WARN: trace-events — no trace events file for ID_001 verify-1
+# PASS: state-valid — ITR_001.json valid
+# FAIL: progress-entry — 0 progress entries for ITR_001
+# WARN: learnings-entry — 0 learnings entries for ITR_001
+# WARN: emergent-entry — 0 emergent entries for ITR_001
+# WARN: trace-events — no trace events file for ITR_001 verify-1
 # FAIL: last-verdict — lastVerdict is null
 # FAIL: verification-report — verificationReports is empty
 # 13 checks: 7 passed, 3 failed, 3 warnings
@@ -324,18 +324,18 @@ plet_gate_verify.py post plet/ --iter-id ID_001
 ### GVR_EXM_3: Post-gate — JSON output
 
 ```bash
-plet_gate_verify.py post plet/ --iter-id ID_001 --output json --pretty
+plet_gate_verify.py post plet/ --iter-id ITR_001 --output json --pretty
 # {
 #   "status": "fail",
 #   "command": "post",
-#   "iterationId": "ID_001",
+#   "iterationId": "ITR_001",
 #   "checks": [
 #     {"name": "git:in-progress-operation", "status": "pass", "detail": "..."},
 #     ...
-#     {"name": "progress-entry", "status": "fail", "detail": "0 progress entries for ID_001"},
-#     {"name": "learnings-entry", "status": "warn", "detail": "0 learnings entries for ID_001"},
-#     {"name": "emergent-entry", "status": "warn", "detail": "0 emergent entries for ID_001"},
-#     {"name": "trace-events", "status": "warn", "detail": "no trace events file for ID_001 verify-1"},
+#     {"name": "progress-entry", "status": "fail", "detail": "0 progress entries for ITR_001"},
+#     {"name": "learnings-entry", "status": "warn", "detail": "0 learnings entries for ITR_001"},
+#     {"name": "emergent-entry", "status": "warn", "detail": "0 emergent entries for ITR_001"},
+#     {"name": "trace-events", "status": "warn", "detail": "no trace events file for ITR_001 verify-1"},
 #     {"name": "last-verdict", "status": "fail", "detail": "lastVerdict is null"},
 #     {"name": "verification-report", "status": "fail", "detail": "verificationReports is empty"}
 #   ],

@@ -84,7 +84,7 @@ Resolutions may include:
 **Do not re-queue a blocked iteration without explicit user confirmation.** After the resolution conversation, summarize what was discussed and what changed, then ask:
 
 ```
-Here's what we resolved for ID_NNN:
+Here's what we resolved for ITR_NNN:
   - [summary of the clarification or changes made]
   - [any spec or criteria updates]
   - [any new dependencies added]
@@ -217,7 +217,7 @@ Iterations with lifecycle `implementing`, `verifying`, or `blocked` need user de
 2. Present three options:
 
 ```
-Iteration ID_NNN is partially complete (3/5 criteria pass). What would you like to do?
+Iteration ITR_NNN is partially complete (3/5 criteria pass). What would you like to do?
   A. Revise — keep current progress, add/modify criteria as needed
   B. Reset — clear progress, start fresh with updated criteria
   C. Withdraw — retire this iteration, create a new one if needed
@@ -247,9 +247,9 @@ Withdrawing an iteration is potentially disruptive. Before executing, **always p
 3. **Milestone impact** — how does this affect the milestone this iteration belongs to?
 
 ```
-Withdrawing ID_005 would affect:
+Withdrawing ITR_005 would affect:
   Requirements no longer covered: FR_3 (user authentication), FR_4 (session management)
-  Downstream iterations: ID_007 (depends on ID_005), ID_009 (depends on ID_007)
+  Downstream iterations: ITR_007 (depends on ITR_005), ITR_009 (depends on ITR_007)
   Milestone: MS_2 loses 3 of 5 iterations
 
 This is a significant change. How would you like to proceed?
@@ -325,12 +325,12 @@ Ask the user if they want to adjust breakpoints. If yes:
 
 ```
 Current breakpoints:
-  Before: [ID_005, ID_008]
-  After: [ID_003]
+  Before: [ITR_005, ITR_008]
+  After: [ITR_003]
 
 Add or remove breakpoints?
-  - "before ID_NNN" — pause before this iteration starts
-  - "after ID_NNN" — pause after this iteration completes
+  - "before ITR_NNN" — pause before this iteration starts
+  - "after ITR_NNN" — pause after this iteration completes
   - "clear" — remove all breakpoints
   - "skip" — keep current breakpoints
 ```
@@ -371,7 +371,7 @@ Update the fingerprint block:
   "requirementsFingerprint": { ... },
   "lastNonTrivialUpdate": "YYYY-MM-DDTHH:MM:SSZ",
   "iterations": {
-    "MS_1": ["ID_001", "ID_002", ...],
+    "MS_1": ["ITR_001", "ITR_002", ...],
     ...
   }
 }

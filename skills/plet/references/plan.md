@@ -405,10 +405,10 @@ After requirements, milestones, and gap analysis are complete, break them into i
 Each iteration includes:
 
 ```markdown
-### ID_NNN: [title]
+### ITR_NNN: [title]
 
 **Milestone:** MS_N
-**Dependencies:** [ID_NNN, ID_NNN] or none
+**Dependencies:** [ITR_NNN, ITR_NNN] or none
 **Requirements:** [PREFIX_N, PREFIX_N, ...]
 
 **User Story:**
@@ -494,8 +494,8 @@ After all iterations are approved:
      "requirementsFingerprint": { ... },
      "lastNonTrivialUpdate": "YYYY-MM-DDTHH:MM:SSZ",
      "iterations": {
-       "MS_1": ["ID_001", "ID_002"],
-       "MS_2": ["ID_003", "ID_004"]
+       "MS_1": ["ITR_001", "ITR_002"],
+       "MS_2": ["ITR_003", "ITR_004"]
      }
    }
    ```
@@ -513,8 +513,8 @@ After all iterations are approved:
 3. Create per-iteration state files using the state tool:
    ```bash
    TOOL="${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
-   $TOOL init plet/state/ID_001.json \
-       --iter-id ID_001 \
+   $TOOL init plet/state/ITR_001.json \
+       --iter-id ITR_001 \
        --title "Project scaffolding" \
        --dependencies '[]' \
        --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'

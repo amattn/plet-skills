@@ -64,7 +64,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event <plet_dir> --iter-id ID_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event <plet_dir> --iter-id ITR_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** mutating (appends to file), not idempotent (each call adds a new line), atomic append
 
@@ -75,7 +75,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | TRC_APE_INP_1 | `plet_dir` — required positional. Path to plet directory. The trace file is derived internally: `util_io.trace_path(plet_dir)` → `{plet_dir}/trace.ndjson`. | P0 |
-| TRC_APE_INP_2 | `--iter-id` — iteration ID (e.g., `ID_001`). Used in the filename and the event's `iterationId` field. | P0 |
+| TRC_APE_INP_2 | `--iter-id` — iteration ID (e.g., `ITR_001`). Used in the filename and the event's `iterationId` field. | P0 |
 | TRC_APE_INP_3 | `--phase` — `implement` or `verify`. Used in the filename and the event's `phase` field. | P0 |
 | TRC_APE_INP_4 | `--attempt` — positive integer. Used in the filename and the event's `attempt` field. | P0 |
 | TRC_APE_INP_5 | `--event-type` — one of: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, `invocation`. | P0 |
@@ -339,7 +339,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 | TRC_ERR_2 | Invalid `--event-type` → `Error: invalid --event-type '{value}' (valid: decision, criterion_update, lifecycle_change, activity_change, error, invocation)` | P0 |
 | TRC_ERR_3 | Invalid `--phase` → `Error: invalid --phase '{value}' (valid: implement, verify)` | P0 |
 | TRC_ERR_4 | Invalid `--attempt` → `Error: --attempt must be a positive integer, got '{value}'` | P0 |
-| TRC_ERR_5 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ID_N+` | P0 |
+| TRC_ERR_5 | Invalid `--iter-id` format → `Error: --iter-id '{value}' does not match expected pattern ITR_N+` | P0 |
 | TRC_ERR_6 | Invalid JSON in `--data` → `Error: --data must be valid JSON: {parse_error}` | P0 |
 | TRC_ERR_7 | `--data` is not a JSON object → `Error: --data must be a JSON object, got {type}` | P0 |
 | TRC_ERR_8 | Both `--data` and `--data-file` → `Error: --data and --data-file are mutually exclusive` | P0 |
@@ -376,7 +376,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
   "pletId": "tev_01JD8X3K7M_id001_i1_decision",
   "timestamp": "2026-03-07T15:20:01Z",
   "type": "decision",
-  "iterationId": "ID_001",
+  "iterationId": "ITR_001",
   "phase": "implement",
   "attempt": 1,
   "data": {}
@@ -388,7 +388,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 | `pletId` | string | yes | Globally unique plet ID with `tev_` prefix. Crockford Base32 timestamp + context segments. Greppable, cross-referenceable with state files and runtime artifacts. |
 | `timestamp` | string | yes | ISO 8601 UTC, second resolution (`YYYY-MM-DDTHH:MM:SSZ`). Set by script, not caller. |
 | `type` | string | yes | One of: `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, `invocation` |
-| `iterationId` | string | yes | Iteration ID (e.g., `ID_001`) |
+| `iterationId` | string | yes | Iteration ID (e.g., `ITR_001`) |
 | `phase` | string | yes | `implement` or `verify` |
 | `attempt` | integer | yes | Positive integer (1-based) |
 | `data` | object | yes | Type-specific payload (see below) |
@@ -419,9 +419,9 @@ Default: `plet/trace.ndjson`. All events (across iterations, phases, and attempt
 ### TRC_AFL_1: Impl subagent writes trace events during work
 
 1. Orchestrator spawns implement subagent with plet dir path
-2. Subagent starts: `plet_trace.py append-event plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type lifecycle_change --data '{"from":"queued","to":"implementing"}'`
+2. Subagent starts: `plet_trace.py append-event plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type lifecycle_change --data '{"from":"queued","to":"implementing"}'`
 3. During work, subagent writes events for decisions, criterion updates, activity changes
-4. On errors: `plet_trace.py append-event plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type error --data '{"message":"...","recovery":"..."}'`
+4. On errors: `plet_trace.py append-event plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type error --data '{"message":"...","recovery":"..."}'`
 5. Before completing: final trace entries for any remaining decisions
 
 ### TRC_AFL_2: Verify agent reviews implement trace
@@ -434,7 +434,7 @@ Default: `plet/trace.ndjson`. All events (across iterations, phases, and attempt
 ### TRC_AFL_3: Verify subagent writes trace events during verification
 
 1. Verify agent reviews implement trace (AFL_2), then begins its own work
-2. Subagent starts: `plet_trace.py append-event plet/ --iter-id ID_001 --phase verify --attempt 1 --event-type lifecycle_change --data '{"from":"implementing","to":"verifying"}'`
+2. Subagent starts: `plet_trace.py append-event plet/ --iter-id ITR_001 --phase verify --attempt 1 --event-type lifecycle_change --data '{"from":"implementing","to":"verifying"}'`
 3. For each criterion: writes `criterion_update` events with verification status and evidence
 4. Records decisions (e.g., "AC_2 test is tautological — mocks DB layer") as `decision` events
 5. On completion: final criterion updates and lifecycle change
@@ -461,7 +461,7 @@ Default: `plet/trace.ndjson`. All events (across iterations, phases, and attempt
 
 ```bash
 plet_trace.py append-event plet/ \
-    --iter-id ID_001 --phase implement --attempt 1 \
+    --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type decision \
     --data '{"description":"Using pytest over unittest","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}'
 # OK — appended decision event to plet/trace.ndjson
@@ -471,7 +471,7 @@ plet_trace.py append-event plet/ \
 
 ```bash
 plet_trace.py append-event plet/ \
-    --iter-id ID_001 --phase implement --attempt 1 \
+    --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type criterion_update \
     --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}'
 # OK — appended criterion_update event to plet/trace.ndjson
@@ -481,7 +481,7 @@ plet_trace.py append-event plet/ \
 
 ```bash
 plet_trace.py append-event plet/ \
-    --iter-id ID_003 --phase verify --attempt 1 \
+    --iter-id ITR_003 --phase verify --attempt 1 \
     --event-type lifecycle_change \
     --data '{"from":"implementing","to":"verifying"}'
 # OK — appended lifecycle_change event to plet/trace.ndjson
@@ -491,9 +491,9 @@ plet_trace.py append-event plet/ \
 
 ```bash
 plet_trace.py append-event plet/ \
-    --iter-id ID_001 --phase implement --attempt 1 \
+    --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type invocation \
-    --data '{"cwd":"/Users/dev/myproject","permissionMode":"bypassPermissions","promptLength":4820,"prompt":"Implement iteration ID_001..."}'
+    --data '{"cwd":"/Users/dev/myproject","permissionMode":"bypassPermissions","promptLength":4820,"prompt":"Implement iteration ITR_001..."}'
 # OK — appended invocation event to plet/trace.ndjson
 ```
 
@@ -513,8 +513,8 @@ plet_trace.py validate custom/plet/
 
 ```bash
 plet_trace.py query plet/ --event-type decision
-# {"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ID_001",...}
-# {"timestamp":"2026-03-07T15:25:00Z","type":"decision","iterationId":"ID_001",...}
+# {"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ITR_001",...}
+# {"timestamp":"2026-03-07T15:25:00Z","type":"decision","iterationId":"ITR_001",...}
 
 plet_trace.py query plet/ --criterion AC_1
 # {"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update",...,"data":{"criterionId":"AC_1",...}}
@@ -544,7 +544,7 @@ plet_trace.py query plet/ --event-type decision --raw | jq '.data.description'
 
 ```bash
 plet_trace.py append-event plet/ \
-    --iter-id ID_001 --phase implement --attempt 1 \
+    --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type activity_change \
     --data '{"activity":"running_checks","detail":"green: all tests passing"}' \
     --dry-run
@@ -555,7 +555,7 @@ plet_trace.py append-event plet/ \
 
 ```bash
 plet_trace.py append-event plet/ \
-    --iter-id ID_001 --phase implement --attempt 1 \
+    --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type decision \
     --data '{"description":"test","rationale":"test"}' \
     --output json --pretty
@@ -567,7 +567,7 @@ plet_trace.py append-event plet/ \
 #   "event": {
 #     "timestamp": "2026-03-07T15:10:00Z",
 #     "type": "decision",
-#     "iterationId": "ID_001",
+#     "iterationId": "ITR_001",
 #     "phase": "implement",
 #     "attempt": 1,
 #     "data": {"description": "test", "rationale": "test"}
@@ -653,7 +653,7 @@ See `specs/conventions.md` for universal requirements.
 |---|----------|----------|
 | 1 | Command name: `emit` vs `append-event`? | `append-event`. More precise — it appends a single event line to the NDJSON file. `emit` is vague (emit where?). Consistent with ENT's `add-*` pattern (verb describes the mutation). |
 | 2 | Should commands take `trace_dir`, `events_file`, or `plet_dir`? | `<plet_dir>` (optional, default `plet/`) for all three commands per UNV_CMD_16. Script derives `{plet_dir}/trace.ndjson` via `util_io.trace_path()`. Single consolidated trace file — all events appended to one file with `iterationId`, `phase`, `attempt` fields for context. Callers never construct paths. |
-| 3 | Should `append-event` set the timestamp or accept it as input? | Script sets it. Timestamp fabrication was observed in LIBT (ID_005 had placeholder timestamps). The script always uses `now_iso()`, preventing this. |
+| 3 | Should `append-event` set the timestamp or accept it as input? | Script sets it. Timestamp fabrication was observed in LIBT (ITR_005 had placeholder timestamps). The script always uses `now_iso()`, preventing this. |
 | 4 | Should `validate` fail-fast or accumulate errors? | Accumulate. Per UNV_ERR_3 exception for validation commands. All lines are checked, all errors reported with line numbers. |
 | 5 | Should `query` fail on malformed lines? | No — skip with warning. Trace files may be partially written by crashed agents. A strict `query` that fails on one bad line is useless for debugging. `validate` is the strict checker. |
 | 6 | Does this script handle transcript files (`-transcript.ndjson`)? | No. Transcript files are captured by `plet_invoke.py` (subprocess mode) or located/copied by the orchestrator (subagent mode, future). Subagents don't write them. This script handles only semantic events (`-events.ndjson`). |

@@ -13,9 +13,9 @@ The capstone script — the main implement→verify loop as deterministic code. 
 > 1. Session setup: increment `loopSessionCount`, branch from previous workstream (or main), update `sessionHistory`
 > 2. Identify eligible iterations: dependencies `complete`, lifecycle `queued`
 > 3. For each eligible iteration:
->    a. Run pre-gate: `plet_gate_phase.py pre --iter-id ID_xxx --phase implement`
->    b. Create worktree: `plet_git_iteration.py worktree-create --iter-id ID_xxx`
->    c. Launch implement subagent: `plet_invoke.py run --iter-id ID_xxx --phase implement --cwd <worktree>`
+>    a. Run pre-gate: `plet_gate_phase.py pre --iter-id ITR_xxx --phase implement`
+>    b. Create worktree: `plet_git_iteration.py worktree-create --iter-id ITR_xxx`
+>    c. Launch implement subagent: `plet_invoke.py run --iter-id ITR_xxx --phase implement --cwd <worktree>`
 >       - Prompt assembled by `plet_prompt.py assemble` (includes implement.md, iteration definition, formats.md, state-schema.md sections, requirements.md, learnings.md, per-iteration state)
 >       - Invocation logged to trace event + progress entry. Transcript captured line-by-line.
 >    d. Subagent runs post-gate before exiting: `plet_gate_phase.py post --phase implement`
@@ -112,7 +112,7 @@ NDJSON errors: `{"status":"error", ...}` line to stdout + text to stderr (per UN
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_RUN_OUT_1 | Text mode (default): human-readable phase announcements stream to stdout in real time (`ID_001: implementing...`, `ID_001: passed ✓ merged`), followed by a summary. Convenience for humans running manually. Exit 0 on normal completion, exit 1 on error. | P1 |
+| ORC_RUN_OUT_1 | Text mode (default): human-readable phase announcements stream to stdout in real time (`ITR_001: implementing...`, `ITR_001: passed ✓ merged`), followed by a summary. Convenience for humans running manually. Exit 0 on normal completion, exit 1 on error. | P1 |
 | ORC_RUN_OUT_2 | NDJSON mode (`--output ndjson`): one JSON line per major event (see event types below), streamed in real time. Final line has `"type": "result"` with the completion/pause summary. SKILL.md reads lines as they arrive — if no new line for >5 minutes, the orchestrator may be stalled. Exit 0 on normal completion or pause, exit 1 on error. | P0 |
 
 **ORC_RUN NDJSON event types (ORC_RUN_OUT_2):**
@@ -121,14 +121,14 @@ Each line is a self-contained JSON object with a `type` field. Events stream in 
 
 ```
 {"type":"session_start","sessionType":"loop","sessionNumber":2,"branch":"plet/TEST/loop2/workstream","timestamp":"..."}
-{"type":"iteration_start","iterationId":"ID_001","phase":"implement","timestamp":"..."}
-{"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"2026-03-29T12:01:00Z","subagentPhaseActivity":"implementing","timestamp":"..."}
-{"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":120,"subagentHeartbeat":"2026-03-29T12:02:00Z","subagentPhaseActivity":"running_checks","timestamp":"..."}
-{"type":"iteration_phase_complete","iterationId":"ID_001","phase":"implement","timestamp":"..."}
-{"type":"iteration_start","iterationId":"ID_001","phase":"verify","timestamp":"..."}
-{"type":"iteration_phase_complete","iterationId":"ID_001","phase":"verify","verdict":"passed","timestamp":"..."}
-{"type":"iteration_merged","iterationId":"ID_001","timestamp":"..."}
-{"type":"iteration_complete","iterationId":"ID_001","lifecycle":"complete","timestamp":"..."}
+{"type":"iteration_start","iterationId":"ITR_001","phase":"implement","timestamp":"..."}
+{"type":"heartbeat","iterationId":"ITR_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"2026-03-29T12:01:00Z","subagentPhaseActivity":"implementing","timestamp":"..."}
+{"type":"heartbeat","iterationId":"ITR_001","phase":"implement","elapsedSeconds":120,"subagentHeartbeat":"2026-03-29T12:02:00Z","subagentPhaseActivity":"running_checks","timestamp":"..."}
+{"type":"iteration_phase_complete","iterationId":"ITR_001","phase":"implement","timestamp":"..."}
+{"type":"iteration_start","iterationId":"ITR_001","phase":"verify","timestamp":"..."}
+{"type":"iteration_phase_complete","iterationId":"ITR_001","phase":"verify","verdict":"passed","timestamp":"..."}
+{"type":"iteration_merged","iterationId":"ITR_001","timestamp":"..."}
+{"type":"iteration_complete","iterationId":"ITR_001","lifecycle":"complete","timestamp":"..."}
 {"type":"result","status":"ok","reason":"all_complete","iterationsCompleted":5,"iterationsBlocked":0,"iterationsRemaining":0,"counts":{...},"pauseContext":null,"scriptVersion":"0.1.0","timestamp":"..."}
 ```
 
@@ -184,7 +184,7 @@ Each line is a self-contained JSON object with a `type` field. Events stream in 
 **`pauseContext` field (non-null when reason is a pause, not completion):**
 ```json
 {
-  "iterationId": "ID_003",
+  "iterationId": "ITR_003",
   "phase": "verify",
   "error": null
 }
@@ -315,49 +315,49 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 
 1. SKILL.md detects `loop` phase, calls `plet_orchestrator.py run plet/ --output ndjson`
 2. Orchestrator: preflight → start-session → create branch → check fingerprints
-3. Orchestrator: eligible → [ID_001, ID_002] (parallel, no deps)
-4. Orchestrator: spawn implement for ID_001 and ID_002 concurrently
-5. ID_001 implement completes → spawn verify → verify passes → merge-squash → complete
-6. ID_002 implement completes → spawn verify → verify passes → merge-squash → complete
-7. Orchestrator: eligible → [ID_003] (dep on ID_001 and ID_002, now satisfied)
-8. ID_003: implement → verify → pass → merge-squash → complete
+3. Orchestrator: eligible → [ITR_001, ITR_002] (parallel, no deps)
+4. Orchestrator: spawn implement for ITR_001 and ITR_002 concurrently
+5. ITR_001 implement completes → spawn verify → verify passes → merge-squash → complete
+6. ITR_002 implement completes → spawn verify → verify passes → merge-squash → complete
+7. Orchestrator: eligible → [ITR_003] (dep on ITR_001 and ITR_002, now satisfied)
+8. ITR_003: implement → verify → pass → merge-squash → complete
 9. Orchestrator: eligible → empty, all complete → end-session
 10. Returns `{"reason": "all_complete", ...}`
 
 ### ORC_AFL_2: Verify rejects, retry succeeds
 
-1. ID_001 implement → verify → `rejected` (3 failing criteria)
+1. ITR_001 implement → verify → `rejected` (3 failing criteria)
 2. Orchestrator: check-retry → `continue` (1st attempt, under limit)
 3. Set lifecycle → `queued`, re-enters eligible pool
-4. Next loop: ID_001 implement → verify → `rejected` (1 failing criterion, decreasing)
+4. Next loop: ITR_001 implement → verify → `rejected` (1 failing criterion, decreasing)
 5. check-retry → `continue` (2nd attempt, decreasing trend, extended to 6)
-6. Next loop: ID_001 implement → verify → `passed` → merge-squash → complete
+6. Next loop: ITR_001 implement → verify → `passed` → merge-squash → complete
 
 ### ORC_AFL_3: Breakpoint pause and resume
 
-1. ID_003 has a `before` breakpoint
-2. Orchestrator processes ID_001, ID_002 normally
-3. ID_003 becomes eligible → check-breakpoints(before) → `hit`
-4. Returns `{"reason": "breakpoint_before", "pauseContext": {"iterationId": "ID_003"}}`
-5. SKILL.md shows user: "Breakpoint before ID_003. Continue?"
+1. ITR_003 has a `before` breakpoint
+2. Orchestrator processes ITR_001, ITR_002 normally
+3. ITR_003 becomes eligible → check-breakpoints(before) → `hit`
+4. Returns `{"reason": "breakpoint_before", "pauseContext": {"iterationId": "ITR_003"}}`
+5. SKILL.md shows user: "Breakpoint before ITR_003. Continue?"
 6. User removes breakpoint, SKILL.md calls `plet_orchestrator.py run plet/` again
-7. Orchestrator resumes: start-session (idempotent) → eligible → ID_003 → no breakpoint → proceed
+7. Orchestrator resumes: start-session (idempotent) → eligible → ITR_003 → no breakpoint → proceed
 
 ### ORC_AFL_4: Crash recovery
 
-1. Orchestrator crashes mid-implement for ID_002
-2. State: ID_001 complete in `state.json.lifecycles`, ID_002 `implementing` in `state.json.lifecycles` (SF_28)
+1. Orchestrator crashes mid-implement for ITR_002
+2. State: ITR_001 complete in `state.json.lifecycles`, ITR_002 `implementing` in `state.json.lifecycles` (SF_28)
 3. SKILL.md re-invokes orchestrator
 4. start-session → resumed (idempotent)
-5. eligible → ID_002 not eligible (lifecycle `implementing`, not `queued`)
+5. eligible → ITR_002 not eligible (lifecycle `implementing`, not `queued`)
 6. Orchestrator detects stale in-progress from `state.json.lifecycles`: check if worktree exists. No worktree → reset lifecycle → `queued` via GST. Worktree exists → apply EDG_3 heuristic (read criteria from per-iteration state)
 7. All criteria pass → proceed to verify. Incomplete criteria → set lifecycle → `queued` via `plet_global_state.py update-lifecycle`
 8. Continues loop normally
 
 ### ORC_AFL_5: Mixed complete + blocked outcome
 
-1. ID_001, ID_002, ID_003 processed. ID_001 complete, ID_002 complete.
-2. ID_003: implement → verify → `rejected` → retry → `rejected` → retry → `rejected` (3 attempts, not decreasing)
+1. ITR_001, ITR_002, ITR_003 processed. ITR_001 complete, ITR_002 complete.
+2. ITR_003: implement → verify → `rejected` → retry → `rejected` → retry → `rejected` (3 attempts, not decreasing)
 3. check-retry → `abort`. Orchestrator sets lifecycle → `blocked`, writes progress + emergent.
 4. eligible → empty. counts: complete=2, blocked=1.
 5. Returns `{"reason": "all_blocked_or_complete", ...}`
@@ -365,10 +365,10 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 
 ### ORC_AFL_6: Stuck iterations (unsatisfiable deps)
 
-1. ID_001 complete, ID_002 blocked (retry exhausted), ID_003 depends on ID_002.
-2. eligible → empty. stuckIterations: `[{"iterationId": "ID_003", "unsatisfiableDeps": ["ID_002"]}]`
+1. ITR_001 complete, ITR_002 blocked (retry exhausted), ITR_003 depends on ITR_002.
+2. eligible → empty. stuckIterations: `[{"iterationId": "ITR_003", "unsatisfiableDeps": ["ITR_002"]}]`
 3. Orchestrator returns `{"reason": "all_blocked_or_complete", "stuckIterations": [...]}`
-4. SKILL.md reports: "ID_003 is stuck — depends on blocked ID_002. Run `/plet refine` to unblock or re-plan."
+4. SKILL.md reports: "ITR_003 is stuck — depends on blocked ITR_002. Run `/plet refine` to unblock or re-plan."
 
 ## 8. Examples (EXM)
 
@@ -377,11 +377,11 @@ The `run` command executes three phases: session setup, iteration loop, and sess
 ```bash
 plet_orchestrator.py run plet/
 # Loop 2 started on plet/TEST/loop2/workstream
-# [1/5] ID_001: implement... verify... passed ✓ merged
-# [2/5] ID_002: implement... verify... passed ✓ merged
-# [3/5] ID_003: implement... verify... rejected → retry (2→1, decreasing)
-# [4/5] ID_003: implement... verify... passed ✓ merged
-# [5/5] ID_004: implement... verify... passed ✓ merged
+# [1/5] ITR_001: implement... verify... passed ✓ merged
+# [2/5] ITR_002: implement... verify... passed ✓ merged
+# [3/5] ITR_003: implement... verify... rejected → retry (2→1, decreasing)
+# [4/5] ITR_003: implement... verify... passed ✓ merged
+# [5/5] ITR_004: implement... verify... passed ✓ merged
 # Loop 2 complete: 4 iterations, 0 blocked (12m 34s)
 ```
 
@@ -390,15 +390,15 @@ plet_orchestrator.py run plet/
 ```bash
 plet_orchestrator.py run plet/ --output ndjson
 # {"type":"session_start","sessionType":"loop","sessionNumber":2,"branch":"plet/TEST/loop2/workstream","timestamp":"..."}
-# {"type":"iteration_start","iterationId":"ID_001","phase":"implement","timestamp":"..."}
-# {"type":"heartbeat","iterationId":"ID_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"...","subagentPhaseActivity":"implementing","timestamp":"..."}
-# {"type":"iteration_phase_complete","iterationId":"ID_001","phase":"implement","timestamp":"..."}
-# {"type":"iteration_start","iterationId":"ID_001","phase":"verify","timestamp":"..."}
-# {"type":"iteration_phase_complete","iterationId":"ID_001","phase":"verify","verdict":"passed","timestamp":"..."}
-# {"type":"iteration_merged","iterationId":"ID_001","timestamp":"..."}
-# {"type":"iteration_complete","iterationId":"ID_001","lifecycle":"complete","timestamp":"..."}
-# {"type":"breakpoint_hit","iterationId":"ID_003","position":"before","timestamp":"..."}
-# {"type":"result","status":"ok","reason":"breakpoint_before","iterationsCompleted":2,"iterationsBlocked":0,"iterationsRemaining":3,"counts":{...},"pauseContext":{"iterationId":"ID_003","phase":null,"error":null},"scriptVersion":"0.1.0","timestamp":"..."}
+# {"type":"iteration_start","iterationId":"ITR_001","phase":"implement","timestamp":"..."}
+# {"type":"heartbeat","iterationId":"ITR_001","phase":"implement","elapsedSeconds":60,"subagentHeartbeat":"...","subagentPhaseActivity":"implementing","timestamp":"..."}
+# {"type":"iteration_phase_complete","iterationId":"ITR_001","phase":"implement","timestamp":"..."}
+# {"type":"iteration_start","iterationId":"ITR_001","phase":"verify","timestamp":"..."}
+# {"type":"iteration_phase_complete","iterationId":"ITR_001","phase":"verify","verdict":"passed","timestamp":"..."}
+# {"type":"iteration_merged","iterationId":"ITR_001","timestamp":"..."}
+# {"type":"iteration_complete","iterationId":"ITR_001","lifecycle":"complete","timestamp":"..."}
+# {"type":"breakpoint_hit","iterationId":"ITR_003","position":"before","timestamp":"..."}
+# {"type":"result","status":"ok","reason":"breakpoint_before","iterationsCompleted":2,"iterationsBlocked":0,"iterationsRemaining":3,"counts":{...},"pauseContext":{"iterationId":"ITR_003","phase":null,"error":null},"scriptVersion":"0.1.0","timestamp":"..."}
 ```
 
 ### ORC_EXM_3: Limited run for testing
@@ -406,7 +406,7 @@ plet_orchestrator.py run plet/ --output ndjson
 ```bash
 plet_orchestrator.py run plet/ --max-iterations 1 --sequential
 # Loop 2 started on plet/TEST/loop2/workstream
-# [1/1] ID_001: implement... verify... passed ✓ merged
+# [1/1] ITR_001: implement... verify... passed ✓ merged
 # Paused: max iterations reached (1/1)
 ```
 
@@ -461,7 +461,7 @@ During an iteration, per-iteration state files exist in two copies: the global c
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ORC_DXP_1 | Text output shows live progress: `[N/total] ID_xxx: phase... verdict`. Human can watch the loop execute. | P1 |
+| ORC_DXP_1 | Text output shows live progress: `[N/total] ITR_xxx: phase... verdict`. Human can watch the loop execute. | P1 |
 | ORC_DXP_2 | `--max-iterations 1` enables step-by-step execution for debugging — run one iteration, inspect state, run another. | P1 |
 | ORC_DXP_3 | `--sequential` disables parallel spawning for simpler debugging output. | P1 |
 
@@ -500,12 +500,12 @@ During an iteration, per-iteration state files exist in two copies: the global c
 - Help, missing state, nothing-eligible pre-check
 - Single iteration happy path (implement → verify → pass → merge → complete)
 - Reject + retry (reject first verify, pass second — exercises full cycle-back)
-- Two-iteration dependency chain (ID_001 unlocks ID_002, correct ordering)
+- Two-iteration dependency chain (ITR_001 unlocks ITR_002, correct ordering)
 - Breakpoint before (pause, session stays active for resume)
 - Mixed outcome (pass + blocked + stuck dependent reported)
 - Max-iterations limit (stop after N completions)
 - No-commits blocking (MOCK_BEHAVIOR="no_commits" → implement blocked)
-- Crash recovery / resume (pre-existing active session, ID_001 already complete, ID_002 processes)
+- Crash recovery / resume (pre-existing active session, ITR_001 already complete, ITR_002 processes)
 - Stale fingerprints blocking (blocks by default, --allow-stale override)
 
 **Deferred tests (future):**

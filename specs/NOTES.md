@@ -533,7 +533,7 @@ Decisions made during §2–§3.1 review of `plet_entries.md`:
 
 Decisions made during §3.4–§9 review of `plet_entries.md`:
 
-11. **check validates --iter-id format:** Same `ID_N+` or `proj` validation as plet_state.py. Catches typos early — an agent passing "id_001" would get 0 entries and think entries are missing when really the search pattern is wrong.
+11. **check validates --iter-id format:** Same `ITR_N+` or `proj` validation as plet_state.py. Catches typos early — an agent passing "id_001" would get 0 entries and think entries are missing when really the search pattern is wrong.
 
 12. **NOT_INITIALIZED vs MISSING in check (BHV_4/BHV_5):** Missing artifact file is NOT the same as "0 entries." If the file doesn't exist, nothing can create entries (add-* commands require existing files). Split into two behaviors: BHV_4 (file exists, 0 entries → MISSING), BHV_5 (file doesn't exist → NOT_INITIALIZED). JSON includes `initialized` boolean per artifact. Both exit 1.
 
@@ -543,7 +543,7 @@ Decisions made during §3.4–§9 review of `plet_entries.md`:
 
 15. **--content-file permissions error (EDG_18, ERR_17):** Distinct from "not found" — clean error message with reason.
 
-16. **--iter-id validated on all commands (ERR_18):** Not just check — add-progress, add-learning, add-emergent all validate `ID_N+` or `proj` format.
+16. **--iter-id validated on all commands (ERR_18):** Not just check — add-progress, add-learning, add-emergent all validate `ITR_N+` or `proj` format.
 
 17. **--attempt > 0 enforced (ERR_19):** "Positive integer" means > 0 explicitly. Zero and negative values get specific error.
 
@@ -578,7 +578,7 @@ Decisions made during §3.4–§9 review of `plet_entries.md`:
 
 - **ENT_FUT_2 promoted:** --content-file added to all three add-* commands (ALR_INP_9, ALR_PRE_7/8, ALR_BHV_6, AEM_INP_9, AEM_PRE_7/8, AEM_BHV_7). Near-zero marginal cost during rewrite.
 - **Fence rejection clarified:** applies regardless of content source (--content or --content-file). All three BHV fence rules updated.
-- **check restricted to ID_N+:** `proj` removed from ENT_CHK_PRE_3. R_7 mandatory rule is per-iteration; project-level entries are optional milestones. Open question added for what a proj-level check might look like.
+- **check restricted to ITR_N+:** `proj` removed from ENT_CHK_PRE_3. R_7 mandatory rule is per-iteration; project-level entries are optional milestones. Open question added for what a proj-level check might look like.
 - **EXM_5 updated:** shows IN_PROGRESS suppression per ENT_APR_BHV_8.
 
 ### SPEC_REV_FPR: plet_fingerprint.py (FPR)
@@ -711,7 +711,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **BRN_BHV approved.** Split into BHV_2–BHV_5 (one per branch type with explicit counter mapping). BHV_6 for bare output.
 - **WTC_JUS approved.** No changes.
 - **WTC_CMD:** "atomic" → "atomic (git-managed)".
-- **WTC_INP:** Worktree path namespaced by projectId: `{worktree-dir}/{projectId}/{iter_id}/`. Prevents collisions when subplets share iteration IDs (parent LOGA/ID_001 vs subplet AUTH/ID_001).
+- **WTC_INP:** Worktree path namespaced by projectId: `{worktree-dir}/{projectId}/{iter_id}/`. Prevents collisions when subplets share iteration IDs (parent LOGA/ITR_001 vs subplet AUTH/ITR_001).
 - **§3.3 WTR approved.** All sub-sections consistent with WTC changes (util_state PRE, projectId path).
 - **PUR_1 added:** "Git history is never lost" invariant — worktree ops manage on-disk dirs only, branches/commits preserved. Prominent placement.
 - **§4 EDG:** Collapsed EDG_7/8/15 into EDG_7 (util_state_global.load_and_validate_global_state handles all state validation). ERR_5/6 collapsed to ERR_5.
@@ -825,7 +825,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 
 **After (unified):**
 
-All scripts take `<plet_dir>` (optional, default `plet/`) as first positional arg. Commands that need per-iteration context add `--iter-id ID_xxx`. Scripts derive all paths internally via `util_io` path functions. No exceptions — every script uses the same pattern.
+All scripts take `<plet_dir>` (optional, default `plet/`) as first positional arg. Commands that need per-iteration context add `--iter-id ITR_xxx`. Scripts derive all paths internally via `util_io` path functions. No exceptions — every script uses the same pattern.
 
 Retrofitting all specs first, then implementations.
 
@@ -1358,7 +1358,7 @@ Unified the KV metadata sections across all three entry types:
 
 1. **No bullets on emergent** — was `- **Key:**`, now `**Key:**` like progress/learning.
 2. **PletId always first, Timestamp always second** — consistent ordering.
-3. **Iteration field unified** — all three use `**Iteration:** [ID_xxx] [iteration title]`. Emergent's `**Source:**` renamed to `**Iteration:**` (same data, same format).
+3. **Iteration field unified** — all three use `**Iteration:** [ITR_xxx] [iteration title]`. Emergent's `**Source:**` renamed to `**Iteration:**` (same data, same format).
 4. **Phase added to learning** — progress and emergent had Phase, learning didn't. Now all three carry Phase. Attempt NOT added to learning (noise for knowledge entries; plet ID encodes it).
 
 **CLI flag rename:**
@@ -1443,7 +1443,7 @@ The script-as-orchestrator architecture changes the resolution path for most PLA
 
 - **No per-phase squashing on iteration branch.** Incremental commits stay. Tags mark phase boundaries (phase END). The iteration branch IS the full history — no audit tags needed as safety nets for destructive squash.
 - **One squash at merge-to-workstream time.** `git merge --squash` from workstream creates one commit per iteration. Linear history, no merge commits. Iteration branch untouched.
-- **Commit message changes:** `plet: [ID_001] - {title}` (no phase in message). Phase details in audit tags and progress.md.
+- **Commit message changes:** `plet: [ITR_001] - {title}` (no phase in message). Phase details in audit tags and progress.md.
 - **AFL_4 (post-rebase re-squash) eliminated.** No rebase needed — merge --squash stages the diff directly.
 - **GTO squash command → merge-squash.** Fundamentally different operation: runs from workstream, not iteration branch. Takes global + iter state, derives iteration branch name, runs merge --squash.
 - **audit-tag simplified.** Still marks phase END, but no longer a safety net for destructive squash. Lightweight boundary markers.
@@ -1465,16 +1465,16 @@ ITERATION BRANCH (no squashing, incremental commits preserved):
 WORKSTREAM (one commit per iteration via git merge --squash):
 
   git checkout workstream
-  git merge --squash plet/LOGA/loop1/ID_001
-  git commit -m "plet: [ID_001] - Project scaffolding"
+  git merge --squash plet/LOGA/loop1/ITR_001
+  git commit -m "plet: [ITR_001] - Project scaffolding"
 
-  B ── [ID_001] ── [ID_002] ── [ID_003] ── ...
+  B ── [ITR_001] ── [ITR_002] ── [ITR_003] ── ...
        (all changes   (all changes   (all changes
         from iter)      from iter)     from iter)
 
 MAIN (receives workstream, one commit per iteration):
 
-  A ── B ── [ID_001] ── [ID_002] ── [ID_003] ── ...
+  A ── B ── [ITR_001] ── [ITR_002] ── [ITR_003] ── ...
 
 CLEANUP (per-iteration state controls):
   cleanupTagsAutomatically: false (default) → audit tags preserved
@@ -1639,9 +1639,9 @@ state.json gains a `lifecycles` field:
   "schemaVersion": "0.3.0",
   "projectId": "LOGA",
   "lifecycles": {
-    "ID_001": "complete",
-    "ID_002": "implementing",
-    "ID_003": "queued"
+    "ITR_001": "complete",
+    "ITR_002": "implementing",
+    "ITR_003": "queued"
   },
   "dependencyMap": { ... },
   ...
@@ -1652,7 +1652,7 @@ Per-iteration state files LOSE `lifecycle` and `lastVerdict`, GAIN `implementVer
 ```json
 {
   "schemaVersion": "0.3.0",
-  "iterationId": "ID_001",
+  "iterationId": "ITR_001",
   "title": "Project scaffolding",
   "attempts": { "implement": 1, "verify": 1 },
   "criteria": [ ... ],
@@ -1670,7 +1670,7 @@ Per-iteration state files LOSE `lifecycle` and `lastVerdict`, GAIN `implementVer
 
 | Field | Location | Writer | When |
 |-------|----------|--------|------|
-| `lifecycles.ID_xxx` | state.json (global) | Orchestrator only | Spawn (implementing), post-implement (verifying), post-verdict (complete/queued/blocked) |
+| `lifecycles.ITR_xxx` | state.json (global) | Orchestrator only | Spawn (implementing), post-implement (verifying), post-verdict (complete/queued/blocked) |
 | `criteria`, `attempts`, `verificationReports` | per-iteration file (worktree) | Subagent only | During iteration |
 | `implementVerdict` | per-iteration file (worktree) | Implement subagent | Final act before exit |
 | `verifyVerdict` | per-iteration file (worktree) | Verify subagent | Final act before exit |
@@ -1711,7 +1711,7 @@ Orchestrator post-phase logic:
 **Post-gate safety net for forgotten verdicts.** The post-implement gate (running inside the subagent, before exit) checks that `implementVerdict` is not null. If null, gate fails → subagent gets a chance to set the verdict before exiting. Same for post-verify checking `verifyVerdict`. Turns a crash-like failure (null verdict → orchestrator guesses) into a recoverable one (gate catches → subagent fixes → clean exit). This is the LOGA Run 3 fix: the subagent "did the work but forgot to set the signal." With gate enforcement, it can't forget.
 
 **Subagents don't write lifecycle at all.** The orchestrator manages it entirely:
-- Create worktree → call IST start-phase on worktree_plet_dir → write `lifecycles.ID_xxx = "implementing"` to state.json → spawn implement subagent
+- Create worktree → call IST start-phase on worktree_plet_dir → write `lifecycles.ITR_xxx = "implementing"` to state.json → spawn implement subagent
 - Implement returns → read `implementVerdict` from worktree. `"completed"` → writes `"verifying"`. `"blocked"` → writes `"blocked"`.
 - Call IST start-phase (verify) on worktree_plet_dir → spawn verify subagent
 - Verify returns → read `verifyVerdict` from worktree. `"passed"` → merge, writes `"complete"`. `"rejected"` → check-retry. `"blocked"` → writes `"blocked"`.
@@ -1759,8 +1759,8 @@ After: read state.json (dependency map + lifecycles). O(1) file read.
 For 13 iterations, this is 14 file reads → 1 file read.
 
 **Open questions:**
-1. Should `lifecycles` be part of the dependency map structure (e.g., `{"ID_001": {"deps": [], "lifecycle": "queued"}}`) or a flat parallel object? Flat is simpler and doesn't change the existing dependency map.
-2. Plan session `plet_state.py init` creates per-iteration files. Should it also initialize `lifecycles.ID_xxx = "queued"` in state.json? Yes — init should update both.
+1. Should `lifecycles` be part of the dependency map structure (e.g., `{"ITR_001": {"deps": [], "lifecycle": "queued"}}`) or a flat parallel object? Flat is simpler and doesn't change the existing dependency map.
+2. Plan session `plet_state.py init` creates per-iteration files. Should it also initialize `lifecycles.ITR_xxx = "queued"` in state.json? Yes — init should update both.
 3. Refine session changes lifecycle (withdraw, re-queue). These write to state.json — no per-iteration file involvement. Clean.
 
 **Runtime artifact merge conflicts (separate concern):**
@@ -1963,7 +1963,7 @@ Manual-only test (not in test_all.py) that validates `plet_invoke.py → claude 
 
 **Result: 1/13 iterations completed. Run 3 bug (worktree merge conflict) CONFIRMED FIXED.**
 
-Lifecycle extraction works end-to-end. IST scripts (start-phase, update-activity, update-criterion, set-verdict, add-report) called correctly by subagents. Merge-squash clean. Dependency graph evaluation correct (ID_002 queued after ID_001 complete).
+Lifecycle extraction works end-to-end. IST scripts (start-phase, update-activity, update-criterion, set-verdict, add-report) called correctly by subagents. Merge-squash clean. Dependency graph evaluation correct (ITR_002 queued after ITR_001 complete).
 
 **Environment issues dominated the run, not script bugs:**
 - Sandbox mode insufficient for subagents (Bash only, not Write/Edit/Glob)
@@ -2047,7 +2047,7 @@ Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree co
 
 #### Merge-squash dirty-tree bug — LOGA R09 (2026-04-05)
 
-**Bug:** `plet_git_ops.py merge-squash` validates `git status --porcelain` is empty before merging. With parallel execution, worktree artifacts leak into the main working tree, making it appear dirty. Two iterations (ID_004, ID_011) passed verify but failed merge-squash. Cascading: 6 more iterations permanently ineligible. Run completed only 38%.
+**Bug:** `plet_git_ops.py merge-squash` validates `git status --porcelain` is empty before merging. With parallel execution, worktree artifacts leak into the main working tree, making it appear dirty. Two iterations (ITR_004, ITR_011) passed verify but failed merge-squash. Cascading: 6 more iterations permanently ineligible. Run completed only 38%.
 
 **Root cause:** The `_handle_passed_verdict` in plet_orchestrator.py does `run_git("add", "-A")` + `run_git("commit", ...)` before merge-squash, but this runs on the workstream branch. With parallel worktrees active, files from worktrees may appear as untracked or modified in the main tree's `git status`.
 
