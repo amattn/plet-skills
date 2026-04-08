@@ -20,7 +20,7 @@
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
-| PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | 15/16 — IDR_16 (real run) pending |
+| PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | ✓ COMPLETE (16/16) — validated OLLR R08 |
 | PLAN_VER | Verify Phase Rewrite | ✓ COMPLETE (9/9) — validated OLLR R07 |
 | PLAN_FIX | Small Fixes Backlog | 4 items (P2-P3) from R05/R06 case studies |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
@@ -325,7 +325,7 @@ Category-by-category execution. Hard cut (no transition period). Historical arti
 | IDR_14 | NOTES.md, PLAN.md (active sections) | ✓ done |
 | | **Phase 5: Validate** | |
 | IDR_15 | Full test suite + coverage | ✓ done (1041 pass, 90.74% — below 91% from auto-emit, not IDR) |
-| IDR_16 | Validate with real run | |
+| IDR_16 | Validate with real run | ✓ done (OLLR R08 — ITR_ prefix, plan agent auto-migrated) |
 
 ---
 
