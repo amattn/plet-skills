@@ -83,6 +83,34 @@ PHASE_ACTIVITIES = [
 _help_hint = make_help_hint("iter_state")
 
 
+def _emit_activity_trace(plet_dir, iter_id, activity, detail):
+    """Emit an activity_change trace event. Best-effort — failures are silent."""
+    phase = os.environ.get("PLET_PHASE")
+    attempt = os.environ.get("PLET_ATTEMPT", "1")
+    if not phase:
+        return
+    try:
+        import traces
+
+        traces.cmd_append_event(
+            [
+                plet_dir,
+                "--iter-id",
+                iter_id,
+                "--phase",
+                phase,
+                "--attempt",
+                attempt,
+                "--event-type",
+                "activity_change",
+                "--data",
+                json.dumps({"activity": activity, "detail": detail}),
+            ]
+        )
+    except Exception:
+        pass
+
+
 def _validate_init_inputs(plet_dir, iter_id, kwargs, no_verify_deps):
     """Validate basic init inputs. Returns error string or None."""
     import re
@@ -590,6 +618,9 @@ Examples:
             return (0, f"DRY RUN — {iter_id} activity: {phase_activity}", "")
 
     atomic_write_json(path, data, update_timestamp=False)
+
+    # Emit activity_change trace event (FIX_1)
+    _emit_activity_trace(plet_dir, iter_id, phase_activity, activity_detail)
 
     if output_json:
         res["submoduleVersion"] = SUBMODULE_VERSION

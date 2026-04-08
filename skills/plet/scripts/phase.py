@@ -114,6 +114,29 @@ def cmd_end(args):
     return _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields)
 
 
+def _first_sentence(text, max_len=120):
+    """Extract first sentence, truncating at word boundary if needed.
+
+    Splits on '. ' (sentence boundary) not '.' (any period) to avoid
+    cutting on file extensions like '.py'. Falls back to word-boundary
+    truncation if no sentence boundary found within max_len.
+    """
+    if not text:
+        return ""
+    # Try sentence boundary first
+    idx = text.find(". ")
+    if 0 < idx <= max_len:
+        return text[:idx]
+    # No sentence boundary — truncate at word boundary
+    if len(text) <= max_len:
+        return text
+    truncated = text[:max_len]
+    last_space = truncated.rfind(" ")
+    if last_space > 0:
+        return truncated[:last_space]
+    return truncated
+
+
 def _build_criteria_results(ist):
     """Build criteriaResults array from per-iteration state criteria.
 
@@ -132,7 +155,7 @@ def _build_criteria_results(ist):
             {
                 "id": c["id"],
                 "status": crit_status,
-                "oneLiner": v.get("oneLiner") or evidence.split(".")[0][:120] or c.get("description", ""),
+                "oneLiner": v.get("oneLiner") or _first_sentence(evidence, 120) or c.get("description", ""),
                 "redTest": v.get("redTest", "none"),
                 "noTestRationale": v.get("noTestRationale") or "auto-report: no rationale provided by verify agent",
                 "relatedEntries": [],

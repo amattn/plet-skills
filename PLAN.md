@@ -393,10 +393,10 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 
 | Step | Description | Source | Priority | Status |
 |------|-------------|--------|----------|--------|
-| FIX_1 | `activity_change` trace events — `iter_state.py cmd_update_activity` writes state but doesn't emit trace event, gap for timeline reconstruction | R06 REC_1 | P2 | |
-| FIX_2 | oneLiner truncation in auto-report builder — `"Independently verified: read oller"` cut mid-word | R05/R06 | P2 | |
-| FIX_3 | progress.md volume — ~1400 lines for 6 iters from auto-progress CLI shim, may need throttling or consolidation for larger projects | R05/R06 | P2 | |
-| FIX_4 | `unknown-phase` trace files — `PLET_PHASE` not set before CLI shim fires, creates `*-unknown-1-events.ndjson` | R05 | P3 | |
+| FIX_1 | `activity_change` trace events — `iter_state.py cmd_update_activity` writes state but doesn't emit trace event, gap for timeline reconstruction | R06 REC_1 | P2 | ✓ done |
+| FIX_2 | oneLiner truncation in auto-report builder — `"Independently verified: read oller"` cut mid-word (root cause: `.split(".")` splits on file extensions) | R05/R06 | P2 | ✓ done |
+| FIX_3 | progress.md volume — ~1400 lines for 6 iters from auto-progress CLI shim, may need throttling or consolidation for larger projects | R05/R06 | P2 | deferred |
+| FIX_4 | `unknown-phase` trace files — use `session` for plan/refine contexts, keep `unknown` as true fallback | R05 | P3 | |
 
 ---
 

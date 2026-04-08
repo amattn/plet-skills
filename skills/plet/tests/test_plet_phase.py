@@ -613,6 +613,43 @@ def test_end_implement_json_output():
 
 
 # ===========================================================================
+# FIX_2: _first_sentence — oneLiner truncation
+# ===========================================================================
+
+
+def test_first_sentence_file_extension():
+    """FIX_2: .py extension should not be treated as sentence boundary."""
+    result = phase._first_sentence("Independently verified: read oller.py code confirmed")
+    assert "oller.py" in result, f"expected .py preserved, got: {result}"
+
+
+def test_first_sentence_normal():
+    """FIX_2: normal sentence boundary works."""
+    result = phase._first_sentence("All tests pass. Coverage is 91%.")
+    assert result == "All tests pass", f"got: {result}"
+
+
+def test_first_sentence_no_period():
+    """FIX_2: no period — return full text if under max_len."""
+    result = phase._first_sentence("All tests pass with no issues")
+    assert result == "All tests pass with no issues", f"got: {result}"
+
+
+def test_first_sentence_long_no_period():
+    """FIX_2: long text without period — truncate at word boundary."""
+    text = "word " * 30  # 150 chars
+    result = phase._first_sentence(text, max_len=120)
+    assert len(result) <= 120, f"too long: {len(result)}"
+    assert not result.endswith(" "), f"trailing space: {result!r}"
+
+
+def test_first_sentence_empty():
+    """FIX_2: empty string."""
+    assert phase._first_sentence("") == ""
+    assert phase._first_sentence(None) == ""
+
+
+# ===========================================================================
 # main
 # ===========================================================================
 
