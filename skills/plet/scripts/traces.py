@@ -87,7 +87,7 @@ VALID_CRITERION_STATUSES = ["not_started", "fail", "pass", "error", "skipped"]
 
 VALID_CRITERION_PHASES = ["implementation", "verification"]
 
-ITERATION_ID_PATTERN = re.compile(r"^(ITR_(?:RFT_)?\d+|proj)$")
+from util_constants import ITER_ID_OR_PROJ_RE as ITERATION_ID_PATTERN  # noqa: E402
 
 # Type-specific required fields in data
 REQUIRED_DATA_FIELDS = {

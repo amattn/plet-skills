@@ -86,7 +86,7 @@ TYPE_PREFIXES = {
     "emergent": "eem",
 }
 
-ITER_ID_PATTERN = re.compile(r"^(ITR_(?:RFT_)?\d+|proj)$")
+from util_constants import ITER_ID_OR_PROJ_RE as ITER_ID_PATTERN  # noqa: E402
 
 FENCE_PATTERN = re.compile(r'<div id="(plet-|END-plet-)')
 

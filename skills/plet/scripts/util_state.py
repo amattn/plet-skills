@@ -172,7 +172,7 @@ def load_and_validate_global_state(plet_dir):
 # Per-iteration state: plet/state/{id}.json
 # ---------------------------------------------------------------------------
 
-ITER_ID_RE = re.compile(r"^ITR_(?:RFT_)?\d+$")
+from util_constants import ITER_ID_RE  # noqa: E402 — canonical iteration ID pattern
 
 VALID_LIFECYCLES = [
     "ineligible",

@@ -113,9 +113,9 @@ def _emit_activity_trace(plet_dir, iter_id, activity, detail):
 
 def _validate_init_inputs(plet_dir, iter_id, kwargs, no_verify_deps):
     """Validate basic init inputs. Returns error string or None."""
-    import re
+    from util_constants import ITER_ID_RE
 
-    if not re.match(r"^ITR_(?:RFT_)?\d+$", iter_id):
+    if not ITER_ID_RE.match(iter_id):
         return f"Error: iterationId '{iter_id}' does not match pattern ITR_N+ or ITR_RFT_N (e.g., ITR_001, ITR_RFT_1)"
     if not os.path.isdir(plet_dir):
         return f"Error: directory does not exist: {plet_dir}"
