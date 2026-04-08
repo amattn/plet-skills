@@ -313,7 +313,7 @@ def _validate_trace_context(kwargs, hint):
     Returns (iter_id, phase, attempt) on success, (1, "", err) on error."""
     iter_id = kwargs["iter_id"]
     if not ITERATION_ID_PATTERN.match(iter_id):
-        return (1, "", f"Error: --iter-id '{iter_id}' does not match expected pattern ID_N+ (e.g., ID_001)\n{hint}")
+        return (1, "", f"Error: --iter-id '{iter_id}' does not match expected pattern ITR_N+ (e.g., ITR_001)\n{hint}")
 
     phase = kwargs["phase"]
     result = validate_enum(phase, VALID_PHASES, "--phase")
@@ -426,7 +426,7 @@ PITFALLS:
     invocation:       cwd, permissionMode, promptLength
 
 USAGE:
-    trace.py append-event <plet_dir> --iter-id ID_xxx --phase PHASE \\
+    trace.py append-event <plet_dir> --iter-id ITR_xxx --phase PHASE \\
         --attempt N --event-type TYPE --data '{...}' [--data-file path] \\
         [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
@@ -437,11 +437,11 @@ Events capture decisions, criterion updates, lifecycle transitions, activity
 changes, and errors in structured NDJSON format.
 
 Examples:
-    trace.py append-event plet/ --iter-id ID_001 --phase implement \\
+    trace.py append-event plet/ --iter-id ITR_001 --phase implement \\
         --attempt 1 --event-type decision \\
         --data '{"description":"Using pytest","rationale":"Requirements specify pytest"}'
 
-    trace.py append-event --iter-id ID_001 --phase implement \\
+    trace.py append-event --iter-id ITR_001 --phase implement \\
         --attempt 1 --event-type criterion_update \\
         --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"tests green"}'
 """
@@ -531,8 +531,8 @@ Examples:
         return (0, f"OK — {plet_id} appended {event_type} event to {events_path}", "")
 
 
-cmd_append_event.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1 --event-type TYPE --data '{...}'"  # noqa: E501
-cmd_append_event.example = 'trace.py append-event plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type decision --data \'{"description":"Using pytest","rationale":"Requirements specify pytest"}\''  # noqa: E501
+cmd_append_event.usage = "<plet_dir> --iter-id ITR_xxx --phase implement --attempt 1 --event-type TYPE --data '{...}'"  # noqa: E501
+cmd_append_event.example = 'trace.py append-event plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type decision --data \'{"description":"Using pytest","rationale":"Requirements specify pytest"}\''  # noqa: E501
 
 
 def _validate_events_file(path):
@@ -576,7 +576,7 @@ PITFALLS:
   NOT "implement"/"verify"
 
 USAGE:
-    trace.py validate <plet_dir> --iter-id ID_xxx --phase PHASE \\
+    trace.py validate <plet_dir> --iter-id ITR_xxx --phase PHASE \\
         --attempt N [--output json [--pretty] [--fields f1,f2]]
 
     Derives trace file: {plet_dir}/trace/{iter_id}-{phase}-{attempt}-events.ndjson
@@ -586,8 +586,8 @@ modifying it. Each line must be valid JSON with required base fields and
 type-specific data fields.
 
 Examples:
-    trace.py validate plet/ --iter-id ID_001 --phase implement --attempt 1
-    trace.py validate --iter-id ID_001 --phase implement --attempt 1 --output json
+    trace.py validate plet/ --iter-id ITR_001 --phase implement --attempt 1
+    trace.py validate --iter-id ITR_001 --phase implement --attempt 1 --output json
 """
     hint = help_hint("validate")
     parsed = _parse_trace_args(
@@ -639,8 +639,8 @@ Examples:
     return (0, f"OK — {path} is valid ({event_count} events: {type_str})", "")
 
 
-cmd_validate.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1"  # noqa: E501
-cmd_validate.example = "trace.py validate plet/ --iter-id ID_001 --phase implement --attempt 1"  # noqa: E501
+cmd_validate.usage = "<plet_dir> --iter-id ITR_xxx --phase implement --attempt 1"  # noqa: E501
+cmd_validate.example = "trace.py validate plet/ --iter-id ITR_001 --phase implement --attempt 1"  # noqa: E501
 
 
 def _validate_query_filters(kwargs, hint):
@@ -725,7 +725,7 @@ PITFALLS:
 - --raw and --output json are mutually exclusive
 
 USAGE:
-    trace.py query <plet_dir> --iter-id ID_xxx --phase PHASE \\
+    trace.py query <plet_dir> --iter-id ITR_xxx --phase PHASE \\
         --attempt N [--event-type TYPE] [--criterion AC_1] \\
         [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]
 
@@ -736,10 +736,10 @@ through this command instead of parsing NDJSON manually. Use --raw for piping
 to wc -l, jq, or other tools.
 
 Examples:
-    trace.py query plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type decision
-    trace.py query --iter-id ID_001 --phase implement --attempt 1 --criterion AC_1
-    trace.py query plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type error --last 3
-    trace.py query --iter-id ID_001 --phase implement --attempt 1 --event-type decision --raw
+    trace.py query plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type decision
+    trace.py query --iter-id ITR_001 --phase implement --attempt 1 --criterion AC_1
+    trace.py query plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type error --last 3
+    trace.py query --iter-id ITR_001 --phase implement --attempt 1 --event-type decision --raw
 """
     hint = help_hint("query")
     parsed = _parse_trace_args(
@@ -795,8 +795,8 @@ Examples:
         return (0, out, read_warnings)
 
 
-cmd_query.usage = "<plet_dir> --iter-id ID_xxx --phase implement --attempt 1"  # noqa: E501
-cmd_query.example = "trace.py query plet/ --iter-id ID_001 --phase implement --attempt 1 --event-type decision"  # noqa: E501
+cmd_query.usage = "<plet_dir> --iter-id ITR_xxx --phase implement --attempt 1"  # noqa: E501
+cmd_query.example = "trace.py query plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type decision"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

@@ -5,9 +5,9 @@ before work starts. Post-gate verifies artifact completeness before the
 subagent exits. --phase controls which checks run.
 
 Usage:
-    gate_phase.py pre <plet_dir> --iter-id ID_xxx
+    gate_phase.py pre <plet_dir> --iter-id ITR_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
-    gate_phase.py post <plet_dir> --iter-id ID_xxx
+    gate_phase.py post <plet_dir> --iter-id ITR_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
@@ -500,15 +500,15 @@ PITFALLS:
     - verify pre is simpler (git + state + lifecycle only)
 
 USAGE:
-    gate_phase.py pre <plet_dir> --iter-id ID_xxx
+    gate_phase.py pre <plet_dir> --iter-id ITR_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 PURPOSE:
     Pre-phase gate. Verifies the foundation before the subagent starts.
 
 Examples:
-    gate_phase.py pre plet/ --iter-id ID_001 --phase implement
-    gate_phase.py pre --iter-id ID_001 --phase verify --output json
+    gate_phase.py pre plet/ --iter-id ITR_001 --phase implement
+    gate_phase.py pre --iter-id ITR_001 --phase verify --output json
 """
     help_post = """IMPORTANT:
     post is read-only. The subagent runs this before exiting and
@@ -522,15 +522,15 @@ PITFALLS:
     - verify post requires verifyVerdict + verificationReports
 
 USAGE:
-    gate_phase.py post <plet_dir> --iter-id ID_xxx
+    gate_phase.py post <plet_dir> --iter-id ITR_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
 
 PURPOSE:
     Post-phase gate. Verifies artifact completeness after the subagent finishes.
 
 Examples:
-    gate_phase.py post plet/ --iter-id ID_001 --phase implement
-    gate_phase.py post --iter-id ID_001 --phase verify --output json
+    gate_phase.py post plet/ --iter-id ITR_001 --phase implement
+    gate_phase.py post --iter-id ITR_001 --phase verify --output json
 """
     help_text = help_pre if cmd == "pre" else help_post
 
@@ -631,8 +631,8 @@ def cmd_pre(args):
     return run_gate("pre", args, pre_phase_checks, post_phase_checks)
 
 
-cmd_pre.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_pre.example = "gate_phase.py pre plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_pre.usage = "<plet_dir> --iter-id ITR_xxx --phase implement"  # noqa: E501
+cmd_pre.example = "gate_phase.py pre plet/ --iter-id ITR_001 --phase implement"  # noqa: E501
 
 
 def cmd_post(args):
@@ -640,8 +640,8 @@ def cmd_post(args):
     return run_gate("post", args, pre_phase_checks, post_phase_checks)
 
 
-cmd_post.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_post.example = "gate_phase.py post plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_post.usage = "<plet_dir> --iter-id ITR_xxx --phase implement"  # noqa: E501
+cmd_post.example = "gate_phase.py post plet/ --iter-id ITR_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

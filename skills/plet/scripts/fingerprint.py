@@ -57,7 +57,7 @@ FINGERPRINT_END = "<!-- plet:fingerprint -->"
 # Excludes reserved prefixes MS_ and ID_
 REQUIREMENT_ID_RE = re.compile(r"\b([A-Z]{2,})_(\d+)\b")
 MILESTONE_ID_RE = re.compile(r"\bMS_(\d+)\b")
-ITERATION_ID_RE = re.compile(r"\bID_(\d+)\b")
+ITERATION_ID_RE = re.compile(r"\bITR_(\d+)\b")
 
 # Reserved prefixes — not requirement IDs
 RESERVED_PREFIXES = {"MS", "ID"}
@@ -342,7 +342,7 @@ def extract_requirements_fingerprint(text):
 def extract_iterations_fingerprint(text):
     """Extract a fingerprint from iterations.md content.
 
-    Scans for iteration IDs (ID_N+), groups by milestone using
+    Scans for iteration IDs (ITR_N+), groups by milestone using
     **Milestone:** MS_N metadata lines. Excludes content under Withdrawn heading.
     Reads the embedded requirements fingerprint and lastNonTrivialUpdate.
 
@@ -365,7 +365,7 @@ def extract_iterations_fingerprint(text):
         pass
 
     # Parse iterations with their milestone assignments
-    # Strategy: for each iteration heading (### ID_NNN: ...), look for
+    # Strategy: for each iteration heading (### ITR_NNN: ...), look for
     # the **Milestone:** MS_N metadata line in the following content
     iterations_by_milestone = {}
     current_iter_id = None

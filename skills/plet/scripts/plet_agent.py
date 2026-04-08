@@ -5,13 +5,13 @@ Six commands covering everything a subagent needs during implement/verify:
 update-activity, update-criterion, wip-commit, add-learning, add-emergent, phase-end.
 
 Usage:
-    plet_agent.py update-activity <plet_dir> --iter-id ID_xxx
+    plet_agent.py update-activity <plet_dir> --iter-id ITR_xxx
         --phase-activity setup|implementing|... --activity-detail "..." --agent-id <id>
-    plet_agent.py update-criterion <plet_dir> --iter-id ID_xxx --criteria '[...]'
-    plet_agent.py wip-commit <plet_dir> --iter-id ID_xxx --message "description"
-    plet_agent.py add-learning <plet_dir> --iter-id ID_xxx --content "..."
-    plet_agent.py add-emergent <plet_dir> --iter-id ID_xxx --content "..."
-    plet_agent.py phase-end <plet_dir> --iter-id ID_xxx --phase implement|verify
+    plet_agent.py update-criterion <plet_dir> --iter-id ITR_xxx --criteria '[...]'
+    plet_agent.py wip-commit <plet_dir> --iter-id ITR_xxx --message "description"
+    plet_agent.py add-learning <plet_dir> --iter-id ITR_xxx --content "..."
+    plet_agent.py add-emergent <plet_dir> --iter-id ITR_xxx --content "..."
+    plet_agent.py phase-end <plet_dir> --iter-id ITR_xxx --phase implement|verify
         --verdict passed|rejected|blocked [--output json [--pretty] [--fields f1,f2]]
 
 Commands:

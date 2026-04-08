@@ -4,7 +4,7 @@ Assembles prompt via prompt.py, launches claude -p, captures streaming
 NDJSON to transcript file line by line. Returns subprocess exit code.
 
 Usage:
-    invoke.py run <plet_dir> --iter-id ID_xxx --phase implement|verify
+    invoke.py run <plet_dir> --iter-id ITR_xxx --phase implement|verify
         --cwd <project_root> [--permission-mode MODE] [--model MODEL]
         [--max-budget N] [--verbose] [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
@@ -343,7 +343,7 @@ PITFALLS:
     - --bare skips hooks/LSP/plugins for faster startup
 
 USAGE:
-    invoke.py run <plet_dir> --iter-id ID_xxx
+    invoke.py run <plet_dir> --iter-id ITR_xxx
         --phase implement|verify --cwd <project_root>
         [--permission-mode MODE] [--model MODEL] [--max-budget N]
         [--verbose] [--dry-run]
@@ -365,9 +365,9 @@ PURPOSE:
     debugging and replay.
 
 Examples:
-    invoke.py run plet/ --iter-id ID_001 --phase implement --cwd .
-    invoke.py run plet/ --iter-id ID_001 --phase implement --cwd . --dry-run
-    invoke.py run --iter-id ID_001 --phase verify --cwd . --output json
+    invoke.py run plet/ --iter-id ITR_001 --phase implement --cwd .
+    invoke.py run plet/ --iter-id ITR_001 --phase implement --cwd . --dry-run
+    invoke.py run --iter-id ITR_001 --phase verify --cwd . --output json
 """
     cmd_name = "run"
     hint = help_hint(cmd_name)
@@ -458,8 +458,8 @@ Examples:
     )
 
 
-cmd_run.usage = "<plet_dir> --iter-id ID_xxx --phase implement --cwd <project_root>"  # noqa: E501
-cmd_run.example = "invoke.py run plet/ --iter-id ID_001 --phase implement --cwd ."  # noqa: E501
+cmd_run.usage = "<plet_dir> --iter-id ITR_xxx --phase implement --cwd <project_root>"  # noqa: E501
+cmd_run.example = "invoke.py run plet/ --iter-id ITR_001 --phase implement --cwd ."  # noqa: E501
 
 
 def _build_plet_env(plet_dir, cwd, iter_id, phase, attempt):

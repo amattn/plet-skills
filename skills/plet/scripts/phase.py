@@ -5,17 +5,17 @@ audit tag, git commit) into a single call. Reduces subagent CLI surface from
 6 separate calls to 1.
 
 Usage:
-    phase.py <command> <plet_dir> --iter-id ID_xxx [args]
+    phase.py <command> <plet_dir> --iter-id ITR_xxx [args]
 
 Commands:
     end     Complete a phase: set verdict, write progress, emit trace event,
             create audit tag, commit artifacts.
 
 Examples:
-    phase.py end plet/ --iter-id ID_001 --phase implement --verdict completed \\
+    phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed \\
         --progress-content "Implemented: project scaffolding. 5 AC, all green."
 
-    phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed \\
+    phase.py end plet/ --iter-id ITR_001 --phase verify --verdict passed \\
         --progress-content "Verified: all 5 AC independently confirmed." \\
         --report-file /tmp/report.json
 """
@@ -49,14 +49,14 @@ def cmd_end(args):
     """End a phase: set verdict, write progress, emit trace, audit tag, commit.
 
     USAGE:
-        phase.py end <plet_dir> --iter-id ID_xxx --phase implement|verify
+        phase.py end <plet_dir> --iter-id ITR_xxx --phase implement|verify
             --verdict VALUE --progress-content "..."
             [--summary "..."] [--findings '[...]']
             [--report-file PATH]
             [--output json [--pretty] [--fields f1,f2]]
 
         plet_dir            Path to plet directory (required)
-        --iter-id           Iteration ID (e.g., ID_001)
+        --iter-id           Iteration ID (e.g., ITR_001)
         --phase             implement or verify
         --verdict           Verdict value (implement: completed|blocked, verify: passed|rejected|blocked)
         --progress-content  Content for the completion progress entry
@@ -77,7 +77,7 @@ def cmd_end(args):
     quality check with a self-correction loop, not bookkeeping.
 
     VERIFY EXAMPLE (auto-report from state — no --report-file needed):
-        phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed \\
+        phase.py end plet/ --iter-id ITR_001 --phase verify --verdict passed \\
             --progress-content "Verified: all AC confirmed." \\
             --summary "All 5 criteria independently verified."
     """
@@ -360,8 +360,8 @@ def _run_end_steps(plet_dir, kwargs, phase, verdict, output_json, pretty, fields
         return (0, f"OK — {phase} phase ended: {verdict} ({', '.join(steps_done)})", "")
 
 
-cmd_end.usage = '<plet_dir> --iter-id ID_xxx --phase implement|verify --verdict completed|blocked (implement) or passed|rejected|blocked (verify) --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501
-cmd_end.example = 'phase.py end plet/ --iter-id ID_001 --phase verify --verdict passed --progress-content "Verified: all AC confirmed." --summary "All 5 criteria independently verified."'  # noqa: E501
+cmd_end.usage = '<plet_dir> --iter-id ITR_xxx --phase implement|verify --verdict completed|blocked (implement) or passed|rejected|blocked (verify) --progress-content "..." [--summary "..." for verify auto-report]'  # noqa: E501
+cmd_end.example = 'phase.py end plet/ --iter-id ITR_001 --phase verify --verdict passed --progress-content "Verified: all AC confirmed." --summary "All 5 criteria independently verified."'  # noqa: E501
 
 
 def main():

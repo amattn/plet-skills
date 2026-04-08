@@ -13,10 +13,10 @@ Plet ID format:
 
     prefix:    type-specific (epr, eln, eem, tev, vrp)
     timestamp: 10-char Crockford Base32 (milliseconds since epoch)
-    iteration: ID_001 -> id001, proj -> proj
+    iteration: ITR_001 -> itr001, proj -> proj
     phase:     implement -> i, verify -> v, refine -> r, plan -> p + attempt
 
-Example: epr_01JD8X3K7M_id001_i1
+Example: epr_01JD8X3K7M_itr001_i1
 
 Functions:
     crockford_encode(n)
@@ -29,7 +29,7 @@ Functions:
 
     normalize_iteration(iteration_id)
         Normalize iteration ID for plet ID context segment:
-        ID_001 -> id001, proj -> proj. Lowercased, underscores removed.
+        ITR_001 -> itr001, proj -> proj. Lowercased, underscores removed.
 
     phase_attempt_segment(phase, attempt)
         Encode phase and attempt number: implement-1 -> i1, verify-2 -> v2,
@@ -75,7 +75,7 @@ def crockford_timestamp():
 
 
 def normalize_iteration(iteration_id):
-    """Normalize iteration ID for plet ID: ID_001 -> id001, proj -> proj."""
+    """Normalize iteration ID for plet ID: ITR_001 -> itr001, proj -> proj."""
     if iteration_id.lower() == "proj":
         return "proj"
     return iteration_id.lower().replace("_", "")
@@ -92,11 +92,11 @@ def generate_plet_id(prefix, iteration_id, phase, attempt):
 
     Args:
         prefix: type prefix (epr, eln, eem, tev, vrp)
-        iteration_id: iteration ID (e.g., ID_001) or "proj"
+        iteration_id: iteration ID (e.g., ITR_001) or "proj"
         phase: implement, verify, refine, or plan
         attempt: attempt number (integer)
 
-    Returns: plet ID string (e.g., epr_01JD8X3K7M_id001_i1)
+    Returns: plet ID string (e.g., epr_01JD8X3K7M_itr001_i1)
     """
     ts = crockford_timestamp()
     iter_seg = normalize_iteration(iteration_id)

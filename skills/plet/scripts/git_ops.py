@@ -4,12 +4,12 @@ Audit tags mark phase boundaries. Rebase-commit rebases the iteration branch
 onto the workstream and fast-forward merges. Wip-commit stages source + state.
 
 Usage:
-    git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
+    git_ops.py audit-tag <plet_dir> --iter-id ITR_xxx
         --phase implement|verify [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
-    git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx
+    git_ops.py rebase-commit <plet_dir> --iter-id ITR_xxx
         [--dry-run] [--output json [--pretty] [--fields f1,f2]]
-    git_ops.py wip-commit <plet_dir> --iter-id ID_xxx
+    git_ops.py wip-commit <plet_dir> --iter-id ITR_xxx
         --message "description" [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -134,12 +134,12 @@ PITFALLS:
     - Attempt number derived from iter state — don't pass it manually
 
 USAGE:
-    git_ops.py audit-tag <plet_dir> --iter-id ID_xxx
+    git_ops.py audit-tag <plet_dir> --iter-id ITR_xxx
         --phase implement|verify [--dry-run]
         [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (required)
-    --iter-id            Iteration ID (e.g., ID_001)
+    --iter-id            Iteration ID (e.g., ITR_001)
     --phase              implement or verify
 
 PURPOSE:
@@ -148,8 +148,8 @@ PURPOSE:
     which moves, tags are fixed anchors.
 
 Examples:
-    git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement
-    git_ops.py audit-tag --iter-id ID_001 --phase verify --dry-run
+    git_ops.py audit-tag plet/ --iter-id ITR_001 --phase implement
+    git_ops.py audit-tag --iter-id ITR_001 --phase verify --dry-run
 """
     cmd_name = "audit-tag"
     hint = help_hint(cmd_name)
@@ -199,8 +199,8 @@ Examples:
     return _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run)
 
 
-cmd_audit_tag.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_audit_tag.example = "git_ops.py audit-tag plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_audit_tag.usage = "<plet_dir> --iter-id ITR_xxx --phase implement"  # noqa: E501
+cmd_audit_tag.example = "git_ops.py audit-tag plet/ --iter-id ITR_001 --phase implement"  # noqa: E501
 
 
 def _execute_audit_tag(global_state, iter_state, phase, attempt, cmd_name, output_json, pretty, fields, dry_run):
@@ -395,10 +395,10 @@ PITFALLS:
     - If rebase conflicts, returns error — orchestrator requeues
 
 USAGE:
-    git_ops.py rebase-commit <plet_dir> --iter-id ID_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    git_ops.py rebase-commit <plet_dir> --iter-id ITR_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (required)
-    --iter-id            Iteration ID (e.g., ID_001)
+    --iter-id            Iteration ID (e.g., ITR_001)
 
 PURPOSE:
     Rebases iteration work onto workstream and fast-forward merges.
@@ -406,8 +406,8 @@ PURPOSE:
     in the workstream history. Linear history, no merge commits.
 
 Examples:
-    git_ops.py rebase-commit plet/ --iter-id ID_001
-    git_ops.py rebase-commit --iter-id ID_001 --dry-run
+    git_ops.py rebase-commit plet/ --iter-id ITR_001
+    git_ops.py rebase-commit --iter-id ITR_001 --dry-run
 """
     cmd_name = "rebase-commit"
     hint = help_hint(cmd_name)
@@ -483,8 +483,8 @@ Examples:
         return (0, msg, "")
 
 
-cmd_rebase_commit.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
-cmd_rebase_commit.example = "git_ops.py rebase-commit plet/ --iter-id ID_001"  # noqa: E501
+cmd_rebase_commit.usage = "<plet_dir> --iter-id ITR_xxx"  # noqa: E501
+cmd_rebase_commit.example = "git_ops.py rebase-commit plet/ --iter-id ITR_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -511,11 +511,11 @@ PITFALLS:
       including traces — that's the one place traces get committed
 
 USAGE:
-    git_ops.py wip-commit <plet_dir> --iter-id ID_xxx --message "AC_1 - description"
+    git_ops.py wip-commit <plet_dir> --iter-id ITR_xxx --message "AC_1 - description"
 
     plet_dir    Path to plet directory (required)
-    --iter-id   Iteration ID (e.g., ID_001)
-    --message   Commit message (required). Automatically prefixed with "wip: [ID_xxx] "
+    --iter-id   Iteration ID (e.g., ITR_001)
+    --message   Commit message (required). Automatically prefixed with "wip: [ITR_xxx] "
 
 PURPOSE:
     Safe commit during implement/verify. Stages everything except plet/trace/
@@ -523,7 +523,7 @@ PURPOSE:
     the transcript, which dirties plet/, which triggers another commit.
 
 Examples:
-    git_ops.py wip-commit plet/ --iter-id ID_001 --message "AC_1 - tests pass"
+    git_ops.py wip-commit plet/ --iter-id ITR_001 --message "AC_1 - tests pass"
 """
     cmd_name = "wip-commit"
     hint = help_hint(cmd_name)
@@ -582,8 +582,8 @@ Examples:
     return (0, f"OK — {commit_msg} ({commit_hash})", "")
 
 
-cmd_wip_commit.usage = '<plet_dir> --iter-id ID_xxx --message "description"'  # noqa: E501
-cmd_wip_commit.example = 'git_ops.py wip-commit plet/ --iter-id ID_001 --message "AC_1 - tests pass"'  # noqa: E501
+cmd_wip_commit.usage = '<plet_dir> --iter-id ITR_xxx --message "description"'  # noqa: E501
+cmd_wip_commit.example = 'git_ops.py wip-commit plet/ --iter-id ITR_001 --message "AC_1 - tests pass"'  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

@@ -172,7 +172,7 @@ def cmd_init(args):
     """Create a new state.json with correct structure."""
     help_text = """Usage: global_state.py init <global_plet_dir>
   --project-id PROJ --project-name "Name"
-  --dependency-map '{"ID_001":[],...}'
+  --dependency-map '{"ITR_001":[],...}'
   --milestones '{"MS_1":{"name":"MVP","iterations":[...]}}'
   --iterations-fingerprint '{"..."}'
   [--project-description "..."]
@@ -190,8 +190,8 @@ Errors if state.json already exists.
 Examples:
   global_state.py init plet \\
     --project-id LOGA --project-name "Log Analyzer" \\
-    --dependency-map '{"ID_001":[],"ID_002":["ID_001"]}' \\
-    --milestones '{"MS_1":{"name":"MVP","iterations":["ID_001","ID_002"]}}' \\
+    --dependency-map '{"ITR_001":[],"ITR_002":["ITR_001"]}' \\
+    --milestones '{"MS_1":{"name":"MVP","iterations":["ITR_001","ITR_002"]}}' \\
     --iterations-fingerprint '{}'
 """
     result = parse_command(
@@ -293,7 +293,7 @@ Examples:
 
 
 cmd_init.usage = "<plet_dir> --project-id PROJ --project-name \"Name\" --dependency-map '{...}' --milestones '{...}' --iterations-fingerprint '{...}'"  # noqa: E501
-cmd_init.example = 'global_state.py init plet/ --project-id LOGA --project-name "Log Analyzer" --dependency-map \'{"ID_001":[]}\' --milestones \'{"MS_1":{"name":"MVP","iterations":["ID_001"]}}\' --iterations-fingerprint \'{}\''  # noqa: E501
+cmd_init.example = 'global_state.py init plet/ --project-id LOGA --project-name "Log Analyzer" --dependency-map \'{"ITR_001":[]}\' --milestones \'{"MS_1":{"name":"MVP","iterations":["ITR_001"]}}\' --iterations-fingerprint \'{}\''  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -322,7 +322,7 @@ def _load_and_validate_for_update(plet_dir, hint):
 def cmd_update_lifecycle(args):
     """Set lifecycle for one iteration in state.json.lifecycles."""
     help_text = """Usage: global_state.py update-lifecycle <global_plet_dir>
-  --iter-id ID_xxx --lifecycle implementing
+  --iter-id ITR_xxx --lifecycle implementing
   [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Set the lifecycle value for a single iteration in state.json.lifecycles.
@@ -332,8 +332,8 @@ Valid lifecycle values: ineligible, queued, implementing, verifying,
                         complete, blocked, withdrawn
 
 Examples:
-  global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle implementing
-  global_state.py update-lifecycle plet --iter-id ID_001 --lifecycle verifying --output json
+  global_state.py update-lifecycle plet --iter-id ITR_001 --lifecycle implementing
+  global_state.py update-lifecycle plet --iter-id ITR_001 --lifecycle verifying --output json
 """
     hint = _help_hint("update-lifecycle")
     result = parse_command(args, help_text, {"iter_id", "lifecycle"}, ["iter_id", "lifecycle"], True, hint)
@@ -383,8 +383,8 @@ Examples:
         return (0, f"OK — {iter_id}: {label}", "")
 
 
-cmd_update_lifecycle.usage = "<plet_dir> --iter-id ID_xxx --lifecycle implementing"  # noqa: E501
-cmd_update_lifecycle.example = "global_state.py update-lifecycle plet/ --iter-id ID_001 --lifecycle implementing"  # noqa: E501
+cmd_update_lifecycle.usage = "<plet_dir> --iter-id ITR_xxx --lifecycle implementing"  # noqa: E501
+cmd_update_lifecycle.example = "global_state.py update-lifecycle plet/ --iter-id ITR_001 --lifecycle implementing"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -395,7 +395,7 @@ cmd_update_lifecycle.example = "global_state.py update-lifecycle plet/ --iter-id
 def cmd_get_lifecycle(args):
     """Read lifecycle for one or all iterations."""
     help_text = """Usage: global_state.py get-lifecycle <global_plet_dir>
-  [--iter-id ID_xxx]
+  [--iter-id ITR_xxx]
   [--output json [--pretty] [--fields f1,f2]]
 
 Without --iter-id: return all lifecycles + summary counts.
@@ -406,7 +406,7 @@ JSON output is the same shape either way:
 
 Examples:
   global_state.py get-lifecycle plet
-  global_state.py get-lifecycle plet --iter-id ID_001
+  global_state.py get-lifecycle plet --iter-id ITR_001
   global_state.py get-lifecycle plet --output json --pretty
 """
     result = parse_command(args, help_text, {"iter_id"}, [], False, _help_hint("get-lifecycle"))

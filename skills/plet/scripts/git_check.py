@@ -4,7 +4,7 @@ Verifies git invariants without modifying state. Called by gate scripts and
 the orchestrator. Reports findings as a list of pass/fail/warn checks.
 
 Usage:
-    git_check.py check-iteration <plet_dir> --iter-id ID_xxx
+    git_check.py check-iteration <plet_dir> --iter-id ITR_xxx
         --phase implement|verify [--output json [--pretty] [--fields f1,f2]]
     git_check.py check-session <plet_dir>
         [--output json [--pretty] [--fields f1,f2]]
@@ -293,12 +293,12 @@ PITFALLS:
     - --phase is "implement" or "verify" (not "implementation")
 
 USAGE:
-    git_check.py check-iteration <plet_dir> --iter-id ID_xxx
+    git_check.py check-iteration <plet_dir> --iter-id ITR_xxx
         --phase implement|verify
         [--output json [--pretty] [--fields f1,f2]]
 
     plet_dir             Path to plet directory (required)
-    --iter-id            Iteration ID (e.g., ID_001)
+    --iter-id            Iteration ID (e.g., ITR_001)
     --phase              implement or verify
 
 PURPOSE:
@@ -307,8 +307,8 @@ PURPOSE:
     merge commits, stashes. Single canonical check shared by gate scripts.
 
 Examples:
-    git_check.py check-iteration --iter-id ID_001 --phase implement
-    git_check.py check-iteration /path/to/plet --iter-id ID_001 --phase verify --output json --pretty
+    git_check.py check-iteration --iter-id ITR_001 --phase implement
+    git_check.py check-iteration /path/to/plet --iter-id ITR_001 --phase verify --output json --pretty
 """
     cmd_name = "check-iteration"
     hint = help_hint(cmd_name)
@@ -373,8 +373,8 @@ Examples:
         return (exit_code, out, "")
 
 
-cmd_check_iteration.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_check_iteration.example = "git_check.py check-iteration plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_check_iteration.usage = "<plet_dir> --iter-id ITR_xxx --phase implement"  # noqa: E501
+cmd_check_iteration.example = "git_check.py check-iteration plet/ --iter-id ITR_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

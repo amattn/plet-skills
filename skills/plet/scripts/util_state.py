@@ -160,7 +160,7 @@ def load_and_validate_global_state(plet_dir):
 # Per-iteration state: plet/state/{id}.json
 # ---------------------------------------------------------------------------
 
-ITER_ID_RE = re.compile(r"^ID_\d+$")
+ITER_ID_RE = re.compile(r"^ITR_\d+$")
 
 VALID_LIFECYCLES = [
     "ineligible",
@@ -246,7 +246,7 @@ def validate_iter_state(data):
         errors.append("field 'agentId' must be string or null, got {}".format(type(data["agentId"]).__name__))
 
     if "iterationId" in data and isinstance(data["iterationId"], str) and not ITER_ID_RE.match(data["iterationId"]):
-        errors.append("iterationId '{}' does not match pattern ID_N+ (e.g., ID_001)".format(data["iterationId"]))
+        errors.append("iterationId '{}' does not match pattern ITR_N+ (e.g., ITR_001)".format(data["iterationId"]))
 
     for field, msg in DEPRECATED_ITER_FIELDS.items():
         if field in data:

@@ -110,7 +110,7 @@ def scan_iter_states(plet_dir):
         basename = os.path.basename(path)
         if basename == "state.json":
             continue
-        # Extract iter_id from filename (e.g., "ID_001.json" -> "ID_001")
+        # Extract iter_id from filename (e.g., "ITR_001.json" -> "ITR_001")
         iter_id = os.path.splitext(basename)[0]
         data = load_and_validate_iter_state(plet_dir, iter_id)
         if isinstance(data, tuple):

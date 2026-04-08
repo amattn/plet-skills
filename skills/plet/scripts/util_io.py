@@ -128,7 +128,7 @@ def derive_worktree_path(state, iter_id, worktree_dir=None):
 
     Args:
         state: dict with projectId
-        iter_id: iteration ID (e.g., "ID_001")
+        iter_id: iteration ID (e.g., "ITR_001")
         worktree_dir: base directory for worktrees (default: .plet/worktrees)
 
     Returns: path like ".plet/worktrees/{projectId}/{iter_id}"

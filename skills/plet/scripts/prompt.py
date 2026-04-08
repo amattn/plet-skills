@@ -5,7 +5,7 @@ from disk; outputs a complete prompt. This is the bridge between plet's
 deterministic state and the non-deterministic subagent.
 
 Usage:
-    prompt.py assemble <plet_dir> --iter-id ID_xxx
+    prompt.py assemble <plet_dir> --iter-id ITR_xxx
         --phase implement|verify
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -73,7 +73,7 @@ def load_reference(filename):
 def extract_iteration_block(iterations_content, iter_id):
     """Extract the block for a specific iteration from iterations.md.
 
-    Looks for a heading containing the iter_id (e.g., '## ID_001 — ...').
+    Looks for a heading containing the iter_id (e.g., '## ITR_001 — ...').
     Returns everything from that heading to the next same-level heading or EOF.
     """
     lines = iterations_content.split("\n")
@@ -287,7 +287,7 @@ PITFALLS:
     - Text output is pipe-friendly: suitable for `... | claude -p`
 
 USAGE:
-    prompt.py assemble <plet_dir> --iter-id ID_xxx
+    prompt.py assemble <plet_dir> --iter-id ITR_xxx
         --phase implement|verify
         [--output json [--pretty] [--fields f1,f2]]
 
@@ -300,8 +300,8 @@ PURPOSE:
     files on disk. Guarantees all required sections are present.
 
 Examples:
-    prompt.py assemble plet/ --iter-id ID_001 --phase implement
-    prompt.py assemble --iter-id ID_001 --phase verify --output json --pretty
+    prompt.py assemble plet/ --iter-id ITR_001 --phase implement
+    prompt.py assemble --iter-id ITR_001 --phase verify --output json --pretty
 """
     cmd_name = "assemble"
     hint = help_hint(cmd_name)
@@ -381,8 +381,8 @@ Examples:
         return (0, "\n".join(parts).strip(), "")
 
 
-cmd_assemble.usage = "<plet_dir> --iter-id ID_xxx --phase implement"  # noqa: E501
-cmd_assemble.example = "prompt.py assemble plet/ --iter-id ID_001 --phase implement"  # noqa: E501
+cmd_assemble.usage = "<plet_dir> --iter-id ITR_xxx --phase implement"  # noqa: E501
+cmd_assemble.example = "prompt.py assemble plet/ --iter-id ITR_001 --phase implement"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------

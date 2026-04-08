@@ -6,9 +6,9 @@ these to make deterministic routing decisions.
 
 Usage:
     schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]
-    schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx
+    schedule.py check-breakpoints <plet_dir> --iter-id ITR_xxx
         --position before|after [--output json [--pretty] [--fields f1,f2]]
-    schedule.py check-retry <plet_dir> --iter-id ID_xxx
+    schedule.py check-retry <plet_dir> --iter-id ITR_xxx
         [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
@@ -206,13 +206,13 @@ def cmd_check_breakpoints(args):
     arrays always return "miss".
 
     USAGE
-        schedule.py check-breakpoints <plet_dir> --iter-id ID_xxx
+        schedule.py check-breakpoints <plet_dir> --iter-id ITR_xxx
             --position before|after
             [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
-        schedule.py check-breakpoints plet/ --iter-id ID_003 --position before
-        schedule.py check-breakpoints plet/ --iter-id ID_003 --position after --output json
+        schedule.py check-breakpoints plet/ --iter-id ITR_003 --position before
+        schedule.py check-breakpoints plet/ --iter-id ITR_003 --position after --output json
 
     PURPOSE
         Breakpoint enforcement for the orchestrator. Called twice per iteration —
@@ -262,8 +262,8 @@ def cmd_check_breakpoints(args):
         return (0, result, "")
 
 
-cmd_check_breakpoints.usage = "<plet_dir> --iter-id ID_xxx --position before|after"  # noqa: E501
-cmd_check_breakpoints.example = "schedule.py check-breakpoints plet/ --iter-id ID_001 --position before"  # noqa: E501
+cmd_check_breakpoints.usage = "<plet_dir> --iter-id ITR_xxx --position before|after"  # noqa: E501
+cmd_check_breakpoints.example = "schedule.py check-breakpoints plet/ --iter-id ITR_001 --position before"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
@@ -281,11 +281,11 @@ def cmd_check_retry(args):
     strictly decreasing across attempts, extend to 6. Abort if not decreasing.
 
     USAGE
-        schedule.py check-retry <plet_dir> --iter-id ID_xxx [--output json [--pretty] [--fields f1,f2]]
+        schedule.py check-retry <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
-        schedule.py check-retry plet/ --iter-id ID_002
-        schedule.py check-retry plet/ --iter-id ID_002 --output json --pretty
+        schedule.py check-retry plet/ --iter-id ITR_002
+        schedule.py check-retry plet/ --iter-id ITR_002 --output json --pretty
 
     PURPOSE
         Retry policy enforcement for the loop orchestrator. Called after a verify
@@ -342,8 +342,8 @@ def cmd_check_retry(args):
         return (0, decision, "")
 
 
-cmd_check_retry.usage = "<plet_dir> --iter-id ID_xxx"  # noqa: E501
-cmd_check_retry.example = "schedule.py check-retry plet/ --iter-id ID_001"  # noqa: E501
+cmd_check_retry.usage = "<plet_dir> --iter-id ITR_xxx"  # noqa: E501
+cmd_check_retry.example = "schedule.py check-retry plet/ --iter-id ITR_001"  # noqa: E501
 
 
 # ---------------------------------------------------------------------------
