@@ -31,7 +31,12 @@ If `plet/requirements.md` already exists:
 2. Read `plet/emergent.md` for pending items — triage with the user before planning
 3. Read `plet/learnings.md` for patterns that suggest spec changes — incorporate into requirements
 4. **MANDATORY: Check for legacy conventions and fix before proceeding:**
-   - **`ID_` prefix → `ITR_`:** Older projects use `ID_001` instead of `ITR_001`. **Scripts and validators reject `ID_` — the loop will fail.** You MUST rename before the loop can run. Rename in ALL locations: `iterations.md` headings, `state.json` (dependencyMap keys, lifecycles keys, milestones iteration lists), per-iteration state files (both filenames `ID_001.json` → `ITR_001.json` and the `iterationId` field inside), and `requirements.md` if it references iteration IDs. This is a mechanical find-and-replace (`ID_` → `ITR_`) but must be thorough — a single missed reference will fail validation.
+   - **`ID_` prefix → `ITR_`:** Older projects use `ID_001` instead of `ITR_001`. **Scripts and validators reject `ID_` — the loop will fail.** You MUST fix before the loop can run. A single missed reference will fail validation.
+     - **File contents** (find-and-replace `ID_` → `ITR_` inside these files):
+       - `plet/iterations.md` — heading IDs (`### ID_001` → `### ITR_001`), dependency references
+       - `plet/state.json` — `dependencyMap` keys, `lifecycles` keys, `milestones` iteration lists
+       - `plet/requirements.md` — if it references iteration IDs
+     - **Per-iteration state files** (`plet/state/ID_001.json` etc.): either rename the files AND fix `iterationId` inside, or delete and re-create via `iter_state.py init` per iteration (see Step 10 § Initialize State, step 4). The orchestrator requires these files — it will fail if they're missing.
    - **Milestones without barriers:** Older projects may have milestones as cosmetic labels with no `ITR_RFT_N` refactor iterations and no cross-milestone dependencies. The loop works fine without them. Offer to add barriers and refactor iterations if the user is re-planning or adding new milestones. **Refactor iterations MUST use `ITR_RFT_N` IDs** (e.g., `ITR_RFT_1`), not sequential IDs — the prefix triggers prompt routing.
 
 ### Specs Exist but State Missing
@@ -551,7 +556,7 @@ After all iterations are approved:
    - `breakpoints`: `{before: [], after: []}`
    - `iterationsFingerprint`: copy from iterations.md
 
-3. Initialize state via `plet_tools.py`:
+3. Initialize global state via `plet_tools.py`:
    ```bash
    # Create state.json (auto-initializes lifecycles from dependency map)
    plet_tools.py init plet/ --project-id PROJ --project-name "Project Name" \
@@ -559,12 +564,21 @@ After all iterations are approved:
        --milestones '{"MS_1":{"name":"MVP","iterations":["ITR_001","ITR_002","ITR_RFT_1"]}}' \
        --iterations-fingerprint '{...}'
    ```
-   The init command creates `state.json` and per-iteration state files. Iterations with no dependencies get lifecycle `queued`; iterations with dependencies get `ineligible`.
+   This creates `state.json` only. Iterations with no dependencies get lifecycle `queued`; iterations with dependencies get `ineligible`.
 
-4. **Spec artifact checkpoint** — verify that `plet/requirements.md` and `plet/iterations.md` exist on disk and are committed. These must survive into the loop and refine sessions. If either is missing, the project cannot be resumed or refined. Do not proceed until both are confirmed on disk.
-5. **Recommendations** — surface any final concerns about the overall plan (coverage gaps, risk areas, dependency graph shape) before offering to start
-6. **Consistency pass** — verify fingerprints match across all three plan artifacts, all requirements are covered by iterations, all iteration IDs appear in state files
-7. Ask: "Ready to start building? Run `/plet loop` to begin."
+4. Initialize per-iteration state files — one per iteration, with title, dependencies, and criteria from iterations.md:
+   ```bash
+   iter_state.py init plet/ --iter-id ITR_001 --title "Project scaffolding" \
+       --dependencies '[]' \
+       --criteria '[{"id":"AC_1","description":"Tests pass"}]' \
+       --no-verify-deps
+   ```
+   Repeat for every iteration. The orchestrator needs these files before it can start a phase. Use `--no-verify-deps` since files are being created in bulk (dependencies may not exist yet).
+
+5. **Spec artifact checkpoint** — verify that `plet/requirements.md` and `plet/iterations.md` exist on disk and are committed. These must survive into the loop and refine sessions. If either is missing, the project cannot be resumed or refined. Do not proceed until both are confirmed on disk.
+6. **Recommendations** — surface any final concerns about the overall plan (coverage gaps, risk areas, dependency graph shape) before offering to start
+7. **Consistency pass** — verify fingerprints match across all three plan artifacts, all requirements are covered by iterations, all iteration IDs appear in state files
+8. Ask: "Ready to start building? Run `/plet loop` to begin."
 
 ---
 
