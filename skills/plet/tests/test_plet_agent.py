@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for plet_agent.py — the agent's unified CLI entry point.
 
-Tests dispatch, --help, --usage, and --version for all 5 commands.
+Tests dispatch, --help, --usage, and --version for all 6 commands.
 Delegates to real module functions — tested via subprocess to prove
 the CLI interface works end-to-end.
 """

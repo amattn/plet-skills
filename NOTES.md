@@ -2254,6 +2254,7 @@ Split by natural home:
 - Evidence guidance in step 5: "Name what you ran/read and what you confirmed. Note the verification approach."
 - Pre-flight checks moved to implement phase (verify trusts the gate). No verify-start wip-commit.
 - Phase-end presented as paragraph with explicit example, not checklist.
+- Verify's "Final Checks" (formatter, linter, full test suite) correctly removed — with fix-in-place gone, verify never modifies implementation code. Approval: no code changes, implement gate already passed. Rejection: intentionally failing tests would be misleading in a full suite run.
 
 ---
 

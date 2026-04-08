@@ -21,7 +21,7 @@
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
 | PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | deferred — before PLAN_SUB (multi-project grep noise) |
-| PLAN_VER | Verify Phase Rewrite | **Active** — tighten scope, verify-first independence, remove fix-in-place |
+| PLAN_VER | Verify Phase Rewrite | 8/9 — VER_9 (real run validation) pending |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
@@ -319,18 +319,18 @@ Rewrite verify.md to match what agents actually do well (functional verification
 | Step | Description | Status |
 |------|-------------|--------|
 | | **Phase 1: verify.md Rewrite** | |
-| VER_1 | Rewrite verify.md per outline (see below) | |
-| VER_2 | Update prompt.py CLI quick ref: 5 → 6 commands (update-activity) | |
-| VER_3 | Update prompt.py `format_iteration_state`: strip implementation evidence from verify prompt (status + description only, no evidence text) | |
+| VER_1 | Rewrite verify.md per outline (see below) | ✓ done (338 → 257 lines) |
+| VER_2 | Update prompt.py CLI quick ref: 5 → 6 commands (update-activity) | ✓ done |
+| VER_3 | Update prompt.py `format_iteration_state`: strip implementation evidence from verify prompt (status + description only, no evidence text) | ✓ already satisfied (only injects status + description) |
 | | **Phase 2: implement.md Adjustments** | |
-| VER_4 | Move pre-flight checks to implement.md final checks (verify trusts the gate) | |
-| VER_5 | Verify implement.md phase-end gate enforces pre-flight (tests pass, git clean) | |
+| VER_4 | Move pre-flight checks to implement.md final checks (verify trusts the gate) | ✓ already satisfied (implement final checks cover all pre-flight items) |
+| VER_5 | Verify implement.md phase-end gate enforces pre-flight (tests pass, git clean) | ✓ confirmed (gate-post checks state, entries; phase-end handles git) |
 | | **Phase 3: Cross-reference Updates** | |
-| VER_6 | Update SKILL.md verify description if needed | |
-| VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to refactor.md | |
+| VER_6 | Update SKILL.md verify description if needed | ✓ no changes needed |
+| VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to refactor.md | ✓ done (NOTES_PLN_RFT updated) |
 | | **Phase 4: Validate** | |
-| VER_8 | Test suite passes | |
-| VER_9 | Validate with real run (OLLR R06 or LOGA R15) | |
+| VER_8 | Test suite passes | ✓ done (1041 tests, 91% coverage) |
+| VER_9 | Validate with real run (OLLR R06 or LOGA R15) | LOGA R15 in progress (baseline); R16 will validate |
 
 **verify.md outline:**
 

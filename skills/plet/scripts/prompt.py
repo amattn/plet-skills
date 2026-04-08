@@ -150,12 +150,15 @@ def _build_cli_quick_ref(iter_id, phase, attempt):
     crit_phase = "implementation" if phase == "implement" else "verification"
 
     lines = [
-        "# CLI Quick Reference (plet_agent.py — 5 commands)",
+        "# CLI Quick Reference (plet_agent.py — 6 commands)",
         f"# Pre-filled for {iter_id}, phase={phase}, attempt={a}",
         "# IMPORTANT: Use these commands directly. Do NOT call --help first.",
         "# Escalation: plet_agent.py --usage > plet_agent.py --help",
         "",
-        "# Per-AC (after each green step):",
+        "# Activity updates (per transition):",
+        f'{ag} update-activity {p} --iter-id {iter_id} --phase-activity implementing --activity-detail "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
+        "",
+        "# Per-AC (after each criterion):",
         f'{ag} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status pass --evidence "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
         f'{ag} wip-commit {p} --iter-id {iter_id} --message "AC_1 - description"',
         "",
