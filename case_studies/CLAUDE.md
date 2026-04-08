@@ -33,6 +33,7 @@ Case studies are a critical feedback mechanism for improving plet. Each case stu
 | `CASE_STUDY_LOGA_R14.md` | LOGA (logalyzer) | Go | **13/13** | v0.6.2; parallel 1h53m = sequential R08; 8 rebase retries; 42 learnings; PLAN_SEQ baseline |
 | `CASE_STUDY_OLLR_R05.md` | OLLR (oller) | Bash | **6/6** | v0.7.0; first PLAN_SEQ run; sequential-only 20m (fastest OLLR); zero retries; update-activity missing |
 | `CASE_STUDY_OLLR_R06.md` | OLLR (oller) | Bash | **6/6** | v0.7.0+; 79 update-activity calls (R05: 0); 28m wall clock; PLAN_VER baseline |
+| `CASE_STUDY_OLLR_R07.md` | OLLR (oller) | Bash | **6/6** | v0.7.0+VER+auto; verify-first confirmed; 136 activity changes (54 explicit + 82 auto); 21m |
 
 ## Stable Labels
 

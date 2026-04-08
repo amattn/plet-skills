@@ -21,7 +21,7 @@
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
 | PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | **Next** — after SEQ/VER close |
-| PLAN_VER | Verify Phase Rewrite | 8/9 — VER_9 (real run validation) pending |
+| PLAN_VER | Verify Phase Rewrite | ✓ COMPLETE (9/9) — validated OLLR R07 |
 | PLAN_FIX | Small Fixes Backlog | 4 items (P2-P3) from R05/R06 case studies |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
@@ -349,7 +349,7 @@ Rewrite verify.md to match what agents actually do well (functional verification
 | VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to refactor.md | ✓ done (NOTES_PLN_RFT updated) |
 | | **Phase 4: Validate** | |
 | VER_8 | Test suite passes | ✓ done (1041 tests, 91% coverage) |
-| VER_9 | Validate with real run (OLLR R07) | **in progress** |
+| VER_9 | Validate with real run (OLLR R07) | ✓ done — verify-first confirmed, auto-emit 136 changes, 21m |
 
 **verify.md outline:**
 
