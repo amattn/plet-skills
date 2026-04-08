@@ -467,18 +467,23 @@ Present the dependency graph visually during iteration review. Ask the user to c
 
 **When in doubt, add the dependency.** Missing dependencies are the most dangerous planning error — an agent starts work before prerequisite code exists, wastes a cycle, and must self-correct. False dependencies (unnecessary deps) are harmless — they only affect ordering. Always err on the side of adding a dependency rather than omitting one.
 
-If an agent discovers a missing dependency during execution, it self-corrects without blocking — fixes the DAG in place, sets itself to `ineligible`, and documents across all four runtime artifacts. The loop continues and the iteration auto-queues when the missing dep completes. See `references/implement.md` for the full self-correction procedure (IMP_24).
+If an agent discovers a missing dependency during execution, it files an emergent item and blocks. The human fixes the dependency map during a refine session. See `references/implement.md` for the procedure (IMP_24).
 
 ### Milestone Barriers
 
-**Milestones are execution barriers, not cosmetic labels.** Every iteration in MS_2 implicitly depends on ALL iterations in MS_1 being complete. This is encoded in the dependency map — no special orchestrator logic needed.
+**Milestones are execution barriers, not cosmetic labels.** The refactor iteration (`ITR_RFT_N`) is the last iteration in each milestone. All MS_N+1 iterations depend on it. The barrier chain is:
+
+```
+MS_1 iterations → ITR_RFT_1 → MS_2 iterations → ITR_RFT_2 → ...
+```
 
 When generating the dependency map:
 1. Within-milestone deps: explicit, per-iteration (as defined by the user)
-2. Cross-milestone deps: implicit barrier — every MS_N+1 iteration depends on all MS_N iterations
-3. The orchestrator follows the DAG — it doesn't need milestone awareness
+2. Refactor iteration depends on all other iterations in its milestone
+3. Cross-milestone barrier: every MS_N+1 iteration depends on `ITR_RFT_N` (not on all MS_N iterations individually)
+4. The orchestrator follows the DAG — it doesn't need milestone awareness
 
-This prevents starting MS_2 work on an un-integrated MS_1 foundation. Each milestone is a coherent, complete increment.
+This prevents starting MS_2 work on an un-integrated, un-refactored MS_1 foundation.
 
 ### Refactor Iterations
 
@@ -539,16 +544,15 @@ After all iterations are approved:
    - `breakpoints`: `{before: [], after: []}`
    - `iterationsFingerprint`: copy from iterations.md
 
-3. Create per-iteration state files using the state tool:
+3. Initialize state via `plet_tools.py`:
    ```bash
-   TOOL="${CLAUDE_SKILL_DIR}/scripts/plet_state.py"
-   $TOOL init plet/state/ITR_001.json \
-       --iter-id ITR_001 \
-       --title "Project scaffolding" \
-       --dependencies '[]' \
-       --criteria '[{"id":"AC_1","description":"pytest runs with exit 0"}]'
+   # Create state.json (auto-initializes lifecycles from dependency map)
+   plet_tools.py init plet/ --project-id PROJ --project-name "Project Name" \
+       --dependency-map '{"ITR_001":[],"ITR_002":["ITR_001"]}' \
+       --milestones '{"MS_1":{"name":"MVP","iterations":["ITR_001","ITR_002","ITR_RFT_1"]}}' \
+       --iterations-fingerprint '{...}'
    ```
-   The tool sets lifecycle (`queued` or `ineligible`), initializes the two-state criterion model, and validates the output.
+   The init command creates `state.json` and per-iteration state files. Iterations with no dependencies get lifecycle `queued`; iterations with dependencies get `ineligible`.
 
 4. **Spec artifact checkpoint** — verify that `plet/requirements.md` and `plet/iterations.md` exist on disk and are committed. These must survive into the loop and refine sessions. If either is missing, the project cannot be resumed or refined. Do not proceed until both are confirmed on disk.
 5. **Recommendations** — surface any final concerns about the overall plan (coverage gaps, risk areas, dependency graph shape) before offering to start
