@@ -107,7 +107,9 @@ plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
 
 **If the criterion fails:** mark it `--status fail` with evidence describing the problem, then **continue verifying the remaining criteria**. Do not stop at the first failure — the implement agent needs the complete picture. See Rejection Protocol below.
 
-5. **Commit:**
+5. **Reflect:** Did verification reveal anything about the codebase, test patterns, or implementation approach that would help a future agent? Any spec gaps or assumptions worth flagging? If yes, write a learning or emergent entry now.
+
+6. **Commit:**
 
 ```bash
 plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "AC_N - verify: {short description}"

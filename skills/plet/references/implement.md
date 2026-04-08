@@ -117,6 +117,10 @@ plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
 
 **Evidence must be specific** — name the test, describe what it asserts, include the outcome, and note the scope of the green run (module, suite, or full). "Tests pass" is not evidence.
 
+### Reflect: Learnings and Emergent (per AC)
+
+After each green step, ask: did you discover anything about the codebase, tools, or patterns that would help a future agent? Did anything come up that wasn't in the spec? If yes, write it now — don't defer to the end. At least one learning per iteration is expected.
+
 ### Commit Incrementally (IMP_17)
 
 Commit after each red step and after each green step at minimum. These incremental commits are your crash recovery mechanism.
