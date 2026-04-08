@@ -110,7 +110,7 @@ def test_help_and_version():
 
     out, _, _ = run(["--version"])
     check("--version has name", "plet_agent" in out)
-    check("--version has version", "0.1.0" in out)
+    check("--version has version", "0.2.0" in out)
 
 
 def test_command_help():

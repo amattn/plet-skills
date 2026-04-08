@@ -2,6 +2,37 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.7.0 (2026-04-08)
+
+### update-activity Restoration + Auto-Emit
+
+`update-activity` was stripped from reference files during 0.7.0 slimming. OLLR R05 confirmed zero activity updates during work — external consumers had no signal. Restored and improved.
+
+- **`plet_agent.py` 0.2.0:** Added `update-activity` command (5→6 commands). Auto-emit from dispatch — `update-criterion`, `wip-commit`, and `phase-end` automatically set phaseActivity with descriptive detail strings derived from args + state file.
+- **Auto-emit mapping:** `update-criterion` → `running_checks` / `"AC_1: {description}"`, `wip-commit` → `committing` / `"{message}"`, `phase-end` → `wrapping_up` / `"completing phase"`.
+- **Agent explicit calls reduced:** ~79 per run (R06) → ~5-7 (setup, pre-flight, red, green-start, final checks). Mechanical transitions are now automatic.
+- **Reference files:** Activity Updates sections removed from both implement.md and verify.md. Remaining explicit `update-activity` directives inline at meaningful transition points only.
+
+### Verify Phase Rewrite (PLAN_VER)
+
+verify.md rewritten to match what agents actually do well (functional verification) and stop asking them to do what they don't (code review). 338 → 220 lines.
+
+- **Removed from verify:** VF_9 (Code Quality), broad VF_8 (test suite design), broad VF_10 (security audit) — migrating to refactor.md (PLAN_RFT). Fix-in-place (Path B) removed entirely. Anti-Slop Bias + Convergence Signal collapsed into "Verification Rigor". Artifact Audit removed (gate enforces). Pre-flight moved to implement (verify trusts the gate). Verify-start wip-commit removed.
+- **Added:** Verify-first independence (don't read state file until after independent verification). Criterion type guidance table (behavioral, structural, negative, documentation, integration). "After All Criterion Workflows Complete" section for evidence comparison.
+- **Restructured:** Result-first verification is now the main per-criterion loop. Rejection Protocol promoted from "Path C" to top-level. Phase-end as paragraph, not checklist.
+
+### Version Injection Centralization
+
+- `SCRIPT_VERSION` renamed to `SUBMODULE_VERSION` across all 15 scripts (cosmetic — same values).
+- `util_cli.py` dispatch now injects `skillVersion`, `scriptVersion`, and `submoduleVersion` into all JSON output automatically. Individual commands no longer set version fields manually.
+- `prompt.py` 0.3.3: CLI quick ref updated (5→6 commands, "after each criterion").
+
+### $PLET_ITER_ID Environment Variable
+
+Reference file examples updated: `{iteration_id}` and `{iter_id}` placeholders replaced with `$PLET_ITER_ID` env var, matching the existing `$PLET_AGENT_ID` pattern.
+
+---
+
 ## 0.7.0 (2026-04-07)
 
 ### Sequential Simplification (PLAN_SEQ)

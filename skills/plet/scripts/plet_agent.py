@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import dispatch  # noqa: E402
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.2.0"
 # Import command functions from modules
 from entries import cmd_add_emergent, cmd_add_learning  # noqa: E402
 from git_ops import cmd_wip_commit  # noqa: E402
