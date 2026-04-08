@@ -15,7 +15,7 @@
 | PLAN_RW | PRD + ORC + SKILL.md + Reference Files Rewrite | ✓ COMPLETE |
 | PLAN_HLP | Subagent CLI Re-learning | ✓ COMPLETE (validated: zero --help in R08) |
 | PLAN_PAR | Parallel Orchestrator | ✓ COMPLETE (superseded by PLAN_SEQ) |
-| PLAN_SEQ | Sequential Simplification | **Active** — strip parallel, simplify branch model |
+| PLAN_SEQ | Sequential Simplification | 42/43 — SEQ_43 (real run) blocked on PLAN_VER |
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
@@ -271,14 +271,14 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | SEQ_34 | Path cleanup: replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | ✓ done |
 | SEQ_35 | Audit + slim formats.md — dropped from prompt injection, content migrated | ✓ done |
 | SEQ_36 | Audit + slim state-schema.md — dropped from prompt injection, enum values added to CLI --usage | ✓ done |
-| SEQ_37 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | |
-| SEQ_38 | Slim verify.md — same approach, inline cheatsheet content | |
-| SEQ_39 | Remove cli-cheatsheet.md — obsolete (`plet_agent.py --help` replaces it for agents) | |
-| SEQ_40 | Update SKILL.md — sequential loop, 3 scripts, `phase-start` rename, loop runs ONCE | |
-| SEQ_41 | Update PRD — remove/update parallel, worktree, branch management sections | |
+| SEQ_37 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | ✓ done |
+| SEQ_38 | Slim verify.md — same approach, inline cheatsheet content | ✓ done |
+| SEQ_39 | Remove cli-cheatsheet.md — obsolete (`plet_agent.py --help` replaces it for agents) | ✓ done |
+| SEQ_40 | Update SKILL.md — sequential loop, 3 scripts, `phase-start` rename, loop runs ONCE | ✓ done |
+| SEQ_41 | Update PRD — remove/update parallel, worktree, branch management sections | ✓ done |
 | | **Phase 6: Validate** | |
-| SEQ_42 | Full test suite + coverage ≥ 87% | |
-| SEQ_43 | Validate with real run (LOGA R15) | |
+| SEQ_42 | Full test suite + coverage ≥ 87% | ✓ done (1041 tests, 91% coverage) |
+| SEQ_43 | Validate with real run (LOGA R15) | blocked on PLAN_VER (verify.md rewrite) |
 
 **Red/green summary:** 13 red/green pairs across 5 phases. 2 structural steps (SEQ_12 rename, SEQ_17 orchestrator rewrite). 3 migration/update steps (SEQ_18 allowed-tools, SEQ_19 test migration). 7 doc-only steps (SEQ_34-40). 1 checkpoint (SEQ_11). 2 validation steps (SEQ_41-42).
 
