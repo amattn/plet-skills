@@ -21,6 +21,7 @@
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
 | PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | deferred — before PLAN_SUB (multi-project grep noise) |
+| PLAN_VER | Verify Phase Rewrite | **Active** — tighten scope, verify-first independence, remove fix-in-place |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
@@ -306,6 +307,64 @@ Rename iteration ID prefix from `ID_` to `ITR_` across the entire system. `ID_` 
 **Approach:** Sweep-level consistency pass. Inventory all `ID_` occurrences, categorize, execute systematically.
 
 See NOTES.md § NOTES_PLN_IDR for rationale.
+
+---
+
+## PLAN_VER: Verify Phase Rewrite
+
+Rewrite verify.md to match what agents actually do well (functional verification) and stop asking them to do what they don't (code review). Tighten scope, enforce independence, remove unused paths. See NOTES.md § NOTES_PLN_VER for all decisions and rationale.
+
+**Core changes:** VF_9/broad VF_8/broad VF_10 → refactor (PLAN_RFT). Fix-in-place removed. Anti-Slop + Convergence collapsed. Artifact Audit removed (gate handles it). Verify-first independence (evidence deferred). Pre-flight moved to implement.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| | **Phase 1: verify.md Rewrite** | |
+| VER_1 | Rewrite verify.md per outline (see below) | |
+| VER_2 | Update prompt.py CLI quick ref: 5 → 6 commands (update-activity) | |
+| VER_3 | Update prompt.py `format_iteration_state`: strip implementation evidence from verify prompt (status + description only, no evidence text) | |
+| | **Phase 2: implement.md Adjustments** | |
+| VER_4 | Move pre-flight checks to implement.md final checks (verify trusts the gate) | |
+| VER_5 | Verify implement.md phase-end gate enforces pre-flight (tests pass, git clean) | |
+| | **Phase 3: Cross-reference Updates** | |
+| VER_6 | Update SKILL.md verify description if needed | |
+| VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to refactor.md | |
+| | **Phase 4: Validate** | |
+| VER_8 | Test suite passes | |
+| VER_9 | Validate with real run (OLLR R06 or LOGA R15) | |
+
+**verify.md outline:**
+
+```
+# Verify Phase — Verification Subagent
+
+## Preamble (~4 critical rules)
+## Agent Tool (6 commands table)
+## Branch/State Context
+## Before You Start
+   ### Set Up State (update-activity setup)
+   ### Read Context (CLAUDE.md, iterations.md, requirements.md, learnings, emergent)
+         Do NOT read per-iteration state file yet
+## Independent Verification (MAIN LOOP)
+   ### Verification Rigor (collapsed VF_12+VF_13, prompt bias note)
+   ### Criterion Type Guidance (table: behavioral, structural, negative, doc, integration)
+   ### Per-Criterion Workflow
+         1. update-activity  2. independently verify  3. tautological check
+         4. spec gaps → emergent  5. update-criterion (fail → continue, don't stop)
+         6. wip-commit
+## After All Criterion Workflows Complete
+   Read full state file, compare findings vs implementation evidence, note discrepancies
+## Rejection Protocol (promoted from Path C)
+   Red-test handoff: write failing test, --red-test flag, --no-test-rationale
+   New criteria for discovered issues. Verify writes tests only, never impl code.
+## Completing the Phase (paragraph + example, not checklist)
+## Blocker Protocol
+## Runtime Artifact Writes
+## Activity Updates (reference table)
+## Retry Awareness (short paragraph)
+## Criteria Skip Rules
+```
+
+**Depends on:** None. PLAN_RFT depends on VER (VF_9 migration).
 
 ---
 

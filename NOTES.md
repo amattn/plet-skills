@@ -38,6 +38,7 @@ Labels are append-only — never renumber or rename. Use `grep NOTES_PLN_RFT` to
 | NOTES_EXP | Example Projects |
 | NOTES_SUB | Subplets & Multi-Developer Analysis |
 | NOTES_SIA | Self-Improvement Analysis |
+| NOTES_SIA | Self-Improvement Analysis |
 
 ## NOTES_DEF: What is plet?
 
@@ -2043,7 +2044,7 @@ Note on #7: `churn` command added to PLAN_RFT scope — natural home in plet_git
 
 **Still open:**
 
-1. **refactor.md reference file content.** Agent audit procedure, AC proposal format, defer-vs-fix guidance, test failure handling (revert + emergent), time budget behavior.
+1. **refactor.md reference file content.** Agent audit procedure, AC proposal format, defer-vs-fix guidance, test failure handling (revert + emergent), time budget behavior. **Update (2026-04-07):** refactor.md will also absorb VF_9 (code quality), broad VF_8 (test suite design), and broad VF_10 (security audit) from verify.md. See NOTES_PLN_VER.
 2. **§Refactor Policy placement in requirements.md.** Between §4.5 and §5 (quality-adjacent) vs before §9 (milestone-adjacent). Leaning quality-adjacent.
 
 ---
@@ -2124,6 +2125,137 @@ Test signals:
 **Escape hatch:** The refine session can create refactor iterations mid-milestone if the human or learnings surface something urgent ("this module is becoming unmaintainable"). Same hard invariant applies — tests must be green.
 
 Not a v1 blocker — the current verify phase catches obvious code quality issues — but worth designing in before tech debt compounds across real usage.
+
+### NOTES_PLN_VER: PLAN_VER — Verify Phase Evaluation
+
+**Decision (2026-04-07): VF_7-11 split between verify and refactor.** The five quality-gate sections in verify.md (VF_7 Spec Fidelity, VF_8 Test Quality, VF_9 Code Quality, VF_10 Security Surface, VF_11 Spec Gaps) are a code-review checklist that agents mostly ignore. R05 transcript analysis: agents gave single sentences ("No security concerns") or skipped entirely.
+
+Split by natural home:
+- **Stay in verify:** VF_7 (Spec Fidelity) — this IS verification. VF_11 (Spec Gaps) — directly spec-related.
+- **Move to refactor.md (PLAN_RFT):** VF_9 (Code Quality) — cross-cutting codebase health, not per-AC verification. Already covered by PLAN_RFT Tier 1 (per-loop minor refactor) and Tier 2 (milestone boundary) heuristics.
+- **Split:** VF_8 (Test Quality) — "tests actually test the AC" stays in verify; "test suite is well-designed" moves to refactor. VF_10 (Security) — AC-relevant security stays in verify; broad security audit moves to refactor.
+
+**Rationale (from NOTES_PLN_RFT):** "Verify's job is checking correctness against acceptance criteria. Refactoring is about improving the codebase that's already correct. Different goals, different context needs. Verify sees one iteration; refactor needs to see everything."
+
+**Evidence (OLLR R05 transcripts):** Verify agents naturally do functional verification well — independently run code, compare to spec, check tests aren't tautological. They don't do broad code quality audits. Lean into the strength instead of asking them to also be code reviewers.
+
+**Decision (2026-04-07): Collapse Anti-Slop Bias (VF_12) + Convergence Signal (VF_13) into single "Verification Rigor" section.** Both sections pulled in opposite directions ("assume debt" vs "approve if cosmetic"). With VF_9 moved to refactor, the "hidden debt" framing belongs there. Verify's rigor is: confirm AC are genuinely satisfied, not just that tests pass. Approve when all AC are confirmed. No broad code quality audit.
+
+**Decision (2026-04-07): Result-first verification becomes the main loop structure.** Per-criterion workflow: (1) independently verify the AC (run code, read source, compare to spec — absorbs VF_7 Spec Fidelity), (2) check the test isn't tautological (kept from VF_8), (3) flag spec gaps if found (kept from VF_11), (4) update-criterion with evidence. This matches what agents actually do well in practice (R05 transcripts). Separate sections for VF_7/VF_8/VF_11 collapse into inline steps of the per-criterion loop.
+
+**Decision (2026-04-07): Remove fix-in-place (Path B) entirely.** Verify agent never writes implementation code. Two paths only: approve (all AC pass) or cycle back (write failing tests, hand off to implement). Rationale: (1) clean verify/implement separation — no gray area about what's "small enough," (2) strengthens the red test handoff pattern (verify writes failing test, implement makes it green), (3) fix-in-place was never used across R01-R05 — zero practical frequency, (4) simplifies verify.md by removing an entire decision branch. If cycle-back overhead proves painful in future runs, reintroduce with concrete criteria (under ~20 lines, additive only, no logic changes).
+
+**Decision (2026-04-07): Remove Artifact Audit (VF_20) from verify.md.** Artifact completeness is already enforced by phase-end gate checks (progress entry FAIL, learnings/emergent WARN). Verify agent checking the same things manually is redundant. R05: zero agents performed this. "Log but continue" means no teeth. Gate is the enforcement mechanism, not agent behavior.
+
+**Decision (2026-04-07): Add per-criterion-type verification guidance.** Short table mapping criterion types (behavioral, structural, negative, documentation, integration) to verification approaches. Not prescriptive — agent uses judgment to pick the most practical method or combination. Keeps it under 10 lines. Agents already do this intuitively (R05: ran commands for behavioral, read source for structural); writing it down makes it consistent.
+
+**Decision (2026-04-07): Verify-first, evidence-after ordering.** The verify agent does NOT read the per-iteration state file (implementation evidence) before verifying. Prompt injects only a status summary (AC_1 [pass], etc.), not evidence text. The agent reads iterations.md + requirements.md + source code, verifies each AC independently, then reads the full state file ONCE after all criteria are verified to compare findings against implementation evidence and note discrepancies. This preserves true independence — reading evidence first biases verification.
+
+**Decision (2026-04-07): Move pre-flight checks out of verify.** In sequential mode, implement's phase-end gate already verifies tests pass, git clean, etc. Code hasn't changed between implement-end and verify-start. Verify trusts the gate passed. Removes redundant work.
+
+**Decision (2026-04-07): Remove verify-start wip-commit.** Matters less with sequential execution. Audit tags + update-activity cover the same ground.
+
+**Decision (2026-04-07): No git history review in verify.** "Verify the result, not the process" (VF_2) is a core principle. Git history is process. If the code is correct and tests pass, how it got there doesn't matter for verification.
+
+**Decision (2026-04-07): Phase-end as paragraph, not checklist.** The verify agent doesn't care what phase-end does internally. Present as: "Call phase-end. It handles verdict, report, gate, commit, audit tag. If it fails, fix and retry." Keep the explicit example with --verdict, --summary, etc.
+
+**Decision (2026-04-07): Evidence comparison deferred to after per-criterion loop.** Agent reads the state file once after all criteria are independently verified, compares all findings at once, notes discrepancies. Avoids awkward "read only AC_1's evidence" per-criterion and matches how agents actually read files. Section titled "After All Criterion Workflows Complete."
+
+**Proposed verify.md outline (2026-04-07):**
+
+```
+# Verify Phase — Verification Subagent
+
+## Preamble
+   ~4 critical rules: autonomous, real-time state updates,
+   result not process (VF_2), no git stash
+
+## Agent Tool
+   plet_agent.py — 6 commands table (update-activity added)
+   CLI lookup: --usage first, --help if needed
+
+## Branch/State Context
+   Workstream branch, sole writer, don't modify state.json
+
+## Before You Start
+   ### Set Up State
+      update-activity setup / "reading context"
+      (no verify-start wip-commit — removed)
+   ### Read Context
+      CLAUDE.md, README.md, iterations.md, requirements.md,
+      learnings, emergent.
+      Do NOT read the per-iteration state file yet — preserve
+      independence for the verification pass.
+      (no pre-flight — moved to implement, verify trusts the gate)
+
+## Independent Verification (MAIN LOOP)
+   ### Verification Rigor (collapsed VF_12 + VF_13)
+      Confirm AC genuinely satisfied, don't rubber-stamp.
+      "The prompt includes a status summary from implementation.
+      Verify each criterion independently regardless of listed status."
+   ### Criterion Type Guidance
+      Table: behavioral (run + compare), structural (read source,
+      trace logic), negative (trigger error path), documentation
+      (read file, check content), integration (exercise path).
+      Agent uses judgment to pick approach or combine.
+   ### Per-Criterion Workflow
+      For each AC:
+      1. update-activity "verifying AC_N: {description}"
+      2. Independently verify (approach per criterion type)
+      3. Check the test isn't tautological (from VF_8)
+      4. Flag spec gaps if found → emergent (from VF_11)
+      5. update-criterion with evidence
+         - Name what you ran/read and what you confirmed
+         - Note the verification approach (behavioral, structural, etc.)
+         - If FAIL: mark fail and continue — don't stop at first failure
+      6. wip-commit
+
+## After All Criterion Workflows Complete
+   Read the full per-iteration state file. Compare independent
+   findings against implementation evidence for each criterion.
+   Note discrepancies — if implementation evidence describes
+   behavior you didn't observe, update the criterion accordingly.
+
+## Rejection Protocol (promoted from old Path C)
+   Verify all criteria first, then for each failed criterion:
+   - Write a failing test, confirm it fails against current code
+   - update-criterion --status fail --red-test test_name
+   - If not test-expressible: --red-test none --no-test-rationale "..."
+   - New criteria for issues not in original AC: add with status fail
+   Document in emergent (for human) + learnings (for next implement agent)
+   phase-end --verdict rejected --summary "..."
+   Verify writes TESTS only, never implementation code.
+
+## Completing the Phase
+   Write remaining artifacts (learnings, emergent).
+   Paragraph: call phase-end with --verdict, --summary, --progress-content.
+   Explicit example preserved. If it fails, fix and retry.
+
+## Blocker Protocol (~10 lines, last resort)
+
+## Runtime Artifact Writes
+   learnings + emergent, as things come up, keep under 4KB
+
+## Activity Updates (reference table)
+   setup, running_checks, implementing (cycle-back red tests only),
+   committing, wrapping_up
+
+## Retry Awareness (short paragraph)
+   Focus on previously-failed criteria. Don't re-verify criteria
+   that already passed unless reason to doubt.
+
+## Criteria Skip Rules (~5 lines)
+```
+
+**Additional outline decisions (2026-04-07):**
+- Per-criterion workflow: if a criterion fails, mark it fail and continue verifying the rest. Don't stop at first failure — implement agent needs the complete picture.
+- Rejection Protocol expanded: red-test handoff details preserved (--red-test test_name, --red-test none --no-test-rationale). Verify agent can add new criteria for issues not in original AC list (add with status fail, write failing test, cycle back).
+- Verification Rigor: one sentence addressing prompt bias — "The prompt includes a status summary from implementation. Verify each criterion independently regardless of its listed status."
+- Evidence guidance in step 5: "Name what you ran/read and what you confirmed. Note the verification approach."
+- Pre-flight checks moved to implement phase (verify trusts the gate). No verify-start wip-commit.
+- Phase-end presented as paragraph with explicit example, not checklist.
+
+---
 
 ### NOTES_PLN_NTS: PLAN_NTS — Notes Reorganization
 
