@@ -24,7 +24,7 @@ def _parse_name(argv):
     """Parse --name plet/{iter_id}/{phase}-{attempt}."""
     for i, arg in enumerate(argv):
         if arg == "--name" and i + 1 < len(argv):
-            m = re.match(r"plet/(ID_\d+)/(implement|verify)-(\d+)", argv[i + 1])
+            m = re.match(r"plet/(ITR_\d+)/(implement|verify)-(\d+)", argv[i + 1])
             if m:
                 return m.group(1), m.group(2), int(m.group(3))
     return "ITR_001", "implement", 1

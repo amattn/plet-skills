@@ -1014,8 +1014,8 @@ def test_iter_id_validation():
         _, stderr, _ = run(base + ["--iter-id", "BOGUS"], expect_exit=1)
         check("rejects BOGUS", "iter-id" in stderr.lower() or "pattern" in stderr.lower())
 
-        _, stderr, _ = run(base + ["--iter-id", "ID_"], expect_exit=1)
-        check("rejects ID_ (no number)", "iter-id" in stderr.lower() or "pattern" in stderr.lower())
+        _, stderr, _ = run(base + ["--iter-id", "ITR_"], expect_exit=1)
+        check("rejects ITR_ (no number)", "iter-id" in stderr.lower() or "pattern" in stderr.lower())
 
 
 def test_unknown_command():

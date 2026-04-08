@@ -54,13 +54,13 @@ FINGERPRINT_END = "<!-- plet:fingerprint -->"
 
 # ID scanning patterns
 # Requirement IDs: 2+ uppercase letters + underscore + digits (e.g., FR_1, NF_2)
-# Excludes reserved prefixes MS_ and ID_
+# Excludes reserved prefixes MS_ and ITR_
 REQUIREMENT_ID_RE = re.compile(r"\b([A-Z]{2,})_(\d+)\b")
 MILESTONE_ID_RE = re.compile(r"\bMS_(\d+)\b")
 ITERATION_ID_RE = re.compile(r"\bITR_(\d+)\b")
 
 # Reserved prefixes — not requirement IDs
-RESERVED_PREFIXES = {"MS", "ID"}
+RESERVED_PREFIXES = {"MS", "ITR"}
 
 # Section exclusion headings (case-insensitive matching)
 REQUIREMENTS_EXCLUDED_HEADINGS = [
@@ -295,7 +295,7 @@ def write_fingerprint_block(text, fingerprint):
 def extract_requirements_fingerprint(text):
     """Extract a fingerprint from requirements.md content.
 
-    Scans for requirement IDs (XX_N, excluding MS_ and ID_), milestone IDs (MS_N).
+    Scans for requirement IDs (XX_N, excluding MS_ and ITR_), milestone IDs (MS_N).
     Excludes content under Future Considerations and Open Questions headings.
     Reads lastNonTrivialUpdate from existing fingerprint block if present.
 

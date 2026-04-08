@@ -108,7 +108,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | TRC_APE_PRE_1 | `plet_dir` exists and is a directory | P0 |
-| TRC_APE_PRE_2 | `--iter-id` matches pattern `ID_\d+` | P0 |
+| TRC_APE_PRE_2 | `--iter-id` matches pattern `ITR_\d+` | P0 |
 | TRC_APE_PRE_3 | `--phase` is `implement` or `verify` | P0 |
 | TRC_APE_PRE_4 | `--attempt` is a positive integer | P0 |
 | TRC_APE_PRE_5 | `--event-type` is a valid event type | P0 |

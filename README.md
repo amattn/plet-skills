@@ -79,15 +79,15 @@ plet/
 ├── iterations.md            # Iteration definitions (plan artifact)
 ├── state.json               # Global state (runtime)
 ├── state/
-│   ├── ID_001.json          # Per-iteration state
-│   ├── ID_002.json
+│   ├── ITR_001.json          # Per-iteration state
+│   ├── ITR_002.json
 │   └── ...
 ├── progress.md              # What was done (runtime artifact)
 ├── learnings.md             # Agent-facing knowledge (runtime artifact)
 ├── emergent.md              # Human-facing items (runtime artifact)
 └── trace/
-    ├── ID_001-implement-1.ndjson # Trace logs per iteration/phase/attempt
-    ├── ID_001-verify-1.ndjson
+    ├── ITR_001-implement-1.ndjson # Trace logs per iteration/phase/attempt
+    ├── ITR_001-verify-1.ndjson
     └── ...
 ```
 
@@ -118,15 +118,15 @@ All plan, progress, and execution state is persisted to files. Any fresh agent c
 Iterations form a dependency graph (DAG), not a strict sequence. Independent iterations run concurrently via subagents. The orchestrator re-evaluates eligible work after each iteration completes. When in doubt, add the dependency — missing dependencies are dangerous (agent wastes a cycle), while false dependencies are harmless (only reduce parallelism slightly).
 
 ```
-   ID_001 (scaffolding)
+   ITR_001 (scaffolding)
       │
       ├──────────┐
       ▼          ▼
-   ID_002     ID_003      ← parallel: no dependency relationship
+   ITR_002     ITR_003      ← parallel: no dependency relationship
       │          │
       ├──────────┘
       ▼
-   ID_004 (depends on both)
+   ITR_004 (depends on both)
 ```
 
 ### Separation of Artifacts by Audience
@@ -163,8 +163,8 @@ All branches are namespaced under `plet/{projectId}/`. Agents never commit or me
 | Purpose | Pattern | Example |
 |---------|---------|---------|
 | Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
-| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
-| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
+| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ITR_001` |
+| Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ITR_001/implement-1` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 | Archive tag | `archive/plet/{projectId}/loop{N}/{path}` | `archive/plet/LOGA/loop1/workstream` |
 

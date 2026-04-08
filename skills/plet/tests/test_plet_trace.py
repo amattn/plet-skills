@@ -644,7 +644,7 @@ def test_append_invalid_iter_id():
             ],
             expect_exit=1,
         )
-        check("rejects bad iter-id", "ID_" in err)
+        check("rejects bad iter-id", "ITR_" in err)
 
 
 def test_append_invalid_attempt():

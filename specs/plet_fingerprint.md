@@ -364,7 +364,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 | `MS_N+` | Milestone IDs: `MS_1`, `MS_2` | `extract --type requirements` |
 | `ITR_N+` | Iteration IDs: `ITR_001`, `ITR_002` | `extract --type iterations` |
 
-**Scanning rules (disambiguation):** The `XX_N+` pattern overlaps with `MS_N` and `ID_N`. When scanning requirements.md: `MS_` prefix → milestones array, all other `XX_N+` → requirements grouped by prefix. `ID_` prefix is never scanned in requirements.md. When scanning iterations.md: only `ITR_N+` is scanned for iteration IDs. `MS_` and `ID_` are reserved prefixes — requirement IDs must not use them (see PRD § ID Conventions).
+**Scanning rules (disambiguation):** The `XX_N+` pattern overlaps with `MS_N` and `ID_N`. When scanning requirements.md: `MS_` prefix → milestones array, all other `XX_N+` → requirements grouped by prefix. `ID_` prefix is never scanned in requirements.md. When scanning iterations.md: only `ITR_N+` is scanned for iteration IDs. `MS_` and `ITR_` are reserved prefixes — requirement IDs must not use them (see PRD § ID Conventions).
 
 ## 7. Agent Flows (FPR_AFL)
 
@@ -577,7 +577,7 @@ See `specs/conventions.md` for universal requirements.
 | 8 | JSON field name for consistency status: `fresh` or `consistent`? | `consistent`. More precise — fingerprints match across files. `fresh` is ambiguous (fresh relative to what?). Renamed throughout: `fresh`→`consistent`, `allFresh`→`allConsistent`. |
 | 9 | Check JSON status value for staleness: `error` or `stale`? | Three-way: `"ok"` (all consistent, exit 0), `"stale"` (drift detected, exit 1), `"error"` (tool failure, exit 1). Staleness is a successful check that found drift, not a tool failure — different semantics warrant a different status value. |
 | 10 | How should `extract` detect withdrawn iterations in iterations.md? | Section-based exclusion: withdrawn iterations are moved to a `## Withdrawn` section. Extract skips that section, same pattern as Future Considerations/Open Questions (SY_8). No metadata parsing needed, no cross-file state lookup. Cascaded to refine.md (withdraw procedure) and PRD (RF_16). |
-| 11 | Are `MS_` and `ID_` reserved prefixes for requirement IDs? | Yes. Fingerprint scanning uses these prefixes to disambiguate ID types. `MS_` → milestones array, `ID_` → iterations only. Requirement IDs must not use either prefix. Added to PRD GC_1 and plan.md Requirement ID Rules. |
+| 11 | Are `MS_` and `ITR_` reserved prefixes for requirement IDs? | Yes. Fingerprint scanning uses these prefixes to disambiguate ID types. `MS_` → milestones array, `ITR_` → iterations only. Requirement IDs must not use either prefix. Added to PRD GC_1 and plan.md Requirement ID Rules. |
 | 12 | How to handle structurally wrong but valid JSON in fingerprint blocks? | Lenient read, strict write (self-healing). Read tolerates missing fields, unsorted arrays, unknown fields. Write always produces correct structure. Next embed auto-corrects. For check: missing fields count as mismatches → reports stale → triggers re-embed. |
 | 13 | Should `check` re-extract from content or compare stored snapshots? | Asymmetric: both levels re-extract from live content and compare against the stored snapshot downstream. Requirements level: re-extract from requirements.md content vs stored in iterations.md. Iterations level: re-extract from iterations.md content vs stored in state.json. Comprehensive — catches both "embed wasn't run" and "downstream not updated." |
 

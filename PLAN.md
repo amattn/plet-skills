@@ -407,7 +407,7 @@ Milestone-boundary refactor via synthetic iteration. Milestones are execution ba
 | Step | Description | Status |
 |------|-------------|--------|
 | RFT_1 | Plan phase: make milestones native (barrier deps in dependency map) | |
-| RFT_2 | Plan phase: auto-generate ID_RFT_MSN per milestone + refactor goals | |
+| RFT_2 | Plan phase: auto-generate ITR_RFT_MSN per milestone + refactor goals | |
 | RFT_3 | Reference file: refactor.md (audit procedure, AC patterns, emergent pipeline) | |
 | RFT_4 | State schema: "refactor" as valid phase alongside implement/verify | |
 | RFT_5 | Prompt assembly: plet_prompt.py supports phase=refactor | |

@@ -267,7 +267,7 @@ Generate a structured requirements document saved to `plet/requirements.md`. Fol
 - Append-only numbering: new items get the next available number, deleted items leave gaps
 - Numbers don't imply ordering — document position determines order
 - IDs are stable once assigned — never renumber, never reuse
-- **Reserved prefixes:** `MS_` (milestones) and `ID_` (iterations) must not be used for requirement IDs — fingerprint scanning uses these prefixes to disambiguate ID types
+- **Reserved prefixes:** `MS_` (milestones) and `ITR_` (iterations) must not be used for requirement IDs — fingerprint scanning uses these prefixes to disambiguate ID types
 
 ### Requirement Table Rules
 

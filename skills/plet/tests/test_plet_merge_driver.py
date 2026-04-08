@@ -435,8 +435,8 @@ def test_large_merge():
     ours_entries = ""
     theirs_entries = ""
     for i in range(20):
-        ours_entries += f"### [2026-03-31 10:{i:02d}:00 UTC] ID_{i + 1:03d} — ORC\n\nOrchestrator entry {i}\n\n"
-        theirs_entries += f"### [2026-03-31 10:{i:02d}:30 UTC] ID_{i + 1:03d} — SUB\n\nSubagent entry {i}\n\n"
+        ours_entries += f"### [2026-03-31 10:{i:02d}:00 UTC] ITR_{i + 1:03d} — ORC\n\nOrchestrator entry {i}\n\n"
+        theirs_entries += f"### [2026-03-31 10:{i:02d}:30 UTC] ITR_{i + 1:03d} — SUB\n\nSubagent entry {i}\n\n"
 
     ours = base + ours_entries
     theirs = base + theirs_entries

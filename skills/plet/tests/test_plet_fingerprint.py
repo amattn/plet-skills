@@ -198,7 +198,7 @@ def test_extract_requirements():
         check("DX_99 excluded (Future Considerations)", "DX_99" not in fp["requirements"].get("DX", []))
         check("NF_99 excluded (Open Questions)", "NF_99" not in fp["requirements"].get("NF", []))
         check("MS_ not in requirements", "MS" not in fp["requirements"])
-        check("ID_ not in requirements", "ID" not in fp["requirements"])
+        check("ITR_ not in requirements", "ID" not in fp["requirements"])
 
 
 def test_extract_iterations():
@@ -459,7 +459,7 @@ def test_determinism():
 
 
 def test_reserved_prefix_disambiguation():
-    print("\n## Reserved prefix disambiguation (MS_, ID_)")
+    print("\n## Reserved prefix disambiguation (MS_, ITR_)")
     with tempfile.TemporaryDirectory() as d:
         make_artifacts(d)
 

@@ -635,7 +635,7 @@ def test_get_lifecycle_sorted():
         state["lifecycles"] = {"ITR_003": "queued", "ITR_001": "complete", "ITR_002": "implementing"}
         write_raw_state(d, state)
         out, _, _ = run(["get-lifecycle", d])
-        lines = [ln for ln in out.strip().split("\n") if ln.startswith("ID_")]
+        lines = [ln for ln in out.strip().split("\n") if ln.startswith("ITR_")]
         ids = [ln.split(":")[0].strip() for ln in lines]
         check("sorted order", ids == ["ITR_001", "ITR_002", "ITR_003"])
 

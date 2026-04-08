@@ -168,7 +168,7 @@ def test_init_invalid_iter_id():
     _, err, _ = run(
         ["init", d, "--iter-id", "bad", "--title", "X", "--dependencies", "[]", "--criteria", "[]"], expect_exit=1
     )
-    check("rejects bad id", "pattern" in err.lower() or "ID_" in err)
+    check("rejects bad id", "pattern" in err.lower() or "ITR_" in err)
 
 
 def test_init_cleanup_flags():
@@ -1103,7 +1103,7 @@ def test_validate_init_inputs_errors():
     # Bad iter_id
     d = make_plet_dir()
     err = ist_mod._validate_init_inputs(d, "bad", {}, False)
-    check("bad iter_id", err is not None and "ID_" in err)
+    check("bad iter_id", err is not None and "ITR_" in err)
 
 
 def test_parse_init_data_errors():

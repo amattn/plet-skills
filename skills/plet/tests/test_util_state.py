@@ -671,7 +671,7 @@ def test_iter_invalid_iteration_id():
     print("\n## iter: invalid iterationId patterns")
     import util_state
 
-    invalid_ids = ["", "001", "id_001", "ID001", "ID_", "ITER_1"]
+    invalid_ids = ["", "001", "itr_001", "ITR001", "ITR_", "ID_001", "ITER_1"]
 
     for iid in invalid_ids:
         state = dict(VALID_ITER_STATE)

@@ -50,7 +50,7 @@ Every script follows the same structure:
 
 - **Command-based interface:** `script.py <command> [args]` — not flag-based (`script.py --validate`)
 - **Help everywhere:** every command supports `-h` and `--help`. Top-level `script.py --help` prints the module docstring with all commands. Help text is agent-readable — include copy-pasteable examples that agents can use directly
-- **Named arguments with `--`:** `--iter-id ID_001 --phase implement`. Positional args only for the first 1-2 arguments (file paths, artifact directories)
+- **Named arguments with `--`:** `--iter-id ITR_001 --phase implement`. Positional args only for the first 1-2 arguments (file paths, artifact directories)
 - **Require arguments, never default:** Almost every flag should be required. Never silently default a missing argument — agents forget optional flags, and defaults hide bugs with plausible-looking wrong data. See specs/NOTES.md § "Critical Insight: Require Arguments, Never Default"
 - **No argparse:** manual argument parsing via `parse_kwargs()` pattern. Keeps scripts simple, avoids argparse's verbosity, and gives full control over error messages. Use the shared `parse_kwargs` pattern from `plet_entries.py`
 - **JSON for complex values:** arrays and objects passed as JSON strings: `--criteria '[{"id":"AC_1"}]'`

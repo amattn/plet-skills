@@ -293,7 +293,7 @@ def test_load_iter_states():
         check("all valid", all(s.get("_valid") for s in states))
 
         # Add a corrupt file
-        with open(os.path.join(sd, "ID_BAD.json"), "w") as f:
+        with open(os.path.join(sd, "ITR_BAD.json"), "w") as f:
             f.write("not json")
         states = git_check._load_iter_states(sd, plet_dir)
         check("loads 3 (1 invalid)", len(states) == 3)
