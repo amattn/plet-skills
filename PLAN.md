@@ -15,7 +15,7 @@
 | PLAN_RW | PRD + ORC + SKILL.md + Reference Files Rewrite | ✓ COMPLETE |
 | PLAN_HLP | Subagent CLI Re-learning | ✓ COMPLETE (validated: zero --help in R08) |
 | PLAN_PAR | Parallel Orchestrator | ✓ COMPLETE (superseded by PLAN_SEQ) |
-| PLAN_SEQ | Sequential Simplification | 42/43 — SEQ_43 (real run) blocked on PLAN_VER |
+| PLAN_SEQ | Sequential Simplification | ✓ COMPLETE (43/43) — validated LOGA R15 (92m, fastest ever) |
 | PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
@@ -279,7 +279,7 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | SEQ_41 | Update PRD — remove/update parallel, worktree, branch management sections | ✓ done |
 | | **Phase 6: Validate** | |
 | SEQ_42 | Full test suite + coverage ≥ 87% | ✓ done (1041 tests, 91% coverage) |
-| SEQ_43 | Validate with real run (LOGA R15) | **in progress** |
+| SEQ_43 | Validate with real run (LOGA R15) | ✓ done — 13/13, 92m (fastest LOGA), zero retries |
 
 **Red/green summary:** 13 red/green pairs across 5 phases. 2 structural steps (SEQ_12 rename, SEQ_17 orchestrator rewrite). 3 migration/update steps (SEQ_18 allowed-tools, SEQ_19 test migration). 7 doc-only steps (SEQ_34-40). 1 checkpoint (SEQ_11). 2 validation steps (SEQ_41-42).
 
