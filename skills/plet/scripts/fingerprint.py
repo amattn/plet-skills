@@ -57,7 +57,7 @@ FINGERPRINT_END = "<!-- plet:fingerprint -->"
 # Excludes reserved prefixes MS_ and ITR_
 REQUIREMENT_ID_RE = re.compile(r"\b([A-Z]{2,})_(\d+)\b")
 MILESTONE_ID_RE = re.compile(r"\bMS_(\d+)\b")
-ITERATION_ID_RE = re.compile(r"\bITR_(\d+)\b")
+ITERATION_ID_RE = re.compile(r"\bITR_(?:RFT_)?(\d+)\b")
 
 # Reserved prefixes — not requirement IDs
 RESERVED_PREFIXES = {"MS", "ITR"}
@@ -372,9 +372,9 @@ def extract_iterations_fingerprint(text):
 
     for line in filtered.split("\n"):
         # Check for iteration heading
-        iter_heading = re.match(r"^###\s+ITR_(\d+)", line)
+        iter_heading = re.match(r"^###\s+(ITR_(?:RFT_)?\d+)", line)
         if iter_heading:
-            current_iter_id = f"ITR_{iter_heading.group(1)}"
+            current_iter_id = iter_heading.group(1)
             continue
 
         # Check for milestone metadata

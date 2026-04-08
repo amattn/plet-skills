@@ -115,8 +115,8 @@ def _validate_init_inputs(plet_dir, iter_id, kwargs, no_verify_deps):
     """Validate basic init inputs. Returns error string or None."""
     import re
 
-    if not re.match(r"^ITR_\d+$", iter_id):
-        return f"Error: iterationId '{iter_id}' does not match pattern ITR_N+ (e.g., ITR_001)"
+    if not re.match(r"^ITR_(?:RFT_)?\d+$", iter_id):
+        return f"Error: iterationId '{iter_id}' does not match pattern ITR_N+ or ITR_RFT_N (e.g., ITR_001, ITR_RFT_1)"
     if not os.path.isdir(plet_dir):
         return f"Error: directory does not exist: {plet_dir}"
     return None

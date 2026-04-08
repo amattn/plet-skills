@@ -172,7 +172,7 @@ def load_and_validate_global_state(plet_dir):
 # Per-iteration state: plet/state/{id}.json
 # ---------------------------------------------------------------------------
 
-ITER_ID_RE = re.compile(r"^ITR_\d+$")
+ITER_ID_RE = re.compile(r"^ITR_(?:RFT_)?\d+$")
 
 VALID_LIFECYCLES = [
     "ineligible",

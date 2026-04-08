@@ -671,7 +671,7 @@ def test_iter_invalid_iteration_id():
     print("\n## iter: invalid iterationId patterns")
     import util_state
 
-    invalid_ids = ["", "001", "itr_001", "ITR001", "ITR_", "ID_001", "ITER_1"]
+    invalid_ids = ["", "001", "itr_001", "ITR001", "ITR_", "ID_001", "ITER_1", "ITR_RFT_", "ITR_RFT"]
 
     for iid in invalid_ids:
         state = dict(VALID_ITER_STATE)
@@ -680,6 +680,16 @@ def test_iter_invalid_iteration_id():
             write_iter_state(d, state, "ITR_001")
             result = util_state.load_and_validate_iter_state(d, "ITR_001")
             check(f"rejects '{iid}'", result is None)
+
+    # Valid refactor iteration IDs
+    valid_rft_ids = ["ITR_RFT_1", "ITR_RFT_2", "ITR_RFT_10"]
+    for iid in valid_rft_ids:
+        state = dict(VALID_ITER_STATE)
+        state["iterationId"] = iid
+        with tempfile.TemporaryDirectory() as d:
+            write_iter_state(d, state, iid)
+            result = util_state.load_and_validate_iter_state(d, iid)
+            check(f"accepts '{iid}'", result is not None)
 
 
 def test_iter_lifecycle_field_rejected():
