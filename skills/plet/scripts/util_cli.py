@@ -303,6 +303,39 @@ def _extract_plet_dir(args):
     return DEFAULT_PLET_DIR
 
 
+def _infer_session_phase(plet_dir):
+    """Infer plan/refine from session state. Returns phase str or None.
+
+    Checks sessionHistory for an active (endedAt=null) session.
+    No active session + no history = plan. No active session + has history = refine.
+    Active loop session = None (orchestrator sets PLET_PHASE for loops).
+    """
+    try:
+        import os as _os
+
+        from util_io import state_json_path as _sjp
+
+        sjp = _sjp(plet_dir)
+        if not _os.path.isfile(sjp):
+            return "plan"  # No state.json yet — must be planning
+        with open(sjp) as f:
+            import json as _json
+
+            state = _json.load(f)
+        history = state.get("sessionHistory", [])
+        if not history:
+            return "plan"  # No sessions yet — planning
+        last = history[-1]
+        if last.get("endedAt") is None:
+            # Active session — use its type (refine → refine, loop → None)
+            return last.get("type") if last.get("type") == "refine" else None
+        # All sessions ended — between sessions, likely refine or plan
+        return "refine"
+    except Exception:
+        pass
+    return None
+
+
 def _log_script_invocation(script_name, command, args, exit_code, skill_version, script_version, submodule_version):
     """Log a script invocation to trace event + progress entry.
 
@@ -327,7 +360,12 @@ def _log_script_invocation(script_name, command, args, exit_code, skill_version,
 
         plet_dir = _extract_plet_dir(args)
         iter_id = _extract_from_args(args, "iter_id") or "proj"
-        phase = _extract_from_args(args, "phase") or "unknown"
+        phase = (
+            _extract_from_args(args, "phase")
+            or _os.environ.get("PLET_PHASE")
+            or _infer_session_phase(plet_dir)
+            or "unknown"
+        )
         # Normalize all phase forms to command phases for trace file naming
         # Criterion phases: "implementation"/"verification" → "implement"/"verify"
         # Lifecycle states: "implementing"/"verifying" → "implement"/"verify"
