@@ -20,7 +20,7 @@
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
-| PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | **Next** — after SEQ/VER close |
+| PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | 15/16 — IDR_16 (real run) pending |
 | PLAN_VER | Verify Phase Rewrite | ✓ COMPLETE (9/9) — validated OLLR R07 |
 | PLAN_FIX | Small Fixes Backlog | 4 items (P2-P3) from R05/R06 case studies |
 | PLAN_RFT | Refactor Loop (orchestrator feature) | **Next** — milestone barriers, synthetic iterations |
@@ -306,25 +306,25 @@ Category-by-category execution. Hard cut (no transition period). Historical arti
 | Step | Description | Status |
 |------|-------------|--------|
 | | **Phase 1: Script Internals** | |
-| IDR_1 | `util_id.py` — update normalization (`ITR_001 -> id001` → `ITR_001 -> itr001`), ID pattern regex, docstrings | |
-| IDR_2 | `util_state.py` — update validation regex for iteration IDs | |
-| IDR_3 | `util_io.py` — update `iter_state_path` if it hardcodes `ID_` pattern | |
-| IDR_4 | Remaining scripts — update literal `"ITR_NNN"` in help text, examples, docstrings (7 occurrences) | |
-| IDR_5 | **Checkpoint:** tests pass (existing tests still use `ID_`, so tests that validate the prefix will fail — this is expected red) | |
+| IDR_1 | `util_id.py` — update normalization, docstrings | ✓ done |
+| IDR_2 | `util_state.py` — update validation regex | ✓ done |
+| IDR_3 | `util_io.py` — check path derivation | ✓ already satisfied (no ID_ hardcoded) |
+| IDR_4 | Remaining scripts — help text, examples, docstrings | ✓ done (17 scripts) |
+| IDR_5 | **Checkpoint:** expected red (161 failures) | ✓ done |
 | | **Phase 2: Tests** | |
-| IDR_6 | `util_fixture.py` — update default iteration IDs in fixture builders | |
-| IDR_7 | Bulk rename `"ITR_NNN"` → `"ITR_NNN"` across all 36 test files (~1174 occurrences) | |
-| IDR_8 | **Checkpoint:** all tests green | |
+| IDR_6 | `util_fixture.py` — update defaults | ✓ done |
+| IDR_7 | Bulk rename across 36 test files (~1174 occurrences) | ✓ done |
+| IDR_8 | **Checkpoint:** all tests green | ✓ done (1041 passed) |
 | | **Phase 3: Entry Points** | |
-| IDR_9 | `plet_agent.py`, `plet_tools.py`, `plet_orchestrator.py` — update help text, examples | |
-| IDR_10 | `prompt.py` — update CLI quick ref pre-filled examples | |
+| IDR_9 | Entry point help text/examples | ✓ done (included in phase 1) |
+| IDR_10 | `prompt.py` CLI quick ref | ✓ done (included in phase 1) |
 | | **Phase 4: Documentation** | |
-| IDR_11 | Reference files (implement.md, verify.md, plan.md, refine.md, state-schema.md, formats.md) | |
-| IDR_12 | SKILL.md, PRD | |
-| IDR_13 | Specs (`specs/*.md`) — update examples | |
-| IDR_14 | NOTES.md, PLAN.md — active sections only (not historical) | |
+| IDR_11 | Reference files | ✓ done (6 files) |
+| IDR_12 | SKILL.md, PRD | ✓ done |
+| IDR_13 | Specs | ✓ done (18 files) |
+| IDR_14 | NOTES.md, PLAN.md (active sections) | ✓ done |
 | | **Phase 5: Validate** | |
-| IDR_15 | Full test suite + coverage | |
+| IDR_15 | Full test suite + coverage | ✓ done (1041 pass, 90.74% — below 91% from auto-emit, not IDR) |
 | IDR_16 | Validate with real run | |
 
 ---
