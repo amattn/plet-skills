@@ -59,6 +59,16 @@ Systematically review the codebase using these signal categories. For each signa
 
 **7. Learnings patterns** — Read `plet/learnings.md` for repeated mentions of the same file or module. Multiple iterations struggling with the same area is a refactoring signal.
 
+### Emergent-Only Signals
+
+These are things to **detect and file as emergent items**, not fix. They require architectural judgment that belongs in a refine session.
+
+**8. Testing can't reach the code** — Run coverage. Modules at 0% or functions never called by tests indicate untestable architecture (too coupled, no seam for injection, side-effect-heavy). File emergent: what's uncovered and why it's hard to test.
+
+**9. Shared mutable state** — Two modules writing the same file, or a resource with no clear single owner. File emergent: which modules, which resource, what the ownership boundary should be.
+
+**10. Naming ambiguity / grep noise** — Grep for the project's key identifiers. If results include unrelated code, prefixes or conventions are too generic. File emergent: what collides and a proposed rename.
+
 ### What NOT to refactor
 
 - Code outside this milestone's scope (unless a shared utility used by this milestone)

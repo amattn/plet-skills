@@ -2106,6 +2106,42 @@ Ran `churn` on the plet-skills repo itself to validate the tool and see what it 
 
 **Implication for refactor.md:** The churn command is more useful for target projects (where agents accumulate tech debt across iterations) than for plet-skills itself. The reference file should guide agents to look at churn output as a starting point, but not rely on it exclusively — size, complexity, and pattern signals (from NOTES_PLN_RFT Tier 2 heuristics) are complementary.
 
+#### NOTES_PLN_RFT_HEURISTICS: Sweep/Refactor Heuristics (2026-04-08)
+
+**Archaeology of 228 commits touching scripts/.** Categorized every commit to identify what caused us to refactor and what signals preceded each effort. 87 commits (38%) were refactoring/sweeps, 87 (38%) new features, 50 (22%) maintenance (bug fixes, version bumps, docs).
+
+**The 7 sweeps/refactors that happened (chronological):**
+
+1. **Ruff Introduction** (10 commits, v0.4.2). No linting existed. First real run (LOGA R5) surfaced code quality issues during debugging. Added ruff, incrementally lowered McCabe threshold (30→25→20→15). 720 errors on first pass.
+
+2. **PLAN_COV — Convention Migration** (17 commits, v0.4.4). Scripts printed to stdout directly — couldn't capture output for testing. Tuple return convention `(code, stdout, stderr)` across all 17 scripts + dispatch layer. Prerequisite for measurable coverage.
+
+3. **PLAN_CLN — Script Cleanup** (11 commits, v0.5.0). After all 14 scripts were built, inconsistencies were visible across the whole set. 5 different validator return patterns, 16 duplicate `help_hint` functions, `emit_error` defined 3 times, dead code from early experiments. Each script was built independently following specs — inconsistency was invisible during serial construction.
+
+4. **Lifecycle Extraction** (12 commits, v0.4.0). LOGA R3: worktree state divergence bug. Per-iteration state files had lifecycle fields that the orchestrator also modified, causing merge conflicts. Root cause: two writers (orchestrator + subagent) modifying the same field in the same file.
+
+5. **PLAN_RBS — Rebase over Squash** (22 commits, v0.6.0-0.6.2). LOGA R9-R11: merge-squash failures across 3 consecutive runs with different symptoms. R9: dirty tree. R10: CONFLICT on stdout not stderr. R11: state file corruption from undetected conflict markers in JSON. Each fix patched one symptom; the root cause was the merge-squash strategy itself.
+
+6. **PLAN_SEQ — Sequential Simplification** (10 commits, v0.7.0). R09-R14 data: parallel never achieved the theoretical 46% speedup. 69-71% completion rates vs 100% sequential. Stripped ThreadPoolExecutor, worktrees, iter branches, conflict recovery. Consolidated 14 scripts → 3 entry points. Decision driven by quantitative metrics across 6 case study runs.
+
+7. **PLAN_IDR — ID Rename** (3 commits, v0.7.0+). Proactive: anticipated grep noise when subplets bring multi-project scenarios. `ID_` too generic. Cheap after PLAN_SEQ reduced the surface area.
+
+**Identified 7 recurring heuristics that triggered refactoring:**
+
+| # | Heuristic | Trigger Signal | Fix or Emergent? |
+|---|-----------|---------------|------------------|
+| 1 | First real run surfaces hidden debt | Case study finds issues prose reviews missed | Fix (run linter/coverage as first audit action) |
+| 2 | Testing infrastructure can't reach the code | Coverage gaps, untestable patterns | **Emergent** (architectural judgment needed) |
+| 3 | All components built, cross-cutting inconsistency visible | N scripts with N patterns for the same operation | Fix (grep for duplicates, align) |
+| 4 | Runtime bug from shared mutable state | Two writers, one file, no clear owner | **Emergent** (ownership boundary decision) |
+| 5 | Repeated failures in the same subsystem | learnings/emergent mention the same file 3+ times | Fix (investigate and address root cause) |
+| 6 | Quantitative data showing feature doesn't deliver | Metric comparison shows overhead > benefit | **Emergent** (requires human decision to remove/replace) |
+| 7 | Naming ambiguity / grep noise | Identifiers collide with unrelated code | **Emergent** (rename scope requires human approval) |
+
+**Decision: Heuristics 2, 4, 7 are emergent-only in refactor iterations.** The refactor agent should detect these signals (run coverage, look for shared state, grep for collisions) and file emergent items, but not fix them. They require architectural judgment that belongs in refine. Added as "Emergent-Only Signals" (signals 8-10) in refactor.md.
+
+Heuristics 1, 3, 5 are directly actionable by the refactor agent — they map to the existing signal categories in refactor.md (run toolchain, grep for duplicates, check learnings/emergent).
+
 ---
 
 Autonomous agents accumulate tech debt iteration by iteration — each implementation subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. Regular refactoring should be built into the loop to mitigate this.
