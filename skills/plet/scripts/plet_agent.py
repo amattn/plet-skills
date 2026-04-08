@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """plet agent CLI — the agent's entire plet vocabulary.
 
-Five commands covering everything a subagent needs during implement/verify:
-update-criterion, wip-commit, add-learning, add-emergent, phase-end.
+Six commands covering everything a subagent needs during implement/verify:
+update-activity, update-criterion, wip-commit, add-learning, add-emergent, phase-end.
 
 Usage:
+    plet_agent.py update-activity <plet_dir> --iter-id ID_xxx
+        --phase-activity setup|implementing|... --activity-detail "..." --agent-id <id>
     plet_agent.py update-criterion <plet_dir> --iter-id ID_xxx --criteria '[...]'
     plet_agent.py wip-commit <plet_dir> --iter-id ID_xxx --message "description"
     plet_agent.py add-learning <plet_dir> --iter-id ID_xxx --content "..."
@@ -13,6 +15,7 @@ Usage:
         --verdict passed|rejected|blocked [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
+    update-activity    Set phaseActivity + activityDetail (per transition)
     update-criterion   Update acceptance criteria status (per AC)
     wip-commit         Stage source + state and commit (per AC)
     add-learning       Append a learning entry (optional, per AC)
@@ -33,7 +36,7 @@ SCRIPT_VERSION = "0.1.0"
 # Import command functions from modules
 from entries import cmd_add_emergent, cmd_add_learning  # noqa: E402
 from git_ops import cmd_wip_commit  # noqa: E402
-from iter_state import cmd_update_criterion  # noqa: E402
+from iter_state import cmd_update_activity, cmd_update_criterion  # noqa: E402
 from phase import cmd_end as cmd_phase_end  # noqa: E402
 from util_constants import SKILL_VERSION  # noqa: E402
 
@@ -98,6 +101,7 @@ def _dispatch_with_trace(commands, args):
 
 def main():
     commands = {
+        "update-activity": cmd_update_activity,
         "update-criterion": cmd_update_criterion,
         "wip-commit": cmd_wip_commit,
         "add-learning": cmd_add_learning,

@@ -413,7 +413,7 @@ All scripts live under `skills/plet/scripts/`. Three entry points:
 
 | Script | Role | Who calls it |
 |--------|------|-------------|
-| `plet_agent.py` | Agent's 5 commands (pre/post gate, state read/write, entries) | Subagents during implement/verify |
+| `plet_agent.py` | Agent's 6 commands (activity, criteria, commits, entries, phase-end) | Subagents during implement/verify |
 | `plet_orchestrator.py` | The loop — session setup, scheduling, subagent spawning, verdict processing, git ops | SKILL.md (you) |
 | `plet_tools.py` | Plan/refine/diagnostic commands — detect, status, validate, bootstrap, init, fingerprint-embed | SKILL.md (you) |
 

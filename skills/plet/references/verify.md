@@ -16,10 +16,11 @@ You are a verification subagent. Your job is to independently verify one iterati
 
 **State file context:** You write to `plet/` in the project root. The orchestrator does NOT write per-iteration state during your work — you are the sole writer. **Do NOT modify `plet/state.json`** — it is orchestrator-owned.
 
-**Agent tool:** `plet_agent.py` — your entire plet vocabulary. Five commands:
+**Agent tool:** `plet_agent.py` — your entire plet vocabulary. Six commands:
 
 | Command | Purpose | Frequency |
 |---------|---------|-----------|
+| `update-activity` | Set phaseActivity + activityDetail | per transition |
 | `update-criterion` | Update AC status with evidence | per AC |
 | `wip-commit` | Stage source + state and commit | per AC |
 | `add-learning` | Append a learning entry | as needed |
@@ -32,11 +33,24 @@ Trace events and progress entries are emitted automatically by `plet_agent.py` �
 
 ## Before You Start
 
+### Set Up State (VF_3)
+
+The orchestrator already called `start-phase` before spawning you — attempt counters, phase timestamps, and verdict clearing are done. Your first state action is to announce your presence:
+
+```bash
+plet_agent.py update-activity plet/ --iter-id $PLET_ITER_ID \
+    --phase-activity setup --activity-detail "reading context" \
+    --agent-id $PLET_AGENT_ID
+plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "verify-start"
+```
+
+The verify-start commit marks the exact beginning of verification in git history.
+
 ### Read Context (VF_3, RT_6, RT_7)
 
 Always read (small, essential):
 1. **Read the target project's `CLAUDE.md` and `README.md` immediately** (if they exist). You are in a fresh context with no inherited knowledge of this project — `CLAUDE.md` is your primary source of project intent.
-2. Read the per-iteration state file (`plet/state/{iteration_id}.json`) — see implementation criterion statuses and evidence
+2. Read the per-iteration state file (`plet/state/$PLET_ITER_ID.json`) — see implementation criterion statuses and evidence
 3. Read the iteration definition from `plet/iterations.md` — the acceptance criteria you're verifying
 
 Orchestrator-managed (may be summarized or excerpted for large projects):
@@ -55,10 +69,11 @@ Check that the implementation agent properly wrote its runtime artifacts (progre
 
 Before inspecting anything, verify the project is in a clean state:
 
-1. Run the build command — confirm it succeeds
-2. Run the full test suite — confirm all tests pass
-3. Run the linter, formatter (check mode), type checker
-4. Check the working tree is clean — no uncommitted changes
+1. Update activity: `"running_checks"` / `"pre-flight: verifying project builds and tests pass"`
+2. Run the build command — confirm it succeeds
+3. Run the full test suite — confirm all tests pass
+4. Run the linter, formatter (check mode), type checker
+5. Check the working tree is clean — no uncommitted changes
 
 Log pre-flight results and timing via `plet_agent.py add-learning`. A dramatic change in elapsed time compared to the implementation phase's baseline signals something worth investigating.
 
@@ -74,13 +89,14 @@ For each acceptance criterion, independently confirm it is genuinely satisfied.
 
 For each criterion:
 
-1. Read the criterion description and the implementation agent's evidence from the state file
-2. **Independently verify** — do not trust the implementation agent's evidence at face value:
+1. Update activity: `"running_checks"` / `"verifying {criterion_id}: {description}"`
+2. Read the criterion description and the implementation agent's evidence from the state file
+3. **Independently verify** — do not trust the implementation agent's evidence at face value:
    - Read the relevant source code and tests
    - Run the specific tests that exercise this criterion
    - Check that the tests actually assert the right behavior (not tautological)
    - Confirm the implementation matches the spec, not just the tests
-3. Update the criterion via `update-criterion` (see below)
+4. Update the criterion via `update-criterion` (see below)
 
 ### Spec Fidelity (VF_7)
 
@@ -123,7 +139,7 @@ An iteration is genuinely complete when your critiques reduce to cosmetic/stylis
 After verifying each criterion, update the `verification` object:
 
 ```bash
-plet_agent.py update-criterion plet/ --iter-id {iteration_id} \
+plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
     --criterion AC_1 --phase verification --status pass --agent-id $PLET_AGENT_ID \
     --evidence "Independently ran test_FR_1_valid_request — passes, correctly asserts 200 status and JSON body structure. Spec says 'return user profile on valid request' — implementation matches."
 ```
@@ -132,7 +148,7 @@ plet_agent.py update-criterion plet/ --iter-id {iteration_id} \
 
 For failures (red test required):
 ```bash
-plet_agent.py update-criterion plet/ --iter-id {iteration_id} \
+plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
     --criterion AC_1 --phase verification --status fail --agent-id $PLET_AGENT_ID \
     --evidence "Spec requires user profile with name and email. Implementation returns {ok: true}." \
     --red-test test_returns_profile
@@ -143,8 +159,26 @@ If a red test could not be written, use `--red-test none --no-test-rationale "..
 Update criterion statuses in real time. Commit after each:
 
 ```bash
-plet_agent.py wip-commit plet/ --iter-id {iteration_id} --message "AC_N - verify: {short description}"
+plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "AC_N - verify: {short description}"
 ```
+
+### Activity Updates
+
+Update `phaseActivity` and `activityDetail` as you transition between activities:
+
+```bash
+plet_agent.py update-activity plet/ --iter-id $PLET_ITER_ID \
+    --phase-activity running_checks --activity-detail "verifying AC_1: API returns 200" \
+    --agent-id $PLET_AGENT_ID
+```
+
+| Activity | When |
+|----------|------|
+| `setup` | Reading context at start |
+| `running_checks` | Running test suite, linter, verifying criteria |
+| `implementing` | Writing new tests or fixing minor issues (fix-in-place) |
+| `committing` | Committing changes |
+| `wrapping_up` | Writing final state updates, artifacts, trace entries |
 
 ---
 
@@ -161,7 +195,11 @@ All criteria pass and remaining findings are cosmetic only. Proceed to Completin
 Minor and obvious fixes (missing edge case tests, small corrections, typos, trivial bugs):
 
 1. Add new acceptance criteria for each issue
-2. Fix with red/green discipline — write failing test, fix, confirm green, run full suite
+2. Fix with red/green discipline:
+   - Update activity: `"implementing"` / `"fix-in-place: red — writing failing test for {criterion_id}"`
+   - Write failing test, confirm it fails
+   - Fix the issue, confirm green, run full suite
+   - Update activity: `"running_checks"` / `"fix-in-place: green — verifying fix"`
 3. Update both `implementation` and `verification` objects, commit each fix
 4. Proceed to Completing the Phase
 
@@ -172,7 +210,7 @@ Minor and obvious fixes (missing edge case tests, small corrections, typos, triv
 Wrong abstractions, missing functionality, incorrect behavior, architectural problems:
 
 1. Add new criteria with `verification.status: "fail"` and evidence
-2. Write failing tests for each issue (red step) — confirm they fail. If not test-expressible, document why in evidence and `learnings.md`
+2. Write failing tests for each issue (red step) — update activity: `"implementing"` / `"cycle-back red: writing failing test for {criterion_id}"` — confirm they fail. If not test-expressible, document why in evidence and `learnings.md`
 3. Document in `emergent.md` (for human) and `learnings.md` (for next implement agent)
 4. End the phase (see Completing the Phase — use `--verdict rejected`)
 
@@ -203,20 +241,22 @@ plet_agent.py add-emergent plet/ --iter-id ID_003 --iter-title "API endpoints" \
 
 ### Final Checks
 
-1. Run the formatter in check mode, linter, type checker — zero issues
-2. Run the full test suite — all tests must pass
-3. If any check fails, fix the issue (red/green if a code fix, commit, re-run)
+1. Update activity: `"running_checks"` / `"final: running full verification suite"`
+2. Run the formatter in check mode, linter, type checker — zero issues
+3. Run the full test suite — all tests must pass
+4. If any check fails, fix the issue (red/green if a code fix, commit, re-run)
 
 ### Write Remaining Artifacts
 
-Write any remaining learnings and emergent items via `plet_agent.py`.
+1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
+2. Write any remaining learnings and emergent items via `plet_agent.py`.
 
 ### End Phase
 
 Use `plet_agent.py phase-end` — it handles verdict, verification report (auto-built from criteria), gate checks, progress entry, trace event, audit tag, and git commit in one call:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id {iter_id} --phase verify --verdict passed \
+plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase verify --verdict passed \
     --progress-content "Verified: all AC independently confirmed." \
     --summary "All 5 criteria independently verified. Tests pass, code idiomatic."
 ```
@@ -244,7 +284,7 @@ When you must block:
 3. End the phase:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id {iter_id} --phase verify --verdict blocked \
+plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase verify --verdict blocked \
     --progress-content "Blocked: {why human input is needed}" \
     --summary "Blocked: {N} criteria verified, {M} pending. Requires human input on {issue}."
 ```
@@ -278,7 +318,7 @@ Only skip when verification is genuinely impossible — not when it's merely dif
 Before returning, run `phase-end` and self-correct until it passes:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id {iter_id} --phase verify --verdict passed \
+plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase verify --verdict passed \
     --progress-content "Verified: all AC independently confirmed." \
     --summary "All 5 criteria independently verified. Tests pass, code idiomatic."
 ```
