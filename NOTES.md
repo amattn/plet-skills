@@ -2162,6 +2162,23 @@ Evaluated refactor.md using skill-creator evaluation framework. 11 findings, 6 c
 
 **Gate check list (finding 10, low).** Added to Completing the Phase so the agent knows what `phase-end` will verify.
 
+#### NOTES_PLN_RFT_REVIEW_IMPL_VERIFY: implement.md + verify.md Evaluation (2026-04-08)
+
+Evaluated both files using skill-creator framework. 15 total findings across both files + cross-file consistency. 7 changes made.
+
+**implement.md changes:**
+- (Finding 2) "Orchestrator-managed" context → "Also read" — agent should always read requirements.md
+- (Finding 4) Added note: update-criterion auto-generates progress entries
+- (Finding 5) **state.json contradiction resolved.** "Do NOT modify state.json" vs "Add missing dependency to dependencyMap." Decision: Option B — agent files emergent + blocks, human fixes DAG in refine. Agent never modifies orchestrator-owned state. Rewrote Missing Dependency section (IMP_24).
+- (Finding 6) Stale gate check list removed learnings/emergent WARN (removed in PLAN_SEQ)
+
+**verify.md changes:**
+- (Finding 8) Added "Never create merge commits" critical rule
+- (Finding 10) Added *why* for "no implementation code" rule — separation ensures independent verification of the fix
+- (Finding 11) Evidence comparison "update accordingly" → explicit: change status from pass to fail with discrepancy evidence
+
+**Not changed (acceptable):** orchestrator-managed framing (finding 2 — partially addressed), status summary anchoring bias (finding 9 — workable), retry re-verify (finding 12 — edge case), no verify Failed Attempt Protocol (finding 13 — verify rarely hits context limits).
+
 ---
 
 Autonomous agents accumulate tech debt iteration by iteration — each implementation subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. Regular refactoring should be built into the loop to mitigate this.
