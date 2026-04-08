@@ -296,17 +296,35 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 
 ---
 
-## PLAN_IDR: Iteration ID Rename (deferred)
+## PLAN_IDR: Iteration ID Rename
 
-Rename iteration ID prefix from `ID_` to `ITR_` across the entire system. `ID_` is too generic — in target projects where developers have their own IDs (database IDs, CSS IDs, DOM element IDs), `ID_001` creates grep noise and ambiguity. `ITR_` is unambiguous and plet-specific.
+Rename iteration ID prefix from `ID_` to `ITR_` across the entire system. `ID_` is too generic — grep noise in target projects. `ITR_` is unambiguous and plet-specific. See NOTES.md § NOTES_PLN_IDR for rationale and scoping decisions.
 
-**Scope:** Scripts, tests, reference files, PRD, state file names (`ITR_001.json`), branch names, commit messages, audit tags, `util_id.py` validation, case studies, PLAN.md, NOTES.md. ~1030 tests with `ID_` in fixtures and assertions.
+Category-by-category execution. Hard cut (no transition period). Historical artifacts (case studies, old NOTES) left as-is. Variable names (`iter_id`) unchanged.
 
-**Timing:** Before PLAN_SUB. Subplets bring multi-project friction where the grep noise becomes a real problem. No urgency before that.
-
-**Approach:** Sweep-level consistency pass. Inventory all `ID_` occurrences, categorize, execute systematically.
-
-See NOTES.md § NOTES_PLN_IDR for rationale.
+| Step | Description | Status |
+|------|-------------|--------|
+| | **Phase 1: Script Internals** | |
+| IDR_1 | `util_id.py` — update normalization (`ID_001 -> id001` → `ITR_001 -> itr001`), ID pattern regex, docstrings | |
+| IDR_2 | `util_state.py` — update validation regex for iteration IDs | |
+| IDR_3 | `util_io.py` — update `iter_state_path` if it hardcodes `ID_` pattern | |
+| IDR_4 | Remaining scripts — update literal `"ID_NNN"` in help text, examples, docstrings (7 occurrences) | |
+| IDR_5 | **Checkpoint:** tests pass (existing tests still use `ID_`, so tests that validate the prefix will fail — this is expected red) | |
+| | **Phase 2: Tests** | |
+| IDR_6 | `util_fixture.py` — update default iteration IDs in fixture builders | |
+| IDR_7 | Bulk rename `"ID_NNN"` → `"ITR_NNN"` across all 36 test files (~1174 occurrences) | |
+| IDR_8 | **Checkpoint:** all tests green | |
+| | **Phase 3: Entry Points** | |
+| IDR_9 | `plet_agent.py`, `plet_tools.py`, `plet_orchestrator.py` — update help text, examples | |
+| IDR_10 | `prompt.py` — update CLI quick ref pre-filled examples | |
+| | **Phase 4: Documentation** | |
+| IDR_11 | Reference files (implement.md, verify.md, plan.md, refine.md, state-schema.md, formats.md) | |
+| IDR_12 | SKILL.md, PRD | |
+| IDR_13 | Specs (`specs/*.md`) — update examples | |
+| IDR_14 | NOTES.md, PLAN.md — active sections only (not historical) | |
+| | **Phase 5: Validate** | |
+| IDR_15 | Full test suite + coverage | |
+| IDR_16 | Validate with real run | |
 
 ---
 

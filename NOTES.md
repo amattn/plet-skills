@@ -1936,6 +1936,15 @@ scripts/
 
 **Timing:** Before PLAN_SUB, after PLAN_SEQ. The sequential simplification reduces the surface area (fewer branch/worktree references), making the rename cheaper.
 
+**Scoping decisions (2026-04-08):**
+
+Surface area audit: 7 literal `"ID_NNN"` in scripts, 1174 in tests, 430 `iter_id` variable references (no change — variable name stays), 5 reference files, PRD, specs. ~1200 total renames.
+
+- **Historical artifacts left as-is.** Case studies and historical NOTES document runs that used `ID_` prefix. Rewriting history adds no value. Only active/forward-looking content is renamed (scripts, tests, reference files, SKILL.md, PRD, specs, active NOTES sections).
+- **Category-by-category execution.** Scripts first (7 literals, verify green), then util_id/util_state (validation regex), then tests (bulk 1174), then docs. Multiple commits, each verified green. Smaller commits make breakage debuggable.
+- **Hard cut, no transition period.** `ITR_` only — no dual-accept regex. All consumers are in this repo. No external API to worry about.
+- **State file names: pattern only.** `ID_001.json` → `ITR_001.json` in script path derivation code. Actual files in target projects are created fresh each run — no migration needed.
+
 ### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
 
 **Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.
