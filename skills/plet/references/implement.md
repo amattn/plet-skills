@@ -102,7 +102,6 @@ This is the core implementation loop. For each acceptance criterion:
    - **Fast suite** (under ~30s): run the **full test suite** every green step
    - **Slow suite** (over ~30s): use your judgment to run the **most relevant subset** that covers the code you changed and its likely dependents. The full suite runs once at phase end as a final gate.
 4. If any test fails, fix the issue before moving on
-5. Update activity: `"running_checks"` / `"green: all tests passing"`
 
 **Determining suite speed:** Time the first full suite run (pre-flight or first green step). Use that to decide the strategy for subsequent runs.
 
@@ -127,26 +126,6 @@ plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "AC_N - [short 
 ```
 
 This stages source code and plet state/artifacts but excludes trace files. Do NOT use `git add plet/` — it stages transcripts, creating a feedback loop.
-
-### Activity Updates (IMP_7)
-
-Update `phaseActivity` and `activityDetail` as you transition between activities:
-
-```bash
-plet_agent.py update-activity plet/ --iter-id $PLET_ITER_ID \
-    --phase-activity implementing --activity-detail "red: writing failing test for AC_3" \
-    --agent-id $PLET_AGENT_ID
-```
-
-| Activity | When |
-|----------|------|
-| `setup` | Reading context at start |
-| `implementing` | Writing code or tests |
-| `running_checks` | Running test suite, linter, formatter, type checker |
-| `committing` | Committing changes |
-| `wrapping_up` | Writing final state updates, artifacts, trace entries |
-
-The `activityDetail` string is human-readable context — e.g., `"red: writing failing test for AC_3"`, `"green: all tests passing"`, `"running linter — 2 warnings found, fixing"`.
 
 ---
 
@@ -201,9 +180,8 @@ When all acceptance criteria pass:
 
 ### Write Remaining Artifacts
 
-1. Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
-2. Write any remaining learnings via `plet_agent.py add-learning`
-3. Write any remaining emergent items via `plet_agent.py add-emergent`
+1. Write any remaining learnings via `plet_agent.py add-learning`
+2. Write any remaining emergent items via `plet_agent.py add-emergent`
 
 ### End Phase
 
@@ -273,8 +251,7 @@ A failed attempt is different from a blocker. You're not saying "I need human he
 
 ### Wrap Up
 
-1. Update activity: `"wrapping_up"` / `"failed attempt: documenting state for retry"`
-2. Ensure all criterion statuses reflect current reality — `pass` with evidence for criteria that work, `fail` with evidence for criteria that don't
+1. Ensure all criterion statuses reflect current reality — `pass` with evidence for criteria that work, `fail` with evidence for criteria that don't
 2. Write learnings: what the next agent should try differently, what approaches are dead ends, any codebase knowledge gained
 3. Write emergent items if applicable
 4. End the phase:

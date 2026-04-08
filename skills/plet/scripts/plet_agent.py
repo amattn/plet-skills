@@ -78,8 +78,89 @@ def _emit_trace_event(event_type, command, exit_code=None):
     )
 
 
+def _auto_update_activity(command, args):
+    """Auto-emit update-activity based on the command being run.
+
+    Derives phaseActivity and activityDetail from the command name and its args.
+    Uses PLET_DIR, PLET_ITER_ID, PLET_AGENT_ID env vars. Skips silently if
+    env vars are missing or if the command doesn't map to an activity.
+
+    Mapping:
+        update-criterion → running_checks / "criterion {AC_N}: {description}"
+        wip-commit       → committing / "{message}"
+        phase-end        → wrapping_up / "completing phase"
+    """
+    activity_map = {
+        "update-criterion": "running_checks",
+        "wip-commit": "committing",
+        "phase-end": "wrapping_up",
+    }
+    if command not in activity_map:
+        return
+
+    plet_dir = os.environ.get("PLET_DIR")
+    iter_id = os.environ.get("PLET_ITER_ID")
+    agent_id = os.environ.get("PLET_AGENT_ID")
+    if not plet_dir or not iter_id or not agent_id:
+        return
+
+    phase_activity = activity_map[command]
+
+    # Build detail string from command args
+    detail = command
+    from util_cli import parse_kwargs  # noqa: E402 — local import to avoid circular
+
+    # Extract kwargs from args (skip the command name and plet_dir positional)
+    remaining = []
+    skip_command = True
+    for a in args:
+        if skip_command and a == command:
+            skip_command = False
+            continue
+        remaining.append(a)
+    # Drop first positional (plet_dir) if present
+    if remaining and not remaining[0].startswith("-"):
+        remaining = remaining[1:]
+    kwargs = parse_kwargs(remaining)
+
+    if command == "update-criterion":
+        criterion_id = kwargs.get("criterion", "?")
+        # Try to get description from state file
+        criterion_desc = ""
+        try:
+            from util_io import load_iter_state_json
+
+            state = load_iter_state_json(plet_dir, iter_id)
+            if state:
+                for c in state.get("criteria", []):
+                    if c.get("id") == criterion_id:
+                        criterion_desc = c.get("description", "")
+                        break
+        except Exception:
+            pass
+        detail = f"{criterion_id}: {criterion_desc}" if criterion_desc else criterion_id
+    elif command == "wip-commit":
+        detail = kwargs.get("message", "committing")
+    elif command == "phase-end":
+        detail = "completing phase"
+
+    cmd_update_activity(
+        [
+            plet_dir,
+            "--iter-id",
+            iter_id,
+            "--phase-activity",
+            phase_activity,
+            "--activity-detail",
+            detail,
+            "--agent-id",
+            agent_id,
+        ]
+    )
+
+
 def _dispatch_with_trace(commands, args):
-    """Dispatch a command with entry/exit trace events."""
+    """Dispatch a command with entry/exit trace events and auto-activity."""
     # Parse command name from args (before --no-log stripping)
     command = None
     for arg in args:
@@ -89,6 +170,7 @@ def _dispatch_with_trace(commands, args):
 
     if command:
         _emit_trace_event("cli_entry", command)
+        _auto_update_activity(command, args)
 
     # Run the actual dispatch
     rc = dispatch(commands, "plet_agent", SCRIPT_VERSION, SKILL_VERSION, __doc__)

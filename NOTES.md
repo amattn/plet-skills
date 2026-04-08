@@ -2256,6 +2256,24 @@ Split by natural home:
 - Phase-end presented as paragraph with explicit example, not checklist.
 - Verify's "Final Checks" (formatter, linter, full test suite) correctly removed — with fix-in-place gone, verify never modifies implementation code. Approval: no code changes, implement gate already passed. Rejection: intentionally failing tests would be misleading in a full suite run.
 
+**Decision (2026-04-08): Auto-emit update-activity from plet_agent.py dispatch.** R06 showed 79 explicit update-activity calls — agents comply well but it's overhead at every transition. Instead of the agent calling update-activity separately, inject it into `_dispatch_with_trace`: before each command runs, dispatch auto-sets phaseActivity based on the command name.
+
+Auto-activity mapping:
+- `update-criterion` → `running_checks` (detail derived from criterion arg)
+- `wip-commit` → `committing` (detail derived from message arg)
+- `phase-end` → `wrapping_up` (detail: "completing phase")
+- `add-learning`, `add-emergent` → no activity change (minor operations)
+- `update-activity` → skip (agent explicit call, no auto-emit)
+
+Agent still explicitly calls update-activity for:
+- `setup` — once at phase start ("reading context")
+- `implementing` — during red/green steps ("red: writing failing test for AC_1", "green: implementing AC_1")
+- `running_checks` — verify agent before each criterion ("verifying AC_1: description") — sets the detail string before the work starts; the auto-emit from update-criterion fires after
+
+This cuts the explicit call surface from ~79 to ~20-25 per run (the meaningful transitions where the agent is announcing what it's ABOUT to do). The mechanical transitions (committing, wrapping up) happen automatically.
+
+Implementation location: `plet_agent.py _dispatch_with_trace`, using PLET_DIR, PLET_ITER_ID, PLET_AGENT_ID env vars.
+
 ---
 
 ### NOTES_PLN_NTS: PLAN_NTS — Notes Reorganization

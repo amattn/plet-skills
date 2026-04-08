@@ -92,11 +92,10 @@ Different criteria need different verification approaches. Use your judgment to 
 
 For each acceptance criterion:
 
-1. Update activity: `"running_checks"` / `"verifying AC_N: {description}"`
-2. **Independently verify** — choose the approach that fits the criterion type. Run the code, read the source, compare to the spec. Do not rely on the implementation agent's evidence.
-3. **Check the test isn't tautological** — does it actually exercise the behavior? Would it fail if the implementation were subtly wrong?
-4. **Flag spec gaps** — if you find implemented behavior not covered by any requirement, add an emergent entry
-5. **Update the criterion:**
+1. **Independently verify** — choose the approach that fits the criterion type. Run the code, read the source, compare to the spec. Do not rely on the implementation agent's evidence.
+2. **Check the test isn't tautological** — does it actually exercise the behavior? Would it fail if the implementation were subtly wrong?
+3. **Flag spec gaps** — if you find implemented behavior not covered by any requirement, add an emergent entry
+4. **Update the criterion:**
 
 ```bash
 plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
@@ -108,7 +107,7 @@ plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
 
 **If the criterion fails:** mark it `--status fail` with evidence describing the problem, then **continue verifying the remaining criteria**. Do not stop at the first failure — the implement agent needs the complete picture. See Rejection Protocol below.
 
-6. **Commit:**
+5. **Commit:**
 
 ```bash
 plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "AC_N - verify: {short description}"
@@ -167,8 +166,6 @@ After all failed criteria are documented:
 
 Write any remaining learnings and emergent items via `plet_agent.py`.
 
-Update activity: `"wrapping_up"` / `"writing final state and artifacts"`
-
 Call `plet_agent.py phase-end` to handle verdict, verification report (auto-built from your criteria updates), gate checks, progress entry, trace event, audit tag, and git commit:
 
 ```bash
@@ -217,26 +214,6 @@ plet_agent.py add-emergent plet/ --iter-id $PLET_ITER_ID --iter-title "$TITLE" \
     --content "No rate limiting implemented. Requirements don't mention it." \
     --attempt $PLET_ATTEMPT
 ```
-
----
-
-## Activity Updates
-
-Update `phaseActivity` and `activityDetail` as you transition between activities:
-
-```bash
-plet_agent.py update-activity plet/ --iter-id $PLET_ITER_ID \
-    --phase-activity running_checks --activity-detail "verifying AC_1: API returns 200" \
-    --agent-id $PLET_AGENT_ID
-```
-
-| Activity | When |
-|----------|------|
-| `setup` | Reading context at start |
-| `running_checks` | Verifying criteria, running tests |
-| `implementing` | Writing failing tests (rejection red step only) |
-| `committing` | Committing changes |
-| `wrapping_up` | Writing final state updates, artifacts |
 
 ---
 
