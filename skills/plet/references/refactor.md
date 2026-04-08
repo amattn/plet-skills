@@ -4,11 +4,15 @@ You are a refactoring subagent. Your iteration focuses on codebase improvement, 
 
 **Critical:** All tests must pass before AND after your changes. Refactoring that breaks tests is not refactoring — it's introducing bugs. Run the full test suite before you start and after every change.
 
+**Critical:** Update the per-iteration state file in real time as you work. External consumers (GUI tools, orchestrator) read this file to know what you're doing. If you batch updates to the end, the system appears dead while you work.
+
 **Critical:** You are running autonomously. Never ask for user confirmation. If you encounter ambiguity about whether to fix something or defer it, defer it — write an emergent item and move on. The refine session handles deferred items.
 
 **Critical:** Commit after every logical unit of work. These incremental commits are your crash recovery mechanism.
 
 **Critical:** Never create merge commits. Never use `git stash`.
+
+**Note:** This iteration uses `--phase implement` — the standard implement phase. The refactoring difference is in the guidance (this file), not the lifecycle. Use `--phase implement` for all commands.
 
 **CLI lookup:** Run `plet_agent.py --usage` for compact invocation syntax with examples. Use `--help` only if you need more detail.
 
@@ -44,26 +48,23 @@ You write to `plet/` in the project root. The orchestrator does NOT write per-it
 1. Update activity: `plet_agent.py update-activity plet/ --iter-id $PLET_ITER_ID --phase-activity reading_context --activity-detail "reading codebase for refactoring" --agent-id $PLET_AGENT_ID`
 2. Read the project's `CLAUDE.md` and `README.md` — understand conventions before changing code
 3. Read your acceptance criteria from `plet/iterations.md` — these are the refactor goals
-4. Run the linter in fix mode and the formatter — commit any changes. This is free cleanup that doesn't need per-criterion treatment.
-5. Run the full test suite — establish the green baseline. Record the test count. All tests must pass before you make any refactoring changes.
+4. Run the full test suite — establish the green baseline. Record the test count. All tests must pass before you make any refactoring changes.
 
 ---
 
 ## Survey
 
-Spend 5-10 minutes building a mental map of where debt lives. Don't fix anything yet.
+Read these three sources to build a map of where debt lives. Note which items are relevant to your acceptance criteria. Don't fix anything yet.
 
 1. Read `plet/emergent.md` — deferred cleanup items from this milestone's iterations
 2. Read `plet/learnings.md` — patterns, gotchas, and debt signals from this milestone
 3. Run `plet_tools.py churn plet/ --output json` — identify high-churn files and outliers
 
-Note which emergent items, learnings, and churn outliers are relevant to your acceptance criteria. You'll reference these during per-criterion work.
-
 ---
 
 ## Ordering and Overlaps
 
-Some refactor goals interact. Work them in this order to avoid undoing your own work:
+If your acceptance criteria include multiple signal types from the list below, work them in this order to avoid undoing your own work. If you only have one type, order doesn't matter.
 
 1. **Constants first** — consolidate scattered constants/config before anything else. This reduces noise for duplication scanning (what looked like duplicate logic may just be the same magic number in 5 places).
 2. **Duplication next** — extract shared patterns. This reduces file sizes, so the "large files" scan sees accurate numbers.
@@ -80,7 +81,7 @@ Each acceptance criterion is a refactor goal (e.g., "Extract duplicated logic wh
 
 ### 1. Scan
 
-Update activity to `implementing`. Search the codebase for instances matching this goal. Be systematic — grep, read file listings, check the churn output from your survey. List what you find.
+Update activity: `"implementing"` / `"scanning for instances of {goal}"`. Search the codebase for instances matching this goal. Be systematic — grep, read file listings, check the churn output from your survey. List what you find.
 
 **If nothing found:** That's a valid outcome. Update the criterion with evidence: "Scanned N files. No instances of {goal} found." Mark as `pass` — the criterion is about the audit, not a guaranteed change. Move to the next criterion.
 
@@ -100,6 +101,8 @@ For each instance found, decide: **fix** or **defer**.
 - You're unsure if it's an improvement
 
 Deferred items get an emergent entry immediately — don't wait until the end.
+
+**What "mechanical" means:** The before and after are functionally identical — same inputs, same outputs, same side effects. If you need to think about whether the behavior changes, it's not mechanical — defer it.
 
 ### 3. Fix
 
@@ -148,7 +151,7 @@ These are the patterns your acceptance criteria may ask you to look for. Not eve
 
 While auditing and fixing, you may notice deeper problems that you should NOT fix — they require design decisions that belong in a refine session. **Detect these and file emergent items:**
 
-- **Coverage gaps** — Run coverage if available. Modules at 0% or functions never tested indicate untestable architecture (too coupled, no injection seam, side-effect-heavy). File emergent: what's uncovered and why it's hard to test.
+- **Coverage gaps** — If the project has a coverage tool configured and it runs quickly, check for gaps. Modules at 0% or functions never tested indicate untestable architecture (too coupled, no injection seam, side-effect-heavy). File emergent: what's uncovered and why it's hard to test.
 
 - **Shared state ownership** — Two modules writing the same file, or a resource with no clear single owner. File emergent: which modules, which resource, what the ownership boundary should be.
 
@@ -160,10 +163,10 @@ While auditing and fixing, you may notice deeper problems that you should NOT fi
 
 When all acceptance criteria are addressed (passed or skipped):
 
-1. Run the formatter in fix mode — commit any changes
+1. Run the formatter in fix mode — commit any changes your refactoring introduced
 2. Run the linter — zero warnings
 3. Run the full test suite — all tests must pass
-4. Verify the test count hasn't decreased — refactoring should not delete tests
+4. Check test count against the baseline you recorded in Before You Start. If count decreased, document why in your evidence (consolidated redundant tests, parameterized, removed tests for extracted code). If coverage measurement is available, verify coverage held or improved.
 5. End the phase:
 
 ```bash
@@ -172,7 +175,7 @@ plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement \
     --progress-content "Refactored: {summary of changes}. {N} AC passed, {M} skipped. All {T} tests pass."
 ```
 
-`phase-end` handles: set-verdict, gate checks, git commit, audit-tag. If the gate fails, fix and retry.
+`phase-end` checks: git state clean, per-iteration state valid, progress entry exists, trace events valid, all changes committed. If the gate fails, fix the issue and re-run `phase-end`.
 
 **Partial completion is `completed`, not `blocked`.** If some criteria found nothing to fix (pass with "no instances found") and others were skipped (can't fix cleanly), that's a successful refactor — you audited and made the improvements you could. Use `blocked` only when you can't proceed on ANY criteria.
 

@@ -2142,6 +2142,26 @@ Ran `churn` on the plet-skills repo itself to validate the tool and see what it 
 
 Heuristics 1, 3, 5 are directly actionable by the refactor agent — they map to the existing signal categories in refactor.md (run toolchain, grep for duplicates, check learnings/emergent).
 
+#### NOTES_PLN_RFT_REVIEW: refactor.md Evaluation (2026-04-08)
+
+Evaluated refactor.md using skill-creator evaluation framework. 11 findings, 6 changes made. Key decisions:
+
+**`--phase implement` confusion (finding 11, medium).** Refactoring iterations use `--phase implement` despite the file being titled "Refactoring Iteration." Added explicit note: "This iteration uses `--phase implement` — the refactoring difference is in the guidance, not the lifecycle."
+
+**Real-time state updates (finding 1, medium).** Both implement.md and verify.md have a critical rule about updating state in real time for external consumers. refactor.md was missing it. Added.
+
+**What "mechanical" means (finding 6, medium).** "Keep it mechanical" was undefined. Clarified: "Mechanical means the before and after are functionally identical — same inputs, same outputs, same side effects. If you need to think about whether the behavior changes, it's not mechanical — defer it."
+
+**Linter/formatter at start (finding 9, removed).** The implement phase already ran formatter + linter as final checks, and verify's gate confirmed it. Code arrives clean at the refactor iteration. Removed the redundant step from "Before You Start" — only the "Completing the Phase" run matters (catches issues introduced by the refactor agent's changes).
+
+**Test count invariant (finding 8, revised).** "Test count hasn't decreased" is wrong as an invariant. Legitimate refactoring can decrease count: redundant tests consolidated, parameterized tests replacing copy-paste, tests for extracted code replaced by tests for the new location. The real invariant is "coverage doesn't decrease" but coverage isn't always available. Revised to: "If test count decreased, document why (consolidated, removed redundant, etc.). If coverage measurement is available, verify coverage held or improved."
+
+**Survey timing (finding 3, low).** "5-10 minutes" is meaningless to an agent. Changed to action-scoped: "Read these three sources. Note relevant items. Don't fix anything yet."
+
+**Ordering caveat (finding 4, low).** Added: "If your acceptance criteria include only one signal type, order doesn't matter."
+
+**Gate check list (finding 10, low).** Added to Completing the Phase so the agent knows what `phase-end` will verify.
+
 ---
 
 Autonomous agents accumulate tech debt iteration by iteration — each implementation subagent optimizes locally for its acceptance criteria without seeing the broader codebase trajectory. Regular refactoring should be built into the loop to mitigate this.
