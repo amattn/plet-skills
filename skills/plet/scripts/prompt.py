@@ -140,77 +140,44 @@ def _load_required(content, error_msg):
 
 
 def _build_cli_quick_ref(iter_id, phase, attempt):
-    """Build CLI quick reference with iter_id and phase pre-filled."""
-    ist = "iter_state.py"
-    ent = "entries.py"
-    phs = "phase.py"
-    gph = "gate_phase.py"
+    """Build CLI quick reference with iter_id and phase pre-filled.
+
+    All commands go through plet_agent.py — the agent's entire plet vocabulary.
+    """
+    ag = "plet_agent.py"
     p = "plet/"
     a = str(attempt)
     crit_phase = "implementation" if phase == "implement" else "verification"
 
     lines = [
-        "# CLI Quick Reference",
+        "# CLI Quick Reference (plet_agent.py — 5 commands)",
         f"# Pre-filled for {iter_id}, phase={phase}, attempt={a}",
         "# IMPORTANT: Use these commands directly. Do NOT call --help first.",
-        "# If you need more commands: cat $PLET_CLI_REF > --usage > --help (escalation path).",
+        "# Escalation: plet_agent.py --usage > plet_agent.py --help",
         "",
-        "# State updates (during work):",
-        f'{ist} update-activity {p} --iter-id {iter_id} --phase-activity coding --activity-detail "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
-        f'{ist} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status pass --evidence "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
-        f'{ist} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status fail --evidence "..." --red-test test_AC_1_fix --agent-id $PLET_AGENT_ID',  # noqa: E501
-        f"{ist} heartbeat {p} --iter-id {iter_id} --agent-id $PLET_AGENT_ID",
+        "# Per-AC (after each green step):",
+        f'{ag} update-criterion {p} --iter-id {iter_id} --criterion AC_1 --phase {crit_phase} --status pass --evidence "..." --agent-id $PLET_AGENT_ID',  # noqa: E501
+        f'{ag} wip-commit {p} --iter-id {iter_id} --message "AC_1 - description"',
         "",
-        "# Runtime artifacts (during work):",
-        f'{ent} add-progress {p} --iter-id {iter_id} --iter-title "$TITLE" --phase {phase} --attempt {a} --status IN_PROGRESS --content "..."',  # noqa: E501
-        f'{ent} add-learning {p} --iter-id {iter_id} --iter-title "$TITLE" --category pattern --title "..." --content "..." --phase {phase} --attempt {a}',  # noqa: E501
-        f'{ent} add-emergent {p} --iter-id {iter_id} --iter-title "$TITLE" --title "..." --phase {phase} --category "design decision" --content "..." --attempt {a}',  # noqa: E501
+        "# Optional per-AC (after reflection):",
+        f'{ag} add-learning {p} --iter-id {iter_id} --iter-title "$TITLE" --category pattern --title "..." --content "..." --phase {phase} --attempt {a}',  # noqa: E501
+        f'{ag} add-emergent {p} --iter-id {iter_id} --iter-title "$TITLE" --title "..." --phase {phase} --category "design decision" --content "..." --attempt {a}',  # noqa: E501
+        "",
+        "# End of phase (once, after all AC done):",
     ]
-
-    if phase == "verify":
-        trc = "traces.py"
-        lines.extend(
-            [
-                "",
-                "# Verify-specific — write BEFORE calling phase.py end:",
-                f"{ist} validate {p} --iter-id {iter_id}",
-                "",
-                "# Trace events (event-type: decision, criterion_update, lifecycle_change, error):",
-                f'{trc} append-event {p} --iter-id {iter_id} --phase verify --attempt {a} --event-type decision --data \'{{"description":"...","rationale":"..."}}\'',  # noqa: E501
-            ]
-        )
-
-    lines.extend(
-        [
-            "",
-            "# End of phase — call AFTER all artifacts are written:",
-        ]
-    )
 
     if phase == "implement":
         lines.append(
-            f'{phs} end {p} --iter-id {iter_id} --phase implement --verdict completed --progress-content "..."'  # noqa: E501
+            f'{ag} phase-end {p} --iter-id {iter_id} --phase implement --verdict completed --progress-content "..."'
         )
     else:
         lines.append(
-            f'{phs} end {p} --iter-id {iter_id} --phase verify --verdict passed --progress-content "..." --summary "All criteria independently verified."'  # noqa: E501
+            f'{ag} phase-end {p} --iter-id {iter_id} --phase verify --verdict passed --progress-content "..." --summary "All criteria independently verified."'  # noqa: E501
         )
 
-    lines.extend(
-        [
-            "",
-            "# Post-gate — call AFTER phase.py end (it commits, gate checks the commit):",
-            f"{gph} post {p} --iter-id {iter_id} --phase {phase} --output json",
-        ]
-    )
-
-    if phase == "verify":
-        lines.extend(
-            [
-                "",
-                "# Full CLI reference: cat $PLET_CLI_REF",
-            ]
-        )
+    lines.append("")
+    lines.append("# phase-end handles: set-verdict, gate checks, git commit, audit-tag.")
+    lines.append("# If gate fails, fix issues and retry phase-end.")
 
     return "\n".join(lines)
 

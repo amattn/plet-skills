@@ -22,7 +22,7 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 - **State on disk:** All plan, progress, and execution state is persisted to files so any fresh agent can pick up work without prior context
 - **Fresh context by default:** Each phase (implementation, verification) runs in a fresh context window to ensure independence and avoid contamination
 - **Verification independence:** The verification agent verifies the *result*, not the *process*. It does not initially read implementation diffs — it reads the codebase as it stands, runs checks, and independently confirms acceptance criteria are met. This prevents rubber-stamping and ensures genuine independent validation.
-- **Dependency-aware parallelism:** Iterations form a dependency graph, not a strict sequence — independent work runs concurrently by default
+- **Dependency-aware ordering:** Iterations form a dependency graph, not a strict sequence — dependent work waits, independent work runs sequentially in topological order
 - **Iterative refinement:** The spec is a living document that improves as agents discover gaps, make decisions, and surface questions
 - **Single entry point:** Users invoke `/plet` and the skill figures out what to do based on state — no need to remember pipeline steps
 - **Blockers are last resort:** Agents prefer making a decision and documenting it in emergent.md over blocking. The quality of blocker documentation determines whether the human can help.
@@ -35,7 +35,7 @@ plet is inspired by and builds on the RIDL (Ralph Iteration Definition List) sys
 | Persona | Description | Key Need |
 |---------|-------------|----------|
 | **Solo Developer** | Individual developer using Claude Code for a personal or side project | Structured autonomous iteration on a feature without babysitting each step |
-| **Tech Lead** | Senior developer managing a larger feature build | Parallelized execution with clear progress visibility and the ability to steer via spec refinement |
+| **Tech Lead** | Senior developer managing a larger feature build | Sequential execution with dependency management, clear progress visibility and the ability to steer via spec refinement |
 | **Agent Operator** | Developer running multiple plet loops across projects | Reliable state persistence and the ability to spawn fresh agents that pick up exactly where the last one left off |
 | **GUI Builder** | Developer building monitoring/management tools on top of plet | A well-documented, stable state file format that exposes real-time progress and agent activity |
 
@@ -139,23 +139,23 @@ The plan session is interactive and human-driven. It is a structured conversatio
 | PL_5 | All requirement IDs use the `XXX_N` format (2-3 letter prefix) with append-only numbering as defined in GC_1 | P0 |
 | PL_6 | If `plet/requirements.md` already exists, read it and offer to update rather than replace | P0 |
 | PL_7 | If `plet/emergent.md` has pending items, triage them with the user. If `plet/learnings.md` exists, scan it for patterns that suggest spec changes. Incorporate results into requirements before re-planning. | P0 |
-| PL_8 | Break the requirements into iteration definitions small enough to fit in a single context window without compaction, with dependency relationships. This is the single most important decomposition constraint — err aggressively on the side of smaller iterations. When in doubt about whether a dependency exists, add it — missing dependencies are dangerous (agent wastes a cycle, must self-correct per IMP_24), while false dependencies are harmless (only reduce parallelism slightly). | P0 |
+| PL_8 | Break the requirements into iteration definitions small enough to fit in a single context window without compaction, with dependency relationships. This is the single most important decomposition constraint — err aggressively on the side of smaller iterations. When in doubt about whether a dependency exists, add it — missing dependencies are dangerous (agent wastes a cycle, must self-correct per IMP_24), while false dependencies are harmless (only affect ordering slightly). | P0 |
 | PL_9 | Each iteration definition includes: title, user story, requirement references, acceptance criteria, and dependency list (which iterations must complete first) | P0 |
 | PL_10 | Present each iteration definition to the user for review before finalizing | P0 |
 | PL_11 | Save iteration definitions to `plet/iterations.md` and initialize `plet/state.json` | P0 |
 | PL_12 | Each requirements section is written to disk immediately upon user approval. The file on disk is the source of truth — if context is lost, the approved text is preserved. Never defer writing approved content to the end of the session. | P0 |
 | PL_15 | At every review step, show the full content first for context, then proactively surface recommendations, concerns, and alternative approaches before asking for approval. Don't wait to be asked. | P0 |
 | PL_16 | After each approval: update NOTES.md with the decision and rationale, then run a consistency pass across all affected artifacts before moving to the next step. Catch drift early. | P0 |
-| PL_13 | Identify which iterations can run in parallel (no dependency relationship) and mark them in the state file | P1 |
+| PL_13 | Identify iteration dependencies for sequential ordering and mark them in the state file | P1 |
 | PL_14 | Assign iterations to milestones based on requirements release milestones | P1 |
 
 ### 3.3 State File (SF)
 
-Split state architecture: global `plet/state.json` for project-wide data and per-iteration `plet/state/{iteration_id}.json` for runtime state. This eliminates write conflicts during parallel execution.
+Split state architecture: global `plet/state.json` for project-wide data and per-iteration `plet/state/{iteration_id}.json` for runtime state. Clear separation of concerns — orchestrator owns global, agent owns per-iteration.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SF_1 | Global `plet/state.json` contains: project metadata, schema version, dependency map (`{iteration_id: [dependency_ids]}`), lifecycles map (`{iteration_id: lifecycle_value}` per SF_28), milestone assignments, parallel groups, breakpoints, refine session count, and the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
+| SF_1 | Global `plet/state.json` contains: project metadata, schema version, dependency map (`{iteration_id: [dependency_ids]}`), lifecycles map (`{iteration_id: lifecycle_value}` per SF_28), milestone assignments, breakpoints, refine session count, and the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
 | SF_2 | Per-iteration state files (`plet/state/{iteration_id}.json`) contain: phaseActivity (phase-specific values), agent ID, acceptance criteria with two-state model, heartbeat, phase timestamps, per-phase attempt counts, summary, files changed, verification reports (VF_21–VF_24), implementVerdict, verifyVerdict. Lifecycle is NOT stored here — see SF_28. | P0 |
 | SF_3 | Each iteration tracks a **lifecycle phase**: `ineligible` (dependencies not met), `queued` (ready for pickup), `implementing`, `verifying`, `complete`, `blocked`, `withdrawn` (deliberately retired during refine — terminal state). Lifecycle is stored in `state.json.lifecycles` (per SF_28), not in per-iteration files. | P0 |
 | SF_4 | Each iteration tracks **phaseActivity** with phase-specific values. Implement: `setup`, `writing_tests`, `implementing`, `running_checks`, `committing`, `wrapping_up`, `idle`. Verify: `setup`, `verifying`, `fixing`, `writing_report`, `running_checks`, `committing`, `wrapping_up`, `idle`. Includes a human-readable `activityDetail` string (e.g., "red: writing failing test for AC_3", "green: all tests passing"). Both phaseActivity and activityDetail are cosmetic (monitoring/display only) — only verdicts (SF_28) drive lifecycle transitions. | P0 |
@@ -173,11 +173,11 @@ Split state architecture: global `plet/state.json` for project-wide data and per
 | SF_16 | Per-iteration state files follow the same write semantics as the global state file (atomic rename when practical, direct writes acceptable for v1) | P0 |
 | SF_17 | Runtime artifact writes (progress.md, learnings.md, emergent.md) should be complete, self-contained blocks. Use Bash append (`cat >>`) rather than read-then-overwrite. POSIX O_APPEND is ideal but not required for v1 — runtime artifacts are append-only markdown, so a partial append only affects the last entry; prior entries are never corrupted. | P0 |
 | SF_18 | Runtime artifact entries should stay under ~4KB as a readability constraint. On local filesystems (the only target per NF_5), append operations are atomic at any reasonable size, so size limits are about maintainability, not atomicity. Entries exceeding ~4KB should be split into multiple self-contained entries. | P0 |
-| SF_25 | Runtime artifact entries are wrapped in start/end fences that produce unique, non-identical boundary lines for each entry. When parallel agents append to the same file, git merge can distinguish entries and resolve without conflicts. Fencing implementation defined in `references/formats.md`. | P0 |
-| SF_26 | **Worktree state invariants:** During an iteration, per-iteration state files exist in two copies — the global copy (on the workstream branch) and the worktree copy (on the iteration branch). The worktree copy is authoritative during the subagent's execution. The subagent is the sole writer of per-iteration state during execution. Pre-spawn setup by the orchestrator is allowed (e.g., IST `start-phase` clears stale verdicts before spawning). Global state (state.json) lives in the global copy only — lifecycle is tracked there, not in per-iteration files (SF_28). No concurrent writes to the same state file. | P0 |
-| SF_27 | **Verdict handoff:** After reading `implementVerdict` or `verifyVerdict` from the worktree copy (guard: assert worktree_plet_dir != global_plet_dir), the orchestrator writes the lifecycle transition to `state.json.lifecycles`: `verifying` (implement completed), `complete` (after merge-squash), `queued` (retry), or `blocked` (exhausted/blocked verdict). This write is committed immediately before the next `eligible()` call. | P0 |
-| SF_28 | **Lifecycle extraction:** Iteration lifecycle is stored in `state.json.lifecycles` (a `{iteration_id: lifecycle_value}` map), not in per-iteration state files. The orchestrator is the sole writer of lifecycle. Subagents signal phase completion via explicit verdict fields in per-iteration state: `implementVerdict` (`completed`, `blocked`) and `verifyVerdict` (`passed`, `rejected`, `blocked`). The orchestrator reads verdicts from the worktree and writes the lifecycle transition to state.json. This eliminates the two-copy merge conflict problem — lifecycle has one copy (state.json), per-iteration state has no overlapping fields between orchestrator and subagent. Post-phase gates enforce that verdicts are set before the subagent exits. The orchestrator calls IST `start-phase` on worktree_plet_dir before spawning the subagent to clear stale verdicts and initialize phase state. | P0 |
-| SF_19 | The global state file includes a top-level `parallelGroups` array that groups iterations which can execute concurrently | P1 |
+| SF_25 | Runtime artifact entries are wrapped in start/end fences that produce unique, non-identical boundary lines for each entry. When concurrent sessions or branch merges touch the same file, git merge can distinguish entries and resolve without conflicts. Fencing implementation defined in `references/formats.md`. | P0 |
+| SF_26 | **Per-iteration state invariants:** The subagent is the sole writer of per-iteration state during execution. Pre-spawn setup by the orchestrator is allowed (e.g., IST `start-phase` clears stale verdicts before spawning). Global state (state.json) is owned by the orchestrator — lifecycle is tracked there, not in per-iteration files (SF_28). No concurrent writes to the same state file. | P0 |
+| SF_27 | **Verdict handoff:** After reading `implementVerdict` or `verifyVerdict` from per-iteration state, the orchestrator writes the lifecycle transition to `state.json.lifecycles`: `verifying` (implement completed), `complete` (iteration done), `queued` (retry), or `blocked` (exhausted/blocked verdict). This write is committed immediately before the next `eligible()` call. | P0 |
+| SF_28 | **Lifecycle extraction:** Iteration lifecycle is stored in `state.json.lifecycles` (a `{iteration_id: lifecycle_value}` map), not in per-iteration state files. The orchestrator is the sole writer of lifecycle. Subagents signal phase completion via explicit verdict fields in per-iteration state: `implementVerdict` (`completed`, `blocked`) and `verifyVerdict` (`passed`, `rejected`, `blocked`). The orchestrator reads verdicts from per-iteration state and writes the lifecycle transition to state.json. Clear separation of concerns — lifecycle has one copy (state.json), per-iteration state has no overlapping fields between orchestrator and subagent. Post-phase gates enforce that verdicts are set before the subagent exits. The orchestrator calls IST `start-phase` before spawning the subagent to clear stale verdicts and initialize phase state. | P0 |
+| SF_19 | ~~DEPRECATED~~ — `parallelGroups` is deprecated. Sequential execution eliminates the need for parallel grouping. Field may remain in existing state files but is ignored. | P1 |
 | SF_20 | Each per-iteration state file includes a `lastHeartbeat` timestamp for stale agent detection (> 5 min = potentially crashed) | P1 |
 | SF_21 | The global state file includes `breakpoints` with `before` and `after` arrays of iteration IDs — the orchestrator pauses at these points. Breakpoints are a user directive to the orchestrator, separate from iteration lifecycle. | P1 |
 | SF_22 | Structured progress data in per-iteration state: phase timestamps, per-phase attempt counts, summary, files changed. state.json is a snapshot of now; progress.md is append-only history. | P1 |
@@ -192,12 +192,12 @@ Implementation of iteration definitions using subagents with red/green test disc
 |----|-------------|----------|
 | IMP_1 | Identify the next eligible iteration(s): all dependencies `complete`, lifecycle `queued` | P0 |
 | IMP_2 | For each eligible iteration, spawn a subagent via `plet_invoke.py run` (which calls `plet_prompt.py assemble` for the prompt, then `claude -p`). The prompt includes: iteration context, universal context, learnings.md, and implementation instructions from `references/implement.md`. | P0 |
-| IMP_3 | Spawn subagents for independent eligible iterations in parallel by default | P0 |
+| IMP_3 | Execute iterations sequentially, one at a time, in dependency order | P0 |
 | IMP_4 | Each implementation subagent writes failing tests first (red), then implements until green. For the red step, run only the new/changed test to verify it fails. Run the full suite for the green step to confirm nothing is broken. **Meaningful red required:** the unit under test must exist as a runnable stub before tests are written. A test that fails because the file/function/class doesn't exist (`FileNotFoundError`, `ImportError`, `AttributeError`) is meaningless red — it proves nothing about the test's ability to catch bad behavior. The stub must accept inputs and return dummy/zero values so the test fails because the *answer is wrong*, not because the infrastructure is missing. This applies at every level: scripts (stub command functions), functions (stub with default return), classes (stub methods), APIs (stub endpoints). | P0 |
 | IMP_5 | The orchestrator monitors subagent completion and spawns the next eligible iterations as dependencies are satisfied | P0 |
 | IMP_6 | The subagent updates per-iteration state file criterion statuses in real time as it works | P0 |
 | IMP_7 | The subagent updates its `phaseActivity` and `activityDetail` in the per-iteration state file as it transitions between activities. phaseActivity is cosmetic (monitoring only) — only verdicts drive lifecycle transitions (SF_28). | P0 |
-| IMP_8 | **Lifecycle ownership:** Subagents do NOT write lifecycle — the orchestrator is the sole lifecycle writer (state.json per SF_28). Subagents signal completion via verdict fields: implement sets `implementVerdict` (`completed`/`blocked`), verify sets `verifyVerdict` (`passed`/`rejected`/`blocked`). The orchestrator reads verdicts from the worktree and writes lifecycle transitions to state.json. The orchestrator calls IST `start-phase` on worktree_plet_dir before spawning the subagent (clears stale verdicts, initializes phase state). Post-phase gates enforce that verdicts are set before the subagent exits. | P0 |
+| IMP_8 | **Lifecycle ownership:** Subagents do NOT write lifecycle — the orchestrator is the sole lifecycle writer (state.json per SF_28). Subagents signal completion via verdict fields: implement sets `implementVerdict` (`completed`/`blocked`), verify sets `verifyVerdict` (`passed`/`rejected`/`blocked`). The orchestrator reads verdicts from per-iteration state and writes lifecycle transitions to state.json. The orchestrator calls IST `start-phase` before spawning the subagent (clears stale verdicts, initializes phase state). Post-phase gates enforce that verdicts are set before the subagent exits. | P0 |
 | IMP_9 | The subagent appends to `plet/progress.md`, `plet/learnings.md`, and `plet/emergent.md` as things come up during work, not only at the end. Each append is a complete, self-contained block per SF_17/SF_18. | P0 |
 | IMP_10 | Trace capture is split into two files per phase: (1) `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.ndjson` — raw I/O captured automatically by `plet_invoke.py` from the subprocess's streaming JSONL output, subagent does not write this; (2) `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` — semantic events (decisions, criterion updates, lifecycle changes, activity changes, errors) written by the subagent during work via `plet_trace.py`. Subagents run as subprocess invocations (`claude -p --output-format stream-json`), not native Agent tool subagents, to guarantee reliable transcript capture. | P0 |
 | IMP_11 | On implementation completion, the subagent commits changes and the iteration lifecycle moves to `verifying` | P0 |
@@ -205,14 +205,14 @@ Implementation of iteration definitions using subagents with red/green test disc
 | IMP_13 | If a subagent encounters a blocker, it documents the issue across ALL four artifact types before returning: (1) trace log with full detail of attempts, failures, error messages, paths explored; (2) progress.md with BLOCKED status, work completed, and what remains; (3) emergent.md with blocker category entry describing what the human needs to resolve; (4) learnings.md with diagnostic context for next agent attempt. Then sets lifecycle to `blocked`. Every blocker represents loss of progress and requires human investigation. The quality of blocker documentation determines whether the human can help. | P0 |
 | IMP_14 | Default maximum 3 retry attempts per iteration. If the failure count is strictly decreasing across attempts (trend improving), extend to a maximum of 6 attempts. Abort immediately if failures are not decreasing. | P0 |
 | IMP_15 | Each iteration works on its own git branch. Branch persists across implementation and verification phases. All branches namespaced under `plet/{projectId}/`. Agents never commit to main. See branch/tag convention table below. | P0 |
-| IMP_16 | After an iteration reaches `complete` lifecycle, merge to the loop workstream via `git merge --squash` — one commit per iteration on the workstream. Linear history is required. The orchestrator runs this from the workstream branch: `git merge --squash {iteration_branch}` then commits with `plet: [{iteration_id}] - {title}`. Tests must pass in the iteration worktree before merge. | P0 |
-| IMP_17 | Agents commit incrementally during each phase for crash recovery — never use `git stash` (stashes are invisible to the orchestrator, other agents, and external tools). Incremental commits stay on the iteration branch (no per-phase squashing). Audit tags mark phase boundaries: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` at phase END. The single squash happens at merge-to-workstream time (IMP_16). Commit convention on workstream: `plet: [{iteration_id}] - {title}` | P0 |
+| IMP_16 | After an iteration reaches `complete` lifecycle, mark it complete in state.json. Sequential mode: commits are already on the workstream branch, no merge needed. The orchestrator writes lifecycle transition and moves to the next eligible iteration. | P0 |
+| IMP_17 | Agents commit incrementally during each phase for crash recovery — never use `git stash` (stashes are invisible to the orchestrator, other agents, and external tools). Incremental commits stay on the workstream branch. Audit tags mark phase boundaries: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` at phase END. Commit convention: `plet: [{iteration_id}] implement-{attempt} - {title}` | P0 |
 | IMP_18 | Per RT_6/RT_7, agents read runtime artifacts at start. If the agent has been working for an extended period or has accumulated substantial context, write current insights to learnings.md and emergent.md before wrapping up. | P0 |
 | IMP_19 | Pre-flight check before implementation: verify the project builds, tests pass, and the working tree is clean. If pre-flight fails, the agent should attempt to resolve the issue first. Only block if the issue is unresolvable. Log to all three runtime artifacts regardless of outcome. **Exception:** after a verification cycle-back (VF_16), the branch may contain intentionally failing tests left by the verify agent — these are expected and should be treated as inherited red-step targets, not pre-flight failures. | P1 |
-| IMP_20 | If a parallel sibling iteration fails, other in-progress siblings continue. The failed iteration is retried independently after its siblings complete. | P1 |
+| IMP_20 | ~~REMOVED~~ — parallel sibling concept does not apply in sequential mode. | — |
 | IMP_21 | The orchestrator re-evaluates the dependency graph and eligible work after each iteration completes | P1 |
 | IMP_24 | If an implementation agent discovers a missing dependency (prerequisite work does not exist), it self-corrects without blocking: adds the missing dependency to `state.json` `dependencyMap` and the per-iteration state file `dependencies` array, sets its own lifecycle to `ineligible`, documents the correction across all four runtime artifacts (trace, progress, emergent, learnings), and returns. The loop continues — the iteration automatically becomes `queued` when the missing dependency completes. This does not count against the retry limit. | P0 |
-| IMP_25 | False dependencies (unnecessary deps that reduce parallelism) are harmless and do not require detection or correction. | P0 |
+| IMP_25 | False dependencies (unnecessary deps that affect ordering) are harmless and do not require detection or correction. | P0 |
 | IMP_22 | The orchestrator checks breakpoints (SF_21) before and after each iteration and pauses execution when a breakpoint is hit | P1 |
 | IMP_23 | Implementation and verification agents update `lastHeartbeat` in the per-iteration state file at regular intervals during work | P1 |
 
@@ -235,9 +235,9 @@ Independent verification in a fresh context window. The verification agent verif
 | VF_11 | Spec gaps: identify implemented behavior that isn't covered by the spec. Flag as emergent items for a refine session. | P0 |
 | VF_12 | Anti-slop bias: assume the first correct version contains hidden debt. Don't rubber-stamp because tests pass — look deeper. | P0 |
 | VF_13 | Convergence signal: an iteration is genuinely complete when verification critiques reduce to cosmetic/stylistic issues only | P0 |
-| VF_14 | If all criteria pass verification, the verify agent sets `verifyVerdict: "passed"`. The orchestrator then merges to workstream and writes `lifecycles.ID_xxx = "complete"` to state.json (iteration frozen). The verify agent does NOT write lifecycle — see IMP_8, SF_28. | P0 |
+| VF_14 | If all criteria pass verification, the verify agent sets `verifyVerdict: "passed"`. The orchestrator then writes `lifecycles.ID_xxx = "complete"` to state.json (iteration frozen). The verify agent does NOT write lifecycle — see IMP_8, SF_28. | P0 |
 | VF_15 | If issues are found that are minor and obvious to fix (typos, missing edge case tests, small corrections): add new acceptance criteria, fix with red/green discipline, then complete. For anything substantial, cycle back to implementation per VF_16. | P0 |
-| VF_16 | If issues are found that cannot be fixed in this context: add new criteria set to `fail`, write failing tests (red step) for each test-expressible issue as a concrete handoff to the next implementation agent, set `verifyVerdict: "rejected"`, document in emergent.md and learnings.md. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule. For issues that aren't test-expressible (e.g., architectural concerns), document why no red test was created. The orchestrator reads `verifyVerdict` from the worktree and writes lifecycle → `queued` (retry) or `blocked` (retry exhausted) to state.json — the verify agent does NOT write lifecycle (SF_28). | P0 |
+| VF_16 | If issues are found that cannot be fixed in this context: add new criteria set to `fail`, write failing tests (red step) for each test-expressible issue as a concrete handoff to the next implementation agent, set `verifyVerdict: "rejected"`, document in emergent.md and learnings.md. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule. For issues that aren't test-expressible (e.g., architectural concerns), document why no red test was created. The orchestrator reads `verifyVerdict` from per-iteration state and writes lifecycle → `queued` (retry) or `blocked` (retry exhausted) to state.json — the verify agent does NOT write lifecycle (SF_28). | P0 |
 | VF_17 | The verification agent appends to progress.md, learnings.md, and emergent.md following atomic write semantics | P0 |
 | VF_18 | The verification agent writes semantic event trace entries to `plet/trace/{iteration_id}-verify-{attempt}-events.ndjson` via `plet_trace.py`. The raw I/O transcript is captured to `plet/trace/{iteration_id}-verify-{attempt}-transcript.ndjson` by `plet_invoke.py` from the subprocess's streaming output. (Matches split trace format defined in IMP_10.) | P0 |
 | VF_19 | After verification completes (pass or fail), the orchestrator re-evaluates eligible iterations and continues the loop | P1 |
@@ -364,7 +364,7 @@ Python scripts shipped in `skills/plet/scripts/` that enforce compliance determi
 | ES_2 | All scripts support `--output json`, `--pretty`, `--fields` for structured machine-readable output. Default is human-readable text. (UNV_CMD_15, UNV_CMD_18, UNV_CMD_19) | P0 |
 | ES_3 | Shared CLI helpers (`get_plet_dir`, `extract_output_flags`, `filter_fields`, `parse_command`) live in `util_cli.py`. Each script defines local `_to_json()` / `_err_json()` helpers for JSON output (return strings, never print). (UNV_CMD_26) | P0 |
 | ES_4 | Exit codes: 0 = success, 1 = error. Check/gate commands additionally use 2 = warnings only (no failures). (UNV_CMD_14) | P0 |
-| ES_5 | Runtime artifacts (progress.md, learnings.md, emergent.md, trace NDJSON) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. (UNV_NFR_10) | P0 |
+| ES_5 | Runtime artifacts (progress.md, learnings.md, emergent.md, trace NDJSON) and state files are committed on the workstream branch alongside code. The workstream branch is a complete record of all iteration work. (UNV_NFR_10) | P0 |
 | ES_6 | `plet_invoke.py` logs the full assembled prompt and invocation context to both a trace event (`invocation` type) and a progress entry before launching. Essential for eval — can't measure prompt effectiveness without knowing what the agent received. | P0 |
 | ES_7 | `plet_gate_phase.py` runs pre/post checks at phase boundaries. The subagent runs `post` before exiting and self-corrects until it passes — its exit signals "I passed my own gate." | P0 |
 | ES_8 | Subagent subprocesses use `--permission-mode auto` (default) or `--permission-mode bypassPermissions` (fallback). Sandboxing is configured at the environment level (FOO_50), not per-invocation. | P0 |
@@ -379,8 +379,9 @@ Python scripts shipped in `skills/plet/scripts/` that enforce compliance determi
 | `plet_entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
 | `plet_fingerprint.py` | Fingerprint extraction, embedding, staleness | `extract`, `embed`, `check` |
 | `plet_trace.py` | Trace NDJSON schema enforcement | `append-event`, `validate`, `query` |
-| `plet_git_iteration.py` | Git iteration lifecycle | `branch-name`, `worktree-create`, `worktree-remove` |
-| `plet_git_ops.py` | Git workflow operations | `audit-tag`, `merge-squash` |
+| `plet_git_ops.py` | Git workflow operations | `audit-tag`, `wip-commit`, `rebase-commit` |
+| `plet_agent.py` | Agent lifecycle management | `start`, `stop`, `status` |
+| `plet_tools.py` | Tool integration utilities | `list`, `check` |
 | `plet_git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
 | `plet_gate_session.py` | Session detection, status, preflight | `detect`, `status`, `preflight` |
 | `plet_gate_phase.py` | Phase gate (pre/post) | `pre`, `post` (with `--phase implement\|verify`) |
@@ -418,8 +419,7 @@ Orchestrator
     │   └── returns exit code
     │
     ├── plet_gate_phase.py post    → subagent self-corrects until passes
-    ├── plet_git_ops.py audit-tag  → mark phase boundary
-    └── plet_git_ops.py merge-squash → one commit per iteration on workstream
+    └── plet_git_ops.py audit-tag  → mark phase boundary
 ```
 
 ---
@@ -559,7 +559,7 @@ DX items that the plan session should always consider incorporating into target 
 | State management | `plet_state.py`, `util_state.py`, `util_io.py` | Schema enforcement, atomic writes, path derivation |
 | Compliance gates | `plet_gate_phase.py` | Pre/post phase checks, subagent self-correction |
 | Session detection | `plet_gate_session.py` | Routing (detect), status, preflight checks |
-| Git operations | `plet_git_iteration.py`, `plet_git_ops.py`, `plet_git_check.py` | Branches, worktrees, merge-squash, compliance checks |
+| Git operations | `plet_git_ops.py`, `plet_git_check.py` | Branches, audit tags, wip-commit, rebase-commit, compliance checks |
 | Runtime artifacts | `plet_entries.py` | Formatted entry appends to progress/learnings/emergent |
 | Fingerprints | `plet_fingerprint.py` | Spec artifact consistency checking |
 | Trace | `plet_trace.py` | Semantic event schema enforcement |
@@ -588,14 +588,14 @@ plet/
     └── ...
 ```
 
-### 7.4 Dependency Graph and Parallel Execution
+### 7.4 Dependency Graph and Sequential Execution
 
 ```
    ID_001 (scaffolding)
       │
       ├──────────┐
       ▼          ▼
-   ID_002     ID_003      ← parallel group: can run concurrently
+   ID_002     ID_003      ← independent: run sequentially in topological order
       │          │
       ├──────────┘
       ▼
@@ -605,7 +605,19 @@ plet/
    ID_005
 ```
 
-Iterations with no dependency relationship to each other are eligible for parallel execution. The orchestrator evaluates the dependency graph after each iteration completes to identify newly eligible work.
+Iterations are executed sequentially, one at a time, in dependency order. Independent iterations (no dependency relationship) are run in topological order. The orchestrator evaluates the dependency graph after each iteration completes to identify the next eligible work.
+
+### 7.5 Perspective on Parallel Execution
+
+Parallel execution was designed (PLAN_PAR), fully implemented, and validated across multiple case study runs (LOGA R09-R14, OLLR R01-R04). The implementation used ThreadPoolExecutor with per-iteration worktrees, per-iteration branches, rebase-commit for sequential merging, and conflict recovery via requeue + rebase-prep.
+
+**Results:** Sequential 0.4.x had a perfect completion record (R06-R08: 39/39 iterations, zero human interventions). Parallel 0.5.x-0.6.x consistently underperformed: 69-71% completion rates, multiple human interventions per run, and per-iteration pace 2-3x slower than sequential due to git mechanics overhead.
+
+**Root cause:** The theoretical speedup from parallelism was consumed by infrastructure overhead — worktree lifecycle, branch management, conflict detection and recovery, requeue flow, stash/pop for dirty workstream state, and per-iteration branch creation/cleanup. Each of these added failure modes that didn't exist in sequential execution. The conflict recovery path alone added ~30 lines of error handling that triggered frequently in practice.
+
+**Decision (2026-04-06):** Abandon parallel orchestration. Strip all parallel infrastructure (PLAN_SEQ). The sequential model eliminates an entire class of bugs (merge conflicts, worktree state divergence, stale lifecycle reads from wrong directory) while maintaining 100% completion rates.
+
+**What this means for the future:** Parallel execution remains architecturally possible — the dependency graph, lifecycle model, and state separation all support it. If future agent platforms provide better isolation primitives (e.g., native worktree support, conflict-free shared state), parallel could be revisited. The current decision is pragmatic, not principled: sequential is correct and reliable today; parallel added complexity without net benefit.
 
 ---
 
@@ -627,11 +639,11 @@ Iterations with no dependency relationship to each other are eligible for parall
 
 1. User invokes `/plet` with existing state
 2. Skill reads state, identifies eligible iterations
-3. Skill spawns implementation subagents for eligible iterations (parallel if independent)
+3. Skill spawns an implementation subagent for the next eligible iteration (one at a time in dependency order)
 4. Each subagent implements with red/green discipline, updates state and artifacts in real time
 5. On implementation completion, a verification subagent spawns in a fresh context
 6. Verification agent independently confirms acceptance criteria
-7. If verification passes, iteration marked `complete`, merged to loop workstream
+7. If verification passes, iteration marked `complete` on the workstream
 8. If verification fails, iteration cycles back to implementation with new criteria
 9. Orchestrator re-evaluates and spawns next eligible iterations
 
@@ -675,12 +687,12 @@ Iterations with no dependency relationship to each other are eligible for parall
 - Pre-flight checks, retry logic
 
 ### v0.3 — Refine & Polish
-> Close the loop: human-driven refinement and parallel execution
+> Close the loop: human-driven refinement and robustness
 
 - Refine session (emergent triage, spec updates, re-planning)
-- Parallel iteration support (dependency graph, concurrent agents)
 - Breakpoints
 - Resume after interruption
+- Note: parallel iteration execution was attempted (PLAN_PAR/PLAN_RBS) and abandoned in favor of sequential — complexity and write conflicts outweighed the throughput gains
 
 ---
 
@@ -691,7 +703,7 @@ Iterations with no dependency relationship to each other are eligible for parall
 | 1 | ID format: hyphens or underscores? | **Underscores (`XXX_N`, 2-3 letter prefix).** Easier to copy-paste. Follows /stable-label convention. |
 | 2 | ID stability when editing PRDs? | **Append-only with gaps.** Never renumber, never reuse. Gaps visually signal evolution. |
 | 3 | Where do fingerprints live? | **Nested in each artifact.** requirements.md → iterations.md → state.json chain. Future Considerations and Open Questions excluded. |
-| 4 | Should state be one file or split? | **Split.** Global `plet/state.json` + per-iteration `plet/state/{iteration_id}.json`. Eliminates parallel write conflicts. |
+| 4 | Should state be one file or split? | **Split.** Global `plet/state.json` + per-iteration `plet/state/{iteration_id}.json`. Clear separation of concerns — orchestrator owns global, agent owns per-iteration. |
 | 5 | Runtime artifacts: split per-iteration or single file? | **Single file each.** Humans scan one file better than multiple. POSIX atomic appends for write safety. |
 | 6 | Trace log format? | **NDJSON**, per-iteration per-phase files. Schema in `references/state-schema.md`. |
 | 7 | Performance requirements? | **None.** Plet's performance depends on Claude Code platform, not the skill. This is unusual but intentional. |
@@ -715,7 +727,7 @@ No open questions at this time.
 | State file lifecycle transitions | Invalid states, stuck iterations, lost progress | Unit tests for every valid transition, reject invalid ones |
 | Fingerprint sync | Stale artifacts not detected, silent drift between requirements/iterations/state | Unit tests with known fingerprint inputs, integration tests for drift detection |
 | Orchestration routing | Wrong phase selected, user sent to wrong workflow | Unit tests for every state → phase mapping |
-| Parallel execution | Write conflicts, race conditions on state files | Integration tests with concurrent writes, verify atomic rename semantics |
+| Sequential execution | State corruption on crash or mid-iteration failure | Integration tests verifying state recovery after simulated crash, atomic rename semantics |
 | Runtime artifact append safety | Corrupted entries, interleaved writes | Tests with entries at and above ~4KB boundary, verify atomicity |
 | Git branch management | Lost commits, merge conflicts, non-linear history | Integration tests for branch create/squash/rebase/merge cycle (delegated to agents) |
 | Retry logic with trend detection | Infinite loops, premature give-up, wrong trend calculation | Unit tests for 3-attempt default, 6-attempt extension, non-decreasing abort |

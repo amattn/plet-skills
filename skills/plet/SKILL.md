@@ -1,6 +1,6 @@
 ---
 name: plet
-version: 0.6.2
+version: 0.7.0
 description: "Spec-driven autonomous development orchestrator. Use when the user asks to 'plet', 'start plet', 'plan and execute', 'autonomous loop', 'iterate on this feature', or 'run the dev loop'. Single entry point that reads project state and routes to the correct session: plan (interactive requirements and iteration design), loop (autonomous implementation and verification phases for each iteration), or refine (human-driven triage of emergent items, spec updates, and re-planning)."
 user-invocable: true
 allowed-tools:
@@ -55,16 +55,15 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 
    This check applies to loop sessions (subagents need autonomy). Plan and refine sessions are interactive and don't need it.
 
-2. **Preflight:** Run `plet_gate_session.py preflight <plet_dir> --session-type <type>` for environment health checks (git state, scripts installed, fingerprints, etc.).
+2. **Preflight:** Run `plet_tools.py validate <plet_dir>` for environment health checks (git state, scripts installed, fingerprints, etc.). For loop sessions, the orchestrator runs preflight internally — you do not need to call it manually.
 
 ---
 
 ## The Job
 
-1. Detect the current phase via `plet_gate_session.py detect`
-2. Run preflight via `plet_gate_session.py preflight --session-type detect`
-3. Route to the correct workflow
-4. For loop: assemble prompts via `plet_prompt.py`, launch subagents via `plet_invoke.py`
+1. Detect the current phase via `plet_tools.py detect plet/`
+2. Route to the correct workflow
+3. For loop: call `plet_orchestrator.py run` — it handles preflight, prompt assembly, subagent invocation, and all lifecycle transitions internally
 
 ### Subcommands
 
@@ -74,16 +73,16 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 | `/plet plan` | Force entry into Plan phase |
 | `/plet loop` | Force entry into autonomous loop |
 | `/plet refine` | Force entry into Refine phase |
-| `/plet status` | Print status via `plet_gate_session.py status` |
+| `/plet status` | Print status via `plet_tools.py status plet/` |
 
 ---
 
 ## Routing
 
-Phase detection is implemented by `plet_gate_session.py detect`, but the skill should understand the logic it encodes:
+Phase detection is implemented by `plet_tools.py detect`, but the skill should understand the logic it encodes:
 
 ```bash
-SESSION=$(plet_gate_session.py detect plet/)
+SESSION=$(plet_tools.py detect plet/)
 # Returns: plan, loop, or refine
 ```
 
@@ -138,10 +137,10 @@ Any iterations lifecycle: blocked AND none queued/implementing?
 Before entering any session, run preflight:
 
 ```bash
-plet_gate_session.py preflight plet/ --session-type detect --output json
+plet_tools.py validate plet/
 ```
 
-Checks: scripts installed, git health, CLAUDE.md exists, .gitignore configured, spec artifacts exist, state valid, fingerprints consistent. Exit 0 = ready, exit 1 = blocked, exit 2 = warnings.
+Checks: scripts installed, git health, CLAUDE.md exists, .gitignore configured, spec artifacts exist, state valid, fingerprints consistent.
 
 ### Settings Setup (before bootstrap)
 
@@ -219,7 +218,7 @@ plet_fingerprint.py embed plet/ --type requirements
 - After any requirements change: embed requirements → iterations → state
 - After iteration changes: embed iterations → state
 - After state-only changes: embed state
-- Before entering loop: `plet_gate_session.py preflight` checks consistency
+- Before entering loop: `plet_tools.py validate` checks consistency
 
 ---
 
@@ -232,7 +231,7 @@ plet_fingerprint.py embed plet/ --type requirements
 Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`, and initializes `plet/state.json`.
 
 **Step 0 — Bootstrap:**
-Run `plet_bootstrap.py setup .` to configure the project. This sets up git merge driver, .gitattributes, .gitignore, .claude/settings.json, and CLAUDE.md stub. Idempotent — safe to re-run.
+Run `plet_tools.py bootstrap plet/` to configure the project. This sets up git merge driver, .gitattributes, .gitignore, .claude/settings.json, and CLAUDE.md stub. Idempotent — safe to re-run.
 
 **Step 1 — Detect project state:**
 Check if `plet/state.json` exists. This determines the path:
@@ -257,9 +256,8 @@ Check if `plet/state.json` exists. This determines the path:
 2. Follow its instructions for clarifying questions, requirements generation, iteration decomposition, and review
 3. Each approved section is written to disk immediately — the file on disk is the source of truth
 4. After all iterations are approved, initialize state:
-   - `plet_global_state.py init` to create state.json (auto-initializes lifecycles from dependency map)
-   - `plet_iter_state.py init` for each iteration (creates per-iteration state file without lifecycle)
-   - Embed fingerprints via `plet_fingerprint.py embed`
+   - `plet_tools.py init plet/` to create state.json (auto-initializes lifecycles from dependency map)
+   - `plet_tools.py fingerprint-embed plet/` to embed fingerprints across all plan artifacts
 5. Commit all plan artifacts on the plan branch
 6. **STOP.** Do NOT auto-launch the loop. Tell the user:
    - "Plan complete on branch `plet/{projectId}/plan1/workstream`."
@@ -278,7 +276,7 @@ Autonomous. The orchestrator script handles the entire loop as deterministic cod
 plet_orchestrator.py run <plet_dir> --allow-stale --output ndjson
 ```
 
-The orchestrator script handles the entire implement→verify loop as deterministic code. You MUST call it via Bash — do NOT manually spawn subagents, create worktrees, manage branches, or process verdicts. The orchestrator does all of this. Your job is to call it, read the NDJSON events, and communicate results to the user.
+The orchestrator script handles the entire implement→verify loop as deterministic code. You MUST call it via Bash — do NOT manually spawn subagents, manage branches, or process verdicts. The orchestrator does all of this. Your job is to call it, read the NDJSON events, and communicate results to the user.
 
 If the orchestrator is not available or fails to start, tell the user — do NOT fall back to implementing the loop in prose.
 
@@ -286,7 +284,7 @@ The orchestrator streams NDJSON events (session_start, iteration_start, heartbea
 
 **What the orchestrator handles (you don't need to do any of this):**
 
-The orchestrator manages the full loop lifecycle internally — session setup, dependency graph evaluation, worktree creation, subagent spawning via `plet_invoke.py`, lifecycle transitions (via `plet_global_state.py`), verdict processing (retry vs block vs merge), breakpoint enforcement, and session teardown. It calls the enforcement scripts (plet_schedule, plet_session, plet_global_state, plet_iter_state, plet_gate_phase, plet_git_iteration, plet_git_ops, plet_entries, plet_trace) as needed. You don't call any of these during the loop — the orchestrator does.
+The orchestrator manages the full loop lifecycle internally — session setup, dependency graph evaluation, subagent spawning, lifecycle transitions, verdict processing (retry vs block vs merge), breakpoint enforcement, git operations, and session teardown. Iterations execute sequentially on the workstream branch. You don't call any enforcement scripts during the loop — the orchestrator does.
 
 **Lifecycle ownership (SF_26, SF_28):** The orchestrator manages ALL lifecycle transitions in `state.json` via `plet_global_state.py update-lifecycle`. The implement subagent sets `implementVerdict` (handoff signal). The verify subagent sets `verifyVerdict`. Neither subagent touches lifecycle. The orchestrator writes ZERO per-iteration state during the iteration — it writes lifecycle to `state.json` only (separate file, no conflict). Gate scripts enforce verdict fields.
 
@@ -301,8 +299,6 @@ The orchestrator manages the full loop lifecycle internally — session setup, d
 | `error` | Surface the error from `pauseContext.error`. Investigate. |
 
 **The loop runs ONCE.** After the orchestrator exits, report the results to the user and STOP. **Never automatically start another loop session.** The user decides whether to run again (`/plet loop`), enter refine (`/plet refine`), or do something else. Autonomous re-entry into the loop is dangerous — the agent should not make decisions about project state between sessions.
-
-**Parallel execution:** Eligible iterations with no dependency relationship launch concurrently. Rebase-commit is always sequential. If a rebase-commit conflicts, the iteration is requeued — the implement agent resolves conflicts on the next pass via `rebase-prep` (no attempt burned). Use `--sequential` for debugging. See `references/plan.md` § Dependency Graph Validation for file-level conflict guidance.
 
 ### Refine Phase
 
@@ -337,22 +333,21 @@ The orchestrator is the longest-lived agent and most vulnerable to context compa
 3. Re-read all per-iteration state files with `lifecycle` not in `complete` or `withdrawn` — recover what's in flight
 4. Read the last entry in `sessionHistory` to determine current phase and branch
 5. Run `git branch --show-current` to confirm branch matches expected state
-6. Write a new canary entry to `plet/progress.md` noting recovery
-7. Resume from step 2 of the loop session (identify eligible iterations)
-
-**Future:** `plet_orchestrator.py` (deterministic Python script) eliminates compaction risk entirely — the orchestrator becomes code, not a prompt.
+6. Run `plet_tools.py status plet/` for a quick overview of current state
+7. Write a new canary entry to `plet/progress.md` noting recovery
+8. Resume from step 2 of the loop session (identify eligible iterations)
 
 ---
 
 ## Status
 
 ```bash
-plet_gate_session.py status plet/
+plet_tools.py status plet/
 ```
 
-Prints: project name, session type, progress percentage, iteration counts by lifecycle, blockers, active agents, fingerprint consistency, milestones.
+Prints: project name, session type, progress percentage, iteration counts by lifecycle, blockers, fingerprint consistency, milestones.
 
-JSON output available: `plet_gate_session.py status plet/ --output json --pretty`
+JSON output available: `plet_tools.py status plet/ --output json --pretty`
 
 ---
 
@@ -377,26 +372,16 @@ All branches namespaced under `plet/{projectId}/`. Agents never commit or merge 
 
 | Purpose | Pattern | Example |
 |---------|---------|---------|
-| Loop integration | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
-| Iteration | `plet/{projectId}/loop{N}/{iteration_id}` | `plet/LOGA/loop1/ID_001` |
+| Loop workstream | `plet/{projectId}/loop{N}/workstream` | `plet/LOGA/loop1/workstream` |
 | Audit tag | `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` | `plet/LOGA/loop1/audit/ID_001/implement-1` |
 | Refine | `plet/{projectId}/refine{N}/workstream` | `plet/LOGA/refine1/workstream` |
 
-Use scripts for all git operations:
-- Branch names: `plet_git_iteration.py branch-name plet/ --iter-id ID_xxx`
-- Worktrees: `plet_git_iteration.py worktree-create/remove plet/ --iter-id ID_xxx`
-- Audit tags: `plet_git_ops.py audit-tag plet/ --iter-id ID_xxx --phase implement`
-- Rebase-commit: `plet_git_ops.py rebase-commit plet/ --iter-id ID_xxx`
-- Rebase-prep (conflict resolution): `plet_git_ops.py rebase-prep plet/ --iter-id ID_xxx`
-- Compliance checks: `plet_git_check.py check-iteration/check-session plet/`
-
 **Key rules:**
+- Iterations execute sequentially on the workstream branch — no per-iteration branches, no worktrees
 - Agents commit incrementally during each phase for crash recovery — never use `git stash`
-- Audit tags mark phase boundaries (created at phase END, point to pre-rebase commits)
-- Individual commits preserved on workstream via rebase + fast-forward merge
-- Linear history required — no merge commits on iteration branches
-
-**Merge strategy for shared artifacts:** Sequential rebase-commit. Iterations execute in parallel (the expensive part). Rebase-commit is serial (fast — <2s each). Runtime artifacts (progress/learnings/emergent) are shared files — parallel appends merge cleanly only if rebase-commit is sequential.
+- Audit tags mark phase boundaries (created at phase END)
+- Individual commits preserved linearly on the workstream
+- Linear history required — no merge commits
 
 ---
 
@@ -411,60 +396,43 @@ Newer schemaVersion: warn, block loop/refine, allow plan (read-only) and status.
 
 All reference files live under `skills/plet/references/`:
 
-| File | Purpose |
-|------|---------|
-| `references/plan.md` | Plan phase workflow |
-| `references/implement.md` | Implementation subagent behavior |
-| `references/verify.md` | Verification subagent behavior |
-| `references/refine.md` | Refine phase workflow |
-| `references/formats.md` | Runtime artifact format specs |
-| `references/state-schema.md` | JSON schemas for state + trace |
+| File | Injected? | Purpose |
+|------|-----------|---------|
+| `references/plan.md` | Yes | Plan phase workflow |
+| `references/implement.md` | Yes | Implementation subagent behavior |
+| `references/verify.md` | Yes | Verification subagent behavior |
+| `references/refine.md` | Yes | Refine phase workflow |
+| `references/formats.md` | No | Runtime artifact format specs (human reference only) |
+| `references/state-schema.md` | No | JSON schemas for state + trace (human reference only) |
 
 ---
 
 ## Enforcement Scripts
 
-All scripts live under `skills/plet/scripts/`. Specs in `specs/`. See PRD §3.9 for full inventory.
+All scripts live under `skills/plet/scripts/`. Three entry points:
 
-Key commands:
+| Script | Role | Who calls it |
+|--------|------|-------------|
+| `plet_agent.py` | Agent's 5 commands (pre/post gate, state read/write, entries) | Subagents during implement/verify |
+| `plet_orchestrator.py` | The loop — session setup, scheduling, subagent spawning, verdict processing, git ops | SKILL.md (you) |
+| `plet_tools.py` | Plan/refine/diagnostic commands — detect, status, validate, bootstrap, init, fingerprint-embed | SKILL.md (you) |
 
 ```bash
 # The loop (SKILL.md calls this, orchestrator handles everything)
 plet_orchestrator.py run plet/ --output ndjson
 plet_orchestrator.py run plet/ --allow-stale --output ndjson
-plet_orchestrator.py run plet/ --max-iterations 1 --sequential --output ndjson
+plet_orchestrator.py run plet/ --max-iterations 1 --output ndjson
 
-# Routing + session detection
-plet_gate_session.py detect plet/
-plet_gate_session.py preflight plet/ --session-type loop
-plet_gate_session.py postflight plet/ --session-type loop
-plet_gate_session.py status plet/
+# Phase detection + diagnostics
+plet_tools.py detect plet/
+plet_tools.py status plet/
+plet_tools.py status plet/ --output json --pretty
+plet_tools.py validate plet/
 
-# Session lifecycle
-plet_session.py start-session plet/ --type loop
-plet_session.py end-session plet/
-
-# Scheduling decisions
-plet_schedule.py eligible plet/
-plet_schedule.py check-breakpoints plet/ --iter-id ID_xxx --position before
-plet_schedule.py check-retry plet/ --iter-id ID_xxx
-
-# Gate checks (called by subagents, not orchestrator)
-plet_gate_phase.py pre plet/ --iter-id ID_xxx --phase implement
-plet_gate_phase.py post plet/ --iter-id ID_xxx --phase verify
-
-# Subagent launch
-plet_prompt.py assemble plet/ --iter-id ID_xxx --phase implement
-plet_invoke.py run plet/ --iter-id ID_xxx --phase implement --cwd <worktree>
-
-# Git
-plet_git_iteration.py worktree-create plet/ --iter-id ID_xxx
-plet_git_ops.py rebase-commit plet/ --iter-id ID_xxx
-
-# State + artifacts
-plet_iter_state.py validate plet/ --iter-id ID_xxx
-plet_entries.py check plet/ --iter-id ID_xxx
-plet_fingerprint.py check plet/ --output json
+# Plan phase setup
+plet_tools.py bootstrap plet/
+plet_tools.py init plet/
+plet_tools.py fingerprint-embed plet/
 ```
 
 ---
@@ -482,8 +450,8 @@ Semantic versioning in frontmatter `version`:
 
 Before entering any phase:
 
-- [ ] Run `plet_gate_session.py detect` to determine phase
-- [ ] Run `plet_gate_session.py preflight` to verify environment
+- [ ] Run `plet_tools.py detect plet/` to determine phase
+- [ ] Run `plet_tools.py validate plet/` to verify environment
 - [ ] Warn user if preflight has failures or warnings
 - [ ] Read `plet/requirements.md` for project context (if it exists)
 - [ ] Read the appropriate reference file

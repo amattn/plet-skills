@@ -11,4 +11,4 @@ that multiple scripts need to agree on.
 SCHEMA_VERSION = "0.6.0"
 
 # Plet skill version — matches SKILL.md frontmatter version.
-SKILL_VERSION = "0.6.2"
+SKILL_VERSION = "0.7.0"

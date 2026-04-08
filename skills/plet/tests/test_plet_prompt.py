@@ -258,8 +258,8 @@ def test_cli_ref_implement_content():
         check("criterion phase is implementation", "--phase implementation" in content)
         check("verdict completed", "--verdict completed" in content)
         check("no --report-file", "--report-file" not in content)
-        check("phase.py end", "phase.py end" in content)
-        check("gate post", "gate_phase.py post" in content)
+        check("phase-end", "phase-end" in content)
+        check("no separate gate post", "gate_phase.py" not in content)
         check("attempt 1", "attempt=1" in content or "attempt 1" in content)
     finally:
         shutil.rmtree(tmpdir)
@@ -276,8 +276,8 @@ def test_cli_ref_verify_content():
         check("criterion phase is verification", "--phase verification" in content)
         check("verdict passed", "--verdict passed" in content)
         check("has --summary", "--summary" in content)
-        check("phase.py end", "phase.py end" in content)
-        check("gate post verify", "--phase verify --output json" in content)
+        check("phase-end verify", "phase-end" in content)
+        check("uses plet_agent.py", "plet_agent.py" in content)
     finally:
         shutil.rmtree(tmpdir)
 
