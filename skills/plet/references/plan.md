@@ -31,7 +31,7 @@ If `plet/requirements.md` already exists:
 2. Read `plet/emergent.md` for pending items — triage with the user before planning
 3. Read `plet/learnings.md` for patterns that suggest spec changes — incorporate into requirements
 4. Check for legacy conventions and offer to update:
-   - **`ID_` prefix:** Older projects may use `ID_001` instead of `ITR_001`. Both work, but `ITR_` is preferred (less grep noise in target projects). Offer to rename if re-planning; don't rename mid-loop.
+   - **`ID_` prefix:** Older projects may use `ID_001` instead of `ITR_001`. The scripts require `ITR_` — `ID_` will fail validation. Rename iteration IDs in `iterations.md`, state files, and `state.json` dependency maps before running the loop. This is a straightforward find-and-replace (`ID_` → `ITR_`).
    - **Milestones without barriers:** Older projects may have milestones as cosmetic labels with no `ITR_RFT_N` refactor iterations and no cross-milestone dependencies. The loop works fine without them. Offer to add barriers and refactor iterations if the user is re-planning or adding new milestones.
 
 ### Specs Exist but State Missing
