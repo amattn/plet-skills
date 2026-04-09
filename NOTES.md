@@ -36,7 +36,7 @@ Labels are append-only — never renumber or rename. Use `grep NOTES_PLN_RFT` to
 | NOTES_GUI | GUI Design |
 | NOTES_OPN | Open Questions |
 | NOTES_EXP | Example Projects |
-| NOTES_SUB | Subplets & Multi-Developer Analysis |
+| NOTES_SUB | Subplets — Feature Decomposition at Scale |
 | NOTES_SIA | Self-Improvement Analysis |
 | NOTES_SIA | Self-Improvement Analysis |
 
@@ -700,7 +700,7 @@ Implement and verify are internal phases of one autonomous loop — the user sho
 
 #### Routing: `ineligible` excluded from LOOP check
 
-`ineligible` iterations are waiting on dependencies and aren't actionable work. Including them caused a dead-end when all remaining iterations were `blocked` + `ineligible` — routed to LOOP instead of REFINE where the human could resolve the blocker. OR_4 now only checks for `queued`, `implementing`, or `verifying`.
+`ineligible` iterations are waiting on dependencies and aren't actionable work. Including them caused a dead-end when all remaining iterations were `blocked` + `ineligible` — routed to LOOP instead of REFINE where the human could resolve the blocker. OLP_4 now only checks for `queued`, `implementing`, or `verifying`.
 
 #### PT_ → PL_ rename
 
@@ -939,13 +939,13 @@ On cycle-back (Path C — substantial issues), the verify agent writes failing t
 
 ### NOTES_DES_5: Refine
 
-#### Milestone assignment during refine (RF_14, RF_15)
+#### Milestone assignment during refine (RFN_14, RFN_15)
 
 Frozen milestones (all iterations `complete`) don't accept new iterations, except the most recent milestone which is never considered frozen ("complete for now") — without this exception, late-stage refinements would produce a series of single-iteration milestones. Any unfrozen milestone is fair game. Heuristics for new milestone: scope magnitude (3+), version significance, origin clustering, milestone size (6+), theme coherence. Agent states which heuristic; user overrides.
 
 When all iterations are complete and new iterations are being added, explicitly ask the user whether to add to the most recent milestone or create a new one — don't silently default.
 
-#### Blockers first in refine (RF_8)
+#### Blockers first in refine (RFN_8)
 
 Blocked iterations are surfaced as Step 1 in the refine session, before emergent item triage. Blockers represent lost progress and are the highest priority for human attention.
 
@@ -983,7 +983,7 @@ New terminal lifecycle state for iterations deliberately retired during refine. 
 
 **Rejected alternatives:** `superseded`, `cancelled`, `retired`, `obsolete`, `archived`, `displaced`, `deprecated`, `rebased`.
 
-#### "Revise" not "Preserve" for partially complete iterations (RF_9)
+#### "Revise" not "Preserve" for partially complete iterations (RFN_9)
 
 The option for updating a partially complete iteration in place is called "Revise."
 
@@ -999,7 +999,7 @@ Withdrawing is potentially disruptive. Before executing, the agent must present:
 
 Also considered blocking withdraw when downstream deps exist (too restrictive), auto-cascading withdraw to all dependents (too aggressive — some may be re-pointable), and allowing withdraw with no cascade (leaves broken dependency graph).
 
-#### "More detail" option for partially complete iterations (RF_9)
+#### "More detail" option for partially complete iterations (RFN_9)
 
 Added a 4th option (D) to the revise/reset/withdraw prompt: "More detail — show me the full context before I decide." Shows full criteria status/evidence, progress entries, learnings, emergent entries, and trace highlights. After presenting detail, the agent recommends A/B/C before re-presenting the options.
 
@@ -1021,9 +1021,9 @@ When a learnings pattern leads to a spec change in the learnings review step, th
 
 Also considered creating an emergent entry for each learnings-driven change then immediately approving it (consistent EM_N trail but busywork), and no traceability reference at all. User: "learnings have a plet ID. use that as the equivalent of EM_N."
 
-#### Cascading consistency pass for refine (RF_16, Step 10)
+#### Cascading consistency pass for refine (RFN_16, Step 10)
 
-The refine session touches more files than any other session (reads 4 artifacts, updates 6, modifies fingerprints across 3). Step 10 replaces the generic consistency pass with a structured cascading check following the data flow: decisions → requirements.md → iterations.md → state files. Each stage verifies the downstream artifact reflects everything upstream. This catches drift at the boundaries between artifacts rather than checking each file in isolation. Added as RF_16 in the PRD.
+The refine session touches more files than any other session (reads 4 artifacts, updates 6, modifies fingerprints across 3). Step 10 replaces the generic consistency pass with a structured cascading check following the data flow: decisions → requirements.md → iterations.md → state files. Each stage verifies the downstream artifact reflects everything upstream. This catches drift at the boundaries between artifacts rather than checking each file in isolation. Added as RFN_16 in the PRD.
 
 #### `refine` phase value added to format spec
 
@@ -1045,7 +1045,7 @@ The orchestrator creates workstream branches at phase entry:
 - **Loop:** increment `loopSessionCount`, create `plet/{projectId}/loop{N}/workstream`. If resuming an interrupted loop (branch exists), reuse it.
 - **Refine:** increment `refineSessionCount`, create `plet/{projectId}/refine{N}/workstream`. All spec changes committed here.
 
-#### Compaction recovery protocol (OR_14)
+#### Compaction recovery protocol (OLP_14)
 
 The orchestrator is the longest-lived agent and most vulnerable to context compaction. Subagents are safe (fresh context, short-lived). Protection has three parts:
 
@@ -1088,7 +1088,7 @@ R10 observation (CASE_LOGA_R10_OBS_1): plan agent presented choices as flat A/B/
 
 #### Decision Discipline (CLAUDE.md)
 
-Discovered during the refine.md build: we designed RF_16 (cascading consistency pass) and immediately failed to cascade it into the PRD — the exact failure mode it's designed to catch. Root cause: NOTES.md Discipline captures *what was decided* but doesn't ensure the decision *lands in all affected artifacts*. Decision Discipline is the complement: after capturing a decision in NOTES.md, trace it through the data flow (PRD → reference files → schemas → PLAN.md). Two-step flow: (1) capture (NOTES.md Discipline), (2) cascade (Decision Discipline). Kept as separate sections in CLAUDE.md — same spirit, distinct responsibilities.
+Discovered during the refine.md build: we designed RFN_16 (cascading consistency pass) and immediately failed to cascade it into the PRD — the exact failure mode it's designed to catch. Root cause: NOTES.md Discipline captures *what was decided* but doesn't ensure the decision *lands in all affected artifacts*. Decision Discipline is the complement: after capturing a decision in NOTES.md, trace it through the data flow (PRD → reference files → schemas → PLAN.md). Two-step flow: (1) capture (NOTES.md Discipline), (2) cascade (Decision Discipline). Kept as separate sections in CLAUDE.md — same spirit, distinct responsibilities.
 
 #### Required Reading acknowledgment test (2026-03-09)
 
@@ -2458,6 +2458,251 @@ R06: 53% of implement-phase Bash calls were plet infrastructure. Dominated by di
 
 <!-- Future — design decisions go here when work begins -->
 
+### NOTES_PLN_PRD: PLAN_PRD — PRD Reorganization & Sync
+
+**Trigger:** Audit on 2026-04-08 found PRD significantly out of sync after PLAN_SEQ, PLAN_RFT, PLAN_IDR, and lifecycle extraction. 26 commits since last PRD touch, zero direct prd.md changes.
+
+#### NOTES_PLN_PRD_AUDIT: Audit Findings (2026-04-08)
+
+**ES Script Inventory — major drift.** PRD lists 14 agent-callable scripts with `plet_` prefix naming. Actual system: 3 entry points (`plet_agent.py`, `plet_tools.py`, `plet_orchestrator.py`) + importable modules (dropped `plet_` prefix). `plet_state.py` split into `global_state.py` + `iter_state.py`. ~8 new scripts/modules not in PRD at all. Test count: PRD says "1230+", actual ~1,060 (consolidation during PLAN_SEQ).
+
+**Missing concepts — zero PRD coverage:**
+1. Refactor iterations (ITR_RFT_* prefix, milestone barriers, refactor.md routing, prompt.py detection)
+2. Project bootstrap (bootstrap.py: git config, .gitattributes, .gitignore, CLAUDE.md stub, settings.json)
+3. Orchestrator loop as cohesive unit (behavior scattered across OR, IMP, VF, SF)
+4. Session lifecycle management (start-session, end-session, workstream branch creation)
+5. Loop scheduling (eligible selection, breakpoint evaluation, retry budget)
+6. Phase-end composite (phase.py end — bundles 6 steps into 1 command)
+7. Churn analysis (plet_tools.py churn)
+8. Git merge driver (plet_merge_driver.py)
+
+**Stale field names in SF:** `agentActivity` → `phaseActivity`, `lastVerdict` → `implementVerdict`/`verifyVerdict`, per-iteration `lifecycle` field removed (now in state.json.lifecycles per SF_28).
+
+**Reference files:** PRD lists 6, actual 8 (added refactor.md, cli-spec-template.md).
+
+**IMP stale references:** Per-iteration branches no longer exist (single workstream per loop). Merge/squash flow simplified.
+
+#### NOTES_PLN_PRD_OUTLINE: Approved Outline
+
+Reorganization separates Phases (what happens) from Infrastructure (how it works) from Tooling (what enforces it).
+
+```
+§1  Overview
+§2  User Personas
+§3  Global Conventions (GC) — promoted from buried subsection
+§4  Phases
+    4.1  Plan (PL)
+    4.2  Orchestrator Loop (OLP) — NEW
+    4.3  Implement (IMP)
+    4.4  Verify (VF)
+    4.5  Refactor (RFT) — NEW
+    4.6  Refine (RF)
+§5  Infrastructure
+    5.1  State Files (SF)
+    5.2  Runtime Artifacts (RT)
+    5.3  Artifact Sync & Fingerprints (SY)
+    5.4  Prompt & Reference Files (PT)
+    5.5  Project Bootstrap (BS) — NEW
+§6  Tooling (ES)
+    6.1  Architecture (3 entry points + modules philosophy)
+    6.2  Entry Points
+    6.3  Module Inventory
+    6.4  Utility Modules
+    6.5  Subagent Execution Pipeline
+§7  Distribution (DS)
+§8  Non-Functional Requirements (NF)
+§9  Developer Experience (DX + PL_DX)
+§10 Technical Architecture
+§11 User Flows
+§12 Release Milestones
+§13 Testing & Verification (TV + PL_TV)
+§14 Critical Test Areas (CT + PL_CT)
+§15 Success Metrics (SM + PL_SM)
+§16 Resolved Questions
+§17 Future Considerations
+```
+
+**Key structural changes:**
+- GC promoted to top-level (governs everything)
+- New §4.2 Orchestrator Loop consolidates scattered orchestrator behavior
+- New §4.5 Refactor for shipped feature with zero coverage
+- New §5.5 Bootstrap for shipped feature with zero coverage
+- SY pulled out of OR (fingerprints are infrastructure, not routing)
+- ES restructured as §6 Tooling with 3-tier architecture
+- Pipeline diagram moved from ES to §6.5
+
+#### NOTES_PLN_PRD_GCN: GCN Review (2026-04-08)
+
+- GC_2 stays in GCN_ID — the section is "Global Conventions", broad enough
+- Iteration branch row removed from GCN_BR — per-iteration branches don't exist post-PLAN_SEQ
+- Added WDN (Withdrawn & Deprecated) section at end of PRD for removed items with stable label preservation. Grouped by origin section. Moved SF_19, IMP_20, and the iteration branch pattern there.
+
+#### NOTES_PLN_PRD_PL: PHA_PL Review (2026-04-08)
+
+- PL_3: "ridl-skills:prd" → "plet's standard PRD format" (old skill name)
+- PL_17 added: confirm before loop launch (FOO_66). Never auto-launch.
+- PL_18 added: generate ITR_RFT_N refactor iterations at milestone boundaries (PLAN_RFT). Details in PHA_RFT.
+- Bootstrap (FOO_64/67) deferred to INF_BS. Planning branch (FOO_65) deferred to PHA_OLP.
+
+#### NOTES_PLN_PRD_OLP: PHA_OLP Review (2026-04-08)
+
+- OR_ renamed to OLP_ (38 occurrences, 7 files)
+- OLP_10 kept in PHA_OLP with cross-ref to INF_BS (bootstrap handles the actual creation)
+- OLP_13 (criteria skip) moved to GC_4 — cross-cutting convention, not orchestrator-specific. WDN redirect added.
+- OLP_15 (sessionHistory) kept as-is — mixing data + behavior is fine for this length
+- Added OLP_16–OLP_22: session lifecycle, scheduling, core loop, phase-end composite, branch creation, single-run semantics
+- Detail levels: OLP_19/20/21 full (core loop, phase-end, branches are critical paths). OLP_16/17/18/22 medium.
+
+#### NOTES_PLN_PRD_IMP: PHA_IMP Review (2026-04-08)
+
+- Scope narrowed: IMP is now purely subagent behavior. Orchestrator behaviors moved to PHA_OLP.
+- Moved to WDN: IMP_1, 3, 5, 11, 12, 15, 16, 21, 22 (9 IDs). All have PHA_OLP cross-refs.
+- IMP_2: updated script names (`plet_invoke.py` → `invoke.py`, `plet_prompt.py` → `prompt.py`), reframed as subagent prompt content.
+- IMP_10: updated script names (`plet_invoke.py` → `invoke.py`, `plet_trace.py` → `traces.py`), removed "lifecycle changes" from trace events list (subagent doesn't write lifecycle).
+- IMP_13: "sets lifecycle to blocked" → "sets `implementVerdict: 'blocked'`" (SF_28 compliance).
+- IMP_24: "sets its own lifecycle to ineligible" → "sets `implementVerdict: 'blocked'`" + orchestrator recalculates eligibility.
+- Section intro updated: "This section covers what the implement subagent does" with PHA_OLP cross-ref.
+
+#### NOTES_PLN_PRD_VF: PHA_VF Review (2026-04-08)
+
+- VF_18: script names updated (traces.py, invoke.py)
+- VF_19: moved to WDN — redundant with OLP_18
+- VF_25 added: per-AC reflection step. Makes verification mechanical (verify → reflect → record) instead of holistic judgment. Applies to both implement and verify phases. Rationale: reduces agent churning on what to do next.
+
+#### NOTES_PLN_PRD_MECH: Mechanical Process Principle (2026-04-08)
+
+**Observation:** Subagents are significantly faster when given a fixed mechanical process (do A → do B → do C) than when asked to exercise judgment about what to do next. Churning on "what should I do now?" wastes tokens and wall clock. The per-AC reflection step (VF_25) validated this — measurable speed improvement.
+
+**Principle:** Reference files for implement, verify, and refactor should prescribe a step-by-step sequence per acceptance criterion, not a list of concerns to weigh. The agent's job is judgment *within* each step (is this criterion satisfied?), not judgment *about* which step comes next.
+
+**Applies to:** implement.md, verify.md, refactor.md — the three subagent reference files. Each should have a clear per-criterion workflow loop that the agent follows mechanically.
+
+#### NOTES_PLN_PRD_RCH: RCH Section Added (2026-04-08)
+
+- New RCH section after NFR. Three initial ratchets: coverage (91%), lint (0 warnings), test health (all pass).
+- Ratchet discipline: bump threshold when metric sustainably exceeds it.
+- Candidates for future ratchets: cyclomatic complexity, file size, doc coverage.
+- TLG_ES intro updated: removed test count, added RCH cross-ref, added three-tier architecture description.
+- TLG_EP intro updated: describes thin shim pattern.
+- TST_PL intro updated: removed test count, added RCH_1 cross-ref.
+
+#### NOTES_PLN_PRD_TLG: TLG Review (2026-04-08)
+
+- TLG_ES: requirements ES_1–ES_8 accurate, no changes needed.
+- TLG_EP: filled in — 3 entry points with all commands listed. plet_agent.py (6 commands), plet_tools.py (8 commands), plet_orchestrator.py (1 command).
+- TLG_MD: filled in — 16 modules with commands. Includes phase.py, schedule.py, session.py, bootstrap.py, plet_merge_driver.py (all missing from old PRD). plet_git_iteration.py confirmed deleted (PLAN_SEQ removed worktrees).
+- TLG_UT: filled in — 9 utility modules. Added util_format.py, util_git.py, util_constants.py, util_sink.py (all missing from old PRD).
+- TLG_PP: pipeline diagram already updated in restructure pass.
+
+#### NOTES_PLN_PRD_BS: INF_BS Review (2026-04-08)
+
+- 3 requirements added (BS_1–BS_3). Covers: idempotent setup, read-only check, plan-phase integration.
+- BS_1 details the 5 setup steps from bootstrap.py (merge driver, gitattributes, gitignore, CLAUDE.md stub, settings.json).
+- BS_2 connects to OLP_16 preflight.
+- BS_3 connects to PL_17 (confirm before mutating).
+
+#### NOTES_PLN_PRD_RT: INF_RT Review (2026-04-08)
+
+- RT_3: emergent ID format updated to `EM_{iter_id}_{N}` (gate validates this post-PLAN_SEQ)
+- RT_4: script names updated (invoke.py, traces.py)
+- RT_5: "lifecycle transitions" → "verdict updates" (SF_28 compliance)
+
+#### NOTES_PLN_PRD_PT: INF_PT Review (2026-04-08)
+
+- PT_7: script name updated (prompt.py)
+- PT_8 added: refactor.md reference file with ITR_RFT_* routing
+- PT_9 added: plan-templates directory with two-dimensional composition (project type × platform). Currently PL_DX/PL_TV/PL_CT/PL_SM live inline in DVX_TP — PT_9 is the future home.
+- PT_10 withdrawn before publication — cli-spec-template.md will become a plan-template (project type), not its own requirement
+- Section reorganized into 4 groups: subagent refs, schema refs, plan templates, prompt assembly
+
+#### NOTES_PLN_PRD_TAX: TAX Section Added (2026-04-08)
+
+- New TAX section added after PER, before GCN. Three subsections: TAX_VH (vocabulary), TAX_DT (document terms), TAX_AC (artifact categories).
+- Content from NOTES_TAX_1/2/3 — canonical definitions promoted from NOTES to PRD.
+- TAX_4 (dir variables) and TAX_5 (status model) kept in NOTES — implementation details.
+- TAX_AC updated for current state: removed per-iteration branches, updated script names, updated state.json description (lifecycles not parallel groups).
+
+#### NOTES_PLN_PRD_RFT: PHA_RFT Review (2026-04-08)
+
+- 7 requirements added (RFT_1–RFT_7). Covers: prefix routing, milestone barriers, plan generation, mechanical workflow, minimal ACs, single attempt, churn tool.
+- Design follows NOTES_PLN_RFT_SIMPLIFY: no new phase, no schema changes, no custom verdicts. Just a different reference file.
+- RFT_4 references GC_5 (mechanical process principle).
+
+#### NOTES_PLN_PRD_DST: DST Review (2026-04-08)
+
+- DS_4 added: global and project-level installation (alternative to marketplace).
+
+#### NOTES_PLN_PRD_MIL: MIL Review (2026-04-08)
+
+- Historical milestones condensed to one-line summaries (v0.1–v0.7).
+- MIL_NX: PLAN_PRD, PLAN_SUB, PLAN_EVL, PT_9 as forward candidates.
+
+#### NOTES_PLN_PRD_QES: QES Rename (2026-04-08)
+
+- RSQ → QES with QES_RSLV / QES_OPEN subsections.
+- Resolved questions numbered as stable labels QES_1–QES_11.
+
+#### NOTES_PLN_PRD_PASS: Final Consistency Pass (2026-04-08)
+
+Structural pass across entire repo. Findings:
+
+**Fixed in this session:**
+- IMP_9 stale SF_18 reference removed
+- CTA stale ~4KB reference updated
+- FUT #14 shortened with PT_9 cross-ref
+
+**Remaining (to fix in follow-up):**
+- `formats.md:39` — heading `### Size Limit (SF_18)` uses withdrawn ID
+- `formats.md:53` — `section 3.6` stale section reference → should be `INF_RT`
+- `refine.md:407` — `agentActivity` should be `phaseActivity`
+- `refine.md:419-421` — `parallelGroups` section is dead content (PLAN_SEQ)
+- `NOTES.md:390,918` — `lastVerdict` in current-looking content
+- `PLAN.md:19,496` — test count 1056 is stale (actual ~2245)
+- Script names in SKILL.md + reference files (`plet_fingerprint.py`, `plet_invoke.py`, `plet_trace.py`, `plet_entries.py`) — need update to current names
+- `guide/` files reference `agentActivity` — lower priority
+
+#### NOTES_PLN_PRD_OQ: Open Questions
+
+*No open questions at this time.*
+
+#### NOTES_PLN_PRD_LABELS: Section Label Conventions
+
+**H2:** 3-letter stable label (`XXX`). Navigational groupings.
+**H3:** `XXX_YYY` where YYY matches the existing requirement ID prefix. Grep for `IMP` finds both `PHA_IMP` (section) and `IMP_1` (requirement).
+**No section numbers.** Labels replace numbers — no renumbering churn on reorganization.
+
+**H2-only sections** (DST, NFR, etc.): H2 label may not exactly match req prefix (DST≠DS, NFR≠NF). Accepted tradeoff — only 2-3 cases.
+
+**RF → RFN rename (2026-04-08):** Refine requirement prefix renamed from `RF_` to `RFN_` to distinguish from `RFT_` (refactor). 49 occurrences across 5 files. `RFN` greps clean, `REF` rejected due to collision with `references/`.
+
+#### NOTES_PLN_PRD_RESOLVED: Resolved Questions
+
+**OQ_PRD_1: PL_DX / PL_TV / PL_CT / PL_SM template placement.**
+**Decision:** Extract to `references/plan-templates/`. Plan phase loads `common.md` + applicable type/platform templates.
+
+Templates are NOT plet requirements — they're templates that plet's plan phase injects into *target project* PRDs. They don't belong in the PRD alongside plet's own requirements.
+
+**Two independent template dimensions:**
+- **Project type** (what you're building): common, webapp, cli, library, mobile, etc.
+- **Platform** (what you're building with): mac, linux, elixir, python, go, etc.
+
+These compose independently — a Python CLI project loads `common.md` + `cli.md` + `python.md`. A Phoenix webapp loads `common.md` + `webapp.md` + `elixir.md`.
+
+**For PLAN_PRD:** Move all PL_DX/PL_TV/PL_CT/PL_SM to a single `references/plan-templates.md` now. Split into per-type/per-platform files as a separate future task (noted in PRD Future Considerations).
+
+**Structure (future):**
+```
+references/plan-templates/
+├── common.md      — applies to ALL projects
+├── cli.md         — project type: CLI tools
+├── webapp.md      — project type: web applications
+├── library.md     — project type: libraries/packages
+├── python.md      — platform: Python
+├── elixir.md      — platform: Elixir/Phoenix
+├── go.md          — platform: Go
+└── ...
+```
+
 ### NOTES_PLN_EVL: PLAN_EVL — Eval System
 
 <!-- Future — design decisions go here when work begins -->
@@ -2526,13 +2771,13 @@ All sections reviewed and approved. The PRD is the source of truth for requireme
 
 ### NOTES_PRD_1: Key design annotations by section (not duplicated in PRD)
 - **GC**: GC_2 — agents prefer making decisions + logging over blocking
-- **OR**: OR_4 includes `verifying` lifecycle. OR_11 removed (merged into `/plet loop`). OR_13 — skip scoped to individual acceptance criteria, not iterations
+- **OR**: OLP_4 includes `verifying` lifecycle. OLP_11 removed (merged into `/plet loop`). OLP_13 — skip scoped to individual acceptance criteria, not iterations
 - **PL**: Plan session intro is prose above the table (interactive, human-driven). PL_12 — write to disk on approval. PL_13–PL_14 are P1
 - **SF**: P0s first. Split state architecture. SF_24 — schema version migration. SF_25 — entry fencing for git merge safety
 - **IMP**: IMP_23 — heartbeat writes. IMP_24 — missing dependency self-correction (does not count against retries). IMP_25 — false dependencies are harmless
 - **VF**: VF_7–VF_13 are the VSDD-inspired deep verification items. VF_19–VF_20 are P1
 - **RT**: Formats defined at high level; templates in references/formats.md. Stable contract (additive only). RT_11 — plet ID scheme for entry IDs
-- **RF**: RF_1 — refine is human-driven with clean UX. Blocked iterations surfaced alongside emergent items
+- **RF**: RFN_1 — refine is human-driven with clean UX. Blocked iterations surfaced alongside emergent items
 - **PT**: Physical reference files only. Trace NDJSON schema in state-schema.md (PT_6)
 - **NF**: No performance section (intentional). No priority column (all fundamental). NF_8 — state format for external GUI consumers
 - **DX**: DX_1 — dev dependency, downgraded to P1
@@ -2650,9 +2895,9 @@ PRD refs: IMP_1, IMP_5, IMP_21, SF_23
 
 ### NOTES_TBR_9: plet_consistency.py (candidate) ○ medium
 
-Refine consistency pass automation. The cascading check at end of refine (RF_16) has three mechanical steps: (1) every decision reflected in requirements, (2) iterations reflect spec (all requirements covered, no dangling references, frozen iterations untouched), (3) state reflects iterations (dependency map, milestones, fingerprints).
+Refine consistency pass automation. The cascading check at end of refine (RFN_16) has three mechanical steps: (1) every decision reflected in requirements, (2) iterations reflect spec (all requirements covered, no dangling references, frozen iterations untouched), (3) state reflects iterations (dependency map, milestones, fingerprints).
 
-PRD ref: RF_16
+PRD ref: RFN_16
 
 **What it would do:**
 - `check` — run all three levels, report mismatches
@@ -2673,9 +2918,9 @@ Git operations wrapper. FOO_30 (42 stashes despite ban), FOO_32 (orphaned worktr
 
 ### NOTES_TBR_11: Canary write helper (candidate) △ light
 
-Structured canary entry generation (OR_14). Format: projectId, loopSessionCount, branch name, iteration lifecycle counts. Simple enough to bundle into plet_entries.py as a `add-canary` subcommand rather than its own tool.
+Structured canary entry generation (OLP_14). Format: projectId, loopSessionCount, branch name, iteration lifecycle counts. Simple enough to bundle into plet_entries.py as a `add-canary` subcommand rather than its own tool.
 
-PRD ref: OR_14
+PRD ref: OLP_14
 
 ### NOTES_TBR_12: Schema migration helper (candidate) △ light
 
@@ -3078,13 +3323,35 @@ Run plet plan mode on each project and compare its iteration decomposition again
 
 ---
 
-## NOTES_SUB: Subplets & Multi-Developer Analysis
+## NOTES_SUB: Subplets — Feature Decomposition at Scale
 
-Subplets exist for **multiple developers to work on the same codebase simultaneously**, each with their own plet-driven workflow. This is not about decomposing complexity (milestones and iterations handle that) — it's about parallelizing human effort across a team.
+Subplets exist for **managing scale** — when a project has dozens or hundreds of features, a single requirements doc becomes unmanageable. The parent plet is the umbrella (project-level concerns, NFRs, quality ratchets, DX conventions) and subplets are feature-scoped work units, each with their own requirements, iterations, and lifecycle.
 
-plet is currently designed for a single developer driving a single Claude Code session. Multi-developer workflows are planned for plet v2.x.y — not a v1 concern, but the state file architecture should not accidentally preclude it.
+Multi-developer parallelism is a *consequence* of this decomposition, not the motivation. When features are independent subplets, different developers naturally pick up different features. But the primary driver is that a 100-feature PRD doesn't fit in anyone's head — human or agent.
 
-### NOTES_SUB_1: Scenarios identified
+### NOTES_SUB_1: Two-level planning
+
+| Level | Plans into | Sized for | Owns |
+|-------|-----------|-----------|------|
+| Parent plet | Features (subplets) | Project — months/quarters | NFRs, quality ratchets, DX conventions, cross-cutting concerns |
+| Subplet | Iterations | Feature — days/weeks | Feature requirements, feature-specific iterations |
+
+The parent plan phase doesn't decompose into iterations — it decomposes into *features*. Iteration-level planning happens inside each subplet.
+
+### NOTES_SUB_2: Inheritance model
+
+**Parent-level concerns MUST inherit down to all subplets.** This is the core value of the parent plet — it defines the project's standards and every subplet enforces them.
+
+What inherits:
+- **NFRs** — performance budgets, accessibility standards, security requirements
+- **Quality ratchets** — coverage thresholds, lint rules, type strictness levels
+- **DX conventions** — error handling patterns, logging standards, naming conventions
+- **Refactor goals** — file size limits, duplication thresholds, API consistency rules
+- **Cross-cutting architectural decisions** — shared schemas, API contracts, dependency rules
+
+A subplet can add its own constraints on top but cannot weaken inherited ones. Without inheritance, subplets drift toward their own conventions and the integration refactor becomes a consistency nightmare.
+
+### NOTES_SUB_3: Scenarios identified
 
 1. **Small team, single PRD (2-3 devs):** Low coupling. Each dev runs their own plet session on their own branch. Merge point is git. Mostly works already.
 2. **Large team, large PRD (10+ devs):** Natural decomposition is one PRD per feature. Hard part is the *seams* — when one dev's iteration changes an API another dev consumes.
@@ -3094,7 +3361,7 @@ plet is currently designed for a single developer driving a single Claude Code s
 6. **Refactor + feature collision:** Broad refactor vs deep feature — maximally painful merge conflicts.
 7. **Spec change mid-flight:** PRD updated while multiple devs are mid-loop. Each orchestrator reads `prd.md` at launch — mid-session change is invisible until restart.
 
-### NOTES_SUB_2: Key insights
+### NOTES_SUB_4: Key insights
 
 **The pattern is coupling, not team size.** 2-3 devs on one PRD have high coupling. 10 devs with per-feature PRDs have low coupling *until they don't* (shared schemas, APIs). Handoff and spec-change are about *temporal* coupling.
 
@@ -3104,13 +3371,13 @@ plet is currently designed for a single developer driving a single Claude Code s
 
 **plet's split state architecture already does most of the heavy lifting.** The main gap is human-level coordination (who's working on what), not agent-level coordination (solved by the DAG + lifecycle states).
 
-### NOTES_SUB_3: Three multi-developer modes
+### NOTES_SUB_10: Three multi-developer modes
 
 - **Fork mode** (easiest): Each developer forks the plet directory. Fully independent. Runtime artifacts conflict on merge but they're append-only — conflict resolution is straightforward.
 - **Claim mode** (medium): Shared plan, developers "claim" iterations. The `agentId` / lifecycle fields already support this — `implementing` with an agent ID is effectively a claim.
 - **Shared orchestration** (hardest): Single orchestrator aware of multiple humans. Probably not worth it — Claude Code sessions are single-user.
 
-### NOTES_SUB_4: subplets/ directory for hierarchical decomposition
+### NOTES_SUB_11: subplets/ directory for hierarchical decomposition
 
 A simpler multi-developer model could use `subplets/` containing multiple independent `plet/` directories:
 
@@ -3138,12 +3405,12 @@ Benefits: namespace isolation, each instance fully self-contained, cross-PRD vis
 ### NOTES_SUB_5: Open threads
 - Emergent/blocker ownership: `assignee` field on emergent entries (additive to current format)
 - Refine is naturally single-threaded — one human refines at a time, others consume updated spec
-- Does the orchestrator need to know about sibling `subplets/`?
-- Naming convention: `subplets/{feature-name}/` or `subplets/{developer-name}/`?
 - The `proj` sentinel in plet IDs (used for project-level refine entries) is scoped to a single plet directory. If cross-subplet plet IDs ever need to be disambiguated, the iteration segment format will need a subplet-qualified alternative — constrained by underscore-as-delimiter and double-click-select ergonomics.
 - How do refactor iterations interact with subplets? Each subplet has its own milestones and refactor passes. Does the parent's refactor see subplet code?
 - ~~Subplet orchestrator discovery~~ → resolved: each subplet has its own human driver (NOTES_SUB_8)
 - ~~Subplet completion rollup~~ → resolved: human-driven (NOTES_SUB_8). Optional status command could scan `subplets/*/plet/state.json`
+- ~~Does the orchestrator need to know about sibling subplets?~~ → resolved: no (NOTES_SUB_8). Orchestrator has zero sibling awareness.
+- ~~Naming convention: `{feature-name}` or `{developer-name}`?~~ → resolved: `{feature-name}`. Subplets are feature decomposition, not developer assignment. A developer is *assigned* a feature subplet, they don't own a developer-named workspace.
 
 ### NOTES_SUB_6: No cross-subplet dependencies (2026-04-05)
 
@@ -3157,7 +3424,7 @@ This is fork mode elevated to a design principle: subplets are isolated by defin
 
 **Decision:** Subplets share the root plet's refactor heuristics by default. The parent's refactor goals (defined during plan phase) cascade to all subplets. A subplet can add its own goals on top but inherits the baseline.
 
-This ensures consistency across the project — if the root says "files under 300 lines" and "consistent error handling," every subplet enforces the same standard. Without inheritance, subplets drift toward their own conventions and the integration refactor (when subplet work merges back) becomes a consistency nightmare.
+**Broadened (2026-04-09):** This is now a specific case of the general inheritance model (NOTES_SUB_2). Refactor goals are one of many parent-level concerns that inherit: NFRs, quality ratchets, DX conventions, architectural decisions. A subplet cannot weaken any inherited constraint.
 
 ### NOTES_SUB_8: Each subplet has its own human driver (2026-04-05)
 
@@ -3165,34 +3432,17 @@ This ensures consistency across the project — if the root says "files under 30
 
 No parent-level orchestrator awareness needed. No discovery mechanism. No completion rollup. Humans coordinate between subplets the same way they coordinate between branches — through communication and git. A simple status command scanning `subplets/*/plet/state.json` could provide a dashboard, but it's informational, not orchestration.
 
-### NOTES_SUB_9: One worktree per subplet, human-managed (2026-04-06)
+### NOTES_SUB_9: One branch per subplet (2026-04-06, updated 2026-04-09)
 
-**Decision:** Subplets use one git worktree per subplet, created by the human (or `plet_tools.py` during plan phase), not by the orchestrator. The orchestrator has zero worktree awareness.
+**Decision:** Each subplet gets its own branch. The branch is the unit of isolation — it has its own `plet/` directory with its own state, requirements, iterations, and runtime artifacts. The orchestrator has zero awareness of other subplet branches.
 
-```
-my-project/                          # main checkout (parent plet)
-  plet/                              # parent state, requirements, iterations
-  subplets/                          # subplet definitions (created during plan)
-  src/
-
-../my-project-auth/                  # worktree for auth subplet
-  plet/                              # auth's own state, requirements, iterations
-  src/                               # same source tree, different branch
-
-../my-project-billing/               # worktree for billing subplet
-  plet/                              # billing's own state
-  src/
-```
-
-Each worktree is a full checkout on its own branch. Each has its own `plet/` directory with its own state. Each human runs their own Claude Code session inside their worktree. The orchestrator in each worktree is a simple sequential loop — no awareness of siblings.
+Worktrees are optional and at the developer's discretion. Some developers prefer switching branches in the same checkout; others prefer a dedicated worktree per subplet for side-by-side work. plet doesn't care — it operates on whatever `plet/` directory is in the current working directory.
 
 **Lifecycle:**
 1. Parent plan phase creates subplet definitions and branches
-2. Human (or `plet_tools.py`) creates worktrees — one per subplet, once, lives for duration of subplet work
+2. Developer checks out the subplet branch (or creates a worktree — their choice)
 3. Each subplet runs independently (plan → loop → refine)
-4. When done, human merges subplet branch back to parent workstream via git
-
-**Why this works with PLAN_SEQ:** The old model had the orchestrator managing per-iteration worktrees within a single loop (created/destroyed per iteration, 42+ lifecycle operations per run). Subplet worktrees are fundamentally different — created once by the human, persist for the full subplet lifecycle, no orchestrator involvement. PLAN_SEQ's removal of orchestrator worktree code does NOT block subplets. `plet_tools.py` can add a convenience command for worktree setup in PLAN_SUB without any orchestrator changes.
+4. When done, developer merges subplet branch back to parent workstream via git
 
 ---
 

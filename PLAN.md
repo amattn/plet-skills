@@ -27,6 +27,7 @@
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
+| PLAN_PRD | PRD Reorganization & Sync | In progress — audit complete, outline approved |
 | PLAN_EX | Examples | unscheduled |
 
 ---
@@ -129,6 +130,32 @@ Design thinking exists in NOTES.md (§ Multi-Developer Analysis, subplet branch 
 - **PLAN_SUBc:** State file extensions — subplet references in parent state, subplet directory layout
 - **PLAN_SUBd:** Script updates — GTI/GTO/GTC need subplet awareness for branch naming and compliance checks
 - **PLAN_SUBe:** SKILL.md + reference file updates for subplet support
+
+---
+
+## PLAN_PRD: PRD Reorganization & Sync
+
+PRD is significantly out of sync with the current system after PLAN_SEQ, PLAN_RFT, PLAN_IDR, and lifecycle extraction. Full audit completed (2026-04-08). Outline approved. See NOTES.md § NOTES_PLN_PRD for audit findings and design decisions.
+
+**Scope:** Reorganize PRD structure + sync all content to match current code/skill state.
+
+**Key changes:**
+- Reorganize from flat §3.x into Phases / Infrastructure / Tooling separation
+- New sections: Orchestrator Loop (OL), Refactor (RFT), Bootstrap (BS)
+- Rewrite ES Script Inventory (3 entry points + modules, not 14 flat scripts)
+- Sync stale numbers (tests, script counts, field names)
+- Resolve PL_DX/PL_TV/PL_CT/PL_SM template placement
+
+| Step | Description | Status |
+|------|-------------|--------|
+| PRD_1 | Restructure PRD to match outline + stub missing sections | ✓ done |
+| PRD_2 | Section-by-section review: GCN, PER, TAX | ✓ done |
+| PRD_3 | Section-by-section review: PHA (PL, OLP, IMP, VF, RFT, RFN) | ✓ done |
+| PRD_4 | Section-by-section review: INF (SF, RT, SY, PT, BS) | ✓ done |
+| PRD_5 | Section-by-section review: TLG (ES rewrite) | ✓ done |
+| PRD_6 | Section-by-section review: DST, NFR, RCH, DVX, ARC, FLW, MIL, TST, CTA, MET, RSQ, FUT, WDN | ✓ done |
+| PRD_7 | Extract PL_DX/PL_TV/PL_CT/PL_SM to references/plan-templates.md | not started |
+| PRD_8 | Final consistency pass | ✓ done — 1 fix (IMP_9 stale SF_18 ref), all labels/cross-refs clean |
 
 ---
 
@@ -397,6 +424,7 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 | FIX_2 | oneLiner truncation in auto-report builder — `"Independently verified: read oller"` cut mid-word (root cause: `.split(".")` splits on file extensions) | R05/R06 | P2 | ✓ done |
 | FIX_3 | progress.md volume — ~1400 lines for 6 iters from auto-progress CLI shim, may need throttling or consolidation for larger projects | R05/R06 | P2 | deferred |
 | FIX_4 | `unknown-phase` trace files — infer `plan`/`refine` from session state, keep `unknown` as true fallback | R05 | P3 | ✓ done |
+| FIX_5 | Stale references in SKILL.md + reference files — old script names (`plet_fingerprint.py` etc.), stale field names (`agentActivity`, `parallelGroups` in refine.md), withdrawn SF_18 heading in formats.md, `section 3.6` ref in formats.md. Full list in NOTES § NOTES_PLN_PRD_PASS. | PLAN_PRD | P2 | not started |
 
 ---
 

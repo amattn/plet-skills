@@ -136,12 +136,12 @@ def detect_session_type(plet_dir):
         "state": has_state and has_state_dir,
     }
 
-    # OR_2: no plet dir or no requirements
+    # OLP_2: no plet dir or no requirements
     if not os.path.isdir(plet_dir) or not has_requirements:
         reason = "no plet directory" if not os.path.isdir(plet_dir) else "no requirements.md"
         return "plan", reason, artifacts
 
-    # OR_3: requirements but no iterations or state
+    # OLP_3: requirements but no iterations or state
     if not has_iterations or not has_state or not has_state_dir:
         missing = []
         if not has_iterations:
@@ -166,7 +166,7 @@ def detect_session_type(plet_dir):
     for _iter_id, lc in lifecycles.items():
         counts[lc] = counts.get(lc, 0) + 1
 
-    # OR_4: any queued/implementing/verifying → loop
+    # OLP_4: any queued/implementing/verifying → loop
     loop_count = sum(counts.get(lc, 0) for lc in LOOP_LIFECYCLES)
     if loop_count > 0:
         parts = []
@@ -175,7 +175,7 @@ def detect_session_type(plet_dir):
                 parts.append(f"{counts[lc]} {lc}")
         return "loop", ", ".join(parts), artifacts
 
-    # OR_5/OR_6: all complete, or blocked with no actionable → refine
+    # OLP_5/OLP_6: all complete, or blocked with no actionable → refine
     reason_parts = []
     for lc in ["complete", "blocked", "withdrawn", "ineligible"]:
         if counts.get(lc, 0) > 0:
@@ -207,7 +207,7 @@ USAGE:
 
 PURPOSE:
     Determines which session type to enter based on project state on disk.
-    Implements the OR_2–OR_6 routing logic as deterministic code.
+    Implements the OLP_2–OLP_6 routing logic as deterministic code.
 
 Examples:
     gate_session.py detect

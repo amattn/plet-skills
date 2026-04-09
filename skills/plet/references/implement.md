@@ -325,7 +325,7 @@ The orchestrator enforces retry limits:
 
 ---
 
-## Criteria Skip Rules (OR_13)
+## Criteria Skip Rules (OLP_13)
 
 If an acceptance criterion is impossible to satisfy:
 

@@ -351,7 +351,7 @@ JSON output available: `plet_tools.py status plet/ --output json --pretty`
 
 ---
 
-## Criteria Skip Rules (OR_13)
+## Criteria Skip Rules (OLP_13)
 
 Individual acceptance criteria can be marked `skipped` when impossible to satisfy:
 

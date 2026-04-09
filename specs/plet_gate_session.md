@@ -18,8 +18,8 @@ The `/plet` entry point needs to know which phase the project is in, what the cu
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PUR_1 | Phase detection from project state. Reads plet artifacts on disk and determines the correct session type (plan, loop, refine). Implements the OR_2–OR_6 routing logic as deterministic code. | P0 |
-| GSS_PUR_2 | Project status summary. Machine-readable snapshot of iteration counts, lifecycle distribution, blockers, active agents, and fingerprint consistency. Implements OR_12. | P0 |
+| GSS_PUR_1 | Phase detection from project state. Reads plet artifacts on disk and determines the correct session type (plan, loop, refine). Implements the OLP_2–OLP_6 routing logic as deterministic code. | P0 |
+| GSS_PUR_2 | Project status summary. Machine-readable snapshot of iteration counts, lifecycle distribution, blockers, active agents, and fingerprint consistency. Implements OLP_12. | P0 |
 | GSS_PUR_3 | Pre-session environment checks. Verifies the project is ready for plet work: scripts installed, git health (via GTC check-session), CLAUDE.md exists, .gitignore includes .plet/, spec artifacts exist, state valid, fingerprints consistent. Addresses FOO_16, FOO_23. | P0 |
 
 ## 2. Agent Personas (GSS_AGT)
@@ -63,7 +63,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_DET_JUS_1 | Why: determines which session type to enter based on project state on disk. The SKILL.md routing logic (OR_2–OR_6) currently runs as prompt-interpreted prose — vulnerable to drift after compaction. This command makes routing deterministic. | P0 |
+| GSS_DET_JUS_1 | Why: determines which session type to enter based on project state on disk. The SKILL.md routing logic (OLP_2–OLP_6) currently runs as prompt-interpreted prose — vulnerable to drift after compaction. This command makes routing deterministic. | P0 |
 | GSS_DET_JUS_2 | When: called by SKILL.md at `/plet` entry, by the orchestrator script at session start, and by GUI tools for phase display. | P0 |
 | GSS_DET_JUS_3 | Deprecation signal: only if the orchestrator absorbs routing entirely (unlikely — SKILL.md still needs routing for interactive sessions). | P1 |
 
@@ -125,11 +125,11 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_DET_BHV_1 | If `plet_dir` doesn't exist or `requirements.md` doesn't exist → `plan` (OR_2) | P0 |
-| GSS_DET_BHV_2 | If `requirements.md` exists but `iterations.md` or `state.json` missing → `plan` (OR_3) | P0 |
-| GSS_DET_BHV_3 | If state exists with any iterations in `queued`, `implementing`, or `verifying` → `loop` (OR_4). `ineligible` alone does NOT trigger loop. | P0 |
-| GSS_DET_BHV_4 | If state exists and all iterations are `complete` → `refine` (OR_5) | P0 |
-| GSS_DET_BHV_5 | If state exists with `blocked` iterations and none `queued`/`implementing`/`verifying` → `refine` (OR_6) | P0 |
+| GSS_DET_BHV_1 | If `plet_dir` doesn't exist or `requirements.md` doesn't exist → `plan` (OLP_2) | P0 |
+| GSS_DET_BHV_2 | If `requirements.md` exists but `iterations.md` or `state.json` missing → `plan` (OLP_3) | P0 |
+| GSS_DET_BHV_3 | If state exists with any iterations in `queued`, `implementing`, or `verifying` → `loop` (OLP_4). `ineligible` alone does NOT trigger loop. | P0 |
+| GSS_DET_BHV_4 | If state exists and all iterations are `complete` → `refine` (OLP_5) | P0 |
+| GSS_DET_BHV_5 | If state exists with `blocked` iterations and none `queued`/`implementing`/`verifying` → `refine` (OLP_6) | P0 |
 | GSS_DET_BHV_6 | Reads lifecycles from `state.json.lifecycles` (SF_28). No per-iteration file scanning needed for lifecycle detection — O(1) file read. Invalid or missing lifecycles dict treated as empty (→ plan or refine). | P0 |
 | GSS_DET_BHV_7 | `reason` field in JSON explains why this session type was chosen (e.g., "3 queued iterations found" or "no plet directory"). | P0 |
 
@@ -141,7 +141,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_STS_JUS_1 | Why: produces a machine-readable snapshot of project state — iteration counts by lifecycle, blockers, active agents, fingerprint consistency. OR_12 says `/plet status` prints a summary. This command provides the data. | P0 |
+| GSS_STS_JUS_1 | Why: produces a machine-readable snapshot of project state — iteration counts by lifecycle, blockers, active agents, fingerprint consistency. OLP_12 says `/plet status` prints a summary. This command provides the data. | P0 |
 | GSS_STS_JUS_2 | When: called by the orchestrator between iterations for health checks, by GUI tools for dashboard display, and by humans for manual inspection. | P0 |
 | GSS_STS_JUS_3 | Deprecation signal: if a richer status dashboard replaces file-based state reading. | P1 |
 
@@ -549,7 +549,7 @@ See `specs/conventions.md` for universal requirements.
 
 | ID | Area | Risk if broken | Suggested test approach |
 |----|------|---------------|----------------------|
-| GSS_CRT_1 | detect routing logic | Wrong session type → wrong phase entered | Test all OR_2–OR_6 scenarios: fresh, partial, queued, complete, blocked |
+| GSS_CRT_1 | detect routing logic | Wrong session type → wrong phase entered | Test all OLP_2–OLP_6 scenarios: fresh, partial, queued, complete, blocked |
 | GSS_CRT_2 | detect with ineligible-only | Ineligible triggers loop when it shouldn't | All iterations ineligible → verify returns refine |
 | GSS_CRT_3 | status iteration counts | Wrong counts → misleading dashboard | Create known state, verify exact counts |
 | GSS_CRT_4 | status blockers listed | Blockers not surfaced | Create blocked iterations, verify listed |

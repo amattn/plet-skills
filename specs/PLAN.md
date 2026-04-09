@@ -184,89 +184,18 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 
 Consistency and cleanup across all 17 plet scripts + 7 utility modules. The util_cli validation refactor (validate_enum returns value, parse_command returns 3/6-tuple) set the standard — this plan extends it to every remaining inconsistency.
 
-### Quick Wins (trivial effort, immediate value)
+✓ COMPLETE (10/11, CLN_9 deferred). All steps implemented and validated. See commits `9e67409`–`5288835`. Design notes in specs/NOTES.md § SPEC_PLN_CLN.
 
-| Step | Description | Files | Effort |
-|------|-------------|-------|--------|
-| PLAN_CLN_1 | Remove dead code: `emit_json`, `emit_json_error`, `emit_error` in util_cli.py (~40 lines, zero importers) | util_cli.py | Trivial |
-| PLAN_CLN_2 | CaptureSink: remove unnecessary `self.events = list(self.events)` defensive copy (lists are already mutable) | util_sink.py | Trivial |
-| PLAN_CLN_3 | Orchestrator: replace 7 raw `subprocess.run(["git", ...])` calls with `run_git` from util_subprocess | plet_orchestrator.py | Low |
-
-### Consistency (align remaining patterns with conventions)
-
-| Step | Description | Files | Effort |
-|------|-------------|-------|--------|
-| PLAN_CLN_4 | Validator return patterns — align script-local validators with `value`/`(1,"",err)` convention | plet_git_iteration.py, plet_entries.py, plet_fingerprint.py | Medium |
-| PLAN_CLN_5 | util_state.py: `load_and_validate_global_state`/`load_and_validate_iter_state` print to stderr — change to return `(data, err_str)` or `None`/`(1,"",err)`. Update all callers (orchestrator, git_ops, git_iteration, git_check) | util_state.py + 4 scripts | Medium |
-| PLAN_CLN_6 | help_hint deduplication: extract `make_help_hint(script_name)` factory into util_cli.py. Replace 16 identical per-script functions | util_cli.py + 16 scripts | Low |
-| PLAN_CLN_7 | plet_entries.py: replace local `extract_universal_flags` with `extract_output_flags(kwargs, allow_dry_run=False)` from util_cli | plet_entries.py | Low |
-
-### Larger Refactors (plan for a dedicated session)
-
-| Step | Description | Files | Effort |
-|------|-------------|-------|--------|
-| PLAN_CLN_8 | parse_command adoption: convert 16 commands across 8 scripts from manual 5-6 line arg parsing to `parse_command` one-liner | plet_global_state.py (4), plet_gate_session.py (4), plet_session.py (2), plet_gate_phase.py (1), plet_git_check.py (2), plet_schedule.py (2), plet_bootstrap.py (2) | Medium-High |
-| ~~PLAN_CLN_9~~ | ~~plet_invoke.py: group `_execute_run` (18 params) and `_log_invocation` (13 params) into context dicts~~ | ~~plet_invoke.py~~ | **Deferred** — low value, functions work fine, only called from one place each |
-| PLAN_CLN_10 | plet_trace.py: align internal helpers (`_validate_trace_context`, `_parse_trace_args`, `_parse_event_data`, `_validate_query_filters`, `_read_and_filter_events`) with `value`/`(1,"",err)` return convention | plet_trace.py | Medium |
-| PLAN_CLN_11 | extract_output_flags: 6-tuple → namedtuple for readability. 28 call sites. | util_cli.py + all scripts | High |
-
-### PLAN_CLN_4 — Validator return patterns
-
-Current inconsistencies:
-
-| Function | File | Returns now | Should return |
-|----------|------|-------------|---------------|
-| `validate_iter_id` | plet_git_iteration.py | `(True,"","")` / `(False,out,err)` | `value` / `(1,"",err)` |
-| `validate_iter_id` | plet_entries.py | `(True,"")` / `(False,err)` | `value` / `(1,"",err)` |
-| `validate_positive_int` | plet_entries.py | `(int,bool,err)` | `int` / `(1,"",err)` |
-| `validate_artifact_dir` | plet_fingerprint.py | `(True,"","")` / `(False,out,err)` | `None` / `(1,"",err)` |
-| `validate_file_exists` | plet_fingerprint.py | same | `None` / `(1,"",err)` |
-
-Convention: error always `(1,"",msg)`, success returns the useful value (or `None` for checks). Callers check `if isinstance(result, tuple): return result` or `if err: return err`.
-
-### PLAN_CLN_5 — util_state.py
-
-`load_and_validate_global_state(plet_dir)` currently returns state dict on success, `None` + prints to stderr on failure. Should return `state` on success, `(1,"",err)` on error. Callers (4 scripts) change from `if state is None: return (1, "", hint)` to `if isinstance(state, tuple): return state`.
-
-### PLAN_CLN_8 — parse_command adoption
-
-Example conversion (plet_session.py cmd_start_session):
-
-```python
-# Before (6 lines of boilerplate):
-plet_dir, remaining, dir_err = get_plet_dir(args)
-if plet_dir is None:
-    return (1, "", dir_err)
-kwargs = parse_kwargs(remaining)
-err = validate_known_flags(kwargs, {"type"} | UNIVERSAL_FLAGS_WRITE, hint)
-if err: return err
-err = require_kwargs(kwargs, ["type"], help_text)
-if err: return err
-output_json, pretty, fields, dry_run, ok, flags_err = extract_output_flags(...)
-if not ok: return (1, "", flags_err)
-
-# After (2 lines):
-result = parse_command(args, help_text, {"type"}, ["type"], True, hint)
-if len(result) == 3: return result
-plet_dir, kwargs, output_json, pretty, fields, dry_run = result
-```
-
-### PLAN_CLN_9 — Parameter grouping
-
-```python
-# Before: 18 positional params
-def _execute_run(cmd_name, claude_cmd, plet_dir, plet_env, iter_id, ...):
-
-# After: context dict
-def _execute_run(ctx, output_json, pretty, fields):
-    # ctx["iter_id"], ctx["phase"], ctx["t_path"], etc.
-```
-
-### Build order
-
-PLAN_CLN_1 → PLAN_CLN_2 → PLAN_CLN_3 (quick wins, independent)
-PLAN_CLN_4 → PLAN_CLN_5 → PLAN_CLN_6 → PLAN_CLN_7 (consistency, each independent)
-PLAN_CLN_8 → PLAN_CLN_9 → PLAN_CLN_10 → PLAN_CLN_11 (larger, sequential where noted)
-
-PLAN_CLN_8 depends on parse_command being stable (it is).
-PLAN_CLN_11 is highest blast radius — do last or defer.
+| Step | Status |
+|------|--------|
+| PLAN_CLN_1 | ✓ done — dead code removed from util_cli.py |
+| PLAN_CLN_2 | ✓ done — CaptureSink defensive copy removed |
+| PLAN_CLN_3 | ✓ done — orchestrator raw subprocess → run_git |
+| PLAN_CLN_4 | ✓ done — 5 validators aligned with value/(1,"",err) convention |
+| PLAN_CLN_5 | ✓ done — util_state returns error tuples instead of printing |
+| PLAN_CLN_6 | ✓ done — help_hint deduplication via make_help_hint factory |
+| PLAN_CLN_7 | ✓ done — entries extract_universal_flags → shared extract_output_flags |
+| PLAN_CLN_8 | ✓ done — parse_command adoption (11 commands across 5 scripts) |
+| ~~PLAN_CLN_9~~ | Deferred — low value, functions work fine |
+| PLAN_CLN_10 | ✓ done — trace helper return patterns aligned |
+| PLAN_CLN_11 | ✓ done — extract_output_flags 6-tuple → 4-tuple + error 3-tuple |
