@@ -36,7 +36,7 @@ Labels are append-only — never renumber or rename. Use `grep NOTES_PLN_RFT` to
 | NOTES_GUI | GUI Design |
 | NOTES_OPN | Open Questions |
 | NOTES_EXP | Example Projects |
-| NOTES_SUB | Subplets — Feature Decomposition at Scale |
+| NOTES_SUB | Multi-Plet Projects — Peer Inheritance Model |
 | NOTES_SIA | Self-Improvement Analysis |
 | NOTES_SIA | Self-Improvement Analysis |
 
@@ -3323,126 +3323,104 @@ Run plet plan mode on each project and compare its iteration decomposition again
 
 ---
 
-## NOTES_SUB: Subplets — Feature Decomposition at Scale
+## NOTES_SUB: Multi-Plet Projects — Peer Inheritance Model
 
-Subplets exist for **managing scale** — when a project has dozens or hundreds of features, a single requirements doc becomes unmanageable. The parent plet is the umbrella (project-level concerns, NFRs, quality ratchets, DX conventions) and subplets are feature-scoped work units, each with their own requirements, iterations, and lifecycle.
+A project at scale has dozens or hundreds of features. A single requirements doc for all of them is unmanageable — for humans and agents. The solution is multiple plets in the same repo, each scoped to a feature.
 
-Multi-developer parallelism is a *consequence* of this decomposition, not the motivation. When features are independent subplets, different developers naturally pick up different features. But the primary driver is that a 100-feature PRD doesn't fit in anyone's head — human or agent.
+**There is no parent/child hierarchy.** Plets are peers. Any plet can inherit from any other plet. A "template" plet is just a plet that other plets happen to inherit from — it's not structurally special. It might only ever plan/refine (defining NFRs, ratchets). Or it might loop too (implementing shared infrastructure). Doesn't matter — it's a full plet either way.
 
-### NOTES_SUB_1: Two-level planning
+Multi-developer parallelism is a *consequence* of this decomposition, not the motivation. Different developers naturally pick up different feature plets. But the primary driver is scale management.
 
-| Level | Plans into | Sized for | Owns |
-|-------|-----------|-----------|------|
-| Parent plet | Features (subplets) | Project — months/quarters | NFRs, quality ratchets, DX conventions, cross-cutting concerns |
-| Subplet | Iterations | Feature — days/weeks | Feature requirements, feature-specific iterations |
+### NOTES_SUB_1: Peer inheritance (2026-04-09)
 
-The parent plan phase doesn't decompose into iterations — it decomposes into *features*. Iteration-level planning happens inside each subplet.
+**Decision:** No parent/child hierarchy. Any plet can declare "I inherit from plet X." Inheritance is a pointer, not a tree structure.
 
-### NOTES_SUB_2: Inheritance model
+**Mechanism:** A plet reads its inheritance source at two points:
+- **Plan phase** — incorporates inherited constraints into the plet's own requirements
+- **Refine phase** — re-reads inheritance source, surfaces changes as emergent items
 
-**Parent-level concerns MUST inherit down to all subplets.** This is the core value of the parent plet — it defines the project's standards and every subplet enforces them.
+No runtime mechanism. No special state. No orchestrator awareness. Just "read a file" at two points where the agent is already reading context.
 
-What inherits:
+**Chains work naturally.** Plet A inherits from B, B inherits from C. At plan/refine, read up the chain.
+
+**What inherits:**
 - **NFRs** — performance budgets, accessibility standards, security requirements
 - **Quality ratchets** — coverage thresholds, lint rules, type strictness levels
 - **DX conventions** — error handling patterns, logging standards, naming conventions
 - **Refactor goals** — file size limits, duplication thresholds, API consistency rules
 - **Cross-cutting architectural decisions** — shared schemas, API contracts, dependency rules
 
-A subplet can add its own constraints on top but cannot weaken inherited ones. Without inheritance, subplets drift toward their own conventions and the integration refactor becomes a consistency nightmare.
+A plet can add its own constraints on top but cannot weaken inherited ones. Without inheritance, plets drift toward their own conventions and integration becomes a consistency nightmare.
+
+**Live, not snapshot.** Because inheritance is a read at plan/refine (not a copy at creation), changes propagate naturally. If the source plet tightens coverage from 80% to 90%, the next refine of any inheriting plet picks it up.
+
+### NOTES_SUB_2: What this replaces (2026-04-09)
+
+Earlier design (NOTES_SUB_7, SUB_8, SUB_10, SUB_11) assumed a parent/child hierarchy where a "parent plet" was the umbrella that decomposed into "subplets." This created problems:
+- The "parent" didn't loop — so it wasn't really a plet
+- Parent plan phase was a different workflow than normal planning
+- One level of nesting only (arbitrary restriction)
+- "Subplet" terminology implied hierarchy
+
+The peer model eliminates all of this. A template plet is just a plet. A feature plet is just a plet. The only new concept is the inheritance pointer.
 
 ### NOTES_SUB_3: Scenarios identified
 
 1. **Small team, single PRD (2-3 devs):** Low coupling. Each dev runs their own plet session on their own branch. Merge point is git. Mostly works already.
-2. **Large team, large PRD (10+ devs):** Natural decomposition is one PRD per feature. Hard part is the *seams* — when one dev's iteration changes an API another dev consumes.
+2. **Large team, many features (10+ devs):** One plet per feature. A shared template plet defines NFRs/ratchets/conventions. Developers are assigned feature plets.
 3. **Handoff mid-loop:** One dev starts, another picks up. Stresses institutional memory design — are `emergent.md`, `learnings.md`, and `state.json` enough for a stranger to resume?
-4. **Parallel PRDs with cross-cutting dependencies:** Two separate plet loops with a sequencing constraint between them.
+4. **Cross-cutting dependencies:** Two plets with a sequencing constraint. Git is the integration point — one plet merges first, the other rebases.
 5. **Build + QA in parallel:** Two plet sessions, same codebase, different goals, overlapping files.
 6. **Refactor + feature collision:** Broad refactor vs deep feature — maximally painful merge conflicts.
-7. **Spec change mid-flight:** PRD updated while multiple devs are mid-loop. Each orchestrator reads `prd.md` at launch — mid-session change is invisible until restart.
+7. **Spec change mid-flight:** Template plet updates NFRs while feature plets are mid-loop. Next refine picks up the change.
 
 ### NOTES_SUB_4: Key insights
 
 **The pattern is coupling, not team size.** 2-3 devs on one PRD have high coupling. 10 devs with per-feature PRDs have low coupling *until they don't* (shared schemas, APIs). Handoff and spec-change are about *temporal* coupling.
 
-**Git-first isolation is probably the answer for v1.** Each developer runs their own session on their own branch with their own `plet/state.json`. Merge point is git.
-
-**The hard problem is shared iterations, not shared state.** Different developers on *different* iterations from the same plan already works — the split state architecture minimizes conflicts. Same iterations = conflicts everywhere.
+**Git-first isolation.** Each plet runs on its own branch with its own `plet/` directory. Merge point is git. The orchestrator has zero awareness of other plets.
 
 **plet's split state architecture already does most of the heavy lifting.** The main gap is human-level coordination (who's working on what), not agent-level coordination (solved by the DAG + lifecycle states).
-
-### NOTES_SUB_10: Three multi-developer modes
-
-- **Fork mode** (easiest): Each developer forks the plet directory. Fully independent. Runtime artifacts conflict on merge but they're append-only — conflict resolution is straightforward.
-- **Claim mode** (medium): Shared plan, developers "claim" iterations. The `agentId` / lifecycle fields already support this — `implementing` with an agent ID is effectively a claim.
-- **Shared orchestration** (hardest): Single orchestrator aware of multiple humans. Probably not worth it — Claude Code sessions are single-user.
-
-### NOTES_SUB_11: subplets/ directory for hierarchical decomposition
-
-A simpler multi-developer model could use `subplets/` containing multiple independent `plet/` directories:
-
-```
-plet/                          # top-level PRD
-subplets/
-  auth/plet/                   # detailed PRD for auth feature
-  billing/plet/                # detailed PRD for billing
-```
-
-Benefits: namespace isolation, each instance fully self-contained, cross-PRD visibility by scanning siblings, simpler than claim/shared orchestration.
-
-**Sub-sub-plets are highly unlikely to ever be a thing.** One level of nesting (plet → subplet) should be sufficient. If a subplet is complex enough to need its own subplets, it should probably be its own repo.
-
-**Multi-developer complexity spectrum:**
-
-| Mode | Coupling | New machinery |
-|------|----------|---------------|
-| Fork | None | None (git only) |
-| Flat `subplets/` | Colocated, independent | Naming convention |
-| Hierarchical `plet/` + `subplets/` | Parent references children | Reference syntax, rollup status |
-| Claim | Shared plan, divided ownership | Locking/claim semantics |
-| Shared orchestration | Single plan, multiple humans | Multi-user orchestrator |
 
 ### NOTES_SUB_5: Open threads
 - Emergent/blocker ownership: `assignee` field on emergent entries (additive to current format)
 - Refine is naturally single-threaded — one human refines at a time, others consume updated spec
-- The `proj` sentinel in plet IDs (used for project-level refine entries) is scoped to a single plet directory. If cross-subplet plet IDs ever need to be disambiguated, the iteration segment format will need a subplet-qualified alternative — constrained by underscore-as-delimiter and double-click-select ergonomics.
-- How do refactor iterations interact with subplets? Each subplet has its own milestones and refactor passes. Does the parent's refactor see subplet code?
-- ~~Subplet orchestrator discovery~~ → resolved: each subplet has its own human driver (NOTES_SUB_8)
-- ~~Subplet completion rollup~~ → resolved: human-driven (NOTES_SUB_8). Optional status command could scan `subplets/*/plet/state.json`
-- ~~Does the orchestrator need to know about sibling subplets?~~ → resolved: no (NOTES_SUB_8). Orchestrator has zero sibling awareness.
-- ~~Naming convention: `{feature-name}` or `{developer-name}`?~~ → resolved: `{feature-name}`. Subplets are feature decomposition, not developer assignment. A developer is *assigned* a feature subplet, they don't own a developer-named workspace.
+- The `proj` sentinel in plet IDs is scoped to a single plet directory. If cross-plet IDs ever need disambiguation, the format will need a plet-qualified alternative.
+- How does the inheritance pointer work concretely? A field in `plet/` config? A convention (relative path)? A file that lists sources?
+- What happens when an inheritance chain has a conflict (plet A says coverage 80%, plet B in the chain says 90%)? Strictest wins? Error?
+- ~~Subplet orchestrator discovery~~ → resolved: each plet has its own human driver (NOTES_SUB_8)
+- ~~Subplet completion rollup~~ → resolved: human-driven (NOTES_SUB_8). Optional status command could scan sibling `plet/state.json` files.
+- ~~Does the orchestrator need to know about siblings?~~ → resolved: no (NOTES_SUB_8). Zero sibling awareness.
+- ~~Naming convention: `{feature-name}` or `{developer-name}`?~~ → resolved: `{feature-name}`. Plets are feature decomposition, not developer assignment.
+- ~~Parent plet doesn't loop~~ → resolved: no parent/child hierarchy (NOTES_SUB_1). A template plet can loop or not — it's just a plet.
 
-### NOTES_SUB_6: No cross-subplet dependencies (2026-04-05)
+### NOTES_SUB_6: No cross-plet dependencies (2026-04-05)
 
-**Decision:** Subplets are independent work streams. No cross-subplet dependencies in the DAG. If a subplet needs work from a sibling, it is conceptually blocked until the sibling merges to the shared branch and the blocked subplet rebases.
+**Decision:** Plets are independent work streams. No cross-plet dependencies in the DAG. If a plet needs work from a sibling, it is blocked until the sibling merges to the shared branch and the blocked plet rebases.
 
-Git is the integration point, not the orchestrator. Each subplet has its own DAG, its own milestones, its own refactor iterations. The parent plet doesn't coordinate between siblings.
+Git is the integration point, not the orchestrator. Each plet has its own DAG, its own milestones, its own refactor iterations. Cross-plet coupling is a planning error — the work should either be in the same plet or sequenced.
 
-This is fork mode elevated to a design principle: subplets are isolated by definition. Cross-subplet coupling is a planning error — the work should either be in the same subplet or sequenced (one subplet completes before the other starts).
+### NOTES_SUB_7: Inheritance of refactor goals (2026-04-05)
 
-### NOTES_SUB_7: Subplets inherit parent refactor goals (2026-04-05)
+**Decision:** Plets share inherited refactor heuristics by default. A plet can add its own goals on top but inherits the baseline from its inheritance source.
 
-**Decision:** Subplets share the root plet's refactor heuristics by default. The parent's refactor goals (defined during plan phase) cascade to all subplets. A subplet can add its own goals on top but inherits the baseline.
+**Subsumed (2026-04-09):** This is now a specific case of the general inheritance model (NOTES_SUB_1). Refactor goals are one of many concerns that inherit.
 
-**Broadened (2026-04-09):** This is now a specific case of the general inheritance model (NOTES_SUB_2). Refactor goals are one of many parent-level concerns that inherit: NFRs, quality ratchets, DX conventions, architectural decisions. A subplet cannot weaken any inherited constraint.
+### NOTES_SUB_8: Each plet has its own human driver (2026-04-05)
 
-### NOTES_SUB_8: Each subplet has its own human driver (2026-04-05)
+**Decision:** Each plet is a full plet instance driven by one human. The human runs `/plet plan`, `/plet loop`, `/plet refine` independently. No cross-plet orchestration. Humans coordinate between plets the same way they coordinate between branches — through communication and git.
 
-**Decision:** Each subplet is a full plet instance driven by one human. The human runs `/plet plan`, `/plet loop`, `/plet refine` independently on each subplet. The parent plet doesn't orchestrate subplets — it decomposes the project during plan phase and creates the `subplets/` directories. After that, each subplet is independent.
+### NOTES_SUB_9: One branch per plet (2026-04-06, updated 2026-04-09)
 
-No parent-level orchestrator awareness needed. No discovery mechanism. No completion rollup. Humans coordinate between subplets the same way they coordinate between branches — through communication and git. A simple status command scanning `subplets/*/plet/state.json` could provide a dashboard, but it's informational, not orchestration.
+**Decision:** Each plet gets its own branch. The branch is the unit of isolation — it has its own `plet/` directory with its own state, requirements, iterations, and runtime artifacts. The orchestrator has zero awareness of other plet branches.
 
-### NOTES_SUB_9: One branch per subplet (2026-04-06, updated 2026-04-09)
-
-**Decision:** Each subplet gets its own branch. The branch is the unit of isolation — it has its own `plet/` directory with its own state, requirements, iterations, and runtime artifacts. The orchestrator has zero awareness of other subplet branches.
-
-Worktrees are optional and at the developer's discretion. Some developers prefer switching branches in the same checkout; others prefer a dedicated worktree per subplet for side-by-side work. plet doesn't care — it operates on whatever `plet/` directory is in the current working directory.
+Worktrees are optional and at the developer's discretion. plet operates on whatever `plet/` directory is in the current working directory.
 
 **Lifecycle:**
-1. Parent plan phase creates subplet definitions and branches
-2. Developer checks out the subplet branch (or creates a worktree — their choice)
-3. Each subplet runs independently (plan → loop → refine)
-4. When done, developer merges subplet branch back to parent workstream via git
+1. Developer creates a branch for a feature plet
+2. Developer checks out the branch (or creates a worktree — their choice)
+3. Plet runs independently (plan → loop → refine), reading inheritance source at plan and refine
+4. When done, developer merges branch back to the shared integration branch via git
 
 ---
 
