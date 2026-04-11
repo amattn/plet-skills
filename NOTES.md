@@ -2492,6 +2492,176 @@ Even if milestone verify takes 3x longer checking ACs, heavy savings on infrastr
 
 ---
 
+### NOTES_PLN_VOS: PLAN_VOS — Verify on the Side
+
+Alternative to PLAN_MSV. Run verify in parallel with the next iteration's implement, using audit tags for git isolation and restricting verify to artifact-only writes (no code changes). Both MSV and VOS solve the same problem (verify costs 25-35% of loop time); they differ in approach.
+
+**Origin:** During PLAN_MSV implementation planning (2026-04-11), the question arose: instead of deferring verify to milestone boundaries, could verify run in parallel with implement? The audit tag mechanism already creates immutable snapshots after each implement phase — verify can read those without conflicting with the next implement.
+
+#### NOTES_PLN_VOS_0: Core insight — audit tags enable safe parallelism (2026-04-11)
+
+The key enabler is that plet already creates audit tags after every implement phase (`plet_git_ops.py audit-tag`). These are immutable git refs pointing to the exact code state after implement. If verify checks out an audit tag (via worktree), it reads frozen code while implement works on the live branch. No merge conflicts possible.
+
+The second enabler: restricting verify to artifact-only writes. Current verify writes:
+- Criterion updates (per-iteration state file) ✓ safe — different file than next implement's state
+- Verdict (per-iteration state file) ✓ safe — same reason
+- Learnings, emergent (append-only runtime artifacts) ✓ safe — append is conflict-free
+- Trace events (NDJSON append) ✓ safe
+- **Failing tests (rejection protocol)** ✗ this is the one code write — must be removed
+
+Removing the "write failing tests" part of rejection protocol is the only behavioral change to verify. Everything else is already artifact-only.
+
+#### NOTES_PLN_VOS_1: Rejection without code writes (2026-04-11)
+
+**Decision:** Rejection communicates via structured criterion updates + learnings narrative, not code.
+
+Current rejection protocol: verify writes a failing test, marks criterion as failed with `--red-test` flag, sets verdict to "rejected." The failing test gives the next implement attempt a concrete starting point.
+
+VOS rejection protocol: verify marks criterion as failed with rationale (`update-criterion --status failed --rationale "..."`), writes a detailed learning entry explaining what's wrong and how to fix it, sets verdict to "rejected." The next implement attempt reads structured criterion status (which ACs failed) + narrative learnings (why, what to look for).
+
+**Why this is arguably better:** A failing test written by the verify agent is often low-quality — it's written quickly, in a different context window, without full understanding of the implementation. A detailed learning entry with specific file paths, expected vs. actual behavior, and suggested fix approach gives the next implement agent more actionable information.
+
+#### NOTES_PLN_VOS_2: Pipeline flow and stop-on-reject (2026-04-11)
+
+**Pipeline behavior:**
+```
+Normal flow (96% case):
+  implement 1 → [verify 1 in background] → implement 2 → [verify 2 in background] → ...
+  verify 1 passes → complete. verify 2 passes → complete. Full speed.
+
+Rejection flow (4% case):
+  implement 1 → [verify 1 in background] → implement 2 starts → verify 1 REJECTS
+  → pipeline pauses after implement 2 finishes
+  → implement 1 re-queued with learnings from verify 1
+  → implement 2 work may be wasted (built on rejected foundation)
+```
+
+**Stop-on-reject, not rollback:** When verify rejects, the orchestrator doesn't try to undo the in-progress implement. It lets it finish, then pauses. The rejected iteration goes back to `queued`. The next iteration that was being implemented may need to re-run after the fix, but that's a scheduling decision, not a rollback.
+
+**Worst case:** implement N+1 completes successfully, then verify N rejects. N+1's work was built on a bad foundation. But:
+- The 4% rejection rate means this is rare
+- N+1's work may still be valid if the rejection is isolated to N
+- If not, N+1 goes back to queued after N is re-implemented — same as today's sequential behavior, just delayed by one iteration
+
+#### NOTES_PLN_VOS_3: State concurrency analysis (2026-04-11)
+
+**Already safe by design (SF_28):**
+- Per-iteration state files are separate — verify N writes to `state/ITR_001.json` while implement N+1 writes to `state/ITR_002.json`. No conflict.
+- Global `state.json` is orchestrator-owned. Subagents don't write lifecycle. The orchestrator serializes lifecycle updates (already single-threaded in `_update_lifecycle()`).
+- Runtime artifacts (learnings, emergent, progress) are append-only. Concurrent appends to the same file could interleave, but `atomic_append()` uses temp-file-then-append, so individual entries stay intact.
+
+**One new concern:** The orchestrator currently calls `_run_iteration()` sequentially — implement then verify. Making verify parallel means the orchestrator needs to track a background verify while running the next implement. This is the main orchestrator complexity addition.
+
+#### NOTES_PLN_VOS_4: MSV vs. VOS comparison (2026-04-11)
+
+| Dimension | MSV (Milestone-Scoped) | VOS (Verify on the Side) |
+|-----------|----------------------|--------------------------|
+| Verify timing | Milestone boundary only | Every iteration, in parallel |
+| Verify scope | All milestone ACs at once | Single iteration ACs |
+| Code change | ~10 lines orchestrator | Significant orchestrator rework |
+| Git complexity | None (skip verify) | Worktree management on audit tags |
+| Rejection protocol | Fix in-place at milestone | Structured feedback via artifacts |
+| Catch timing | Late (milestone boundary) | Same as today (per-iteration) |
+| Time savings | 25-35% of loop time | ~same savings (verify overlapped, not eliminated) |
+| Implementation risk | Low (remove behavior) | Medium (add parallel behavior) |
+| New infrastructure | None | Worktree management, parallel dispatch, pipeline state |
+
+**Key tradeoff:** MSV is dramatically simpler but defers catching issues to milestone boundaries. VOS keeps per-iteration catching but adds orchestrator complexity. Given the 96% rubber-stamp rate, MSV's deferral is low-risk. But VOS preserves the safety net for the projects where verify actually matters (SPARK: 17% rejection rate).
+
+#### NOTES_PLN_VOS_5: Decided — sibling worktree on audit tag, not nested (2026-04-11)
+
+**Decision:** Verify runs in a sibling worktree created from the audit tag. Git worktrees are peers (not nested) — a worktree can create sibling worktrees because they all share the same `.git` dir. This works even when the target project is already in a worktree (normal plet workflow after PLAN_SEQ).
+
+**This is distinct from PLAN_SEQ's removal of worktrees.** PLAN_SEQ said "humans manage their own worktrees for development." VOS says "orchestrator manages a temporary worktree for verification." Different use case: short-lived, automated, read-only on code, invisible to the human.
+
+```
+main repo (.git)
+├── worktree A (human's plet run — implement works here)
+└── worktree B (verify's read-only snapshot — audit tag, temp)
+```
+
+#### NOTES_PLN_VOS_6: Decided — verify write boundary (2026-04-11)
+
+**Decision:** Verify in VOS is read-only on code, write-only on artifacts. Specific boundary:
+
+**Safe writes (allowed):**
+- `plet/state/ITR_N.json` — own iteration state only (criterion updates, verdict). No conflict with implement N+1 which writes `ITR_N+1.json`.
+- `plet/learnings.md` — append-only via `atomic_append`. Concurrent appends from implement are safe (entries are self-contained blocks).
+- `plet/emergent.md` — same as learnings.
+- `plet/trace/ITR_N-verify-*` — own trace files, namespaced by iteration+phase+attempt.
+
+**Not allowed:**
+- Any source code or test files (worktree is disposable)
+- `plet/state.json` (orchestrator-owned per SF_28)
+- `plet/progress.md` (orchestrator writes progress, not verify)
+- Git operations (no commits, no tags, no branches from the worktree)
+
+**Key consequence:** The current rejection protocol ("write failing tests") is removed. Rejection communicates via structured criterion updates (`--status failed --rationale "..."`) + learnings narrative. This is arguably better — failing tests written by verify in a different context window are often low-quality; detailed learnings with file paths and expected vs. actual behavior give the next agent more actionable information.
+
+#### NOTES_PLN_VOS_7: Open — rejection response options (2026-04-11)
+
+The load-bearing design question for VOS. When verify rejects and implement has moved past that iteration, what happens? Six options identified:
+
+**Option 1: Re-queue + pause (stop the line).** Verify N rejects → orchestrator pauses after current implement finishes → N goes back to queued → re-implement N → resume. Pro: foundation solid before building more. Con: wastes all work after N, pipeline stalls (loses VOS throughput benefit), new pause/resume state machine. Expensive recovery for a 4% event.
+
+**Option 2: Defer to refactor (forward-only, existing mechanism).** Verify N rejects → findings in learnings, criterion marked failed → implements keep flowing → refactor iteration at milestone boundary addresses failed ACs alongside code quality work. Pro: zero orchestrator changes, forward-only, refactor infrastructure already exists. Con: rejected AC stays failed for 5-8 iterations, refactor scope grows, multiple rejections could overwhelm refactor, blurs refactor vs. verify responsibility.
+
+**Option 3: Patch iteration (forward-only, new targeted fix).** Verify N rejects → orchestrator dynamically inserts a new iteration (ITR_FIX_N or similar) scoped to the rejected ACs. Pro: targeted fix, forward-only, doesn't bloat refactor. Con: dynamically creating iterations is new infrastructure, new naming convention, scheduling complexity, plan artifacts become mutable at runtime.
+
+**Option 4: Fold into next implement (expand neighbor's scope).** Verify N rejects → learnings flow to next implement agent who addresses failed ACs as part of their work. Pro: no new iterations, no stalls, no orchestrator changes, learnings already in prompt context. Con: next iteration may be unrelated, unpredictable scope expansion, cascading bloat if next also rejects, muddies iteration accountability.
+
+**Option 5: Record only — human triages at refine.** Verify N rejects → findings go to emergent.md → pipeline keeps flowing → human decides at refine. Pro: simplest orchestrator, human judgment. Con: fix deferred until refine, undermines VOS's advantage over MSV (early per-iteration signal without early action ≈ no signal).
+
+**Option 6: Severity-based routing.** Verify classifies severity → critical: pause (option 1) / minor: defer to refactor (option 2). Pro: proportional response. Con: verify agent decides severity (judgment in automation), two code paths, more design decisions about severity thresholds.
+
+**Uncomfortable observation:** Options 2 and 5 converge toward MSV — if rejection findings just flow forward, VOS is doing the same thing as MSV (catch at boundary) but with extra machinery. VOS's advantage over MSV is early signal, but only if early signal causes early action. Options 1 and 3 preserve early action but add orchestrator complexity.
+
+**Not yet decided.** Depends on clarifying verify's primary goals — what is verify actually trying to accomplish? The answer shapes which rejection response makes sense.
+
+#### NOTES_PLN_VOS_8: Open questions (updated 2026-04-11)
+
+- **Pipeline depth:** Max 1 verify in flight? Leaning max 1 (implement typically takes longer than verify, natural constraint).
+- **Pipeline advance on verify-in-flight:** If verify N still running when implement N+1 finishes, does N+2 start? Depends on rejection response decision (VOS_7). If implements can flow freely (options 2-5), then yes. If pause-on-reject (option 1), then constrained.
+- **Worktree cleanup:** Orchestrator cleans up after reading verdict (leaning this way — handles crash case too).
+- **Head-to-head comparison:** Both MSV and VOS should be tested on the same project. Criteria: wall-clock time, total tokens, catch rate, implementation complexity, failure mode behavior.
+- **What are verify's primary goals?** Must answer before choosing rejection response. Is verify catching bugs? Ensuring spec compliance? Providing confidence signal? The answer determines whether early action on rejection matters.
+
+#### NOTES_PLN_VOS_9: Verify's primary goals — case study evidence (2026-04-11)
+
+Analysis of what verify actually catches across 24 runs, to determine whether per-iteration verify (VOS) or milestone-scoped verify (MSV) is the right design:
+
+| Goal | Evidence | Per-iteration value |
+|------|----------|-------------------|
+| Catch implementation bugs | 0 caught across 24 runs. Implement gate (tests + lint) catches functional breakage. | None proven |
+| Catch integration gaps | ALL 5 real rejections were this (missing modules, unwired functions, incomplete features) | Proven, but better at milestone scope — per-iteration verify sees N in isolation, can't check integration with N+1 |
+| Spec compliance checking | Overlaps with integration gaps. Rejections were "AC says X should exist, it doesn't" — not subtle interpretation differences | Proven, same as above |
+| Confidence signal | 96% rubber stamp. Informational value low precisely because it almost never says no | Minimal |
+| Cross-iteration consistency | Integration gap catches ARE this. But per-iteration verify can't check against future iterations | Better at milestone scope |
+| Surface emergent items | Occasional, but implement agents do this too. Side effect, not primary purpose | Minimal |
+
+**Conclusion:** Verify's only proven value is integration gap detection, and integration gaps are more visible at milestone scope when all pieces are present. This means MSV is the right design — it catches the only class of bugs verify has ever caught, at the scope where they're most visible, with dramatically less complexity than VOS.
+
+#### NOTES_PLN_VOS_10: Interim conclusion — VOS paused, MSV preferred (2026-04-11)
+
+**Decision:** Pause VOS. Proceed with MSV.
+
+**Rationale:** The VOS design exploration surfaced a critical question: what are verify's primary goals? Examining 24 runs of case study data, verify's only proven value is catching integration gaps. Integration gaps are better caught at milestone scope (MSV) than per-iteration scope (VOS), because the verify agent can see all pieces together.
+
+VOS adds significant orchestrator complexity (parallel dispatch, sibling worktrees on audit tags, artifact-only write boundary, rejection response handling) to preserve per-iteration verify — but per-iteration verify's advantage over milestone verify is precisely the thing the data says doesn't matter.
+
+**Not dead, just paused.** VOS has useful design artifacts that may apply elsewhere:
+- Sibling worktree on audit tag pattern — useful for parallel subplets, CI integration
+- Artifact-only write boundary — clean separation of concerns
+- Rejection-via-learnings (no code writes) — arguably better than current failing-test rejection protocol regardless of VOS/MSV
+
+**Reactivation trigger:** If MSV real runs (MSV_10) show that milestone-scoped verify misses integration gaps that per-iteration would have caught — particularly on SPARK-like projects with higher rejection rates.
+
+MSV is the simpler bet. Build it, run a real comparison (MSV_10). If milestone-scoped verify catches everything (expected from 24-run data), VOS is unnecessary complexity. If milestone-scoped verify misses issues that per-iteration would have caught — particularly on SPARK-like projects with higher rejection rates — then VOS becomes the right answer, and the audit-tag + artifacts-only design is ready to implement.
+
+The VOS design work is not wasted either way — the "verify on audit tag, artifacts-only writes" pattern may be useful for other purposes (parallel subplets, CI integration, etc.).
+
+---
+
 ### NOTES_PLN_NTS: PLAN_NTS — Notes Reorganization
 
 **Decision (2026-04-05):** NOTES.md reorganized into plan-chunk sections with stable labels. PLAN.md stays lean (steps + status) with pointers to NOTES.md for rationale. Each plan chunk gets a `NOTES_XXX` section.

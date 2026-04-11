@@ -25,6 +25,7 @@
 | PLAN_FIX | Small Fixes Backlog | 3/4 done (FIX_3 deferred) |
 | PLAN_RFT | Refactor Loop | ✓ COMPLETE (6/6) — validated LOGA R16 (refactor agent extracted real code) |
 | PLAN_MSV | Milestone-Scoped Verify | After RFT — drop per-iteration verify, expand milestone verify scope |
+| PLAN_VOS | Verify on the Side | Paused — design exploration complete, MSV preferred. See NOTES_PLN_VOS |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -165,6 +166,12 @@ Drop per-iteration verify, move verification to milestone boundaries. Case study
 - No schema migration (fields stay, just unused for regular iters)
 
 **Key risk:** MSV_6 (injecting milestone iteration list into verify prompt) is the novel piece — verify agent needs to know which iterations' ACs to check. Everything else is removing/skipping existing behavior.
+
+---
+
+## PLAN_VOS: Verify on the Side
+
+**Status: Paused.** Design exploration complete. MSV preferred — verify's only proven value (integration gap detection) is better caught at milestone scope. VOS may be revisited if MSV misses things in real runs, or if the "verify on audit tag with artifacts-only writes" pattern proves useful for other purposes (parallel subplets, CI integration). Full design and analysis in NOTES.md § NOTES_PLN_VOS.
 
 ---
 
@@ -480,6 +487,8 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 | FIX_3 | progress.md volume — ~1400 lines for 6 iters from auto-progress CLI shim, may need throttling or consolidation for larger projects | R05/R06 | P2 | deferred |
 | FIX_4 | `unknown-phase` trace files — infer `plan`/`refine` from session state, keep `unknown` as true fallback | R05 | P3 | ✓ done |
 | FIX_5 | Stale references in SKILL.md + reference files — old script names (`plet_fingerprint.py` etc.), stale field names (`agentActivity`, `parallelGroups` in refine.md), withdrawn SF_18 heading in formats.md, `section 3.6` ref in formats.md. Full list in NOTES § NOTES_PLN_PRD_PASS. | PLAN_PRD | P2 | not started |
+| FIX_6 | Rename `references/plan.md` → `plan-session.md` and `references/refine.md` → `refine-session.md` — disambiguate session reference files from root PLAN.md. Phase files (implement, verify, refactor) keep current names. Update prompt.py, SKILL.md, any other references. | naming collision | P3 | not started |
+| FIX_7 | Rename `NOTES_PLN_*` stable labels to `NOTES_PLAN_*` — resolve inconsistency between 3-letter abbreviation and full plan chunk names (PLAN_MSV, PLAN_VOS, etc.). Sweep pass across NOTES.md, update TOC, grep for all references. | naming consistency | P3 | not started |
 
 ---
 
