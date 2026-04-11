@@ -36,8 +36,7 @@ Labels are append-only — never renumber or rename. Use `grep NOTES_PLN_RFT` to
 | NOTES_GUI | GUI Design |
 | NOTES_OPN | Open Questions |
 | NOTES_EXP | Example Projects |
-| NOTES_SUB | Multi-Plet Projects — Peer Inheritance Model |
-| NOTES_SIA | Self-Improvement Analysis |
+| NOTES_SUB | Subplets — Flexible Inheritance Model |
 | NOTES_SIA | Self-Improvement Analysis |
 
 ## NOTES_DEF: What is plet?
@@ -2408,6 +2407,91 @@ Implementation location: `plet_agent.py _dispatch_with_trace`, using PLET_DIR, P
 
 ---
 
+### NOTES_PLN_MSV: PLAN_MSV — Milestone-Scoped Verify
+
+Move verify from per-iteration to per-milestone. Instead of implement→verify for every iteration, run implement-only for all iterations in a milestone, then one verify pass at the milestone boundary that checks all ACs together — alongside or merged with the refactor iteration.
+
+**Motivation — case study data across 24 runs:**
+- Per-iteration verify has a ~96% rubber-stamp rate (~150 verify phases, 5 rejections total)
+- The 5 catches were all integration gaps (missing modules, unwired functions, incomplete features) — exactly the kind of thing that's *more* visible at milestone scope when all pieces are in place
+- Per-iteration verify costs 25-35% of loop time per run
+
+**Why milestone scope may be better for catching integration gaps:**
+- A per-iteration verify sees one piece in isolation — it can't see that module A calls module B which doesn't exist yet (B is a later iteration in the same milestone)
+- A milestone verify sees the complete feature set together — wiring bugs, missing modules, and integration gaps are all visible
+- The refactor iteration already sits at the milestone boundary with full codebase context
+
+**Cost model — not a simple N→M reduction.** Per-iteration verify checks 3-5 ACs. Milestone verify would check a whole milestone's worth (15-25+ ACs). Per-verify cost goes up even as the count goes down. Net savings are real (fewer agent spawns, less bookkeeping overhead, less duplicate context loading) but the per-pass token cost will be significantly higher than a single per-iteration verify. Needs a real run to measure.
+
+**Safety net:** The implement gate already runs tests and lint after every iteration. Outright breakage (failing tests, syntax errors) is caught immediately. What per-iteration verify would have caught — subtle integration issues — are better caught at milestone scope anyway.
+
+**Risk — late discovery:** A broken AC isn't caught until milestone boundary, potentially 5-8 iterations later. Mitigation: the implement gate catches functional breakage; only subtle spec-compliance issues slip through. And those are exactly what a broader-context milestone verify catches better.
+
+**Open questions:**
+- Milestone verify overwhelmed by scope? 20+ ACs in one pass may exceed what a single agent does well. Mitigation: batch by iteration within the milestone pass, or prioritize cross-iteration integration ACs. Needs a real run to test.
+- How does milestone verify report per-AC results? (One big report vs. per-iteration sub-reports)
+
+**Status:** Design option, not decided. Needs a real run to compare per-iteration vs. milestone verify on the same project.
+
+#### NOTES_PLN_MSV_0: Milestone verify fixes in-place (2026-04-10)
+
+**Decision:** Milestone verify fixes issues in-place (option C). Check all milestone ACs, fix problems found, report what was fixed. If something is too big to fix in-place, block the refactor iteration and the human triages in refine (fallback).
+
+**Why this makes sense at milestone scope:** The "verify never writes code" principle was designed for per-iteration independence — preventing the verify agent from rubber-stamping by fixing its own implementation. At milestone scope that concern doesn't apply: the verify agent didn't write any of the code it's checking. It has full codebase context, it's already staring at the problem, and punting through a re-queue cycle is expensive for something the agent can fix directly.
+
+**This makes milestone verify essentially a new kind of verify** — closer to a combined review-and-fix pass than the old read-only check. The verify/refactor distinction at milestone scope is: refactor improves code that's already correct; verify confirms correctness and fixes what isn't.
+
+#### NOTES_PLN_MSV_1: Core insight — verify's value is at integration boundaries (2026-04-10)
+
+Every real catch across 24 case studies was an integration gap — missing modules, unwired functions, incomplete features. These are *more* visible when you can see the whole milestone together, not less. Per-iteration verify is checking the wrong scope for the only class of bugs it catches.
+
+#### NOTES_PLN_MSV_2: SPARK reanalysis — even the hardest case supports milestone scope (2026-04-10)
+
+SPARK R01 is the strongest argument for per-iteration verify (4 rejections, 17% rate — dramatically higher than other projects). But examining the specific catches:
+- ID_013 (missing `PubSubHelper`) — integration gap, caught better at milestone scope
+- ID_015 (AC_5 incomplete) — integration gap, caught better at milestone scope
+- ID_007 (lost commits) — impl/git issue, not a verify catch at all
+- ID_005 — unspecified
+
+2 of 4 rejections would have been caught at milestone scope. The case for per-iteration verify is weaker than it looks even in the hardest scenario.
+
+#### NOTES_PLN_MSV_3: Refactor iteration already provides the infrastructure (2026-04-10)
+
+No new "milestone verify" needed. The refactor iteration at every milestone boundary already runs implement→verify. The gap: its verify checks the *refactor work*, not the original ACs.
+
+**Smallest possible change:** Expand the refactor iteration's verify scope to include spot-checking ACs from the milestone's iterations, not just the refactor changes. No new infrastructure, no new phases, no new schema. Just a reference file update.
+
+#### NOTES_PLN_MSV_4: Cost model — savings are real but not linear (2026-04-10)
+
+A milestone verify checking 15-25 ACs is a bigger job than one checking 3-5. Per-verify cost goes up even as the count goes down. But real savings exist beyond AC checking time:
+- **Agent spawn overhead** — each per-iteration verify loads CLAUDE.md, PLET.md, reference files, state, iteration file. ~30-40% of verify time regardless of AC count (R16: 52% of verify tool calls were bookkeeping)
+- **Git operations** — each per-iteration verify does its own commit/squash cycle
+- **Orchestrator round-trips** — dispatch, wait, read verdict, transition lifecycle
+
+Even if milestone verify takes 3x longer checking ACs, heavy savings on infrastructure overhead that currently multiplies across every iteration.
+
+#### NOTES_PLN_MSV_5: Risks assessed (2026-04-10)
+
+**Compounding subtle bugs.** Each iteration builds on the previous one's wrong assumption. By milestone boundary, the bug is deeply embedded. Counter: verify has never caught a logic bug across 24 runs — only integration gaps. The implement gate (tests + lint) catches functional breakage immediately. This risk is theoretical and unobserved.
+
+**Loss of per-iteration confidence signal.** The green checkmark after each iteration feels good even when it's a rubber stamp. Counter: the implement gate's green (tests pass, lint clean, git clean) provides the same signal without a separate agent.
+
+**Late discovery.** A broken AC isn't caught until milestone boundary, potentially 5-8 iterations later. Counter: outright breakage is caught by the implement gate. What slips through is subtle spec-compliance issues — exactly what a broader-context milestone verify catches better.
+
+#### NOTES_PLN_MSV_6: Recommendation (2026-04-10)
+
+**Milestone-scoped verify by default. No per-iteration verify. Optional per-iteration flag for plan-time override.**
+
+1. Regular iterations: implement only (gate enforces tests + lint + git clean)
+2. Milestone boundary: refactor iteration's verify scope expands to include AC spot-checking across the milestone's iterations
+3. Plan-time opt-in: `verify: true` on individual iterations the human flags as high-risk — escape hatch, not the default
+
+**Sequencing:** Don't build the opt-in flag first. Start with just dropping per-iteration verify and expanding milestone verify scope. Run a real comparison. If milestone catches everything (expected), the per-iteration opt-in may never be needed.
+
+**PLAN_VER rewrite enables this.** verify.md is already scoped to functional AC checking. Adapting it for milestone scope (check N iterations' ACs instead of 1) is a reference file change, not an architectural change.
+
+---
+
 ### NOTES_PLN_NTS: PLAN_NTS — Notes Reorganization
 
 **Decision (2026-04-05):** NOTES.md reorganized into plan-chunk sections with stable labels. PLAN.md stays lean (steps + status) with pointers to NOTES.md for rationale. Each plan chunk gets a `NOTES_XXX` section.
@@ -3323,17 +3407,25 @@ Run plet plan mode on each project and compare its iteration decomposition again
 
 ---
 
-## NOTES_SUB: Multi-Plet Projects — Peer Inheritance Model
+## NOTES_SUB: Subplets — Flexible Inheritance Model
 
-A project at scale has dozens or hundreds of features. A single requirements doc for all of them is unmanageable — for humans and agents. The solution is multiple plets in the same repo, each scoped to a feature.
+Subplets solve two related problems:
 
-**There is no parent/child hierarchy.** Plets are peers. Any plet can inherit from any other plet. A "template" plet is just a plet that other plets happen to inherit from — it's not structurally special. It might only ever plan/refine (defining NFRs, ratchets). Or it might loop too (implementing shared infrastructure). Doesn't matter — it's a full plet either way.
+**1. Scale management.** A single requirements doc for dozens or hundreds of features is unmanageable — for humans and agents. The solution is multiple plets in the same repo, each scoped to a feature (or bug, issue, or any discrete work item).
 
-Multi-developer parallelism is a *consequence* of this decomposition, not the motivation. Different developers naturally pick up different feature plets. But the primary driver is scale management.
+**2. Existing codebase adaptation.** For a large existing codebase (100-300k+ lines), the root plet surveys the codebase and establishes a template — discovering and codifying conventions, quality ratchets, NFRs, and architectural constraints that already exist or should exist. This is a discovery step, not greenfield planning. Developers then create subplets for individual work items from their backlog.
 
-### NOTES_SUB_1: Peer inheritance (2026-04-09)
+**Developer workflow:** A developer looks at the backlog, picks a work item, creates a subplet for it. That subplet inherits the root template, gets its own branch (optionally a worktree), and the developer drives it through plan → loop → refine independently. A single developer can drive one or more subplets concurrently.
 
-**Decision:** No parent/child hierarchy. Any plet can declare "I inherit from plet X." Inheritance is a pointer, not a tree structure.
+**Terminology:** The root plet is the top-level plet for the project. Subplets are plets that inherit from the root plet or from other subplets. The name "subplet" reflects that they exist within a larger project structure, not that they are structurally inferior — every subplet is a full plet (plan → loop → refine). The root plet cannot inherit; subplets can inherit from any plet (root or subplet).
+
+**A "template" plet** is just a plet that other plets happen to inherit from — it's not structurally special. It might only ever plan/refine (defining NFRs, ratchets). Or it might loop too (implementing shared infrastructure). Doesn't matter — it's a full plet either way.
+
+Multi-developer parallelism is a *consequence* of this decomposition, not the motivation. Different developers naturally pick up different subplets. But the primary drivers are scale management and existing codebase adaptation.
+
+### NOTES_SUB_1: Flexible inheritance (2026-04-09, updated 2026-04-10)
+
+**Decision:** Flexible inheritance. Any subplet can declare "I inherit from plet X" — where X can be the root plet or another subplet. The root plet cannot inherit. Inheritance is a pointer, not a rigid tree structure.
 
 **Mechanism:** A plet reads its inheritance source at two points:
 - **Plan phase** — incorporates inherited constraints into the plet's own requirements
@@ -3343,26 +3435,25 @@ No runtime mechanism. No special state. No orchestrator awareness. Just "read a 
 
 **Chains work naturally.** Plet A inherits from B, B inherits from C. At plan/refine, read up the chain.
 
-**What inherits:**
+**What typically inherits** (flexible — not every item must inherit, and projects can define their own inheritance scope):
 - **NFRs** — performance budgets, accessibility standards, security requirements
 - **Quality ratchets** — coverage thresholds, lint rules, type strictness levels
 - **DX conventions** — error handling patterns, logging standards, naming conventions
 - **Refactor goals** — file size limits, duplication thresholds, API consistency rules
 - **Cross-cutting architectural decisions** — shared schemas, API contracts, dependency rules
 
-A plet can add its own constraints on top but cannot weaken inherited ones. Without inheritance, plets drift toward their own conventions and integration becomes a consistency nightmare.
+A subplet typically tightens inherited constraints rather than weakening them, but relaxation is allowed when justified. Without inheritance, plets drift toward their own conventions and integration becomes a consistency nightmare.
 
-**Live, not snapshot.** Because inheritance is a read at plan/refine (not a copy at creation), changes propagate naturally. If the source plet tightens coverage from 80% to 90%, the next refine of any inheriting plet picks it up.
+**Updating snapshots.** Inheritance is snapshot-based — the subplet captures inherited constraints at plan time. Snapshots are refreshed at each plan or refine phase, picking up any changes from the source. If the source plet tightens coverage from 80% to 90%, the next plan or refine of any inheriting subplet picks it up.
 
 ### NOTES_SUB_2: What this replaces (2026-04-09)
 
-Earlier design (NOTES_SUB_7, SUB_8, SUB_10, SUB_11) assumed a parent/child hierarchy where a "parent plet" was the umbrella that decomposed into "subplets." This created problems:
+Earlier design (NOTES_SUB_7, SUB_8, SUB_10, SUB_11) assumed a rigid parent/child hierarchy where a "parent plet" was the umbrella that decomposed into "subplets." This created problems:
 - The "parent" didn't loop — so it wasn't really a plet
 - Parent plan phase was a different workflow than normal planning
 - One level of nesting only (arbitrary restriction)
-- "Subplet" terminology implied hierarchy
 
-The peer model eliminates all of this. A template plet is just a plet. A feature plet is just a plet. The only new concept is the inheritance pointer.
+The flexible inheritance model fixes these issues while retaining the "subplet" name. The key change: inheritance is flexible (any subplet can inherit from any plet), not a rigid single-parent tree. A template plet is just a plet. A feature subplet is a full plet. The root plet is the only one that cannot inherit.
 
 ### NOTES_SUB_3: Scenarios identified
 
@@ -3393,6 +3484,11 @@ The peer model eliminates all of this. A template plet is just a plet. A feature
 - ~~Does the orchestrator need to know about siblings?~~ → resolved: no (NOTES_SUB_8). Zero sibling awareness.
 - ~~Naming convention: `{feature-name}` or `{developer-name}`?~~ → resolved: `{feature-name}`. Plets are feature decomposition, not developer assignment.
 - ~~Parent plet doesn't loop~~ → resolved: no parent/child hierarchy (NOTES_SUB_1). A template plet can loop or not — it's just a plet.
+- What does the concrete `survey.md` artifact look like? Sections, format, level of detail? (NOTES_SUB_10)
+- How does plan phase consume `survey.md`? Explicit input, or auto-detected? (NOTES_SUB_10)
+- When re-running survey, does it diff against the previous survey? Or full re-scan? (NOTES_SUB_10)
+- Subplet creation flow — CLI command? Manual setup? (NOTES_SUB_10)
+- External backlog integration — does plet read from issue trackers, or manual copy? (NOTES_SUB_10)
 
 ### NOTES_SUB_6: No cross-plet dependencies (2026-04-05)
 
@@ -3421,6 +3517,35 @@ Worktrees are optional and at the developer's discretion. plet operates on whate
 2. Developer checks out the branch (or creates a worktree — their choice)
 3. Plet runs independently (plan → loop → refine), reading inheritance source at plan and refine
 4. When done, developer merges branch back to the shared integration branch via git
+
+### NOTES_SUB_10: `/plet survey` — existing codebase adaptation (2026-04-10)
+
+**Decision:** Existing codebase adaptation is a new plet command (`/plet survey`), not a separate skill or project. The output of a survey is exactly what the root plet template needs, and keeping it inside plet means the inheritance mechanism works without glue.
+
+**Motivation:** plet needs to work with existing large codebases (100-300k+ lines), not just greenfield projects. A developer joining a large webapp shouldn't have to write requirements from scratch. The root plet should discover and codify what's already there.
+
+**plet workflow becomes:** Survey → Plan → Loop → Refine (survey is optional, used for existing codebases).
+
+**What survey produces (decision: 1C):** Both — a `survey.md` captures raw findings (discovered conventions, patterns, quality levels, architectural constraints), then the plan phase distills these into `requirements.md` (NFRs, ratchets, conventions as formal requirements). Two artifacts because the raw survey has value beyond what gets distilled.
+
+**Iterative, not one-shot (decision: 2B):** Survey can be re-run to pick up codebase changes. Initial survey establishes the template; re-runs update it as the codebase evolves (including changes made outside of plet by other developers).
+
+**Developer workflow with survey:**
+1. Root plet runs `/plet survey` on the existing codebase → produces `survey.md`
+2. Root plet runs `/plet plan` → distills survey into `requirements.md` (template)
+3. Developer looks at backlog (GitHub issues, Linear, etc.), picks a work item
+4. Developer creates a subplet that inherits from the root template
+5. Developer drives subplet through plan → loop → refine on their own branch
+
+**Deferred:**
+- How survey handles context window limits on a large codebase (implementation detail)
+- Subplet creation flow (CLI command? manual setup?)
+- External backlog integration (does plet read from issue trackers, or manual?)
+
+**Open questions added to NOTES_SUB_5:**
+- What does the concrete `survey.md` artifact look like? Sections, format, level of detail?
+- How does plan phase consume `survey.md`? Explicit input, or auto-detected?
+- When re-running survey, does it diff against the previous survey? Or full re-scan?
 
 ---
 

@@ -24,6 +24,7 @@
 | PLAN_VER | Verify Phase Rewrite | ✓ COMPLETE (9/9) — validated OLLR R07 |
 | PLAN_FIX | Small Fixes Backlog | 3/4 done (FIX_3 deferred) |
 | PLAN_RFT | Refactor Loop | ✓ COMPLETE (6/6) — validated LOGA R16 (refactor agent extracted real code) |
+| PLAN_MSV | Milestone-Scoped Verify | After RFT — drop per-iteration verify, expand milestone verify scope |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -110,6 +111,60 @@ Formalize how we measure whether plet's prompts and scripts actually improve out
 - **PLAN_EVLb:** Re-run logalyzer (from plan checkpoint `203c58a`) with PLAN_RW tooling + orchestrator. Produce a structured comparison: before/after on measurable dimensions.
 - **PLAN_EVLc:** Broader testing — harder project, refine session, edge cases.
 - **PLAN_EVLd:** Design the eval tooling (plet_eval.py or similar). Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework.
+
+---
+
+## PLAN_MSV: Milestone-Scoped Verify
+
+Drop per-iteration verify, move verification to milestone boundaries. Case study analysis across 24 runs shows per-iteration verify has a ~96% rubber-stamp rate while costing 25-35% of loop time. The 5 real catches were all integration gaps — better caught at milestone scope. See NOTES.md § NOTES_PLN_MSV for full analysis, SPARK reanalysis, cost model, and risk assessment.
+
+**Core change:** Regular iterations run implement-only (gate enforces tests + lint + git clean). The refactor iteration's verify phase at each milestone boundary expands to include AC spot-checking across the milestone's iterations. Default behavior, no flag to revert.
+
+**Depends on:** PLAN_RFT (refactor iterations at milestone boundaries must exist). PLAN_VER (verify.md must be scoped to functional AC checking).
+
+**Branch:** `plan-msv`
+
+### Phase 1: Orchestrator + Lifecycle
+
+| Step | Description | Status |
+|------|-------------|--------|
+| MSV_1 | Add `implementing` → `complete` transition for non-refactor iterations. `_run_iteration()` skips verify unless `iter_id` starts with `ITR_RFT_`. Direct complete after implement verdict = completed. Files: `plet_orchestrator.py`, `state-schema.md` | |
+| MSV_2 | Update `gate_session.py` lifecycle detection — remove `verifying` from `LOOP_LIFECYCLES` for regular iters. Refactor iters still transition through verifying. | |
+| MSV_3 | Update `iter_state.py` — stop clearing `verifyVerdict` on every implement start for regular iters. Fields remain in schema (never remove fields) but stay null/empty for regular iterations. | |
+
+### Phase 2: Reference Files
+
+| Step | Description | Status |
+|------|-------------|--------|
+| MSV_4 | Rewrite `verify.md` for milestone scope — check ALL ACs from milestone iterations, fix issues found in-place, report what was fixed. If too big to fix, block refactor iteration for human triage. Add guidance on batching/prioritizing when AC count is high. This is essentially a new verify — review-and-fix, not read-only. | |
+| MSV_5 | Update `refactor.md` — note that verify phase after refactor now also checks milestone ACs. Clarify two-part scope: refactor correctness + milestone AC compliance. | |
+
+### Phase 3: Prompt + Validation
+
+| Step | Description | Status |
+|------|-------------|--------|
+| MSV_6 | Update `prompt.py` — reject `--phase verify` for non-refactor iterations (error, not silent skip). For refactor iteration verify: inject milestone iteration list into prompt so verify agent knows which ACs to check. | |
+| MSV_7 | Update `state-schema.md` — document `implementing` → `complete` transition for regular iterations. Document that `verifyVerdict` populated only for refactor iterations. | |
+
+### Phase 4: Tests (red/green)
+
+| Step | Description | Status |
+|------|-------------|--------|
+| MSV_8 | New tests: regular iteration goes `implementing` → `complete` (no verify spawned). Refactor iteration goes `implementing` → `verifying` → `complete`. Verify rejection on refactor iteration sends back to `implementing`. `prompt.py` rejects `--phase verify` for non-refactor iteration. | |
+| MSV_9 | Update existing tests that assert `implementing` → `verifying` → `complete` for regular iters. Update tests that count verify dispatches. | |
+
+### Phase 5: Validate
+
+| Step | Description | Status |
+|------|-------------|--------|
+| MSV_10 | Real run comparison — run on LOGA or OLLR with milestone-scoped verify. Compare time, tokens, catch rate vs. previous per-iteration runs. | |
+
+**What's deliberately NOT included:**
+- No per-iteration verify opt-in flag (default change, no revert)
+- No new phase type (verify is still verify, just scoped differently)
+- No schema migration (fields stay, just unused for regular iters)
+
+**Key risk:** MSV_6 (injecting milestone iteration list into verify prompt) is the novel piece — verify agent needs to know which iterations' ACs to check. Everything else is removing/skipping existing behavior.
 
 ---
 
