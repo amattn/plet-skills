@@ -287,7 +287,7 @@ invoke.py run plet/ --iter-id ITR_001 --phase implement \
 **Testing challenge:** INV launches `claude -p` which requires API access. Tests must use mocks — either a mock `claude` script on PATH or mock the subprocess call.
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_invoke.py`
+- File: `skills/plet/tests/test_invoke.py`
 - Mock strategy: create a mock `claude` shell script that echoes JSONL and exits with a controlled code. Place it first on PATH for tests.
 - Dry-run tests don't need mocks — they verify command construction only.
 - Red/green discipline.

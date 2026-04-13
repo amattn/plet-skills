@@ -267,7 +267,7 @@ bootstrap.py setup .
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| BST_TST_1 | Test file: `skills/plet/tests/test_plet_bootstrap.py` | P0 |
+| BST_TST_1 | Test file: `skills/plet/tests/test_bootstrap.py` | P0 |
 | BST_TST_2 | Tests call script via subprocess | P0 |
 | BST_TST_3 | Temp git repos per test | P0 |
 | BST_TST_4 | Test both setup and check commands | P0 |

@@ -637,8 +637,8 @@ See `specs/conventions.md` for universal requirements.
 **What to test:** See §12 Critical Test Areas (TRC_CRT).
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_trace.py`
-- Run: `./skills/plet/tests/test_plet_trace.py`
+- File: `skills/plet/tests/test_trace.py`
+- Run: `./skills/plet/tests/test_trace.py`
 - Harness: stdlib-only custom harness per UNV_TST_2. Uses `run()` (subprocess) and `check()` (assert).
 - All tests call the script via `subprocess.run()` (UNV_TST_4).
 - Temp fixtures via `tempfile.TemporaryDirectory()` (UNV_TST_5).

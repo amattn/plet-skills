@@ -94,7 +94,7 @@ Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently no
 
 Tests live at `skills/plet/tests/` (sibling to `scripts/`, not inside it).
 
-**File naming:** `test_plet_<script_name>.py` — e.g., `test_plet_entries.py`, `test_plet_fingerprint.py`. Test files kept the `plet_` prefix when library scripts were renamed.
+**File naming:** `test_<script_name>.py` — e.g., `test_entries.py`, `test_fingerprint.py`. Exception: integration-level tests retain the `plet_` prefix (`test_plet_agent.py`, `test_plet_orchestrator.py`, `test_plet_tools.py`, `test_plet_merge_driver.py`).
 
 **Zero dependencies applies to tests too.** No pytest, no unittest, no third-party test frameworks. Tests use a minimal custom harness built on stdlib only. This matches the constraint on the scripts themselves — if the scripts can't use third-party packages, neither can their tests.
 

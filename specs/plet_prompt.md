@@ -326,7 +326,7 @@ No subprocess calls to other plet scripts — PRM is a leaf that reads files dir
 **What to test:** See §12.
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_prompt.py`
+- File: `skills/plet/tests/test_prompt.py`
 - Harness: stdlib-only, subprocess calls
 - Fixtures: temp plet directories with mock reference files, requirements, iterations, state files, learnings
 - Red/green, single command (assemble). Test both phases.

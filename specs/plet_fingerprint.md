@@ -554,8 +554,8 @@ See `specs/conventions.md` for universal requirements.
 **What to test:** See §12 Critical Test Areas (FPR_CRT).
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_fingerprint.py`
-- Run: `./skills/plet/tests/test_plet_fingerprint.py`
+- File: `skills/plet/tests/test_fingerprint.py`
+- Run: `./skills/plet/tests/test_fingerprint.py`
 - Harness: stdlib-only custom harness per UNV_TST_2. Uses `run()` (subprocess) and `check()` (assert).
 - All tests call the script via `subprocess.run()` (UNV_TST_4).
 - Temp fixtures via `tempfile.TemporaryDirectory()` (UNV_TST_5).

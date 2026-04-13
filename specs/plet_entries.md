@@ -662,8 +662,8 @@ See `specs/conventions.md` for universal requirements.
 **What to test:** See §12 Critical Test Areas (ENT_CRT_1–ENT_CRT_9) for the full list of risk areas. Each CRT entry should have at least one corresponding test.
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_entries.py`
-- Run: `./skills/plet/tests/test_plet_entries.py`
+- File: `skills/plet/tests/test_entries.py`
+- Run: `./skills/plet/tests/test_entries.py`
 - Harness: stdlib-only custom harness per UNV_TST_2. Uses `run()` (subprocess) and `check()` (assert).
 - All tests call the script via `subprocess.run()` — test the CLI interface, not internal functions (UNV_TST_4).
 - Temp fixtures via `tempfile.TemporaryDirectory()` — auto-cleanup (UNV_TST_5).

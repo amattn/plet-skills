@@ -567,8 +567,8 @@ See `specs/conventions.md` for universal requirements.
 **What to test:** See §12 Critical Test Areas (GSS_CRT).
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_gate_session.py`
-- Run: `./skills/plet/tests/test_plet_gate_session.py`
+- File: `skills/plet/tests/test_gate_session.py`
+- Run: `./skills/plet/tests/test_gate_session.py`
 - Harness: stdlib-only custom harness per UNV_TST_2.
 - All tests call the script via `subprocess.run()` (UNV_TST_4).
 - **Fixtures:** tests create temp directories with various combinations of plet artifacts to simulate different project states.

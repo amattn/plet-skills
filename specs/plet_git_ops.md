@@ -422,8 +422,8 @@ See `specs/conventions.md` for universal requirements.
 **What to test:** See §12 Critical Test Areas (GTO_CRT).
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_git_ops.py`
-- Run: `./skills/plet/tests/test_plet_git_ops.py`
+- File: `skills/plet/tests/test_git_ops.py`
+- Run: `./skills/plet/tests/test_git_ops.py`
 - Harness: stdlib-only custom harness per UNV_TST_2. Uses `run()` (subprocess) and `check()` (assert).
 - All tests call the script via `subprocess.run()` (UNV_TST_4).
 - **Git fixtures:** tests create temporary git repos with mock state.json, workstream branches, and incremental commits. Tests must clean up all git state after completion.

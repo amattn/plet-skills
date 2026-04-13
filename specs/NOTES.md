@@ -634,7 +634,7 @@ Decisions made during §3.4–§9 review of `plet_entries.md`:
 - **§15 FUT approved.** Withdrew FUT_1 (mtime is fragile, full scan is fast enough).
 - **§16 PRD Items approved.** Updated SY_7 note to reflect ## Withdrawn section exclusion.
 - **FPR spec review complete.** All 16 sections approved.
-- **FPR implementation complete.** `plet_fingerprint.py` (3 commands, ~680 lines) + `test_plet_fingerprint.py` (27 tests, 90 assertions). All passing, no regressions.
+- **FPR implementation complete.** `plet_fingerprint.py` (3 commands, ~680 lines) + `test_fingerprint.py` (27 tests, 90 assertions). All passing, no regressions.
 
 ### SPEC_REV_TRC: plet_trace.py (TRC)
 

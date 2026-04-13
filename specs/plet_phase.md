@@ -176,7 +176,7 @@ phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed \
 
 See `specs/conventions.md` for universal requirements. Script-specific:
 
-- **Test file:** `skills/plet/tests/test_plet_phase.py` (21 tests)
+- **Test file:** `skills/plet/tests/test_phase.py` (21 tests)
 - **Key test areas:** happy path implement/verify, missing args, invalid verdicts, blocked verdict, audit tag creation, working tree clean after commit
 
 ## 16. FOO Items Addressed

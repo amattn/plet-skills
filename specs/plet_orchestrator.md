@@ -490,7 +490,7 @@ During an iteration, per-iteration state files exist in two copies: the global c
 - Harness: stdlib-only custom harness per UNV_TST_2
 - All tests call the script via `subprocess.run()` (UNV_TST_4)
 
-**Mock strategy: real scripts + mock claude only.** The orchestrator's value is integration — testing with real scripts catches real bugs. All plet scripts (schedule, session, state, entries, trace, git_iteration, git_ops, gate_phase, gate_session, fingerprint) run for real against temp git repos with proper state fixtures. The only mock is the `claude` binary — a shell script placed first on PATH (same pattern as `test_plet_invoke.py`). The mock claude simulates implement/verify by creating commits and updating state files per the test scenario.
+**Mock strategy: real scripts + mock claude only.** The orchestrator's value is integration — testing with real scripts catches real bugs. All plet scripts (schedule, session, state, entries, trace, git_iteration, git_ops, gate_phase, gate_session, fingerprint) run for real against temp git repos with proper state fixtures. The only mock is the `claude` binary — a shell script placed first on PATH (same pattern as `test_invoke.py`). The mock claude simulates implement/verify by creating commits and updating state files per the test scenario.
 
 **Fixture setup:** Each test creates a temp git repo with `plet/` directory, state.json, per-iteration state files, requirements.md, iterations.md. The mock claude script reads env vars or fixture files to know what scenario to simulate (all pass, reject then pass, crash, no commits, etc.).
 

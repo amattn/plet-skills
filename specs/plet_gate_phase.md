@@ -453,7 +453,7 @@ Note: implement post includes `implement-verdict` but not `verify-verdict`, `ver
 **What to test:** See §12.
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_gate_phase.py`
+- File: `skills/plet/tests/test_gate_phase.py`
 - Harness: stdlib-only, subprocess calls
 - Fixtures: temp git repos + state files + runtime artifacts
 - Red/green, pre first, post second. Test both phases.

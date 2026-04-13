@@ -570,7 +570,7 @@ iter_state.py validate plet --iter-id ITR_001
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_TST_1 | Test file: `skills/plet/tests/test_plet_iter_state.py` | P0 |
+| IST_TST_1 | Test file: `skills/plet/tests/test_iter_state.py` | P0 |
 | IST_TST_2 | Tests call script via subprocess (CLI interface, not internal functions) | P0 |
 | IST_TST_3 | Temp fixtures per test — no shared state between tests | P0 |
 | IST_TST_4 | Test `--help` on every command (exits 0, produces output) | P0 |

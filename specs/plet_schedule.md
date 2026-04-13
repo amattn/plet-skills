@@ -449,8 +449,8 @@ See `specs/conventions.md` for requirements common to all scripts.
 ## 13. Testing & Verification (TST)
 
 **Test infrastructure:**
-- File: `skills/plet/tests/test_plet_schedule.py`
-- Run: `./skills/plet/tests/test_plet_schedule.py`
+- File: `skills/plet/tests/test_schedule.py`
+- Run: `./skills/plet/tests/test_schedule.py`
 - Harness: stdlib-only custom harness per UNV_TST_2
 - All tests call the script via `subprocess.run()` (UNV_TST_4)
 - Temp fixtures via `tempfile.TemporaryDirectory()` (UNV_TST_5)
