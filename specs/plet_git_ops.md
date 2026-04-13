@@ -82,7 +82,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_ATG_CMD_1 | Usage: `git_ops.py audit-tag <plet_dir> --iter-id ITR_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_ATG_CMD_1 | Usage: `plet_CLIWRAPPER.py audit-tag <plet_dir> --iter-id ITR_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates git tag), idempotent (re-tagging same commit with same name succeeds or can use `--force`)
 
@@ -165,7 +165,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_MSQ_CMD_1 | Usage: `git_ops.py merge-squash <plet_dir> --iter-id ITR_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_MSQ_CMD_1 | Usage: `plet_CLIWRAPPER.py merge-squash <plet_dir> --iter-id ITR_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates commit on workstream), not idempotent (running twice creates a duplicate commit)
 

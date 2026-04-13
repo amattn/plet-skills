@@ -59,7 +59,7 @@ All commands take `<project_dir>` as required first positional arg (the project 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| BST_SET_CMD_1 | Usage: `bootstrap.py setup <project_dir> [--force] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| BST_SET_CMD_1 | Usage: `plet_CLIWRAPPER.py setup <project_dir> [--force] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, idempotent (safe to re-run)
 
@@ -122,7 +122,7 @@ All commands take `<project_dir>` as required first positional arg (the project 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| BST_CHK_CMD_1 | Usage: `bootstrap.py check <project_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| BST_CHK_CMD_1 | Usage: `plet_CLIWRAPPER.py check <project_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent
 

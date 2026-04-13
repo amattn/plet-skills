@@ -53,7 +53,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_STA_CMD_1 | Usage: `session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SES_STA_CMD_1 | Usage: `plet_CLIWRAPPER.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, idempotent (see SES_STA_BHV_3), atomic (single file write via `atomic_write_json`)
 
@@ -132,7 +132,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_END_CMD_1 | Usage: `session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SES_END_CMD_1 | Usage: `plet_CLIWRAPPER.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, idempotent (ending an already-ended session is a no-op), atomic
 

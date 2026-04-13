@@ -71,7 +71,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_DET_CMD_1 | Usage: `gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_DET_CMD_1 | Usage: `plet_CLIWRAPPER.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -149,7 +149,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_STS_CMD_1 | Usage: `gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_STS_CMD_1 | Usage: `plet_CLIWRAPPER.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -249,7 +249,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PRF_CMD_1 | Usage: `gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_PRF_CMD_1 | Usage: `plet_CLIWRAPPER.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -334,7 +334,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PSF_CMD_1 | Usage: `gate_session.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_PSF_CMD_1 | Usage: `plet_CLIWRAPPER.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

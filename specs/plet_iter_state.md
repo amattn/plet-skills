@@ -71,7 +71,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_INI_CMD_1 | Usage: `iter_state.py init <plet_dir> --iter-id ITR_xxx --title "..." --dependencies '["ITR_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dependencies-file path] [--criteria-file path] [--cleanup-tags] [--cleanup-branches] [--no-verify-deps] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_INI_CMD_1 | Usage: `plet_CLIWRAPPER.py init <plet_dir> --iter-id ITR_xxx --title "..." --dependencies '["ITR_001"]' --criteria '[{"id":"AC_1","description":"..."}]' [--dependencies-file path] [--criteria-file path] [--cleanup-tags] [--cleanup-branches] [--no-verify-deps] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, non-idempotent (errors if file exists), atomic
 
@@ -145,7 +145,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_STP_CMD_1 | Usage: `iter_state.py start-phase <plet_dir> --iter-id ITR_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_STP_CMD_1 | Usage: `plet_CLIWRAPPER.py start-phase <plet_dir> --iter-id ITR_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (increments attempt counter), atomic
 
@@ -208,7 +208,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_UPA_CMD_1 | Usage: `iter_state.py update-activity <plet_dir> --iter-id ITR_xxx --phase-activity setup|red|green|... [--activity-detail "..."] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_UPA_CMD_1 | Usage: `plet_CLIWRAPPER.py update-activity <plet_dir> --iter-id ITR_xxx --phase-activity setup|red|green|... [--activity-detail "..."] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -252,7 +252,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_UPC_CMD_1 | Usage: `iter_state.py update-criterion <plet_dir> --iter-id ITR_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." [--one-liner "..."] [--red-test TEST_NAME|none] [--no-test-rationale "..."] [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_UPC_CMD_1 | Usage: `plet_CLIWRAPPER.py update-criterion <plet_dir> --iter-id ITR_xxx --criterion AC_1 --phase implementation|verification --status pass|fail --evidence "..." [--one-liner "..."] [--red-test TEST_NAME|none] [--no-test-rationale "..."] [--elapsed N] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -303,7 +303,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_SVD_CMD_1 | Usage: `iter_state.py set-verdict <plet_dir> --iter-id ITR_xxx --phase implement|verify --verdict completed|blocked|passed|rejected --agent-id <id> [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_SVD_CMD_1 | Usage: `plet_CLIWRAPPER.py set-verdict <plet_dir> --iter-id ITR_xxx --phase implement|verify --verdict completed|blocked|passed|rejected --agent-id <id> [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -351,7 +351,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_HBT_CMD_1 | Usage: `iter_state.py heartbeat <plet_dir> --iter-id ITR_xxx --agent-id <id> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_HBT_CMD_1 | Usage: `plet_CLIWRAPPER.py heartbeat <plet_dir> --iter-id ITR_xxx --agent-id <id> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic. No `--dry-run` (trivial operation).
 
@@ -378,7 +378,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_RPT_CMD_1 | Usage: `iter_state.py add-report <plet_dir> --iter-id ITR_xxx --verdict passed --summary "..." --criteria-results '[...]' --findings '[...]' --related-entries '[...]' --agent-id <id> [--criteria-results-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_RPT_CMD_1 | Usage: `plet_CLIWRAPPER.py add-report <plet_dir> --iter-id ITR_xxx --verdict passed --summary "..." --criteria-results '[...]' --findings '[...]' --related-entries '[...]' --agent-id <id> [--criteria-results-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, atomic
 
@@ -430,7 +430,7 @@ Note: `plet_dir` here is generic — it could be `global_plet_dir` (plan session
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IST_VAL_CMD_1 | Usage: `iter_state.py validate <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| IST_VAL_CMD_1 | Usage: `plet_CLIWRAPPER.py validate <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent
 

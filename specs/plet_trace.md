@@ -64,7 +64,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_CMD_1 | Usage: `traces.py append-event <plet_dir> --iter-id ITR_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_APE_CMD_1 | Usage: `plet_CLIWRAPPER.py append-event <plet_dir> --iter-id ITR_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** mutating (appends to file), not idempotent (each call adds a new line), atomic append
 
@@ -155,7 +155,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_CMD_1 | Usage: `traces.py validate <plet_dir> [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_VAL_CMD_1 | Usage: `plet_CLIWRAPPER.py validate <plet_dir> [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -240,7 +240,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_CMD_1 | Usage: `traces.py query <plet_dir> [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_QRY_CMD_1 | Usage: `plet_CLIWRAPPER.py query <plet_dir> [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

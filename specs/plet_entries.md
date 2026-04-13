@@ -68,7 +68,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `entries.py add-progress <plet_dir> --iter-id ITR_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_APR_CMD_1 | Usage: `plet_CLIWRAPPER.py add-progress <plet_dir> --iter-id ITR_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -162,7 +162,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `entries.py add-learning <plet_dir> --iter-id ITR_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `plet_CLIWRAPPER.py add-learning <plet_dir> --iter-id ITR_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -254,7 +254,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `entries.py add-emergent <plet_dir> --iter-id ITR_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `plet_CLIWRAPPER.py add-emergent <plet_dir> --iter-id ITR_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -349,7 +349,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_CMD_1 | Usage: `entries.py check <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_CHK_CMD_1 | Usage: `plet_CLIWRAPPER.py check <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

@@ -65,7 +65,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_INI_CMD_1 | Usage: `global_state.py init <global_plet_dir> --project-id PROJ --project-name "Name" --dependency-map '{"ITR_001":[],...}' --milestones '{"MS_1":{...}}' --iterations-fingerprint '{"..."}' [--dependency-map-file path] [--milestones-file path] [--iterations-fingerprint-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_INI_CMD_1 | Usage: `plet_CLIWRAPPER.py init <global_plet_dir> --project-id PROJ --project-name "Name" --dependency-map '{"ITR_001":[],...}' --milestones '{"MS_1":{...}}' --iterations-fingerprint '{"..."}' [--dependency-map-file path] [--milestones-file path] [--iterations-fingerprint-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, non-idempotent (errors if file exists), atomic
 
@@ -138,7 +138,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_ULC_CMD_1 | Usage: `global_state.py update-lifecycle <global_plet_dir> --iter-id ITR_xxx --lifecycle implementing [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_ULC_CMD_1 | Usage: `plet_CLIWRAPPER.py update-lifecycle <global_plet_dir> --iter-id ITR_xxx --lifecycle implementing [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (lastUpdated changes), atomic
 
@@ -202,7 +202,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_GLC_CMD_1 | Usage: `global_state.py get-lifecycle <global_plet_dir> [--iter-id ITR_xxx] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_GLC_CMD_1 | Usage: `plet_CLIWRAPPER.py get-lifecycle <global_plet_dir> [--iter-id ITR_xxx] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -262,7 +262,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_VAL_CMD_1 | Usage: `global_state.py validate <global_plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_VAL_CMD_1 | Usage: `plet_CLIWRAPPER.py validate <global_plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 

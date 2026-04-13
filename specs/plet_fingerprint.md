@@ -59,7 +59,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EXT_CMD_1 | Usage: `fingerprint.py extract <plet_dir> --type TYPE [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements` or `iterations` | P0 |
+| FPR_EXT_CMD_1 | Usage: `plet_CLIWRAPPER.py extract <plet_dir> --type TYPE [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements` or `iterations` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -133,7 +133,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EMB_CMD_1 | Usage: `fingerprint.py embed <plet_dir> --type TYPE [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements`, `iterations`, or `state` | P0 |
+| FPR_EMB_CMD_1 | Usage: `plet_CLIWRAPPER.py embed <plet_dir> --type TYPE [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements`, `iterations`, or `state` | P0 |
 
 **Properties:** mutating (modifies file), idempotent (same content produces same fingerprint), atomic write
 
@@ -220,7 +220,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_CMD_1 | Usage: `fingerprint.py check <plet_dir> [--level LEVEL] [--output json [--pretty] [--fields f1,f2]]` where LEVEL is `requirements`, `iterations`, or `all` (default: `all`) | P0 |
+| FPR_CHK_CMD_1 | Usage: `plet_CLIWRAPPER.py check <plet_dir> [--level LEVEL] [--output json [--pretty] [--fields f1,f2]]` where LEVEL is `requirements`, `iterations`, or `all` (default: `all`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
