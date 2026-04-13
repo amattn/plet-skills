@@ -164,6 +164,13 @@ def make_worktree(tmpdir):
     return wt
 
 
+def start_phase(plet_dir, iter_id="ITR_001", phase="implement"):
+    """Call start-phase to initialize attempt counter (matches production flow)."""
+    import iter_state
+
+    iter_state.cmd_start_phase([plet_dir, "--iter-id", iter_id, "--phase", phase])
+
+
 # ===========================================================================
 # Basic tests (no mock needed)
 # ===========================================================================
@@ -234,6 +241,7 @@ def test_dry_run():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         stdout, _, rc = run(["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt, "--dry-run"])
         check("exit 0", rc == 0)
         check("shows claude command", "claude" in stdout)
@@ -252,6 +260,7 @@ def test_dry_run_json():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         stdout, _, _ = run(
             [
                 "run",
@@ -281,6 +290,7 @@ def test_dry_run_with_model():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         stdout, _, _ = run(
             [
                 "run",
@@ -307,6 +317,7 @@ def test_dry_run_permission_mode():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         stdout, _, _ = run(
             [
                 "run",
@@ -338,6 +349,7 @@ def test_launch_and_capture():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         env = create_mock_claude(tmpdir)
         stdout, _, rc = run(
             ["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env
@@ -361,6 +373,7 @@ def test_exit_code_passthrough():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         # Create mock that exits with code 1
         mock_bin = os.path.join(tmpdir, "mock_bin")
         os.makedirs(mock_bin, exist_ok=True)
@@ -388,6 +401,7 @@ def test_json_output_after_launch():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         env = create_mock_claude(tmpdir)
         stdout, _, _ = run(
             ["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt, "--output", "json"],
@@ -413,6 +427,7 @@ def test_transcript_append_not_overwrite():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         env = create_mock_claude(tmpdir)
         transcript = transcript_path(plet_dir, "ITR_001", "implement", 1)
 
@@ -438,6 +453,7 @@ def test_trace_dir_created():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         env = create_mock_claude(tmpdir)
         # Remove trace dir
         shutil.rmtree(trace_dir_path(plet_dir))
@@ -455,6 +471,7 @@ def test_invocation_trace_event():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         env = create_mock_claude(tmpdir)
         run(["run", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--cwd", wt], expect_exit=0, env=env)
         # TRC writes to plet_dir/trace/{iter_id}-{phase}-{attempt}-events.ndjson
@@ -481,6 +498,7 @@ def test_invocation_progress_entry():
     try:
         plet_dir = make_plet_dir(tmpdir)
         wt = make_worktree(tmpdir)
+        start_phase(plet_dir)
         env = create_mock_claude(tmpdir)
         # Create progress.md so ENT can append
         with open(progress_path(plet_dir), "w") as f:
@@ -699,6 +717,39 @@ def test_auto_detect_bypass_permissions():
         shutil.rmtree(tmpdir)
 
 
+def test_attempt_matches_state_after_start_phase():
+    print("\n## run — attempt matches state file after start-phase (no +1)")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        plet_dir = make_plet_dir(tmpdir)
+        wt = make_worktree(tmpdir)
+        # start-phase increments attempts.implement from 0 to 1
+        import iter_state
+
+        iter_state.cmd_start_phase([plet_dir, "--iter-id", "ITR_001", "--phase", "implement"])
+        # dry-run should report attempt=1 (matching state), not attempt=2
+        stdout, _, rc = run(
+            [
+                "run",
+                plet_dir,
+                "--iter-id",
+                "ITR_001",
+                "--phase",
+                "implement",
+                "--cwd",
+                wt,
+                "--dry-run",
+                "--output",
+                "json",
+            ]
+        )
+        check("exit 0", rc == 0)
+        data = json.loads(stdout)
+        check("attempt is 1 (not 2)", data.get("attempt") == 1, f"got: {data.get('attempt')}")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 def test_auto_detect_bad_json():
     print("\n## _auto_detect_permission_mode — bad JSON")
     import tempfile
@@ -749,6 +800,7 @@ def main():
     test_auto_detect_permission_mode()
     test_auto_detect_bypass_permissions()
     test_auto_detect_bad_json()
+    test_attempt_matches_state_after_start_phase()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

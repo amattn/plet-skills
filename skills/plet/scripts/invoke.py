@@ -39,7 +39,7 @@ from util_io import (
     validate_plet_dir,
 )
 
-SUBMODULE_VERSION = "0.4.0"
+SUBMODULE_VERSION = "0.4.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 VALID_PHASES = ["implement", "verify"]
@@ -401,7 +401,7 @@ Examples:
     if state_data is None:
         out, err_str = _err_out(cmd_name, f"Error: iteration state not found for {iter_id}", output_json, pretty)
         return (1, out, err_str)
-    attempt = state_data.get("attempts", {}).get(phase, 0) + 1
+    attempt = state_data.get("attempts", {}).get(phase, 1)
 
     t_path = transcript_path(plet_dir, iter_id, phase, attempt)
 
