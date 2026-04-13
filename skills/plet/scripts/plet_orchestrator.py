@@ -224,9 +224,6 @@ def _handle_passed_verdict(iter_id, global_plet_dir, sink, completed_this_run, c
     Sequential mode: iteration commits are already on the workstream branch.
     No rebase-commit needed — just mark complete and commit state.
     """
-    run_git("add", "-A")
-    run_git("commit", "-m", f"plet: [{iter_id}] iteration complete", "--allow-empty")
-
     _update_lifecycle(global_plet_dir, iter_id, "complete")
     completed_this_run += 1
     sink.event({"type": "iteration_complete", "iterationId": iter_id, "lifecycle": "complete"})
@@ -522,9 +519,6 @@ def _run_verify_phase(iter_id, global_plet_dir, sink, completed_this_run):
         return None
     verdict = ist.get("verifyVerdict")
 
-    if verdict == "passed":
-        run_git("add", "-A")
-        run_git("commit", "-m", "plet: pre-merge commit", "--allow-empty")
     return verdict
 
 

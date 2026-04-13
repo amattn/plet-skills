@@ -1052,6 +1052,51 @@ def test_run_orchestrator_trace_file():
             check("has result", "result" in types, f"types: {types}")
 
 
+def test_run_no_empty_lifecycle_commits():
+    """No empty 'pre-merge commit' or 'iteration complete' commits (REC_4)."""
+    print("\n## run — no empty lifecycle marker commits")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        plet_dir = setup_project(
+            tmp,
+            iterations=[
+                {"id": "ITR_001", "title": "Test", "deps": []},
+            ],
+        )
+        mock_dir = create_mock_claude(tmp, behavior="pass")
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": mock_dir + ":" + env.get("PATH", ""),
+                "MOCK_PLET_DIR": plet_dir,
+                "MOCK_SCRIPTS_DIR": SCRIPTS_DIR,
+                "MOCK_BEHAVIOR": "pass",
+            }
+        )
+
+        out, err, rc = run(["run", plet_dir, "--allow-stale", "--output", "ndjson"], env=env, cwd=tmp)
+        check("exits 0", rc == 0)
+
+        # Check git log for lifecycle marker commits
+        result = subprocess.run(
+            ["git", "log", "--oneline", "--all"],
+            capture_output=True,
+            text=True,
+            cwd=tmp,
+        )
+        commits = result.stdout.strip()
+        check(
+            "no 'pre-merge commit'",
+            "pre-merge commit" not in commits,
+            f"found in: {commits}",
+        )
+        check(
+            "no 'iteration complete'",
+            "iteration complete" not in commits,
+            f"found in: {commits}",
+        )
+
+
 # ===========================================================================
 # Summary
 # ===========================================================================
@@ -1077,6 +1122,7 @@ def main():
     test_run_two_independent_sequential()
     test_run_dependency_chain()
     test_run_orchestrator_trace_file()
+    test_run_no_empty_lifecycle_commits()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
