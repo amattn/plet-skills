@@ -1,10 +1,10 @@
-# plet_trace.py (TRC)
+# traces.py (TRC)
 
 > Status: complete
 
 ## 1. Purpose (TRC_PUR)
 
-Trace event schema drift was identified across three case studies: LOGA had traces for 1 of 13 iterations with inconsistent field names (`timestamp` vs `ts`, `iterationId` vs `iteration`), LIBT improved to 4 of 5 but still had schema drift, and SPARK finally achieved reliable generation (51 event logs across 23 iterations) but schema consistency remains the gap. This script makes semantic event writing deterministic — agents call it instead of composing NDJSON freehand.
+Trace event schema drift was identified across three case studies: LOGA had traces for 1 of 13 iterations with inconsistent field names (`timestamp` vs `ts`, `iterationId` vs `iteration`), LIBT improved to 4 of 5 but still had schema drift, and SPARK finally achieved reliable generation (51 event logs across 23 iterations) but schema consistency remains the gap. traces.py makes semantic event writing deterministic — agents call it instead of composing NDJSON freehand.
 
 plet has two trace artifact types: semantic events (`-events.ndjson`) written by subagents during work, and raw transcripts (`-transcript.ndjson`) captured from subprocess stdout. This script handles only the **semantic events** side — schema enforcement for the structured annotations agents write. Transcript capture is handled by `plet_invoke.py`, which launches subprocess invocations of `claude -p --output-format stream-json` and tees the output to the transcript NDJSON file.
 
@@ -64,7 +64,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_APE_CMD_1 | Usage: `plet_trace.py append-event <plet_dir> --iter-id ITR_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_APE_CMD_1 | Usage: `traces.py append-event <plet_dir> --iter-id ITR_xxx --phase PHASE --attempt N --event-type TYPE --data '{...}' [--data-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where PHASE is `implement` or `verify`, TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** mutating (appends to file), not idempotent (each call adds a new line), atomic append
 
@@ -155,7 +155,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_VAL_CMD_1 | Usage: `plet_trace.py validate <plet_dir> [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_VAL_CMD_1 | Usage: `traces.py validate <plet_dir> [--output json [--pretty] [--fields f1,f2]]` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -240,7 +240,7 @@ plet has two trace artifact types: semantic events (`-events.ndjson`) written by
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TRC_QRY_CMD_1 | Usage: `plet_trace.py query <plet_dir> [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
+| TRC_QRY_CMD_1 | Usage: `traces.py query <plet_dir> [--event-type TYPE] [--criterion AC_1] [--last N] [--raw] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `decision`, `criterion_update`, `lifecycle_change`, `activity_change`, `error`, or `invocation` (per UNV_CMD_16: required plet_dir, derives trace path via `util_io.trace_path()`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -419,22 +419,22 @@ Default: `plet/trace.ndjson`. All events (across iterations, phases, and attempt
 ### TRC_AFL_1: Impl subagent writes trace events during work
 
 1. Orchestrator spawns implement subagent with plet dir path
-2. Subagent starts: `plet_trace.py append-event plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type lifecycle_change --data '{"from":"queued","to":"implementing"}'`
+2. Subagent starts: `traces.py append-event plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type lifecycle_change --data '{"from":"queued","to":"implementing"}'`
 3. During work, subagent writes events for decisions, criterion updates, activity changes
-4. On errors: `plet_trace.py append-event plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type error --data '{"message":"...","recovery":"..."}'`
+4. On errors: `traces.py append-event plet/ --iter-id ITR_001 --phase implement --attempt 1 --event-type error --data '{"message":"...","recovery":"..."}'`
 5. Before completing: final trace entries for any remaining decisions
 
 ### TRC_AFL_2: Verify agent reviews implement trace
 
 1. Verify agent starts verification
-2. `plet_trace.py query plet/ --event-type decision` — review decisions made during implementation
-3. `plet_trace.py query plet/ --event-type error --last 5` — check recent errors
+2. `traces.py query plet/ --event-type decision` — review decisions made during implementation
+3. `traces.py query plet/ --event-type error --last 5` — check recent errors
 4. Verify agent uses findings to inform verification approach
 
 ### TRC_AFL_3: Verify subagent writes trace events during verification
 
 1. Verify agent reviews implement trace (AFL_2), then begins its own work
-2. Subagent starts: `plet_trace.py append-event plet/ --iter-id ITR_001 --phase verify --attempt 1 --event-type lifecycle_change --data '{"from":"implementing","to":"verifying"}'`
+2. Subagent starts: `traces.py append-event plet/ --iter-id ITR_001 --phase verify --attempt 1 --event-type lifecycle_change --data '{"from":"implementing","to":"verifying"}'`
 3. For each criterion: writes `criterion_update` events with verification status and evidence
 4. Records decisions (e.g., "AC_2 test is tautological — mocks DB layer") as `decision` events
 5. On completion: final criterion updates and lifecycle change
@@ -442,17 +442,17 @@ Default: `plet/trace.ndjson`. All events (across iterations, phases, and attempt
 ### TRC_AFL_4: Post-phase gate validation
 
 1. Gate script runs after phase completes
-2. `plet_trace.py validate plet/`
+2. `traces.py validate plet/`
 3. If exit 0 → trace is valid, proceed
 4. If exit 1 → trace has schema issues, report (non-blocking — trace issues don't block the loop)
 
 ### TRC_AFL_5: Case study / post-run analysis
 
 1. Human or analysis agent wants to understand what happened during a run
-2. `plet_trace.py validate plet/` — check trace integrity
-3. `plet_trace.py query plet/ --event-type decision --raw | wc -l` — count decisions made
-4. `plet_trace.py query plet/ --event-type error` — review all errors
-5. `plet_trace.py query plet/ --criterion AC_2` — trace the history of a specific criterion
+2. `traces.py validate plet/` — check trace integrity
+3. `traces.py query plet/ --event-type decision --raw | wc -l` — count decisions made
+4. `traces.py query plet/ --event-type error` — review all errors
+5. `traces.py query plet/ --criterion AC_2` — trace the history of a specific criterion
 6. Combine findings across iterations to identify patterns (e.g., which iterations had the most errors, which decisions were revised)
 
 ## 8. Examples (TRC_EXM)
@@ -460,7 +460,7 @@ Default: `plet/trace.ndjson`. All events (across iterations, phases, and attempt
 ### TRC_EXM_1: Append a decision event
 
 ```bash
-plet_trace.py append-event plet/ \
+traces.py append-event plet/ \
     --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type decision \
     --data '{"description":"Using pytest over unittest","rationale":"Requirements specify pytest in verification commands","alternatives":["unittest"]}'
@@ -470,7 +470,7 @@ plet_trace.py append-event plet/ \
 ### TRC_EXM_2: Append a criterion update
 
 ```bash
-plet_trace.py append-event plet/ \
+traces.py append-event plet/ \
     --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type criterion_update \
     --data '{"criterionId":"AC_1","phase":"implementation","status":"pass","evidence":"ruff check exits 0"}'
@@ -480,7 +480,7 @@ plet_trace.py append-event plet/ \
 ### TRC_EXM_3: Append a lifecycle change
 
 ```bash
-plet_trace.py append-event plet/ \
+traces.py append-event plet/ \
     --iter-id ITR_003 --phase verify --attempt 1 \
     --event-type lifecycle_change \
     --data '{"from":"implementing","to":"verifying"}'
@@ -490,7 +490,7 @@ plet_trace.py append-event plet/ \
 ### TRC_EXM_10: Append an invocation event
 
 ```bash
-plet_trace.py append-event plet/ \
+traces.py append-event plet/ \
     --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type invocation \
     --data '{"cwd":"/Users/dev/myproject","permissionMode":"bypassPermissions","promptLength":4820,"prompt":"Implement iteration ITR_001..."}'
@@ -500,10 +500,10 @@ plet_trace.py append-event plet/ \
 ### TRC_EXM_4: Validate a trace file
 
 ```bash
-plet_trace.py validate plet/
+traces.py validate plet/
 # OK — plet/trace.ndjson is valid (12 events)
 
-plet_trace.py validate custom/plet/
+traces.py validate custom/plet/
 # Line 4: missing required field 'rationale' for decision event
 # Line 7: invalid event type 'info'
 # ERROR — 2 errors in custom/plet/trace.ndjson (10 events, 2 invalid)
@@ -512,18 +512,18 @@ plet_trace.py validate custom/plet/
 ### TRC_EXM_5: Query events by type
 
 ```bash
-plet_trace.py query plet/ --event-type decision
+traces.py query plet/ --event-type decision
 # {"timestamp":"2026-03-07T15:10:00Z","type":"decision","iterationId":"ITR_001",...}
 # {"timestamp":"2026-03-07T15:25:00Z","type":"decision","iterationId":"ITR_001",...}
 
-plet_trace.py query plet/ --criterion AC_1
+traces.py query plet/ --criterion AC_1
 # {"timestamp":"2026-03-07T15:20:00Z","type":"criterion_update",...,"data":{"criterionId":"AC_1",...}}
 ```
 
 ### TRC_EXM_6: Query last N events
 
 ```bash
-plet_trace.py query plet/ --event-type error --last 3
+traces.py query plet/ --event-type error --last 3
 # (last 3 error events, if any)
 ```
 
@@ -531,11 +531,11 @@ plet_trace.py query plet/ --event-type error --last 3
 
 ```bash
 # Count error events
-plet_trace.py query plet/ --event-type error --raw | wc -l
+traces.py query plet/ --event-type error --raw | wc -l
 # 3
 
 # Pipe to jq for field extraction
-plet_trace.py query plet/ --event-type decision --raw | jq '.data.description'
+traces.py query plet/ --event-type decision --raw | jq '.data.description'
 # "Using pytest over unittest"
 # "SQLite for local storage"
 ```
@@ -543,7 +543,7 @@ plet_trace.py query plet/ --event-type decision --raw | jq '.data.description'
 ### TRC_EXM_7: Dry-run append
 
 ```bash
-plet_trace.py append-event plet/ \
+traces.py append-event plet/ \
     --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type activity_change \
     --data '{"activity":"running_checks","detail":"green: all tests passing"}' \
@@ -554,7 +554,7 @@ plet_trace.py append-event plet/ \
 ### TRC_EXM_8: JSON output
 
 ```bash
-plet_trace.py append-event plet/ \
+traces.py append-event plet/ \
     --iter-id ITR_001 --phase implement --attempt 1 \
     --event-type decision \
     --data '{"description":"test","rationale":"test"}' \
@@ -586,7 +586,7 @@ plet_trace.py append-event plet/ \
 | TRC_DEP_5 | imports | `util_id` | `generate_plet_id` |
 | TRC_DEP_3 | called by | `plet_gate_phase.py` | `validate` as post-gate check for both phases |
 
-No outgoing calls to other `plet_*.py` scripts — `plet_trace.py` is a leaf CLI tool.
+No outgoing calls to other `plet_*.py` scripts — `traces.py` is a leaf CLI tool.
 
 ## 10. Non-Functional Requirements (TRC_NFR)
 
@@ -675,4 +675,4 @@ None.
 
 ## 16. FOO Items Addressed
 
-- FOO_11 — Trace file generation incomplete and schema inconsistent. `plet_trace.py` makes schema compliance automatic: `append-event` produces canonical NDJSON, `validate` checks existing files.
+- FOO_11 — Trace file generation incomplete and schema inconsistent. `traces.py` makes schema compliance automatic: `append-event` produces canonical NDJSON, `validate` checks existing files.

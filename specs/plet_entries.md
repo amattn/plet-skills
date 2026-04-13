@@ -1,4 +1,4 @@
-# plet_entries.py (ENT)
+# entries.py (ENT)
 
 > Status: complete
 
@@ -23,7 +23,7 @@ Runtime artifact entries (progress, learnings, emergent) drifted in format acros
 | ENT_AGT_4 | orchestrator | pre-verify gate | `check` (verify entries exist before spawning verify) |
 | ENT_AGT_5 | gate scripts | pre/post phase gates | `check` (mandatory entry enforcement) |
 | ENT_AGT_6 | human | inspection | `check` (see what exists for an iteration) |
-| ENT_AGT_7 | external GUI / monitoring tool | reads artifact files directly for real-time visualization | none — reads markdown on disk, does not call plet_entries.py |
+| ENT_AGT_7 | external GUI / monitoring tool | reads artifact files directly for real-time visualization | none — reads markdown on disk, does not call entries.py |
 | ENT_AGT_8 | plan session agent | after key plan milestones (requirements approved, iterations defined, state initialized) | `add-progress` |
 
 ## 3. Commands
@@ -68,7 +68,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_APR_CMD_1 | Usage: `plet_entries.py add-progress <plet_dir> --iter-id ITR_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_APR_CMD_1 | Usage: `entries.py add-progress <plet_dir> --iter-id ITR_xxx --iter-title "..." --phase implement --attempt 1 --status COMPLETE --content "..." [--content-file path] [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent (each call creates a new entry), atomic append
 
@@ -162,7 +162,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_ALR_CMD_1 | Usage: `plet_entries.py add-learning <plet_dir> --iter-id ITR_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_ALR_CMD_1 | Usage: `entries.py add-learning <plet_dir> --iter-id ITR_xxx --iter-title "..." --category gotcha --title "..." --content "..." [--content-file path] --phase implement --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -254,7 +254,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_AEM_CMD_1 | Usage: `plet_entries.py add-emergent <plet_dir> --iter-id ITR_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_AEM_CMD_1 | Usage: `entries.py add-emergent <plet_dir> --iter-id ITR_xxx --iter-title "..." --title "..." --phase implement --category "design decision" --content "..." [--content-file path] --attempt 1 [--allow-fences] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (appends), not idempotent, atomic append
 
@@ -349,7 +349,7 @@ These flags apply to all commands. Per-command INP/OUT sections list only comman
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_CHK_CMD_1 | Usage: `plet_entries.py check <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| ENT_CHK_CMD_1 | Usage: `entries.py check <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -505,25 +505,25 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 
 1. Agent implements and tests a criterion
 2. Agent calls `plet_state.py update-criterion` to record status
-3. Agent calls `plet_entries.py add-progress` with summary of work done
-4. Agent calls `plet_entries.py add-learning` if something was learned
-5. Agent calls `plet_entries.py add-emergent` if a design decision or gap was discovered
+3. Agent calls `entries.py add-progress` with summary of work done
+4. Agent calls `entries.py add-learning` if something was learned
+5. Agent calls `entries.py add-emergent` if a design decision or gap was discovered
 
 ### ENT_AFL_2: Pre-verify gate check
 
-1. Gate script calls `plet_entries.py check plet/ --iter-id ITR_001`
+1. Gate script calls `entries.py check plet/ --iter-id ITR_001`
 2. If exit 0 → proceed to verification
 3. If exit 1 → block verification, report missing artifacts
 
 ### ENT_AFL_3: Refine session triage
 
 1. Refine agent resolves an emergent item
-2. Agent calls `plet_entries.py add-progress` with `--phase refine --status COMPLETE --content "EM_3 approved — added as FR_12"` and `--iter-id proj --iter-title "Refine triage"`
+2. Agent calls `entries.py add-progress` with `--phase refine --status COMPLETE --content "EM_3 approved — added as FR_12"` and `--iter-id proj --iter-title "Refine triage"`
 
 ### ENT_AFL_4: Plan session milestone
 
 1. Plan agent completes a key milestone (requirements approved, iterations defined, state initialized)
-2. Agent calls `plet_entries.py add-progress` with `--iter-id proj --iter-title "Plan session" --phase plan --attempt 1 --status COMPLETE --content "Requirements approved: 12 requirements across 3 categories."`
+2. Agent calls `entries.py add-progress` with `--iter-id proj --iter-title "Plan session" --phase plan --attempt 1 --status COMPLETE --content "Requirements approved: 12 requirements across 3 categories."`
 
 ## 8. Examples (ENT_EXM)
 
@@ -531,14 +531,14 @@ Each entry is wrapped in `<div id="plet-{id}">` and `<div id="END-plet-{id}">` m
 
 ```bash
 # After implementing AC_1 successfully
-plet_entries.py add-progress plet/ \
+entries.py add-progress plet/ \
     --iter-id ITR_001 --iter-title "Project scaffolding" \
     --phase implement --attempt 1 --status COMPLETE \
     --content "Initialized project with pytest, ruff. All checks pass."
 # OK — epr_01JD8X3K7M_id001_i1
 
 # Record what was learned
-plet_entries.py add-learning plet/ \
+entries.py add-learning plet/ \
     --iter-id ITR_001 --iter-title "Project scaffolding" \
     --category technique \
     --title "ruff config needs explicit rule selection" \
@@ -547,7 +547,7 @@ plet_entries.py add-learning plet/ \
 # OK — eln_01JD8X3K8N_id001_i1
 
 # Record a design decision discovered during implementation
-plet_entries.py add-emergent plet/ \
+entries.py add-emergent plet/ \
     --iter-id ITR_001 --iter-title "Project scaffolding" \
     --title "Chose SQLite over PostgreSQL" --phase implement \
     --category "design decision" \
@@ -560,21 +560,21 @@ plet_entries.py add-emergent plet/ \
 
 ```bash
 # Check that entries exist before allowing verification
-plet_entries.py check plet/ --iter-id ITR_001
+entries.py check plet/ --iter-id ITR_001
 #   OK — progress: 1 entry(ies) for ITR_001
 #   OK — learnings: 1 entry(ies) for ITR_001
 #   OK — emergent: 1 entry(ies) for ITR_001
 # OK — all artifacts have entries for ITR_001
 
 # Check with JSON output for programmatic use
-plet_entries.py check plet/ --iter-id ITR_002 --output json
+entries.py check plet/ --iter-id ITR_002 --output json
 # {"status":"error","command":"check","iteration":"ITR_002","progress":0,"learnings":0,"emergent":0,"allPresent":false,...}
 ```
 
 ### ENT_EXM_3: Dry-run preview
 
 ```bash
-plet_entries.py add-progress plet/ --dry-run \
+entries.py add-progress plet/ --dry-run \
     --iter-id ITR_003 --iter-title "API endpoints" \
     --phase implement --attempt 1 --status COMPLETE \
     --content "GET and POST endpoints implemented."
@@ -585,7 +585,7 @@ plet_entries.py add-progress plet/ --dry-run \
 
 ```bash
 # After requirements are approved
-plet_entries.py add-progress plet/ \
+entries.py add-progress plet/ \
     --iter-id proj --iter-title "Plan session" \
     --phase plan --attempt 1 --status COMPLETE \
     --content "Requirements approved: 12 requirements across 3 categories. Iterations defined: 8 iterations with dependency graph."
@@ -596,7 +596,7 @@ plet_entries.py add-progress plet/ \
 
 ```bash
 # Mid-implementation checkpoint — record progress before phase ends
-plet_entries.py add-progress plet/ \
+entries.py add-progress plet/ \
     --iter-id ITR_002 --iter-title "Core data model" \
     --phase implement --attempt 1 --status IN_PROGRESS \
     --content "SQLite schema created, CRUD operations implemented. Still working on migration logic."
@@ -614,7 +614,7 @@ plet_entries.py add-progress plet/ \
 | ENT_DEP_5 | imports | `util_id` | `generate_plet_id`, `normalize_iteration` |
 | ENT_DEP_3 | called by | `plet_gate_phase.py` | `check` as post-gate for both implement and verify phases |
 
-No outgoing calls to other `plet_*.py` scripts — `plet_entries.py` is a leaf CLI tool.
+No outgoing calls to other `plet_*.py` scripts — `entries.py` is a leaf CLI tool.
 
 ## 10. Non-Functional Requirements (ENT_NFR)
 
@@ -633,7 +633,7 @@ See `specs/conventions.md` for universal requirements.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ENT_DXP_1 | Plet ID printed to stdout enables scripting: `ID=$(plet_entries.py add-progress ...)` — output format is `OK — {plet_id}` | P0 |
+| ENT_DXP_1 | Plet ID printed to stdout enables scripting: `ID=$(entries.py add-progress ...)` — output format is `OK — {plet_id}` | P0 |
 | ENT_DXP_2 | `check` exit code enables gating — exit 0 means all entries present, exit 1 means incomplete. Gate scripts check the exit code to proceed or block. | P0 |
 | ENT_DXP_3 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure (UNV_DXP_5) | P0 |
 | ENT_DXP_4 | Category/status/phase enums listed in error messages and help text | P0 |

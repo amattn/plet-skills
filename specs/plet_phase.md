@@ -9,8 +9,8 @@
 | Step | Script | Subcommand |
 |------|--------|-----------|
 | 1 | `plet_iter_state.py` | `set-verdict --phase implement --verdict {completed\|blocked}` |
-| 2 | `plet_entries.py` | `add-progress --status {COMPLETE\|BLOCKED}` |
-| 3 | `plet_trace.py` | `append-event --event-type decision` |
+| 2 | `entries.py` | `add-progress --status {COMPLETE\|BLOCKED}` |
+| 3 | `traces.py` | `append-event --event-type decision` |
 | 4 | `plet_git_ops.py` | `audit-tag --phase implement` |
 | 5 | `git` | `add -A && commit` |
 
@@ -20,8 +20,8 @@
 |------|--------|-----------|
 | 1 | `plet_iter_state.py` | `set-verdict --phase verify --verdict {passed\|rejected\|blocked}` |
 | 1.5 | `plet_iter_state.py` | `add-report` (verify only — auto-built from criteria via --summary, or from --report-file) |
-| 2 | `plet_entries.py` | `add-progress --status {COMPLETE\|FAILED\|BLOCKED}` |
-| 3 | `plet_trace.py` | `append-event --event-type decision` |
+| 2 | `entries.py` | `add-progress --status {COMPLETE\|FAILED\|BLOCKED}` |
+| 3 | `traces.py` | `append-event --event-type decision` |
 | 4 | `plet_git_ops.py` | `audit-tag --phase verify` |
 | 5 | `git` | `add -A && commit` |
 
@@ -111,8 +111,8 @@ plet_phase.py end <plet_dir> --iter-id ITR_xxx --phase implement|verify
 
 This is a composite command — preconditions, postconditions, and behaviors are inherited from the underlying scripts it calls. See specs for:
 - `plet_iter_state.py` (IST) — set-verdict, add-report
-- `plet_entries.py` (ENT) — add-progress
-- `plet_trace.py` (TRC) — append-event
+- `entries.py` (ENT) — add-progress
+- `traces.py` (TRC) — append-event
 - `plet_git_ops.py` (GTO) — audit-tag
 
 #### Execution sequence (PHS_END_BHV_1)
@@ -121,8 +121,8 @@ This is a composite command — preconditions, postconditions, and behaviors are
 |------|--------------|--------------|
 | 1 | `plet_iter_state.py set-verdict` | Set implement/verify verdict, clear phaseActivity |
 | 1.5 | `plet_iter_state.py add-report` | (verify only — auto-built from criteria via --summary, or from --report-file) Append verification report |
-| 2 | `plet_entries.py add-progress` | Write COMPLETE/BLOCKED/FAILED progress entry |
-| 3 | `plet_trace.py append-event` | Emit decision event (phase ended with verdict) |
+| 2 | `entries.py add-progress` | Write COMPLETE/BLOCKED/FAILED progress entry |
+| 3 | `traces.py append-event` | Emit decision event (phase ended with verdict) |
 | 4 | `plet_git_ops.py audit-tag` | Create audit tag preserving commit history |
 | 5 | `git add -A && git commit` | Commit all artifacts |
 
@@ -166,8 +166,8 @@ plet_phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed 
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
 | PHS_DEP_1 | calls | `plet_iter_state.py` | set-verdict, add-report |
-| PHS_DEP_2 | calls | `plet_entries.py` | add-progress |
-| PHS_DEP_3 | calls | `plet_trace.py` | append-event |
+| PHS_DEP_2 | calls | `entries.py` | add-progress |
+| PHS_DEP_3 | calls | `traces.py` | append-event |
 | PHS_DEP_4 | calls | `plet_git_ops.py` | audit-tag |
 | PHS_DEP_5 | called by | implement subagent | end of implement phase |
 | PHS_DEP_6 | called by | verify subagent | end of verify phase |

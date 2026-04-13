@@ -22,7 +22,7 @@ Assembles the prompt that gets sent to implement and verify subagents. Reads ref
 
 | ID | Caller | Context | Commands used |
 |----|--------|---------|---------------|
-| PRM_AGT_1 | plet_invoke.py | before launching `claude -p` subprocess | `assemble` |
+| PRM_AGT_1 | invoke.py | before launching `claude -p` subprocess | `assemble` |
 | PRM_AGT_2 | orchestrator script | prompt preview / debugging | `assemble` |
 | PRM_AGT_3 | human | manual inspection — "what would the agent see?" | `assemble` |
 
@@ -54,7 +54,7 @@ Assemble is read-only — `--dry-run` is NOT applicable.
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PRM_ASM_JUS_1 | Why: assembles a deterministic prompt from files on disk. Agents that construct their own context miss learnings, forget formats, or omit state. This command makes prompt construction reliable. | P0 |
-| PRM_ASM_JUS_2 | When: called by plet_invoke.py immediately before launching `claude -p`. Also by humans for debugging. | P0 |
+| PRM_ASM_JUS_2 | When: called by invoke.py immediately before launching `claude -p`. Also by humans for debugging. | P0 |
 | PRM_ASM_JUS_3 | Deprecation signal: only if subagents gain native access to plet state (unlikely — context isolation is a feature). | P1 |
 
 #### Definition (PRM_ASM_CMD)
@@ -204,7 +204,7 @@ The prompt is assembled from sections in a specific order. The order matters —
 
 ### PRM_AFL_1: Invoke calls assemble before launching subprocess
 
-1. `plet_invoke.py` prepares to launch subagent
+1. `invoke.py` prepares to launch subagent
 2. Calls: `plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement`
 3. Captures stdout (the assembled prompt text)
 4. Pipes prompt to: `claude -p "{prompt}" --output-format stream-json`
@@ -286,7 +286,7 @@ plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement --output json 
 | PRM_DEP_1 | imports | `util_cli` | shared CLI helpers |
 | PRM_DEP_2 | imports | `util_io` | path derivation, load functions |
 | PRM_DEP_3 | imports | `util_state` | `load_and_validate_iter_state`, `load_and_validate_global_state` for state formatting + lifecycle |
-| PRM_DEP_4 | called by | `plet_invoke.py` | assembles prompt before subprocess launch |
+| PRM_DEP_4 | called by | `invoke.py` | assembles prompt before subprocess launch |
 
 No subprocess calls to other plet scripts — PRM is a leaf that reads files directly.
 

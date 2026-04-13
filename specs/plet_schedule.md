@@ -327,7 +327,7 @@ Retry policy implements IMP_14. The decision tree:
 3. If empty and some `blocked` → report to SKILL.md, end session
 4. For each eligible ID:
    a. `plet_schedule.py check-breakpoints plet/ --iter-id ITR_xxx --position before` → if `hit`, pause and return to SKILL.md
-   b. Spawn implement + verify subagents (via plet_invoke.py)
+   b. Spawn implement + verify subagents (via invoke.py)
    c. Read `implementVerdict`/`verifyVerdict` from worktree per-iteration state
    d. If `verifyVerdict == "rejected"`: `plet_schedule.py check-retry plet/ --iter-id ITR_xxx` → if `abort`, mark blocked; if `continue`, set lifecycle to `queued` via GST
    e. If `verifyVerdict == "passed"`: merge-squash, set lifecycle to `complete` via GST
@@ -477,7 +477,7 @@ See `specs/conventions.md` for requirements common to all scripts.
 |----|------|-------------|
 | SCH_FUT_1 | Configurable retry limits | Per-project or per-iteration retry limits beyond the IMP_14 defaults. `check-retry` would read config from state.json or a config file. |
 | SCH_FUT_2 | Priority scheduling | `eligible` could return iterations ordered by priority (critical path, milestone urgency) rather than simple ID order. |
-| SCH_FUT_3 | Parallel group awareness | `eligible` could group results by `parallelGroups` membership to help the orchestrator batch spawns. |
+| SCH_FUT_3 | ~~Parallel group awareness~~ | Superseded by PLAN_SEQ — `parallelGroups` removed from schema. |
 | SCH_FUT_4 | evaluate-verdict command | Consolidate verdict reading + retry decision into one command: `evaluate-verdict --phase verify` returns "merge", "retry", "block", or "crash". Orchestrator makes one call instead of reading verdict + conditionally calling check-retry. Same for implement phase. Reduces orchestrator routing logic to a single subprocess call per phase. |
 
 ## 16. FOO Items Addressed

@@ -52,7 +52,7 @@ Every script follows the same structure:
 - **Help everywhere:** every command supports `-h` and `--help`. Top-level `script.py --help` prints the module docstring with all commands. Help text is agent-readable — include copy-pasteable examples that agents can use directly
 - **Named arguments with `--`:** `--iter-id ITR_001 --phase implement`. Positional args only for the first 1-2 arguments (file paths, artifact directories)
 - **Require arguments, never default:** Almost every flag should be required. Never silently default a missing argument — agents forget optional flags, and defaults hide bugs with plausible-looking wrong data. See specs/NOTES.md § "Critical Insight: Require Arguments, Never Default"
-- **No argparse:** manual argument parsing via `parse_kwargs()` pattern. Keeps scripts simple, avoids argparse's verbosity, and gives full control over error messages. Use the shared `parse_kwargs` pattern from `plet_entries.py`
+- **No argparse:** manual argument parsing via `parse_kwargs()` pattern. Keeps scripts simple, avoids argparse's verbosity, and gives full control over error messages. Use the shared `parse_kwargs` pattern from `entries.py`
 - **JSON for complex values:** arrays and objects passed as JSON strings: `--criteria '[{"id":"AC_1"}]'`
 - **Version flag:** every script supports `--version`, printing `<script_name> <version> (built against plet skill <skill_version>)`. Example: `plet_state 0.1.0 (built against plet skill 0.1.0)`. The skill version is the version from `skills/plet/SKILL.md` frontmatter that the script was built to work with. If the skill makes a non-backward-compatible semver change (major bump), scripts built against the old version need to be reviewed and updated
 - **Usage flag:** every script supports `--usage`, printing compact invocation syntax + description + copy-pasteable example for each command. Agents use this as first lookup before `--help`. Each `cmd_*` function must have: a one-line docstring, a `.usage` attribute (required flags with placeholders), and an `.example` attribute (realistic invocation). Escalation: cheat sheet → `--usage` → `--help`
@@ -72,7 +72,7 @@ Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently no
 ### File I/O
 
 - **Atomic writes for state files:** write to `path.tmp`, then `os.rename(tmp, path)`. External readers never see partial JSON
-- **Atomic appends for runtime artifacts:** write to temp file, read it back, append to target, remove temp. See `plet_entries.py:atomic_append()`
+- **Atomic appends for runtime artifacts:** write to temp file, read it back, append to target, remove temp. See `entries.py:atomic_append()`
 - **Always add trailing newline** after JSON (`f.write("\n")`) so files are POSIX-compliant and diff-friendly
 - **Never read-modify-write runtime artifacts.** Append only. State files are read-modify-write (single writer per iteration)
 
@@ -84,8 +84,9 @@ Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently no
 
 ### Naming
 
-- **CLI tool scripts:** `plet_<domain>.py` — e.g., `plet_state.py`, `plet_entries.py`, `plet_trace.py`, `plet_git.py`. Callable via `Bash()`, listed in `allowed-tools`, executable (`chmod +x`)
-- **Internal modules:** `util_<concern>.py` — e.g., `util_cli.py`, `util_io.py`, `util_id.py`. Imported by `plet_*.py` scripts, never called directly, not listed in `allowed-tools`, not executable. The `plet_` prefix signals "CLI tool"; `util_` signals "internal dependency."
+- **Agent-facing CLI wrappers:** `plet_<name>.py` — `plet_agent.py`, `plet_orchestrator.py`, `plet_tools.py`. These are the entry points agents call directly. Listed in `allowed-tools`. The wrapper name may change; library scripts behind them are stable.
+- **Library scripts:** `<domain>.py` — e.g., `entries.py`, `fingerprint.py`, `traces.py`, `global_state.py`. Callable via Bash (executable, `chmod +x`) but typically called by wrappers or the orchestrator, not directly by agents.
+- **Internal modules:** `util_<concern>.py` — e.g., `util_cli.py`, `util_io.py`, `util_id.py`. Imported by other scripts, never called directly, not executable. The `util_` prefix signals "internal dependency."
 - **Command names:** lowercase, hyphen-separated — e.g., `update-criterion`, `add-progress`, `check-stashes`
 - **Function names:** `cmd_<command_with_underscores>` — e.g., `cmd_update_criterion`, `cmd_add_progress`
 
@@ -93,7 +94,7 @@ Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently no
 
 Tests live at `skills/plet/tests/` (sibling to `scripts/`, not inside it).
 
-**File naming:** `test_<script_name>.py` — e.g., `test_plet_state.py`, `test_plet_entries.py`
+**File naming:** `test_plet_<script_name>.py` — e.g., `test_plet_entries.py`, `test_plet_fingerprint.py`. Test files kept the `plet_` prefix when library scripts were renamed.
 
 **Zero dependencies applies to tests too.** No pytest, no unittest, no third-party test frameworks. Tests use a minimal custom harness built on stdlib only. This matches the constraint on the scripts themselves — if the scripts can't use third-party packages, neither can their tests.
 
@@ -163,33 +164,43 @@ Scripts that need to be callable by agents without permission prompts must be li
 
 ```yaml
 allowed-tools:
-  - Bash(${CLAUDE_SKILL_DIR}/scripts/plet_state.py *)
-  - Bash(${CLAUDE_SKILL_DIR}/scripts/plet_entries.py *)
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/plet_agent.py *)
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/plet_orchestrator.py *)
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/plet_tools.py *)
 ```
 
 Add new scripts to this list as they're built. The path-based pattern (`scripts/*`) approves only shipped scripts — more secure than `Bash(python *)` which would approve arbitrary Python commands.
 
 ## Current Inventory
 
-### CLI Tools (`plet_*.py`)
+### Agent-Facing CLI Wrappers (`plet_*.py`)
 
 | Script | Purpose | Commands |
 |--------|---------|----------|
-| `plet_global_state.py` | Global state management (state.json) | `init`, `update-lifecycle`, `get-lifecycle`, `validate` |
-| `plet_iter_state.py` | Per-iteration state management | `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate` |
-| `plet_entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
-| `plet_fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` |
-| `plet_trace.py` | Trace NDJSON schema enforcement | `append-event`, `validate`, `query` |
-| `plet_git_iteration.py` | Git iteration lifecycle (branches, worktrees) | `branch-name`, `worktree-create`, `worktree-remove` |
-| `plet_git_ops.py` | Git workflow operations | `audit-tag`, `wip-commit`, `rebase-commit`, `rebase-prep`, `merge-squash` |
-| `plet_git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
-| `plet_gate_session.py` | Session-level gate checks (read-only) | `detect`, `status`, `preflight`, `postflight` |
-| `plet_gate_phase.py` | Phase gate (pre/post, `--phase implement\|verify`) | `pre`, `post` |
-| `plet_prompt.py` | Prompt assembly for subagents | `assemble` |
-| `plet_invoke.py` | Subprocess launch + transcript capture | `run` |
-| `plet_schedule.py` | Loop scheduling decisions (read-only) | `eligible`, `check-breakpoints`, `check-retry` |
-| `plet_session.py` | Session lifecycle management (mutating) | `start-session`, `end-session` |
-| `plet_orchestrator.py` | Main implement→verify loop (the capstone) | `run` |
+| `plet_agent.py` | Subagent CLI — the agent's entire plet vocabulary | `update-activity`, `update-criterion`, `wip-commit`, `add-learning`, `add-emergent`, `phase-end` |
+| `plet_orchestrator.py` | Main loop (the capstone) | `run` |
+| `plet_tools.py` | Project-level tools | `init`, `detect`, `status`, `preflight` |
+| `plet_merge_driver.py` | Custom git merge driver for state files | (git merge driver) |
+
+### Library Scripts (`<domain>.py`)
+
+| Script | Purpose | Commands |
+|--------|---------|----------|
+| `global_state.py` | Global state management (state.json) | `init`, `update-lifecycle`, `get-lifecycle`, `validate` |
+| `iter_state.py` | Per-iteration state management | `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate` |
+| `entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
+| `fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` |
+| `traces.py` | Trace NDJSON schema enforcement | `append-event`, `validate`, `query` |
+| `git_ops.py` | Git workflow operations | `audit-tag`, `wip-commit`, `rebase-commit`, `rebase-prep`, `merge-squash` |
+| `git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
+| `gate_session.py` | Session-level gate checks (read-only) | `detect`, `status`, `preflight`, `postflight` |
+| `gate_phase.py` | Phase gate (pre/post, `--phase implement\|verify`) | `pre`, `post` |
+| `prompt.py` | Prompt assembly for subagents | `assemble` |
+| `invoke.py` | Subprocess launch + transcript capture | `run` |
+| `schedule.py` | Loop scheduling decisions (read-only) | `eligible`, `check-breakpoints`, `check-retry` |
+| `session.py` | Session lifecycle management (mutating) | `start-session`, `end-session` |
+| `phase.py` | Phase composite operations | `end` |
+| `bootstrap.py` | Project bootstrap | `init` |
 
 ### Internal Modules (`util_*.py`)
 

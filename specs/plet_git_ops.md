@@ -31,7 +31,7 @@ worktree-remove ── clean up working directory (GTI)
 
 GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → workstream). Worktree cleanup is GTI's responsibility. Audit tags are always created, even if verify made no commits (consistent audit trail).
 
-**Responsibility boundary:** GTO is a pure git tool — it does git operations and returns results (tag names, commit hashes, squashed counts). It does NOT write to progress.md or trace files. The **orchestrator** is responsible for logging GTO results: calling `plet_entries.py add-progress` with the tag/squash metadata and `plet_trace.py append-event` for the lifecycle record. GTO returns the data; the orchestrator logs it.
+**Responsibility boundary:** GTO is a pure git tool — it does git operations and returns results (tag names, commit hashes, squashed counts). It does NOT write to progress.md or trace files. The **orchestrator** is responsible for logging GTO results: calling `entries.py add-progress` with the tag/squash metadata and `traces.py append-event` for the lifecycle record. GTO returns the data; the orchestrator logs it.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|

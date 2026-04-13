@@ -1,4 +1,4 @@
-# plet_fingerprint.py (FPR)
+# fingerprint.py (FPR)
 
 > Status: complete
 
@@ -59,7 +59,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EXT_CMD_1 | Usage: `plet_fingerprint.py extract <plet_dir> --type TYPE [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements` or `iterations` | P0 |
+| FPR_EXT_CMD_1 | Usage: `fingerprint.py extract <plet_dir> --type TYPE [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements` or `iterations` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -133,7 +133,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_EMB_CMD_1 | Usage: `plet_fingerprint.py embed <plet_dir> --type TYPE [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements`, `iterations`, or `state` | P0 |
+| FPR_EMB_CMD_1 | Usage: `fingerprint.py embed <plet_dir> --type TYPE [--bump] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` where TYPE is `requirements`, `iterations`, or `state` | P0 |
 
 **Properties:** mutating (modifies file), idempotent (same content produces same fingerprint), atomic write
 
@@ -220,7 +220,7 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FPR_CHK_CMD_1 | Usage: `plet_fingerprint.py check <plet_dir> [--level LEVEL] [--output json [--pretty] [--fields f1,f2]]` where LEVEL is `requirements`, `iterations`, or `all` (default: `all`) | P0 |
+| FPR_CHK_CMD_1 | Usage: `fingerprint.py check <plet_dir> [--level LEVEL] [--output json [--pretty] [--fields f1,f2]]` where LEVEL is `requirements`, `iterations`, or `all` (default: `all`) | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -371,40 +371,40 @@ Fingerprints span three files — `requirements.md` → `iterations.md` → `sta
 ### FPR_AFL_1: Refine session fingerprint update (refine.md Step 8)
 
 1. Agent finishes spec/iteration changes
-2. `plet_fingerprint.py embed plet/ --type requirements --bump`
-3. `plet_fingerprint.py embed plet/ --type iterations --bump`
-4. `plet_fingerprint.py embed plet/ --type state`
-5. `plet_fingerprint.py check plet/` — verify all three are consistent
+2. `fingerprint.py embed plet/ --type requirements --bump`
+3. `fingerprint.py embed plet/ --type iterations --bump`
+4. `fingerprint.py embed plet/ --type state`
+5. `fingerprint.py check plet/` — verify all three are consistent
 
 ### FPR_AFL_2: Pre-loop staleness gate
 
-1. Orchestrator calls `plet_fingerprint.py check plet/`
+1. Orchestrator calls `fingerprint.py check plet/`
 2. If exit 0 → proceed with loop
 3. If exit 1 → report staleness warning (SY_6), halt for human decision
 
 ### FPR_AFL_3: Prose-only spec change (no ID changes)
 
 1. Agent rewrites requirement text, adjusts acceptance criteria wording, or changes architecture section — no IDs added/removed
-2. `plet_fingerprint.py embed plet/ --type requirements --bump` — auto-bump won't fire (IDs unchanged), `--bump` force-bumps to signal the change is non-trivial
-3. `plet_fingerprint.py embed plet/ --type iterations --bump` — cascades the bumped timestamp
-4. `plet_fingerprint.py embed plet/ --type state`
-5. `plet_fingerprint.py check plet/` — verify consistency
+2. `fingerprint.py embed plet/ --type requirements --bump` — auto-bump won't fire (IDs unchanged), `--bump` force-bumps to signal the change is non-trivial
+3. `fingerprint.py embed plet/ --type iterations --bump` — cascades the bumped timestamp
+4. `fingerprint.py embed plet/ --type state`
+5. `fingerprint.py check plet/` — verify consistency
 
 This is the primary use case for `--bump` — without it, a prose-only change would leave `lastNonTrivialUpdate` unchanged and downstream artifacts wouldn't know the spec evolved.
 
 ### FPR_AFL_4: Plan session finalization
 
 1. Plan agent writes `requirements.md` and `iterations.md`
-2. `plet_fingerprint.py embed plet/ --type requirements --bump`
-3. `plet_fingerprint.py embed plet/ --type iterations --bump`
-4. State files are initialized by `plet_state.py init` — plan agent calls `plet_fingerprint.py embed plet/ --type state` after init
+2. `fingerprint.py embed plet/ --type requirements --bump`
+3. `fingerprint.py embed plet/ --type iterations --bump`
+4. State files are initialized by `plet_state.py init` — plan agent calls `fingerprint.py embed plet/ --type state` after init
 
 ## 8. Examples (FPR_EXM)
 
 ### FPR_EXM_1: Extract fingerprint from requirements.md
 
 ```bash
-plet_fingerprint.py extract plet/ --type requirements
+fingerprint.py extract plet/ --type requirements
 # {
 #   "lastNonTrivialUpdate": "2026-03-07T14:30:00Z",
 #   "milestones": ["MS_1", "MS_2"],
@@ -420,13 +420,13 @@ plet_fingerprint.py extract plet/ --type requirements
 
 ```bash
 # Added FR_4 to requirements.md, then embed
-plet_fingerprint.py embed plet/ --type requirements
+fingerprint.py embed plet/ --type requirements
 # OK — embedded requirements fingerprint in plet/requirements.md (timestamp auto-bumped)
 
-plet_fingerprint.py embed plet/ --type iterations
+fingerprint.py embed plet/ --type iterations
 # OK — embedded iterations fingerprint in plet/iterations.md
 
-plet_fingerprint.py embed plet/ --type state
+fingerprint.py embed plet/ --type state
 # OK — embedded state fingerprint in plet/state.json
 ```
 
@@ -434,25 +434,25 @@ plet_fingerprint.py embed plet/ --type state
 
 ```bash
 # Rewrote FR_2 requirement text, no IDs added/removed
-plet_fingerprint.py embed plet/ --type requirements --bump
+fingerprint.py embed plet/ --type requirements --bump
 # OK — embedded requirements fingerprint in plet/requirements.md (timestamp force-bumped)
 
-plet_fingerprint.py embed plet/ --type iterations --bump
+fingerprint.py embed plet/ --type iterations --bump
 # OK — embedded iterations fingerprint in plet/iterations.md (timestamp force-bumped)
 
-plet_fingerprint.py embed plet/ --type state
+fingerprint.py embed plet/ --type state
 # OK — embedded state fingerprint in plet/state.json
 ```
 
 ### FPR_EXM_4: Check all levels
 
 ```bash
-plet_fingerprint.py check plet/
+fingerprint.py check plet/
 #   OK — requirements: fingerprint matches iterations.md
 #   OK — iterations: fingerprint matches state.json
 # OK — all fingerprints consistent
 
-plet_fingerprint.py check plet/
+fingerprint.py check plet/
 #   OK — requirements: fingerprint matches iterations.md
 #   STALE — iterations: state.json has older fingerprint
 #     added: ITR_005
@@ -463,7 +463,7 @@ plet_fingerprint.py check plet/
 ### FPR_EXM_5: JSON output for programmatic use
 
 ```bash
-plet_fingerprint.py check plet/ --output json --pretty
+fingerprint.py check plet/ --output json --pretty
 # {
 #   "status": "stale",
 #   "command": "check",
@@ -487,7 +487,7 @@ plet_fingerprint.py check plet/ --output json --pretty
 
 ```bash
 # Fresh requirements.md with IDs but no fingerprint block yet
-plet_fingerprint.py embed plet/ --type requirements
+fingerprint.py embed plet/ --type requirements
 # OK — embedded requirements fingerprint in plet/requirements.md (timestamp auto-bumped)
 # (fingerprint block created — first embed)
 ```
@@ -495,7 +495,7 @@ plet_fingerprint.py embed plet/ --type requirements
 ### FPR_EXM_7: Dry-run embed
 
 ```bash
-plet_fingerprint.py embed plet/ --type requirements --bump --dry-run
+fingerprint.py embed plet/ --type requirements --bump --dry-run
 # DRY RUN — would embed requirements fingerprint in plet/requirements.md (timestamp would be force-bumped)
 ```
 
@@ -508,7 +508,7 @@ plet_fingerprint.py embed plet/ --type requirements --bump --dry-run
 | FPR_DEP_3 | called by | `plet_gate_session.py` | `check` as preflight staleness gate |
 | FPR_DEP_4 | called by | `plet_orchestrator.py` | `check` before loop start |
 
-No outgoing calls to other `plet_*.py` scripts — `plet_fingerprint.py` is a leaf CLI tool.
+No outgoing calls to other `plet_*.py` scripts — `fingerprint.py` is a leaf CLI tool.
 
 ## 10. Non-Functional Requirements (FPR_NFR)
 
@@ -591,7 +591,7 @@ None — all resolved.
 |----|------|-------------|
 | FPR_FUT_1 | ~~Incremental computation~~ | Withdrawn — mtime is fragile (git checkout resets it). Full scan is fast enough for expected file sizes (NFR_3). If perf becomes an issue, content hashing is the right approach, but not worth speccing now. |
 | FPR_FUT_2 | Orphan detection | Extend `check` to report IDs in fingerprints that don't exist in the actual definitions (orphaned references). Currently deferred to consistency pass tools. |
-| FPR_FUT_3 | Auto-embed on state init | `plet_state.py init` could call `plet_fingerprint.py embed --type state` automatically. Eliminates a manual step. |
+| FPR_FUT_3 | Auto-embed on state init | `plet_state.py init` could call `fingerprint.py embed --type state` automatically. Eliminates a manual step. |
 
 ## 16. PRD Items Addressed
 

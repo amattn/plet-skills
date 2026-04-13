@@ -116,7 +116,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 |----|-------------|----------|
 | GST_INI_BHV_1 | Auto-initialize `lifecycles` from `dependencyMap`: empty deps → `queued`, non-empty deps → `ineligible`. One less thing for the caller to manage. | P0 |
 | GST_INI_BHV_2 | Set `lastUpdated` to current ISO timestamp | P0 |
-| GST_INI_BHV_3 | Initialize `breakpoints`, `parallelGroups`, `sessionHistory` to defaults. `cleanupTagsAutomatically` and `cleanupBranchesAutomatically` always `false` (manual edit if needed). | P0 |
+| GST_INI_BHV_3 | Initialize `breakpoints`, `sessionHistory` to defaults. `cleanupTagsAutomatically` and `cleanupBranchesAutomatically` always `false` (manual edit if needed). (`parallelGroups` removed — superseded by PLAN_SEQ.) | P0 |
 | GST_INI_BHV_7 | Create `{global_plet_dir}/state/` subdirectory (no error if already exists). Prepares for IST `init` to create per-iteration files. | P0 |
 | GST_INI_BHV_4 | Validate `--project-id` against pattern `[A-Z][A-Z0-9]{2,5}` before writing | P0 |
 | GST_INI_BHV_5 | Validate `--dependency-map`, `--milestones`, `--iterations-fingerprint` are valid JSON before writing | P0 |
@@ -444,4 +444,4 @@ plet_global_state.py validate plet
 
 | # | Question | Context |
 |---|----------|---------|
-| 1 | Should `update-lifecycle` append a *semantic* progress entry beyond the dispatch auto-log? | `util_cli.dispatch()` already auto-logs every invocation to trace + progress.md (invocation-level: script name, command, args, exit code). The question is whether `update-lifecycle` should also append a richer, semantic entry like "ITR_001: implementing → verifying (implement completed)". Trade-off: richer progress log vs coupling GST to plet_entries.py. The auto-log captures *that* it was called; a semantic entry captures *what it means*. |
+| 1 | Should `update-lifecycle` append a *semantic* progress entry beyond the dispatch auto-log? | `util_cli.dispatch()` already auto-logs every invocation to trace + progress.md (invocation-level: script name, command, args, exit code). The question is whether `update-lifecycle` should also append a richer, semantic entry like "ITR_001: implementing → verifying (implement completed)". Trade-off: richer progress log vs coupling GST to entries.py. The auto-log captures *that* it was called; a semantic entry captures *what it means*. |

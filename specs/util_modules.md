@@ -142,7 +142,7 @@ Full schemas in `references/state-schema.md`.
 
 ## util_format.py
 
-Canonical markdown templates for plet runtime artifact entries (progress.md, learnings.md, emergent.md). Single source of truth for entry format — eliminates drift between the entries CLI (`plet_entries.py`) and invocation logging (`util_cli._log_script_invocation`).
+Canonical markdown templates for plet runtime artifact entries (progress.md, learnings.md, emergent.md). Single source of truth for entry format — eliminates drift between the entries CLI (`entries.py`) and invocation logging (`util_cli._log_script_invocation`).
 
 Also provides `now_iso()` for timestamp generation within templates (avoiding a circular dependency with `util_cli`).
 

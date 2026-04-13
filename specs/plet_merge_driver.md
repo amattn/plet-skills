@@ -74,7 +74,7 @@ If the driver is not configured, git falls back to default three-way merge — w
 | `plet/progress.md` | Markdown, `###` fenced entries | Yes — orchestrator (gate results, session events) + subagent (implementation/verification progress) |
 | `plet/learnings.md` | Markdown, `###` fenced entries | Yes — orchestrator (rarely) + subagent (patterns, gotchas) |
 | `plet/emergent.md` | Markdown, `###` fenced entries | Mostly subagent — orchestrator rarely writes. Included for safety. |
-| `plet/trace/*.ndjson` | NDJSON, one JSON object per line | Yes — `plet_invoke.py` writes invocation event to workstream, subagent writes activity/decision events to worktree |
+| `plet/trace/*.ndjson` | NDJSON, one JSON object per line | Yes — `invoke.py` writes invocation event to workstream, subagent writes activity/decision events to worktree |
 
 ## 7. Testing (MGD_TST)
 
@@ -97,6 +97,6 @@ If the driver is not configured, git falls back to default three-way merge — w
 | # | Question | Decision |
 |---|----------|----------|
 | 1 | Which files need the driver? | Runtime artifacts + trace NDJSON. Per-iteration state files don't need it — SF_28 moved lifecycle to state.json, and subagent is sole writer to per-iteration files (no conflict). |
-| 2 | What about traces? | Yes — `plet_invoke.py` writes invocation event to workstream trace, subagent writes to worktree trace. Same filename, different branches. Same append-only merge. |
+| 2 | What about traces? | Yes — `invoke.py` writes invocation event to workstream trace, subagent writes to worktree trace. Same filename, different branches. Same append-only merge. |
 | 3 | Line-based or entry-based comparison? | Line-based. Simpler, works for both markdown (multi-line entries) and NDJSON (one object per line). Entry-based parsing would be more robust but adds complexity for no current benefit. |
 | 4 | What if git auto-resolves without the driver? | Often works (append-to-end). The driver makes it deterministic. If driver isn't configured, git's default merge is an acceptable fallback. |

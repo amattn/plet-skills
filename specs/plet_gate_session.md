@@ -228,7 +228,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 | GSS_STS_BHV_3 | Lists blocked iterations with their IDs and titles. Blocked status from `state.json.lifecycles`, title from per-iteration file. | P0 |
 | GSS_STS_BHV_4 | Lists active agents (iterations where `agentId` is not null) with iteration ID and `phaseActivity` (was `agentActivity`). | P0 |
 | GSS_STS_BHV_5 | Calls `detect` logic internally to include `sessionType` in output. | P0 |
-| GSS_STS_BHV_6 | Checks fingerprint consistency by calling `plet_fingerprint.py check` via subprocess. Reports `consistent: true/false`. If fingerprint check fails (missing files or script not found), reports `consistent: null` with detail. Graceful degradation — status always produces a result. | P1 |
+| GSS_STS_BHV_6 | Checks fingerprint consistency by calling `fingerprint.py check` via subprocess. Reports `consistent: true/false`. If fingerprint check fails (missing files or script not found), reports `consistent: null` with detail. Graceful degradation — status always produces a result. | P1 |
 | GSS_STS_BHV_7 | Invalid state files are counted and reported as warnings. | P0 |
 | GSS_STS_BHV_8 | Reports progress as `complete / total` with percentage. | P0 |
 | GSS_STS_BHV_9 | Milestone breakdown: reads milestones from global state, cross-references iteration IDs to show per-milestone progress. In text output, milestones appear at the bottom (detail, not headline). In JSON output, included as a `milestones` object. | P0 |
@@ -311,12 +311,12 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 |----|-------------|----------|
 | GSS_PRF_BHV_1 | **claude-md-exists**: Checks `CLAUDE.md` exists in project root. WARN if missing (FOO_23). plet works without it but institutional memory is lost. | P0 |
 | GSS_PRF_BHV_2 | **gitignore-plet**: Checks `.gitignore` includes `.plet/` or `.plet`. WARN if missing. `.plet/` is local working state (worktrees, caches) — shouldn't be committed. | P0 |
-| GSS_PRF_BHV_3 | ~~**bypass-permissions**~~: Dropped. `plet_invoke.py` launches subprocesses with `claude --enable-auto-mode` — project-level permission settings don't matter for subprocess invocations. The invoke script owns the permission model. | — |
+| GSS_PRF_BHV_3 | ~~**bypass-permissions**~~: Dropped. `invoke.py` launches subprocesses with `claude --enable-auto-mode` — project-level permission settings don't matter for subprocess invocations. The invoke script owns the permission model. | — |
 | GSS_PRF_BHV_4 | **spec-artifacts**: If `plet_dir` exists, checks `requirements.md` and `iterations.md` exist. FAIL if plet_dir exists but spec artifacts are missing (FOO_16 — lost artifacts make the project unresumable). PASS if plet_dir doesn't exist (fresh project, plan will create them). | P0 |
 | GSS_PRF_BHV_5 | **state-valid**: If `plet/state.json` exists, validates it via `util_state.load_and_validate_global_state()`. FAIL if invalid. PASS if doesn't exist (fresh project). | P0 |
-| GSS_PRF_BHV_6 | **fingerprints-consistent**: Severity depends on session type (from `--session-type`): **plan** → SKIPPED (plan creates/overwrites spec artifacts, fingerprint check is irrelevant). **loop** → calls `plet_fingerprint.py check` via subprocess; PASS if consistent, FAIL if stale (agents would implement against stale requirements — wasted work). **refine** → calls `plet_fingerprint.py check`; PASS if consistent, WARN if stale (refine is where you fix staleness). Fingerprint script's own errors bubble up as-is. If `plet_fingerprint.py` itself is missing, caught by scripts-installed check. | P0 |
+| GSS_PRF_BHV_6 | **fingerprints-consistent**: Severity depends on session type (from `--session-type`): **plan** → SKIPPED (plan creates/overwrites spec artifacts, fingerprint check is irrelevant). **loop** → calls `fingerprint.py check` via subprocess; PASS if consistent, FAIL if stale (agents would implement against stale requirements — wasted work). **refine** → calls `fingerprint.py check`; PASS if consistent, WARN if stale (refine is where you fix staleness). Fingerprint script's own errors bubble up as-is. If `fingerprint.py` itself is missing, caught by scripts-installed check. | P0 |
 | GSS_PRF_BHV_7 | **git-check**: Calls `plet_git_check.py check-session` via subprocess. Preflight IS a session boundary — CKS was designed for this. FAIL/WARN results from CKS are included in preflight output (each CKS check becomes a preflight check with its original name prefixed: `git:in-progress-operation`, `git:orphaned-worktrees`, etc). Replaces the standalone git-repo check — CKS already checks for git repo internally. If `plet_git_check.py` is missing, caught by scripts-installed. | P0 |
-| GSS_PRF_BHV_9 | **scripts-installed**: Verifies key plet scripts exist in `${CLAUDE_SKILL_DIR}/scripts/` (plet_state.py, plet_entries.py, plet_fingerprint.py, plet_trace.py, plet_git_iteration.py, plet_git_ops.py, plet_git_check.py, plet_invoke.py). FAIL if any missing — corrupted installation. | P0 |
+| GSS_PRF_BHV_9 | **scripts-installed**: Verifies key plet scripts exist in `${CLAUDE_SKILL_DIR}/scripts/` (plet_state.py, entries.py, fingerprint.py, traces.py, plet_git_iteration.py, plet_git_ops.py, plet_git_check.py, invoke.py). FAIL if any missing — corrupted installation. | P0 |
 | GSS_PRF_BHV_8 | Check order: scripts-installed → git-check (CKS) → claude-md-exists → gitignore-plet → spec-artifacts → state-valid → fingerprints-consistent. Scripts first (can't run anything without them), then git health (CKS), then project-level checks. | P0 |
 
 ---
@@ -370,7 +370,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 | GSS_EDG_7 | `--fields` without `--output json` — error. | P0 |
 | GSS_EDG_8 | Duplicate flags — error via `parse_kwargs`. | P0 |
 | GSS_EDG_9 | `--dry-run` passed — error (all commands are read-only). | P0 |
-| GSS_EDG_10 | ~~`.claude/settings.local.json` bypass-permissions check~~ — Dropped. `plet_invoke.py` uses `claude --enable-auto-mode` for subprocesses. |  |
+| GSS_EDG_10 | ~~`.claude/settings.local.json` bypass-permissions check~~ — Dropped. `invoke.py` uses `claude --enable-auto-mode` for subprocesses. |  |
 | GSS_EDG_11 | All iterations `ineligible` only — detect returns `refine`. Circular dependencies or missing upstream work needs human intervention. | P0 |
 
 ## 5. Error Handling (GSS_ERR)
@@ -394,7 +394,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 | GSS_FMT_1 | Reads `plet/state.json` via `util_state` for project context. | P0 |
 | GSS_FMT_2 | Reads lifecycles from `state.json.lifecycles` (SF_28). Reads per-iteration `state/*.json` for non-lifecycle data (titles, agentId, phaseActivity, reports). | P0 |
 | GSS_FMT_3 | Reads `plet/requirements.md`, `plet/iterations.md` for existence checks. | P0 |
-| GSS_FMT_4 | Reads `CLAUDE.md`, `.gitignore` for preflight. Calls `plet_git_check.py` and `plet_fingerprint.py` via subprocess. | P0 |
+| GSS_FMT_4 | Reads `CLAUDE.md`, `.gitignore` for preflight. Calls `plet_git_check.py` and `fingerprint.py` via subprocess. | P0 |
 | GSS_FMT_5 | Writes nothing — all commands are read-only. | P0 |
 
 ## 7. Agent Flows (GSS_AFL)
@@ -521,7 +521,7 @@ plet_gate_session.py preflight --session-type detect
 |----|-----------|--------|-------------|
 | GSS_DEP_1 | imports | `util_cli` | `parse_kwargs`, `now_iso`, `dispatch`, `filter_fields` |
 | GSS_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
-| GSS_DEP_3 | calls (subprocess) | `plet_fingerprint.py` | `check` for fingerprint consistency |
+| GSS_DEP_3 | calls (subprocess) | `fingerprint.py` | `check` for fingerprint consistency |
 | GSS_DEP_6 | calls (subprocess) | `plet_git_check.py` | `check-session` for git health at preflight |
 | GSS_DEP_4 | called by | SKILL.md | routing at `/plet` entry |
 | GSS_DEP_5 | called by | `plet_orchestrator.py` | session start preflight + detect |
@@ -556,7 +556,7 @@ See `specs/conventions.md` for universal requirements.
 | GSS_CRT_5 | preflight fresh project | Fresh project fails preflight | Run preflight on empty dir, verify passes (no artifacts to check) |
 | GSS_CRT_6 | preflight missing CLAUDE.md | Missing CLAUDE.md not caught | Remove CLAUDE.md, verify WARN |
 | GSS_CRT_7 | preflight missing spec artifacts | Lost artifacts not caught (FOO_16) | Create plet/ with state but no requirements, verify FAIL |
-| GSS_CRT_8 | ~~preflight bypass-permissions~~ | Dropped — plet_invoke.py uses `claude --enable-auto-mode`. |  |
+| GSS_CRT_8 | ~~preflight bypass-permissions~~ | Dropped — invoke.py uses `claude --enable-auto-mode`. |  |
 | GSS_CRT_9 | preflight exit codes | Wrong exit code for warn vs fail | Verify 0/1/2 mapping |
 | GSS_CRT_10 | detect bare output | Extra text breaks shell capture | Verify output is exactly one word |
 | GSS_CRT_11 | preflight GTC integration | CKS checks missing from preflight | Run preflight, verify git:* checks appear in output |
@@ -584,7 +584,7 @@ See `specs/conventions.md` for universal requirements.
 | 2 | Should detect output `status` as a session type? | No — `status` is a command, not a session type. detect returns `plan`, `loop`, or `refine`. The user can force `/plet status` via the SKILL.md command parsing, not via detect. |
 | 3 | Should preflight auto-fix issues (create CLAUDE.md, add .gitignore entry)? | No — preflight is read-only. It diagnoses, the caller fixes. Same principle as GTC (check but don't fix). |
 | 4 | Should status call fingerprint check? | Yes but as P1 — it's the most expensive operation. detect deliberately avoids it for speed. |
-| 5 | Should preflight check bypassPermissions? | No — dropped. `plet_invoke.py` launches subprocesses with `claude --enable-auto-mode` (see https://claude.com/blog/auto-mode). Project-level permission settings don't affect subprocess invocations. The invoke script owns the permission model. FOO_22 resolved by architecture, not by preflight checks. |
+| 5 | Should preflight check bypassPermissions? | No — dropped. `invoke.py` launches subprocesses with `claude --enable-auto-mode` (see https://claude.com/blog/auto-mode). Project-level permission settings don't affect subprocess invocations. The invoke script owns the permission model. FOO_22 resolved by architecture, not by preflight checks. |
 
 ## Open Questions
 
@@ -598,10 +598,10 @@ See `specs/conventions.md` for universal requirements.
 |----|------|-------------|
 | GSS_FUT_1 | Bootstrap command | A `bootstrap` command that auto-fixes preflight warnings: creates CLAUDE.md, adds .plet/ to .gitignore, sets up bypassPermissions. Currently left to the caller. |
 | GSS_FUT_2 | Health score | A composite health score (0-100) combining preflight, GTC checks, and status into one number for dashboard display. |
-| GSS_FUT_3 | Detailed fingerprint diff | Instead of just "consistent/stale", include which artifacts drifted and what IDs changed. Currently deferred to `plet_fingerprint.py check --output json`. |
+| GSS_FUT_3 | Detailed fingerprint diff | Instead of just "consistent/stale", include which artifacts drifted and what IDs changed. Currently deferred to `fingerprint.py check --output json`. |
 
 ## 16. FOO Items Addressed
 
 - FOO_16 — Spec artifacts not preserved. `preflight` checks requirements.md and iterations.md exist when plet directory is present.
-- FOO_22 — bypassPermissions not configured. Resolved by architecture: `plet_invoke.py` uses `claude --enable-auto-mode` for subprocesses (see https://claude.com/blog/auto-mode). Preflight check dropped — project-level permission settings don't affect subprocess invocations.
+- FOO_22 — bypassPermissions not configured. Resolved by architecture: `invoke.py` uses `claude --enable-auto-mode` for subprocesses (see https://claude.com/blog/auto-mode). Preflight check dropped — project-level permission settings don't affect subprocess invocations.
 - FOO_23 — CLAUDE.md missing. `preflight` checks CLAUDE.md exists.

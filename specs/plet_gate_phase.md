@@ -289,7 +289,7 @@ Post-gate re-verifies git and state, then checks artifacts. Verify adds verdict 
 |----|-------------|----------|
 | GPH_FMT_1 | Reads `{plet_dir}/state.json` via `util_state`. | P0 |
 | GPH_FMT_2 | Reads `{plet_dir}/state/{iter_id}.json` via `util_state`. | P0 |
-| GPH_FMT_3 | Reads runtime artifacts indirectly via `plet_entries.py check`. | P0 |
+| GPH_FMT_3 | Reads runtime artifacts indirectly via `entries.py check`. | P0 |
 | GPH_FMT_4 | Writes nothing — read-only. | P0 |
 
 ## 7. Agent Flows (GPH_AFL)
@@ -406,9 +406,9 @@ Note: implement post includes `implement-verdict` but not `verify-verdict`, `ver
 | GPH_DEP_3 | imports | `util_io` | `load_json`, `state_json_path`, `iter_state_path` |
 | GPH_DEP_4 | calls (subprocess) | `plet_git_check.py` | `check-iteration --phase {phase}` |
 | GPH_DEP_5 | reads | `state.json` | `lifecycles` field for lifecycle-check (pre only, SF_28) |
-| GPH_DEP_6 | calls (subprocess) | `plet_entries.py` | `check` (post only) |
-| GPH_DEP_7 | calls (subprocess) | `plet_trace.py` | `validate` (post only) |
-| GPH_DEP_8 | calls (subprocess) | `plet_fingerprint.py` | `check` (implement pre only) |
+| GPH_DEP_6 | calls (subprocess) | `entries.py` | `check` (post only) |
+| GPH_DEP_7 | calls (subprocess) | `traces.py` | `validate` (post only) |
+| GPH_DEP_8 | calls (subprocess) | `fingerprint.py` | `check` (implement pre only) |
 | GPH_DEP_9 | called by | `plet_orchestrator.py` | pre/post both phases |
 
 ## 10. Non-Functional Requirements (GPH_NFR)
