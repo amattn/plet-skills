@@ -2490,6 +2490,36 @@ Even if milestone verify takes 3x longer checking ACs, heavy savings on infrastr
 
 **PLAN_VER rewrite enables this.** verify.md is already scoped to functional AC checking. Adapting it for milestone scope (check N iterations' ACs instead of 1) is a reference file change, not an architectural change.
 
+#### NOTES_PLN_MSV_7: Implementation decisions (2026-04-11)
+
+**MSV_2/MSV_3 are no-ops.** Analysis during implementation revealed:
+- `LOOP_LIFECYCLES` in `gate_session.py` is session-level, not per-iteration. `verifying` must stay for refactor iters. No change needed.
+- `verifyVerdict` clearing in `iter_state.py` is harmless — sets `None` to `None` for regular iters. No change needed.
+
+**Milestone iteration list uses dependency map.** `state.json.dependencyMap[ITR_RFT_1]` already contains exactly the list of iterations whose ACs the verify agent should check. No new data structure needed. `prompt.py` reads the dep list, extracts iteration blocks from `iterations.md`, and injects them as a `milestone-iterations` prompt section.
+
+**Per-iteration verify opt-in flag deferred.** MSV_6 recommended it as an escape hatch. Not built — start with pure MSV (no per-iteration verify at all), validate with a real run. If needed, add later.
+
+**Verify rejection protocol changed.** Old: verify writes failing tests, leaves them on the branch. New (milestone scope): verify fixes issues in-place (small/scoped) or marks criterion failed with evidence + learnings (large/risky). No code writes from verify that aren't fixes.
+
+#### NOTES_PLN_MSV_8: Implementation complete (2026-04-11)
+
+All MSV steps done except MSV_10 (real run comparison). Changes across 6 script/test files + 4 reference/doc files. 100/100 orchestrator tests, 80/80 prompt tests. Consistency pass updated 13 files for stale `implement→verify` references.
+
+#### NOTES_PLN_MSV_9: MSV_10 validation — LOGA R17 results (2026-04-13)
+
+**Result: MSV partially validated.** Verify skip works perfectly. Milestone AC verification is broken.
+
+**What worked:** All 13 regular iterations correctly skipped verify (verifyVerdict: null, attempts.verify: 0). Orchestrator routing `implementing → complete` is reliable. 90m wall clock — fastest LOGA ever (18% faster than R16). ~14m saved from eliminating per-iteration verify.
+
+**What broke:** `update-criterion` can only write to the current iteration's state file. When ITR_RFT_1's verify agent tried milestone ACs using prefixed IDs (`ITR_001_AC_1`), all calls returned exitCode 1 ("criterion not found"). Agent self-corrected to own 4 ACs only. Same pattern on ITR_RFT_2. ITR_RFT_3 had a partial workaround: plan agent baked milestone checks into the refactor AC definitions (AC_1-3 explicitly verify ITR_012/013 functionality), but this was inconsistent — RFT_1 and RFT_2 had generic refactor ACs only.
+
+**Key positive:** ITR_RFT_1 verify caught a real integration gap — `--from`/`--to`/`--field` CLI flags implemented in filter package but never wired to `main.go`. Fixed in-place. This validates the MSV hypothesis that integration issues are caught at milestone boundaries.
+
+**Fix needed (P1):** Cross-iteration AC verification. Options: (a) allow update-criterion to target other iterations' state files, (b) copy milestone ACs into refactor state at plan time, (c) write a milestone verification report without using update-criterion, (d) have plan agent consistently embed milestone checks in refactor AC definitions (ITR_RFT_3 pattern). See CASE_LOGA_R17_REC_1.
+
+**Other findings:** Plan phase counts as implement attempt 1, pushing real work to attempt 2 (i2/v2 suffixes). 16 tiny 1-line plan trace files. No plan branch created. Learnings recovered to 14 (R16: 2). See full case study: CASE_STUDY_LOGA_R17.md.
+
 ---
 
 ### NOTES_PLN_VOS: PLAN_VOS — Verify on the Side
