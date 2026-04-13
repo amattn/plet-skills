@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from util_cli import dispatch  # noqa: E402
 
-SCRIPT_VERSION = "0.2.0"
+SCRIPT_VERSION = "0.3.0"
 # Import command functions from modules
 from entries import cmd_add_emergent, cmd_add_learning  # noqa: E402
 from git_ops import cmd_wip_commit  # noqa: E402
@@ -41,7 +41,7 @@ from phase import cmd_end as cmd_phase_end  # noqa: E402
 from util_constants import SKILL_VERSION  # noqa: E402
 
 
-def _emit_trace_event(event_type, command, exit_code=None):
+def _emit_trace_event(event_type, command, exit_code=None, args=None):
     """Emit a trace event to the NDJSON trace file if plet env vars are set.
 
     Uses PLET_DIR, PLET_ITER_ID, PLET_PHASE, PLET_ATTEMPT from environment
@@ -60,6 +60,8 @@ def _emit_trace_event(event_type, command, exit_code=None):
     data = {"command": command}
     if exit_code is not None:
         data["exitCode"] = exit_code
+    if args is not None:
+        data["args"] = list(args)
 
     cmd_append_event(
         [
@@ -163,20 +165,28 @@ def _dispatch_with_trace(commands, args):
     """Dispatch a command with entry/exit trace events and auto-activity."""
     # Parse command name from args (before --no-log stripping)
     command = None
-    for arg in args:
+    cmd_idx = None
+    for i, arg in enumerate(args):
         if not arg.startswith("-") and arg != "--no-log" and arg in commands:
             command = arg
+            cmd_idx = i
             break
 
+    # Extract flags after command (skip plet_dir positional and command name)
+    cmd_args = list(args[cmd_idx + 1 :]) if cmd_idx is not None else []
+    # Strip plet_dir (first non-flag arg after command) from traced args
+    if cmd_args and not cmd_args[0].startswith("-"):
+        cmd_args = cmd_args[1:]
+
     if command:
-        _emit_trace_event("cli_entry", command)
+        _emit_trace_event("cli_entry", command, args=cmd_args)
         _auto_update_activity(command, args)
 
     # Run the actual dispatch
     rc = dispatch(commands, "plet_agent", SCRIPT_VERSION, SKILL_VERSION, __doc__)
 
     if command:
-        _emit_trace_event("cli_exit", command, exit_code=rc)
+        _emit_trace_event("cli_exit", command, exit_code=rc, args=cmd_args)
 
     return rc
 

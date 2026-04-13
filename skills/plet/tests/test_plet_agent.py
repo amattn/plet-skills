@@ -110,7 +110,7 @@ def test_help_and_version():
 
     out, _, _ = run(["--version"])
     check("--version has name", "plet_agent" in out)
-    check("--version has version", "0.2.0" in out)
+    check("--version has version", "0.3.0" in out)
 
 
 def test_command_help():
@@ -337,8 +337,9 @@ def test_emit_trace_event_with_env():
             old_env[k] = os.environ.get(k)
             os.environ[k] = v
         try:
-            plet_agent._emit_trace_event("cli_entry", "update-criterion")
-            plet_agent._emit_trace_event("cli_exit", "update-criterion", exit_code=0)
+            test_args = ["--iter-id", "ITR_001", "--criterion", "AC_1", "--status", "pass"]
+            plet_agent._emit_trace_event("cli_entry", "update-criterion", args=test_args)
+            plet_agent._emit_trace_event("cli_exit", "update-criterion", exit_code=0, args=test_args)
 
             path = events_path(plet_dir, "ITR_001", "implement", 1)
             check("trace file created", os.path.isfile(path), f"path: {path}")
@@ -349,6 +350,12 @@ def test_emit_trace_event_with_env():
                 check("entry type", events[0].get("type") == "cli_entry")
                 check("exit type", events[1].get("type") == "cli_exit")
                 check("exit has exitCode", events[1].get("data", {}).get("exitCode") == 0)
+                entry_data = events[0].get("data", {})
+                check("entry has args", "args" in entry_data, f"data keys: {list(entry_data.keys())}")
+                check("args is list", isinstance(entry_data.get("args"), list))
+                check("args contains --iter-id", "--iter-id" in entry_data.get("args", []))
+                exit_data = events[1].get("data", {})
+                check("exit has args", "args" in exit_data, f"data keys: {list(exit_data.keys())}")
         finally:
             for k, v in old_env.items():
                 if v is None:
