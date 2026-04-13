@@ -640,7 +640,7 @@ Developer experience of working with the plet skill itself.
 
 <!-- NOTE: Will be extracted to references/plan-templates.md in a future step.
      Two template dimensions: project type (common, webapp, cli, library) × platform (python, elixir, go, etc.)
-     See NOTES_PLN_PRD_RESOLVED OQ_PRD_1 for full decision. -->
+     See NOTES_PLAN_PRD_RESOLVED OQ_PRD_1 for full decision. -->
 
 DX items that the plan session should always consider incorporating into target project PRDs. Framed by three guiding principles:
 

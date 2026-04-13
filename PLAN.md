@@ -22,10 +22,10 @@
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
 | PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | ✓ COMPLETE (16/16) — validated OLLR R08 |
 | PLAN_VER | Verify Phase Rewrite | ✓ COMPLETE (9/9) — validated OLLR R07 |
-| PLAN_FIX | Small Fixes Backlog | 3/4 done (FIX_3 deferred) |
+| PLAN_FIX | Small Fixes Backlog | 6/7 done (FIX_3 deferred) |
 | PLAN_RFT | Refactor Loop | ✓ COMPLETE (6/6) — validated LOGA R16 (refactor agent extracted real code) |
 | PLAN_MSV | Milestone-Scoped Verify | Paused — R17 ran but inconclusive (milestone verify didn't check milestone ACs due to tooling gap). Staying on 0.7.0 per-iteration verify. |
-| PLAN_VOS | Verify on the Side | Paused — design exploration complete. See NOTES_PLN_VOS |
+| PLAN_VOS | Verify on the Side | Paused — design exploration complete. See NOTES_PLAN_VOS |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -36,43 +36,43 @@
 
 ## PLAN_SKL–PLAN_PKG: Foundation ✓ COMPLETE
 
-SKILL.md entry point, 6 reference files, plugin packaging. See NOTES.md § NOTES_PLN_FOUNDATION.
+SKILL.md entry point, 6 reference files, plugin packaging. See NOTES.md § NOTES_PLAN_FOUNDATION.
 
 ---
 
 ## PLAN_CS: Case Study Feedback Loop ✓ COMPLETE
 
-8 case studies, 3 projects, FOO_1–72 tracked. See NOTES.md § NOTES_PLN_FOUNDATION.
+8 case studies, 3 projects, FOO_1–72 tracked. See NOTES.md § NOTES_PLAN_FOUNDATION.
 
 ---
 
 ## PLAN_NOT: Notes Skill ✓ COMPLETE
 
-`/notes` skill for living development notes. Published in session-kit. See NOTES.md § NOTES_PLN_FOUNDATION.
+`/notes` skill for living development notes. Published in session-kit. See NOTES.md § NOTES_PLAN_FOUNDATION.
 
 ---
 
 ## PLAN_XS: Extractable Skills ✓ COMPLETE
 
-6 skills shipped to session-kit marketplace. See NOTES.md § NOTES_PLN_FOUNDATION.
+6 skills shipped to session-kit marketplace. See NOTES.md § NOTES_PLAN_FOUNDATION.
 
 ---
 
 ## PLAN_FT: Feedback Triage ✓ COMPLETE
 
-72 FOO items triaged: 67 resolved, 5 withdrawn, 12 deferred to PLAN_PY. See NOTES.md § NOTES_PLN_FOUNDATION.
+72 FOO items triaged: 67 resolved, 5 withdrawn, 12 deferred to PLAN_PY. See NOTES.md § NOTES_PLAN_FOUNDATION.
 
 ---
 
 ## PLAN_PY: Python Tooling ✓ COMPLETE
 
-14 scripts + 6 utilities. Detailed build plan: `specs/PLAN.md`. See NOTES.md § NOTES_PLN_FOUNDATION.
+14 scripts + 6 utilities. Detailed build plan: `specs/PLAN.md`. See NOTES.md § NOTES_PLAN_FOUNDATION.
 
 ---
 
 ## PLAN_RW: PRD + ORC + SKILL.md + Reference Files Rewrite ✓ COMPLETE
 
-Full rewrite validated by LOGA R06 (13/13, zero intervention). See NOTES.md § NOTES_PLN_FOUNDATION.
+Full rewrite validated by LOGA R06 (13/13, zero intervention). See NOTES.md § NOTES_PLAN_FOUNDATION.
 
 ---
 
@@ -121,7 +121,7 @@ Formalize how we measure whether plet's prompts and scripts actually improve out
 
 **Decision (2026-04-13):** Continue with 0.7.0 per-iteration verify. LOGA may be too well-specced for verify to produce meaningful conclusions or take significant action — the 96% rubber-stamp rate may reflect good specs rather than wasted work. Both VOS and MSV are paused pending a project where verify demonstrably adds value.
 
-Drop per-iteration verify, move verification to milestone boundaries. Case study analysis across 24 runs shows per-iteration verify has a ~96% rubber-stamp rate while costing 25-35% of loop time. The 5 real catches were all integration gaps — better caught at milestone scope. See NOTES.md § NOTES_PLN_MSV for full analysis, SPARK reanalysis, cost model, and risk assessment.
+Drop per-iteration verify, move verification to milestone boundaries. Case study analysis across 24 runs shows per-iteration verify has a ~96% rubber-stamp rate while costing 25-35% of loop time. The 5 real catches were all integration gaps — better caught at milestone scope. See NOTES.md § NOTES_PLAN_MSV for full analysis, SPARK reanalysis, cost model, and risk assessment.
 
 **Core change:** Regular iterations run implement-only (gate enforces tests + lint + git clean). The refactor iteration's verify phase at each milestone boundary expands to include AC spot-checking across the milestone's iterations. Default behavior, no flag to revert.
 
@@ -175,7 +175,7 @@ Drop per-iteration verify, move verification to milestone boundaries. Case study
 
 ## PLAN_VOS: Verify on the Side
 
-**Status: Paused.** Design exploration complete. Both MSV and VOS are paused (2026-04-13) — LOGA R17 showed MSV's implementation was inconclusive, and the broader question is whether verify adds meaningful value on well-specced projects. VOS may be revisited if a project surfaces where per-iteration verification demonstrably catches issues, or if the audit-tag + artifacts-only pattern proves useful for other purposes (parallel subplets, CI integration). Full design and analysis in NOTES.md § NOTES_PLN_VOS.
+**Status: Paused.** Design exploration complete. Both MSV and VOS are paused (2026-04-13) — LOGA R17 showed MSV's implementation was inconclusive, and the broader question is whether verify adds meaningful value on well-specced projects. VOS may be revisited if a project surfaces where per-iteration verification demonstrably catches issues, or if the audit-tag + artifacts-only pattern proves useful for other purposes (parallel subplets, CI integration). Full design and analysis in NOTES.md § NOTES_PLAN_VOS.
 
 ---
 
@@ -201,7 +201,7 @@ Design thinking exists in NOTES.md (§ Multi-Developer Analysis, subplet branch 
 
 ## PLAN_PRD: PRD Reorganization & Sync
 
-PRD is significantly out of sync with the current system after PLAN_SEQ, PLAN_RFT, PLAN_IDR, and lifecycle extraction. Full audit completed (2026-04-08). Outline approved. See NOTES.md § NOTES_PLN_PRD for audit findings and design decisions.
+PRD is significantly out of sync with the current system after PLAN_SEQ, PLAN_RFT, PLAN_IDR, and lifecycle extraction. Full audit completed (2026-04-08). Outline approved. See NOTES.md § NOTES_PLAN_PRD for audit findings and design decisions.
 
 **Scope:** Reorganize PRD structure + sync all content to match current code/skill state.
 
@@ -260,7 +260,7 @@ Both NOTES.md (2300 lines) and specs/NOTES.md (1900 lines) had design decisions 
 | NTS_1 | Stable labels + TOC on root NOTES.md (17 H2s, 8 plan H3s) | ✓ done |
 | NTS_2 | Stable labels + TOC on specs/NOTES.md (8 H2s) | ✓ done |
 | NTS_3 | specs/NOTES.md: reorganize into labeled sections | ✓ done — SPEC_INV (3), SPEC_TAX (4), SPEC_INS (3), SPEC_DES (4), SPEC_PLN (4: COV, CLN, HLP stub, PAR stub), SPEC_REV (15 scripts), SPEC_IMP (chronological, at bottom) |
-| NTS_4 | Root NOTES.md: move scattered plan decisions into NOTES_PLN_XXX sections | ✓ done — HLP, PAR, RFT moved. COV/CLN routed to specs/NOTES.md (content restored after premature deletion). |
+| NTS_4 | Root NOTES.md: move scattered plan decisions into NOTES_PLAN_XXX sections | ✓ done — HLP, PAR, RFT moved. COV/CLN routed to specs/NOTES.md (content restored after premature deletion). |
 | NTS_5 | Slim PLAN.md — move detail to NOTES.md, keep steps + pointers | ✓ done — 458→264 lines (-42%). 8 completed sections slimmed. |
 | NTS_6 | Label all H3s in root NOTES.md | ✓ done — 88 H3s labeled. 97 total. Time markers not needed (thematic sections, not chronological). |
 | NTS_7 | Final audit: both files, orphaned content, stale references | ✓ done — all clean. 0 unlabeled H3s, 0 stale pointers, 0 TODO stubs, all PLAN.md pointers resolve. |
@@ -269,7 +269,7 @@ Both NOTES.md (2300 lines) and specs/NOTES.md (1900 lines) had design decisions 
 
 ## PLAN_RBS: Rebase-over-Squash
 
-Replace merge-squash with rebase + fast-forward merge. Individual wip commits from implement/verify survive into workstream history. Simplifies conflict recovery (rebase is already the recovery path). Eliminates the merge-squash bugs from R09/R10. See NOTES.md § NOTES_PLN_RBS for design decisions.
+Replace merge-squash with rebase + fast-forward merge. Individual wip commits from implement/verify survive into workstream history. Simplifies conflict recovery (rebase is already the recovery path). Eliminates the merge-squash bugs from R09/R10. See NOTES.md § NOTES_PLAN_RBS for design decisions.
 
 **Motivation:** Every case study with parallel execution (R09, R10, R11) hit merge-squash failures. The squash operation adds complexity (dirty-tree recovery, stdout/stderr conflict detection) for a cosmetic benefit (one commit per iteration). Rebase gives linear history with full commit visibility.
 
@@ -301,7 +301,7 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 | RBS_24 | SKILL.md: loop runs ONCE — never auto-restart | ✓ done |
 | RBS_25 | Validate with real run | ✓ done |
 
-> **Note:** PLAN_RBS is now ✓ COMPLETE (25/25). The parallel-specific aspects of RBS (conflict recovery, requeue flow, rebase-prep) are superseded by PLAN_SEQ, which strips parallel entirely. See NOTES.md § NOTES_PLN_SEQ and PLAN_SEQ.
+> **Note:** PLAN_RBS is now ✓ COMPLETE (25/25). The parallel-specific aspects of RBS (conflict recovery, requeue flow, rebase-prep) are superseded by PLAN_SEQ, which strips parallel entirely. See NOTES.md § NOTES_PLAN_SEQ and PLAN_SEQ.
 
 ---
 
@@ -309,7 +309,7 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 
 **Goal: agents should spend most of their time implementing or verifying, not dealing with plet mechanics.** Strip parallel orchestration, restructure 14 CLI scripts into 3 entry points + importable modules, simplify branch model to one workstream per loop. Keep RBS for linear history, keep all tooling improvements.
 
-See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhead analysis, and script layout.
+See NOTES.md § NOTES_PLAN_SEQ for full decision rationale, OQ decisions, overhead analysis, and script layout.
 
 **Architecture:**
 
@@ -392,7 +392,7 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 
 ## PLAN_IDR: Iteration ID Rename
 
-Rename iteration ID prefix from `ID_` to `ITR_` across the entire system. `ID_` is too generic — grep noise in target projects. `ITR_` is unambiguous and plet-specific. See NOTES.md § NOTES_PLN_IDR for rationale and scoping decisions.
+Rename iteration ID prefix from `ID_` to `ITR_` across the entire system. `ID_` is too generic — grep noise in target projects. `ITR_` is unambiguous and plet-specific. See NOTES.md § NOTES_PLAN_IDR for rationale and scoping decisions.
 
 Category-by-category execution. Hard cut (no transition period). Historical artifacts (case studies, old NOTES) left as-is. Variable names (`iter_id`) unchanged.
 
@@ -424,7 +424,7 @@ Category-by-category execution. Hard cut (no transition period). Historical arti
 
 ## PLAN_VER: Verify Phase Rewrite
 
-Rewrite phase-verify.md to match what agents actually do well (functional verification) and stop asking them to do what they don't (code review). Tighten scope, enforce independence, remove unused paths. See NOTES.md § NOTES_PLN_VER for all decisions and rationale.
+Rewrite phase-verify.md to match what agents actually do well (functional verification) and stop asking them to do what they don't (code review). Tighten scope, enforce independence, remove unused paths. See NOTES.md § NOTES_PLAN_VER for all decisions and rationale.
 
 **Core changes:** VF_9/broad VF_8/broad VF_10 → refactor (PLAN_RFT). Fix-in-place removed. Anti-Slop + Convergence collapsed. Artifact Audit removed (gate handles it). Verify-first independence (evidence deferred). Pre-flight moved to implement.
 
@@ -439,7 +439,7 @@ Rewrite phase-verify.md to match what agents actually do well (functional verifi
 | VER_5 | Verify phase-implement.md phase-end gate enforces pre-flight (tests pass, git clean) | ✓ confirmed (gate-post checks state, entries; phase-end handles git) |
 | | **Phase 3: Cross-reference Updates** | |
 | VER_6 | Update SKILL.md verify description if needed | ✓ no changes needed |
-| VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to phase-refactor.md | ✓ done (NOTES_PLN_RFT updated) |
+| VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to phase-refactor.md | ✓ done (NOTES_PLAN_RFT updated) |
 | | **Phase 4: Validate** | |
 | VER_8 | Test suite passes | ✓ done (1041 tests, 91% coverage) |
 | VER_9 | Validate with real run (OLLR R07) | ✓ done — verify-first confirmed, auto-emit 136 changes, 21m |
@@ -490,15 +490,15 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 | FIX_2 | oneLiner truncation in auto-report builder — `"Independently verified: read oller"` cut mid-word (root cause: `.split(".")` splits on file extensions) | R05/R06 | P2 | ✓ done |
 | FIX_3 | progress.md volume — ~1400 lines for 6 iters from auto-progress CLI shim, may need throttling or consolidation for larger projects | R05/R06 | P2 | deferred |
 | FIX_4 | `unknown-phase` trace files — infer `plan`/`refine` from session state, keep `unknown` as true fallback | R05 | P3 | ✓ done |
-| FIX_5 | Stale references in SKILL.md + reference files — old script names (`plet_fingerprint.py` etc.), stale field names (`agentActivity`, `parallelGroups` in refine.md), withdrawn SF_18 heading in formats.md, `section 3.6` ref in formats.md. Full list in NOTES § NOTES_PLN_PRD_PASS. | PLAN_PRD | P2 | ✓ done |
+| FIX_5 | Stale references in SKILL.md + reference files — old script names (`plet_fingerprint.py` etc.), stale field names (`agentActivity`, `parallelGroups` in refine.md), withdrawn SF_18 heading in formats.md, `section 3.6` ref in formats.md. Full list in NOTES § NOTES_PLAN_PRD_PASS. | PLAN_PRD | P2 | ✓ done |
 | FIX_6 | Rename reference files with `session-`/`phase-` prefixes: `plan.md` → `session-plan.md`, `refine.md` → `session-refine.md`, `implement.md` → `phase-implement.md`, `verify.md` → `phase-verify.md`, `refactor.md` → `phase-refactor.md`. Update prompt.py, SKILL.md, all references. | naming convention | P3 | ✓ done |
-| FIX_7 | Rename `NOTES_PLN_*` stable labels to `NOTES_PLAN_*` — resolve inconsistency between 3-letter abbreviation and full plan chunk names (PLAN_MSV, PLAN_VOS, etc.). Sweep pass across NOTES.md, update TOC, grep for all references. | naming consistency | P3 | not started |
+| FIX_7 | Renamed `NOTES_PLN_*` stable labels to `NOTES_PLAN_*` — resolved inconsistency between 3-letter abbreviation and full plan chunk names (PLAN_MSV, PLAN_VOS, etc.). 104 replacements across 4 files. | naming consistency | P3 | ✓ done |
 
 ---
 
 ## PLAN_RFT: Refactor Loop
 
-Milestone-boundary refactor via synthetic iteration. Milestones are execution barriers. Refactor iterations use the standard implement→verify lifecycle with a specialized reference file — no new phase, no schema changes. Single attempt, always included, user can remove. See NOTES.md § NOTES_PLN_RFT + § NOTES_PLN_RFT_SIMPLIFY for design decisions and simplification rationale.
+Milestone-boundary refactor via synthetic iteration. Milestones are execution barriers. Refactor iterations use the standard implement→verify lifecycle with a specialized reference file — no new phase, no schema changes. Single attempt, always included, user can remove. See NOTES.md § NOTES_PLAN_RFT + § NOTES_PLAN_RFT_SIMPLIFY for design decisions and simplification rationale.
 
 **Architecture:** `ITR_RFT_N` is a normal iteration. `prompt.py` detects the `ITR_RFT_` prefix and injects `phase-refactor.md` instead of `phase-implement.md`. Standard verdicts, standard lifecycle, standard gate. No new phase values, no schema migration, no custom orchestrator routing.
 
@@ -511,13 +511,13 @@ Milestone-boundary refactor via synthetic iteration. Milestones are execution ba
 | RFT_5 | Plan phase: refactor iterations + §9b Refactor Policy template in plan.md | ✓ done |
 | RFT_6 | Validate with real run | ✓ done (LOGA R16 — ITR_RFT_3 extracted real duplication) |
 
-**What was removed from original design (see NOTES_PLN_RFT_SIMPLIFY):** No `--phase refactor` (use implement). No `refactoring` lifecycle. No `refactorChanges`/`refactorDeferrals` verdict fields. No custom orchestrator routing. No time budget mechanism. No auto-revert special case.
+**What was removed from original design (see NOTES_PLAN_RFT_SIMPLIFY):** No `--phase refactor` (use implement). No `refactoring` lifecycle. No `refactorChanges`/`refactorDeferrals` verdict fields. No custom orchestrator routing. No time budget mechanism. No auto-revert special case.
 
 ---
 
 ## PLAN_HLP: Subagent CLI Re-learning ✓ COMPLETE
 
-Eliminated ~150 --help lookups/run → 0 (R08). 3h 4m → 1h 53m wall clock. See NOTES.md § NOTES_PLN_HLP for design decisions. See specs/NOTES.md § SPEC_PLN_HLP for script details.
+Eliminated ~150 --help lookups/run → 0 (R08). 3h 4m → 1h 53m wall clock. See NOTES.md § NOTES_PLAN_HLP for design decisions. See specs/NOTES.md § SPEC_PLN_HLP for script details.
 
 | Step | Task | Status |
 |------|------|--------|
@@ -534,13 +534,13 @@ Eliminated ~150 --help lookups/run → 0 (R08). 3h 4m → 1h 53m wall clock. See
 
 ## PLAN_OVH: Plet Infrastructure Overhead (deferred)
 
-R06: 53% infra calls. R08: 8.8m/iter with zero --help. May be moot. See NOTES.md § NOTES_PLN_FOUNDATION.
+R06: 53% infra calls. R08: 8.8m/iter with zero --help. May be moot. See NOTES.md § NOTES_PLAN_FOUNDATION.
 
 ---
 
 ## PLAN_PAR: Parallel Orchestrator ✓ COMPLETE
 
-Streaming parallel execution with ThreadPoolExecutor. Conflict recovery via rebase+requeue. Gentle breakpoints. See NOTES.md § NOTES_PLN_PAR for design decisions.
+Streaming parallel execution with ThreadPoolExecutor. Conflict recovery via rebase+requeue. Gentle breakpoints. See NOTES.md § NOTES_PLAN_PAR for design decisions.
 
 | Step | Description | Status |
 |------|-------------|--------|
@@ -556,7 +556,7 @@ Streaming parallel execution with ThreadPoolExecutor. Conflict recovery via reba
 
 **PAR_9 — Tests.** Test parallel with 2-3 independent iterations. Test merge-squash is sequential (git log order). Test `--sequential` fallback. Test breakpoint mid-round. Test one failure doesn't block others. Test conflict rebase-requeue path.
 
-> **Note:** PLAN_PAR is superseded by PLAN_SEQ, which strips parallel execution entirely. The parallel orchestrator was completed and validated (OLLR R01-R04) but the complexity/reliability tradeoff wasn't worth it — sequential 0.4.x had 100% completion (39/39) vs parallel 0.5.x-0.6.x at ~70%. See NOTES.md § NOTES_PLN_SEQ and PLAN_SEQ.
+> **Note:** PLAN_PAR is superseded by PLAN_SEQ, which strips parallel execution entirely. The parallel orchestrator was completed and validated (OLLR R01-R04) but the complexity/reliability tradeoff wasn't worth it — sequential 0.4.x had 100% completion (39/39) vs parallel 0.5.x-0.6.x at ~70%. See NOTES.md § NOTES_PLAN_SEQ and PLAN_SEQ.
 
 ---
 

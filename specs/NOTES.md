@@ -483,11 +483,11 @@ Threshold raised: 85% → 87% → 88% → 90% → 91%.
 
 ### SPEC_PLN_HLP: PLAN_HLP — Subagent CLI Re-learning
 
-Cross-cutting plan — canonical home is root NOTES.md § NOTES_PLN_HLP. Script-relevant aspects: `--usage` flag on all 16 scripts via dispatch(), `make_help_hint` factory, cli-cheatsheet.md, phase.py end composite command, prompt CLI quick reference injection. Measured impact: 150 → 0 --help lookups, 3h → 1h53m wall clock (R06 → R08).
+Cross-cutting plan — canonical home is root NOTES.md § NOTES_PLAN_HLP. Script-relevant aspects: `--usage` flag on all 16 scripts via dispatch(), `make_help_hint` factory, cli-cheatsheet.md, phase.py end composite command, prompt CLI quick reference injection. Measured impact: 150 → 0 --help lookups, 3h → 1h53m wall clock (R06 → R08).
 
 ### SPEC_PLN_PAR: PLAN_PAR — Parallel Orchestrator
 
-Cross-cutting plan — canonical home is root NOTES.md § NOTES_PLN_PAR. Script-relevant aspects: plet_orchestrator.py streaming loop with ThreadPoolExecutor, EventSink pattern (util_sink.py), injectable script runner (`_run_script` module-level variable), merge conflict rebase+requeue, orchestrator trace file (`plet/trace/orchestrator.ndjson`).
+Cross-cutting plan — canonical home is root NOTES.md § NOTES_PLAN_PAR. Script-relevant aspects: plet_orchestrator.py streaming loop with ThreadPoolExecutor, EventSink pattern (util_sink.py), injectable script runner (`_run_script` module-level variable), merge conflict rebase+requeue, orchestrator trace file (`plet/trace/orchestrator.ndjson`).
 
 ## SPEC_REV: Script Spec Reviews
 

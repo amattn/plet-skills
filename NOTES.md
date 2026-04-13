@@ -4,14 +4,14 @@
 
 ## Stable Label Convention
 
-Every H2 section has a stable label: `NOTES_XXX: Title`. H3 subsections use the parent prefix: `NOTES_PLN_HLP: PLAN_HLP — ...` (child of `NOTES_PLN`).
+Every H2 section has a stable label: `NOTES_XXX: Title`. H3 subsections use the parent prefix: `NOTES_PLAN_HLP: PLAN_HLP — ...` (child of `NOTES_PLN`).
 
 **Format:** `NOTES_{PARENT}_{CHILD}: Title`
 - H2: `NOTES_XXX` (3-letter code)
 - H3: `NOTES_{H2CODE}_{CHILD}` (parent + child)
 - H4+: `NOTES_{H2CODE}_{H3CODE}_{N}` (for numbered items within a subsection)
 
-Labels are append-only — never renumber or rename. Use `grep NOTES_PLN_RFT` to find all refactor loop decisions.
+Labels are append-only — never renumber or rename. Use `grep NOTES_PLAN_RFT` to find all refactor loop decisions.
 
 **Time-ordered sections:** Any section with time-ordered entries uses H3 date markers to partition the stream. Empty markers stay — they indicate no activity during that period. New entries append at the bottom under the current marker.
 
@@ -1347,7 +1347,7 @@ Key decisions:
 
 Design decisions, alternatives discussed, and rationale for each plan chunk. PLAN.md has the steps and status; this section has the "why."
 
-### NOTES_PLN_HLP: PLAN_HLP — Subagent CLI Re-learning
+### NOTES_PLAN_HLP: PLAN_HLP — Subagent CLI Re-learning
 
 #### PLAN_HLP strategy — multi-angle approach (2026-04-03)
 
@@ -1418,7 +1418,7 @@ Found and fixed 8 bugs in phase-verify.md + phase-implement.md examples that cau
 
 These bugs were likely causing a significant portion of the --help lookups — agents encountered errors from the examples and fell back to --help to learn the real syntax.
 
-### NOTES_PLN_PAR: PLAN_PAR — Parallel Orchestrator
+### NOTES_PLAN_PAR: PLAN_PAR — Parallel Orchestrator
 
 **Decision (2026-04-04): Conflict recovery via rebase + requeue, not auto-resolve.** When merge-squash conflicts (two parallel iterations touched the same file), the orchestrator does: `git merge --abort` → rebase iteration branch onto updated workstream → set lifecycle to `queued`. The implement agent resolves conflicts on the next pass — it already has full context. Verify then checks the result. This reuses existing retry infrastructure with no new phases.
 
@@ -1436,15 +1436,15 @@ Revised design: **streaming work queue.** ThreadPoolExecutor stays full as long 
 
 Example: ITR_001, ITR_002, ITR_003 running. ITR_001 finishes, promotes ITR_004 and ITR_005. ITR_005 has breakpoint-before. When checking ITR_005, the breakpoint fires — ITR_005 doesn't spawn, no further spawns happen. ITR_002, ITR_003, ITR_004 (if already spawned) all run to completion and merge. Then pause.
 
-### NOTES_PLN_COV: PLAN_COV — Coverage Infrastructure
+### NOTES_PLAN_COV: PLAN_COV — Coverage Infrastructure
 
 Canonical home: specs/NOTES.md § SPEC_PLN_COV (script tooling). Coverage infrastructure, tuple returns, test conversion, event sink, injectable runner.
 
-### NOTES_PLN_CLN: PLAN_CLN — Script Cleanup & Consistency
+### NOTES_PLAN_CLN: PLAN_CLN — Script Cleanup & Consistency
 
 Canonical home: specs/NOTES.md § SPEC_PLN_CLN (script tooling). Validator patterns, parse_command adoption, extract_output_flags, help_hint factory, dedup-before-refactor principle.
 
-### NOTES_PLN_RBS: PLAN_RBS — Rebase-over-Squash
+### NOTES_PLAN_RBS: PLAN_RBS — Rebase-over-Squash
 
 **Decision (2026-04-05): Replace merge-squash with rebase + fast-forward merge.** Individual wip commits from implement/verify survive into workstream history. No squashing.
 
@@ -1650,7 +1650,7 @@ First rebase is usually a no-op. When it's not (requeued iteration), it catches 
 - `wip-commit` command excludes `plet/trace/` (breaks transcript feedback loop)
 - Loop runs ONCE — never auto-restart
 
-### NOTES_PLN_SEQ: PLAN_SEQ — Sequential Simplification
+### NOTES_PLAN_SEQ: PLAN_SEQ — Sequential Simplification
 
 **Decision (2026-04-06): Abandon parallel orchestration (PLAN_PAR), simplify to sequential-only.**
 
@@ -1685,7 +1685,7 @@ The theoretical 46% speedup from parallelism never materialized — overhead and
 
 **What RBS becomes without parallel:** Just the clean linear history benefit. Implement commits wip-commit on workstream, audit tag at phase boundaries. At loop end, the workstream has a nice linear history of all iterations. Rebase onto main before merge.
 
-#### NOTES_PLN_SEQ_OVERHEAD: Agent Overhead Analysis (2026-04-06)
+#### NOTES_PLAN_SEQ_OVERHEAD: Agent Overhead Analysis (2026-04-06)
 
 **Estimated overhead (pre-R14):**
 
@@ -1717,7 +1717,7 @@ The real overhead comes from the other per-phase calls: progress entries (auto-g
 
 **Implication for `update-activity`:** 42 calls = pure ceremony. Agent calls it once to announce presence. Move to orchestrator — auto-generated at `phase-start` (renamed from `start-phase`). Agent never calls it.
 
-#### NOTES_PLN_SEQ_OQ: Open Questions — What Else Can Be Simplified?
+#### NOTES_PLAN_SEQ_OQ: Open Questions — What Else Can Be Simplified?
 
 All open. To be considered carefully before implementation.
 
@@ -1778,7 +1778,7 @@ Total: **~12-16 plet calls** (down from ~30). The agent *thinks* about 2 mandato
 
 **What RBS becomes without parallel:** Just the clean linear history benefit. Implement commits wip-commit on workstream, audit tag at phase boundaries. At loop end, the workstream has a nice linear history of all iterations. Rebase onto main before merge.
 
-#### NOTES_PLN_SEQ_SCRIPTS: Script Restructure — Three Entry Points (2026-04-06)
+#### NOTES_PLAN_SEQ_SCRIPTS: Script Restructure — Three Entry Points (2026-04-06)
 
 **Decision: Collapse 14 CLI scripts into 3 entry points + importable modules.**
 
@@ -1873,7 +1873,7 @@ scripts/
 - State module naming — merge into `state.py` or keep `iter_state.py + global_state.py` separate? `[decided]` Keep separate. Two distinct modules: `iter_state.py` and `global_state.py`.
 - Migration: part of PLAN_SEQ or prerequisite? `[decided]` Part of PLAN_SEQ (Phase 2 handles it via SEQ_12).
 
-#### NOTES_PLN_SEQ_IMPL: Implementation Decisions (2026-04-07)
+#### NOTES_PLAN_SEQ_IMPL: Implementation Decisions (2026-04-07)
 
 **trace.py → traces.py:** Renamed to avoid shadowing stdlib `trace` module. Without this, `import trace` in test files resolved to stdlib depending on sys.path ordering. The `s` suffix is minimal and unambiguous.
 
@@ -1919,7 +1919,7 @@ scripts/
 - **update-activity:** May need to bring back as an agent-facing command. Currently moved to orchestrator at phase-start, but agents may need to signal what they're doing (e.g., "reading context", "writing tests", "running tests"). Revisit whether the overhead is worth the observability.
 - **Cheatsheet inline:** cli-cheatsheet.md content gets inlined into both files (SEQ_39 removes the separate file).
 
-### NOTES_PLN_IDR: PLAN_IDR — Iteration ID Rename
+### NOTES_PLAN_IDR: PLAN_IDR — Iteration ID Rename
 
 **Decision (2026-04-07): Rename `ID_` prefix to `ITR_`, deferred until before PLAN_SUB.**
 
@@ -1944,7 +1944,7 @@ Surface area audit: 7 literal `"ITR_NNN"` in scripts, 1174 in tests, 430 `iter_i
 - **Hard cut, no transition period.** `ITR_` only — no dual-accept regex. All consumers are in this repo. No external API to worry about.
 - **State file names: pattern only.** `ITR_001.json` → `ITR_001.json` in script path derivation code. Actual files in target projects are created fresh each run — no migration needed.
 
-### NOTES_PLN_RFT: PLAN_RFT — Refactor Loop
+### NOTES_PLAN_RFT: PLAN_RFT — Refactor Loop
 
 **Decision (2026-04-05): Milestone-boundary refactor via synthetic iteration.** When all iterations in a milestone reach `complete`, the orchestrator injects a synthetic refactor iteration before promoting the next milestone's iterations to eligible.
 
@@ -2054,7 +2054,7 @@ Note on #7: `churn` command added to PLAN_RFT scope — natural home in git_chec
 
 1. **§Refactor Policy placement in requirements.md.** Between §4.5 and §5 (quality-adjacent) vs before §9 (milestone-adjacent). Leaning quality-adjacent.
 
-#### NOTES_PLN_RFT_SIMPLIFY: Simplification (2026-04-08)
+#### NOTES_PLAN_RFT_SIMPLIFY: Simplification (2026-04-08)
 
 **Decision: Don't create a new phase — use implement→verify with a different reference file.**
 
@@ -2095,7 +2095,7 @@ Build (1) first. It's independently valuable. Then (2) is just adding `ITR_RFT_N
 
 **Estimated effort:** ~2 days vs ~2 weeks for the original design. Most of the work is writing `phase-refactor.md` (the reference file). The prompt routing is ~5 lines. Milestone barriers are plan-phase guidance + dependency generation.
 
-#### NOTES_PLN_RFT_CHURN: Churn Analysis of plet-skills (2026-04-08)
+#### NOTES_PLAN_RFT_CHURN: Churn Analysis of plet-skills (2026-04-08)
 
 Ran `churn` on the plet-skills repo itself to validate the tool and see what it reveals.
 
@@ -2103,9 +2103,9 @@ Ran `churn` on the plet-skills repo itself to validate the tool and see what it 
 
 **Finding: size is a better signal than churn for this codebase.** Largest scripts: `fingerprint.py` (1203), `iter_state.py` (1185), `gate_session.py` (1049), `traces.py` (825). Each is self-contained — many commands but each command is independent. The only marginal candidate for extraction is `gate_session.py`'s preflight check suite, which is a long sequential list that could become its own module. Cosmetic, not urgent.
 
-**Implication for phase-refactor.md:** The churn command is more useful for target projects (where agents accumulate tech debt across iterations) than for plet-skills itself. The reference file should guide agents to look at churn output as a starting point, but not rely on it exclusively — size, complexity, and pattern signals (from NOTES_PLN_RFT Tier 2 heuristics) are complementary.
+**Implication for phase-refactor.md:** The churn command is more useful for target projects (where agents accumulate tech debt across iterations) than for plet-skills itself. The reference file should guide agents to look at churn output as a starting point, but not rely on it exclusively — size, complexity, and pattern signals (from NOTES_PLAN_RFT Tier 2 heuristics) are complementary.
 
-#### NOTES_PLN_RFT_HEURISTICS: Sweep/Refactor Heuristics (2026-04-08)
+#### NOTES_PLAN_RFT_HEURISTICS: Sweep/Refactor Heuristics (2026-04-08)
 
 **Archaeology of 228 commits touching scripts/.** Categorized every commit to identify what caused us to refactor and what signals preceded each effort. 87 commits (38%) were refactoring/sweeps, 87 (38%) new features, 50 (22%) maintenance (bug fixes, version bumps, docs).
 
@@ -2141,7 +2141,7 @@ Ran `churn` on the plet-skills repo itself to validate the tool and see what it 
 
 Heuristics 1, 3, 5 are directly actionable by the refactor agent — they map to the existing signal categories in phase-refactor.md (run toolchain, grep for duplicates, check learnings/emergent).
 
-#### NOTES_PLN_RFT_REVIEW: phase-refactor.md Evaluation (2026-04-08)
+#### NOTES_PLAN_RFT_REVIEW: phase-refactor.md Evaluation (2026-04-08)
 
 Evaluated phase-refactor.md using skill-creator evaluation framework. 11 findings, 6 changes made. Key decisions:
 
@@ -2161,7 +2161,7 @@ Evaluated phase-refactor.md using skill-creator evaluation framework. 11 finding
 
 **Gate check list (finding 10, low).** Added to Completing the Phase so the agent knows what `phase-end` will verify.
 
-#### NOTES_PLN_RFT_REVIEW_IMPL_VERIFY: phase-implement.md + phase-verify.md Evaluation (2026-04-08)
+#### NOTES_PLAN_RFT_REVIEW_IMPL_VERIFY: phase-implement.md + phase-verify.md Evaluation (2026-04-08)
 
 Evaluated both files using skill-creator framework. 15 total findings across both files + cross-file consistency. 7 changes made.
 
@@ -2257,7 +2257,7 @@ Test signals:
 
 Not a v1 blocker — the current verify phase catches obvious code quality issues — but worth designing in before tech debt compounds across real usage.
 
-### NOTES_PLN_VER: PLAN_VER — Verify Phase Evaluation
+### NOTES_PLAN_VER: PLAN_VER — Verify Phase Evaluation
 
 **Decision (2026-04-07): VF_7-11 split between verify and refactor.** The five quality-gate sections in phase-verify.md (VF_7 Spec Fidelity, VF_8 Test Quality, VF_9 Code Quality, VF_10 Security Surface, VF_11 Spec Gaps) are a code-review checklist that agents mostly ignore. R05 transcript analysis: agents gave single sentences ("No security concerns") or skipped entirely.
 
@@ -2266,7 +2266,7 @@ Split by natural home:
 - **Move to phase-refactor.md (PLAN_RFT):** VF_9 (Code Quality) — cross-cutting codebase health, not per-AC verification. Already covered by PLAN_RFT Tier 1 (per-loop minor refactor) and Tier 2 (milestone boundary) heuristics.
 - **Split:** VF_8 (Test Quality) — "tests actually test the AC" stays in verify; "test suite is well-designed" moves to refactor. VF_10 (Security) — AC-relevant security stays in verify; broad security audit moves to refactor.
 
-**Rationale (from NOTES_PLN_RFT):** "Verify's job is checking correctness against acceptance criteria. Refactoring is about improving the codebase that's already correct. Different goals, different context needs. Verify sees one iteration; refactor needs to see everything."
+**Rationale (from NOTES_PLAN_RFT):** "Verify's job is checking correctness against acceptance criteria. Refactoring is about improving the codebase that's already correct. Different goals, different context needs. Verify sees one iteration; refactor needs to see everything."
 
 **Evidence (OLLR R05 transcripts):** Verify agents naturally do functional verification well — independently run code, compare to spec, check tests aren't tautological. They don't do broad code quality audits. Lean into the strength instead of asking them to also be code reviewers.
 
@@ -2407,7 +2407,7 @@ Implementation location: `plet_agent.py _dispatch_with_trace`, using PLET_DIR, P
 
 ---
 
-### NOTES_PLN_MSV: PLAN_MSV — Milestone-Scoped Verify
+### NOTES_PLAN_MSV: PLAN_MSV — Milestone-Scoped Verify
 
 Move verify from per-iteration to per-milestone. Instead of implement→verify for every iteration, run implement-only for all iterations in a milestone, then one verify pass at the milestone boundary that checks all ACs together — alongside or merged with the refactor iteration.
 
@@ -2433,7 +2433,7 @@ Move verify from per-iteration to per-milestone. Instead of implement→verify f
 
 **Status:** Design option, not decided. Needs a real run to compare per-iteration vs. milestone verify on the same project.
 
-#### NOTES_PLN_MSV_0: Milestone verify fixes in-place (2026-04-10)
+#### NOTES_PLAN_MSV_0: Milestone verify fixes in-place (2026-04-10)
 
 **Decision:** Milestone verify fixes issues in-place (option C). Check all milestone ACs, fix problems found, report what was fixed. If something is too big to fix in-place, block the refactor iteration and the human triages in refine (fallback).
 
@@ -2441,11 +2441,11 @@ Move verify from per-iteration to per-milestone. Instead of implement→verify f
 
 **This makes milestone verify essentially a new kind of verify** — closer to a combined review-and-fix pass than the old read-only check. The verify/refactor distinction at milestone scope is: refactor improves code that's already correct; verify confirms correctness and fixes what isn't.
 
-#### NOTES_PLN_MSV_1: Core insight — verify's value is at integration boundaries (2026-04-10)
+#### NOTES_PLAN_MSV_1: Core insight — verify's value is at integration boundaries (2026-04-10)
 
 Every real catch across 24 case studies was an integration gap — missing modules, unwired functions, incomplete features. These are *more* visible when you can see the whole milestone together, not less. Per-iteration verify is checking the wrong scope for the only class of bugs it catches.
 
-#### NOTES_PLN_MSV_2: SPARK reanalysis — even the hardest case supports milestone scope (2026-04-10)
+#### NOTES_PLAN_MSV_2: SPARK reanalysis — even the hardest case supports milestone scope (2026-04-10)
 
 SPARK R01 is the strongest argument for per-iteration verify (4 rejections, 17% rate — dramatically higher than other projects). But examining the specific catches:
 - ID_013 (missing `PubSubHelper`) — integration gap, caught better at milestone scope
@@ -2455,13 +2455,13 @@ SPARK R01 is the strongest argument for per-iteration verify (4 rejections, 17% 
 
 2 of 4 rejections would have been caught at milestone scope. The case for per-iteration verify is weaker than it looks even in the hardest scenario.
 
-#### NOTES_PLN_MSV_3: Refactor iteration already provides the infrastructure (2026-04-10)
+#### NOTES_PLAN_MSV_3: Refactor iteration already provides the infrastructure (2026-04-10)
 
 No new "milestone verify" needed. The refactor iteration at every milestone boundary already runs implement→verify. The gap: its verify checks the *refactor work*, not the original ACs.
 
 **Smallest possible change:** Expand the refactor iteration's verify scope to include spot-checking ACs from the milestone's iterations, not just the refactor changes. No new infrastructure, no new phases, no new schema. Just a reference file update.
 
-#### NOTES_PLN_MSV_4: Cost model — savings are real but not linear (2026-04-10)
+#### NOTES_PLAN_MSV_4: Cost model — savings are real but not linear (2026-04-10)
 
 A milestone verify checking 15-25 ACs is a bigger job than one checking 3-5. Per-verify cost goes up even as the count goes down. But real savings exist beyond AC checking time:
 - **Agent spawn overhead** — each per-iteration verify loads CLAUDE.md, PLET.md, reference files, state, iteration file. ~30-40% of verify time regardless of AC count (R16: 52% of verify tool calls were bookkeeping)
@@ -2470,7 +2470,7 @@ A milestone verify checking 15-25 ACs is a bigger job than one checking 3-5. Per
 
 Even if milestone verify takes 3x longer checking ACs, heavy savings on infrastructure overhead that currently multiplies across every iteration.
 
-#### NOTES_PLN_MSV_5: Risks assessed (2026-04-10)
+#### NOTES_PLAN_MSV_5: Risks assessed (2026-04-10)
 
 **Compounding subtle bugs.** Each iteration builds on the previous one's wrong assumption. By milestone boundary, the bug is deeply embedded. Counter: verify has never caught a logic bug across 24 runs — only integration gaps. The implement gate (tests + lint) catches functional breakage immediately. This risk is theoretical and unobserved.
 
@@ -2478,7 +2478,7 @@ Even if milestone verify takes 3x longer checking ACs, heavy savings on infrastr
 
 **Late discovery.** A broken AC isn't caught until milestone boundary, potentially 5-8 iterations later. Counter: outright breakage is caught by the implement gate. What slips through is subtle spec-compliance issues — exactly what a broader-context milestone verify catches better.
 
-#### NOTES_PLN_MSV_6: Recommendation (2026-04-10)
+#### NOTES_PLAN_MSV_6: Recommendation (2026-04-10)
 
 **Milestone-scoped verify by default. No per-iteration verify. Optional per-iteration flag for plan-time override.**
 
@@ -2490,7 +2490,7 @@ Even if milestone verify takes 3x longer checking ACs, heavy savings on infrastr
 
 **PLAN_VER rewrite enables this.** phase-verify.md is already scoped to functional AC checking. Adapting it for milestone scope (check N iterations' ACs instead of 1) is a reference file change, not an architectural change.
 
-#### NOTES_PLN_MSV_7: Implementation decisions (2026-04-11)
+#### NOTES_PLAN_MSV_7: Implementation decisions (2026-04-11)
 
 **MSV_2/MSV_3 are no-ops.** Analysis during implementation revealed:
 - `LOOP_LIFECYCLES` in `gate_session.py` is session-level, not per-iteration. `verifying` must stay for refactor iters. No change needed.
@@ -2502,11 +2502,11 @@ Even if milestone verify takes 3x longer checking ACs, heavy savings on infrastr
 
 **Verify rejection protocol changed.** Old: verify writes failing tests, leaves them on the branch. New (milestone scope): verify fixes issues in-place (small/scoped) or marks criterion failed with evidence + learnings (large/risky). No code writes from verify that aren't fixes.
 
-#### NOTES_PLN_MSV_8: Implementation complete (2026-04-11)
+#### NOTES_PLAN_MSV_8: Implementation complete (2026-04-11)
 
 All MSV steps done except MSV_10 (real run comparison). Changes across 6 script/test files + 4 reference/doc files. 100/100 orchestrator tests, 80/80 prompt tests. Consistency pass updated 13 files for stale `implement→verify` references.
 
-#### NOTES_PLN_MSV_9: MSV_10 validation — LOGA R17 results (2026-04-13)
+#### NOTES_PLAN_MSV_9: MSV_10 validation — LOGA R17 results (2026-04-13)
 
 **Result: MSV partially validated.** Verify skip works perfectly. Milestone AC verification is broken.
 
@@ -2520,7 +2520,7 @@ All MSV steps done except MSV_10 (real run comparison). Changes across 6 script/
 
 **Other findings:** Plan phase counts as implement attempt 1, pushing real work to attempt 2 (i2/v2 suffixes). 16 tiny 1-line plan trace files. No plan branch created. Learnings recovered to 14 (R16: 2). See full case study: CASE_STUDY_LOGA_R17.md.
 
-#### NOTES_PLN_MSV_10: Both MSV and VOS paused — staying on 0.7.0 (2026-04-13)
+#### NOTES_PLAN_MSV_10: Both MSV and VOS paused — staying on 0.7.0 (2026-04-13)
 
 **Decision:** Continue with 0.7.0 per-iteration verify. Pause both MSV and VOS.
 
@@ -2528,13 +2528,13 @@ All MSV steps done except MSV_10 (real run comparison). Changes across 6 script/
 
 ---
 
-### NOTES_PLN_VOS: PLAN_VOS — Verify on the Side
+### NOTES_PLAN_VOS: PLAN_VOS — Verify on the Side
 
 Alternative to PLAN_MSV. Run verify in parallel with the next iteration's implement, using audit tags for git isolation and restricting verify to artifact-only writes (no code changes). Both MSV and VOS solve the same problem (verify costs 25-35% of loop time); they differ in approach.
 
 **Origin:** During PLAN_MSV implementation planning (2026-04-11), the question arose: instead of deferring verify to milestone boundaries, could verify run in parallel with implement? The audit tag mechanism already creates immutable snapshots after each implement phase — verify can read those without conflicting with the next implement.
 
-#### NOTES_PLN_VOS_0: Core insight — audit tags enable safe parallelism (2026-04-11)
+#### NOTES_PLAN_VOS_0: Core insight — audit tags enable safe parallelism (2026-04-11)
 
 The key enabler is that plet already creates audit tags after every implement phase (`git_ops.py audit-tag`). These are immutable git refs pointing to the exact code state after implement. If verify checks out an audit tag (via worktree), it reads frozen code while implement works on the live branch. No merge conflicts possible.
 
@@ -2547,7 +2547,7 @@ The second enabler: restricting verify to artifact-only writes. Current verify w
 
 Removing the "write failing tests" part of rejection protocol is the only behavioral change to verify. Everything else is already artifact-only.
 
-#### NOTES_PLN_VOS_1: Rejection without code writes (2026-04-11)
+#### NOTES_PLAN_VOS_1: Rejection without code writes (2026-04-11)
 
 **Decision:** Rejection communicates via structured criterion updates + learnings narrative, not code.
 
@@ -2557,7 +2557,7 @@ VOS rejection protocol: verify marks criterion as failed with rationale (`update
 
 **Why this is arguably better:** A failing test written by the verify agent is often low-quality — it's written quickly, in a different context window, without full understanding of the implementation. A detailed learning entry with specific file paths, expected vs. actual behavior, and suggested fix approach gives the next implement agent more actionable information.
 
-#### NOTES_PLN_VOS_2: Pipeline flow and stop-on-reject (2026-04-11)
+#### NOTES_PLAN_VOS_2: Pipeline flow and stop-on-reject (2026-04-11)
 
 **Pipeline behavior:**
 ```
@@ -2579,7 +2579,7 @@ Rejection flow (4% case):
 - N+1's work may still be valid if the rejection is isolated to N
 - If not, N+1 goes back to queued after N is re-implemented — same as today's sequential behavior, just delayed by one iteration
 
-#### NOTES_PLN_VOS_3: State concurrency analysis (2026-04-11)
+#### NOTES_PLAN_VOS_3: State concurrency analysis (2026-04-11)
 
 **Already safe by design (SF_28):**
 - Per-iteration state files are separate — verify N writes to `state/ITR_001.json` while implement N+1 writes to `state/ITR_002.json`. No conflict.
@@ -2588,7 +2588,7 @@ Rejection flow (4% case):
 
 **One new concern:** The orchestrator currently calls `_run_iteration()` sequentially — implement then verify. Making verify parallel means the orchestrator needs to track a background verify while running the next implement. This is the main orchestrator complexity addition.
 
-#### NOTES_PLN_VOS_4: MSV vs. VOS comparison (2026-04-11)
+#### NOTES_PLAN_VOS_4: MSV vs. VOS comparison (2026-04-11)
 
 | Dimension | MSV (Milestone-Scoped) | VOS (Verify on the Side) |
 |-----------|----------------------|--------------------------|
@@ -2604,7 +2604,7 @@ Rejection flow (4% case):
 
 **Key tradeoff:** MSV is dramatically simpler but defers catching issues to milestone boundaries. VOS keeps per-iteration catching but adds orchestrator complexity. Given the 96% rubber-stamp rate, MSV's deferral is low-risk. But VOS preserves the safety net for the projects where verify actually matters (SPARK: 17% rejection rate).
 
-#### NOTES_PLN_VOS_5: Decided — sibling worktree on audit tag, not nested (2026-04-11)
+#### NOTES_PLAN_VOS_5: Decided — sibling worktree on audit tag, not nested (2026-04-11)
 
 **Decision:** Verify runs in a sibling worktree created from the audit tag. Git worktrees are peers (not nested) — a worktree can create sibling worktrees because they all share the same `.git` dir. This works even when the target project is already in a worktree (normal plet workflow after PLAN_SEQ).
 
@@ -2616,7 +2616,7 @@ main repo (.git)
 └── worktree B (verify's read-only snapshot — audit tag, temp)
 ```
 
-#### NOTES_PLN_VOS_6: Decided — verify write boundary (2026-04-11)
+#### NOTES_PLAN_VOS_6: Decided — verify write boundary (2026-04-11)
 
 **Decision:** Verify in VOS is read-only on code, write-only on artifacts. Specific boundary:
 
@@ -2634,7 +2634,7 @@ main repo (.git)
 
 **Key consequence:** The current rejection protocol ("write failing tests") is removed. Rejection communicates via structured criterion updates (`--status failed --rationale "..."`) + learnings narrative. This is arguably better — failing tests written by verify in a different context window are often low-quality; detailed learnings with file paths and expected vs. actual behavior give the next agent more actionable information.
 
-#### NOTES_PLN_VOS_7: Open — rejection response options (2026-04-11)
+#### NOTES_PLAN_VOS_7: Open — rejection response options (2026-04-11)
 
 The load-bearing design question for VOS. When verify rejects and implement has moved past that iteration, what happens? Six options identified:
 
@@ -2654,7 +2654,7 @@ The load-bearing design question for VOS. When verify rejects and implement has 
 
 **Not yet decided.** Depends on clarifying verify's primary goals — what is verify actually trying to accomplish? The answer shapes which rejection response makes sense.
 
-#### NOTES_PLN_VOS_8: Open questions (updated 2026-04-11)
+#### NOTES_PLAN_VOS_8: Open questions (updated 2026-04-11)
 
 - **Pipeline depth:** Max 1 verify in flight? Leaning max 1 (implement typically takes longer than verify, natural constraint).
 - **Pipeline advance on verify-in-flight:** If verify N still running when implement N+1 finishes, does N+2 start? Depends on rejection response decision (VOS_7). If implements can flow freely (options 2-5), then yes. If pause-on-reject (option 1), then constrained.
@@ -2662,7 +2662,7 @@ The load-bearing design question for VOS. When verify rejects and implement has 
 - **Head-to-head comparison:** Both MSV and VOS should be tested on the same project. Criteria: wall-clock time, total tokens, catch rate, implementation complexity, failure mode behavior.
 - **What are verify's primary goals?** Must answer before choosing rejection response. Is verify catching bugs? Ensuring spec compliance? Providing confidence signal? The answer determines whether early action on rejection matters.
 
-#### NOTES_PLN_VOS_9: Verify's primary goals — case study evidence (2026-04-11)
+#### NOTES_PLAN_VOS_9: Verify's primary goals — case study evidence (2026-04-11)
 
 Analysis of what verify actually catches across 24 runs, to determine whether per-iteration verify (VOS) or milestone-scoped verify (MSV) is the right design:
 
@@ -2677,7 +2677,7 @@ Analysis of what verify actually catches across 24 runs, to determine whether pe
 
 **Conclusion:** Verify's only proven value is integration gap detection, and integration gaps are more visible at milestone scope when all pieces are present. This means MSV is the right design — it catches the only class of bugs verify has ever caught, at the scope where they're most visible, with dramatically less complexity than VOS.
 
-#### NOTES_PLN_VOS_10: Interim conclusion — VOS paused, MSV preferred (2026-04-11)
+#### NOTES_PLAN_VOS_10: Interim conclusion — VOS paused, MSV preferred (2026-04-11)
 
 **Decision:** Pause VOS. Proceed with MSV.
 
@@ -2698,11 +2698,11 @@ The VOS design work is not wasted either way — the "verify on audit tag, artif
 
 ---
 
-### NOTES_PLN_NTS: PLAN_NTS — Notes Reorganization
+### NOTES_PLAN_NTS: PLAN_NTS — Notes Reorganization
 
 **Decision (2026-04-05):** NOTES.md reorganized into plan-chunk sections with stable labels. PLAN.md stays lean (steps + status) with pointers to NOTES.md for rationale. Each plan chunk gets a `NOTES_XXX` section.
 
-### NOTES_PLN_FOUNDATION: Early Plans (SKL, REF, PKG, CS, NOT, XS, FT, PY, RW)
+### NOTES_PLAN_FOUNDATION: Early Plans (SKL, REF, PKG, CS, NOT, XS, FT, PY, RW)
 
 Completed foundation plans. Grouped here since each is small individually.
 
@@ -2744,15 +2744,15 @@ Emergent work: lifecycle ownership model, 3 new scripts (schedule, session, orch
 #### PLAN_OVH: Plet Infrastructure Overhead (deferred)
 R06: 53% of implement-phase Bash calls were plet infrastructure. Dominated by discovery cost (80 --help lookups, start-phase retries), not artifact writes. Deferred after PLAN_HLP. R08 showed 8.8m/iter (down from 14.2m) with zero --help lookups — may be moot. Re-evaluate if infra is still >40% after parallel run.
 
-### NOTES_PLN_SUB: PLAN_SUB — Subplets
+### NOTES_PLAN_SUB: PLAN_SUB — Subplets
 
 <!-- Future — design decisions go here when work begins -->
 
-### NOTES_PLN_PRD: PLAN_PRD — PRD Reorganization & Sync
+### NOTES_PLAN_PRD: PLAN_PRD — PRD Reorganization & Sync
 
 **Trigger:** Audit on 2026-04-08 found PRD significantly out of sync after PLAN_SEQ, PLAN_RFT, PLAN_IDR, and lifecycle extraction. 26 commits since last PRD touch, zero direct prd.md changes.
 
-#### NOTES_PLN_PRD_AUDIT: Audit Findings (2026-04-08)
+#### NOTES_PLAN_PRD_AUDIT: Audit Findings (2026-04-08)
 
 **ES Script Inventory — major drift.** PRD lists 14 agent-callable scripts with `plet_` prefix naming. Actual system: 3 entry points (`plet_agent.py`, `plet_tools.py`, `plet_orchestrator.py`) + importable modules (dropped `plet_` prefix). `plet_state.py` split into `global_state.py` + `iter_state.py`. ~8 new scripts/modules not in PRD at all. Test count: PRD says "1230+", actual ~1,060 (consolidation during PLAN_SEQ).
 
@@ -2772,7 +2772,7 @@ R06: 53% of implement-phase Bash calls were plet infrastructure. Dominated by di
 
 **IMP stale references:** Per-iteration branches no longer exist (single workstream per loop). Merge/squash flow simplified.
 
-#### NOTES_PLN_PRD_OUTLINE: Approved Outline
+#### NOTES_PLAN_PRD_OUTLINE: Approved Outline
 
 Reorganization separates Phases (what happens) from Infrastructure (how it works) from Tooling (what enforces it).
 
@@ -2821,20 +2821,20 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 - ES restructured as §6 Tooling with 3-tier architecture
 - Pipeline diagram moved from ES to §6.5
 
-#### NOTES_PLN_PRD_GCN: GCN Review (2026-04-08)
+#### NOTES_PLAN_PRD_GCN: GCN Review (2026-04-08)
 
 - GC_2 stays in GCN_ID — the section is "Global Conventions", broad enough
 - Iteration branch row removed from GCN_BR — per-iteration branches don't exist post-PLAN_SEQ
 - Added WDN (Withdrawn & Deprecated) section at end of PRD for removed items with stable label preservation. Grouped by origin section. Moved SF_19, IMP_20, and the iteration branch pattern there.
 
-#### NOTES_PLN_PRD_PL: PHA_PL Review (2026-04-08)
+#### NOTES_PLAN_PRD_PL: PHA_PL Review (2026-04-08)
 
 - PL_3: "ridl-skills:prd" → "plet's standard PRD format" (old skill name)
 - PL_17 added: confirm before loop launch (FOO_66). Never auto-launch.
 - PL_18 added: generate ITR_RFT_N refactor iterations at milestone boundaries (PLAN_RFT). Details in PHA_RFT.
 - Bootstrap (FOO_64/67) deferred to INF_BS. Planning branch (FOO_65) deferred to PHA_OLP.
 
-#### NOTES_PLN_PRD_OLP: PHA_OLP Review (2026-04-08)
+#### NOTES_PLAN_PRD_OLP: PHA_OLP Review (2026-04-08)
 
 - OR_ renamed to OLP_ (38 occurrences, 7 files)
 - OLP_10 kept in PHA_OLP with cross-ref to INF_BS (bootstrap handles the actual creation)
@@ -2843,7 +2843,7 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 - Added OLP_16–OLP_22: session lifecycle, scheduling, core loop, phase-end composite, branch creation, single-run semantics
 - Detail levels: OLP_19/20/21 full (core loop, phase-end, branches are critical paths). OLP_16/17/18/22 medium.
 
-#### NOTES_PLN_PRD_IMP: PHA_IMP Review (2026-04-08)
+#### NOTES_PLAN_PRD_IMP: PHA_IMP Review (2026-04-08)
 
 - Scope narrowed: IMP is now purely subagent behavior. Orchestrator behaviors moved to PHA_OLP.
 - Moved to WDN: IMP_1, 3, 5, 11, 12, 15, 16, 21, 22 (9 IDs). All have PHA_OLP cross-refs.
@@ -2853,13 +2853,13 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 - IMP_24: "sets its own lifecycle to ineligible" → "sets `implementVerdict: 'blocked'`" + orchestrator recalculates eligibility.
 - Section intro updated: "This section covers what the implement subagent does" with PHA_OLP cross-ref.
 
-#### NOTES_PLN_PRD_VF: PHA_VF Review (2026-04-08)
+#### NOTES_PLAN_PRD_VF: PHA_VF Review (2026-04-08)
 
 - VF_18: script names updated (traces.py, invoke.py)
 - VF_19: moved to WDN — redundant with OLP_18
 - VF_25 added: per-AC reflection step. Makes verification mechanical (verify → reflect → record) instead of holistic judgment. Applies to both implement and verify phases. Rationale: reduces agent churning on what to do next.
 
-#### NOTES_PLN_PRD_MECH: Mechanical Process Principle (2026-04-08)
+#### NOTES_PLAN_PRD_MECH: Mechanical Process Principle (2026-04-08)
 
 **Observation:** Subagents are significantly faster when given a fixed mechanical process (do A → do B → do C) than when asked to exercise judgment about what to do next. Churning on "what should I do now?" wastes tokens and wall clock. The per-AC reflection step (VF_25) validated this — measurable speed improvement.
 
@@ -2867,7 +2867,7 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 
 **Applies to:** phase-implement.md, phase-verify.md, phase-refactor.md — the three subagent reference files. Each should have a clear per-criterion workflow loop that the agent follows mechanically.
 
-#### NOTES_PLN_PRD_RCH: RCH Section Added (2026-04-08)
+#### NOTES_PLAN_PRD_RCH: RCH Section Added (2026-04-08)
 
 - New RCH section after NFR. Three initial ratchets: coverage (91%), lint (0 warnings), test health (all pass).
 - Ratchet discipline: bump threshold when metric sustainably exceeds it.
@@ -2876,7 +2876,7 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 - TLG_EP intro updated: describes thin shim pattern.
 - TST_PL intro updated: removed test count, added RCH_1 cross-ref.
 
-#### NOTES_PLN_PRD_TLG: TLG Review (2026-04-08)
+#### NOTES_PLAN_PRD_TLG: TLG Review (2026-04-08)
 
 - TLG_ES: requirements ES_1–ES_8 accurate, no changes needed.
 - TLG_EP: filled in — 3 entry points with all commands listed. plet_agent.py (6 commands), plet_tools.py (8 commands), plet_orchestrator.py (1 command).
@@ -2884,20 +2884,20 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 - TLG_UT: filled in — 9 utility modules. Added util_format.py, util_git.py, util_constants.py, util_sink.py (all missing from old PRD).
 - TLG_PP: pipeline diagram already updated in restructure pass.
 
-#### NOTES_PLN_PRD_BS: INF_BS Review (2026-04-08)
+#### NOTES_PLAN_PRD_BS: INF_BS Review (2026-04-08)
 
 - 3 requirements added (BS_1–BS_3). Covers: idempotent setup, read-only check, plan-phase integration.
 - BS_1 details the 5 setup steps from bootstrap.py (merge driver, gitattributes, gitignore, CLAUDE.md stub, settings.json).
 - BS_2 connects to OLP_16 preflight.
 - BS_3 connects to PL_17 (confirm before mutating).
 
-#### NOTES_PLN_PRD_RT: INF_RT Review (2026-04-08)
+#### NOTES_PLAN_PRD_RT: INF_RT Review (2026-04-08)
 
 - RT_3: emergent ID format updated to `EM_{iter_id}_{N}` (gate validates this post-PLAN_SEQ)
 - RT_4: script names updated (invoke.py, traces.py)
 - RT_5: "lifecycle transitions" → "verdict updates" (SF_28 compliance)
 
-#### NOTES_PLN_PRD_PT: INF_PT Review (2026-04-08)
+#### NOTES_PLAN_PRD_PT: INF_PT Review (2026-04-08)
 
 - PT_7: script name updated (prompt.py)
 - PT_8 added: phase-refactor.md reference file with ITR_RFT_* routing
@@ -2905,34 +2905,34 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 - PT_10 withdrawn before publication — cli-spec-template.md will become a plan-template (project type), not its own requirement
 - Section reorganized into 4 groups: subagent refs, schema refs, plan templates, prompt assembly
 
-#### NOTES_PLN_PRD_TAX: TAX Section Added (2026-04-08)
+#### NOTES_PLAN_PRD_TAX: TAX Section Added (2026-04-08)
 
 - New TAX section added after PER, before GCN. Three subsections: TAX_VH (vocabulary), TAX_DT (document terms), TAX_AC (artifact categories).
 - Content from NOTES_TAX_1/2/3 — canonical definitions promoted from NOTES to PRD.
 - TAX_4 (dir variables) and TAX_5 (status model) kept in NOTES — implementation details.
 - TAX_AC updated for current state: removed per-iteration branches, updated script names, updated state.json description (lifecycles not parallel groups).
 
-#### NOTES_PLN_PRD_RFT: PHA_RFT Review (2026-04-08)
+#### NOTES_PLAN_PRD_RFT: PHA_RFT Review (2026-04-08)
 
 - 7 requirements added (RFT_1–RFT_7). Covers: prefix routing, milestone barriers, plan generation, mechanical workflow, minimal ACs, single attempt, churn tool.
-- Design follows NOTES_PLN_RFT_SIMPLIFY: no new phase, no schema changes, no custom verdicts. Just a different reference file.
+- Design follows NOTES_PLAN_RFT_SIMPLIFY: no new phase, no schema changes, no custom verdicts. Just a different reference file.
 - RFT_4 references GC_5 (mechanical process principle).
 
-#### NOTES_PLN_PRD_DST: DST Review (2026-04-08)
+#### NOTES_PLAN_PRD_DST: DST Review (2026-04-08)
 
 - DS_4 added: global and project-level installation (alternative to marketplace).
 
-#### NOTES_PLN_PRD_MIL: MIL Review (2026-04-08)
+#### NOTES_PLAN_PRD_MIL: MIL Review (2026-04-08)
 
 - Historical milestones condensed to one-line summaries (v0.1–v0.7).
 - MIL_NX: PLAN_PRD, PLAN_SUB, PLAN_EVL, PT_9 as forward candidates.
 
-#### NOTES_PLN_PRD_QES: QES Rename (2026-04-08)
+#### NOTES_PLAN_PRD_QES: QES Rename (2026-04-08)
 
 - RSQ → QES with QES_RSLV / QES_OPEN subsections.
 - Resolved questions numbered as stable labels QES_1–QES_11.
 
-#### NOTES_PLN_PRD_PASS: Final Consistency Pass (2026-04-08)
+#### NOTES_PLAN_PRD_PASS: Final Consistency Pass (2026-04-08)
 
 Structural pass across entire repo. Findings:
 
@@ -2951,11 +2951,11 @@ Structural pass across entire repo. Findings:
 - Script names in SKILL.md + reference files (`plet_fingerprint.py`, `plet_invoke.py`, `plet_trace.py`, `plet_entries.py`) — need update to current names
 - `guide/` files reference `agentActivity` — lower priority
 
-#### NOTES_PLN_PRD_OQ: Open Questions
+#### NOTES_PLAN_PRD_OQ: Open Questions
 
 *No open questions at this time.*
 
-#### NOTES_PLN_PRD_LABELS: Section Label Conventions
+#### NOTES_PLAN_PRD_LABELS: Section Label Conventions
 
 **H2:** 3-letter stable label (`XXX`). Navigational groupings.
 **H3:** `XXX_YYY` where YYY matches the existing requirement ID prefix. Grep for `IMP` finds both `PHA_IMP` (section) and `IMP_1` (requirement).
@@ -2965,7 +2965,7 @@ Structural pass across entire repo. Findings:
 
 **RF → RFN rename (2026-04-08):** Refine requirement prefix renamed from `RF_` to `RFN_` to distinguish from `RFT_` (refactor). 49 occurrences across 5 files. `RFN` greps clean, `REF` rejected due to collision with `references/`.
 
-#### NOTES_PLN_PRD_RESOLVED: Resolved Questions
+#### NOTES_PLAN_PRD_RESOLVED: Resolved Questions
 
 **OQ_PRD_1: PL_DX / PL_TV / PL_CT / PL_SM template placement.**
 **Decision:** Extract to `references/plan-templates/`. Plan phase loads `common.md` + applicable type/platform templates.
@@ -2993,7 +2993,7 @@ references/plan-templates/
 └── ...
 ```
 
-### NOTES_PLN_EVL: PLAN_EVL — Eval System
+### NOTES_PLAN_EVL: PLAN_EVL — Eval System
 
 <!-- Future — design decisions go here when work begins -->
 
@@ -3449,7 +3449,7 @@ R14 showed broken EM numbering from parallel execution — EM_6 appeared twice, 
 
 PLAN_SEQ. Data: sequential 0.4.x had 100% completion (R06-R08: 39/39, 0 interventions). Parallel 0.5.x-0.6.x had ~70% completion with multiple interventions. R14 (v0.6.2, parallel) achieved 13/13 but wall clock (1h53m) was identical to R08 (sequential) — 8 rebase retries consumed all parallelism savings. Core goal: agents should spend time implementing/verifying, not managing plet mechanics. R06 showed 53% of implement-phase calls were infrastructure; parallel added more.
 
-See NOTES.md § NOTES_PLN_SEQ for full rationale, OQ decisions, and overhead analysis.
+See NOTES.md § NOTES_PLAN_SEQ for full rationale, OQ decisions, and overhead analysis.
 
 #### PLAN_RBS complete, parallel aspects superseded — DECIDED (2026-04-06)
 
