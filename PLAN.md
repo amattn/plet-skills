@@ -24,8 +24,8 @@
 | PLAN_VER | Verify Phase Rewrite | ✓ COMPLETE (9/9) — validated OLLR R07 |
 | PLAN_FIX | Small Fixes Backlog | 3/4 done (FIX_3 deferred) |
 | PLAN_RFT | Refactor Loop | ✓ COMPLETE (6/6) — validated LOGA R16 (refactor agent extracted real code) |
-| PLAN_MSV | Milestone-Scoped Verify | After RFT — drop per-iteration verify, expand milestone verify scope |
-| PLAN_VOS | Verify on the Side | Paused — design exploration complete, MSV preferred. See NOTES_PLN_VOS |
+| PLAN_MSV | Milestone-Scoped Verify | Paused — R17 ran but inconclusive (milestone verify didn't check milestone ACs due to tooling gap). Staying on 0.7.0 per-iteration verify. |
+| PLAN_VOS | Verify on the Side | Paused — design exploration complete. See NOTES_PLN_VOS |
 | PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -117,13 +117,17 @@ Formalize how we measure whether plet's prompts and scripts actually improve out
 
 ## PLAN_MSV: Milestone-Scoped Verify
 
+**Status: Paused.** Branch `PLAN_MSV` was created, implemented, and validated with LOGA R17. The implementation was inconclusive: verify skip for regular iterations worked perfectly (fastest LOGA ever at 90m), but milestone-scoped verify didn't actually verify any of the milestone iteration ACs it was supposed to — `update-criterion` can't write to other iterations' state files, so the verify agent's attempts to check milestone ACs all failed (exitCode 1) and it fell back to checking only its own refactor ACs. See CASE_STUDY_LOGA_R17.md for full analysis.
+
+**Decision (2026-04-13):** Continue with 0.7.0 per-iteration verify. LOGA may be too well-specced for verify to produce meaningful conclusions or take significant action — the 96% rubber-stamp rate may reflect good specs rather than wasted work. Both VOS and MSV are paused pending a project where verify demonstrably adds value.
+
 Drop per-iteration verify, move verification to milestone boundaries. Case study analysis across 24 runs shows per-iteration verify has a ~96% rubber-stamp rate while costing 25-35% of loop time. The 5 real catches were all integration gaps — better caught at milestone scope. See NOTES.md § NOTES_PLN_MSV for full analysis, SPARK reanalysis, cost model, and risk assessment.
 
 **Core change:** Regular iterations run implement-only (gate enforces tests + lint + git clean). The refactor iteration's verify phase at each milestone boundary expands to include AC spot-checking across the milestone's iterations. Default behavior, no flag to revert.
 
 **Depends on:** PLAN_RFT (refactor iterations at milestone boundaries must exist). PLAN_VER (verify.md must be scoped to functional AC checking).
 
-**Branch:** `plan-msv`
+**Branch:** `PLAN_MSV`
 
 ### Phase 1: Orchestrator + Lifecycle
 
@@ -171,7 +175,7 @@ Drop per-iteration verify, move verification to milestone boundaries. Case study
 
 ## PLAN_VOS: Verify on the Side
 
-**Status: Paused.** Design exploration complete. MSV preferred — verify's only proven value (integration gap detection) is better caught at milestone scope. VOS may be revisited if MSV misses things in real runs, or if the "verify on audit tag with artifacts-only writes" pattern proves useful for other purposes (parallel subplets, CI integration). Full design and analysis in NOTES.md § NOTES_PLN_VOS.
+**Status: Paused.** Design exploration complete. Both MSV and VOS are paused (2026-04-13) — LOGA R17 showed MSV's implementation was inconclusive, and the broader question is whether verify adds meaningful value on well-specced projects. VOS may be revisited if a project surfaces where per-iteration verification demonstrably catches issues, or if the audit-tag + artifacts-only pattern proves useful for other purposes (parallel subplets, CI integration). Full design and analysis in NOTES.md § NOTES_PLN_VOS.
 
 ---
 

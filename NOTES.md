@@ -2520,6 +2520,12 @@ All MSV steps done except MSV_10 (real run comparison). Changes across 6 script/
 
 **Other findings:** Plan phase counts as implement attempt 1, pushing real work to attempt 2 (i2/v2 suffixes). 16 tiny 1-line plan trace files. No plan branch created. Learnings recovered to 14 (R16: 2). See full case study: CASE_STUDY_LOGA_R17.md.
 
+#### NOTES_PLN_MSV_10: Both MSV and VOS paused — staying on 0.7.0 (2026-04-13)
+
+**Decision:** Continue with 0.7.0 per-iteration verify. Pause both MSV and VOS.
+
+**Rationale:** R17 showed MSV's implementation was inconclusive — the milestone-scoped verify didn't actually verify milestone iteration ACs due to a tooling gap (`update-criterion` can't write cross-iteration). But the deeper question is whether verify adds meaningful value on well-specced projects like LOGA. The 96% rubber-stamp rate across 24 runs may reflect good specs rather than wasted verification — if that's the case, optimizing verify (MSV) or parallelizing it (VOS) is solving a problem that may not need solving. Keep per-iteration verify as-is in 0.7.0 until a project surfaces where verify demonstrably catches issues that warrant the engineering investment to change the verify model.
+
 ---
 
 ### NOTES_PLN_VOS: PLAN_VOS — Verify on the Side
