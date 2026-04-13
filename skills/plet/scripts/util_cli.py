@@ -349,6 +349,7 @@ def _log_script_invocation(script_name, command, args, exit_code, skill_version,
         from util_io import (
             atomic_append,
             events_path,
+            load_json,
             trace_dir_path,
         )
         from util_io import (
@@ -382,7 +383,20 @@ def _log_script_invocation(script_name, command, args, exit_code, skill_version,
         # If it's something else entirely, skip logging.
         if phase not in ("implement", "verify", "plan", "refine", "orchestrator", "unknown"):
             return
-        attempt = _extract_from_args(args, "attempt") or "1"
+        # Plan and refine are session-level — route to proj trace file, not per-iteration
+        if phase in ("plan", "refine"):
+            iter_id = "proj"
+        attempt = _extract_from_args(args, "attempt")
+        if not attempt and phase in ("plan", "refine"):
+            # Use session count from state.json for plan/refine trace file naming
+            try:
+                state_data = load_json(_state_json_path(plet_dir))
+                count_key = "planSessionCount" if phase == "plan" else "refineSessionCount"
+                attempt = str(max(state_data.get(count_key, 1), 1))
+            except Exception:
+                attempt = "1"
+        elif not attempt:
+            attempt = "1"
 
         # Only log if plet_dir exists and has state.json (actual plet project)
         if not _os.path.isdir(plet_dir):

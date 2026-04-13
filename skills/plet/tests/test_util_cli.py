@@ -851,6 +851,53 @@ def test_log_script_invocation_phase_normalization():
         shutil.rmtree(tmpdir)
 
 
+def test_plan_phase_logs_to_proj_trace():
+    print("\n## _log_script_invocation — plan phase routes to proj trace file")
+    tmpdir, plet_dir = make_test_plet_dir()
+    try:
+        old_val = os.environ.pop("PLET_NO_LOG", None)
+
+        # Log two init calls with different iter_ids but phase=plan
+        util_cli._log_script_invocation(
+            "iter_state",
+            "init",
+            [plet_dir, "--iter-id", "ITR_001", "--phase", "plan"],
+            0,
+            "0.7.0",
+            "0.1.0",
+            None,
+        )
+        util_cli._log_script_invocation(
+            "iter_state",
+            "init",
+            [plet_dir, "--iter-id", "ITR_002", "--phase", "plan"],
+            0,
+            "0.7.0",
+            "0.1.0",
+            None,
+        )
+
+        from util_io import trace_dir_path
+
+        tdir = trace_dir_path(plet_dir)
+        trace_files = [f for f in os.listdir(tdir) if f.endswith("-events.ndjson")] if os.path.isdir(tdir) else []
+        plan_files = [f for f in trace_files if "plan" in f]
+        # Should be ONE proj-plan file, not two per-iteration plan files
+        check("single plan trace file", len(plan_files) == 1, f"got {len(plan_files)}: {plan_files}")
+        per_iter_plan = [f for f in plan_files if "ITR_" in f]
+        check("no per-iteration plan files", len(per_iter_plan) == 0, f"got: {per_iter_plan}")
+        # The single file should have 2 events
+        if plan_files:
+            with open(os.path.join(tdir, plan_files[0])) as f:
+                lines = [ln for ln in f if ln.strip()]
+            check("2 events in proj file", len(lines) == 2, f"got {len(lines)}")
+
+        if old_val is not None:
+            os.environ["PLET_NO_LOG"] = old_val
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 def test_extract_plet_dir():
     print("\n## _extract_plet_dir — finds plet dir from args")
     tmpdir, plet_dir = make_test_plet_dir()
@@ -939,6 +986,7 @@ def main():
     test_nolog_cascades()
     test_log_script_invocation_direct()
     test_log_script_invocation_phase_normalization()
+    test_plan_phase_logs_to_proj_trace()
     test_extract_plet_dir()
     test_extract_from_args()
 
