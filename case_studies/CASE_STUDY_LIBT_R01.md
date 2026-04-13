@@ -479,8 +479,8 @@ Affected artifacts when implementing this fix:
 - **prd.md PL_DX_2** — currently says "unique random 12-digit debug number" but doesn't say "hardcoded literal." Needs to explicitly require hardcoded literals and explain the grep invariant.
 - **prd.md PL_SM_4** — flags "magic numbers/strings — hardcoded values without named constants" as a code smell. Needs an explicit exception for debug numbers.
 - **prd.md VF_9** — code quality checks. Needs to not flag debug number literals.
-- **verify.md Anti-Slop Bias (VF_12)** — lists "magic numbers, hardcoded values" as shortcut indicators. Needs a debug number exception.
-- **verify.md Code Quality (VF_9)** — code review checklist. Same exception needed.
+- **phase-verify.md Anti-Slop Bias (VF_12)** — lists "magic numbers, hardcoded values" as shortcut indicators. Needs a debug number exception.
+- **phase-verify.md Code Quality (VF_9)** — code review checklist. Same exception needed.
 - **plan.md Code Quality (PL_SM_4)** — code smells list includes "Magic numbers/strings — hardcoded values without named constants." Same exception.
 - **formats.md** — the learnings pattern template at line 213-218 actually gets this right already ("hard-code it. Never reuse numbers"). This is the model for how other artifacts should describe it.
 - **NOTES.md** — line 1015 lists "Magic numbers or hardcoded values" as a code smell to watch. Same exception.

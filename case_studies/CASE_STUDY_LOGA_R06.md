@@ -375,7 +375,7 @@ Run 1 was faster per iteration when actively running (~8 min vs ~13 min) — no 
 
 1. **(CASE_LOGA_R06_F_1) End-session state not committed.** The orchestrator's `_end_session()` updates state.json (ID_013 `verifying` → `complete`, session `endedAt`, `lastUpdated`), writes a final progress entry, and appends a trace event — but never commits. Three files left dirty on the workstream: `plet/state.json`, `plet/progress.md`, `plet/trace/proj-unknown-1-events.ndjson`. The last committed state has ID_013 at `verifying` and `endedAt: null`. A resume or refine session reading from git (not working tree) would see an incomplete run. `[resolved]` → fixed in plet_orchestrator.py 0.2.1.
 
-2. **(CASE_LOGA_R06_F_2) Subagent modified state.json in worktree.** The subagent saw a stale `loopSessionCount` and "fixed" it — writing to state.json in the worktree, violating SF_28 (orchestrator-owned). Harmless due to merge=ours, but the subagent shouldn't touch it. `[resolved]` → orchestrator now commits state.json before creating worktrees; implement.md/verify.md now warn "Do NOT modify state.json."
+2. **(CASE_LOGA_R06_F_2) Subagent modified state.json in worktree.** The subagent saw a stale `loopSessionCount` and "fixed" it — writing to state.json in the worktree, violating SF_28 (orchestrator-owned). Harmless due to merge=ours, but the subagent shouldn't touch it. `[resolved]` → orchestrator now commits state.json before creating worktrees; phase-implement.md/phase-verify.md now warn "Do NOT modify state.json."
 
 3. **(CASE_LOGA_R06_F_3) No parallel execution.** Despite the dependency graph having parallel opportunities (ID_005/ID_006/ID_007 could run concurrently after ID_004/ID_003), all iterations ran sequentially. The orchestrator doesn't yet implement parallel scheduling.
 
@@ -398,14 +398,14 @@ Run 1 was faster per iteration when actively running (~8 min vs ~13 min) — no 
 | ID | Recommendation | Priority |
 |----|---------------|----------|
 | CASE_LOGA_R06_REC_1 | Orchestrator must `git add -A && git commit` after `_end_session()` | High |
-| CASE_LOGA_R06_REC_2 | Add "do NOT modify state.json" warning to implement.md and verify.md | High |
+| CASE_LOGA_R06_REC_2 | Add "do NOT modify state.json" warning to phase-implement.md and phase-verify.md | High |
 | CASE_LOGA_R06_REC_3 | Implement parallel scheduling in orchestrator for independent iterations | Medium |
 | CASE_LOGA_R06_REC_4 | Consider milestone boundary refactor step (main.go accumulation pattern) | Low |
 | CASE_LOGA_R06_REC_5 | Add `--go-version` or `GOTOOLCHAIN` handling to bootstrap for Go projects | Low |
 
 **Resolution status:**
 - CASE_LOGA_R06_REC_1: `[resolved]` → plet_orchestrator.py 0.2.1
-- CASE_LOGA_R06_REC_2: `[resolved]` → implement.md, verify.md updated
+- CASE_LOGA_R06_REC_2: `[resolved]` → phase-implement.md, phase-verify.md updated
 - CASE_LOGA_R06_REC_3: open → FOO_69
 - CASE_LOGA_R06_REC_4: open → FOO_70
 - CASE_LOGA_R06_REC_5: deferred (language-specific, low priority)

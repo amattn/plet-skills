@@ -16,13 +16,13 @@ The capstone script — the main implement→verify loop as deterministic code. 
 >    a. Run pre-gate: `gate_phase.py pre --iter-id ITR_xxx --phase implement`
 >    b. Create worktree: `plet_git_iteration.py worktree-create --iter-id ITR_xxx`
 >    c. Launch implement subagent: `invoke.py run --iter-id ITR_xxx --phase implement --cwd <worktree>`
->       - Prompt assembled by `prompt.py assemble` (includes implement.md, iteration definition, formats.md, state-schema.md sections, requirements.md, learnings.md, per-iteration state)
+>       - Prompt assembled by `prompt.py assemble` (includes phase-implement.md, iteration definition, formats.md, state-schema.md sections, requirements.md, learnings.md, per-iteration state)
 >       - Invocation logged to trace event + progress entry. Transcript captured line-by-line.
 >    d. Subagent runs post-gate before exiting: `gate_phase.py post --phase implement`
 > 4. After implementation completes (implementVerdict set), spawn verification subagent in fresh context on same branch. One verify per iteration — never batch.
 >    a. Pre-gate: `gate_phase.py pre --phase verify`
 >    b. Launch: `invoke.py run --phase verify --cwd <worktree>`
->       - Verify prompt: same sections but verify.md instead of implement.md
+>       - Verify prompt: same sections but phase-verify.md instead of phase-implement.md
 >       - Verify agent verifies the **result**, not the **process**
 >    c. Subagent runs post-gate: `gate_phase.py post --phase verify` (also checks verifyVerdict + verificationReports)
 > 5. After verification: pass → audit tag + merge-squash; issues → cycle back

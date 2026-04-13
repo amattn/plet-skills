@@ -6,7 +6,7 @@ First LOGA run on v0.7.0 sequential architecture. **13/13 COMPLETE in 92 minutes
 
 ### CASE_LOGA_R15_GOAL: Goal
 
-Validate v0.7.0 sequential architecture on a larger project (13 iterations, Go). Baseline for PLAN_VER comparison — R15 uses pre-rewrite verify.md, no auto-emit update-activity. Closes PLAN_SEQ SEQ_43.
+Validate v0.7.0 sequential architecture on a larger project (13 iterations, Go). Baseline for PLAN_VER comparison — R15 uses pre-rewrite phase-verify.md, no auto-emit update-activity. Closes PLAN_SEQ SEQ_43.
 
 ### CASE_LOGA_R15_METH: Methodology
 

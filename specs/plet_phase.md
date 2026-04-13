@@ -61,7 +61,7 @@
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PHS_END_JUS_1 | Why: each subagent currently makes 5-6 separate CLI calls at end-of-phase (set-verdict, add-progress, append-event, audit-tag, git commit). Each call requires the agent to know the exact invocation syntax, and each is a separate --help lookup opportunity. Bundling into one call reduces the learning surface and eliminates sequencing errors. | P0 |
-| PHS_END_JUS_2 | When: called by implement or verify subagent as the last action before gate-post. Replaces the manual end-of-phase checklist in implement.md/verify.md § Completing the Phase. | P0 |
+| PHS_END_JUS_2 | When: called by implement or verify subagent as the last action before gate-post. Replaces the manual end-of-phase checklist in phase-implement.md/phase-verify.md § Completing the Phase. | P0 |
 
 #### Definition (CMD)
 

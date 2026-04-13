@@ -407,7 +407,7 @@ The plet infrastructure overhead remains significant (plet_iter_state alone acco
 
 | ID | Recommendation | Priority |
 |----|---------------|----------|
-| CASE_LOGA_R07_REC_1 | Add cheat sheet escalation ladder to verify.md reference (match implement.md emphasis) | High |
+| CASE_LOGA_R07_REC_1 | Add cheat sheet escalation ladder to phase-verify.md reference (match phase-implement.md emphasis) | High |
 | CASE_LOGA_R07_REC_2 | Consider embedding CLI quick reference directly in verify prompt (not just cheat sheet path) | Medium |
 | CASE_LOGA_R07_REC_3 | Rename `unknown` phase in auto-logged trace events to `dispatch` or `auto` | Low |
 | CASE_LOGA_R07_REC_4 | Run a third LOGA (R8) to determine if implement time increase is real or variance | Low |

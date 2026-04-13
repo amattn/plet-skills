@@ -193,7 +193,7 @@ Yes — this is clean scaffolding code. No over-engineering, no unnecessary pack
 | CASE_LOGA_R02_REC_1 | **Force orchestrator usage.** SKILL.md Loop Phase must say "call plet_orchestrator.py run" as an imperative, not a description. The agent should NOT implement the loop itself. | P0 |
 | CASE_LOGA_R02_REC_2 | **Plugin conflict resolution.** Uninstall published plugin during local development. Document this in CLAUDE.md. | P0 |
 | CASE_LOGA_R02_REC_3 | **Phase name enforcement.** plet_trace.py and plet_state.py should reject "implementation" and "verification" — only "implement" and "verify" are valid. | P1 |
-| CASE_LOGA_R02_REC_4 | **Commit runtime artifacts.** implement.md and verify.md must explicitly say `git add plet/ && git commit` as part of incremental commits. | P1 |
+| CASE_LOGA_R02_REC_4 | **Commit runtime artifacts.** phase-implement.md and phase-verify.md must explicitly say `git add plet/ && git commit` as part of incremental commits. | P1 |
 | CASE_LOGA_R02_REC_5 | **Gate enforcement live.** The post-gate checks (lifecycle ownership, audit-tag) weren't called. Need to verify gate scripts are called as part of the subagent flow. | P1 |
 | CASE_LOGA_R02_REC_6 | **Schema version propagation.** New state files should use the SCHEMA_VERSION from util_constants, not a hardcoded "0.1.0". | P1 |
 
@@ -201,7 +201,7 @@ Yes — this is clean scaffolding code. No over-engineering, no unnecessary pack
 - CASE_LOGA_R02_REC_1: `[resolved, verified]` — SKILL.md Loop Phase delegates to plet_orchestrator.py. Run 6 validated.
 - CASE_LOGA_R02_REC_2: `[resolved, verified]` — documented in CLAUDE.md § Testing with Local Skill vs Published Plugin.
 - CASE_LOGA_R02_REC_3: `[resolved, verified]` — plet_trace.py VALID_PHASES enforces. FOO_59.
-- CASE_LOGA_R02_REC_4: `[resolved, verified]` — implement.md/verify.md say `git add plet/`. FOO_60.
+- CASE_LOGA_R02_REC_4: `[resolved, verified]` — phase-implement.md/phase-verify.md say `git add plet/`. FOO_60.
 - CASE_LOGA_R02_REC_5: `[resolved, verified]` — gate scripts called by orchestrator. Run 6: all gates fired.
 - CASE_LOGA_R02_REC_6: `[resolved]` — GST/IST use SCHEMA_VERSION from util_constants.
 

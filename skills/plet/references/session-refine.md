@@ -184,7 +184,7 @@ This step may produce additional requirements changes. Apply them to `plet/requi
 
 ## Step 4: Gap Analysis (FOO_52)
 
-After blockers, triage, and learnings, proactively probe for gaps — the same analysis as plan.md Step 6, but informed by what happened during the loop.
+After blockers, triage, and learnings, proactively probe for gaps — the same analysis as session-plan.md Step 6, but informed by what happened during the loop.
 
 **Surface these categories:**
 
@@ -268,7 +268,7 @@ Only after the user confirms, proceed:
 
 When adding new iterations:
 
-1. Follow the decomposition guidelines from `references/plan.md` — each iteration must fit in a single context window
+1. Follow the decomposition guidelines from `references/session-plan.md` — each iteration must fit in a single context window
 2. Assign dependencies — when in doubt, add the dependency
 3. Assign to milestones using the milestone rules (see Milestone Assignment below)
 4. Present new iterations for user review before writing

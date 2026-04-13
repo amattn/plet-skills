@@ -57,7 +57,7 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 32 | Retrofit UNV_CMD_29 (unknown flags error) across existing scripts | Extract `validate_flags` into `util_cli`, retrofit all 11 existing scripts + 3 new scripts. Pattern proven during plet_schedule + plet_session implementation. |
 | 33 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Toolkit + run model. Calls plet_schedule, plet_session, plet_invoke, and all existing scripts. |
 | 34 | Implement ORC-emergent script updates | 3 scripts need code changes from ORC spec review: (1) gate_phase.py — lifecycle-handoff check, lifecycle-unchanged check, audit-tag existence check (GPH_PST_BHV_11-13, FOO_55). (2) gate_session.py — new postflight command (FOO_56). (3) schedule.py — stuck iteration detection in eligible (SCH_ELG_BHV_5). Red/green for each. |
-| 35 | Cascade lifecycle ownership model | Sweep: update implement.md, verify.md, SKILL.md, state-schema.md, prd.md, PLET.md, plet_state.md with handoffs-vs-decisions model. Must complete before ORC implementation — subagents read these during work. |
+| 35 | Cascade lifecycle ownership model | Sweep: update phase-implement.md, phase-verify.md, SKILL.md, state-schema.md, prd.md, PLET.md, plet_state.md with handoffs-vs-decisions model. Must complete before ORC implementation — subagents read these during work. |
 | 36 | Implement `plet_orchestrator.py` | Build from spec. |
 | 37 | Make plet_dir required positional (FOO_57) | Less invasive than --plet-dir flag: keep positional, remove default. `get_plet_dir` errors if missing instead of falling back to `plet/`. Update tests that rely on default. Eliminates ordering confusion + supports subplet nested paths. Plan with PLAN_EVL (subplets). |
 | 38 | Worktree state invariants | Orchestrator writes ZERO per-iteration state during iteration. Subagent is sole writer (worktree). Orchestrator writes final lifecycle to global_plet_dir ONLY after verdict. Reservation write eliminated. Spec before implementation. |
@@ -65,7 +65,7 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 38b | `prd.md` — add worktree state invariants as requirements | New requirement(s) under SF or IMP: two-copy model, sole writer rule, verdict handoff. Reference from IMP_8 (lifecycle ownership). |
 | 38c | `specs/plet_orchestrator.md` — add Worktree State Invariants section | Remove reservation from BHV_10. Update BHV_12-15 for verdict handoff. Uses global_plet_dir / worktree_plet_dir terms. |
 | 38d | `skills/plet/references/state-schema.md` — document two-copy model | Per-iteration state has two copies during iteration (worktree authoritative, global stale). |
-| 38e | `skills/plet/references/implement.md` + `verify.md` — sole writer note | Subagents are sole writers of per-iteration state. Writes go to worktree plet/ (their cwd). Global copy is stale during iteration. |
+| 38e | `skills/plet/references/phase-implement.md` + `phase-verify.md` — sole writer note | Subagents are sole writers of per-iteration state. Writes go to worktree plet/ (their cwd). Global copy is stale during iteration. |
 | 38f | `NOTES.md` (root) — add worktree state invariants to Important Concepts | Cross-ref specs/NOTES.md for details. |
 | 38g | `plet_orchestrator.py` — remove reservation write, apply invariants | Remove all per-iteration state writes during iteration body. All post-subagent reads from worktree_plet_dir. Verdict handoff: write final lifecycle to global_plet_dir + immediate git commit. |
 | 38h | `util_mock_claude.py` + tests — worktree writes, fix tests | Mock writes to worktree plet/ (cwd). Mock sets lifecycle → implementing as first action. Fix all orchestrator integration tests. |
@@ -85,7 +85,7 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 40d | git_check.py — lifecycle from state.json | `check-session` reads lifecycle from per-iteration files (active lifecycles set, complete iterations filter). Switch to `state.json.lifecycles`. Update test fixtures + assertions. |
 | 40e | prompt.py — lifecycle from state.json | `assemble` includes `Lifecycle: {lifecycle}` from per-iteration state → read from state.json instead. Update test fixtures + assertions. |
 | 40f | plet_orchestrator.py + util_mock_claude.py — simplify | Remove all per-iteration git checkout workarounds. Lifecycle writes → state.json via GST. **Orchestrator calls IST start-phase on worktree_plet_dir before spawning subagent** (clears stale verdicts, sets phaseActivity=setup). Verdict reads: `implementVerdict`/`verifyVerdict` instead of `lifecycle`/`lastVerdict`. **Guard assertion:** `worktree_plet_dir != global_plet_dir` before verdict reads (prevents Run 3 class of bug). **Crash recovery:** detect "implementing/verifying with no active worktree" on startup, reset to queued. Rename `agentActivity` → `phaseActivity`. **util_mock_claude.py**: write `implementVerdict`/`verifyVerdict` instead of `lifecycle`/`lastVerdict`, stop writing lifecycle to per-iteration state. Update all orchestrator test fixtures + assertions. |
-| 40g | implement.md + verify.md + SKILL.md plan phase | Remove lifecycle from subagent responsibilities. Orchestrator manages it entirely. Update plan phase instructions: call GST `update-lifecycle` (set queued/ineligible in state.json) alongside IST `init` (create per-iteration file without lifecycle). |
+| 40g | phase-implement.md + phase-verify.md + SKILL.md plan phase | Remove lifecycle from subagent responsibilities. Orchestrator manages it entirely. Update plan phase instructions: call GST `update-lifecycle` (set queued/ineligible in state.json) alongside IST `init` (create per-iteration file without lifecycle). |
 | 41 | Lifecycle extraction Phase 3 — Tighten + cleanup | Remove dual-schema support, final sweep, delete old script. |
 | 41a | Tighten util_state.py + consistency grep | Remove dual-schema support: `lifecycle` no longer accepted in per-iteration files, `agentActivity` no longer accepted (only `phaseActivity`), `lastVerdict` no longer accepted (only `implementVerdict`/`verifyVerdict`). Consistency grep for stale field names across entire repo. |
 | 41b | Final test sweep — test_all.py clean | Verify all test files pass. Catch any stragglers missed during per-script updates. Full `test_all.py` run. |
@@ -147,7 +147,7 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 38b | prd.md — invariant requirements | ✓ complete |
 | 38c | ORC spec — invariants section | ✓ complete |
 | 38d | state-schema.md — two-copy model | ✓ complete |
-| 38e | implement.md + verify.md — sole writer note | ✓ complete |
+| 38e | phase-implement.md + phase-verify.md — sole writer note | ✓ complete |
 | 38f | Root NOTES.md — invariants | ✓ complete |
 | 38g | Orchestrator — apply invariants | ✓ complete |
 | 38h | Mock + tests — fix for worktree writes | ✓ complete |
@@ -165,7 +165,7 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 40d | git_check.py — lifecycle from state.json | ✓ complete |
 | 40e | prompt.py — lifecycle from state.json | ✓ complete |
 | 40f | plet_orchestrator.py + util_mock_claude — lifecycle extraction | ✓ complete |
-| 40g | implement.md + verify.md + SKILL.md plan phase | ✓ complete |
+| 40g | phase-implement.md + phase-verify.md + SKILL.md plan phase | ✓ complete |
 | 41a | Tighten util_state.py — remove dual-schema | ✓ complete |
 | 41b | Final test sweep — test_all.py clean | ✓ complete |
 | 41c | Remove plet_state.py + deprecate spec | ✓ complete |

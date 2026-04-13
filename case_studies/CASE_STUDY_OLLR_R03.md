@@ -6,7 +6,7 @@ Third oller run. v0.6.1 + all unpublished fixes (wip-commit, gate rebase check, 
 
 ### CASE_OLLR_R03_GOAL: Goal
 
-Validate full three-layer defense: implement-end rebase (implement.md + gate), dynamic parallel stop, wip-commit. Same parallel conflict stress test.
+Validate full three-layer defense: implement-end rebase (phase-implement.md + gate), dynamic parallel stop, wip-commit. Same parallel conflict stress test.
 
 ### CASE_OLLR_R03_METH: Methodology
 

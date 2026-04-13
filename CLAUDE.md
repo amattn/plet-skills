@@ -224,7 +224,7 @@ After making changes, run a consistency pass appropriate to the scope (see PLET.
 
 > **Draft convention.** This is evolving based on observed patterns in this repo. If you notice something that doesn't fit, or have a recommendation for improvement, surface it and offer to update this section.
 
-**Note:** These conventions are for *this repo* (plet-skills). plet's own commit convention for target projects is separate: `plet: [ITR_xxx] implement-N - title` (defined in implement.md).
+**Note:** These conventions are for *this repo* (plet-skills). plet's own commit convention for target projects is separate: `plet: [ITR_xxx] implement-N - title` (defined in phase-implement.md).
 
 ### Title line (strong convention)
 - Format: `prefix: short description`

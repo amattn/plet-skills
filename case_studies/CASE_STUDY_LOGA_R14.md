@@ -135,7 +135,7 @@ The 17 genuine entries (1.3/iter) include substantive design decisions (Timestam
 | Emergent | 22 | 17 (77%) | 3 (14%) | 1 (5%) | 1 (5%) |
 | **Combined** | **64** | **41 (64%)** | **14 (22%)** | **7 (11%)** | **2 (3%)** |
 
-**What drove the improvement over prior runs:** Multi-factorial. (1) Rebase conflicts gave agents something novel to report (~14 entries that wouldn't exist in sequential). (2) Verify agents adopted a "pre-flight timing baseline" template they repeat (~6 entries, gate-gaming). (3) The rewritten implement.md/verify.md (PLAN_RW) + plet_entries.py structured format + plet_prompt.py injecting prior learnings drove the genuine ~41 entries. Cannot isolate which factor without a controlled comparison.
+**What drove the improvement over prior runs:** Multi-factorial. (1) Rebase conflicts gave agents something novel to report (~14 entries that wouldn't exist in sequential). (2) Verify agents adopted a "pre-flight timing baseline" template they repeat (~6 entries, gate-gaming). (3) The rewritten phase-implement.md/phase-verify.md (PLAN_RW) + plet_entries.py structured format + plet_prompt.py injecting prior learnings drove the genuine ~41 entries. Cannot isolate which factor without a controlled comparison.
 
 **PLAN_SEQ prediction:** ~41 genuine entries survive (lose 14 parallel-specific). The 7 template/filler entries should reduce with WARN-not-FAIL gates (SEQ_21-22). Duplicate EM IDs fixed by sequential execution (single counter). Net: expect ~41 entries with better quality and no ID collisions.
 

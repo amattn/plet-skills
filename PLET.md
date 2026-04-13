@@ -262,7 +262,7 @@ unattended execution.
 **Suggested tags** (new tags welcome):
 `[autonomy]`, `[state]`, `[git]`, `[artifacts]`, `[timing]`, `[prompting]`, `[config]`
 
-**Mutability:** Editable. Resolved entries are marked `[resolved]` with a note on where the insight was promoted (e.g., "→ CASE_LOGA_R01_REC_9 in implement.md"). Resolved entries stay for history but can be removed during cleanup.
+**Mutability:** Editable. Resolved entries are marked `[resolved]` with a note on where the insight was promoted (e.g., "→ CASE_LOGA_R01_REC_9 in phase-implement.md"). Resolved entries stay for history but can be removed during cleanup.
 
 **Promotion path:** Depends on the item:
 - → `CLAUDE.md` or `PLET.md` (becomes a rule or convention)

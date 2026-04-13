@@ -61,7 +61,7 @@ Artifact analysis from `/Users/kai/github.com/amattn/loganalyzerR16/`. Transcrip
 
 ### CASE_LOGA_R16_RFT: Refactor Iterations (PLAN_RFT Validation)
 
-**First real validation of PLAN_RFT.** Three refactor iterations ran with `refactor.md` as their reference file (prompt routing via `ITR_RFT_` prefix confirmed working). Each had 4 acceptance criteria.
+**First real validation of PLAN_RFT.** Three refactor iterations ran with `phase-refactor.md` as their reference file (prompt routing via `ITR_RFT_` prefix confirmed working). Each had 4 acceptance criteria.
 
 **ITR_RFT_1 (MS_1 refactor — 3m45s):** Audit-only, no code changes. Codebase was clean after 6 iterations: 10 Go files, 575 lines, no duplication across 3+ files, largest file 363 lines, 1 emergent item triaged. Finding: "no refactoring work needed."
 
@@ -189,7 +189,7 @@ Per-regular-iteration time (6.7m) is the fastest ever. Verify got 24% faster (2.
 
 ### What Worked Well
 
-1. **(CASE_LOGA_R16_W_1) PLAN_RFT validated — refactor agent works.** ITR_RFT_3 found and extracted real duplication (`FieldValue` across 3 files). The prompt routing (`ITR_RFT_` → `refactor.md`) is correct. Refactor agents correctly distinguish intentional variation from genuine duplication.
+1. **(CASE_LOGA_R16_W_1) PLAN_RFT validated — refactor agent works.** ITR_RFT_3 found and extracted real duplication (`FieldValue` across 3 files). The prompt routing (`ITR_RFT_` → `phase-refactor.md`) is correct. Refactor agents correctly distinguish intentional variation from genuine duplication.
 
 2. **(CASE_LOGA_R16_W_2) Auto-emit works at scale.** 413 total activity signals (155 explicit + 258 auto). 37% fewer explicit calls per iteration vs R15. The mechanism is production-ready.
 
@@ -219,14 +219,14 @@ Per-regular-iteration time (6.7m) is the fastest ever. Verify got 24% faster (2.
 
 | ID | Description | Priority |
 |----|-------------|----------|
-| CASE_LOGA_R16_REC_1 | Investigate and fix learnings/emergent regression — check per-AC reflection prompt, verify.md artifact guidance, implement.md artifact guidance | P1 |
+| CASE_LOGA_R16_REC_1 | Investigate and fix learnings/emergent regression — check per-AC reflection prompt, phase-verify.md artifact guidance, phase-implement.md artifact guidance | P1 |
 | CASE_LOGA_R16_REC_2 | Remove "pre-merge commit" and "iteration complete" from orchestrator — parallel-era leftovers | P2 |
 | CASE_LOGA_R16_REC_3 | Consider fast-path for refactor iterations ("skip if clean" after initial audit) | P2 |
 | CASE_LOGA_R16_REC_4 | Fix plan.md: global_state.py init only creates state.json, not per-iteration files | P2 |
 
 ### Open Questions
 
-1. **(CASE_LOGA_R16_OQ_1)** Is the learnings regression from removing the verbose artifact guidance in verify.md, from the per-AC reflection prompt not reaching agents, or from the streamlined workflow deprioritizing artifacts?
+1. **(CASE_LOGA_R16_OQ_1)** Is the learnings regression from removing the verbose artifact guidance in phase-verify.md, from the per-AC reflection prompt not reaching agents, or from the streamlined workflow deprioritizing artifacts?
 2. **(CASE_LOGA_R16_OQ_2)** Should no-op refactor iterations be shortened? A fast audit + "nothing to refactor" path could save ~8 minutes per no-op.
 3. **(CASE_LOGA_R16_OQ_3)** Should the verify commit pattern be mandated as per-AC, or is 82% compliance acceptable?
 

@@ -188,20 +188,20 @@ def test_impl_all_sections():
 
 
 def test_impl_reference_file():
-    print("\n## assemble — implement uses implement.md")
+    print("\n## assemble — implement uses phase-implement.md")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
         stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "implement", "--output", "json"])
         data = json.loads(stdout)
         ref = [s for s in data["sections"] if s["name"] == "reference-file"][0]
-        check("source is implement.md", "implement.md" in ref["source"])
+        check("source is phase-implement.md", "phase-implement.md" in ref["source"])
     finally:
         shutil.rmtree(tmpdir)
 
 
 def test_refactor_iteration_uses_refactor_md():
-    print("\n## assemble — ITR_RFT_* uses refactor.md")
+    print("\n## assemble — ITR_RFT_* uses phase-refactor.md")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = os.path.join(tmpdir, "plet")
@@ -233,7 +233,7 @@ def test_refactor_iteration_uses_refactor_md():
         check("exits 0", rc == 0, f"stderr: {stderr}")
         data = json.loads(stdout)
         ref = [s for s in data["sections"] if s["name"] == "reference-file"][0]
-        check("source is refactor.md", "refactor.md" in ref["source"], f"got: {ref['source']}")
+        check("source is phase-refactor.md", "phase-refactor.md" in ref["source"], f"got: {ref['source']}")
         check("content mentions refactoring", "refactor" in ref["content"].lower())
     finally:
         shutil.rmtree(tmpdir)
@@ -261,14 +261,14 @@ def test_verify_all_sections():
 
 
 def test_verify_reference_file():
-    print("\n## assemble — verify uses verify.md")
+    print("\n## assemble — verify uses phase-verify.md")
     tmpdir = tempfile.mkdtemp()
     try:
         plet_dir = make_plet_dir(tmpdir)
         stdout, _, _ = run(["assemble", plet_dir, "--iter-id", "ITR_001", "--phase", "verify", "--output", "json"])
         data = json.loads(stdout)
         ref = [s for s in data["sections"] if s["name"] == "reference-file"][0]
-        check("source is verify.md", "verify.md" in ref["source"])
+        check("source is phase-verify.md", "phase-verify.md" in ref["source"])
     finally:
         shutil.rmtree(tmpdir)
 

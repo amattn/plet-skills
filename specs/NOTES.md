@@ -794,7 +794,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 
 - **Renamed:** `plet_inject_prompt.py` (INJ) → `prompt.py` (PRM). Simpler name — "it builds the prompt."
 - **Single command:** `assemble` with `--phase implement|verify`. Reads files on disk, outputs complete prompt.
-- **7 sections in order:** reference-file (implement.md or verify.md), iteration-definition (extracted from iterations.md), formats, state-schema, requirements, learnings (always present — FOO_38), iteration-state (formatted readably).
+- **7 sections in order:** reference-file (phase-implement.md or phase-verify.md), iteration-definition (extracted from iterations.md), formats, state-schema, requirements, learnings (always present — FOO_38), iteration-state (formatted readably).
 - **Learnings always injected (FOO_38):** Even when learnings.md is empty or missing, the section appears with a "no learnings" note. Guarantees cross-iteration knowledge transfer is deterministic.
 - **Iteration definition extraction:** Regex-based heading match in iterations.md. Extracts from matching heading to next same-level heading.
 - **State formatted as text:** Not raw JSON — human-readable summary of lifecycle, attempts, criteria with statuses.
@@ -1070,7 +1070,7 @@ All three remaining open questions resolved by the agent-first CLI design insigh
 **Cascading changes needed:**
 - `references/state-schema.md` — remove `skipRationale` from criterion schema
 - `skills/plet/scripts/plet_state.py` — validator checks evidence non-empty for skipped, not skipRationale
-- `references/implement.md`, `references/verify.md` — note that evidence acts as rationale for skipped criteria
+- `references/phase-implement.md`, `references/phase-verify.md` — note that evidence acts as rationale for skipped criteria
 - Existing state files with `skipRationale` — harmless extra field, validator ignores it
 
 **Monitor:** If agents produce poor skip rationale using the evidence framing, consider renaming `--evidence` to `--reason` or adding `--skip-rationale` as an alias.
@@ -1303,7 +1303,7 @@ specs/
 ├── plet_inject_prompt.md
 ├── plet_orchestrator.md
 ├── plet_gate_impl.md
-└── plet_gate_verify.md
+└── plet_gate_phase-verify.md
 ```
 
 `prd.md` stays at project root — it's the plet PRD, not a script spec. `specs/` is exclusively for script behavioral specs.
@@ -1482,7 +1482,7 @@ CLEANUP (per-iteration state controls):
   Both independent. Tags keep commits reachable even if branch deleted.
 ```
 
-- **Cascade needed:** state-schema.md (new field), prd.md (IMP_17 squash convention), execute.md/verify.md (tag and squash sections), util_modules.md (iter validation rules), GTO spec rewrite of squash sections.
+- **Cascade needed:** state-schema.md (new field), prd.md (IMP_17 squash convention), execute.md/phase-verify.md (tag and squash sections), util_modules.md (iter validation rules), GTO spec rewrite of squash sections.
 
 #### Worktree + shared artifacts merge strategy (2026-03-26)
 
@@ -1513,7 +1513,7 @@ CLEANUP (per-iteration state controls):
 #### cleanup-stashes dropped from GTO (2026-03-22)
 
 - **Decision:** Drop `cleanup-stashes` from `git_ops.py`. GTO is now 2 commands: `squash`, `audit-tag`.
-- **Why:** Worktrees (GTI) eliminate the need to stash. The stash ban is in execute.md and verify.md. A cleanup command for a problem that shouldn't exist is backwards — the fix is enforcing the ban (worktrees), not cleaning up after violations.
+- **Why:** Worktrees (GTI) eliminate the need to stash. The stash ban is in execute.md and phase-verify.md. A cleanup command for a problem that shouldn't exist is backwards — the fix is enforcing the ban (worktrees), not cleaning up after violations.
 - **Monitor:** If PLAN_RW comparison runs or future case studies show stashes appearing despite worktrees, revisit. Until then, YAGNI.
 
 #### plet_git.py split into three scripts (2026-03-21)
@@ -1585,7 +1585,7 @@ CLEANUP (per-iteration state controls):
 - **Orchestrator:** writes ZERO per-iteration state during iteration. Owns post-verdict transitions: `verifying → complete` (after merge, to global), `verifying → queued` (retry, to global), `verifying → blocked` (exhausted, to global).
 - **Symmetric pattern:** Both subagents set their lifecycle as first action. Both are sole writers to worktree. Orchestrator only touches global copy after verdict.
 - **State window after verify exits:** lifecycle `verifying` + lastVerdict `passed/rejected/blocked` = truthful. `complete` only after code is on workstream.
-- **Impact:** ✓ Done — verify.md, implement.md, state-schema.md, SKILL.md, PRD all updated.
+- **Impact:** ✓ Done — phase-verify.md, phase-implement.md, state-schema.md, SKILL.md, PRD all updated.
 
 #### Standardize on NDJSON, retire JSONL (2026-03-29)
 
@@ -1610,7 +1610,7 @@ CLEANUP (per-iteration state controls):
 **The reservation write (`lifecycle → implementing`) is eliminated.** It was the source of merge conflicts — orchestrator modified root, subagent modified worktree, merge-squash conflicted. Without it: subagent is the sole writer, merge-squash is clean.
 
 **Accepted trade-offs:**
-- Worktree starts with lifecycle "queued" — subagent's first action sets "implementing" (per implement.md § Set Up State)
+- Worktree starts with lifecycle "queued" — subagent's first action sets "implementing" (per phase-implement.md § Set Up State)
 - External consumers see "queued" in root during iteration — NDJSON `iteration_start` event and worktree existence signal "in flight"
 - Verification reports for rejected iterations only on iteration branch — worktree recreated on retry, reports preserved
 
@@ -1743,8 +1743,8 @@ Orchestrator post-phase logic:
 | `gate_phase.py` | Pre/post gates read lifecycle from state.json, not per-iteration file. |
 | `gate_session.py` | 4 locations read lifecycle from per-iteration files → switch to `state.json.lifecycles`: (1) `detect` — lifecycle counts for session type detection, (2) `status` — lifecycle counts, blockers, milestone status, (3) `status` — `agentActivity` → `phaseActivity` rename, (4) `postflight` — transient lifecycle detection (implementing/verifying). |
 | `plet_orchestrator.py` | Major simplification. Writes lifecycle to state.json. No per-iteration state writes. No git checkout workarounds. |
-| `implement.md` | Remove lifecycle write guidance. Subagent doesn't set implementing or verifying. |
-| `verify.md` | Remove lifecycle ownership section (simplified — subagent doesn't touch lifecycle). |
+| `phase-implement.md` | Remove lifecycle write guidance. Subagent doesn't set implementing or verifying. |
+| `phase-verify.md` | Remove lifecycle ownership section (simplified — subagent doesn't touch lifecycle). |
 | `state-schema.md` | Add `lifecycles` to state.json schema. Remove `lifecycle` from per-iteration schema. |
 | `util_state.py` | Validation: per-iteration files no longer require lifecycle. state.json requires lifecycles. |
 
@@ -1825,7 +1825,7 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 3. **Tests alongside each script (39f–39k):** Each migration step updates that script's test fixtures. 39n is final sweep, not primary update.
 4. **Swapped 39d/39e:** util_state.py dual-schema (39d) before new scripts (39e) — new scripts depend on updated validation.
 5. **util_mock_claude.py in 39k:** Writes implementVerdict/verifyVerdict instead of lifecycle/lastVerdict.
-6. **SKILL.md plan phase in 39l:** Plan session calls GST + IST (was only implement.md + verify.md).
+6. **SKILL.md plan phase in 39l:** Plan session calls GST + IST (was only phase-implement.md + phase-verify.md).
 
 #### Phase 1 completion + Phase 2 start (2026-03-31)
 
@@ -1921,7 +1921,7 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 
 **40f mock (util_mock_claude.py):** Writes `implementVerdict = "readyForVerification"` (was `lifecycle = "verifying"`), `verifyVerdict` (was `lastVerdict`), `phaseActivity` (was `agentActivity`).
 
-**40g (reference files + SKILL.md):** implement.md and verify.md rewritten for IST commands, `implementVerdict`/`verifyVerdict` handoff, `phaseActivity`. Lifecycle ownership sections updated — subagents never touch lifecycle (SF_28). SKILL.md plan phase updated to use IST init + GST update-lifecycle.
+**40g (reference files + SKILL.md):** phase-implement.md and phase-verify.md rewritten for IST commands, `implementVerdict`/`verifyVerdict` handoff, `phaseActivity`. Lifecycle ownership sections updated — subagents never touch lifecycle (SF_28). SKILL.md plan phase updated to use IST init + GST update-lifecycle.
 
 **implementVerdict convention:** `"readyForVerification"` — descriptive, not routed on (orchestrator checks not-null only). Blocker/retry/ineligible verdicts also possible for future routing.
 

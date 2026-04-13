@@ -120,7 +120,7 @@ No gaps > 1 minute between iterations. Zero stalls. Zero human intervention.
 
 ### CASE_OLLR_R05_MISSING: Missing or Incomplete Artifacts
 
-**phaseActivity stale throughout.** All state files show `phaseActivity: "idle"`, `activityDetail: null`. The `start-phase` command sets these to `"setup"` at launch, but the subagent never calls `update-activity` during work — so `phaseActivity` stays at whatever `start-phase` set (likely reset to `"idle"` by phase-end). **This is the missing `update-activity` directive identified in this session** — implement.md and verify.md were slimmed in SEQ_37-38 and all `update-activity` instructions were stripped.
+**phaseActivity stale throughout.** All state files show `phaseActivity: "idle"`, `activityDetail: null`. The `start-phase` command sets these to `"setup"` at launch, but the subagent never calls `update-activity` during work — so `phaseActivity` stays at whatever `start-phase` set (likely reset to `"idle"` by phase-end). **This is the missing `update-activity` directive identified in this session** — phase-implement.md and phase-verify.md were slimmed in SEQ_37-38 and all `update-activity` instructions were stripped.
 
 **Verification report `oneLiner` truncation.** Several reports have truncated oneLiners: `"Independently verified: read oller"`, `"Ran 'bash -n oller"`, `"test_oller"`. These are cut mid-word. Likely a length limit in the auto-report builder, but the truncation removes useful context.
 
@@ -174,7 +174,7 @@ No gaps > 1 minute between iterations. Zero stalls. Zero human intervention.
 
 ### What Didn't Work Well
 
-1. **(CASE_OLLR_R05_F_1) phaseActivity never updated during work.** `update-activity` stripped from implement.md and verify.md during SEQ_37-38 slimming. All state files show `phaseActivity: "idle"` throughout. External consumers (GUI, monitoring) see no activity signal. **Fix in progress** — `update-activity` being added back to `plet_agent.py` and reference files in this session.
+1. **(CASE_OLLR_R05_F_1) phaseActivity never updated during work.** `update-activity` stripped from phase-implement.md and phase-verify.md during SEQ_37-38 slimming. All state files show `phaseActivity: "idle"` throughout. External consumers (GUI, monitoring) see no activity signal. **Fix in progress** — `update-activity` being added back to `plet_agent.py` and reference files in this session.
 
 2. **(CASE_OLLR_R05_F_2) progress.md volume.** 1417 lines for 6 iterations. Auto-progress from CLI shim and update-criterion generates many entries. May need throttling for larger projects.
 

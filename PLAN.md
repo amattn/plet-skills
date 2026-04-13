@@ -125,7 +125,7 @@ Drop per-iteration verify, move verification to milestone boundaries. Case study
 
 **Core change:** Regular iterations run implement-only (gate enforces tests + lint + git clean). The refactor iteration's verify phase at each milestone boundary expands to include AC spot-checking across the milestone's iterations. Default behavior, no flag to revert.
 
-**Depends on:** PLAN_RFT (refactor iterations at milestone boundaries must exist). PLAN_VER (verify.md must be scoped to functional AC checking).
+**Depends on:** PLAN_RFT (refactor iterations at milestone boundaries must exist). PLAN_VER (phase-verify.md must be scoped to functional AC checking).
 
 **Branch:** `PLAN_MSV`
 
@@ -141,8 +141,8 @@ Drop per-iteration verify, move verification to milestone boundaries. Case study
 
 | Step | Description | Status |
 |------|-------------|--------|
-| MSV_4 | Rewrite `verify.md` for milestone scope — check ALL ACs from milestone iterations, fix issues found in-place, report what was fixed. If too big to fix, block refactor iteration for human triage. Add guidance on batching/prioritizing when AC count is high. This is essentially a new verify — review-and-fix, not read-only. | |
-| MSV_5 | Update `refactor.md` — note that verify phase after refactor now also checks milestone ACs. Clarify two-part scope: refactor correctness + milestone AC compliance. | |
+| MSV_4 | Rewrite `phase-verify.md` for milestone scope — check ALL ACs from milestone iterations, fix issues found in-place, report what was fixed. If too big to fix, block refactor iteration for human triage. Add guidance on batching/prioritizing when AC count is high. This is essentially a new verify — review-and-fix, not read-only. | |
+| MSV_5 | Update `phase-refactor.md` — note that verify phase after refactor now also checks milestone ACs. Clarify two-part scope: refactor correctness + milestone AC compliance. | |
 
 ### Phase 3: Prompt + Validation
 
@@ -281,12 +281,12 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 | RBS_4 | `git_ops.py`: implement `rebase-prep` — GREEN | ✓ done |
 | RBS_5 | Tests: orchestrator integration (11 real git + 3 mock) — RED | ✓ done |
 | RBS_6 | Orchestrator: rebase-commit + requeue flow — GREEN | ✓ done |
-| RBS_7 | Reference files: implement.md, verify.md, plan.md, state-schema.md | ✓ done |
+| RBS_7 | Reference files: phase-implement.md, phase-verify.md, plan.md, state-schema.md | ✓ done |
 | RBS_8 | SKILL.md, cli-cheatsheet.md, scripts/CLAUDE.md | ✓ done |
 | RBS_9 | LOGA R12/R13, OLLR R01/R02 — validated rebase-commit, found conflict recovery issues | ✓ done (see case studies) |
 | RBS_10 | Tests: `wip-commit` (stages source + state, excludes trace/) — RED | ✓ done |
 | RBS_11 | `git_ops.py wip-commit`: implement command — GREEN | ✓ done |
-| RBS_12 | implement.md + verify.md: `wip-commit`, rebase-prep at start AND end | ✓ done |
+| RBS_12 | phase-implement.md + phase-verify.md: `wip-commit`, rebase-prep at start AND end | ✓ done |
 | RBS_13 | Tests: gate-post rebase check (`merge-base --is-ancestor`) — RED | ✓ done |
 | RBS_14 | Gate-post: enforce iter branch on top of workstream — GREEN | ✓ done |
 | RBS_15 | Tests: orchestrator parallel stop flag — RED | ✓ done |
@@ -297,7 +297,7 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 | RBS_20 | Remove `remainingRetries` from per-iter state (schema, validator, fixtures) | ✓ done |
 | RBS_21 | Tests: `requeue_reason` removed from per-iter state — RED | ✓ done |
 | RBS_22 | Remove `requeue_reason` write + prompt injection — GREEN | ✓ done |
-| RBS_23 | implement.md: add rebase-prep at START of implement (always, not just requeue) | ✓ done |
+| RBS_23 | phase-implement.md: add rebase-prep at START of implement (always, not just requeue) | ✓ done |
 | RBS_24 | SKILL.md: loop runs ONCE — never auto-restart | ✓ done |
 | RBS_25 | Validate with real run | ✓ done |
 
@@ -365,8 +365,8 @@ See NOTES.md § NOTES_PLN_SEQ for full decision rationale, OQ decisions, overhea
 | SEQ_34 | Path cleanup: replace `os.path.join(scripts_dir, "foo.py")` subprocess calls with direct imports | ✓ done |
 | SEQ_35 | Audit + slim formats.md — dropped from prompt injection, content migrated | ✓ done |
 | SEQ_36 | Audit + slim state-schema.md — dropped from prompt injection, enum values added to CLI --usage | ✓ done |
-| SEQ_37 | Slim implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | ✓ done |
-| SEQ_38 | Slim verify.md — same approach, inline cheatsheet content | ✓ done |
+| SEQ_37 | Slim phase-implement.md — strip parallel/worktree/branch/conflict/rebase, add learnings/emergent per-AC prompt, inline cheatsheet content | ✓ done |
+| SEQ_38 | Slim phase-verify.md — same approach, inline cheatsheet content | ✓ done |
 | SEQ_39 | Remove cli-cheatsheet.md — obsolete (`plet_agent.py --help` replaces it for agents) | ✓ done |
 | SEQ_40 | Update SKILL.md — sequential loop, 3 scripts, `phase-start` rename, loop runs ONCE | ✓ done |
 | SEQ_41 | Update PRD — remove/update parallel, worktree, branch management sections | ✓ done |
@@ -424,27 +424,27 @@ Category-by-category execution. Hard cut (no transition period). Historical arti
 
 ## PLAN_VER: Verify Phase Rewrite
 
-Rewrite verify.md to match what agents actually do well (functional verification) and stop asking them to do what they don't (code review). Tighten scope, enforce independence, remove unused paths. See NOTES.md § NOTES_PLN_VER for all decisions and rationale.
+Rewrite phase-verify.md to match what agents actually do well (functional verification) and stop asking them to do what they don't (code review). Tighten scope, enforce independence, remove unused paths. See NOTES.md § NOTES_PLN_VER for all decisions and rationale.
 
 **Core changes:** VF_9/broad VF_8/broad VF_10 → refactor (PLAN_RFT). Fix-in-place removed. Anti-Slop + Convergence collapsed. Artifact Audit removed (gate handles it). Verify-first independence (evidence deferred). Pre-flight moved to implement.
 
 | Step | Description | Status |
 |------|-------------|--------|
-| | **Phase 1: verify.md Rewrite** | |
-| VER_1 | Rewrite verify.md per outline (see below) | ✓ done (338 → 257 lines) |
+| | **Phase 1: phase-verify.md Rewrite** | |
+| VER_1 | Rewrite phase-verify.md per outline (see below) | ✓ done (338 → 257 lines) |
 | VER_2 | Update prompt.py CLI quick ref: 5 → 6 commands (update-activity) | ✓ done |
 | VER_3 | Update prompt.py `format_iteration_state`: strip implementation evidence from verify prompt (status + description only, no evidence text) | ✓ already satisfied (only injects status + description) |
-| | **Phase 2: implement.md Adjustments** | |
-| VER_4 | Move pre-flight checks to implement.md final checks (verify trusts the gate) | ✓ already satisfied (implement final checks cover all pre-flight items) |
-| VER_5 | Verify implement.md phase-end gate enforces pre-flight (tests pass, git clean) | ✓ confirmed (gate-post checks state, entries; phase-end handles git) |
+| | **Phase 2: phase-implement.md Adjustments** | |
+| VER_4 | Move pre-flight checks to phase-implement.md final checks (verify trusts the gate) | ✓ already satisfied (implement final checks cover all pre-flight items) |
+| VER_5 | Verify phase-implement.md phase-end gate enforces pre-flight (tests pass, git clean) | ✓ confirmed (gate-post checks state, entries; phase-end handles git) |
 | | **Phase 3: Cross-reference Updates** | |
 | VER_6 | Update SKILL.md verify description if needed | ✓ no changes needed |
-| VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to refactor.md | ✓ done (NOTES_PLN_RFT updated) |
+| VER_7 | Update PLAN_RFT notes: VF_9, broad VF_8, broad VF_10 migrating to phase-refactor.md | ✓ done (NOTES_PLN_RFT updated) |
 | | **Phase 4: Validate** | |
 | VER_8 | Test suite passes | ✓ done (1041 tests, 91% coverage) |
 | VER_9 | Validate with real run (OLLR R07) | ✓ done — verify-first confirmed, auto-emit 136 changes, 21m |
 
-**verify.md outline:**
+**phase-verify.md outline:**
 
 ```
 # Verify Phase — Verification Subagent
@@ -491,7 +491,7 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 | FIX_3 | progress.md volume — ~1400 lines for 6 iters from auto-progress CLI shim, may need throttling or consolidation for larger projects | R05/R06 | P2 | deferred |
 | FIX_4 | `unknown-phase` trace files — infer `plan`/`refine` from session state, keep `unknown` as true fallback | R05 | P3 | ✓ done |
 | FIX_5 | Stale references in SKILL.md + reference files — old script names (`plet_fingerprint.py` etc.), stale field names (`agentActivity`, `parallelGroups` in refine.md), withdrawn SF_18 heading in formats.md, `section 3.6` ref in formats.md. Full list in NOTES § NOTES_PLN_PRD_PASS. | PLAN_PRD | P2 | ✓ done |
-| FIX_6 | Rename `references/plan.md` → `plan-session.md` and `references/refine.md` → `refine-session.md` — disambiguate session reference files from root PLAN.md. Phase files (implement, verify, refactor) keep current names. Update prompt.py, SKILL.md, any other references. | naming collision | P3 | not started |
+| FIX_6 | Rename reference files with `session-`/`phase-` prefixes: `plan.md` → `session-plan.md`, `refine.md` → `session-refine.md`, `implement.md` → `phase-implement.md`, `verify.md` → `phase-verify.md`, `refactor.md` → `phase-refactor.md`. Update prompt.py, SKILL.md, all references. | naming convention | P3 | ✓ done |
 | FIX_7 | Rename `NOTES_PLN_*` stable labels to `NOTES_PLAN_*` — resolve inconsistency between 3-letter abbreviation and full plan chunk names (PLAN_MSV, PLAN_VOS, etc.). Sweep pass across NOTES.md, update TOC, grep for all references. | naming consistency | P3 | not started |
 
 ---
@@ -500,14 +500,14 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 
 Milestone-boundary refactor via synthetic iteration. Milestones are execution barriers. Refactor iterations use the standard implement→verify lifecycle with a specialized reference file — no new phase, no schema changes. Single attempt, always included, user can remove. See NOTES.md § NOTES_PLN_RFT + § NOTES_PLN_RFT_SIMPLIFY for design decisions and simplification rationale.
 
-**Architecture:** `ITR_RFT_N` is a normal iteration. `prompt.py` detects the `ITR_RFT_` prefix and injects `refactor.md` instead of `implement.md`. Standard verdicts, standard lifecycle, standard gate. No new phase values, no schema migration, no custom orchestrator routing.
+**Architecture:** `ITR_RFT_N` is a normal iteration. `prompt.py` detects the `ITR_RFT_` prefix and injects `phase-refactor.md` instead of `phase-implement.md`. Standard verdicts, standard lifecycle, standard gate. No new phase values, no schema migration, no custom orchestrator routing.
 
 | Step | Description | Status |
 |------|-------------|--------|
 | RFT_1 | `plet_tools.py churn` command — files by commit count, flag outliers. Independently useful. | ✓ done |
 | RFT_2 | Milestone barriers in dependency map (plan.md § Milestone Barriers) | ✓ done |
-| RFT_3 | `refactor.md` reference file — audit procedure, signal categories, defer-vs-fix, per-criterion workflow | ✓ done |
-| RFT_4 | `prompt.py` routing: `ITR_RFT_*` prefix → inject `refactor.md` instead of `implement.md` (~2 lines) | ✓ done |
+| RFT_3 | `phase-refactor.md` reference file — audit procedure, signal categories, defer-vs-fix, per-criterion workflow | ✓ done |
+| RFT_4 | `prompt.py` routing: `ITR_RFT_*` prefix → inject `phase-refactor.md` instead of `phase-implement.md` (~2 lines) | ✓ done |
 | RFT_5 | Plan phase: refactor iterations + §9b Refactor Policy template in plan.md | ✓ done |
 | RFT_6 | Validate with real run | ✓ done (LOGA R16 — ITR_RFT_3 extracted real duplication) |
 
@@ -583,8 +583,8 @@ Tuple return convention + direct import testing. 91% coverage, ~2245 tests. See 
 ## Notes
 
 - Each file will be presented for review before moving to the next
-- SKILL.md references the reference files by relative path (e.g., `references/implement.md`)
+- SKILL.md references the reference files by relative path (e.g., `references/phase-implement.md`)
 - All reference files live under `skills/plet/references/` to keep the skill self-contained
 - Version starts at 0.1.0 across all files
 - The PRD stays in `prd.md` as the source of truth; these skill files implement it
-- **Watch: combined injection size.** verify.md (~515 lines) + formats.md + state-schema.md sections + requirements + learnings all get injected into the verify subagent prompt. Monitor whether the combined payload leaves enough context for the verify agent to do its actual work.
+- **Watch: combined injection size.** phase-verify.md (~515 lines) + formats.md + state-schema.md sections + requirements + learnings all get injected into the verify subagent prompt. Monitor whether the combined payload leaves enough context for the verify agent to do its actual work.

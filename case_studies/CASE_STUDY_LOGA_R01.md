@@ -308,7 +308,7 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 
 **CASE_LOGA_R01_REC_8: Fix trace file generation.** Either make traces a real feature (generated for every iteration) or remove them from the spec. The current state — traces for ID_001 only — is worse than either option.
 
-**CASE_LOGA_R01_REC_9: Enforce subagent non-blocking.** (FOO_3) Add an explicit instruction to execute.md and verify.md: "Never ask for user confirmation. Never prompt 'should I proceed?' You are running autonomously. If you encounter ambiguity, make your best judgment and document it in emergent.md."
+**CASE_LOGA_R01_REC_9: Enforce subagent non-blocking.** (FOO_3) Add an explicit instruction to execute.md and phase-verify.md: "Never ask for user confirmation. Never prompt 'should I proceed?' You are running autonomously. If you encounter ambiguity, make your best judgment and document it in emergent.md."
 
 **CASE_LOGA_R01_REC_10: Monitor artifact quality degradation.** The pattern of rich-first-iteration, sparse-later needs a structural fix, not just stronger prompting. Consider: (a) verify agent checks artifact completeness, (b) orchestrator validates state file schema before marking a phase complete.
 
@@ -337,15 +337,15 @@ Agents worked directly on `main`. The `logalyzer_workstream` branch was created 
 ### CASE_LOGA_R01_PHSA: Phase A: Improve plet (pre-rerun)
 
 **Quick fixes (reference file changes only)**
-- **CASE_LOGA_R01_REC_9: Subagent non-blocking** — add explicit "never prompt for confirmation" to execute.md and verify.md. Highest impact fix; caused a ~5 hour stall.
-- **CASE_LOGA_R01_REC_3: One verify = one commit** — add to verify.md as a hard rule
+- **CASE_LOGA_R01_REC_9: Subagent non-blocking** — add explicit "never prompt for confirmation" to execute.md and phase-verify.md. Highest impact fix; caused a ~5 hour stall.
+- **CASE_LOGA_R01_REC_3: One verify = one commit** — add to phase-verify.md as a hard rule
 - **CASE_LOGA_R01_REC_1: Intermediate commits** — add commit-after-each-criterion rule to execute.md
-- **CASE_LOGA_R01_REC_2: Intermediate state writes** — add checkpoint write rules to execute.md and verify.md
+- **CASE_LOGA_R01_REC_2: Intermediate state writes** — add checkpoint write rules to execute.md and phase-verify.md
 - **CASE_LOGA_R01_REC_7: Mandatory learnings/emergent entries** — add "nothing found" entry requirement to execute.md
 
 **Design decisions needed first**
 - **CASE_LOGA_R01_REC_6: Project ID format** — decide convention, then update state-schema.md and plan.md
-- **CASE_LOGA_R01_REC_5: Workstream branch conventions** — depends on CASE_LOGA_R01_REC_6; update execute.md, verify.md, PLET.md
+- **CASE_LOGA_R01_REC_5: Workstream branch conventions** — depends on CASE_LOGA_R01_REC_6; update execute.md, phase-verify.md, PLET.md
 - **CASE_LOGA_R01_REC_4: cleanupTagAutomatically** — redesign tag lifecycle, update state-schema.md and execute.md
 
 **Spec / PRD changes**

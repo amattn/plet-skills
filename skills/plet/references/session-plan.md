@@ -475,7 +475,7 @@ Present the dependency graph visually during iteration review. Ask the user to c
 
 **When in doubt, add the dependency.** Missing dependencies are the most dangerous planning error — an agent starts work before prerequisite code exists, wastes a cycle, and must self-correct. False dependencies (unnecessary deps) are harmless — they only affect ordering. Always err on the side of adding a dependency rather than omitting one.
 
-If an agent discovers a missing dependency during execution, it files an emergent item and blocks. The human fixes the dependency map during a refine session. See `references/implement.md` for the procedure (IMP_24).
+If an agent discovers a missing dependency during execution, it files an emergent item and blocks. The human fixes the dependency map during a refine session. See `references/phase-implement.md` for the procedure (IMP_24).
 
 ### Milestone Barriers
 
@@ -497,12 +497,12 @@ This prevents starting MS_2 work on an un-integrated, un-refactored MS_1 foundat
 
 Each milestone includes a synthetic refactor iteration as its final iteration. All MS_N+1 iterations depend on it (via the milestone barrier).
 
-**CRITICAL — Naming convention: refactor iterations MUST use the `ITR_RFT_N` ID format** (e.g., `ITR_RFT_1`, `ITR_RFT_2`, `ITR_RFT_3`). Do NOT use sequential IDs like `ITR_014`. The `ITR_RFT_` prefix is load-bearing — `prompt.py` uses it to inject `refactor.md` instead of `implement.md`. Without the prefix, the agent gets the wrong reference file and implements instead of refactoring.
+**CRITICAL — Naming convention: refactor iterations MUST use the `ITR_RFT_N` ID format** (e.g., `ITR_RFT_1`, `ITR_RFT_2`, `ITR_RFT_3`). Do NOT use sequential IDs like `ITR_014`. The `ITR_RFT_` prefix is load-bearing — `prompt.py` uses it to inject `phase-refactor.md` instead of `phase-implement.md`. Without the prefix, the agent gets the wrong reference file and implements instead of refactoring.
 
 The refactor iteration:
 
 - Uses the standard implement→verify lifecycle (no special phase)
-- Gets `refactor.md` as its reference file instead of `implement.md` (routed by `ITR_RFT_` prefix)
+- Gets `phase-refactor.md` as its reference file instead of `phase-implement.md` (routed by `ITR_RFT_` prefix)
 - Has minimal acceptance criteria from the project's refactor goals (see § Refactor Policy in requirements.md)
 - Agent discovers specifics by reading the codebase, churn analysis, learnings, and emergent items
 - Single attempt — if verify fails, it blocks and the human reviews in refine

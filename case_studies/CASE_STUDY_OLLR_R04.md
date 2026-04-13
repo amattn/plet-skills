@@ -123,7 +123,7 @@ Artifact analysis from `/Users/kai/github.com/amattn/oller04/`. Live observation
 
 ### What Didn't Work Well
 
-1. **(CASE_OLLR_R04_F_1) Commit noise.** Agents still make "transcript snapshot", "gate progress entries" commits outside of wip-commit. wip-commit guidance is in implement.md but agents don't always use it. Gate enforcement for wip-commit would help but is not implemented.
+1. **(CASE_OLLR_R04_F_1) Commit noise.** Agents still make "transcript snapshot", "gate progress entries" commits outside of wip-commit. wip-commit guidance is in phase-implement.md but agents don't always use it. Gate enforcement for wip-commit would help but is not implemented.
 
 2. **(CASE_OLLR_R04_F_2) ID_001 scope creep.** Non-deterministic — sometimes the agent builds everything in the scaffolding iteration. Artifact of tiny test project.
 

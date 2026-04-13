@@ -120,7 +120,7 @@ project (LOGA)
 | GC_2 | Agents prefer making a decision and documenting it in emergent.md over blocking. Blocking is a last resort reserved for situations where no reasonable decision can be made without human input. | P0 |
 | GC_3 | When IDs appear in filenames (e.g., `ITR_001.json`, `ITR_001-implement-1.ndjson`), the numeric portion is zero-padded to 3 digits for lexical sort order in file browsers. Zero-padding is not required in artifact content or prose. | P0 |
 | GC_4 | Individual acceptance criteria can be marked `skipped` by the user or by an agent when the criterion is impossible to satisfy. A `skipRationale` is always required. Agent-initiated skips also require an emergent.md entry explaining why the criterion is impossible and a progress.md entry. | P0 |
-| GC_5 | Subagent reference files (implement.md, verify.md, refactor.md) prescribe a fixed per-criterion workflow loop that agents follow mechanically. Agents exercise judgment within each step but do not decide which step comes next. This eliminates churning and improves speed. See VF_25 for the per-AC reflection step. | P0 |
+| GC_5 | Subagent reference files (phase-implement.md, phase-verify.md, phase-refactor.md) prescribe a fixed per-criterion workflow loop that agents follow mechanically. Agents exercise judgment within each step but do not decide which step comes next. This eliminates churning and improves speed. See VF_25 for the per-AC reflection step. | P0 |
 
 ### GCN_BR: Branch & Tag Conventions
 
@@ -159,7 +159,7 @@ The plan session is interactive and human-driven. It is a structured conversatio
 | PL_15 | At every review step, show the full content first for context, then proactively surface recommendations, concerns, and alternative approaches before asking for approval. Don't wait to be asked. | P0 |
 | PL_16 | After each approval: update NOTES.md with the decision and rationale, then run a consistency pass across all affected artifacts before moving to the next step. Catch drift early. | P0 |
 | PL_17 | After planning is complete, ask the user before launching the loop. Never auto-launch `/plet loop` from a plan session. | P0 |
-| PL_18 | Generate one `ITR_RFT_N` refactor iteration at each milestone boundary. These use the standard implement→verify lifecycle with `references/refactor.md` (see PHA_RFT). The user can remove them during iteration review. | P0 |
+| PL_18 | Generate one `ITR_RFT_N` refactor iteration at each milestone boundary. These use the standard implement→verify lifecycle with `references/phase-refactor.md` (see PHA_RFT). The user can remove them during iteration review. | P0 |
 | PL_13 | Identify iteration dependencies for sequential ordering and mark them in the state file | P1 |
 | PL_14 | Assign iterations to milestones based on requirements release milestones | P1 |
 
@@ -199,7 +199,7 @@ Implementation of iteration definitions using subagents with red/green test disc
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| IMP_2 | The subagent prompt includes: iteration context, universal context, learnings.md, and implementation instructions from `references/implement.md`. Assembled by `prompt.py assemble`, launched by `invoke.py run`. | P0 |
+| IMP_2 | The subagent prompt includes: iteration context, universal context, learnings.md, and implementation instructions from `references/phase-implement.md`. Assembled by `prompt.py assemble`, launched by `invoke.py run`. | P0 |
 | IMP_4 | Each implementation subagent writes failing tests first (red), then implements until green. For the red step, run only the new/changed test to verify it fails. Run the full suite for the green step to confirm nothing is broken. **Meaningful red required:** the unit under test must exist as a runnable stub before tests are written. A test that fails because the file/function/class doesn't exist (`FileNotFoundError`, `ImportError`, `AttributeError`) is meaningless red — it proves nothing about the test's ability to catch bad behavior. The stub must accept inputs and return dummy/zero values so the test fails because the *answer is wrong*, not because the infrastructure is missing. This applies at every level: scripts (stub command functions), functions (stub with default return), classes (stub methods), APIs (stub endpoints). | P0 |
 | IMP_6 | The subagent updates per-iteration state file criterion statuses in real time as it works | P0 |
 | IMP_7 | The subagent updates its `phaseActivity` and `activityDetail` in the per-iteration state file as it transitions between activities. phaseActivity is cosmetic (monitoring only) — only verdicts drive lifecycle transitions (SF_28). | P0 |
@@ -248,11 +248,11 @@ Independent verification in a fresh context window. The verification agent verif
 
 ### PHA_RFT: Refactor
 
-Milestone-boundary refactor via synthetic iteration. Refactor iterations use the standard implement→verify lifecycle with a specialized reference file (`references/refactor.md`) — no new phase, no schema changes. The difference is the *guidance* (what the agent looks for), not the *lifecycle*.
+Milestone-boundary refactor via synthetic iteration. Refactor iterations use the standard implement→verify lifecycle with a specialized reference file (`references/phase-refactor.md`) — no new phase, no schema changes. The difference is the *guidance* (what the agent looks for), not the *lifecycle*.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RFT_1 | Refactor iterations use the `ITR_RFT_N` prefix. `prompt.py` detects this prefix and injects `references/refactor.md` instead of `references/implement.md`. All other lifecycle mechanics are standard — same verdicts, same gates, same state schema. No new phase value, no schema changes. | P0 |
+| RFT_1 | Refactor iterations use the `ITR_RFT_N` prefix. `prompt.py` detects this prefix and injects `references/phase-refactor.md` instead of `references/phase-implement.md`. All other lifecycle mechanics are standard — same verdicts, same gates, same state schema. No new phase value, no schema changes. | P0 |
 | RFT_2 | Milestones are execution barriers: all iterations in MS_N must be `complete` before any MS_N+1 iteration becomes eligible. This is encoded in the dependency map at plan time — the orchestrator follows the DAG without milestone awareness. | P0 |
 | RFT_3 | The plan phase generates one `ITR_RFT_N` refactor iteration at each milestone boundary. It depends on all iterations in that milestone. All iterations in the next milestone depend on it. The user can remove it during iteration review (PL_18). | P0 |
 | RFT_4 | The refactor subagent follows a mechanical per-criterion workflow (per GC_5): survey the codebase (churn, size, emergent items, learnings) → identify targets → fix one criterion at a time with tests passing before and after each change → wip-commit after each fix → defer anything requiring architectural judgment to emergent.md. | P0 |
@@ -437,11 +437,11 @@ Instructions, schemas, and templates that guide agent behavior, stored as bundle
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PT_1 | Implementation instructions are defined in `references/implement.md` and injected into subagent prompts | P0 |
-| PT_2 | Verification instructions are defined in `references/verify.md` and injected into subagent prompts | P0 |
+| PT_1 | Implementation instructions are defined in `references/phase-implement.md` and injected into subagent prompts | P0 |
+| PT_2 | Verification instructions are defined in `references/phase-verify.md` and injected into subagent prompts | P0 |
 | PT_3 | Plan phase instructions are defined in `references/plan.md` | P0 |
 | PT_4 | Refine phase instructions are defined in `references/refine.md` | P0 |
-| PT_8 | Refactoring instructions are defined in `references/refactor.md` and injected into subagent prompts for `ITR_RFT_*` iterations instead of `implement.md`. Routing is by prefix detection in `prompt.py` (see RFT_1). | P0 |
+| PT_8 | Refactoring instructions are defined in `references/phase-refactor.md` and injected into subagent prompts for `ITR_RFT_*` iterations instead of `phase-implement.md`. Routing is by prefix detection in `prompt.py` (see RFT_1). | P0 |
 
 **Schema and format references** — human reference and agent context:
 

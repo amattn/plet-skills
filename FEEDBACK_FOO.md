@@ -97,7 +97,7 @@ Source: CASE_LOGA_R01_FOO_1
 
 Intermediate writes to the JSON state files didn't happen — they were typically only written at the end. Expected: state files updated as work progresses so that a crashed or interrupted agent leaves recoverable state.
 
-`[resolved]` → CASE_LOGA_R01_REC_2 in execute.md and verify.md (intermediate state writes mandated)
+`[resolved]` → CASE_LOGA_R01_REC_2 in execute.md and phase-verify.md (intermediate state writes mandated)
 
 ### FOO_2: No intermediate commits [git] [timing]
 
@@ -113,7 +113,7 @@ Source: CASE_LOGA_R01_FOO_3
 
 Autonomous subagents asked "should I proceed?" once or twice during execution. This is effectively blocking — autonomous agents should never prompt for human input. The whole point of the loop is unattended execution. Caused a ~5 hour stall.
 
-`[resolved]` → CASE_LOGA_R01_REC_9 in execute.md and verify.md (explicit "never prompt for confirmation" rule)
+`[resolved]` → CASE_LOGA_R01_REC_9 in execute.md and phase-verify.md (explicit "never prompt for confirmation" rule)
 
 ### FOO_4: tagBeforeSquash should be always-on [git] [config]
 
@@ -145,7 +145,7 @@ Source: CASE_LOGA_R01_FOO_7
 
 One commit contained four iterations verified together — a rejection and three passes sharing a single commit. Each verify should be its own commit for clean revert, bisect, and audit.
 
-`[resolved]` → CASE_LOGA_R01_REC_3 in verify.md (one verify = one commit)
+`[resolved]` → CASE_LOGA_R01_REC_3 in phase-verify.md (one verify = one commit)
 
 ### FOO_8: Uncommitted progress.md at end of run [artifacts] [timing]
 
@@ -161,7 +161,7 @@ Source: LIBT Run 1 (pre-case-study user observation)
 
 During the LIBT run, agents made use of `git stash` during execution (visible in `git stash list` post-run). The case study archival process currently preserves branches and tags but does not account for stashes. Stashes are local-only git objects that can be garbage collected — if not explicitly preserved, they are silently lost. The archival checklist should include: (1) `git stash list` to inventory stashes, (2) convert relevant stashes to commits or tags before deleting branches, (3) document stash contents in the case study artifact analysis.
 
-`[resolved]` → Banned `git stash` in agents (EX_17, execute.md, verify.md). Stashes are redundant given incremental commits. Case study checklist retained for older/non-compliant runs.
+`[resolved]` → Banned `git stash` in agents (EX_17, execute.md, phase-verify.md). Stashes are redundant given incremental commits. Case study checklist retained for older/non-compliant runs.
 
 ## LOGA Run 1 — Backfill (recommendations that bypassed FEEDBACK_FOO.md)
 
@@ -191,7 +191,7 @@ The most persistent issue across both case studies. Each iteration's state JSON 
 
 Source: CASE_LOGA_R01_REC_10, CASE_LIBT_R01_REC_1
 
-`[resolved, verified]` → Built `scripts/plet_state.py` tool shipped via `${CLAUDE_SKILL_DIR}/scripts/`. Commands: `init`, `update-criterion`, `update-field`, `validate`. Agents use the tool instead of writing state JSON by hand — schema enforcement is automatic. execute.md, verify.md, and plan.md updated with tool usage examples. A/B test: FOO_12 uses tooling, FOO_17 uses stronger prose — comparison in next case study. Run 6 had 100% schema consistency.
+`[resolved, verified]` → Built `scripts/plet_state.py` tool shipped via `${CLAUDE_SKILL_DIR}/scripts/`. Commands: `init`, `update-criterion`, `update-field`, `validate`. Agents use the tool instead of writing state JSON by hand — schema enforcement is automatic. execute.md, phase-verify.md, and plan.md updated with tool usage examples. A/B test: FOO_12 uses tooling, FOO_17 uses stronger prose — comparison in next case study. Run 6 had 100% schema consistency.
 
 ### FOO_13: Branch isolation during parallel execution [git] [autonomy]
 
@@ -233,7 +233,7 @@ ID_001 uses div markers, ID_002 uses fenced code blocks, later iterations use ma
 
 Source: CASE_LIBT_R01_REC_3
 
-`[resolved, verified]` → Added inline progress.md template to execute.md and verify.md "How to Write" sections. Added explicit "match the template exactly" language. formats.md remains the source of truth; inline templates reduce approximation by putting the structure right where agents need it. Run 6 formatting consistent throughout.
+`[resolved, verified]` → Added inline progress.md template to execute.md and phase-verify.md "How to Write" sections. Added explicit "match the template exactly" language. formats.md remains the source of truth; inline templates reduce approximation by putting the structure right where agents need it. Run 6 formatting consistent throughout.
 
 ### FOO_18: File lost during parallel branch merge [git]
 
@@ -241,7 +241,7 @@ ID_004's test file (`test_commands_complete_delete.py`) was lost during the para
 
 Source: CASE_LIBT_R01_REC_5
 
-`[resolved, verified]` → Added post-merge verification step in verify.md after the ff-merge: run full test suite + compare file list from iteration branch against workstream. Lost files must be restored before proceeding. Orchestrator now handles merge-squash deterministically.
+`[resolved, verified]` → Added post-merge verification step in phase-verify.md after the ff-merge: run full test suite + compare file list from iteration branch against workstream. Lost files must be restored before proceeding. Orchestrator now handles merge-squash deterministically.
 
 ### FOO_19: state.json session timestamps are synthetic [state] [timing]
 
@@ -253,11 +253,11 @@ Source: CASE_LIBT_R01_REC_6
 
 ### FOO_20: Debug numbers must be hardcoded literals, not runtime-generated [prompting] [code-quality]
 
-The agent created a `_debug_number()` function using `random.randint` — untraceable at runtime. Debug numbers must be unique hardcoded constants so grepping the codebase for a number returns exactly 1 result. Root cause: agent applied DRY instincts where uniqueness is required. Compounded by multiple artifacts flagging "magic numbers" and "hardcoded values" as code smells — creating a direct conflict with correct debug number usage. Fix requires carve-outs in PL_DX_2, PL_SM_4, VF_9, VF_12, plan.md, verify.md, and NOTES.md. See LIBT case study S_7 for full artifact cascade.
+The agent created a `_debug_number()` function using `random.randint` — untraceable at runtime. Debug numbers must be unique hardcoded constants so grepping the codebase for a number returns exactly 1 result. Root cause: agent applied DRY instincts where uniqueness is required. Compounded by multiple artifacts flagging "magic numbers" and "hardcoded values" as code smells — creating a direct conflict with correct debug number usage. Fix requires carve-outs in PL_DX_2, PL_SM_4, VF_9, VF_12, plan.md, phase-verify.md, and NOTES.md. See LIBT case study S_7 for full artifact cascade.
 
 Source: CASE_LIBT_R01_REC_7
 
-`[resolved, unverified]` → PL_DX_2 updated with "hardcoded literal" and grep invariant. Exception added to PL_SM_4, VF_9, VF_12 (verify.md anti-slop bias), VF_9 (verify.md code quality), plan.md PL_SM_4, NOTES.md.
+`[resolved, unverified]` → PL_DX_2 updated with "hardcoded literal" and grep invariant. Exception added to PL_SM_4, VF_9, VF_12 (phase-verify.md anti-slop bias), VF_9 (phase-verify.md code quality), plan.md PL_SM_4, NOTES.md.
 
 ### FOO_22: plet should warn if bypassPermissions not configured [autonomy] [onboarding]
 
@@ -521,9 +521,9 @@ The branch pattern exists in the code and PRD, but the workflow around it is und
 
 Source: GTC spec review (UNV_NFR_10)
 
-Runtime artifacts (progress.md, learnings.md, emergent.md) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. This is a load-bearing assumption across multiple specs (GTC clean-worktree, GTO merge-squash, gate scripts) but is not explicitly stated in the PRD. Added to `specs/conventions.md` as UNV_NFR_10 during GTC review. PRD and reference files (implement.md, verify.md) should also be explicit about this.
+Runtime artifacts (progress.md, learnings.md, emergent.md) and state files are committed on iteration branches alongside code. The iteration branch is a complete record of the iteration's work. This is a load-bearing assumption across multiple specs (GTC clean-worktree, GTO merge-squash, gate scripts) but is not explicitly stated in the PRD. Added to `specs/conventions.md` as UNV_NFR_10 during GTC review. PRD and reference files (phase-implement.md, phase-verify.md) should also be explicit about this.
 
-`[resolved]` → PRD ES_5 updated. `implement.md` and `verify.md` both include `plet/` in git add. verify.md updated: (1) Completing the Phase step 8 adds explicit commit with `plet/`, (2) fix-in-place commit includes `plet/`.
+`[resolved]` → PRD ES_5 updated. `phase-implement.md` and `phase-verify.md` both include `plet/` in git add. phase-verify.md updated: (1) Completing the Phase step 8 adds explicit commit with `plet/`, (2) fix-in-place commit includes `plet/`.
 
 ### FOO_49: GUI must discover and monitor worktree plet/ directories [gui] [worktrees]
 
@@ -558,7 +558,7 @@ Where this belongs:
 - **PRD** — security section should describe the sandboxing recommendation
 - **SES preflight** — could check if sandboxing is enabled and WARN if not (similar to CLAUDE.md check)
 - **README/docs** — setup instructions should include sandboxing configuration
-- **reference files** — implement.md/verify.md could note that agents operate in a sandboxed environment
+- **reference files** — phase-implement.md/phase-verify.md could note that agents operate in a sandboxed environment
 
 `[resolved]` → PRD ES_8 documents sandboxing. Sandbox mode is not viable for plet — it restricts too many tools subagents need (Write, Edit, etc.). bypassPermissions is the documented requirement. If isolation is important, consider dev containers rather than Claude Code sandbox.
 
@@ -574,7 +574,7 @@ Currently agents must manually include `elapsedSeconds` and `lastHeartbeat` in e
 
 3. **Convenience flag for heartbeat-only updates.** Sometimes the agent wants to signal "I'm alive" without changing any fields. A `plet_state.py heartbeat plet/ --iter-id ID_xxx` command (or `update-field` with no `--data`) would update just `lastHeartbeat` and `elapsedSeconds`. Useful for long-running operations where no state fields change but the agent needs to prevent the 5-minute stale detection.
 
-**Impact:** Eliminates a class of agent compliance failures. Heartbeat and elapsed time become infrastructure, not agent responsibility. Reference files (implement.md, verify.md) can simplify their "update heartbeat on every write" guidance to just "call plet_state.py — heartbeat updates automatically."
+**Impact:** Eliminates a class of agent compliance failures. Heartbeat and elapsed time become infrastructure, not agent responsibility. Reference files (phase-implement.md, phase-verify.md) can simplify their "update heartbeat on every write" guidance to just "call plet_state.py — heartbeat updates automatically."
 
 `[resolved]` → `set-verdict` auto-calcs elapsedSeconds. `lastHeartbeat` auto-updates on every state write. `heartbeat` command exists. Critical paths covered.
 
@@ -622,9 +622,9 @@ The red/green discipline as originally stated ("write tests first, they must fai
 
 The fix (already applied to CLAUDE.md § Red/Green Development Discipline): stub the script first, then write tests (meaningful red), then implement (green). This distinction is load-bearing — without it, red/green is theater that gives false confidence.
 
-**PRD impact:** `[resolved]` — IMP_4 in prd.md updated with meaningful-red requirement. implement.md Red Step updated with stub-first rule. The requirement is now formal: stubs before tests, behavioral failures only.
+**PRD impact:** `[resolved]` — IMP_4 in prd.md updated with meaningful-red requirement. phase-implement.md Red Step updated with stub-first rule. The requirement is now formal: stubs before tests, behavioral failures only.
 
-`[resolved]` — IMP_4 updated with meaningful-red requirement. implement.md Red Step updated with stub-first rule.
+`[resolved]` — IMP_4 updated with meaningful-red requirement. phase-implement.md Red Step updated with stub-first rule.
 
 ### FOO_55: gate_phase.py post should verify audit tag exists [artifacts] [git]
 
@@ -680,7 +680,7 @@ Observations from first live run with PLAN_RW tooling on the logalyzer project. 
 
 4. **Agent used native Agent tool, not plet_invoke.py.** No transcripts, no trace capture. The SKILL.md says "call plet_orchestrator.py run" but the agent appears to be doing the loop in prose — possibly using the old published plugin version instead of the local repo's v0.3.0.
 
-5. **No verification branch.** Verify runs on the same branch as implement (by design), but verify.md doesn't clarify this — agent may be confused about branch context.
+5. **No verification branch.** Verify runs on the same branch as implement (by design), but phase-verify.md doesn't clarify this — agent may be confused about branch context.
 
 6. **Runtime artifacts never committed.** `plet/` directory not staged in incremental commits. Implement.md says "commit after red/green" but agents commit source code only, not the plet/ directory with progress/learnings/emergent/trace.
 
@@ -692,7 +692,7 @@ Observations from first live run with PLAN_RW tooling on the logalyzer project. 
 
 **Next step:** Complete iter 01, do full case study. Verify which skill version the agent is actually loading.
 
-`[resolved]` → All sub-items addressed: 1-3 fixed directly, 4 resolved by mandatory orchestrator call (SKILL.md), 5 resolved by verify.md branch context clarification, 6 resolved by FOO_60/implement.md `plet/` in git add, 7 resolved by FOO_9/IMP_16, 8 resolved by CLAUDE.md testing instructions (uninstall published plugin).
+`[resolved]` → All sub-items addressed: 1-3 fixed directly, 4 resolved by mandatory orchestrator call (SKILL.md), 5 resolved by phase-verify.md branch context clarification, 6 resolved by FOO_60/phase-implement.md `plet/` in git add, 7 resolved by FOO_9/IMP_16, 8 resolved by CLAUDE.md testing instructions (uninstall published plugin).
 
 ### FOO_59: Phase name drift — "implementation" vs "implement" in traces [state] [prompting]
 
@@ -710,15 +710,15 @@ Source: CASE_LOGA_R02_F_3
 
 LOGA Run 2: `plet/progress.md`, `plet/learnings.md`, `plet/emergent.md`, `plet/state/`, and `plet/trace/` were all modified/created but never committed. Only source code was committed.
 
-implement.md says "commit after every red/green step" but agents interpret this as committing source code only. Need explicit `git add plet/ && git commit` guidance or have the orchestrator handle it (the orchestrator already does `git add -A && git commit` before merge-squash).
+phase-implement.md says "commit after every red/green step" but agents interpret this as committing source code only. Need explicit `git add plet/ && git commit` guidance or have the orchestrator handle it (the orchestrator already does `git add -A && git commit` before merge-squash).
 
-`[resolved]` — implement.md and verify.md now say `git add [files] plet/` — always include plet/ in commits.
+`[resolved]` — phase-implement.md and phase-verify.md now say `git add [files] plet/` — always include plet/ in commits.
 
 ### FOO_61: Implement attempt counter never incremented [state] [prompting]
 
 Source: CASE_LOGA_R02_F_4
 
-LOGA Run 2: `attempts.implement` stayed 0 despite implementation clearly happening. The agent updated criteria, wrote artifacts, and set lifecycle → verifying, but never incremented the attempt counter. implement.md should make this a critical early step.
+LOGA Run 2: `attempts.implement` stayed 0 despite implementation clearly happening. The agent updated criteria, wrote artifacts, and set lifecycle → verifying, but never incremented the attempt counter. phase-implement.md should make this a critical early step.
 
 `[resolved]` → Orchestrator now calls `iter_state.py start-phase` before spawning subagents for both implement and verify phases. Attempt counters, phase timestamps, and verdict clearing are deterministic — no longer dependent on subagent prose compliance.
 

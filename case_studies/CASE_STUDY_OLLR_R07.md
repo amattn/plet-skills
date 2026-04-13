@@ -1,12 +1,12 @@
 # Case Study: OLLR Run 7
 
-Seventh oller run. v0.7.0 + PLAN_VER verify.md rewrite + auto-emit update-activity. **6/6 COMPLETE. First run validating both PLAN_VER and auto-emit.** 21 minutes, zero retries.
+Seventh oller run. v0.7.0 + PLAN_VER phase-verify.md rewrite + auto-emit update-activity. **6/6 COMPLETE. First run validating both PLAN_VER and auto-emit.** 21 minutes, zero retries.
 
 ## Section 1: Plan
 
 ### CASE_OLLR_R07_GOAL: Goal
 
-Validate two changes: (1) PLAN_VER verify.md rewrite — verify-first independence, no pre-flight, no fix-in-place, criterion type guidance. (2) Auto-emit update-activity from plet_agent.py dispatch — fewer explicit calls, same or better observability.
+Validate two changes: (1) PLAN_VER phase-verify.md rewrite — verify-first independence, no pre-flight, no fix-in-place, criterion type guidance. (2) Auto-emit update-activity from plet_agent.py dispatch — fewer explicit calls, same or better observability.
 
 ### CASE_OLLR_R07_METH: Methodology
 
@@ -100,7 +100,7 @@ R07 evidence is more thorough — names specific lines, tests, spec IDs, and ver
 
 **progress.md (1410 lines):** Down slightly from R06 (1416) and R05 (1417). Auto-progress volume is stable.
 
-**learnings.md (5 entries):** Down from R06 (12) and R05 (8). Only implement phases produced learnings — no verify-phase learnings. The PLAN_VER rewrite removed the verbose "log pre-flight results" directive; the leaner verify.md may have reduced learnings production.
+**learnings.md (5 entries):** Down from R06 (12) and R05 (8). Only implement phases produced learnings — no verify-phase learnings. The PLAN_VER rewrite removed the verbose "log pre-flight results" directive; the leaner phase-verify.md may have reduced learnings production.
 
 **emergent.md (2 entries):** Same as R05 (2), down from R06 (3). EM_ID_001_1 (test maps to AC), EM_ID_002_1 (known flags whitelisted). R06's verify-originated emergent (help text missing --rev) didn't recur — different agent behavior run-to-run.
 
@@ -155,7 +155,7 @@ R07 evidence is more thorough — names specific lines, tests, spec IDs, and ver
 - **Wall clock recovered: 28m → 21m.** R06's 28m was a regression from R05's 20m. R07 at 21m is nearly back to R05 baseline. The PLAN_VER changes (no pre-flight, no verify-start commit) saved time. Auto-emit adds state changes without the overhead of 79 explicit calls.
 - **Verify phases faster: 1m40s avg → 1m08s.** 32% faster. Pre-flight removal + streamlined workflow. Verify does less busywork, gets to the actual verification faster.
 - **More observability, less agent burden.** 136 total state changes (R06: 79) with only 54 explicit calls (R06: 79). The auto-emit from dispatch captures transitions the agent would otherwise skip.
-- **Learnings dropped: 12 → 5.** The leaner verify.md produces fewer verify-phase learnings. Worth monitoring — if learnings quality matters more than quantity, this may be fine.
+- **Learnings dropped: 12 → 5.** The leaner phase-verify.md produces fewer verify-phase learnings. Worth monitoring — if learnings quality matters more than quantity, this may be fine.
 
 ## Section 5: Findings & Recommendations
 
@@ -177,7 +177,7 @@ R07 evidence is more thorough — names specific lines, tests, spec IDs, and ver
 
 2. **(CASE_OLLR_R07_F_2) ID_006 verify used wrong activity enum.** `implementing` instead of appropriate verify-phase value. Without the Activity Updates reference table, agents occasionally pick wrong enum values for explicit calls.
 
-3. **(CASE_OLLR_R07_F_3) Learnings dropped 58%.** 5 entries (R06: 12). All from implement phases — zero verify-phase learnings. The leaner verify.md may have de-emphasized learnings. Not necessarily bad — R06's verify learnings were often formulaic ("SHA implementation is clean and spec-faithful").
+3. **(CASE_OLLR_R07_F_3) Learnings dropped 58%.** 5 entries (R06: 12). All from implement phases — zero verify-phase learnings. The leaner phase-verify.md may have de-emphasized learnings. Not necessarily bad — R06's verify learnings were often formulaic ("SHA implementation is clean and spec-faithful").
 
 ### Surprises
 
@@ -191,7 +191,7 @@ R07 evidence is more thorough — names specific lines, tests, spec IDs, and ver
 |----|-------------|----------|
 | CASE_OLLR_R07_REC_1 | Fix oneLiner truncation (FIX_2) — inconsistent across iterations | P2 |
 | CASE_OLLR_R07_REC_2 | Consider adding `verifying` to the valid phase-activity enum if not already present, or document that verify agents should use `running_checks` | P3 |
-| CASE_OLLR_R07_REC_3 | Monitor learnings volume in LOGA R15/R16 — if 5 entries for 6 iters is a pattern, may need to strengthen the learnings prompt in verify.md | P3 |
+| CASE_OLLR_R07_REC_3 | Monitor learnings volume in LOGA R15/R16 — if 5 entries for 6 iters is a pattern, may need to strengthen the learnings prompt in phase-verify.md | P3 |
 
 ### Open Questions
 

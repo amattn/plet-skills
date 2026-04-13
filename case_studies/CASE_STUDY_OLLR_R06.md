@@ -1,12 +1,12 @@
 # Case Study: OLLR Run 6
 
-Sixth oller run. v0.7.0 + update-activity restored + $PLET_ITER_ID env vars in reference files. Pre-PLAN_VER verify.md (still has fix-in-place, pre-flight, VF_7-11). **6/6 COMPLETE. First run with update-activity working.**
+Sixth oller run. v0.7.0 + update-activity restored + $PLET_ITER_ID env vars in reference files. Pre-PLAN_VER phase-verify.md (still has fix-in-place, pre-flight, VF_7-11). **6/6 COMPLETE. First run with update-activity working.**
 
 ## Section 1: Plan
 
 ### CASE_OLLR_R06_GOAL: Goal
 
-Validate update-activity restoration (0 calls in R05 → ?). Baseline for PLAN_VER comparison — R06 uses the pre-rewrite verify.md, R07+ will use the rewritten version.
+Validate update-activity restoration (0 calls in R05 → ?). Baseline for PLAN_VER comparison — R06 uses the pre-rewrite phase-verify.md, R07+ will use the rewritten version.
 
 ### CASE_OLLR_R06_METH: Methodology
 
@@ -78,7 +78,7 @@ Nearly balanced between implement (40) and verify (39). All four expected activi
 
 ### CASE_OLLR_R06_VERIFY: Verify Agent Behavior (Pre-PLAN_VER Baseline)
 
-R06 used the pre-rewrite verify.md (still has fix-in-place, pre-flight, VF_7-11, Artifact Audit). This serves as the baseline for PLAN_VER comparison:
+R06 used the pre-rewrite phase-verify.md (still has fix-in-place, pre-flight, VF_7-11, Artifact Audit). This serves as the baseline for PLAN_VER comparison:
 
 - **verify-start wip-commit:** Present in all 6 iterations (visible in git log). Will be removed by PLAN_VER.
 - **implement-start wip-commit:** Also present in all 6 iterations.
@@ -180,9 +180,9 @@ R06 used the pre-rewrite verify.md (still has fix-in-place, pre-flight, VF_7-11,
 
 ### Surprises
 
-1. **(CASE_OLLR_R06_S_1) 79 update-activity calls from just restoring the directive.** No code changes to enforce this — just adding the instructions back to implement.md and verify.md. The agent compliance with explicit instructions is high when the instructions are clear and present.
+1. **(CASE_OLLR_R06_S_1) 79 update-activity calls from just restoring the directive.** No code changes to enforce this — just adding the instructions back to phase-implement.md and phase-verify.md. The agent compliance with explicit instructions is high when the instructions are clear and present.
 
-2. **(CASE_OLLR_R06_S_2) Verify-start and implement-start commits present.** R06 ran with the pre-rewrite verify.md which still had the verify-start wip-commit instruction. PLAN_VER removes this. R07 comparison will show whether removing it saves time.
+2. **(CASE_OLLR_R06_S_2) Verify-start and implement-start commits present.** R06 ran with the pre-rewrite phase-verify.md which still had the verify-start wip-commit instruction. PLAN_VER removes this. R07 comparison will show whether removing it saves time.
 
 ### Recommendations
 
@@ -204,7 +204,7 @@ R06 used the pre-rewrite verify.md (still has fix-in-place, pre-flight, VF_7-11,
 
 - Case study #6 for OLLR project
 - Loop sessions: 1
-- Plet version: 0.7.0 + update-activity patch (pre-PLAN_VER verify.md)
+- Plet version: 0.7.0 + update-activity patch (pre-PLAN_VER phase-verify.md)
 - **Key finding: update-activity fully adopted — 79 calls (R05: 0). Wall clock 28m (R05: 20m) but causality unclear.**
-- PLAN_VER baseline established — R07 will use the rewritten verify.md
+- PLAN_VER baseline established — R07 will use the rewritten phase-verify.md
 - Status: complete

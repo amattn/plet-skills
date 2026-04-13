@@ -226,7 +226,7 @@ fingerprint.py embed plet/ --type requirements
 
 ### Plan Phase
 
-**Reference:** `references/plan.md`
+**Reference:** `references/session-plan.md`
 
 Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`, and initializes `plet/state.json`.
 
@@ -240,7 +240,7 @@ Check if `plet/state.json` exists. This determines the path:
 1. Ask: "What would you like to build?" — get a short description
 2. Ask for a project ID: 3-6 uppercase chars (e.g., LOGA, SPARK, TODO). Must match `[A-Z][A-Z0-9]{2,5}`.
 3. Create or resume plan branch: `plet/{projectId}/plan1/workstream`. If branch exists, check it out (resume). If not, create it.
-4. Proceed to clarifying questions, requirements, iterations (see `references/plan.md`)
+4. Proceed to clarifying questions, requirements, iterations (see `references/session-plan.md`)
 
 **Path B — Existing project (state.json exists):**
 1. Read state.json → project ID already known
@@ -252,7 +252,7 @@ Check if `plet/state.json` exists. This determines the path:
 **Both paths:** Read `plet/emergent.md` for pending items and `plet/learnings.md` for patterns — triage and incorporate before planning.
 
 **Orchestrator actions:**
-1. Read `references/plan.md` for the full plan session workflow
+1. Read `references/session-plan.md` for the full plan session workflow
 2. Follow its instructions for clarifying questions, requirements generation, iteration decomposition, and review
 3. Each approved section is written to disk immediately — the file on disk is the source of truth
 4. After all iterations are approved, initialize state:
@@ -266,7 +266,7 @@ Check if `plet/state.json` exists. This determines the path:
 
 ### Loop Phase
 
-**References:** `references/implement.md` + `references/verify.md`
+**References:** `references/phase-implement.md` + `references/phase-verify.md`
 
 Autonomous. The orchestrator script handles the entire loop as deterministic code.
 
@@ -302,13 +302,13 @@ The orchestrator manages the full loop lifecycle internally — session setup, d
 
 ### Refine Phase
 
-**Reference:** `references/refine.md`
+**Reference:** `references/session-refine.md`
 
 Interactive, human-driven. Triages emergent items, updates spec, re-plans.
 
 **Orchestrator actions:**
 1. Session setup: increment `refineSessionCount`, branch, update `sessionHistory`
-2. Read `references/refine.md` for the full workflow
+2. Read `references/session-refine.md` for the full workflow
 3. Follow instructions for emergent triage, blocked iteration review, spec updates, re-planning
 4. After changes, update fingerprints: `fingerprint.py embed plet/ --type requirements` (then iterations, then state)
 5. Offer to resume the loop with `/plet loop`
@@ -398,10 +398,10 @@ All reference files live under `skills/plet/references/`:
 
 | File | Injected? | Purpose |
 |------|-----------|---------|
-| `references/plan.md` | Yes | Plan phase workflow |
-| `references/implement.md` | Yes | Implementation subagent behavior |
-| `references/verify.md` | Yes | Verification subagent behavior |
-| `references/refine.md` | Yes | Refine phase workflow |
+| `references/session-plan.md` | Yes | Plan phase workflow |
+| `references/phase-implement.md` | Yes | Implementation subagent behavior |
+| `references/phase-verify.md` | Yes | Verification subagent behavior |
+| `references/session-refine.md` | Yes | Refine phase workflow |
 | `references/formats.md` | No | Runtime artifact format specs (human reference only) |
 | `references/state-schema.md` | No | JSON schemas for state + trace (human reference only) |
 

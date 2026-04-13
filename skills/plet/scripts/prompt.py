@@ -45,8 +45,8 @@ from util_constants import SKILL_VERSION  # noqa: E402
 VALID_PHASES = ["implement", "verify"]
 
 REFERENCE_FILES = {
-    "implement": "implement.md",
-    "verify": "verify.md",
+    "implement": "phase-implement.md",
+    "verify": "phase-verify.md",
 }
 
 
@@ -189,10 +189,10 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
     """Build all prompt sections. Returns (sections, error_msg)."""
     sections = []
 
-    # 1. Reference file (refactor iterations get refactor.md instead of implement.md)
+    # 1. Reference file (refactor iterations get phase-refactor.md instead of phase-implement.md)
     ref_filename = REFERENCE_FILES[phase]
     if phase == "implement" and iter_id.startswith("ITR_RFT_"):
-        ref_filename = "refactor.md"
+        ref_filename = "phase-refactor.md"
     ref_content, ref_path = load_reference(ref_filename)
     if ref_content is None:
         return None, f"Error: reference file not found: {ref_path}"

@@ -287,7 +287,7 @@ bootstrap.py setup .
 |----|---------------|
 | BST_FUT_1 | `start-session` could call `bootstrap.py check` and auto-run `setup` if needed. Ensures every loop starts with correct bootstrap state. |
 | BST_FUT_2 | Copy scripts to `.plet/scripts/` as offline backup. Not needed for discovery (prompt includes path), but useful if user runs on a machine without the plet plugin installed. Would need to handle .gitignore and worktree visibility. |
-| BST_FUT_3 | Copy reference files (implement.md, verify.md, state-schema.md) into `.plet/references/` for subagent access. |
+| BST_FUT_3 | Copy reference files (phase-implement.md, phase-verify.md, state-schema.md) into `.plet/references/` for subagent access. |
 
 ## 16. Open Questions
 

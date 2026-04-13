@@ -285,8 +285,8 @@ Design principle: commands match agent workflow, not JSON structure. `start-phas
 | `ID` | Iterations | iterations.md |
 | `AC` | Acceptance criteria | iterations.md |
 | `MS` | Milestones | iterations.md |
-| `IMP` | Implement agent rules | implement.md |
-| `VF` | Verify agent rules | verify.md |
+| `IMP` | Implement agent rules | phase-implement.md |
+| `VF` | Verify agent rules | phase-verify.md |
 | `PL` | Plan session rules | plan.md |
 | `CASE` | Case study recommendations | `CASE_{PROJECT}_{RUN}_{N}` — all case studies. Replaces R_, S_, SP_, R6_ |
 | `EX` (extractable) | Extractable skill inventory | EXTRACTABLE.md |
@@ -447,11 +447,11 @@ Claude Code auto-loads project CLAUDE.md into subagent (Agent tool) context. So 
 
 #### Subagent must NOT squash — orchestrator owns merge-squash (2026-04-02)
 
-Removed squash instructions from implement.md and verify.md. Subagents commit incrementally (wip commits for crash recovery); the orchestrator's merge-squash creates the single clean commit per phase on the workstream branch.
+Removed squash instructions from phase-implement.md and phase-verify.md. Subagents commit incrementally (wip commits for crash recovery); the orchestrator's merge-squash creates the single clean commit per phase on the workstream branch.
 
 **Problem:** When subagents squashed their own wip commits before the orchestrator's merge-squash, the branch diverged — the squash rewrote history, creating a forked graph visible in `git log --graph`. The orchestrator's subsequent merge-squash couldn't cleanly fast-forward.
 
-**Fix:** implement.md "Tag and Squash" → "Tag" only. verify.md same. Added explicit "Do NOT squash — orchestrator handles it." This keeps one owner for the squash operation.
+**Fix:** phase-implement.md "Tag and Squash" → "Tag" only. phase-verify.md same. Added explicit "Do NOT squash — orchestrator handles it." This keeps one owner for the squash operation.
 
 #### Orchestrator commits state.json before worktree creation (2026-04-02)
 
@@ -560,9 +560,9 @@ Read commands on those scripts (check, validate, query) DO log.
 
 #### Reference file rewrite — judgment vs compliance analysis (2026-03-28)
 
-PLAN_RWc: rewriting implement.md and verify.md to delegate compliance to scripts while keeping judgment as prose. The principle: **agents call scripts for format/schema compliance, read prose for judgment calls.**
+PLAN_RWc: rewriting phase-implement.md and phase-verify.md to delegate compliance to scripts while keeping judgment as prose. The principle: **agents call scripts for format/schema compliance, read prose for judgment calls.**
 
-**implement.md section analysis:**
+**phase-implement.md section analysis:**
 
 | Section | Type | Action |
 |---------|------|--------|
@@ -580,13 +580,13 @@ PLAN_RWc: rewriting implement.md and verify.md to delegate compliance to scripts
 | Atomic Write Rules | **DELETE** | Scripts handle atomicity |
 | Summary Checklist | Update | Add gate script call |
 
-**verify.md follows the same pattern** plus verify-specific judgment sections (Independent Verification, Anti-Slop Bias, Convergence Signal, Verification Report — all judgment, all stay as prose).
+**phase-verify.md follows the same pattern** plus verify-specific judgment sections (Independent Verification, Anti-Slop Bias, Convergence Signal, Verification Report — all judgment, all stay as prose).
 
 **formats.md decision:** Keep condensed in prompt. Agents call scripts to write entries but still read existing entries (learnings, progress). A brief structural overview helps comprehension without the full 421-line format spec.
 
 **state-schema.md decision:** Keep condensed in prompt. Agents call scripts for state updates but need to understand fields conceptually (lifecycle values, criteria statuses, what fields mean). Don't need the full JSON schema.
 
-**Net effect:** implement.md and verify.md get thinner (compliance sections become script call references). formats.md and state-schema.md get condensed versions for the prompt (agent understanding, not agent writing).
+**Net effect:** phase-implement.md and phase-verify.md get thinner (compliance sections become script call references). formats.md and state-schema.md get condensed versions for the prompt (agent understanding, not agent writing).
 
 #### Phase terminology unification (2026-03-21)
 
@@ -594,7 +594,7 @@ Comprehensive rename to unify phase terminology across the entire repo.
 
 **Changes:**
 1. `impl` → `implement` as the formal phase name. All four phases are now real English verbs: plan, implement, verify, refine.
-2. `execute.md` → `implement.md` (reference file — every reference file now matches its phase: plan.md, implement.md, verify.md, refine.md).
+2. `execute.md` → `phase-implement.md` (reference file — every reference file now matches its phase: plan.md, phase-implement.md, phase-verify.md, refine.md).
 3. `EX_` → `IMP_` for PRD requirement IDs (27 IDs). EX prefix freed for EXTRACTABLE.md exclusive use.
 4. `UNV_IMP_1` → `UNV_IPR_1` in conventions.md (avoids IMP_ collision).
 5. `attempts.impl` → `attempts.implement` in state schema and scripts.
@@ -619,12 +619,12 @@ Each form is unambiguous in context. `impl` was the only abbreviation among four
 **Scope:** 25+ files across scripts, tests, specs, reference files, PRD, PLET.md, NOTES.md, README.md, SKILL.md, guide/. 533 tests, 0 failures.
 
 #### Artifact format enforcement — A/B test (FOO_12 vs FOO_17)
-- **FOO_17 (progress.md):** stronger prose — "match exactly" language + inline templates in execute.md/verify.md
+- **FOO_17 (progress.md):** stronger prose — "match exactly" language + inline templates in execute.md/phase-verify.md
 - **FOO_12 (state files):** tooling — Python helper script shipped via `${CLAUDE_SKILL_DIR}/scripts/` that validates/writes state files. Agents call the tool instead of writing JSON freehand.
 - Comparing the two approaches in the next case study run will tell us whether tooling or prose is more effective at preventing drift. (2026-03-12)
 - `${CLAUDE_SKILL_DIR}` resolves to the skill directory at runtime, giving agents a known path to bundled tools. python3 is always available; jq requires external install.
 - Agents drifted from the defined format in both LOGA and LIBT — div markers, fenced code blocks, plain headers all appeared in one run
-- Fix: inline template + "match exactly" language in execute.md and verify.md. formats.md remains source of truth.
+- Fix: inline template + "match exactly" language in execute.md and phase-verify.md. formats.md remains source of truth.
 - **Next step if agents still drift:** validator tool (grep for div markers, check required fields) or generator tool (shell helper that outputs correctly-formatted entries from args). jq-style enforcement is also an option for state files (FOO_12). Decided to try the lighter-weight approach first. (2026-03-12)
 
 #### Unified entry format — KV metadata + Content block (2026-03-16)
@@ -646,7 +646,7 @@ See `specs/NOTES.md` for full cascading changes list.
 
 #### Post-merge file verification (FOO_18)
 - LIBT lost a test file during parallel branch rebase+merge — required manual restoration
-- Added post-merge verification step in verify.md: run full test suite + compare file list from iteration branch against workstream after ff-merge
+- Added post-merge verification step in phase-verify.md: run full test suite + compare file list from iteration branch against workstream after ff-merge
 - Catches silent file drops from both merge and rebase conflict resolution (2026-03-12)
 
 #### Real timestamps via `date -u`, never fabricate (FOO_19)
@@ -678,7 +678,7 @@ Subagents run as subprocess invocations (`claude -p --output-format stream-json`
 
 #### Single skill with reference files
 - One entry point (`/plet`) with state-driven routing
-- Phase-specific instructions in `references/` (plan.md, implement.md, verify.md, refine.md)
+- Phase-specific instructions in `references/` (plan.md, phase-implement.md, phase-verify.md, refine.md)
 - User never has to remember which step they're on — `/plet` reads state and figures it out
 - Can force a phase with `/plet plan`, `/plet loop`, `/plet refine`, `/plet status`
 
@@ -922,7 +922,7 @@ Array of strings for observations beyond the summary or per-criterion one-liners
 
 #### Dual-source resolution for verification reports
 
-The verification report is described in two places: state-schema.md (field-level schema, types, example JSON) and verify.md (intent — what kind of information to capture and why). verify.md avoids repeating field names and types, describing the report in terms of what to capture rather than how to structure it. Prevents drift — state-schema.md is the single source for structure.
+The verification report is described in two places: state-schema.md (field-level schema, types, example JSON) and phase-verify.md (intent — what kind of information to capture and why). phase-verify.md avoids repeating field names and types, describing the report in terms of what to capture rather than how to structure it. Prevents drift — state-schema.md is the single source for structure.
 
 #### Verdict enum and progress.md status semantics
 
@@ -1138,7 +1138,7 @@ Where `{type}` is `branch` or `tag`, and the original ref name is preserved verb
 
 #### Subagent injection ordering (2026-03-09)
 
-Moved `references/execute.md` and `references/verify.md` to the top of their respective injection lists in SKILL.md. Previously, the iteration definition was injected first, pushing the behavioral reference file (which defines the agent's entire job) to second position.
+Moved `references/execute.md` and `references/phase-verify.md` to the top of their respective injection lists in SKILL.md. Previously, the iteration definition was injected first, pushing the behavioral reference file (which defines the agent's entire job) to second position.
 
 **Claude Code subagent behavior (confirmed):** Subagents start with a completely fresh context window. The injected prompt is the system prompt — the subagent's entire world. There is no inherited parent context, no CLAUDE.md from the parent session, no conversation history. Only the prompt, environment details (working directory, git status), and the filesystem.
 
@@ -1213,7 +1213,7 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 
 #### Linear history and green/rebase/green invariant (2026-03-10)
 
-**Problem:** Run 1 agents created merge commits (e.g., `3b825f4 Merge branch 'plet/loop/ITR_006'`) despite PLET.md and SKILL.md specifying rebase + fast-forward. Root cause: verify.md had a plain `git merge` command (lines 395-402), contradicting the stated convention. execute.md had no mention of rebase at all.
+**Problem:** Run 1 agents created merge commits (e.g., `3b825f4 Merge branch 'plet/loop/ITR_006'`) despite PLET.md and SKILL.md specifying rebase + fast-forward. Root cause: phase-verify.md had a plain `git merge` command (lines 395-402), contradicting the stated convention. execute.md had no mention of rebase at all.
 
 **Decision:** Linear history is a hard requirement, not a preference. Never create merge commits. Added the **green/rebase/green invariant**: all tests must pass before the rebase AND again after the rebase, before the fast-forward merge. This prevents silent breakage when two independently-green branches are combined.
 
@@ -1227,7 +1227,7 @@ Agreed to a two-phase approach: first improve plet based on case study recommend
 
 **Changes made:**
 - **prd.md** (IMP_16): strengthened from "strongly preferred" to "required", added green/rebase/green invariant, specified verify agent ownership
-- **verify.md**: replaced `git merge` with rebase + `git merge --ff-only`, added full green/rebase/green procedure including conflict resolution and re-squash
+- **phase-verify.md**: replaced `git merge` with rebase + `git merge --ff-only`, added full green/rebase/green procedure including conflict resolution and re-squash
 - **execute.md**: added "never create merge commits" critical rule
 - **SKILL.md** and **PLET.md**: already correct, no changes needed
 
@@ -1361,7 +1361,7 @@ Design decisions, alternatives discussed, and rationale for each plan chunk. PLA
 
 #### HLP_2A — phase.py end (2026-04-03)
 
-New composite command that bundles end-of-phase bookkeeping into one call: set-verdict → add-progress → append-event → audit-tag → git commit. Replaces 5-6 separate CLI calls from the subagent. Wired into implement.md (Completing the Phase, Blocker Protocol, Failed Attempt, Missing Dependency) and verify.md (Completing the Phase, Cycle Back, Blocker Protocol). Gate-post stays as a separate subagent call — it's a quality check with a self-correction loop, not bookkeeping.
+New composite command that bundles end-of-phase bookkeeping into one call: set-verdict → add-progress → append-event → audit-tag → git commit. Replaces 5-6 separate CLI calls from the subagent. Wired into phase-implement.md (Completing the Phase, Blocker Protocol, Failed Attempt, Missing Dependency) and phase-verify.md (Completing the Phase, Cycle Back, Blocker Protocol). Gate-post stays as a separate subagent call — it's a quality check with a self-correction loop, not bookkeeping.
 
 #### HLP_2B — gate-pre NOT moved to orchestrator (2026-04-03)
 
@@ -1375,7 +1375,7 @@ Implementation: each `cmd_*` function has a one-line docstring, a `.usage` attri
 
 **Design decision:** Initially `--usage` was just one-liner descriptions (like a compact `--help`). Expanded to include invocation syntax + examples because agents still needed a second `--help` lookup for flags. The full format eliminates the second lookup — one `--usage` call teaches every command's exact syntax.
 
-Documented in: UNV_CMD_30 (conventions.md), script_template.md, scripts/CLAUDE.md, implement.md/verify.md tool listings, all 19 spec Universal Flags tables.
+Documented in: UNV_CMD_30 (conventions.md), script_template.md, scripts/CLAUDE.md, phase-implement.md/phase-verify.md tool listings, all 19 spec Universal Flags tables.
 
 #### test_all ruff gate (2026-04-03)
 
@@ -1399,14 +1399,14 @@ First run with 0.4.3 HLP improvements. Key results vs Run 6:
 
 Post-R7 improvements based on transcript analysis:
 - Verify --help dominated by 2 commands: `add-report` (JSON shape) and `append-event` (event types). Added both to prompt quick ref.
-- Strengthened CLI escalation in verify.md to Critical block.
+- Strengthened CLI escalation in phase-verify.md to Critical block.
 - Reordered prompt quick ref to match workflow (write artifacts → phase end → gate post).
 - Injected `PLET_AGENT_ID` env var so agents don't invent IDs.
-- Added phase-start commits to both implement.md and verify.md for git timeline visibility.
+- Added phase-start commits to both phase-implement.md and phase-verify.md for git timeline visibility.
 
 #### Reference file bug sweep (2026-04-04)
 
-Found and fixed 8 bugs in verify.md + implement.md examples that caused CLI errors every run:
+Found and fixed 8 bugs in phase-verify.md + phase-implement.md examples that caused CLI errors every run:
 1. Wrong flag names (`--activity` → `--phase-activity`, `--detail` → `--activity-detail`)
 2. Non-existent `--elapsed` flag on update-criterion + missing `--agent-id`
 3. Removed `--files` flag on add-progress
@@ -1596,7 +1596,7 @@ This accepts that parallel execution of file-conflicting iterations is not worth
 
 Why this works better than orchestrator-driven rebase or prompt injection:
 - Agent has full context for conflict resolution (it just wrote the code)
-- It's a standard implement.md instruction, not a special-case requeue directive — more reliable
+- It's a standard phase-implement.md instruction, not a special-case requeue directive — more reliable
 - No orchestrator complexity for conflict resolution
 - Verify checks integrated code (correctness benefit)
 - The common case (iterations with different durations) is handled naturally — the slower iteration rebases onto whatever merged during its implementation
@@ -1605,7 +1605,7 @@ Why this works better than orchestrator-driven rebase or prompt injection:
 
 When parallel stop triggers:
 - At most one wasted verify cycle (the iter that failed ff-merge)
-- The requeued iter's next implement includes a rebase (per implement.md), catching up with whatever merged
+- The requeued iter's next implement includes a rebase (per phase-implement.md), catching up with whatever merged
 - Subsequent iters run one at a time — no more races
 
 **Three-layer defense against parallel conflicts:**
@@ -1615,9 +1615,9 @@ When parallel stop triggers:
 
 **What to remove:** The rebase-prep prompt injection (`requeue_reason` mechanism) is no longer needed — every implement does rebase, not just requeued ones. The complex rebase-commit stash/pop logic may also simplify since the iteration branch should already be on top of workstream after implement-end rebase.
 
-**OLLR R02 validation:** R02 confirmed that agent-driven rebase-prep via prompt injection is unreliable (agent didn't follow it). But implement.md standard instructions are more reliable — they're part of the normal flow, not a special directive. The risk of non-compliance exists but is lower, and C (parallel stop) handles the failure case.
+**OLLR R02 validation:** R02 confirmed that agent-driven rebase-prep via prompt injection is unreliable (agent didn't follow it). But phase-implement.md standard instructions are more reliable — they're part of the normal flow, not a special directive. The risk of non-compliance exists but is lower, and C (parallel stop) handles the failure case.
 
-**Decision (2026-04-06): Always rebase at start AND end of implement.** No conditional logic, no `requeue_reason`, no prompt injection. implement.md instructs:
+**Decision (2026-04-06): Always rebase at start AND end of implement.** No conditional logic, no `requeue_reason`, no prompt injection. phase-implement.md instructs:
 1. Start of implement: `rebase-prep` (catches anything that merged before this iteration)
 2. End of implement: `rebase-prep` (catches anything that merged during implementation)
 3. Gate-post enforces #2 via `merge-base --is-ancestor`
@@ -1747,11 +1747,11 @@ All open. To be considered carefully before implementation.
 
 - **OQ_3B: Slim `state-schema.md` maximally, ideally drop.** `[decided]` Same reasoning as 3A. Audit needed. If `plet_state.py` enforces the schema, agents don't need to internalize it from prose.
 
-- **OQ_3C: Slim `implement.md` — strip parallel/worktree/branch/conflict/rebase + look for other opportunities.** `[decided]` Not just mechanical removal of parallel sections. Be smart — look for anything else that's ceremony, redundant with tooling, or no longer load-bearing post-PLAN_SEQ.
+- **OQ_3C: Slim `phase-implement.md` — strip parallel/worktree/branch/conflict/rebase + look for other opportunities.** `[decided]` Not just mechanical removal of parallel sections. Be smart — look for anything else that's ceremony, redundant with tooling, or no longer load-bearing post-PLAN_SEQ.
 
-- **OQ_3D: Inline `cli-cheatsheet.md` into both `implement.md` and `verify.md`.** `[decided]` Both agents need the cheatsheet. Inline into each rather than maintaining a separate file. One fewer injected file per phase.
+- **OQ_3D: Inline `cli-cheatsheet.md` into both `phase-implement.md` and `phase-verify.md`.** `[decided]` Both agents need the cheatsheet. Inline into each rather than maintaining a separate file. One fewer injected file per phase.
 
-- **OQ_3E: Slim `verify.md` — strip parallel/worktree/branch + look for other opportunities.** `[decided]` Same approach as 3C. Strip the obvious parallel content, then look for more.
+- **OQ_3E: Slim `phase-verify.md` — strip parallel/worktree/branch + look for other opportunities.** `[decided]` Same approach as 3C. Strip the obvious parallel content, then look for more.
 
 **OQ_4: State schema — fields that become unnecessary?**
 
@@ -1911,7 +1911,7 @@ scripts/
 
 **Learnings/emergent no longer gate-enforced (user decision):** Gate-post no longer checks for learnings or emergent entries. These are still available as agent commands (`add-learning`, `add-emergent`) but are purely optional. The prompt may still ask the agent to reflect after each AC — but there's no gate enforcement.
 
-**SEQ_37-38 design discussion (pending, 2026-04-07):** Before implementing the implement.md and verify.md rewrites, do a design discussion covering:
+**SEQ_37-38 design discussion (pending, 2026-04-07):** Before implementing the phase-implement.md and phase-verify.md rewrites, do a design discussion covering:
 - **High-level org audit:** What's the current structure, what works, what doesn't?
 - **Minimize agent wandering:** Everything should be a clear, short checklist. Agents should never wonder "what do I do next?" — the reference file should be a sequence of steps, not prose to interpret.
 - **Old script names:** Both files still reference the old 14-script names (pre-SEQ_12 rename). Must update to 3-entry-point model (`plet_agent.py`, `plet_orchestrator.py`, `plet_tools.py`).
@@ -1984,7 +1984,7 @@ The orchestrator changes zero — it sees the DAG and follows it. The streaming 
 
 **Resolved questions (2026-04-05):**
 
-**Q: Refactor agent access to learnings/emergent?** A: Agent reads both files as part of its audit (same way it reads the codebase). NOT injected into prompt by orchestrator. The refactor.md reference file tells the agent to read them. Agent triages what's relevant.
+**Q: Refactor agent access to learnings/emergent?** A: Agent reads both files as part of its audit (same way it reads the codebase). NOT injected into prompt by orchestrator. The phase-refactor.md reference file tells the agent to read them. Agent triages what's relevant.
 
 **Q: Refactor budget?** A: Single attempt — one implement + one verify. Block if verify fails. Trivial fix-ups (typos, missed imports) handled in-place during the single attempt, same as verify's fix-in-place pattern. If verify fails, human reviews in refine. Refactoring shouldn't spiral.
 
@@ -1995,7 +1995,7 @@ The orchestrator changes zero — it sees the DAG and follows it. The streaming 
 2. **Agent-proposed ACs** — the refactor agent reads the codebase + emergent.md + learnings.md, proposes specific ACs ("I'll extract the duplicate handler pattern in cmd/"). Verify checks these.
 3. **Emergent pipeline** — things the refactor notices but shouldn't fix go into emergent.md ("this pattern will get worse when MS_3 adds more subcommands"). Refine session triages them into the next refactor's goals or a dedicated iteration. Closes the loop: emergent → refactor goals → refactor → emergent.
 
-**Q: Is "refactor" a new phase?** A: Yes — `--phase refactor` everywhere. Different reference file (refactor.md), different AC patterns, different prompt. Clean separation from implement/verify.
+**Q: Is "refactor" a new phase?** A: Yes — `--phase refactor` everywhere. Different reference file (phase-refactor.md), different AC patterns, different prompt. Clean separation from implement/verify.
 
 **Q: Refactor iteration structure?** A: `refactor → verify`, not `implement → verify`. Refactor replaces implement as phase 1. Verify is always phase 2 (checks the work). Regular iterations: implement→verify. Refactor iterations: refactor→verify.
 
@@ -2022,7 +2022,7 @@ A refactor that breaks tests reverts all changes, sets `refactorChanges: false`,
 - Lifecycle states: implementing, verifying, refactoring (3 gerunds)
 - Verdict fields: implementVerdict, verifyVerdict (enums); refactorChanges, refactorDeferrals (booleans)
 - Attempts: attempts.implement, attempts.verify, attempts.refactor (3 counters)
-- Reference files: implement.md, verify.md, refactor.md (3 files)
+- Reference files: phase-implement.md, phase-verify.md, phase-refactor.md (3 files)
 
 **Plan phase presentation decisions (2026-04-05, partially resolved):**
 
@@ -2064,9 +2064,9 @@ The original design proposed `--phase refactor` as a third phase with its own li
 
 Concrete mechanism:
 - `ITR_RFT_1` is a normal iteration in the dependency map
-- `prompt.py` detects the `ITR_RFT_` prefix and injects `refactor.md` instead of `implement.md`
+- `prompt.py` detects the `ITR_RFT_` prefix and injects `phase-refactor.md` instead of `phase-implement.md`
 - Standard `implementVerdict: completed|blocked`, standard lifecycle, standard gate
-- The verify agent follows normal `verify.md`
+- The verify agent follows normal `phase-verify.md`
 
 **What this eliminates:**
 - No new `--phase refactor` value (no validator changes, no gate changes, no trace changes, no entries changes)
@@ -2093,7 +2093,7 @@ Build (1) first. It's independently valuable. Then (2) is just adding `ITR_RFT_N
 
 **No time budget mechanism.** Adds testing burden for marginal value. Agents have natural context limits. If too large, agent blocks. Human reviews in refine.
 
-**Estimated effort:** ~2 days vs ~2 weeks for the original design. Most of the work is writing `refactor.md` (the reference file). The prompt routing is ~5 lines. Milestone barriers are plan-phase guidance + dependency generation.
+**Estimated effort:** ~2 days vs ~2 weeks for the original design. Most of the work is writing `phase-refactor.md` (the reference file). The prompt routing is ~5 lines. Milestone barriers are plan-phase guidance + dependency generation.
 
 #### NOTES_PLN_RFT_CHURN: Churn Analysis of plet-skills (2026-04-08)
 
@@ -2103,7 +2103,7 @@ Ran `churn` on the plet-skills repo itself to validate the tool and see what it 
 
 **Finding: size is a better signal than churn for this codebase.** Largest scripts: `fingerprint.py` (1203), `iter_state.py` (1185), `gate_session.py` (1049), `traces.py` (825). Each is self-contained — many commands but each command is independent. The only marginal candidate for extraction is `gate_session.py`'s preflight check suite, which is a long sequential list that could become its own module. Cosmetic, not urgent.
 
-**Implication for refactor.md:** The churn command is more useful for target projects (where agents accumulate tech debt across iterations) than for plet-skills itself. The reference file should guide agents to look at churn output as a starting point, but not rely on it exclusively — size, complexity, and pattern signals (from NOTES_PLN_RFT Tier 2 heuristics) are complementary.
+**Implication for phase-refactor.md:** The churn command is more useful for target projects (where agents accumulate tech debt across iterations) than for plet-skills itself. The reference file should guide agents to look at churn output as a starting point, but not rely on it exclusively — size, complexity, and pattern signals (from NOTES_PLN_RFT Tier 2 heuristics) are complementary.
 
 #### NOTES_PLN_RFT_HEURISTICS: Sweep/Refactor Heuristics (2026-04-08)
 
@@ -2137,17 +2137,17 @@ Ran `churn` on the plet-skills repo itself to validate the tool and see what it 
 | 6 | Quantitative data showing feature doesn't deliver | Metric comparison shows overhead > benefit | **Emergent** (requires human decision to remove/replace) |
 | 7 | Naming ambiguity / grep noise | Identifiers collide with unrelated code | **Emergent** (rename scope requires human approval) |
 
-**Decision: Heuristics 2, 4, 7 are emergent-only in refactor iterations.** The refactor agent should detect these signals (run coverage, look for shared state, grep for collisions) and file emergent items, but not fix them. They require architectural judgment that belongs in refine. Added as "Emergent-Only Signals" (signals 8-10) in refactor.md.
+**Decision: Heuristics 2, 4, 7 are emergent-only in refactor iterations.** The refactor agent should detect these signals (run coverage, look for shared state, grep for collisions) and file emergent items, but not fix them. They require architectural judgment that belongs in refine. Added as "Emergent-Only Signals" (signals 8-10) in phase-refactor.md.
 
-Heuristics 1, 3, 5 are directly actionable by the refactor agent — they map to the existing signal categories in refactor.md (run toolchain, grep for duplicates, check learnings/emergent).
+Heuristics 1, 3, 5 are directly actionable by the refactor agent — they map to the existing signal categories in phase-refactor.md (run toolchain, grep for duplicates, check learnings/emergent).
 
-#### NOTES_PLN_RFT_REVIEW: refactor.md Evaluation (2026-04-08)
+#### NOTES_PLN_RFT_REVIEW: phase-refactor.md Evaluation (2026-04-08)
 
-Evaluated refactor.md using skill-creator evaluation framework. 11 findings, 6 changes made. Key decisions:
+Evaluated phase-refactor.md using skill-creator evaluation framework. 11 findings, 6 changes made. Key decisions:
 
 **`--phase implement` confusion (finding 11, medium).** Refactoring iterations use `--phase implement` despite the file being titled "Refactoring Iteration." Added explicit note: "This iteration uses `--phase implement` — the refactoring difference is in the guidance, not the lifecycle."
 
-**Real-time state updates (finding 1, medium).** Both implement.md and verify.md have a critical rule about updating state in real time for external consumers. refactor.md was missing it. Added.
+**Real-time state updates (finding 1, medium).** Both phase-implement.md and phase-verify.md have a critical rule about updating state in real time for external consumers. phase-refactor.md was missing it. Added.
 
 **What "mechanical" means (finding 6, medium).** "Keep it mechanical" was undefined. Clarified: "Mechanical means the before and after are functionally identical — same inputs, same outputs, same side effects. If you need to think about whether the behavior changes, it's not mechanical — defer it."
 
@@ -2161,17 +2161,17 @@ Evaluated refactor.md using skill-creator evaluation framework. 11 findings, 6 c
 
 **Gate check list (finding 10, low).** Added to Completing the Phase so the agent knows what `phase-end` will verify.
 
-#### NOTES_PLN_RFT_REVIEW_IMPL_VERIFY: implement.md + verify.md Evaluation (2026-04-08)
+#### NOTES_PLN_RFT_REVIEW_IMPL_VERIFY: phase-implement.md + phase-verify.md Evaluation (2026-04-08)
 
 Evaluated both files using skill-creator framework. 15 total findings across both files + cross-file consistency. 7 changes made.
 
-**implement.md changes:**
+**phase-implement.md changes:**
 - (Finding 2) "Orchestrator-managed" context → "Also read" — agent should always read requirements.md
 - (Finding 4) Added note: update-criterion auto-generates progress entries
 - (Finding 5) **state.json contradiction resolved.** "Do NOT modify state.json" vs "Add missing dependency to dependencyMap." Decision: Option B — agent files emergent + blocks, human fixes DAG in refine. Agent never modifies orchestrator-owned state. Rewrote Missing Dependency section (IMP_24).
 - (Finding 6) Stale gate check list removed learnings/emergent WARN (removed in PLAN_SEQ)
 
-**verify.md changes:**
+**phase-verify.md changes:**
 - (Finding 8) Added "Never create merge commits" critical rule
 - (Finding 10) Added *why* for "no implementation code" rule — separation ensures independent verification of the fix
 - (Finding 11) Evidence comparison "update accordingly" → explicit: change status from pass to fail with discrepancy evidence
@@ -2259,11 +2259,11 @@ Not a v1 blocker — the current verify phase catches obvious code quality issue
 
 ### NOTES_PLN_VER: PLAN_VER — Verify Phase Evaluation
 
-**Decision (2026-04-07): VF_7-11 split between verify and refactor.** The five quality-gate sections in verify.md (VF_7 Spec Fidelity, VF_8 Test Quality, VF_9 Code Quality, VF_10 Security Surface, VF_11 Spec Gaps) are a code-review checklist that agents mostly ignore. R05 transcript analysis: agents gave single sentences ("No security concerns") or skipped entirely.
+**Decision (2026-04-07): VF_7-11 split between verify and refactor.** The five quality-gate sections in phase-verify.md (VF_7 Spec Fidelity, VF_8 Test Quality, VF_9 Code Quality, VF_10 Security Surface, VF_11 Spec Gaps) are a code-review checklist that agents mostly ignore. R05 transcript analysis: agents gave single sentences ("No security concerns") or skipped entirely.
 
 Split by natural home:
 - **Stay in verify:** VF_7 (Spec Fidelity) — this IS verification. VF_11 (Spec Gaps) — directly spec-related.
-- **Move to refactor.md (PLAN_RFT):** VF_9 (Code Quality) — cross-cutting codebase health, not per-AC verification. Already covered by PLAN_RFT Tier 1 (per-loop minor refactor) and Tier 2 (milestone boundary) heuristics.
+- **Move to phase-refactor.md (PLAN_RFT):** VF_9 (Code Quality) — cross-cutting codebase health, not per-AC verification. Already covered by PLAN_RFT Tier 1 (per-loop minor refactor) and Tier 2 (milestone boundary) heuristics.
 - **Split:** VF_8 (Test Quality) — "tests actually test the AC" stays in verify; "test suite is well-designed" moves to refactor. VF_10 (Security) — AC-relevant security stays in verify; broad security audit moves to refactor.
 
 **Rationale (from NOTES_PLN_RFT):** "Verify's job is checking correctness against acceptance criteria. Refactoring is about improving the codebase that's already correct. Different goals, different context needs. Verify sees one iteration; refactor needs to see everything."
@@ -2274,9 +2274,9 @@ Split by natural home:
 
 **Decision (2026-04-07): Result-first verification becomes the main loop structure.** Per-criterion workflow: (1) independently verify the AC (run code, read source, compare to spec — absorbs VF_7 Spec Fidelity), (2) check the test isn't tautological (kept from VF_8), (3) flag spec gaps if found (kept from VF_11), (4) update-criterion with evidence. This matches what agents actually do well in practice (R05 transcripts). Separate sections for VF_7/VF_8/VF_11 collapse into inline steps of the per-criterion loop.
 
-**Decision (2026-04-07): Remove fix-in-place (Path B) entirely.** Verify agent never writes implementation code. Two paths only: approve (all AC pass) or cycle back (write failing tests, hand off to implement). Rationale: (1) clean verify/implement separation — no gray area about what's "small enough," (2) strengthens the red test handoff pattern (verify writes failing test, implement makes it green), (3) fix-in-place was never used across R01-R05 — zero practical frequency, (4) simplifies verify.md by removing an entire decision branch. If cycle-back overhead proves painful in future runs, reintroduce with concrete criteria (under ~20 lines, additive only, no logic changes).
+**Decision (2026-04-07): Remove fix-in-place (Path B) entirely.** Verify agent never writes implementation code. Two paths only: approve (all AC pass) or cycle back (write failing tests, hand off to implement). Rationale: (1) clean verify/implement separation — no gray area about what's "small enough," (2) strengthens the red test handoff pattern (verify writes failing test, implement makes it green), (3) fix-in-place was never used across R01-R05 — zero practical frequency, (4) simplifies phase-verify.md by removing an entire decision branch. If cycle-back overhead proves painful in future runs, reintroduce with concrete criteria (under ~20 lines, additive only, no logic changes).
 
-**Decision (2026-04-07): Remove Artifact Audit (VF_20) from verify.md.** Artifact completeness is already enforced by phase-end gate checks (progress entry FAIL, learnings/emergent WARN). Verify agent checking the same things manually is redundant. R05: zero agents performed this. "Log but continue" means no teeth. Gate is the enforcement mechanism, not agent behavior.
+**Decision (2026-04-07): Remove Artifact Audit (VF_20) from phase-verify.md.** Artifact completeness is already enforced by phase-end gate checks (progress entry FAIL, learnings/emergent WARN). Verify agent checking the same things manually is redundant. R05: zero agents performed this. "Log but continue" means no teeth. Gate is the enforcement mechanism, not agent behavior.
 
 **Decision (2026-04-07): Add per-criterion-type verification guidance.** Short table mapping criterion types (behavioral, structural, negative, documentation, integration) to verification approaches. Not prescriptive — agent uses judgment to pick the most practical method or combination. Keeps it under 10 lines. Agents already do this intuitively (R05: ran commands for behavioral, read source for structural); writing it down makes it consistent.
 
@@ -2292,7 +2292,7 @@ Split by natural home:
 
 **Decision (2026-04-07): Evidence comparison deferred to after per-criterion loop.** Agent reads the state file once after all criteria are independently verified, compares all findings at once, notes discrepancies. Avoids awkward "read only AC_1's evidence" per-criterion and matches how agents actually read files. Section titled "After All Criterion Workflows Complete."
 
-**Proposed verify.md outline (2026-04-07):**
+**Proposed phase-verify.md outline (2026-04-07):**
 
 ```
 # Verify Phase — Verification Subagent
@@ -2488,7 +2488,7 @@ Even if milestone verify takes 3x longer checking ACs, heavy savings on infrastr
 
 **Sequencing:** Don't build the opt-in flag first. Start with just dropping per-iteration verify and expanding milestone verify scope. Run a real comparison. If milestone catches everything (expected), the per-iteration opt-in may never be needed.
 
-**PLAN_VER rewrite enables this.** verify.md is already scoped to functional AC checking. Adapting it for milestone scope (check N iterations' ACs instead of 1) is a reference file change, not an architectural change.
+**PLAN_VER rewrite enables this.** phase-verify.md is already scoped to functional AC checking. Adapting it for milestone scope (check N iterations' ACs instead of 1) is a reference file change, not an architectural change.
 
 #### NOTES_PLN_MSV_7: Implementation decisions (2026-04-11)
 
@@ -2710,7 +2710,7 @@ Completed foundation plans. Grouped here since each is small individually.
 Single entry point `/plet` with routing logic based on state detection. File: `skills/plet/SKILL.md`.
 
 #### PLAN_REF: Reference Files
-6 reference files injected into subagent prompts: formats.md, state-schema.md, plan.md, implement.md, verify.md, refine.md. All under `skills/plet/references/`.
+6 reference files injected into subagent prompts: formats.md, state-schema.md, plan.md, phase-implement.md, phase-verify.md, refine.md. All under `skills/plet/references/`.
 
 #### PLAN_PKG: Packaging
 Plugin metadata: `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`.
@@ -2757,7 +2757,7 @@ R06: 53% of implement-phase Bash calls were plet infrastructure. Dominated by di
 **ES Script Inventory — major drift.** PRD lists 14 agent-callable scripts with `plet_` prefix naming. Actual system: 3 entry points (`plet_agent.py`, `plet_tools.py`, `plet_orchestrator.py`) + importable modules (dropped `plet_` prefix). `plet_state.py` split into `global_state.py` + `iter_state.py`. ~8 new scripts/modules not in PRD at all. Test count: PRD says "1230+", actual ~1,060 (consolidation during PLAN_SEQ).
 
 **Missing concepts — zero PRD coverage:**
-1. Refactor iterations (ITR_RFT_* prefix, milestone barriers, refactor.md routing, prompt.py detection)
+1. Refactor iterations (ITR_RFT_* prefix, milestone barriers, phase-refactor.md routing, prompt.py detection)
 2. Project bootstrap (bootstrap.py: git config, .gitattributes, .gitignore, CLAUDE.md stub, settings.json)
 3. Orchestrator loop as cohesive unit (behavior scattered across OR, IMP, VF, SF)
 4. Session lifecycle management (start-session, end-session, workstream branch creation)
@@ -2768,7 +2768,7 @@ R06: 53% of implement-phase Bash calls were plet infrastructure. Dominated by di
 
 **Stale field names in SF:** `agentActivity` → `phaseActivity`, `lastVerdict` → `implementVerdict`/`verifyVerdict`, per-iteration `lifecycle` field removed (now in state.json.lifecycles per SF_28).
 
-**Reference files:** PRD lists 6, actual 8 (added refactor.md, cli-spec-template.md).
+**Reference files:** PRD lists 6, actual 8 (added phase-refactor.md, cli-spec-template.md).
 
 **IMP stale references:** Per-iteration branches no longer exist (single workstream per loop). Merge/squash flow simplified.
 
@@ -2865,7 +2865,7 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 
 **Principle:** Reference files for implement, verify, and refactor should prescribe a step-by-step sequence per acceptance criterion, not a list of concerns to weigh. The agent's job is judgment *within* each step (is this criterion satisfied?), not judgment *about* which step comes next.
 
-**Applies to:** implement.md, verify.md, refactor.md — the three subagent reference files. Each should have a clear per-criterion workflow loop that the agent follows mechanically.
+**Applies to:** phase-implement.md, phase-verify.md, phase-refactor.md — the three subagent reference files. Each should have a clear per-criterion workflow loop that the agent follows mechanically.
 
 #### NOTES_PLN_PRD_RCH: RCH Section Added (2026-04-08)
 
@@ -2900,7 +2900,7 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 #### NOTES_PLN_PRD_PT: INF_PT Review (2026-04-08)
 
 - PT_7: script name updated (prompt.py)
-- PT_8 added: refactor.md reference file with ITR_RFT_* routing
+- PT_8 added: phase-refactor.md reference file with ITR_RFT_* routing
 - PT_9 added: plan-templates directory with two-dimensional composition (project type × platform). Currently PL_DX/PL_TV/PL_CT/PL_SM live inline in DVX_TP — PT_9 is the future home.
 - PT_10 withdrawn before publication — cli-spec-template.md will become a plan-template (project type), not its own requirement
 - Section reorganized into 4 groups: subagent refs, schema refs, plan templates, prompt assembly
@@ -3255,7 +3255,7 @@ Each subagent gets a phase-specific reference file plus shared context. Updated 
 - **Total: ~18K-28K tokens**, leaving 170K+ of 200K for actual work.
 
 **Verification subagent:**
-- verify.md: ~5,100 tokens (519 lines)
+- phase-verify.md: ~5,100 tokens (519 lines)
 - formats.md: ~2,500 tokens (392 lines)
 - state-schema.md: ~4,300 tokens (549 lines — full file, verify needs all sections)
 - requirements.md: varies (5K-15K)
@@ -3300,7 +3300,7 @@ LOGA R15 (199 calls) and OLLR R06 (79 calls): `committing` and `verifying` are d
 
 ### NOTES_MON_9: Learnings quantity pattern
 
-LOGA R15: exactly 2 learnings per iteration (1 implement, 1 verify), 26 total. Eerily consistent — suggests agents produce artifacts to meet an implied quota rather than when genuinely useful. OLLR R07 (post-PLAN_VER): 5 learnings for 6 iterations — dropped from R06's 12. The leaner verify.md may reduce verify-phase learnings. Monitor whether quality improves even as quantity drops.
+LOGA R15: exactly 2 learnings per iteration (1 implement, 1 verify), 26 total. Eerily consistent — suggests agents produce artifacts to meet an implied quota rather than when genuinely useful. OLLR R07 (post-PLAN_VER): 5 learnings for 6 iterations — dropped from R06's 12. The leaner phase-verify.md may reduce verify-phase learnings. Monitor whether quality improves even as quantity drops.
 
 ### NOTES_MON_10: progress.md volume scaling
 
@@ -3400,7 +3400,7 @@ Script tooling decisions (coding standards, orchestrator analysis, script invent
 
 **Alternative rejected:** Allow stashes but require cleanup or archival — adds complexity for zero benefit over incremental commits.
 
-**Changes:** execute.md (critical rule), verify.md (critical rule), prd.md (IMP_17 clarification), case_studies/CLAUDE.md (checklist item retained for older runs), FEEDBACK_FOO.md (FOO_9 resolved).
+**Changes:** execute.md (critical rule), phase-verify.md (critical rule), prd.md (IMP_17 clarification), case_studies/CLAUDE.md (checklist item retained for older runs), FEEDBACK_FOO.md (FOO_9 resolved).
 
 #### Stable labels for case studies — DECIDED (2026-04-03)
 
@@ -3431,7 +3431,7 @@ SKILL.md had contradicting directives: Git Strategy said "Agents never commit to
 
 #### Orchestrator owns start-phase — DECIDED (2026-04-03)
 
-FOO_61: `iter_state.py start-phase` was only called by subagents via prose instructions in implement.md/verify.md. In LOGA Run 2, the subagent never called it — attempt counters stayed at 0. Moved to the orchestrator: `_run_implement_phase` and `_run_verify_phase` now call `start-phase` before spawning the subagent. Attempt counting, phase timestamps, and verdict clearing are deterministic. Mock claude updated to not duplicate the increment.
+FOO_61: `iter_state.py start-phase` was only called by subagents via prose instructions in phase-implement.md/phase-verify.md. In LOGA Run 2, the subagent never called it — attempt counters stayed at 0. Moved to the orchestrator: `_run_implement_phase` and `_run_verify_phase` now call `start-phase` before spawning the subagent. Attempt counting, phase timestamps, and verdict clearing are deterministic. Mock claude updated to not duplicate the increment.
 
 #### Gate validates verdict values — DECIDED (2026-04-03)
 

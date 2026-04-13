@@ -107,7 +107,7 @@ Each section has a `name` (human-readable label), `source` (file path or "derive
 |----|-------------|----------|
 | PRM_ASM_PRE_1 | `--iter-id` and `--phase` present | P0 |
 | PRM_ASM_PRE_2 | `plet_dir` exists and is a directory | P0 |
-| PRM_ASM_PRE_3 | Primary reference file exists: `references/implement.md` (implement) or `references/verify.md` (verify) | P0 |
+| PRM_ASM_PRE_3 | Primary reference file exists: `references/phase-implement.md` (implement) or `references/phase-verify.md` (verify) | P0 |
 | PRM_ASM_PRE_4 | `plet_dir/requirements.md` exists | P0 |
 | PRM_ASM_PRE_5 | `plet_dir/iterations.md` exists | P0 |
 
@@ -127,7 +127,7 @@ The prompt is assembled from sections in a specific order. The order matters —
 
 | ID | Section | Source | Required | Priority |
 |----|---------|--------|----------|----------|
-| PRM_ASM_BHV_1 | **reference-file** | `references/implement.md` | yes | P0 |
+| PRM_ASM_BHV_1 | **reference-file** | `references/phase-implement.md` | yes | P0 |
 | PRM_ASM_BHV_2 | **iteration-definition** | Extracted from `plet/iterations.md` — the block for `--iter-id` | yes | P0 |
 | PRM_ASM_BHV_3 | **formats** | `references/formats.md` | yes | P0 |
 | PRM_ASM_BHV_4 | **state-schema** | `references/state-schema.md` | yes | P0 |
@@ -139,7 +139,7 @@ The prompt is assembled from sections in a specific order. The order matters —
 
 | ID | Section | Source | Required | Priority |
 |----|---------|--------|----------|----------|
-| PRM_ASM_BHV_8 | **reference-file** | `references/verify.md` | yes | P0 |
+| PRM_ASM_BHV_8 | **reference-file** | `references/phase-verify.md` | yes | P0 |
 | PRM_ASM_BHV_9 | **iteration-definition** | Same as BHV_2 | yes | P0 |
 | PRM_ASM_BHV_10 | **formats** | Same as BHV_3 | yes | P0 |
 | PRM_ASM_BHV_11 | **state-schema** | Same as BHV_4 | yes | P0 |
@@ -194,7 +194,7 @@ The prompt is assembled from sections in a specific order. The order matters —
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRM_FMT_1 | Reads skill reference files: `implement.md`, `verify.md`, `formats.md`, `state-schema.md` | P0 |
+| PRM_FMT_1 | Reads skill reference files: `phase-implement.md`, `phase-verify.md`, `formats.md`, `state-schema.md` | P0 |
 | PRM_FMT_2 | Reads plet project files: `requirements.md`, `iterations.md`, `learnings.md` | P0 |
 | PRM_FMT_3 | Reads per-iteration state: `{plet_dir}/state/{iter_id}.json`. Reads lifecycle from `{plet_dir}/state.json` → `lifecycles` (SF_28). | P0 |
 | PRM_FMT_4 | Writes nothing — read-only. | P0 |
@@ -224,7 +224,7 @@ The prompt is assembled from sections in a specific order. The order matters —
 prompt.py assemble plet/ --iter-id ITR_001 --phase implement
 # # Reference: Implementation Guide
 #
-# [full contents of implement.md]
+# [full contents of phase-implement.md]
 #
 # # Iteration Definition
 #
@@ -266,7 +266,7 @@ prompt.py assemble plet/ --iter-id ITR_001 --phase implement --output json --pre
 #   "iterationId": "ITR_001",
 #   "phase": "implement",
 #   "sections": [
-#     {"name": "reference-file", "source": "references/implement.md", "content": "..."},
+#     {"name": "reference-file", "source": "references/phase-implement.md", "content": "..."},
 #     {"name": "iteration-definition", "source": "plet/iterations.md", "content": "..."},
 #     {"name": "formats", "source": "references/formats.md", "content": "..."},
 #     {"name": "state-schema", "source": "references/state-schema.md", "content": "..."},
@@ -318,7 +318,7 @@ No subprocess calls to other plet scripts — PRM is a leaf that reads files dir
 | PRM_CRT_6 | Missing reference file | Silent failure → incomplete prompt | Verify error exit |
 | PRM_CRT_7 | JSON output parseable | Invoke can't consume prompt | Verify valid JSON with sections array |
 | PRM_CRT_8 | Text output pipe-friendly | Prompt injection fails | Verify no stray control chars |
-| PRM_CRT_9 | Phase controls reference file | Wrong reference file → agent follows wrong instructions | implement→implement.md, verify→verify.md |
+| PRM_CRT_9 | Phase controls reference file | Wrong reference file → agent follows wrong instructions | implement→phase-implement.md, verify→phase-verify.md |
 | PRM_CRT_10 | totalLength accurate | Context estimation wrong | Verify matches actual content length |
 
 ## 13. Testing & Verification (PRM_TST)

@@ -172,7 +172,7 @@ Run 6 started with v0.4.2, `bypassPermissions` mode. "Everything seems to just w
 ### CASE_LOGA_R05_R06O: Observations
 - Plan branch created correctly (`plet/LOGA/plan1/workstream`) — first time in 4 runs
 - Good red/green discipline on ID_001 (11 commits, per-AC red then green)
-- Subagent modified state.json in worktree (`loopSessionCount: 0→1`) — shouldn't touch it (SF_28, orchestrator-owned). Harmless with `merge=ours` but indicates the subagent doesn't know state.json is off-limits. (→ FOO item: implement.md/verify.md should explicitly say "do NOT modify state.json")
+- Subagent modified state.json in worktree (`loopSessionCount: 0→1`) — shouldn't touch it (SF_28, orchestrator-owned). Harmless with `merge=ours` but indicates the subagent doesn't know state.json is off-limits. (→ FOO item: phase-implement.md/phase-verify.md should explicitly say "do NOT modify state.json")
 - Detailed case study pending.
 
 ---
