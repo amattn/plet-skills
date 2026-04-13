@@ -257,7 +257,7 @@ What happens when you take Part 1's patterns seriously enough to automate them.
 - *Talking point:* This is "test assumptions empirically" from Part 1. We guessed what subagents would inherit, tested it, and corrected three wrong assumptions. The entire subagent architecture was adjusted based on a 2-minute test.
 
 **Slide 10.3 — "Heartbeats and Canary Writes"**
-- Agents update `agentActivity` as they work — 5+ minutes stale = assumed crashed
+- Agents update `phaseActivity` as they work — 5+ minutes stale = assumed crashed
 - Canary writes: after each significant action, write a progress entry with critical state
 - After compaction or crash, recover by reading the last canary entry
 - *Talking point:* These are the operational details that make autonomous agents actually work in practice. Without them, you can't tell a slow agent from a dead one.

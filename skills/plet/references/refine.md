@@ -260,7 +260,7 @@ This is a significant change. How would you like to proceed?
 Only after the user confirms, proceed:
 
 1. Set the iteration's lifecycle to `"withdrawn"` — this is a terminal state, the orchestrator will not pick it up
-2. Move the iteration definition to the `## Withdrawn` section at the bottom of `iterations.md`. This section is excluded from fingerprint scanning by `plet_fingerprint.py extract` (same pattern as Future Considerations/Open Questions exclusion in requirements.md). Create the section if it doesn't exist.
+2. Move the iteration definition to the `## Withdrawn` section at the bottom of `iterations.md`. This section is excluded from fingerprint scanning by `fingerprint.py extract` (same pattern as Future Considerations/Open Questions exclusion in requirements.md). Create the section if it doesn't exist.
 3. If the work is being re-scoped, create a new iteration with a new ID. If the work is no longer needed at all, no replacement is necessary.
 4. **Cascade to downstream dependents** — for each iteration that depends on the withdrawn one (directly or transitively), surface it to the user with the same A/B/C options (Revise with re-pointed dependencies, Reset, or Withdraw). Do not leave any iteration with an unsatisfiable dependency.
 
@@ -379,7 +379,7 @@ Update the fingerprint block:
 
 - Embed the updated requirements fingerprint
 - Bump `lastNonTrivialUpdate` if iterations changed
-- List all iteration IDs grouped by milestone — **withdrawn iterations are automatically excluded** when they are in the `## Withdrawn` section of `iterations.md` (the section is skipped by `plet_fingerprint.py extract`)
+- List all iteration IDs grouped by milestone — **withdrawn iterations are automatically excluded** when they are in the `## Withdrawn` section of `iterations.md` (the section is skipped by `fingerprint.py extract`)
 
 ### 3. Global State Fingerprint (`plet/state.json`)
 
@@ -404,7 +404,7 @@ Use atomic writes where practical for state files — write to a temp file in th
 For each new iteration, create `plet/state/{iteration_id}.json` with:
 - `lifecycle`: `"queued"` if no dependencies, `"ineligible"` if dependencies exist
 - `agentId`: `null`
-- `agentActivity`: `"idle"`
+- `phaseActivity`: `"idle"`
 - `attempts`: `{implement: 0, verify: 0}`
 - `criteria`: array from iteration definition, all `status: "not_started"`
 
@@ -415,10 +415,6 @@ Update `plet/state.json` → `dependencyMap` to include new iterations and any m
 ### Milestones
 
 Update `plet/state.json` → `milestones` to reflect any new milestones or iterations added to existing milestones.
-
-### Parallel Groups
-
-Update `plet/state.json` → `parallelGroups` if new iterations can run in parallel.
 
 **Append a stage summary to `plet/progress.md`** after state file updates: new state files created, dependency map changes, milestone updates. Use phase `refine`. (FOO_43)
 

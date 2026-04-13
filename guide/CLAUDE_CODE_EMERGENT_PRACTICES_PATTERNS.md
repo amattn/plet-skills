@@ -98,7 +98,7 @@ These are slightly more situational — still high value, but they tend to matte
 - **Entry fencing:** Wrap entries in unique boundary lines so git merge can distinguish entries from parallel agents and resolve without conflicts.
 - **Separate artifacts by audience:** progress.md → humans (narrative). learnings.md → agents (patterns, techniques). emergent.md → humans (decisions, gaps). trace/ → debugging (full I/O logs).
 - **Real-time state updates:** Update state files as you work, not batched at the end. External consumers read these to know what the agent is doing. Batch updates make the system appear dead.
-- **Heartbeat updates:** Update `agentActivity` as you transition between activities. 5+ minutes stale = assumed crashed.
+- **Heartbeat updates:** Update `phaseActivity` as you transition between activities. 5+ minutes stale = assumed crashed.
 
 ## Architecture Insights
 

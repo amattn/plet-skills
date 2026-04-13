@@ -386,7 +386,7 @@ See specs/NOTES.md § Worktree state file invariants for the full 6-invariant li
 
 Checking the same critical invariant in multiple places is acceptable and intentional — not redundancy. Each layer catches failures at a different point in the pipeline with different recovery options.
 
-Example — `lastVerdict` after verify:
+Example — `verifyVerdict` after verify:
 - **Layer 1 (gate):** Post-verify gate FAILs if null. Subagent is still alive and can self-correct. Best outcome — problem fixed before anyone notices.
 - **Layer 2 (orchestrator):** Defensive check after verify returns. Subagent is gone. Can only block the iteration and log. Worst-case fallback.
 
@@ -914,7 +914,7 @@ Subagents don't self-log full I/O — that's impractical and wasteful of context
 
 #### Verification reports in per-iteration state (VF_21–VF_24)
 
-Each verification attempt appends a report to the `verificationReports` array (never overwritten). Reports have `vrp` plet IDs, a verdict, compact `criteriaResults` index, and two-level `relatedEntries` (report-level for iteration-spanning concerns, criterion-level for single-AC findings). `lastVerdict` convenience field at the iteration state top level. Written after artifact entries so plet IDs are available for `relatedEntries`.
+Each verification attempt appends a report to the `verificationReports` array (never overwritten). Reports have `vrp` plet IDs, a verdict, compact `criteriaResults` index, and two-level `relatedEntries` (report-level for iteration-spanning concerns, criterion-level for single-AC findings). `verifyVerdict` field at the iteration state top level (formerly `lastVerdict`). Written after artifact entries so plet IDs are available for `relatedEntries`.
 
 #### Verification report `findings` field (VF_24)
 

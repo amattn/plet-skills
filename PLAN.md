@@ -16,7 +16,7 @@
 | PLAN_HLP | Subagent CLI Re-learning | ✓ COMPLETE (validated: zero --help in R08) |
 | PLAN_PAR | Parallel Orchestrator | ✓ COMPLETE (superseded by PLAN_SEQ) |
 | PLAN_SEQ | Sequential Simplification | ✓ COMPLETE (43/43) — validated LOGA R15 (92m, fastest ever) |
-| PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, 1056 tests) |
+| PLAN_COV | Library + CLI Pattern | ✓ COMPLETE (91%, ~2245 tests) |
 | PLAN_CLN | Script Cleanup & Consistency | ✓ COMPLETE (see `specs/PLAN.md` § PLAN_CLN) |
 | PLAN_NTS | NOTES.md Reorganization | ✓ COMPLETE — 97 labeled H3s, slim PLAN.md (-42%), content migrated |
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
@@ -562,7 +562,7 @@ Streaming parallel execution with ThreadPoolExecutor. Conflict recovery via reba
 
 ## PLAN_COV: Library + CLI Pattern ✓ COMPLETE
 
-Tuple return convention + direct import testing. 91% coverage, 1056 tests, ~45s. See specs/NOTES.md § SPEC_PLN_COV for design decisions and rationale.
+Tuple return convention + direct import testing. 91% coverage, ~2245 tests. See specs/NOTES.md § SPEC_PLN_COV for design decisions and rationale.
 
 | Step | What | Status |
 |------|------|--------|

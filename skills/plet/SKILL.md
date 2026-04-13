@@ -203,13 +203,13 @@ Each level stores the fingerprint of the level above. Staleness detection: if th
 
 ```bash
 # Check consistency across all three
-plet_fingerprint.py check plet/ --output json
+fingerprint.py check plet/ --output json
 
 # Extract fingerprint from an artifact
-plet_fingerprint.py extract plet/ --type requirements
+fingerprint.py extract plet/ --type requirements
 
 # Embed updated fingerprint after changes
-plet_fingerprint.py embed plet/ --type requirements
+fingerprint.py embed plet/ --type requirements
 # Then: embed --type iterations, then --type state (cascade order)
 ```
 
@@ -310,7 +310,7 @@ Interactive, human-driven. Triages emergent items, updates spec, re-plans.
 1. Session setup: increment `refineSessionCount`, branch, update `sessionHistory`
 2. Read `references/refine.md` for the full workflow
 3. Follow instructions for emergent triage, blocked iteration review, spec updates, re-planning
-4. After changes, update fingerprints: `plet_fingerprint.py embed plet/ --type requirements` (then iterations, then state)
+4. After changes, update fingerprints: `fingerprint.py embed plet/ --type requirements` (then iterations, then state)
 5. Offer to resume the loop with `/plet loop`
 
 ### Compaction Recovery Protocol

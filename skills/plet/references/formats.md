@@ -36,10 +36,6 @@ The `**Content:**` marker is the boundary between structured metadata (parseable
 
 Runtime artifact writes (`progress.md`, `learnings.md`, `emergent.md`) should be complete, self-contained blocks — never a partial entry. True POSIX `O_APPEND` semantics are ideal but not required for v1. Runtime artifacts are append-only markdown, so a partial append only affects the last entry — prior entries are never corrupted.
 
-### Size Limit (SF_18)
-
-Keep individual entries under **~4KB**. This is a readability constraint — entries longer than that are usually doing too much. Split into multiple self-contained entries if needed.
-
 ### When to Write (IMP_9)
 
 Append to runtime artifacts **as things come up during work**, not only at the end. If the agent has been working for an extended period, write current insights before wrapping up (IMP_18).
@@ -50,7 +46,7 @@ All agents read `progress.md`, `learnings.md`, and `emergent.md` at the start of
 
 ### Plet IDs (RT_11, SF_25)
 
-Every runtime artifact entry gets a globally unique plet ID per the Plet ID Scheme defined in `prd.md` (section 3.6). Runtime artifact entries use the following context segments after the type prefix and Crockford timestamp:
+Every runtime artifact entry gets a globally unique plet ID per the Plet ID Scheme defined in `prd.md` (requirement `INF_RT`). Runtime artifact entries use the following context segments after the type prefix and Crockford timestamp:
 
 - **Iteration:** iteration ID lowercased, underscores removed (e.g., `ITR_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`.
 - **Phase/attempt:** `p1` (plan session 1), `i1` (implement attempt 1), `v2` (verify attempt 2), `r1` (refine session 1)
@@ -379,13 +375,13 @@ Examples:
 - `ITR_001-verify-1-transcript.ndjson` — ITR_001, verification phase, attempt 1
 - `ITR_002-implement-2-transcript.ndjson` — ITR_002, implementation phase, attempt 2 (retry)
 
-### Semantic Events (subagent-written via `plet_trace.py`)
+### Semantic Events (subagent-written via `traces.py`)
 
 ```
 plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson
 ```
 
-Written by the subagent during work via `plet_trace.py append-event`. Contains high-level semantic events: decisions, criterion status changes, lifecycle transitions (orchestrator-driven per SF_28), phase activity changes, verdict signals, errors and recovery actions. Each line is a valid JSON object following the schema in `references/state-schema.md`.
+Written by the subagent during work via `traces.py append-event`. Contains high-level semantic events: decisions, criterion status changes, lifecycle transitions (orchestrator-driven per SF_28), phase activity changes, verdict signals, errors and recovery actions. Each line is a valid JSON object following the schema in `references/state-schema.md`.
 
 Examples:
 - `ITR_001-implement-1-events.ndjson`
