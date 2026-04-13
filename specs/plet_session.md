@@ -1,8 +1,8 @@
-# plet_session.py (SES)
+# session.py (SES)
 
 > Status: complete
 
-Session lifecycle management — starts and ends loop and refine sessions. Mutating commands that update `state.json` (session counters, session history). Paired with `plet_gate_session.py` (GSS) which handles read-only session detection and preflight.
+Session lifecycle management — starts and ends loop and refine sessions. Mutating commands that update `state.json` (session counters, session history). Paired with `gate_session.py` (GSS) which handles read-only session detection and preflight.
 
 ## 1. Purpose (PUR)
 
@@ -46,14 +46,14 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SES_STA_JUS_1 | Why: session setup involves incrementing a counter, generating a branch name, and appending a history entry — three coordinated mutations that must happen atomically. Prose-based orchestrators sometimes forget one step (especially the session history append). | P0 |
-| SES_STA_JUS_2 | When: called once at the beginning of every loop or refine session, before any iteration work begins. The orchestrator calls this immediately after `plet_gate_session.py preflight` passes. | P0 |
+| SES_STA_JUS_2 | When: called once at the beginning of every loop or refine session, before any iteration work begins. The orchestrator calls this immediately after `gate_session.py preflight` passes. | P0 |
 | SES_STA_JUS_3 | Deprecation signal: if the orchestrator becomes a Python script (v2), this logic may move inline. But the command remains useful for manual session management and testing. | P1 |
 
 #### Definition (CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_STA_CMD_1 | Usage: `plet_session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SES_STA_CMD_1 | Usage: `session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, idempotent (see SES_STA_BHV_3), atomic (single file write via `atomic_write_json`)
 
@@ -132,7 +132,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SES_END_CMD_1 | Usage: `plet_session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SES_END_CMD_1 | Usage: `session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, idempotent (ending an already-ended session is a no-op), atomic
 
@@ -230,17 +230,17 @@ No `--type` required — end-session finds the active session automatically.
 
 ### SES_AFL_1: Orchestrator loop session lifecycle
 
-1. `plet_gate_session.py preflight plet/ --session-type loop` → go/no-go
-2. `plet_session.py start-session plet/ --type loop --output json` → get session number and branch name
+1. `gate_session.py preflight plet/ --session-type loop` → go/no-go
+2. `session.py start-session plet/ --type loop --output json` → get session number and branch name
 3. `plet_git_iteration.py worktree-create ...` (orchestrator creates the branch using the returned name)
 4. ... (iteration loop via plet_schedule, plet_invoke, etc.) ...
-5. `plet_session.py end-session plet/ --output json` → close session
+5. `session.py end-session plet/ --output json` → close session
 
 ### SES_AFL_2: Crash recovery — orchestrator restarts
 
 1. Orchestrator crashes mid-loop
 2. New orchestrator invocation starts
-3. `plet_session.py start-session plet/ --type loop` → detects active session, returns `resumed: true` with existing session info
+3. `session.py start-session plet/ --type loop` → detects active session, returns `resumed: true` with existing session info
 4. Orchestrator continues from where it left off (reads state files for iteration status)
 
 ## 8. Examples (EXM)
@@ -249,14 +249,14 @@ No `--type` required — end-session finds the active session automatically.
 
 ```bash
 # Start a loop session
-plet_session.py start-session plet/ --type loop
+session.py start-session plet/ --type loop
 # Session: loop 1
 # Branch: plet/TEST/loop1/workstream
 
 # ... do work ...
 
 # End the session
-plet_session.py end-session plet/
+session.py end-session plet/
 # Ended: loop 1 (2h 30m)
 # Branch: plet/TEST/loop1/workstream
 ```
@@ -265,7 +265,7 @@ plet_session.py end-session plet/
 
 ```bash
 # Preview what start-session would do
-plet_session.py start-session plet/ --type refine --dry-run --output json --pretty
+session.py start-session plet/ --type refine --dry-run --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "start-session",
@@ -282,7 +282,7 @@ plet_session.py start-session plet/ --type refine --dry-run --output json --pret
 
 ```bash
 # Session already started, orchestrator crashed, restart:
-plet_session.py start-session plet/ --type loop
+session.py start-session plet/ --type loop
 # Resumed: loop 2 (already active)
 # Branch: plet/TEST/loop2/workstream
 ```
@@ -295,7 +295,7 @@ plet_session.py start-session plet/ --type loop
 | SES_DEP_2 | imports | `util_io` | `load_json`, `atomic_write_json`, `state_json_path` |
 | SES_DEP_5 | imports | `util_git` | `derive_branch_name` — extracted from `plet_git_iteration.py` into new `util_git.py`. Both scripts import the same function — single source of truth for branch naming. |
 | SES_DEP_3 | called by | `plet_orchestrator.py` | `start-session` at loop/refine entry, `end-session` at exit |
-| SES_DEP_4 | paired with | `plet_gate_session.py` | GSS handles read-only detection/preflight, SES handles mutating lifecycle |
+| SES_DEP_4 | paired with | `gate_session.py` | GSS handles read-only detection/preflight, SES handles mutating lifecycle |
 
 ## 10. Non-Functional Requirements (NFR)
 
@@ -344,7 +344,7 @@ See `specs/conventions.md` for requirements common to all scripts.
 | 1 | Should start-session create the git branch? | No — start-session only manages state.json. The orchestrator creates the branch via `plet_git_iteration.py`. Separation of concerns: state management vs git operations. (SES_STA_BHV_5) |
 | 2 | Should end-session error if no active session? | Error if sessionHistory is empty/missing (no session ever started). But if all sessions are already ended, return idempotently with `alreadyEnded: true`. (SES_END_BHV_2) |
 | 3 | Should start-session accept `--session-number` override? | No — the counter is the source of truth. Manual override risks counter/history mismatch. If manual recovery is needed, edit state.json directly. |
-| 4 | Where does this script live vs plet_gate_session.py? | SES = mutating lifecycle (start/end). GSS = read-only gates (detect, status, preflight). See specs/NOTES.md § Command distribution. |
+| 4 | Where does this script live vs gate_session.py? | SES = mutating lifecycle (start/end). GSS = read-only gates (detect, status, preflight). See specs/NOTES.md § Command distribution. |
 
 ### Open Questions
 

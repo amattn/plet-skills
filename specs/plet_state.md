@@ -1,6 +1,6 @@
 # plet_state.py (STA)
 
-> **DEPRECATED** — superseded by `plet_global_state.py` (GST) and `plet_iter_state.py` (IST) as of seq 39d. This spec is kept as historical reference. Will be removed in seq 41c. Do not add new requirements here.
+> **DEPRECATED** — superseded by `global_state.py` (GST) and `iter_state.py` (IST) as of seq 39d. This spec is kept as historical reference. Will be removed in seq 41c. Do not add new requirements here.
 
 > Status: deprecated
 
@@ -673,7 +673,7 @@ plet_state.py update-criterion --iter-id ITR_001 --output json \
 |----|-----------|--------|-------------|
 | STA_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
 | STA_DEP_2 | imports | `util_io` | `load_json`, `atomic_write_json`, `iter_state_path`, `DEFAULT_PLET_DIR` |
-| STA_DEP_3 | called by | `plet_gate_phase.py` | `validate` as pre/post gate for both phases |
+| STA_DEP_3 | called by | `gate_phase.py` | `validate` as pre/post gate for both phases |
 | STA_DEP_5 | called by | `plet_orchestrator.py` | `update-field` for lifecycle transitions |
 
 No outgoing calls to other `plet_*.py` scripts — `plet_state.py` is a leaf CLI tool.
@@ -764,7 +764,7 @@ See `specs/conventions.md` for universal requirements.
 | STA_FUT_4 | Watch mode | Monitor a state file for changes and re-validate (for GUI/monitoring tools) |
 | STA_FUT_5 | ~~Stdin support~~ | Withdrawn — `--data-file` added as current requirement (STA_UPF_INP_3). Consistency with ENT's `--content-file` pattern preferred over stdin. |
 | STA_FUT_6 | Schema version check | `validate` outputs machine-readable schema version comparison (file version vs script version) to detect files written by a newer plet version |
-| STA_FUT_7 | Global state.json ownership | Currently `plet_state.py` handles per-iteration files only, and `util_state.py` reads common global fields. As the system matures, global state.json may need its own CRUD commands (update dependency map, update milestones, update session history). Options: (1) absorb into `plet_state.py` (rename to handle both), (2) new `plet_global_state.py`, (3) rename current to `plet_state_iter.py` and add `plet_state_global.py`. Evaluate after orchestrator spec — the orchestrator is the primary writer of global state. |
+| STA_FUT_7 | Global state.json ownership | Currently `plet_state.py` handles per-iteration files only, and `util_state.py` reads common global fields. As the system matures, global state.json may need its own CRUD commands (update dependency map, update milestones, update session history). Options: (1) absorb into `plet_state.py` (rename to handle both), (2) new `global_state.py`, (3) rename current to `plet_state_iter.py` and add `plet_state_global.py`. Evaluate after orchestrator spec — the orchestrator is the primary writer of global state. |
 
 ## 16. FOO Items Addressed
 

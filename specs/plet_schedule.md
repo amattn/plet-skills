@@ -1,4 +1,4 @@
-# plet_schedule.py (SCH)
+# schedule.py (SCH)
 
 > Status: complete
 
@@ -55,7 +55,7 @@ JSON errors: structured JSON to stdout with `status: "error"` + text to stderr (
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_ELG_CMD_1 | Usage: `plet_schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SCH_ELG_CMD_1 | Usage: `schedule.py eligible <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (reads multiple files)
 
@@ -138,7 +138,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_BKP_CMD_1 | Usage: `plet_schedule.py check-breakpoints <plet_dir> --iter-id ITR_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SCH_BKP_CMD_1 | Usage: `schedule.py check-breakpoints <plet_dir> --iter-id ITR_xxx --position before|after [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, atomic (single file read)
 
@@ -208,7 +208,7 @@ An iteration is **eligible** when: its lifecycle is `queued` AND every iteration
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_RTY_CMD_1 | Usage: `plet_schedule.py check-retry <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| SCH_RTY_CMD_1 | Usage: `schedule.py check-retry <plet_dir> --iter-id ITR_xxx [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, atomic (single file read)
 
@@ -308,7 +308,7 @@ Retry policy implements IMP_14. The decision tree:
 | SCH_ERR_5 | Missing required arg `--position` (for `check-breakpoints`): print full HELP text → exit 1. | P0 |
 | SCH_ERR_6 | Invalid `--position` value: `Error: invalid position '{value}', valid: before, after` → exit 1. | P0 |
 | SCH_ERR_7 | Missing per-iteration state file (for `check-retry`): `Error: state file not found for {iter_id} at {path}` → exit 1. | P0 |
-| SCH_ERR_8 | Unknown flags: per UNV_CMD_29, each command validates that only known flags were passed. Unknown flag → `Error: unknown flag --{flag}. Run: plet_schedule.py {command} --help` → exit 1. | P0 |
+| SCH_ERR_8 | Unknown flags: per UNV_CMD_29, each command validates that only known flags were passed. Unknown flag → `Error: unknown flag --{flag}. Run: schedule.py {command} --help` → exit 1. | P0 |
 
 ## 6. Formats (FMT)
 
@@ -322,36 +322,36 @@ Retry policy implements IMP_14. The decision tree:
 
 ### SCH_AFL_1: Orchestrator loop iteration
 
-1. Orchestrator calls `plet_schedule.py eligible plet/` → gets list of eligible IDs
+1. Orchestrator calls `schedule.py eligible plet/` → gets list of eligible IDs
 2. If empty and all iterations `complete` → end session
 3. If empty and some `blocked` → report to SKILL.md, end session
 4. For each eligible ID:
-   a. `plet_schedule.py check-breakpoints plet/ --iter-id ITR_xxx --position before` → if `hit`, pause and return to SKILL.md
+   a. `schedule.py check-breakpoints plet/ --iter-id ITR_xxx --position before` → if `hit`, pause and return to SKILL.md
    b. Spawn implement + verify subagents (via invoke.py)
    c. Read `implementVerdict`/`verifyVerdict` from worktree per-iteration state
-   d. If `verifyVerdict == "rejected"`: `plet_schedule.py check-retry plet/ --iter-id ITR_xxx` → if `abort`, mark blocked; if `continue`, set lifecycle to `queued` via GST
+   d. If `verifyVerdict == "rejected"`: `schedule.py check-retry plet/ --iter-id ITR_xxx` → if `abort`, mark blocked; if `continue`, set lifecycle to `queued` via GST
    e. If `verifyVerdict == "passed"`: merge-squash, set lifecycle to `complete` via GST
-   f. `plet_schedule.py check-breakpoints plet/ --iter-id ITR_xxx --position after` → if `hit`, pause
+   f. `schedule.py check-breakpoints plet/ --iter-id ITR_xxx --position after` → if `hit`, pause
 5. Loop back to step 1 (re-evaluate eligible)
 
 ### SCH_AFL_2: Human debugging — check what's eligible
 
 ```bash
-plet_schedule.py eligible plet/
+schedule.py eligible plet/
 # ITR_003
 # ITR_005
 
-plet_schedule.py eligible plet/ --output json --pretty
+schedule.py eligible plet/ --output json --pretty
 # { "eligible": ["ITR_003", "ITR_005"], "counts": { ... } }
 ```
 
 ### SCH_AFL_3: Human debugging — check retry status
 
 ```bash
-plet_schedule.py check-retry plet/ --iter-id ITR_002
+schedule.py check-retry plet/ --iter-id ITR_002
 # continue
 
-plet_schedule.py check-retry plet/ --iter-id ITR_002 --output json --pretty
+schedule.py check-retry plet/ --iter-id ITR_002 --output json --pretty
 # { "decision": "continue", "reason": "Failure count: 5 → 3. Strictly decreasing...", ... }
 ```
 
@@ -361,26 +361,26 @@ plet_schedule.py check-retry plet/ --iter-id ITR_002 --output json --pretty
 
 ```bash
 # Check what's ready
-plet_schedule.py eligible plet/
+schedule.py eligible plet/
 # ITR_002
 # ITR_003
 
 # Check breakpoints before ITR_002
-plet_schedule.py check-breakpoints plet/ --iter-id ITR_002 --position before
+schedule.py check-breakpoints plet/ --iter-id ITR_002 --position before
 # miss
 
 # ... (spawn implement + verify for ITR_002) ...
 
 # After verify rejects ITR_002 — should we retry?
-plet_schedule.py check-retry plet/ --iter-id ITR_002
+schedule.py check-retry plet/ --iter-id ITR_002
 # continue
 
 # After second verify rejects with more failures — retry?
-plet_schedule.py check-retry plet/ --iter-id ITR_002
+schedule.py check-retry plet/ --iter-id ITR_002
 # abort
 
 # Check breakpoints after ITR_003
-plet_schedule.py check-breakpoints plet/ --iter-id ITR_003 --position after
+schedule.py check-breakpoints plet/ --iter-id ITR_003 --position after
 # hit
 # (orchestrator pauses, returns control to SKILL.md)
 ```
@@ -388,10 +388,10 @@ plet_schedule.py check-breakpoints plet/ --iter-id ITR_003 --position after
 ### SCH_EXM_2: JSON output for orchestrator consumption
 
 ```bash
-plet_schedule.py eligible plet/ --output json
+schedule.py eligible plet/ --output json
 # {"status":"ok","command":"eligible","eligible":["ITR_002","ITR_003"],"counts":{"eligible":2,"queued":0,"implementing":0,"verifying":0,"complete":3,"blocked":0,"withdrawn":0,"ineligible":1},"scriptVersion":"0.1.0","timestamp":"2026-03-29T12:00:00Z"}
 
-plet_schedule.py check-retry plet/ --iter-id ITR_002 --output json --pretty
+schedule.py check-retry plet/ --iter-id ITR_002 --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "check-retry",
@@ -430,7 +430,7 @@ See `specs/conventions.md` for requirements common to all scripts.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SCH_DXP_1 | `eligible` text output is one ID per line — suitable for shell piping: `for id in $(plet_schedule.py eligible); do ...; done` | P0 |
+| SCH_DXP_1 | `eligible` text output is one ID per line — suitable for shell piping: `for id in $(schedule.py eligible); do ...; done` | P0 |
 | SCH_DXP_2 | `check-breakpoints` text output is a single word (`hit` or `miss`) — suitable for shell conditionals. | P0 |
 | SCH_DXP_3 | `check-retry` text output is a single word (`continue`, `abort`, or `first`) — suitable for shell conditionals. | P0 |
 | SCH_DXP_4 | Help text for each command includes the scheduling logic summary so agents and humans can understand the decision without reading the spec. | P1 |
@@ -464,7 +464,7 @@ See `specs/conventions.md` for requirements common to all scripts.
 | 2 | Should `eligible` return iterations in `implementing`/`verifying` for resume? | No — only `queued` iterations with satisfied deps. Resume logic is the orchestrator's job — it reads lifecycles directly. |
 | 3 | Should `check-retry` count `error` and `skipped` criteria as failures? | No — only `fail` status counts. `error` indicates an unexpected problem (different from a quality issue). `skipped` is a deliberate decision. (SCH_RTY_BHV_3) |
 | 4 | Should `eligible` detect stuck iterations (unsatisfiable deps, cycles)? | Yes — `eligible` already reads the full graph. If it returns empty but queued iterations remain, something is stuck. Report stuck iterations with their unsatisfiable deps in `stuckIterations` array. Full graph validation (structural correctness) still belongs in the plan session, but runtime dead-end detection belongs here. (SCH_EDG_3, SCH_ELG_BHV_5) |
-| 5 | Where do these commands live — in existing scripts or a new one? | New `plet_schedule.py` script. plet_state.py already 1032 lines / 4 commands. These are scheduling concerns, not state CRUD. See specs/NOTES.md § Command distribution. |
+| 5 | Where do these commands live — in existing scripts or a new one? | New `schedule.py` script. plet_state.py already 1032 lines / 4 commands. These are scheduling concerns, not state CRUD. See specs/NOTES.md § Command distribution. |
 | 6 | Should `eligible` include `parallelGroups` in JSON output? | No — keep eligible focused on dependency evaluation. The orchestrator already reads state.json for session history and breakpoints, so it has `parallelGroups` in hand. Duplicating it in eligible output mixes "who's ready" with "how to schedule", and couples eligible to scheduling strategy changes. |
 
 ### Open Questions

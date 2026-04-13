@@ -173,7 +173,7 @@ Source: CASE_LOGA_R01_REC_7
 
 `[resolved, verified]` → execute.md checkpoint rule added (`e25e952`). LIBT showed dramatic improvement (11 learnings, 6 emergent vs LOGA's 3/1) — possibly due to this fix, but project size may also be a factor (see FOO_21). Run 6 had 2.0 learnings/iter.
 
-`[resolved, verified]` — plet_gate_phase.py post enforces mandatory progress entry (GPH_PST_BHV_3, FAIL if missing). Learnings/emergent are WARN.
+`[resolved, verified]` — gate_phase.py post enforces mandatory progress entry (GPH_PST_BHV_3, FAIL if missing). Learnings/emergent are WARN.
 
 ### FOO_11: Trace file generation incomplete and schema inconsistent [artifacts] [state]
 
@@ -273,7 +273,7 @@ LIBT: 11 learnings, 6 emergent items with cross-iteration knowledge transfer. LO
 
 Source: CASE_LIBT_R01_REC_8
 
-`[withdrawn]` — Script-as-orchestrator makes root cause moot: `plet_prompt.py` ensures learnings are always injected, `plet_gate_phase.py` enforces mandatory entries. The fix is deterministic regardless of why prose rules failed.
+`[withdrawn]` — Script-as-orchestrator makes root cause moot: `prompt.py` ensures learnings are always injected, `gate_phase.py` enforces mandatory entries. The fix is deterministic regardless of why prose rules failed.
 
 ### FOO_23: plet should bootstrap CLAUDE.md if it doesn't exist [onboarding] [artifacts]
 
@@ -285,7 +285,7 @@ Same gap for NOTES.md and FEEDBACK_FOO.md — plet bootstraps the runtime artifa
 
 More broadly, plet may need a **bootstrap phase** before plan — a pre-flight that ensures the project environment is ready for plet: CLAUDE.md exists with Required Reading and Notes Discipline, NOTES.md exists, FEEDBACK_FOO.md exists, bypassPermissions is configured (FOO_22), etc. Currently the plan session jumps straight into requirements gathering without verifying the foundation is in place.
 
-`[resolved]` — plet_bootstrap.py creates CLAUDE.md, plet_gate_session.py preflight checks for CLAUDE.md existence.
+`[resolved]` — bootstrap.py creates CLAUDE.md, gate_session.py preflight checks for CLAUDE.md existence.
 
 ### FOO_24: Requirements not written to disk incrementally despite PL_12 [artifacts] [prompting]
 
@@ -367,7 +367,7 @@ Only 6 explicit work entries in progress.md from 23 iterations. Most iterations 
 
 Source: CASE_SPARK_R01_REC_5
 
-`[resolved]` — plet_gate_phase.py post enforces entries for both phases.
+`[resolved]` — gate_phase.py post enforces entries for both phases.
 
 ### FOO_34: Recommend user stays for first 1-2 iterations [onboarding] [ux]
 
@@ -407,7 +407,7 @@ SPARK's 2 learnings entries existed but weren't referenced by later iterations �
 
 Source: SPARK case study, comparison table
 
-`[resolved]` — plet_prompt.py always injects learnings.md into subagent prompts.
+`[resolved]` — prompt.py always injects learnings.md into subagent prompts.
 
 ### FOO_39: SP_6 root cause investigation needs its own entry [research] [scale]
 
@@ -415,7 +415,7 @@ SP_6 (investigate learnings regression root cause) references FOO_21 but FOO_21 
 
 Source: CASE_SPARK_R01_REC_6
 
-`[withdrawn]` — Root cause is academic. The new tooling (`plet_prompt.py` for guaranteed learnings injection, `plet_gate_phase.py` for mandatory entry enforcement) should improve this regardless of why prose rules failed. PLAN_RW comparison runs will validate.
+`[withdrawn]` — Root cause is academic. The new tooling (`prompt.py` for guaranteed learnings injection, `gate_phase.py` for mandatory entry enforcement) should improve this regardless of why prose rules failed. PLAN_RW comparison runs will validate.
 
 ### FOO_40: State file lifecycle not transitioned to complete after iteration finishes [state] [orchestrator]
 
@@ -626,13 +626,13 @@ The fix (already applied to CLAUDE.md § Red/Green Development Discipline): stub
 
 `[resolved]` — IMP_4 updated with meaningful-red requirement. implement.md Red Step updated with stub-first rule.
 
-### FOO_55: plet_gate_phase.py post should verify audit tag exists [artifacts] [git]
+### FOO_55: gate_phase.py post should verify audit tag exists [artifacts] [git]
 
 Source: GPH spec review
 
-The post gate checks entries, state, trace — but not whether the subagent created the audit tag via `plet_git_ops.py audit-tag`. If the subagent skips it, the tag is silently missing. The orchestrator relies on the tag for pre-squash history preservation.
+The post gate checks entries, state, trace — but not whether the subagent created the audit tag via `git_ops.py audit-tag`. If the subagent skips it, the tag is silently missing. The orchestrator relies on the tag for pre-squash history preservation.
 
-Fix: add a git tag existence check to `plet_gate_phase.py post`. Verify the expected tag (`plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`) exists. If missing, the subagent self-corrects by creating it before exiting.
+Fix: add a git tag existence check to `gate_phase.py post`. Verify the expected tag (`plet/{projectId}/loop{N}/audit/{iter_id}/{phase}-{attempt}`) exists. If missing, the subagent self-corrects by creating it before exiting.
 
 Discovered during ORC spec review — audit-tag was initially duplicated between subagent and orchestrator. Resolution: subagent owns it, post gate verifies it.
 
@@ -640,13 +640,13 @@ Expanded during lifecycle ownership analysis: post gate now also enforces lifecy
 
 `[resolved]` — GPH_PST_BHV_13 implemented. Post-gate checks audit tag existence for both phases.
 
-### FOO_56: plet_gate_session.py needs postflight command [artifacts] [symmetry]
+### FOO_56: gate_session.py needs postflight command [artifacts] [symmetry]
 
 Source: GSS spec review
 
-Add `postflight` to `plet_gate_session.py` — symmetric with `preflight`. Internally calls preflight for shared checks, adds end-of-session checks (transient lifecycle detection: iterations stuck in `implementing`/`verifying`). Warnings only — never blocks end-session. Called by orchestrator before `end-session`. Separate command for discoverability; may diverge from preflight over time. Added to GSS command summary in spec.
+Add `postflight` to `gate_session.py` — symmetric with `preflight`. Internally calls preflight for shared checks, adds end-of-session checks (transient lifecycle detection: iterations stuck in `implementing`/`verifying`). Warnings only — never blocks end-session. Called by orchestrator before `end-session`. Separate command for discoverability; may diverge from preflight over time. Added to GSS command summary in spec.
 
-`[resolved]` — postflight command implemented in plet_gate_session.py. Reuses preflight checks + transient lifecycle detection.
+`[resolved]` — postflight command implemented in gate_session.py. Reuses preflight checks + transient lifecycle detection.
 
 ### FOO_57: Replace optional positional plet_dir with required --plet-dir flag [dx] [subplets]
 
@@ -720,7 +720,7 @@ Source: CASE_LOGA_R02_F_4
 
 LOGA Run 2: `attempts.implement` stayed 0 despite implementation clearly happening. The agent updated criteria, wrote artifacts, and set lifecycle → verifying, but never incremented the attempt counter. implement.md should make this a critical early step.
 
-`[resolved]` → Orchestrator now calls `plet_iter_state.py start-phase` before spawning subagents for both implement and verify phases. Attempt counters, phase timestamps, and verdict clearing are deterministic — no longer dependent on subagent prose compliance.
+`[resolved]` → Orchestrator now calls `iter_state.py start-phase` before spawning subagents for both implement and verify phases. Attempt counters, phase timestamps, and verdict clearing are deterministic — no longer dependent on subagent prose compliance.
 
 ### FOO_62: lastVerdict not set despite completion [state] [prompting]
 
@@ -770,17 +770,17 @@ After plan completed, the agent immediately tried to launch the orchestrator wit
 
 Source: CASE_LOGA_R04_OBS_8
 
-Preflight detects CLAUDE.md and .gitignore are missing but only warns. Plan phase or bootstrap should offer to create them: a CLAUDE.md stub with plet project instructions, and .gitignore with `.plet/` exclusion. The agent shouldn't wait until ID_001 to create project infrastructure. Specced in plet_bootstrap.py (seq 42).
+Preflight detects CLAUDE.md and .gitignore are missing but only warns. Plan phase or bootstrap should offer to create them: a CLAUDE.md stub with plet project instructions, and .gitignore with `.plet/` exclusion. The agent shouldn't wait until ID_001 to create project infrastructure. Specced in bootstrap.py (seq 42).
 
-`[resolved, verified]` → `plet_bootstrap.py setup` creates CLAUDE.md stub and .gitignore with `.plet/` entry. SKILL.md plan phase step 0 calls bootstrap. LOGA Run 6 validated.
+`[resolved, verified]` → `bootstrap.py setup` creates CLAUDE.md stub and .gitignore with `.plet/` entry. SKILL.md plan phase step 0 calls bootstrap. LOGA Run 6 validated.
 
 ### FOO_68: .gitignore preflight check is wrong — should ignore .plet/ not plet/ [preflight] [git]
 
 Source: CASE_LOGA_R04_OBS_18
 
-Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be committed (state files, progress.md, requirements.md, etc. are project state tracked in git). What should be gitignored is `.plet/` (worktrees, copied scripts — infrastructure, not artifacts). The preflight check needs to be fixed to check for `.plet/` instead. Specced in plet_bootstrap.py (seq 42).
+Preflight warns about `.gitignore doesn't include plet/` — but `plet/` MUST be committed (state files, progress.md, requirements.md, etc. are project state tracked in git). What should be gitignored is `.plet/` (worktrees, copied scripts — infrastructure, not artifacts). The preflight check needs to be fixed to check for `.plet/` instead. Specced in bootstrap.py (seq 42).
 
-`[resolved, verified]` → `plet_gate_session.py` preflight checks for `.plet/` in .gitignore. `plet_bootstrap.py` writes `.plet/` entry. LOGA Run 6 validated.
+`[resolved, verified]` → `gate_session.py` preflight checks for `.plet/` in .gitignore. `bootstrap.py` writes `.plet/` entry. LOGA Run 6 validated.
 
 ---
 

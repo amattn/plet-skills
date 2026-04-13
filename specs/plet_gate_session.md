@@ -1,8 +1,8 @@
-# plet_gate_session.py (GSS)
+# gate_session.py (GSS)
 
 > Status: complete
 
-> Renamed from `plet_gate_session.py` (SES) → `plet_gate_session.py` (GSS). Read-only session-level gate checks — parallel to `plet_gate_phase.py` for phase-level gates. Originally renamed from `plet_router.py` (RTR).
+> Renamed from `gate_session.py` (SES) → `gate_session.py` (GSS). Read-only session-level gate checks — parallel to `gate_phase.py` for phase-level gates. Originally renamed from `plet_router.py` (RTR).
 
 ## 1. Purpose (GSS_PUR)
 
@@ -71,7 +71,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_DET_CMD_1 | Usage: `plet_gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_DET_CMD_1 | Usage: `gate_session.py detect <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -87,7 +87,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_DET_OUT_1 | Text mode: bare session type to stdout: `plan`, `loop`, `refine`, or `status`. Suitable for shell capture: `SESSION=$(plet_gate_session.py detect)`. Exit 0. | P0 |
+| GSS_DET_OUT_1 | Text mode: bare session type to stdout: `plan`, `loop`, `refine`, or `status`. Suitable for shell capture: `SESSION=$(gate_session.py detect)`. Exit 0. | P0 |
 | GSS_DET_OUT_2 | JSON mode: structured detection result (see schema below). Exit 0. | P0 |
 | GSS_DET_OUT_3 | Error: specific message to stderr, exit 1 | P0 |
 
@@ -149,7 +149,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_STS_CMD_1 | Usage: `plet_gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_STS_CMD_1 | Usage: `gate_session.py status <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -249,7 +249,7 @@ All commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PRF_CMD_1 | Usage: `plet_gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_PRF_CMD_1 | Usage: `gate_session.py preflight <plet_dir> --session-type detect|plan|loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -315,8 +315,8 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 | GSS_PRF_BHV_4 | **spec-artifacts**: If `plet_dir` exists, checks `requirements.md` and `iterations.md` exist. FAIL if plet_dir exists but spec artifacts are missing (FOO_16 — lost artifacts make the project unresumable). PASS if plet_dir doesn't exist (fresh project, plan will create them). | P0 |
 | GSS_PRF_BHV_5 | **state-valid**: If `plet/state.json` exists, validates it via `util_state.load_and_validate_global_state()`. FAIL if invalid. PASS if doesn't exist (fresh project). | P0 |
 | GSS_PRF_BHV_6 | **fingerprints-consistent**: Severity depends on session type (from `--session-type`): **plan** → SKIPPED (plan creates/overwrites spec artifacts, fingerprint check is irrelevant). **loop** → calls `fingerprint.py check` via subprocess; PASS if consistent, FAIL if stale (agents would implement against stale requirements — wasted work). **refine** → calls `fingerprint.py check`; PASS if consistent, WARN if stale (refine is where you fix staleness). Fingerprint script's own errors bubble up as-is. If `fingerprint.py` itself is missing, caught by scripts-installed check. | P0 |
-| GSS_PRF_BHV_7 | **git-check**: Calls `plet_git_check.py check-session` via subprocess. Preflight IS a session boundary — CKS was designed for this. FAIL/WARN results from CKS are included in preflight output (each CKS check becomes a preflight check with its original name prefixed: `git:in-progress-operation`, `git:orphaned-worktrees`, etc). Replaces the standalone git-repo check — CKS already checks for git repo internally. If `plet_git_check.py` is missing, caught by scripts-installed. | P0 |
-| GSS_PRF_BHV_9 | **scripts-installed**: Verifies key plet scripts exist in `${CLAUDE_SKILL_DIR}/scripts/` (plet_state.py, entries.py, fingerprint.py, traces.py, plet_git_iteration.py, plet_git_ops.py, plet_git_check.py, invoke.py). FAIL if any missing — corrupted installation. | P0 |
+| GSS_PRF_BHV_7 | **git-check**: Calls `git_check.py check-session` via subprocess. Preflight IS a session boundary — CKS was designed for this. FAIL/WARN results from CKS are included in preflight output (each CKS check becomes a preflight check with its original name prefixed: `git:in-progress-operation`, `git:orphaned-worktrees`, etc). Replaces the standalone git-repo check — CKS already checks for git repo internally. If `git_check.py` is missing, caught by scripts-installed. | P0 |
+| GSS_PRF_BHV_9 | **scripts-installed**: Verifies key plet scripts exist in `${CLAUDE_SKILL_DIR}/scripts/` (plet_state.py, entries.py, fingerprint.py, traces.py, plet_git_iteration.py, git_ops.py, git_check.py, invoke.py). FAIL if any missing — corrupted installation. | P0 |
 | GSS_PRF_BHV_8 | Check order: scripts-installed → git-check (CKS) → claude-md-exists → gitignore-plet → spec-artifacts → state-valid → fingerprints-consistent. Scripts first (can't run anything without them), then git health (CKS), then project-level checks. | P0 |
 
 ---
@@ -334,7 +334,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GSS_PSF_CMD_1 | Usage: `plet_gate_session.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GSS_PSF_CMD_1 | Usage: `gate_session.py postflight <plet_dir> --session-type loop|refine [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -394,7 +394,7 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 | GSS_FMT_1 | Reads `plet/state.json` via `util_state` for project context. | P0 |
 | GSS_FMT_2 | Reads lifecycles from `state.json.lifecycles` (SF_28). Reads per-iteration `state/*.json` for non-lifecycle data (titles, agentId, phaseActivity, reports). | P0 |
 | GSS_FMT_3 | Reads `plet/requirements.md`, `plet/iterations.md` for existence checks. | P0 |
-| GSS_FMT_4 | Reads `CLAUDE.md`, `.gitignore` for preflight. Calls `plet_git_check.py` and `fingerprint.py` via subprocess. | P0 |
+| GSS_FMT_4 | Reads `CLAUDE.md`, `.gitignore` for preflight. Calls `git_check.py` and `fingerprint.py` via subprocess. | P0 |
 | GSS_FMT_5 | Writes nothing — all commands are read-only. | P0 |
 
 ## 7. Agent Flows (GSS_AFL)
@@ -402,29 +402,29 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 ### GSS_AFL_1: SKILL.md entry point routing
 
 1. User invokes `/plet`
-2. SKILL.md calls: `plet_gate_session.py detect`
+2. SKILL.md calls: `gate_session.py detect`
 3. Result is `plan`, `loop`, or `refine`
 4. SKILL.md routes to the appropriate session
 
 ### GSS_AFL_2: Orchestrator session start
 
 1. Orchestrator starts
-2. `plet_gate_session.py preflight plet/ --session-type loop --output json` — verify environment ready for loop
+2. `gate_session.py preflight plet/ --session-type loop --output json` — verify environment ready for loop
 3. If exit 1 (fail): abort, report issues
 4. If exit 2 (warn): log warnings to progress.md, continue
-5. `plet_gate_session.py detect plet/` — confirm loop is the right session
+5. `gate_session.py detect plet/` — confirm loop is the right session
 6. Proceed with loop
 
 ### GSS_AFL_3: GUI dashboard polling
 
 1. GUI polls periodically
-2. `plet_gate_session.py status plet/ --output json`
+2. `gate_session.py status plet/ --output json`
 3. GUI updates dashboard with iteration counts, active agents, blockers
 
 ### GSS_AFL_4: Human inspection
 
 1. User wants to know project state
-2. `plet_gate_session.py status plet/`
+2. `gate_session.py status plet/`
 3. Formatted summary printed to terminal
 
 ## 8. Examples (GSS_EXM)
@@ -433,19 +433,19 @@ Same output model as GTC: a list of checks with pass/fail/warn statuses.
 
 ```bash
 # Fresh project
-plet_gate_session.py detect
+gate_session.py detect
 # plan
 
 # Active iterations
-plet_gate_session.py detect plet/
+gate_session.py detect plet/
 # loop
 
 # All complete
-plet_gate_session.py detect plet/
+gate_session.py detect plet/
 # refine
 
 # JSON output
-plet_gate_session.py detect plet/ --output json --pretty
+gate_session.py detect plet/ --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "detect",
@@ -459,7 +459,7 @@ plet_gate_session.py detect plet/ --output json --pretty
 ### GSS_EXM_2: Project status
 
 ```bash
-plet_gate_session.py status plet/
+gate_session.py status plet/
 # Project: LOGA (Log Analyzer)
 # Session: loop (loop 1)
 # Progress: 5/13 (38%)
@@ -478,7 +478,7 @@ plet_gate_session.py status plet/
 ### GSS_EXM_3: Preflight checks
 
 ```bash
-plet_gate_session.py preflight plet/ --session-type detect
+gate_session.py preflight plet/ --session-type detect
 # PASS: preflight — 12 passed
 # PASS: scripts-installed — all plet scripts found
 # PASS: git:in-progress-operation — no interrupted git operations
@@ -498,7 +498,7 @@ plet_gate_session.py preflight plet/ --session-type detect
 ### GSS_EXM_4: Preflight on fresh project
 
 ```bash
-plet_gate_session.py preflight --session-type detect
+gate_session.py preflight --session-type detect
 # WARN: preflight — 1 warning
 # PASS: scripts-installed — all plet scripts found
 # PASS: git:in-progress-operation — no interrupted git operations
@@ -522,7 +522,7 @@ plet_gate_session.py preflight --session-type detect
 | GSS_DEP_1 | imports | `util_cli` | `parse_kwargs`, `now_iso`, `dispatch`, `filter_fields` |
 | GSS_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
 | GSS_DEP_3 | calls (subprocess) | `fingerprint.py` | `check` for fingerprint consistency |
-| GSS_DEP_6 | calls (subprocess) | `plet_git_check.py` | `check-session` for git health at preflight |
+| GSS_DEP_6 | calls (subprocess) | `git_check.py` | `check-session` for git health at preflight |
 | GSS_DEP_4 | called by | SKILL.md | routing at `/plet` entry |
 | GSS_DEP_5 | called by | `plet_orchestrator.py` | session start preflight + detect |
 
@@ -580,7 +580,7 @@ See `specs/conventions.md` for universal requirements.
 
 | # | Question | Decision |
 |---|----------|----------|
-| 1 | Name: router, session, or something else? | `plet_gate_session.py` — "session" captures all three commands naturally (what session, session status, session ready?). Renamed from `plet_router.py`. |
+| 1 | Name: router, session, or something else? | `gate_session.py` — "session" captures all three commands naturally (what session, session status, session ready?). Renamed from `plet_router.py`. |
 | 2 | Should detect output `status` as a session type? | No — `status` is a command, not a session type. detect returns `plan`, `loop`, or `refine`. The user can force `/plet status` via the SKILL.md command parsing, not via detect. |
 | 3 | Should preflight auto-fix issues (create CLAUDE.md, add .gitignore entry)? | No — preflight is read-only. It diagnoses, the caller fixes. Same principle as GTC (check but don't fix). |
 | 4 | Should status call fingerprint check? | Yes but as P1 — it's the most expensive operation. detect deliberately avoids it for speed. |

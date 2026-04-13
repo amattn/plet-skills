@@ -286,7 +286,7 @@ The orchestrator streams NDJSON events (session_start, iteration_start, heartbea
 
 The orchestrator manages the full loop lifecycle internally — session setup, dependency graph evaluation, subagent spawning, lifecycle transitions, verdict processing (retry vs block vs merge), breakpoint enforcement, git operations, and session teardown. Iterations execute sequentially on the workstream branch. You don't call any enforcement scripts during the loop — the orchestrator does.
 
-**Lifecycle ownership (SF_26, SF_28):** The orchestrator manages ALL lifecycle transitions in `state.json` via `plet_global_state.py update-lifecycle`. The implement subagent sets `implementVerdict` (handoff signal). The verify subagent sets `verifyVerdict`. Neither subagent touches lifecycle. The orchestrator writes ZERO per-iteration state during the iteration — it writes lifecycle to `state.json` only (separate file, no conflict). Gate scripts enforce verdict fields.
+**Lifecycle ownership (SF_26, SF_28):** The orchestrator manages ALL lifecycle transitions in `state.json` via `global_state.py update-lifecycle`. The implement subagent sets `implementVerdict` (handoff signal). The verify subagent sets `verifyVerdict`. Neither subagent touches lifecycle. The orchestrator writes ZERO per-iteration state during the iteration — it writes lifecycle to `state.json` only (separate file, no conflict). Gate scripts enforce verdict fields.
 
 **Handling the result:**
 

@@ -1,4 +1,4 @@
-# plet_gate_phase.py (GPH)
+# gate_phase.py (GPH)
 
 > Status: complete (updated for SF_28 lifecycle extraction)
 
@@ -88,7 +88,7 @@ Both commands are read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PRE_CMD_1 | Usage: `plet_gate_phase.py pre <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GPH_PRE_CMD_1 | Usage: `gate_phase.py pre <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 
@@ -173,7 +173,7 @@ All pre-gates run git-check and state-valid. Additional checks depend on `--phas
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GPH_PST_CMD_1 | Usage: `plet_gate_phase.py post <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GPH_PST_CMD_1 | Usage: `gate_phase.py post <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic
 
@@ -297,12 +297,12 @@ Post-gate re-verifies git and state, then checks artifacts. Verify adds verdict 
 ### GPH_AFL_1: Normal phase execution
 
 1. Orchestrator prepares iteration
-2. Orchestrator calls: `plet_gate_phase.py pre plet/ --iter-id ITR_001 --phase implement --output json`
+2. Orchestrator calls: `gate_phase.py pre plet/ --iter-id ITR_001 --phase implement --output json`
 3. If exit 1 (fail): abort, report issues
 4. If exit 2 (warn): log warnings, continue
 5. Orchestrator spawns subagent
 6. Subagent does its work
-7. **Subagent** calls: `plet_gate_phase.py post plet/ --iter-id ITR_001 --phase implement --output json`
+7. **Subagent** calls: `gate_phase.py post plet/ --iter-id ITR_001 --phase implement --output json`
 8. If exit 1 (fail): subagent self-corrects and re-runs post
 9. Subagent repeats 7-8 until passes
 10. Subagent exits — its exit signals "post-gate passed"
@@ -324,7 +324,7 @@ Post-gate re-verifies git and state, then checks artifacts. Verify adds verdict 
 ### GPH_EXM_1: Implement pre-gate — all passing
 
 ```bash
-plet_gate_phase.py pre plet/ --iter-id ITR_001 --phase implement
+gate_phase.py pre plet/ --iter-id ITR_001 --phase implement
 # OK: pre — 10 passed
 # PASS: git:in-progress-operation — no interrupted git operations
 # PASS: git:branch-exists — plet/LOGA/loop1/ITR_001 exists
@@ -342,7 +342,7 @@ plet_gate_phase.py pre plet/ --iter-id ITR_001 --phase implement
 ### GPH_EXM_2: Verify pre-gate — simpler
 
 ```bash
-plet_gate_phase.py pre plet/ --iter-id ITR_001 --phase verify
+gate_phase.py pre plet/ --iter-id ITR_001 --phase verify
 # OK: pre — 8 passed
 # PASS: git:in-progress-operation — no interrupted git operations
 # PASS: git:branch-exists — plet/LOGA/loop1/ITR_001 exists
@@ -358,7 +358,7 @@ plet_gate_phase.py pre plet/ --iter-id ITR_001 --phase verify
 ### GPH_EXM_3: Verify post-gate — missing entries + verdict
 
 ```bash
-plet_gate_phase.py post plet/ --iter-id ITR_001 --phase verify
+gate_phase.py post plet/ --iter-id ITR_001 --phase verify
 # FAIL: post — 3 failed, 3 warnings
 # PASS: git:in-progress-operation — no interrupted git operations
 # ...
@@ -376,7 +376,7 @@ plet_gate_phase.py post plet/ --iter-id ITR_001 --phase verify
 ### GPH_EXM_4: Implement post-gate — JSON output
 
 ```bash
-plet_gate_phase.py post plet/ --iter-id ITR_001 --phase implement --output json --pretty
+gate_phase.py post plet/ --iter-id ITR_001 --phase implement --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "post",
@@ -404,7 +404,7 @@ Note: implement post includes `implement-verdict` but not `verify-verdict`, `ver
 | GPH_DEP_1 | imports | `util_cli` | shared CLI helpers |
 | GPH_DEP_2 | imports | `util_state` | `validate_iter_state`, `load_and_validate_global_state`, `VALID_LIFECYCLES` |
 | GPH_DEP_3 | imports | `util_io` | `load_json`, `state_json_path`, `iter_state_path` |
-| GPH_DEP_4 | calls (subprocess) | `plet_git_check.py` | `check-iteration --phase {phase}` |
+| GPH_DEP_4 | calls (subprocess) | `git_check.py` | `check-iteration --phase {phase}` |
 | GPH_DEP_5 | reads | `state.json` | `lifecycles` field for lifecycle-check (pre only, SF_28) |
 | GPH_DEP_6 | calls (subprocess) | `entries.py` | `check` (post only) |
 | GPH_DEP_7 | calls (subprocess) | `traces.py` | `validate` (post only) |

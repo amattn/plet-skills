@@ -1,4 +1,4 @@
-# plet_phase.py
+# phase.py
 
 > Status: complete
 
@@ -8,21 +8,21 @@
 
 | Step | Script | Subcommand |
 |------|--------|-----------|
-| 1 | `plet_iter_state.py` | `set-verdict --phase implement --verdict {completed\|blocked}` |
+| 1 | `iter_state.py` | `set-verdict --phase implement --verdict {completed\|blocked}` |
 | 2 | `entries.py` | `add-progress --status {COMPLETE\|BLOCKED}` |
 | 3 | `traces.py` | `append-event --event-type decision` |
-| 4 | `plet_git_ops.py` | `audit-tag --phase implement` |
+| 4 | `git_ops.py` | `audit-tag --phase implement` |
 | 5 | `git` | `add -A && commit` |
 
 **`end --phase verify`:**
 
 | Step | Script | Subcommand |
 |------|--------|-----------|
-| 1 | `plet_iter_state.py` | `set-verdict --phase verify --verdict {passed\|rejected\|blocked}` |
-| 1.5 | `plet_iter_state.py` | `add-report` (verify only — auto-built from criteria via --summary, or from --report-file) |
+| 1 | `iter_state.py` | `set-verdict --phase verify --verdict {passed\|rejected\|blocked}` |
+| 1.5 | `iter_state.py` | `add-report` (verify only — auto-built from criteria via --summary, or from --report-file) |
 | 2 | `entries.py` | `add-progress --status {COMPLETE\|FAILED\|BLOCKED}` |
 | 3 | `traces.py` | `append-event --event-type decision` |
-| 4 | `plet_git_ops.py` | `audit-tag --phase verify` |
+| 4 | `git_ops.py` | `audit-tag --phase verify` |
 | 5 | `git` | `add -A && commit` |
 
 ## 1. Purpose (PUR)
@@ -66,7 +66,7 @@
 #### Definition (CMD)
 
 ```
-plet_phase.py end <plet_dir> --iter-id ITR_xxx --phase implement|verify
+phase.py end <plet_dir> --iter-id ITR_xxx --phase implement|verify
     --verdict VALUE --progress-content "..." [--report-file PATH]
     [--output json [--pretty] [--fields f1,f2]]
 ```
@@ -82,7 +82,7 @@ plet_phase.py end <plet_dir> --iter-id ITR_xxx --phase implement|verify
 | PHS_END_INP_3 | `--phase` — required. `implement` or `verify`. | P0 |
 | PHS_END_INP_4 | `--verdict` — required. Implement: `completed` or `blocked`. Verify: `passed`, `rejected`, or `blocked`. | P0 |
 | PHS_END_INP_5 | `--progress-content` — required. Freeform content for the completion progress entry. | P0 |
-| PHS_END_INP_6 | `--report-file` — optional. Path to verification report JSON file (verify phase only). If provided and file exists, calls `plet_iter_state.py add-report` before the progress entry. | P1 |
+| PHS_END_INP_6 | `--report-file` — optional. Path to verification report JSON file (verify phase only). If provided and file exists, calls `iter_state.py add-report` before the progress entry. | P1 |
 | PHS_END_INP_7 | `--summary` — required for verify phase. Verification report headline (1-3 sentences). If provided without --report-file, auto-builds report from criteria in state file. | P0 |
 | PHS_END_INP_8 | `--findings` — optional. JSON array of finding strings for cross-cutting observations. Default '[]'. | P1 |
 
@@ -110,54 +110,54 @@ plet_phase.py end <plet_dir> --iter-id ITR_xxx --phase implement|verify
 #### Preconditions, Postconditions, Behaviors
 
 This is a composite command — preconditions, postconditions, and behaviors are inherited from the underlying scripts it calls. See specs for:
-- `plet_iter_state.py` (IST) — set-verdict, add-report
+- `iter_state.py` (IST) — set-verdict, add-report
 - `entries.py` (ENT) — add-progress
 - `traces.py` (TRC) — append-event
-- `plet_git_ops.py` (GTO) — audit-tag
+- `git_ops.py` (GTO) — audit-tag
 
 #### Execution sequence (PHS_END_BHV_1)
 
 | Step | Script called | What it does |
 |------|--------------|--------------|
-| 1 | `plet_iter_state.py set-verdict` | Set implement/verify verdict, clear phaseActivity |
-| 1.5 | `plet_iter_state.py add-report` | (verify only — auto-built from criteria via --summary, or from --report-file) Append verification report |
+| 1 | `iter_state.py set-verdict` | Set implement/verify verdict, clear phaseActivity |
+| 1.5 | `iter_state.py add-report` | (verify only — auto-built from criteria via --summary, or from --report-file) Append verification report |
 | 2 | `entries.py add-progress` | Write COMPLETE/BLOCKED/FAILED progress entry |
 | 3 | `traces.py append-event` | Emit decision event (phase ended with verdict) |
-| 4 | `plet_git_ops.py audit-tag` | Create audit tag preserving commit history |
+| 4 | `git_ops.py audit-tag` | Create audit tag preserving commit history |
 | 5 | `git add -A && git commit` | Commit all artifacts |
 
 Reads `attempts[phase]` and `title` from per-iteration state to fill in attempt number and iter-title automatically. Falls back to attempt=1 if attempts is 0 (phase must have started).
 
 ## 4–6. Edge Cases, Error Handling, Formats
 
-Inherited from the underlying scripts. See IST, ENT, TRC, GTO specs for edge cases, error handling, and format details. plet_phase.py adds no new edge cases — it is a sequencer, not a data handler.
+Inherited from the underlying scripts. See IST, ENT, TRC, GTO specs for edge cases, error handling, and format details. phase.py adds no new edge cases — it is a sequencer, not a data handler.
 
 ## 7. Agent Flows (AFL)
 
 | ID | Flow | Steps |
 |----|------|-------|
-| PHS_AFL_1 | Implement end | 1. Agent finishes coding + tests → 2. `plet_phase.py end --phase implement --verdict completed --progress-content "..."` → 3. `plet_gate_phase.py post --phase implement` (self-correct if fails) |
-| PHS_AFL_2 | Verify pass | 1. Agent confirms all AC pass → 2. `plet_phase.py end --phase verify --verdict passed --progress-content "..." --report-file report.json` → 3. `plet_gate_phase.py post --phase verify` |
-| PHS_AFL_3 | Verify reject | 1. Agent finds failures → 2. Writes failing tests (cycle-back) → 3. `plet_phase.py end --phase verify --verdict rejected --progress-content "..."` → 4. `plet_gate_phase.py post --phase verify` |
+| PHS_AFL_1 | Implement end | 1. Agent finishes coding + tests → 2. `phase.py end --phase implement --verdict completed --progress-content "..."` → 3. `gate_phase.py post --phase implement` (self-correct if fails) |
+| PHS_AFL_2 | Verify pass | 1. Agent confirms all AC pass → 2. `phase.py end --phase verify --verdict passed --progress-content "..." --report-file report.json` → 3. `gate_phase.py post --phase verify` |
+| PHS_AFL_3 | Verify reject | 1. Agent finds failures → 2. Writes failing tests (cycle-back) → 3. `phase.py end --phase verify --verdict rejected --progress-content "..."` → 4. `gate_phase.py post --phase verify` |
 
 ## 8. Examples (EXM)
 
 ```bash
 # Implement phase — completed
-plet_phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed \
+phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed \
     --progress-content "Implemented: project scaffolding. 5 AC, all green."
 
 # Verify phase — passed with report
-plet_phase.py end plet/ --iter-id ITR_001 --phase verify --verdict passed \
+phase.py end plet/ --iter-id ITR_001 --phase verify --verdict passed \
     --progress-content "Verified: all 5 AC independently confirmed." \
     --report-file /tmp/report.json
 
 # Implement phase — blocked
-plet_phase.py end plet/ --iter-id ITR_001 --phase implement --verdict blocked \
+phase.py end plet/ --iter-id ITR_001 --phase implement --verdict blocked \
     --progress-content "Blocked: spec ambiguous on AC_3 — need clarification."
 
 # JSON output
-plet_phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed \
+phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed \
     --progress-content "Done." --output json --pretty
 ```
 
@@ -165,10 +165,10 @@ plet_phase.py end plet/ --iter-id ITR_001 --phase implement --verdict completed 
 
 | ID | Direction | Script | Relationship |
 |----|-----------|--------|-------------|
-| PHS_DEP_1 | calls | `plet_iter_state.py` | set-verdict, add-report |
+| PHS_DEP_1 | calls | `iter_state.py` | set-verdict, add-report |
 | PHS_DEP_2 | calls | `entries.py` | add-progress |
 | PHS_DEP_3 | calls | `traces.py` | append-event |
-| PHS_DEP_4 | calls | `plet_git_ops.py` | audit-tag |
+| PHS_DEP_4 | calls | `git_ops.py` | audit-tag |
 | PHS_DEP_5 | called by | implement subagent | end of implement phase |
 | PHS_DEP_6 | called by | verify subagent | end of verify phase |
 
@@ -181,5 +181,5 @@ See `specs/conventions.md` for universal requirements. Script-specific:
 
 ## 16. FOO Items Addressed
 
-- FOO_69 timing analysis: 53% infrastructure overhead → plet_phase.py reduces 6 calls to 1
+- FOO_69 timing analysis: 53% infrastructure overhead → phase.py reduces 6 calls to 1
 - PLAN_HLP (HLP_2A): phase-complete composite command

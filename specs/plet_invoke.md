@@ -6,7 +6,7 @@
 
 ## 1. Purpose (INV_PUR)
 
-Launches Claude Code subprocesses for implement and verify phases. Assembles the prompt (via `plet_prompt.py`), spawns `claude -p`, captures streaming transcript, returns exit code. This is the execution bridge between plet's deterministic orchestration and Claude's non-deterministic work.
+Launches Claude Code subprocesses for implement and verify phases. Assembles the prompt (via `prompt.py`), spawns `claude -p`, captures streaming transcript, returns exit code. This is the execution bridge between plet's deterministic orchestration and Claude's non-deterministic work.
 
 **Why a script:** The orchestrator needs a reliable way to: (1) assemble the right prompt, (2) launch with correct flags, (3) capture the full transcript for debugging/replay, (4) return a clean exit signal. Without a dedicated script, each step is fragile and varies between invocations.
 
@@ -29,7 +29,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 
 **Command summary:**
 
-- **`run`** (RUN) — Launch a Claude Code subprocess with transcript capture. Assembles the prompt (via plet_prompt.py), launches `claude -p`, and captures streaming JSONL output to the trace transcript file. Called by the orchestrator for each implement/verify phase.
+- **`run`** (RUN) — Launch a Claude Code subprocess with transcript capture. Assembles the prompt (via prompt.py), launches `claude -p`, and captures streaming JSONL output to the trace transcript file. Called by the orchestrator for each implement/verify phase.
 
 ### Universal Flags
 
@@ -127,7 +127,7 @@ Launches Claude Code subprocesses for implement and verify phases. Assembles the
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| INV_RUN_BHV_1 | **Prompt assembly:** Calls `plet_prompt.py assemble <plet_dir> --iter-id <iter_id> --phase <phase>` via subprocess. Captures stdout as the prompt text. | P0 |
+| INV_RUN_BHV_1 | **Prompt assembly:** Calls `prompt.py assemble <plet_dir> --iter-id <iter_id> --phase <phase>` via subprocess. Captures stdout as the prompt text. | P0 |
 | INV_RUN_BHV_2 | **Subprocess construction:** Builds command: `claude -p <prompt> --output-format stream-json --permission-mode <mode> --no-session-persistence --bare --name "plet/{iter_id}/{phase}-{attempt}"` plus optional `--max-budget-usd`, `--model`, `--verbose`. The full prompt string is passed as a direct command-line argument to `-p` (not piped via stdin, not read from a file). | P0 |
 | INV_RUN_BHV_3 | **Working directory:** Subprocess is launched with `cwd=<worktree_path>` (from `--cwd`). The subagent sees the worktree as its working directory. | P0 |
 | INV_RUN_BHV_4 | **Transcript capture:** Opens transcript file before launch. Reads subprocess stdout line by line. Writes each line to transcript + flushes immediately. Closes file after subprocess exits. | P0 |
@@ -243,7 +243,7 @@ invoke.py run plet/ --iter-id ITR_001 --phase implement \
 | INV_DEP_1 | imports | `util_cli` | shared CLI helpers |
 | INV_DEP_2 | imports | `util_io` | path derivation, load functions |
 | INV_DEP_3 | imports | `util_subprocess` | `run` for PRM subprocess call |
-| INV_DEP_4 | calls (subprocess) | `plet_prompt.py` | `assemble` for prompt text |
+| INV_DEP_4 | calls (subprocess) | `prompt.py` | `assemble` for prompt text |
 | INV_DEP_5 | calls (subprocess) | `claude` | the actual subagent |
 | INV_DEP_7 | calls (subprocess) | `plet_trace.py` | `append-event --type invocation` — invocation details + full prompt |
 | INV_DEP_8 | calls (subprocess) | `plet_entries.py` | `add-progress` — invocation details + full prompt (human-readable) |

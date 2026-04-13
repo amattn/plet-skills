@@ -122,7 +122,7 @@ Simpler than GIM pre — only git and state, plus lifecycle check.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GVR_PRE_BHV_1 | **git-check**: Calls `plet_git_check.py check-iteration <plet_dir> --iter-id <iter_id> --phase verify --output json`. Each GTC check prefixed with `git:`. | P0 |
+| GVR_PRE_BHV_1 | **git-check**: Calls `git_check.py check-iteration <plet_dir> --iter-id <iter_id> --phase verify --output json`. Each GTC check prefixed with `git:`. | P0 |
 | GVR_PRE_BHV_2 | **state-valid**: Calls `plet_state.py validate` on iter state. PASS if valid, FAIL if invalid. | P0 |
 | GVR_PRE_BHV_3 | **lifecycle-check**: Reads lifecycle from iter state. WARN if not `verifying`. Catches orchestrator bugs (e.g., running verify on a queued/complete/implementing iteration — orchestrator should have transitioned to verifying before spawning verify). | P0 |
 | GVR_PRE_BHV_4 | Check order: git-check → state-valid → lifecycle-check. | P0 |
@@ -350,7 +350,7 @@ plet_gate_verify.py post plet/ --iter-id ITR_001 --output json --pretty
 |----|-----------|--------|-------------|
 | GVR_DEP_1 | imports | `util_cli` | `parse_kwargs`, `now_iso`, `dispatch`, shared helpers |
 | GVR_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
-| GVR_DEP_3 | calls (subprocess) | `plet_git_check.py` | `check-iteration --phase verify` |
+| GVR_DEP_3 | calls (subprocess) | `git_check.py` | `check-iteration --phase verify` |
 | GVR_DEP_4 | calls (subprocess) | `plet_state.py` | `validate` for state schema |
 | GVR_DEP_5 | calls (subprocess) | `plet_entries.py` | `check` for entry verification (post only) |
 | GVR_DEP_7 | calls (subprocess) | `plet_trace.py` | `validate` for trace validation (post only) |

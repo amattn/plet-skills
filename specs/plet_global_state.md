@@ -1,4 +1,4 @@
-# plet_global_state.py (GST)
+# global_state.py (GST)
 
 > Status: complete
 
@@ -10,7 +10,7 @@ The split follows the ownership boundary established by SF_28: global state (sta
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_PUR_1 | Global state file (`plet/state.json`) CRUD and schema enforcement. Agents call this instead of writing JSON freehand. Scope: global state only — per-iteration files are managed by `plet_iter_state.py` (IST). | P0 |
+| GST_PUR_1 | Global state file (`plet/state.json`) CRUD and schema enforcement. Agents call this instead of writing JSON freehand. Scope: global state only — per-iteration files are managed by `iter_state.py` (IST). | P0 |
 | GST_PUR_2 | Enforces the schema defined in `references/state-schema.md` § Global State (SF_1). | P0 |
 | GST_PUR_3 | Sole interface for lifecycle writes. The orchestrator writes lifecycle transitions via `update-lifecycle`, never by editing state.json directly. (SF_28) | P0 |
 
@@ -20,7 +20,7 @@ The split follows the ownership boundary established by SF_28: global state (sta
 |----|--------|---------|---------------|
 | GST_AGT_1 | plan session agent | Step 9: Initialize State | `init` |
 | GST_AGT_2 | orchestrator | lifecycle transitions during loop | `update-lifecycle`, `get-lifecycle` |
-| GST_AGT_3 | orchestrator | session start/end | (session fields managed by plet_session.py — GST does not own session fields) |
+| GST_AGT_3 | orchestrator | session start/end | (session fields managed by session.py — GST does not own session fields) |
 | GST_AGT_4 | gate scripts | preflight/postflight checks | `validate`, `get-lifecycle` |
 | GST_AGT_5 | schedule scripts | eligible() reads lifecycles | `get-lifecycle` |
 | GST_AGT_6 | human | debugging / inspection | `validate`, `get-lifecycle` |
@@ -65,7 +65,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_INI_CMD_1 | Usage: `plet_global_state.py init <global_plet_dir> --project-id PROJ --project-name "Name" --dependency-map '{"ITR_001":[],...}' --milestones '{"MS_1":{...}}' --iterations-fingerprint '{"..."}' [--dependency-map-file path] [--milestones-file path] [--iterations-fingerprint-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_INI_CMD_1 | Usage: `global_state.py init <global_plet_dir> --project-id PROJ --project-name "Name" --dependency-map '{"ITR_001":[],...}' --milestones '{"MS_1":{...}}' --iterations-fingerprint '{"..."}' [--dependency-map-file path] [--milestones-file path] [--iterations-fingerprint-file path] [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, non-idempotent (errors if file exists), atomic
 
@@ -138,7 +138,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_ULC_CMD_1 | Usage: `plet_global_state.py update-lifecycle <global_plet_dir> --iter-id ITR_xxx --lifecycle implementing [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_ULC_CMD_1 | Usage: `global_state.py update-lifecycle <global_plet_dir> --iter-id ITR_xxx --lifecycle implementing [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, not idempotent (lastUpdated changes), atomic
 
@@ -202,7 +202,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_GLC_CMD_1 | Usage: `plet_global_state.py get-lifecycle <global_plet_dir> [--iter-id ITR_xxx] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_GLC_CMD_1 | Usage: `global_state.py get-lifecycle <global_plet_dir> [--iter-id ITR_xxx] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -262,7 +262,7 @@ JSON error behavior: structured JSON to stdout with `status:"error"` + text to s
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GST_VAL_CMD_1 | Usage: `plet_global_state.py validate <global_plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GST_VAL_CMD_1 | Usage: `global_state.py validate <global_plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -350,15 +350,15 @@ References `state-schema.md` § Global State for the full state.json schema.
 
 | ID | Flow | Steps |
 |----|------|-------|
-| GST_AFL_1 | Plan session initialization | 1. Plan agent calls `plet_global_state.py init` with project metadata. 2. Script creates state.json with lifecycles auto-initialized from dependency map. 3. Plan agent then calls `plet_iter_state.py init` for each iteration. |
-| GST_AFL_2 | Orchestrator lifecycle transition | 1. Orchestrator decides lifecycle transition (e.g., implement returned, verdict is "completed"). 2. Calls `plet_global_state.py update-lifecycle --iter-id ITR_001 --lifecycle verifying`. 3. Script atomically updates state.json. |
-| GST_AFL_3 | Schedule eligible check | 1. Schedule script calls `plet_global_state.py get-lifecycle --output json`. 2. Receives full lifecycles map + counts. 3. Evaluates eligibility using lifecycles + dependency map (from state.json, same file read). |
+| GST_AFL_1 | Plan session initialization | 1. Plan agent calls `global_state.py init` with project metadata. 2. Script creates state.json with lifecycles auto-initialized from dependency map. 3. Plan agent then calls `iter_state.py init` for each iteration. |
+| GST_AFL_2 | Orchestrator lifecycle transition | 1. Orchestrator decides lifecycle transition (e.g., implement returned, verdict is "completed"). 2. Calls `global_state.py update-lifecycle --iter-id ITR_001 --lifecycle verifying`. 3. Script atomically updates state.json. |
+| GST_AFL_3 | Schedule eligible check | 1. Schedule script calls `global_state.py get-lifecycle --output json`. 2. Receives full lifecycles map + counts. 3. Evaluates eligibility using lifecycles + dependency map (from state.json, same file read). |
 
 ## 8. Examples (GST_EXM)
 
 ```bash
 # Initialize state.json (global_plet_dir must already exist)
-plet_global_state.py init plet \
+global_state.py init plet \
   --project-id LOGA \
   --project-name "Log Analyzer" \
   --dependency-map '{"ITR_001":[],"ITR_002":["ITR_001"],"ITR_003":["ITR_001"]}' \
@@ -366,18 +366,18 @@ plet_global_state.py init plet \
   --iterations-fingerprint '{"lastNonTrivialUpdate":"2026-03-07T14:00:00Z","iterations":{"MS_1":["ITR_001","ITR_002","ITR_003"]}}'
 
 # Update lifecycle (orchestrator only)
-plet_global_state.py update-lifecycle plet --iter-id ITR_001 --lifecycle implementing
+global_state.py update-lifecycle plet --iter-id ITR_001 --lifecycle implementing
 
 # Get single lifecycle
-plet_global_state.py get-lifecycle plet --iter-id ITR_001
+global_state.py get-lifecycle plet --iter-id ITR_001
 # → ITR_001: implementing
 
 # Get all lifecycles (JSON — same shape as single, just more entries)
-plet_global_state.py get-lifecycle plet --output json
+global_state.py get-lifecycle plet --output json
 # → {"status":"ok","command":"get-lifecycle","lifecycles":{"ITR_001":"implementing","ITR_002":"ineligible","ITR_003":"queued"},"counts":{"ineligible":1,"queued":1,"implementing":1,"verifying":0,"complete":0,"blocked":0,"withdrawn":0},"total":3}
 
 # Validate
-plet_global_state.py validate plet
+global_state.py validate plet
 ```
 
 ## 9. Dependencies (GST_DEP)
@@ -389,8 +389,8 @@ plet_global_state.py validate plet
 | GST_DEP_3 | `util_state.py` | imports | Schema validation (`validate_global_state`, `VALID_LIFECYCLES`) |
 | GST_DEP_4 | `util_constants.py` | imports | `SCHEMA_VERSION`, `SKILL_VERSION` |
 | GST_DEP_5 | `plet_orchestrator.py` | called by | Lifecycle transitions during loop |
-| GST_DEP_6 | `plet_schedule.py` | called by | `get-lifecycle` for eligible() |
-| GST_DEP_7 | `plet_gate_session.py` | called by | `get-lifecycle` for detect/status |
+| GST_DEP_6 | `schedule.py` | called by | `get-lifecycle` for eligible() |
+| GST_DEP_7 | `gate_session.py` | called by | `get-lifecycle` for detect/status |
 
 ## 10. Non-Functional Requirements (GST_NFR)
 
@@ -438,7 +438,7 @@ plet_global_state.py validate plet
 
 | ID | Consideration |
 |----|---------------|
-| GST_FUT_1 | If `plet_session.py` is merged into GST (both manage state.json), session commands (`start-session`, `end-session`) would move here. Currently separate because session management has different ownership semantics (invoked by orchestrator at session boundaries, not per-iteration). |
+| GST_FUT_1 | If `session.py` is merged into GST (both manage state.json), session commands (`start-session`, `end-session`) would move here. Currently separate because session management has different ownership semantics (invoked by orchestrator at session boundaries, not per-iteration). |
 
 ## 16. Open Questions
 

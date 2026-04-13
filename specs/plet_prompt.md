@@ -1,4 +1,4 @@
-# plet_prompt.py (PRM)
+# prompt.py (PRM)
 
 > Status: complete
 
@@ -61,7 +61,7 @@ Assemble is read-only — `--dry-run` is NOT applicable.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PRM_ASM_CMD_1 | Usage: `plet_prompt.py assemble <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| PRM_ASM_CMD_1 | Usage: `prompt.py assemble <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -205,14 +205,14 @@ The prompt is assembled from sections in a specific order. The order matters —
 ### PRM_AFL_1: Invoke calls assemble before launching subprocess
 
 1. `invoke.py` prepares to launch subagent
-2. Calls: `plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement`
+2. Calls: `prompt.py assemble plet/ --iter-id ITR_001 --phase implement`
 3. Captures stdout (the assembled prompt text)
 4. Pipes prompt to: `claude -p "{prompt}" --output-format stream-json`
 
 ### PRM_AFL_2: Human debugging — preview prompt
 
 1. Human wants to see what an implement agent would receive
-2. Runs: `plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement`
+2. Runs: `prompt.py assemble plet/ --iter-id ITR_001 --phase implement`
 3. Reviews the output — checks that learnings are included, iteration definition is correct, etc.
 4. Optionally: `--output json` to see section breakdown and total length
 
@@ -221,7 +221,7 @@ The prompt is assembled from sections in a specific order. The order matters —
 ### PRM_EXM_1: Implement prompt assembly
 
 ```bash
-plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement
+prompt.py assemble plet/ --iter-id ITR_001 --phase implement
 # # Reference: Implementation Guide
 #
 # [full contents of implement.md]
@@ -259,7 +259,7 @@ plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement
 ### PRM_EXM_2: JSON output with section metadata
 
 ```bash
-plet_prompt.py assemble plet/ --iter-id ITR_001 --phase implement --output json --pretty
+prompt.py assemble plet/ --iter-id ITR_001 --phase implement --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "assemble",
@@ -304,7 +304,7 @@ No subprocess calls to other plet scripts — PRM is a leaf that reads files dir
 | PRM_DXP_1 | Help text follows IMPORTANT/PITFALLS/USAGE/PURPOSE structure | P0 |
 | PRM_DXP_2 | IMPORTANT: read-only, safe to run anytime. Great for debugging "what would the agent see?" | P0 |
 | PRM_DXP_3 | PITFALLS: --iter-id and --phase required. Reference files are relative to the script (skill package), not plet_dir. | P0 |
-| PRM_DXP_4 | Text output is pipe-friendly — suitable for `plet_prompt.py assemble ... | claude -p` | P0 |
+| PRM_DXP_4 | Text output is pipe-friendly — suitable for `prompt.py assemble ... | claude -p` | P0 |
 
 ## 12. Critical Test Areas (PRM_CRT)
 

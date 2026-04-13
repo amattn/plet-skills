@@ -1,4 +1,4 @@
-# plet_git_check.py (GTC)
+# git_check.py (GTC)
 
 > Status: approved
 
@@ -70,7 +70,7 @@ Gate scripts (GIM, GVR) need to verify git state is correct before and after eac
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKI_CMD_1 | Usage: `plet_git_check.py check-iteration <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTC_CKI_CMD_1 | Usage: `git_check.py check-iteration <plet_dir> --iter-id ITR_xxx --phase implement|verify [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -164,7 +164,7 @@ At session boundaries (start and end), the orchestrator needs a global health ch
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTC_CKS_CMD_1 | Usage: `plet_git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTC_CKS_CMD_1 | Usage: `git_check.py check-session <plet_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent, non-atomic (no writes)
 
@@ -296,7 +296,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_1: Gate script pre-phase check
 
 1. Orchestrator spawns gate script (GIM or GVR) before phase begins
-2. Gate script calls: `plet_git_check.py check-iteration --iter-id ITR_001 --phase implement --output json`
+2. Gate script calls: `git_check.py check-iteration --iter-id ITR_001 --phase implement --output json`
 3. Gate script parses JSON: checks `status` and individual check results
 4. If exit 1 (`"fail"`): gate script blocks the phase, reports violations to orchestrator
 5. If exit 2 (`"warn"`): gate script proceeds, logs warnings to progress.md
@@ -305,7 +305,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_2: Gate script post-phase check
 
 1. Subagent finishes phase (implement or verify)
-2. Gate script calls: `plet_git_check.py check-iteration --iter-id ITR_001 --phase verify --output json`
+2. Gate script calls: `git_check.py check-iteration --iter-id ITR_001 --phase verify --output json`
 3. Gate script verifies phase left git state clean
 4. If exit 1: gate script reports violations to orchestrator (may not block — depends on severity)
 5. If exit 2: gate script logs warnings to progress.md
@@ -313,7 +313,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_3: Orchestrator session preflight
 
 1. Orchestrator starts a new loop session
-2. Calls: `plet_git_check.py check-session --output json`
+2. Calls: `git_check.py check-session --output json`
 3. Inspects results:
    - in-progress-operation FAIL → abort session, alert human (broken repo state)
    - orphaned worktrees → cleanup via `plet_git_iteration.py worktree-remove`
@@ -325,7 +325,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_AFL_4: Orchestrator session end
 
 1. Orchestrator finishes all iterations in the loop
-2. Calls: `plet_git_check.py check-session --output json`
+2. Calls: `git_check.py check-session --output json`
 3. Verifies: no orphaned worktrees, no orphaned branches, no stashes, all complete iterations merged
 4. Logs session health summary to progress.md
 
@@ -334,7 +334,7 @@ Errors are distinct from check failures. Errors are structural problems that pre
 ### GTC_EXM_1: check-iteration — all passing
 
 ```bash
-plet_git_check.py check-iteration --iter-id ITR_001 --phase implement
+git_check.py check-iteration --iter-id ITR_001 --phase implement
 # PASS: check-iteration — 6 passed
 # PASS: in-progress-operation — no interrupted git operations
 # PASS: branch-exists — plet/LOGA/loop1/ITR_001 exists
@@ -348,7 +348,7 @@ plet_git_check.py check-iteration --iter-id ITR_001 --phase implement
 ### GTC_EXM_2: check-iteration — violations found
 
 ```bash
-plet_git_check.py check-iteration --iter-id ITR_001 --phase implement
+git_check.py check-iteration --iter-id ITR_001 --phase implement
 # FAIL: check-iteration — 2 failed, 1 warning
 # PASS: in-progress-operation — no interrupted git operations
 # PASS: branch-exists — plet/LOGA/loop1/ITR_001 exists
@@ -362,7 +362,7 @@ plet_git_check.py check-iteration --iter-id ITR_001 --phase implement
 ### GTC_EXM_3: check-iteration — JSON output
 
 ```bash
-plet_git_check.py check-iteration --iter-id ITR_001 \
+git_check.py check-iteration --iter-id ITR_001 \
     --phase implement --output json --pretty
 # {
 #   "status": "fail",
@@ -386,7 +386,7 @@ plet_git_check.py check-iteration --iter-id ITR_001 \
 ### GTC_EXM_4: check-session — orphaned worktree found
 
 ```bash
-plet_git_check.py check-session
+git_check.py check-session
 # WARN: check-session — 1 warning
 # PASS: in-progress-operation — no interrupted git operations
 # PASS: workstream-exists — plet/LOGA/loop1/workstream exists
@@ -400,7 +400,7 @@ plet_git_check.py check-session
 ### GTC_EXM_5: check-session — JSON output with --fields
 
 ```bash
-plet_git_check.py check-session \
+git_check.py check-session \
     --output json --fields status,checks,summary
 # {"status":"ok","checks":[...],"summary":{"total":6,"passed":6,"failed":0,"warnings":0},"fieldsIncluded":["status","checks","summary"],"fieldsOmitted":["command","projectId","loopSession","scriptVersion","timestamp"]}
 ```
@@ -412,10 +412,10 @@ plet_git_check.py check-session \
 | GTC_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `now_iso`, `dispatch`, `filter_fields` |
 | GTC_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
 | GTC_DEP_6 | imports | `util_subprocess` | `run_git` |
-| GTC_DEP_3 | called by | `plet_gate_phase.py` | pre/post checks for both implement and verify phases |
+| GTC_DEP_3 | called by | `gate_phase.py` | pre/post checks for both implement and verify phases |
 | GTC_DEP_5 | called by | `plet_orchestrator.py` | session preflight/end |
 
-No outgoing calls to other `plet_*.py` scripts — `plet_git_check.py` is a leaf CLI tool. Calls `git` via `util_subprocess`.
+No outgoing calls to other `plet_*.py` scripts — `git_check.py` is a leaf CLI tool. Calls `git` via `util_subprocess`.
 
 ## 10. Non-Functional Requirements (GTC_NFR)
 

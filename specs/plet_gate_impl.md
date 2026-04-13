@@ -122,7 +122,7 @@ GIM pre delegates to existing tools and aggregates results. Each tool is called 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GIM_PRE_BHV_1 | **git-check**: Calls `plet_git_check.py check-iteration <plet_dir> --iter-id <iter_id> --phase implement --output json`. Each GTC check becomes a GIM check with `git:` prefix (e.g., `git:correct-branch`). GTC FAIL/WARN propagate directly. | P0 |
+| GIM_PRE_BHV_1 | **git-check**: Calls `git_check.py check-iteration <plet_dir> --iter-id <iter_id> --phase implement --output json`. Each GTC check becomes a GIM check with `git:` prefix (e.g., `git:correct-branch`). GTC FAIL/WARN propagate directly. | P0 |
 | GIM_PRE_BHV_2 | **state-valid**: Calls `plet_state.py validate <plet_dir>/state/<iter_id>.json --output json`. PASS if valid, FAIL if invalid. Detail includes validation errors. | P0 |
 | GIM_PRE_BHV_3 | **spec-artifacts**: Checks `requirements.md` and `iterations.md` exist in `plet_dir`. FAIL if either missing. | P0 |
 | GIM_PRE_BHV_5 | **lifecycle-check**: Reads lifecycle from iter state. WARN if lifecycle is not `queued` or `implementing`. Catches obvious mistakes (running pre on a complete/withdrawn iteration) without blocking. | P0 |
@@ -221,7 +221,7 @@ Post-gate re-verifies git and state (subagent may have left dirty state) and add
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | GIM_EDG_1 | Not inside a git repo — error before any checks (same as GTC behavior). | P0 |
-| GIM_EDG_2 | GTC script missing — FAIL on git-check with detail "plet_git_check.py not found". | P0 |
+| GIM_EDG_2 | GTC script missing — FAIL on git-check with detail "git_check.py not found". | P0 |
 | GIM_EDG_3 | STA validate script missing — FAIL on state-valid with detail "plet_state.py not found". | P0 |
 | GIM_EDG_4 | ENT check script missing — FAIL on progress-entry with detail "plet_entries.py not found". | P0 |
 | GIM_EDG_5 | Subprocess call to GTC/STA/ENT returns non-JSON stdout — FAIL with detail "could not parse output". | P0 |
@@ -350,7 +350,7 @@ plet_gate_impl.py post plet/ --iter-id ITR_001 --output json --pretty
 |----|-----------|--------|-------------|
 | GIM_DEP_1 | imports | `util_cli` | `parse_kwargs`, `now_iso`, `dispatch`, `filter_fields` |
 | GIM_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
-| GIM_DEP_3 | calls (subprocess) | `plet_git_check.py` | `check-iteration --phase implement` for git compliance |
+| GIM_DEP_3 | calls (subprocess) | `git_check.py` | `check-iteration --phase implement` for git compliance |
 | GIM_DEP_4 | calls (subprocess) | `plet_state.py` | `validate` for state schema compliance |
 | GIM_DEP_5 | calls (subprocess) | `plet_entries.py` | `check` for mandatory entry verification (post only) |
 | GIM_DEP_7 | calls (subprocess) | `plet_fingerprint.py` | `check` for fingerprint consistency (pre only) |

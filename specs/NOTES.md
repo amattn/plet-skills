@@ -109,7 +109,7 @@ These scripts are **agent tools** that humans occasionally debug — not develop
 - **Single resource per invocation** — agents control the loop
 - **Context window protection** — `--fields` limits JSON output size. Token usage is both a cost and a latency problem — large outputs consume context window budget and slow inference. Every unnecessary token in script output is a token the agent can't use for reasoning.
 - **Three-tier escalation: cheat sheet → `--usage` → `--help`** — each tier adds detail and tokens. Cheat sheet is a pre-filled quick reference (injected into prompt, zero lookup cost). `--usage` is one line per command (~5 tokens each). `--help` is full documentation (~200+ tokens). Agents should never need `--help` if the cheat sheet and `--usage` are sufficient. **Measured impact:** LOGA went from 150 --help lookups (R06, 3h 4m) → 98 (R07) → 0 (R08, 1h 53m). A 38% wall-clock reduction, primarily from eliminating CLI discovery overhead. Giving agents the answers upfront (in the prompt) is dramatically cheaper than letting them discover answers at runtime.
-- **Direct execution via shebang** — scripts have `#!/usr/bin/env python3` + `chmod +x`. Call as `"$PLET_SCRIPTS_DIR/plet_phase.py" end ...`, never `python3 ...`. Direct execution matches allowed-tools patterns and avoids permission prompts.
+- **Direct execution via shebang** — scripts have `#!/usr/bin/env python3` + `chmod +x`. Call as `"$PLET_SCRIPTS_DIR/phase.py" end ...`, never `python3 ...`. Direct execution matches allowed-tools patterns and avoids permission prompts.
 
 ### SPEC_INS_3: Require Arguments, Never Default
 
@@ -138,21 +138,21 @@ These scripts are **agent tools** that humans occasionally debug — not develop
 | ENT | `plet_entries.py` | ENTries |
 | FPR | `plet_fingerprint.py` | FingerPRint |
 | GTI | `plet_git_iteration.py` | GT Iteration lifecycle |
-| GTO | `plet_git_ops.py` | GT Operations |
-| GTC | `plet_git_check.py` | GT Check |
+| GTO | `git_ops.py` | GT Operations |
+| GTC | `git_check.py` | GT Check |
 | TRC | `plet_trace.py` | TRaCe |
-| GSS | `plet_gate_session.py` | Gate SeSsion (renamed from plet_session.py) |
-| SES | `plet_session.py` (new) | SESsion lifecycle (prefix reused after rename) |
-| SCH | `plet_schedule.py` | SCHedule |
-| PRM | `plet_prompt.py` | PRoMpt |
+| GSS | `gate_session.py` | Gate SeSsion (renamed from session.py) |
+| SES | `session.py` (new) | SESsion lifecycle (prefix reused after rename) |
+| SCH | `schedule.py` | SCHedule |
+| PRM | `prompt.py` | PRoMpt |
 | ORC | `plet_orchestrator.py` | ORChestrator |
-| GPH | `plet_gate_phase.py` | Gate PHase |
+| GPH | `gate_phase.py` | Gate PHase |
 | ~~GIM~~ | ~~`plet_gate_impl.py`~~ | Merged into GPH |
 | ~~GVR~~ | ~~`plet_gate_verify.py`~~ | Merged into GPH |
 | INV | `plet_invoke.py` | INVoke |
-| GST | `plet_global_state.py` | Global STate (state.json — lifecycles, session) |
-| IST | `plet_iter_state.py` | Iteration STate (per-iteration files) |
-| PHS | `plet_phase.py` | PHaSe lifecycle (composite end-of-phase) |
+| GST | `global_state.py` | Global STate (state.json — lifecycles, session) |
+| IST | `iter_state.py` | Iteration STate (per-iteration files) |
+| PHS | `phase.py` | PHaSe lifecycle (composite end-of-phase) |
 | ~~STA~~ | ~~`plet_state.py`~~ | Split into GST + IST (seq 39d) |
 
 ### SPEC_LBL_SEC: Section abbreviations
@@ -290,7 +290,7 @@ All scripts take `<plet_dir>` as required first positional arg. Scripts derive a
 
 **COV_1 (auto-logger test):** Direct import tests for `_log_script_invocation`, `_extract_plet_dir`, `_extract_from_args`. util_cli.py: 67% → 92%. Confirmed: direct imports are ~3x faster than subprocess per test.
 
-**COV_2 start (iter_state internals):** Direct import tests for `_validate_init_inputs`, `_parse_init_data`, `_validate_report_fields`, `_build_phase_obj`, `_find_criterion`, `_validate_criteria_results`. plet_iter_state.py: 81% → 83%.
+**COV_2 start (iter_state internals):** Direct import tests for `_validate_init_inputs`, `_parse_init_data`, `_validate_report_fields`, `_build_phase_obj`, `_find_criterion`, `_validate_criteria_results`. iter_state.py: 81% → 83%.
 
 **Quality ratchets:** Formalized as UNV_QG_1-5 in conventions.md. Metrics that must never go backwards: coverage ≥85%, McCabe ≤15, ruff lint zero errors, ruff format clean.
 
@@ -394,7 +394,7 @@ Migrated 46 cmd_* functions across 15 scripts to return `(code, stdout, stderr)`
 
 1. **`# pragma: no cover` on dry-run blocks** — ~100 lines, 10 min. Low risk code.
 2. **Test auto-logger once** — One test without PLET_NO_LOG covers ~90 lines of util_cli.py.
-3. **Dual-mode tests** — Import cmd_* directly (like plet_phase.py does) for remaining scripts.
+3. **Dual-mode tests** — Import cmd_* directly (like phase.py does) for remaining scripts.
 4. **Extract logic from CLI** — Split each cmd_* into: pure logic function (testable via import) + thin CLI wrapper (parse, validate, format). This is the incremental path to #6.
 5. **Inline coverage heuristic** — After tests, check which functions lack direct test counterparts.
 6. **Library + CLI pattern** — All scripts become one importable package. CLI is a thin dispatch layer. Eliminates the subprocess coverage gap entirely.
@@ -483,7 +483,7 @@ Threshold raised: 85% → 87% → 88% → 90% → 91%.
 
 ### SPEC_PLN_HLP: PLAN_HLP — Subagent CLI Re-learning
 
-Cross-cutting plan — canonical home is root NOTES.md § NOTES_PLN_HLP. Script-relevant aspects: `--usage` flag on all 16 scripts via dispatch(), `make_help_hint` factory, cli-cheatsheet.md, plet_phase.py end composite command, prompt CLI quick reference injection. Measured impact: 150 → 0 --help lookups, 3h → 1h53m wall clock (R06 → R08).
+Cross-cutting plan — canonical home is root NOTES.md § NOTES_PLN_HLP. Script-relevant aspects: `--usage` flag on all 16 scripts via dispatch(), `make_help_hint` factory, cli-cheatsheet.md, phase.py end composite command, prompt CLI quick reference injection. Measured impact: 150 → 0 --help lookups, 3h → 1h53m wall clock (R06 → R08).
 
 ### SPEC_PLN_PAR: PLAN_PAR — Parallel Orchestrator
 
@@ -722,7 +722,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **FOO_47 filed:** Formalize plan session branch and worktree behavior (open questions about whether plan actually needs branches/worktrees).
 - **PRD updated:** Plan branch pattern added to branch/tag convention table.
 
-### SPEC_REV_GTC: plet_git_check.py (GTC)
+### SPEC_REV_GTC: git_check.py (GTC)
 
 #### GTC spec review (2026-03-23)
 
@@ -745,7 +745,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - §12 CRT_14 added: orphaned-branches detection + workstream exclusion. CRT_15 added: exit code 2 (warn-only) distinct from 0 and 1.
 - §3 Universal Flags, §5 ERR, §6 FMT, §10 NFR, §11 DXP, §13 TST: approved as-is.
 
-### SPEC_REV_GSS: plet_gate_session.py (GSS)
+### SPEC_REV_GSS: gate_session.py (GSS)
 
 #### SES spec review decisions (2026-03-25)
 
@@ -788,11 +788,11 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **Mock testing strategy:** Mock `claude` script on PATH outputs JSONL and exits with controlled code.
 - **37 tests, all passing.**
 
-### SPEC_REV_PRM: plet_prompt.py (PRM)
+### SPEC_REV_PRM: prompt.py (PRM)
 
 #### PRM spec + implementation (2026-03-27)
 
-- **Renamed:** `plet_inject_prompt.py` (INJ) → `plet_prompt.py` (PRM). Simpler name — "it builds the prompt."
+- **Renamed:** `plet_inject_prompt.py` (INJ) → `prompt.py` (PRM). Simpler name — "it builds the prompt."
 - **Single command:** `assemble` with `--phase implement|verify`. Reads files on disk, outputs complete prompt.
 - **7 sections in order:** reference-file (implement.md or verify.md), iteration-definition (extracted from iterations.md), formats, state-schema, requirements, learnings (always present — FOO_38), iteration-state (formatted readably).
 - **Learnings always injected (FOO_38):** Even when learnings.md is empty or missing, the section appears with a "no learnings" note. Guarantees cross-iteration knowledge transfer is deterministic.
@@ -802,7 +802,7 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 - **Resolved questions:** No relevance filtering in v1 (full learnings included). No emergent.md injection (not in current SKILL.md list). No target CLAUDE.md injection (agent reads it naturally). No progress.md injection (learnings captures transferable knowledge).
 - **49 tests, all passing.**
 
-### SPEC_REV_GPH: plet_gate_phase.py (GPH)
+### SPEC_REV_GPH: gate_phase.py (GPH)
 
 #### GIM spec review (2026-03-25)
 
@@ -818,10 +818,10 @@ All 16 sections reviewed and approved. Key decisions from §3.2 onward:
 | plet_fingerprint.py | extract, embed, check | `<plet_dir>` |
 | plet_trace.py | append-event, validate, query | `<trace_file>` (single file) |
 | plet_git_iteration.py | branch-name, worktree-* | `<global_state_json>` (single file) |
-| plet_git_ops.py | audit-tag, merge-squash | `<global_state_json> <iter_state_json>` (two files) |
-| plet_git_check.py | check-iteration | `<global_state_json> <iter_state_json>` (two files) |
-| plet_git_check.py | check-session | `<global_state_json> <state_dir>` (file + dir) |
-| plet_gate_session.py | detect, status, preflight | `<plet_dir>` (optional dir) |
+| git_ops.py | audit-tag, merge-squash | `<global_state_json> <iter_state_json>` (two files) |
+| git_check.py | check-iteration | `<global_state_json> <iter_state_json>` (two files) |
+| git_check.py | check-session | `<global_state_json> <state_dir>` (file + dir) |
+| gate_session.py | detect, status, preflight | `<plet_dir>` (optional dir) |
 
 **After (unified):**
 
@@ -859,9 +859,9 @@ Retrofitting all specs first, then implementations.
 - **Full trace validation promoted (GVR_FUT_1 → BHV_6, GIM_FUT_1 → BHV_8):** Both gate scripts now call TRC validate (not just existence check). WARN if invalid. Corrupt traces are worse than missing — silent data loss.
 - **GVR spec review complete.**
 
-#### GIM + GVR merged into plet_gate_phase.py (GPH) (2026-03-27)
+#### GIM + GVR merged into gate_phase.py (GPH) (2026-03-27)
 
-- **Decision:** Merge `plet_gate_impl.py` (GIM) and `plet_gate_verify.py` (GVR) into single `plet_gate_phase.py` (GPH). The two scripts were 80% identical — `--phase implement|verify` controls the differences.
+- **Decision:** Merge `plet_gate_impl.py` (GIM) and `plet_gate_verify.py` (GVR) into single `gate_phase.py` (GPH). The two scripts were 80% identical — `--phase implement|verify` controls the differences.
 - **Why:** GIM (305 lines) and GVR (286 lines) plus util_gate_phase.py (200 lines) = 791 lines across 3 files. Merged: ~400 lines in 1 file. Eliminates util_gate_phase.py entirely. Follows GTC pattern (check-iteration already takes `--phase`).
 - **Prefix change:** GIM + GVR → GPH (Gate PHase). Both old prefixes become historical.
 - **Phase difference table in §1 PUR:** Shows which checks run for each phase/gate combination at a glance.
@@ -873,7 +873,7 @@ Retrofitting all specs first, then implementations.
 - **Stable label prefix table:** GPH replaces GIM + GVR entries. Command abbreviations: PRE, PST (same as before).
 - **PLAN.md:** Seq 18-21 still show GIM/GVR complete. Merged spec replaces both spec files. Implementation will replace both scripts + util_gate_phase.py.
 
-### SPEC_REV_GTO: plet_git_ops.py (GTO)
+### SPEC_REV_GTO: git_ops.py (GTO)
 
 #### GTO spec review + implementation complete (2026-03-22)
 
@@ -892,9 +892,9 @@ Retrofitting all specs first, then implementations.
 - util_state iter functions: 59 tests (red first, then green) — 117 total for util_state
 - All existing tests passing (no regressions)
 
-### SPEC_REV_SCH: plet_schedule.py (SCH)
+### SPEC_REV_SCH: schedule.py (SCH)
 
-#### plet_schedule.py spec (SCH) — complete (2026-03-29)
+#### schedule.py spec (SCH) — complete (2026-03-29)
 
 - 3 read-only commands: `eligible` (dependency graph), `check-breakpoints` (breakpoint lookup), `check-retry` (retry trend analysis per IMP_14).
 - `eligible` does NOT detect stuck agents, does NOT validate graph, does NOT include `parallelGroups` — single responsibility (what's ready, not how to schedule).
@@ -909,13 +909,13 @@ Retrofitting all specs first, then implementations.
 - **FOO_52 filed:** plan/refine sessions need explicit ambiguity/gap detection steps.
 - **FOO_53 filed:** different software types need different planning templates.
 
-### SPEC_REV_SES: plet_session.py (SES)
+### SPEC_REV_SES: session.py (SES)
 
-#### plet_session.py spec (SES) — complete (2026-03-29)
+#### session.py spec (SES) — complete (2026-03-29)
 
 - 2 mutating commands: `start-session` (increment counter, append session history), `end-session` (set endedAt).
 - Both idempotent: start-session resumes if same-type session active; end-session is no-op if already ended.
-- **Branch name derivation:** `derive_branch_name` extracted from `plet_git_iteration.py` into new `util_git.py`. Pure string function — no git ops, no subprocess. Both `plet_session.py` and `plet_git_iteration.py` import the same function. Single source of truth for branch naming. Chose `util_git.py` over `util_io.py` for discoverability — branch names are git concepts, and nobody would think to look in util_io for git naming conventions even though they're technically string derivation.
+- **Branch name derivation:** `derive_branch_name` extracted from `plet_git_iteration.py` into new `util_git.py`. Pure string function — no git ops, no subprocess. Both `session.py` and `plet_git_iteration.py` import the same function. Single source of truth for branch naming. Chose `util_git.py` over `util_io.py` for discoverability — branch names are git concepts, and nobody would think to look in util_io for git naming conventions even though they're technically string derivation.
 - **Corruption detection:** multiple `sessionHistory` entries with `endedAt: null` is a hard error (SES_EDG_7/ERR_9). Refuse to operate — state needs manual repair. Applies to both start-session and end-session.
 - Does NOT create git branches — returns name for orchestrator to create via plet_git_iteration.py.
 
@@ -929,13 +929,13 @@ Retrofitting all specs first, then implementations.
 - Parallel spawn (round-based), sequential merge. `--sequential` for debugging. `--max-iterations N` for incremental runs.
 - No-commits after implement → block (EDG_1). Red/green means every criterion produces commits.
 - Crash recovery: criteria-check heuristic (all pass → proceed, incomplete → re-queue). Unified for EDG_3 and EDG_5.
-- Postflight command added to plet_gate_session.py (FOO_56) — symmetric with preflight, may diverge.
+- Postflight command added to gate_session.py (FOO_56) — symmetric with preflight, may diverge.
 - Testing: real scripts + mock claude only. One mock instead of ten.
-- **Emergent updates completed (seq 34):** plet_gate_phase.py (3 new post checks), plet_gate_session.py (postflight), plet_schedule.py (stuck iteration detection).
+- **Emergent updates completed (seq 34):** gate_phase.py (3 new post checks), gate_session.py (postflight), schedule.py (stuck iteration detection).
 - **Implementation completed (seq 36):** 58 integration tests with real scripts + mock claude. Bugs found and fixed: worktree path (relative→absolute), command ordering (plet_dir before command→command before plet_dir), merge-squash dirty tree (commit state before merge), fingerprint check field name (consistent→allConsistent), infinite loop guard (failed_this_round set).
 - **Test coverage:** happy path, reject+retry, dependency chain, breakpoint, mixed outcome, max-iterations, no-commits block, crash recovery, stale fingerprints.
 
-### SPEC_REV_IST: plet_iter_state.py (IST)
+### SPEC_REV_IST: iter_state.py (IST)
 
 #### IST spec decisions (2026-03-30)
 
@@ -1504,7 +1504,7 @@ CLEANUP (per-iteration state controls):
 #### Eval system design direction (2026-03-28)
 
 - **PLAN_RW redefined:** Was "comparison runs" (vague). Now "eval system + comparison runs" with per-role eval strategy (planner, implementer, verifier).
-- **Key insight from prompt work:** Building plet_prompt.py surfaced that we have no way to measure whether prompt changes improve outcomes. Ad-hoc case studies (LOGA, LIBT) extracted feedback but didn't systematically compare before/after.
+- **Key insight from prompt work:** Building prompt.py surfaced that we have no way to measure whether prompt changes improve outcomes. Ad-hoc case studies (LOGA, LIBT) extracted feedback but didn't systematically compare before/after.
 - **Three failure modes by role:** Planner failures = implementer/verifier blocked by vague specs. Implementer failures = rubber-stamped tests, poor coverage. Verifier failures = false negatives (things that slipped through).
 - **Long-term goal:** Eval as a first-class plet feature, like skill-creator's eval framework. Metrics collection, comparison reports, trend tracking.
 - **Phased approach:** Formalize case study template first (cheap), then comparison runs (PLAN_RWb), then broader testing (PLAN_RWc), then eval tooling (PLAN_RWd).
@@ -1512,7 +1512,7 @@ CLEANUP (per-iteration state controls):
 
 #### cleanup-stashes dropped from GTO (2026-03-22)
 
-- **Decision:** Drop `cleanup-stashes` from `plet_git_ops.py`. GTO is now 2 commands: `squash`, `audit-tag`.
+- **Decision:** Drop `cleanup-stashes` from `git_ops.py`. GTO is now 2 commands: `squash`, `audit-tag`.
 - **Why:** Worktrees (GTI) eliminate the need to stash. The stash ban is in execute.md and verify.md. A cleanup command for a problem that shouldn't exist is backwards — the fix is enforcing the ban (worktrees), not cleaning up after violations.
 - **Monitor:** If PLAN_RW comparison runs or future case studies show stashes appearing despite worktrees, revisit. Until then, YAGNI.
 
@@ -1523,8 +1523,8 @@ CLEANUP (per-iteration state controls):
 | Script | Prefix | Purpose | Commands | Caller |
 |--------|--------|---------|----------|--------|
 | `plet_git_iteration.py` | GIT | Iteration git lifecycle | `branch-name`, `create-branch`, `worktree-create`, `worktree-remove` | Orchestrator + agents |
-| `plet_git_ops.py` | GTO | Git workflow operations | `squash`, `audit-tag` | Orchestrator only |
-| `plet_git_check.py` | GTC | Git compliance checks | `check-iteration`, `check-session` | Gate scripts + orchestrator |
+| `git_ops.py` | GTO | Git workflow operations | `squash`, `audit-tag` | Orchestrator only |
+| `git_check.py` | GTC | Git compliance checks | `check-iteration`, `check-session` | Gate scripts + orchestrator |
 
 **Rationale:** The original 8-command script mixed three audiences (agents, orchestrator, gate scripts) and four concerns (naming, worktrees, workflow ops, compliance). The split follows the existing pattern: compliance tools agents call (like plet_state, plet_entries) vs workflow steps the orchestrator sequences vs checks gate scripts run.
 
@@ -1542,7 +1542,7 @@ CLEANUP (per-iteration state controls):
 
 - **UNV_CMD_28 added** to `specs/conventions.md`: `--no-log` flag convention. Intentionally excluded from `--help` output — this flag is for tests and GUIs only, not agent use. Cascades via `PLET_NO_LOG=1` env var.
 - **`dispatch()` signature fixed** in `specs/util_modules.md`: was missing `argv` and `no_log_commands` parameters, now complete with logging behavior description.
-- **PLAN.md FOO_29/FOO_33 updated**: stale references to `plet_gate_impl.py`/`plet_gate_verify.py` corrected to `plet_gate_phase.py` (scripts were merged).
+- **PLAN.md FOO_29/FOO_33 updated**: stale references to `plet_gate_impl.py`/`plet_gate_verify.py` corrected to `gate_phase.py` (scripts were merged).
 - **11 spec files fixed** (earlier in session): `python3 skills/plet/tests/test_...` → `./skills/plet/tests/test_...` to match shebang-style convention from commit 7b8c0cc.
 
 #### Orchestrator execution model — toolkit + run (2026-03-29)
@@ -1557,23 +1557,23 @@ CLEANUP (per-iteration state controls):
 #### Command distribution — 3 new scripts, 1 rename (2026-03-29)
 
 - **Decision:** Distribute orchestrator helper commands across focused scripts rather than packing them into existing scripts.
-- **Rename:** `plet_session.py` → `plet_gate_session.py`. The existing script (detect, status, preflight) is read-only session-level gate checks — parallel to `plet_gate_phase.py` for phase-level gates. Renaming makes this relationship explicit.
-- **New `plet_session.py`** — mutating session lifecycle: `start-session`, `end-session`. Manages loopSessionCount, sessionHistory, workstream branches.
-- **New `plet_schedule.py`** — loop scheduling decisions: `eligible` (dependency graph traversal), `check-breakpoints` (breakpoint lookup), `check-retry` (retry trend analysis). All read-only. These read state but their logic is orchestration decisions, not state CRUD.
+- **Rename:** `session.py` → `gate_session.py`. The existing script (detect, status, preflight) is read-only session-level gate checks — parallel to `gate_phase.py` for phase-level gates. Renaming makes this relationship explicit.
+- **New `session.py`** — mutating session lifecycle: `start-session`, `end-session`. Manages loopSessionCount, sessionHistory, workstream branches.
+- **New `schedule.py`** — loop scheduling decisions: `eligible` (dependency graph traversal), `check-breakpoints` (breakpoint lookup), `check-retry` (retry trend analysis). All read-only. These read state but their logic is orchestration decisions, not state CRUD.
 - **New `plet_orchestrator.py`** — the main loop: `run`. Calls plet_schedule, plet_session, plet_invoke, and all existing scripts.
-- **Why not add to existing scripts:** plet_state.py already 1032 lines / 4 commands — adding 3 more would push to ~1400+ / 7 commands. plet_session.py (now plet_gate_session.py) is read-only; mixing in mutating commands changes its character. Separate scripts keep each focused.
+- **Why not add to existing scripts:** plet_state.py already 1032 lines / 4 commands — adding 3 more would push to ~1400+ / 7 commands. session.py (now gate_session.py) is read-only; mixing in mutating commands changes its character. Separate scripts keep each focused.
 - **Rejected:** (A) all helpers in plet_state.py (too large, wrong domain — scheduling ≠ CRUD); (B) split 2+1 across plet_state and new script (inconsistent — all 3 are scheduling concerns).
 
 **Updated script inventory (4 new scripts, 1 rename):**
 
 | Script | Commands | Domain |
 |--------|----------|--------|
-| `plet_gate_session.py` (renamed) | detect, status, preflight | Session-level gate checks (read-only) |
-| `plet_session.py` (new) | start-session, end-session | Session lifecycle (mutating) |
-| `plet_schedule.py` (new) | eligible, check-breakpoints, check-retry | Loop scheduling decisions (read-only) |
+| `gate_session.py` (renamed) | detect, status, preflight | Session-level gate checks (read-only) |
+| `session.py` (new) | start-session, end-session | Session lifecycle (mutating) |
+| `schedule.py` (new) | eligible, check-breakpoints, check-retry | Loop scheduling decisions (read-only) |
 | `plet_orchestrator.py` (new) | run | Main loop |
 
-#### Rename plet_session.py → plet_gate_session.py complete (2026-03-29)
+#### Rename session.py → gate_session.py complete (2026-03-29)
 
 - Renamed 3 files: script, test, spec. Prefix SES_ → GSS_ globally (169 in spec, 2 elsewhere). All `plet_session` references updated to `plet_gate_session` across 12 files. 1247 tests pass. Parallel spawning model: eligible iterations launch concurrently, merge-squash stays serial.
 
@@ -1738,10 +1738,10 @@ Orchestrator post-phase logic:
 
 | Script | Change |
 |--------|--------|
-| `plet_state.py` | **Split into two scripts** (seq 39d). `plet_global_state.py` (GLO): state.json — `init`, `update-lifecycle`, `get-lifecycle`, `validate`. `plet_iter_state.py` (ITS): per-iteration files with high-level commands — `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `validate`. Old `plet_state.py` removed. |
-| `plet_schedule.py` | `eligible()` reads `state.json.lifecycles` instead of N per-iteration files. Simpler AND faster. `check-retry` still reads per-iteration file (for reports). |
-| `plet_gate_phase.py` | Pre/post gates read lifecycle from state.json, not per-iteration file. |
-| `plet_gate_session.py` | 4 locations read lifecycle from per-iteration files → switch to `state.json.lifecycles`: (1) `detect` — lifecycle counts for session type detection, (2) `status` — lifecycle counts, blockers, milestone status, (3) `status` — `agentActivity` → `phaseActivity` rename, (4) `postflight` — transient lifecycle detection (implementing/verifying). |
+| `plet_state.py` | **Split into two scripts** (seq 39d). `global_state.py` (GLO): state.json — `init`, `update-lifecycle`, `get-lifecycle`, `validate`. `iter_state.py` (ITS): per-iteration files with high-level commands — `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `validate`. Old `plet_state.py` removed. |
+| `schedule.py` | `eligible()` reads `state.json.lifecycles` instead of N per-iteration files. Simpler AND faster. `check-retry` still reads per-iteration file (for reports). |
+| `gate_phase.py` | Pre/post gates read lifecycle from state.json, not per-iteration file. |
+| `gate_session.py` | 4 locations read lifecycle from per-iteration files → switch to `state.json.lifecycles`: (1) `detect` — lifecycle counts for session type detection, (2) `status` — lifecycle counts, blockers, milestone status, (3) `status` — `agentActivity` → `phaseActivity` rename, (4) `postflight` — transient lifecycle detection (implementing/verifying). |
 | `plet_orchestrator.py` | Major simplification. Writes lifecycle to state.json. No per-iteration state writes. No git checkout workarounds. |
 | `implement.md` | Remove lifecycle write guidance. Subagent doesn't set implementing or verifying. |
 | `verify.md` | Remove lifecycle ownership section (simplified — subagent doesn't touch lifecycle). |
@@ -1766,19 +1766,19 @@ For 13 iterations, this is 14 file reads → 1 file read.
 **Runtime artifact merge conflicts (separate concern):**
 Option C doesn't help with progress.md/learnings.md/emergent.md merge conflicts. These are append-only markdown files with entry fencing (SF_25). In practice, conflicts haven't been observed there. If they emerge, the same ownership principle applies: separate orchestrator entries from subagent entries by file or mechanism. Deferred — monitor in next run.
 
-#### Script split: plet_state.py → plet_global_state.py + plet_iter_state.py (2026-03-30)
+#### Script split: plet_state.py → global_state.py + iter_state.py (2026-03-30)
 
 **Decision:** Split `plet_state.py` into two scripts along the ownership boundary. The lifecycle extraction (seq 39) makes this split natural — state.json and per-iteration files have different owners, different schemas, and different access patterns.
 
 **Rationale:** The old `plet_state.py` mixed global concerns (state.json, lifecycles, session info) and per-iteration concerns (criteria, verdicts, activity) in one script. After lifecycle extraction, these are cleanly separable. Two scripts = clearer ownership, simpler commands, smaller blast radius per change.
 
-**plet_global_state.py (GST)** — manages `state.json`:
+**global_state.py (GST)** — manages `state.json`:
 - `init` — create state.json (project setup)
 - `update-lifecycle` — set lifecycle for an iteration in `state.json.lifecycles`
 - `get-lifecycle` — read lifecycle for one or all iterations
 - `validate` — schema check for state.json
 
-**plet_iter_state.py (IST)** — manages per-iteration state files with high-level agent-friendly commands:
+**iter_state.py (IST)** — manages per-iteration state files with high-level agent-friendly commands:
 - `init` — create per-iteration state file from iteration metadata
 - `start-phase` — composite command replacing ~5 manual update-field calls. Sets phaseActivity (to `setup`), agentId, increments attempts counter, clears stale verdicts (implement clears both to null, verify clears only verifyVerdict), sets timestamps. **Called by the orchestrator on worktree_plet_dir before spawning the subagent** — not the subagent's job. Prevents stale verdict reads on crash-before-start (LOGA Run 3 fix).
 - `update-activity` — set phaseActivity + activityDetail with auto-heartbeat (lastHeartbeat updated automatically)
@@ -1833,7 +1833,7 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 
 **Schema version bump deferred.** `SCHEMA_VERSION` stays at 0.2.0 during dual-schema migration. GST `init` creates state.json with 0.2.0 that has `lifecycles` (technically new for 0.2.0). Bump to 0.3.0 happens in Phase 3 (41a) when dual-schema support is removed.
 
-**Phase 2 (seq 40) — plet_schedule.py migrated (40a).** `eligible` now reads lifecycle from `state.json.lifecycles` — O(1) file reads instead of O(N). All 90 schedule tests pass. One expected orchestrator test failure (fixtures don't have lifecycles yet — 40f will fix).
+**Phase 2 (seq 40) — schedule.py migrated (40a).** `eligible` now reads lifecycle from `state.json.lifecycles` — O(1) file reads instead of O(N). All 90 schedule tests pass. One expected orchestrator test failure (fixtures don't have lifecycles yet — 40f will fix).
 
 **Test fixture inventory (2026-03-31).** 8 test files need lifecycle migration. Each independently defines its own `make_global_state`, `make_iter_state`, `make_git_repo` etc. — at least 6 different versions. Opportunity: shared `test_fixtures.py` module with canonical fixture builders. Would make remaining 7 migrations mechanical.
 
@@ -1841,7 +1841,7 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 
 **check-retry reads from worktree_plet_dir.** Orchestrator passes worktree path because verificationReports are in the worktree copy (subagent wrote them there). Worktree still exists at verdict-decision time, cleaned up after.
 
-#### plet_gate_phase.py migration design (40b) (2026-03-31)
+#### gate_phase.py migration design (40b) (2026-03-31)
 
 **Key insight: pre vs post have different plet_dir contexts.**
 - Pre-gate: called by orchestrator with global_plet_dir. Has state.json → can read lifecycle.
@@ -1876,12 +1876,12 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 7. **agentActivity references → phaseActivity** in check output/detail strings.
 
 **Implementation complete (2026-03-31).** 83 tests (was 78). Test fixtures retrofitted to shared `util_fixture.py`. Additional decisions made during implementation:
-- **run_sta_validate switched to plet_iter_state.py:** Old `plet_state.py validate` requires `lifecycle` field which no longer exists in per-iteration files. IST `validate` uses the dual-schema-aware `util_state.validate_iter_state()`.
+- **run_sta_validate switched to iter_state.py:** Old `plet_state.py validate` requires `lifecycle` field which no longer exists in per-iteration files. IST `validate` uses the dual-schema-aware `util_state.validate_iter_state()`.
 - **plet_state.py + spec deprecated:** Added deprecation warnings to both script docstring and spec header. Will be removed in seq 41c.
 - **Spec fixes during review:** GPH_CRT_14 duplicate → GPH_CRT_16, plet_dir "optional/default" → "required positional" (3 locations), DEP_2a renumbered to DEP_3 (no letter suffixes), DEP_2 gained `load_and_validate_global_state`, EXM_4 note rewritten for bidirectional phase differences, BHV_6 trace path `plet/` → `{plet_dir}/`.
 - **Deferred:** sweep-level "default plet/" fix across ~14 active spec files (~50+ occurrences).
 
-#### plet_gate_session.py migration (40c) (2026-03-31)
+#### gate_session.py migration (40c) (2026-03-31)
 
 **5 locations migrated:**
 1. **detect_session_type():** reads `state.json.lifecycles` directly — no more `scan_iter_states()` for lifecycle detection. O(1) file read.
@@ -1913,11 +1913,11 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 
 #### Phase 2 completion — all consumers migrated (2026-03-31)
 
-**40d (plet_git_check.py):** check-session reads lifecycles from state.json for orphaned-worktrees, unmerged-complete, and workstream-exists. Behavior fix: queued is now non-ineligible for workstream-exists check (was incorrectly treated as inactive).
+**40d (git_check.py):** check-session reads lifecycles from state.json for orphaned-worktrees, unmerged-complete, and workstream-exists. Behavior fix: queued is now non-ineligible for workstream-exists check (was incorrectly treated as inactive).
 
-**40e (plet_prompt.py):** Simplest migration — one line. `format_iteration_state()` now takes lifecycle as a parameter from global state instead of reading from per-iteration file.
+**40e (prompt.py):** Simplest migration — one line. `format_iteration_state()` now takes lifecycle as a parameter from global state instead of reading from per-iteration file.
 
-**40f (plet_orchestrator.py):** Biggest migration. All `plet_state.py update-field {"lifecycle":...}` calls replaced with `_update_lifecycle()` → `plet_global_state.py update-lifecycle`. Orchestrator sets implementing/verifying before spawning subagents. Handoff check: `implementVerdict != null` (was `lifecycle == "verifying"`). Verdict: `verifyVerdict` (was `lastVerdict`). Guard assertions: `worktree_plet_dir != global_plet_dir` before verdict reads. Per-iteration state revert before merge-squash removed (SF_28 eliminates the conflict). 55 integration tests un-skipped.
+**40f (plet_orchestrator.py):** Biggest migration. All `plet_state.py update-field {"lifecycle":...}` calls replaced with `_update_lifecycle()` → `global_state.py update-lifecycle`. Orchestrator sets implementing/verifying before spawning subagents. Handoff check: `implementVerdict != null` (was `lifecycle == "verifying"`). Verdict: `verifyVerdict` (was `lastVerdict`). Guard assertions: `worktree_plet_dir != global_plet_dir` before verdict reads. Per-iteration state revert before merge-squash removed (SF_28 eliminates the conflict). 55 integration tests un-skipped.
 
 **40f mock (util_mock_claude.py):** Writes `implementVerdict = "readyForVerification"` (was `lifecycle = "verifying"`), `verifyVerdict` (was `lastVerdict`), `phaseActivity` (was `agentActivity`).
 
@@ -1931,7 +1931,7 @@ Phase 3 — Tighten + cleanup (39m–39o): Remove dual-schema support from util_
 
 **Solution:** Custom git merge driver for append-only files. Registered as `plet-append` in `.gitattributes` + `git config`. Logic: verify theirs starts with base (append-only invariant), extract new lines, append to ours. 53 tests including git integration test (real `merge --squash`).
 
-**Integration:** `plet_session.py start-session` creates `.gitattributes` entries and configures `git config` (idempotent). `plet_gate_session.py preflight` WARNs if driver not configured.
+**Integration:** `session.py start-session` creates `.gitattributes` entries and configures `git config` (idempotent). `gate_session.py preflight` WARNs if driver not configured.
 
 **Future:** MGD_FUT_1 — chronological resorting of entries after merge (currently ours-first, theirs-second).
 
@@ -1949,7 +1949,7 @@ Manual-only test (not in test_all.py) that validates `plet_invoke.py → claude 
 
 **41b (final test sweep):** 1863 passed, 0 failed. Clean.
 
-**41c (remove plet_state.py):** Deleted script (deprecated since 40b) + test file (129 tests, -2183 lines). Updated: SKILL.md allowed-tools, scripts/CLAUDE.md inventory (now lists GST + IST), preflight scripts-installed (added plet_merge_driver.py), test_util_cli.py logging tests (switched to plet_iter_state.py).
+**41c (remove plet_state.py):** Deleted script (deprecated since 40b) + test file (129 tests, -2183 lines). Updated: SKILL.md allowed-tools, scripts/CLAUDE.md inventory (now lists GST + IST), preflight scripts-installed (added plet_merge_driver.py), test_util_cli.py logging tests (switched to iter_state.py).
 
 **Lifecycle extraction COMPLETE.** Three phases, 16 steps (39a–41c). Net result: lifecycle lives in state.json.lifecycles, per-iteration state files have no lifecycle field, orchestrator owns all lifecycle transitions via GST, subagents signal via implementVerdict/verifyVerdict.
 
@@ -1972,7 +1972,7 @@ Lifecycle extraction works end-to-end. IST scripts (start-phase, update-activity
 - Shell escaping in sandbox hostile to Go code generation (`!=` → `\!=`)
 
 **Key decisions from Run 4:**
-1. **Script discovery via prompt, not file copying.** `plet_prompt.py` includes absolute script path in subagent prompt. Fallback chain: `CLAUDE_SKILL_DIR` → `CLAUDE_CONFIG_DIR` + plugin cache → `~/.claude` + plugin cache. Simpler than copying scripts to `.plet/scripts/` (which wouldn't be visible in worktrees anyway — gitignored).
+1. **Script discovery via prompt, not file copying.** `prompt.py` includes absolute script path in subagent prompt. Fallback chain: `CLAUDE_SKILL_DIR` → `CLAUDE_CONFIG_DIR` + plugin cache → `~/.claude` + plugin cache. Simpler than copying scripts to `.plet/scripts/` (which wouldn't be visible in worktrees anyway — gitignored).
 2. **Bootstrap spec revised.** No longer copies scripts. Focuses on project infrastructure: git merge driver, .gitignore (`.plet/`, `.claude/settings.local.json`, `CLAUDE.local.md`), .claude/settings.json (merge allow entries), CLAUDE.md stub (with script discovery instructions), empirical sandbox/permissions detection.
 3. **Empirical runtime detection.** Bootstrap `check` should detect sandbox mode (`TMPDIR=/tmp/claude`), permission mode, and git config — not just read config files.
 4. **FOO_64–68 filed for plan phase UX.** Confirm before init, create branch, don't auto-launch loop, create CLAUDE.md/.gitignore, fix .gitignore check.
@@ -1985,7 +1985,7 @@ Lifecycle extraction works end-to-end. IST scripts (start-phase, update-activity
 
 All six items from LOGA Run 4 implemented in one session:
 
-**Seq 42b — plet_bootstrap.py (46 tests).** Two commands: `setup` (idempotent project config) and `check` (read-only verification). Sets up: .plet/ dir, .gitignore (.plet/, settings.local.json, CLAUDE.local.md), .gitattributes (merge driver), git config (plet-append), CLAUDE.md stub (script discovery), .claude/settings.json (merge allow entries + permissions warning). Empirical sandbox detection via TMPDIR.
+**Seq 42b — bootstrap.py (46 tests).** Two commands: `setup` (idempotent project config) and `check` (read-only verification). Sets up: .plet/ dir, .gitignore (.plet/, settings.local.json, CLAUDE.local.md), .gitattributes (merge driver), git config (plet-append), CLAUDE.md stub (script discovery), .claude/settings.json (merge allow entries + permissions warning). Empirical sandbox detection via TMPDIR.
 
 **Seq 43 — optional flags audit.** Auto-logger: phase defaults to "unknown" (was "implement"), progress entries now compact one-liner with fencing + trace ID reference. Help text swept across 8 scripts: "default: plet/" → "required". Critical insight updated: three rules (require args, rarely optional, never default).
 
@@ -2019,7 +2019,7 @@ All six items from LOGA Run 4 implemented in one session:
 - C. plet-append merge driver for state.json — wrong tool, not append-only
 - D. `git checkout --ours` during merge-squash — fallback if B insufficient
 
-Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree copy is always stale. `merge=ours` tells git "workstream always wins" — no conflict possible. Added to both `plet_bootstrap.py` and `plet_session.py _ensure_merge_driver`. The pre-merge shutil.copy2 workaround in the orchestrator was removed — .gitattributes handles it.
+Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree copy is always stale. `merge=ours` tells git "workstream always wins" — no conflict possible. Added to both `bootstrap.py` and `session.py _ensure_merge_driver`. The pre-merge shutil.copy2 workaround in the orchestrator was removed — .gitattributes handles it.
 
 **Other Run 5 fixes:** invoke auto-detects permission mode from settings.json, progress entries clipped (no full prompt), Files changed field removed from progress format.
 
@@ -2047,7 +2047,7 @@ Rationale: state.json is exclusively orchestrator-owned (SF_28). The worktree co
 
 #### Merge-squash dirty-tree bug — LOGA R09 (2026-04-05)
 
-**Bug:** `plet_git_ops.py merge-squash` validates `git status --porcelain` is empty before merging. With parallel execution, worktree artifacts leak into the main working tree, making it appear dirty. Two iterations (ITR_004, ITR_011) passed verify but failed merge-squash. Cascading: 6 more iterations permanently ineligible. Run completed only 38%.
+**Bug:** `git_ops.py merge-squash` validates `git status --porcelain` is empty before merging. With parallel execution, worktree artifacts leak into the main working tree, making it appear dirty. Two iterations (ITR_004, ITR_011) passed verify but failed merge-squash. Cascading: 6 more iterations permanently ineligible. Run completed only 38%.
 
 **Root cause:** The `_handle_passed_verdict` in plet_orchestrator.py does `run_git("add", "-A")` + `run_git("commit", ...)` before merge-squash, but this runs on the workstream branch. With parallel worktrees active, files from worktrees may appear as untracked or modified in the main tree's `git status`.
 

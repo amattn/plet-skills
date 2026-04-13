@@ -1,4 +1,4 @@
-# plet_git_ops.py (GTO)
+# git_ops.py (GTO)
 
 > Status: complete
 
@@ -82,7 +82,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_ATG_CMD_1 | Usage: `plet_git_ops.py audit-tag <plet_dir> --iter-id ITR_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_ATG_CMD_1 | Usage: `git_ops.py audit-tag <plet_dir> --iter-id ITR_xxx --phase implement|verify [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates git tag), idempotent (re-tagging same commit with same name succeeds or can use `--force`)
 
@@ -165,7 +165,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| GTO_MSQ_CMD_1 | Usage: `plet_git_ops.py merge-squash <plet_dir> --iter-id ITR_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| GTO_MSQ_CMD_1 | Usage: `git_ops.py merge-squash <plet_dir> --iter-id ITR_xxx [--dry-run] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating (creates commit on workstream), not idempotent (running twice creates a duplicate commit)
 
@@ -300,7 +300,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 ### GTO_AFL_1: Phase end — audit tag (implement or verify)
 
 1. Subagent finishes phase (implement or verify)
-2. Orchestrator runs: `plet_git_ops.py audit-tag --iter-id ITR_001 --phase implement`
+2. Orchestrator runs: `git_ops.py audit-tag --iter-id ITR_001 --phase implement`
 3. Tag created: `plet/LOGA/loop1/audit/ITR_001/implement-1` at current HEAD
 4. Incremental commits stay on iteration branch (no squashing)
 5. If verify: same flow with `--phase verify`. Tag always created even if verify made no commits (consistent audit trail)
@@ -309,7 +309,7 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 1. Iteration reaches `complete` lifecycle (all phases done, all criteria pass)
 2. Orchestrator checks out workstream: `git checkout plet/LOGA/loop1/workstream`
-3. Orchestrator runs: `plet_git_ops.py merge-squash --iter-id ITR_001`
+3. Orchestrator runs: `git_ops.py merge-squash --iter-id ITR_001`
 4. One commit on workstream: `plet: [ITR_001] - Project scaffolding`
 5. If `cleanupTagsAutomatically`: all audit tags for ITR_001 deleted, hashes logged
 6. If `cleanupBranchesAutomatically`: iteration branch deleted
@@ -321,15 +321,15 @@ GTO owns audit-tag (phase boundary markers) and merge-squash (iteration → work
 
 ```bash
 # During iteration: audit-tag at each phase end
-plet_git_ops.py audit-tag --iter-id ITR_001 --phase implement
+git_ops.py audit-tag --iter-id ITR_001 --phase implement
 # OK — created audit tag plet/LOGA/loop1/audit/ITR_001/implement-1 at abc1234
 
-plet_git_ops.py audit-tag --iter-id ITR_001 --phase verify
+git_ops.py audit-tag --iter-id ITR_001 --phase verify
 # OK — created audit tag plet/LOGA/loop1/audit/ITR_001/verify-1 at def5678
 
 # After iteration completes: merge-squash to workstream
 git checkout plet/LOGA/loop1/workstream
-plet_git_ops.py merge-squash --iter-id ITR_001
+git_ops.py merge-squash --iter-id ITR_001
 # OK — merged to workstream: plet: [ITR_001] - Project scaffolding (ghi9012)
 #   Phases: implement×1, verify×1
 #   Criteria: 3/3 passed
@@ -339,7 +339,7 @@ plet_git_ops.py merge-squash --iter-id ITR_001
 
 ```bash
 git checkout plet/LOGA/loop1/workstream
-plet_git_ops.py merge-squash --iter-id ITR_001
+git_ops.py merge-squash --iter-id ITR_001
 # OK — merged to workstream: plet: [ITR_001] - Project scaffolding (ghi9012)
 #   Tag plet/LOGA/loop1/audit/ITR_001/implement-1 deleted (was at abc1234)
 #   Tag plet/LOGA/loop1/audit/ITR_001/verify-1 deleted (was at def5678)
@@ -349,14 +349,14 @@ plet_git_ops.py merge-squash --iter-id ITR_001
 ### GTO_EXM_3: Dry-run merge-squash
 
 ```bash
-plet_git_ops.py merge-squash --iter-id ITR_001 --dry-run
+git_ops.py merge-squash --iter-id ITR_001 --dry-run
 # DRY RUN — would merge-squash plet/LOGA/loop1/ITR_001 to workstream: plet: [ITR_001] - Project scaffolding
 ```
 
 ### GTO_EXM_4: JSON output
 
 ```bash
-plet_git_ops.py merge-squash --iter-id ITR_001 --output json --pretty
+git_ops.py merge-squash --iter-id ITR_001 --output json --pretty
 # {
 #   "status": "ok",
 #   "command": "merge-squash",
@@ -378,7 +378,7 @@ plet_git_ops.py merge-squash --iter-id ITR_001 --output json --pretty
 | GTO_DEP_2 | imports | `util_state` | `load_and_validate_global_state`, `load_and_validate_iter_state` |
 | GTO_DEP_3 | called by | `plet_orchestrator.py` | phase-end squash workflow |
 
-No outgoing calls to other `plet_*.py` scripts — `plet_git_ops.py` is a leaf CLI tool. Calls `git` directly via `subprocess`.
+No outgoing calls to other `plet_*.py` scripts — `git_ops.py` is a leaf CLI tool. Calls `git` directly via `subprocess`.
 
 ## 10. Non-Functional Requirements (GTO_NFR)
 

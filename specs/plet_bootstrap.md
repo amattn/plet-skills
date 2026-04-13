@@ -1,4 +1,4 @@
-# plet_bootstrap.py (BST)
+# bootstrap.py (BST)
 
 > Status: complete
 
@@ -6,7 +6,7 @@
 
 Project setup script — configures a target project for plet operation. Sets up git config (merge driver, .gitattributes), creates .gitignore, merges plet allow entries into .claude/settings.json, creates CLAUDE.md stub.
 
-The LOGA Run 4 script discovery problem (subagents couldn't find scripts) is solved separately via `plet_prompt.py` including the absolute script path in the subagent prompt. Bootstrap handles everything else — the project infrastructure that needs to exist before plet can operate.
+The LOGA Run 4 script discovery problem (subagents couldn't find scripts) is solved separately via `prompt.py` including the absolute script path in the subagent prompt. Bootstrap handles everything else — the project infrastructure that needs to exist before plet can operate.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -59,7 +59,7 @@ All commands take `<project_dir>` as required first positional arg (the project 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| BST_SET_CMD_1 | Usage: `plet_bootstrap.py setup <project_dir> [--force] [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| BST_SET_CMD_1 | Usage: `bootstrap.py setup <project_dir> [--force] [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** mutating, idempotent (safe to re-run)
 
@@ -116,13 +116,13 @@ All commands take `<project_dir>` as required first positional arg (the project 
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | BST_CHK_JUS_1 | Why: preflight needs to detect missing bootstrap artifacts. `check` reports what's missing or outdated without modifying anything. | P0 |
-| BST_CHK_JUS_2 | When: `plet_gate_session.py preflight` can call this to verify bootstrap state. Human debugging. | P0 |
+| BST_CHK_JUS_2 | When: `gate_session.py preflight` can call this to verify bootstrap state. Human debugging. | P0 |
 
 #### Definition (BST_CHK_CMD)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| BST_CHK_CMD_1 | Usage: `plet_bootstrap.py check <project_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
+| BST_CHK_CMD_1 | Usage: `bootstrap.py check <project_dir> [--output json [--pretty] [--fields f1,f2]]` | P0 |
 
 **Properties:** read-only, idempotent
 
@@ -182,14 +182,14 @@ All commands take `<project_dir>` as required first positional arg (the project 
 
 | ID | Flow | Steps |
 |----|------|-------|
-| BST_AFL_1 | Plan phase setup | 1. User runs `/plet` or `/plet plan`. 2. SKILL.md agent calls `plet_bootstrap.py setup .` 3. Bootstrap copies scripts, configures git. 4. Agent proceeds to plan session. |
-| BST_AFL_2 | Preflight triggers setup | 1. User runs `/plet loop`. 2. Preflight calls `plet_bootstrap.py check .` → FAIL (missing config). 3. SKILL.md agent calls `plet_bootstrap.py setup .` 4. Re-runs preflight → pass. 5. Proceeds to loop. |
+| BST_AFL_1 | Plan phase setup | 1. User runs `/plet` or `/plet plan`. 2. SKILL.md agent calls `bootstrap.py setup .` 3. Bootstrap copies scripts, configures git. 4. Agent proceeds to plan session. |
+| BST_AFL_2 | Preflight triggers setup | 1. User runs `/plet loop`. 2. Preflight calls `bootstrap.py check .` → FAIL (missing config). 3. SKILL.md agent calls `bootstrap.py setup .` 4. Re-runs preflight → pass. 5. Proceeds to loop. |
 
 ## 8. Examples (BST_EXM)
 
 ```bash
 # Full project bootstrap
-plet_bootstrap.py setup .
+bootstrap.py setup .
 # created: .plet/ directory
 # created: .gitignore (3 entries: .plet/, .claude/settings.local.json, CLAUDE.local.md)
 # configured: merge driver (plet-append)
@@ -201,7 +201,7 @@ plet_bootstrap.py setup .
 # Bootstrap complete: 3 created, 2 configured, 1 warning
 
 # Check bootstrap state
-plet_bootstrap.py check .
+bootstrap.py check .
 # pass: .plet/ directory exists
 # pass: .gitignore (3 entries present)
 # pass: merge driver configured
@@ -215,7 +215,7 @@ plet_bootstrap.py check .
 # 9 passed, 0 failed, 1 warning
 
 # Re-run (idempotent)
-plet_bootstrap.py setup .
+bootstrap.py setup .
 # skipped: .plet/ (exists)
 # skipped: .gitignore (entries present)
 # skipped: merge driver (configured)
@@ -232,7 +232,7 @@ plet_bootstrap.py setup .
 |----|------------|-----------|-------------|
 | BST_DEP_1 | Own `__file__` path | reads | Derives scripts dir location for CLAUDE.md stub content |
 | BST_DEP_2 | `util_cli.py` | imports | Argument parsing, dispatch, output formatting |
-| BST_DEP_3 | `plet_gate_session.py` | called by | Preflight can call `check` to verify bootstrap state |
+| BST_DEP_3 | `gate_session.py` | called by | Preflight can call `check` to verify bootstrap state |
 | BST_DEP_4 | SKILL.md | called by | Plan phase and preflight-triggered setup |
 
 ## 10. Non-Functional Requirements (BST_NFR)
@@ -278,14 +278,14 @@ plet_bootstrap.py setup .
 |---|----------|------------|
 | 1 | Where to put scripts? | Don't copy — subagents discover via prompt (seq 44). Bootstrap focuses on project infrastructure. Script copying is BST_FUT_2 (offline backup). |
 | 2 | When does bootstrap run? | Plan phase (once per project), or when preflight detects missing artifacts. |
-| 3 | New script or existing command? | New script `plet_bootstrap.py` — clear purpose, discoverable. |
+| 3 | New script or existing command? | New script `bootstrap.py` — clear purpose, discoverable. |
 | 4 | `--force` overwrite CLAUDE.md? | No — CLAUDE.md is user content, never overwritten even with `--force`. |
 
 ## 15. Future Considerations (BST_FUT)
 
 | ID | Consideration |
 |----|---------------|
-| BST_FUT_1 | `start-session` could call `plet_bootstrap.py check` and auto-run `setup` if needed. Ensures every loop starts with correct bootstrap state. |
+| BST_FUT_1 | `start-session` could call `bootstrap.py check` and auto-run `setup` if needed. Ensures every loop starts with correct bootstrap state. |
 | BST_FUT_2 | Copy scripts to `.plet/scripts/` as offline backup. Not needed for discovery (prompt includes path), but useful if user runs on a machine without the plet plugin installed. Would need to handle .gitignore and worktree visibility. |
 | BST_FUT_3 | Copy reference files (implement.md, verify.md, state-schema.md) into `.plet/references/` for subagent access. |
 

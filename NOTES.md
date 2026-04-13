@@ -263,8 +263,8 @@ This refines SF_26: "During the subagent's execution, only the subagent writes t
 
 The lifecycle extraction (seq 39) splits `plet_state.py` along the ownership boundary:
 
-- **plet_global_state.py** (GST) — state.json: `init`, `update-lifecycle`, `get-lifecycle`, `validate`
-- **plet_iter_state.py** (IST) — per-iteration files with high-level agent-friendly commands: `init`, `phase-start`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `validate`
+- **global_state.py** (GST) — state.json: `init`, `update-lifecycle`, `get-lifecycle`, `validate`
+- **iter_state.py** (IST) — per-iteration files with high-level agent-friendly commands: `init`, `phase-start`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `validate`
 
 Design principle: commands match agent workflow, not JSON structure. `start-phase` replaces ~5 manual `update-field` calls. `set-verdict` auto-sets `phaseActivity` to `idle`. See specs/NOTES.md for full command design and rationale.
 
@@ -479,7 +479,7 @@ Progress entries from the auto-logger previously dumped the full 94KB prompt int
 
 Also removed the `**Files changed:**` field entirely — git history is the source of truth for file changes.
 
-#### Bootstrap script — plet_bootstrap.py (2026-04-01)
+#### Bootstrap script — bootstrap.py (2026-04-01)
 
 New script for project setup automation. `setup` command: creates .plet/ dir, .gitignore (3 entries), .gitattributes (merge driver + merge=ours for state.json), git config for merge driver, CLAUDE.md stub, .claude/settings.json (merge allow entries), permissions check. `check` command: read-only verification of all bootstrap items + empirical sandbox detection. 46 tests.
 
@@ -1354,12 +1354,12 @@ Design decisions, alternatives discussed, and rationale for each plan chunk. PLA
 8 strategies across 3 categories to eliminate ~150 `--help` lookups/run. Key decisions:
 
 - **Reshape first, document last.** Orchestrator takes over more bookkeeping (HLP_2B) and a phase-complete composite command reduces the surface (HLP_2A) *before* creating cheat sheets or inlining examples — no point documenting commands that will change.
-- **Pre-fill context in prompts.** plet_prompt.py assembles CLI examples with iter_id/phase already filled in (HLP_1C). Zero discovery needed for the most common calls.
+- **Pre-fill context in prompts.** prompt.py assembles CLI examples with iter_id/phase already filled in (HLP_1C). Zero discovery needed for the most common calls.
 - **Make discovery cheap.** `--usage` for terse help (HLP_3A), cheat sheet reference in `--help` output (HLP_3C).
 - **Excluded:** 2C (batch artifact writes — sacrifices crash recovery). Strategy 4 options (unified CLI, Python API, SDK) — architectural changes beyond scope.
 - **3B clarification:** env var points to cheat sheet file path, not inline content.
 
-#### HLP_2A — plet_phase.py end (2026-04-03)
+#### HLP_2A — phase.py end (2026-04-03)
 
 New composite command that bundles end-of-phase bookkeeping into one call: set-verdict → add-progress → append-event → audit-tag → git commit. Replaces 5-6 separate CLI calls from the subagent. Wired into implement.md (Completing the Phase, Blocker Protocol, Failed Attempt, Missing Dependency) and verify.md (Completing the Phase, Cycle Back, Blocker Protocol). Gate-post stays as a separate subagent call — it's a quality check with a self-correction loop, not bookkeeping.
 
@@ -1393,7 +1393,7 @@ HLP_1A (inline examples in reference files) deferred — HLP_1C (prompt assemble
 
 First run with 0.4.3 HLP improvements. Key results vs Run 6:
 - --help lookups: 150 → 98 (-35%). Implement agents nearly eliminated (1.2 avg). Verify agents still heavy (82 of 98).
-- plet_phase.py end: 100% adoption (26/26). Impl→verify gaps collapsed 89% (1:47 → 0:17).
+- phase.py end: 100% adoption (26/26). Impl→verify gaps collapsed 89% (1:47 → 0:17).
 - Total wall-clock: 3:04 → 2:49 (-15 min). Code 16% more compact.
 - --usage flag: 49 uses. Cheat sheet: 16 references (verify agents only).
 
@@ -1454,7 +1454,7 @@ Canonical home: specs/NOTES.md § SPEC_PLN_CLN (script tooling). Validator patte
 - Conflict recovery already does a rebase — the squash is an extra step on top of something that already works
 
 **What changes:**
-- `plet_git_ops.py`: new `rebase-commit` command — `git rebase workstream` on iter branch, then `git checkout workstream && git merge --ff-only iter_branch`. Old `merge-squash` command stays (alternative strategy, some projects may prefer squashed history).
+- `git_ops.py`: new `rebase-commit` command — `git rebase workstream` on iter branch, then `git checkout workstream && git merge --ff-only iter_branch`. Old `merge-squash` command stays (alternative strategy, some projects may prefer squashed history).
 - Orchestrator: `_try_merge_squash` / `_handle_merge_conflict` simplify to rebase + ff-merge via `rebase-commit`
 - Conflict recovery: rebase failure → requeue for implement (same as today, but without the merge-squash retry layer)
 - Commit history: workstream shows all wip commits from each iteration, linear (rebase ensures no merge commits)
@@ -1479,7 +1479,7 @@ _handle_passed_verdict
 New rebase-commit (1 layer):
 ```
 _handle_passed_verdict
-  → plet_git_ops.py rebase-commit
+  → git_ops.py rebase-commit
     → git rebase ws_branch (on iter branch)
     → if conflict: abort, return error
     → git checkout ws_branch
@@ -1505,7 +1505,7 @@ Key simplifications:
 
 1. Orchestrator runs `rebase-commit` → fails (conflict)
 2. Orchestrator sets lifecycle → `queued`, writes `requeue_reason: "rebase_conflict"` to iter state
-3. Prompt assembler sees requeue reason, injects exact command: `plet_git_ops.py rebase-prep plet/ --iter-id ITR_002`
+3. Prompt assembler sees requeue reason, injects exact command: `git_ops.py rebase-prep plet/ --iter-id ITR_002`
 4. Implement agent runs `rebase-prep` — rebase starts, conflicts reported (which files)
 5. Agent resolves conflicts, `git add`, `git rebase --continue`
 6. Agent continues normal implement flow
@@ -1538,7 +1538,7 @@ SECOND PASS (requeued)
 ══════════════════════
 8.  Orchestrator spawns ITR_002 again → implement agent runs in worktree
 9.  Prompt includes: "⚠️ Requeued due to merge conflict.
-     Run: plet_git_ops.py rebase-prep plet/ --iter-id ITR_002"
+     Run: git_ops.py rebase-prep plet/ --iter-id ITR_002"
 10. Agent runs rebase-prep
     → git rebase workstream
     → CONFLICT in shared.txt
@@ -1592,7 +1592,7 @@ This accepts that parallel execution of file-conflicting iterations is not worth
 
 **Decision (2026-04-06): Implement-end rebase + dynamic parallel stop.** Two-layer defense:
 
-**Layer 1: Implement-end rebase (proactive).** Every implement phase ends with `rebase-prep` as the last step before `plet_phase.py end`. The implement agent rebases its iteration branch onto the current workstream. If there's a conflict, the agent resolves it — it has full context (just wrote the code). Verify then checks integrated code (as it will exist on workstream). The orchestrator's ff-merge at finalize is usually a no-op.
+**Layer 1: Implement-end rebase (proactive).** Every implement phase ends with `rebase-prep` as the last step before `phase.py end`. The implement agent rebases its iteration branch onto the current workstream. If there's a conflict, the agent resolves it — it has full context (just wrote the code). Verify then checks integrated code (as it will exist on workstream). The orchestrator's ff-merge at finalize is usually a no-op.
 
 Why this works better than orchestrator-driven rebase or prompt injection:
 - Agent has full context for conflict resolution (it just wrote the code)
@@ -1664,7 +1664,7 @@ First rebase is usually a no-op. When it's not (requeued iteration), it catches 
 The theoretical 46% speedup from parallelism never materialized — overhead and failure recovery ate it.
 
 **What stays:**
-- All script/tooling improvements (gate scripts, plet_phase.py, coverage infra, plet_state.py, etc.)
+- All script/tooling improvements (gate scripts, phase.py, coverage infra, plet_state.py, etc.)
 - RBS rebase-commit for clean linear history on the workstream
 - Audit tags — tag at end of every phase, every iteration, and every loop
 - One workstream branch per loop (`plet/{projectId}/loop{N}/workstream`)
@@ -1690,16 +1690,16 @@ The theoretical 46% speedup from parallelism never materialized — overhead and
 **Estimated overhead (pre-R14):**
 
 Per AC (currently ~5 plet calls each):
-- `plet_iter_state.py update-criterion` — state tracking
-- `plet_git_ops.py wip-commit` — incremental commit
+- `iter_state.py update-criterion` — state tracking
+- `git_ops.py wip-commit` — incremental commit
 - `plet_entries.py add-progress` — audit trail
 - `plet_trace.py append-event` — telemetry
 - `plet_entries.py add-learning` — (if any)
 
 Per phase (~5 more):
-- `plet_git_ops.py rebase-prep` — start + end (PLAN_SEQ already removes)
-- `plet_git_ops.py audit-tag` — history preservation
-- `plet_phase.py end` — verdict + gate checks
+- `git_ops.py rebase-prep` — start + end (PLAN_SEQ already removes)
+- `git_ops.py audit-tag` — history preservation
+- `phase.py end` — verdict + gate checks
 - `plet_entries.py add-progress` — phase summary
 
 Estimated: ~30 plet Bash calls vs ~10-15 application calls for a 5-AC iteration. R06 measured 53% infrastructure.
@@ -1737,7 +1737,7 @@ All open. To be considered carefully before implementation.
 
 - **OQ_2A: `plet_state.py update-criterion` (per AC).** `[decided]` Keep. Verify agent needs per-AC status to know what to check. Core signal.
 
-- **OQ_2B: `plet_phase.py end` (per phase).** `[decided]` Keep. One call to wrap up.
+- **OQ_2B: `phase.py end` (per phase).** `[decided]` Keep. One call to wrap up.
 
 - **OQ_2C: Learnings/emergent → optional, asked after every green AC.** `[decided]` Per OQ_1E. Two tight questions after each green AC. Starting with per-AC frequency (B) — can optimize to once-at-end (A) later and compare entry quality between approaches.
 
@@ -1767,12 +1767,12 @@ All open. To be considered carefully before implementation.
 
 Per AC:
 - `plet_state.py update-criterion` — state tracking (auto-generates progress entry + trace event)
-- `plet_git_ops.py wip-commit` — incremental commit
+- `git_ops.py wip-commit` — incremental commit
 - (optional) `plet_entries.py add-learning` — after green, if anything learned
 - (optional) `plet_entries.py add-emergent` — after green, if anything emergent
 
 Per phase:
-- `plet_phase.py end` — verdict, gate checks, audit tag
+- `phase.py end` — verdict, gate checks, audit tag
 
 Total: **~12-16 plet calls** (down from ~30). The agent *thinks* about 2 mandatory per AC (update-criterion, wip-commit) + 2 optional reflections per AC + 1 per phase (phase end). Progress, traces, and tags are invisible infrastructure. Learnings/emergent frequency starts at per-AC (B) — compare with once-at-end (A) in a later run.
 
@@ -2044,11 +2044,11 @@ Pattern-oriented:
 Artifact-oriented:
 5. Review emergent.md for deferred cleanup items
 6. Review learnings.md entries from at least this milestone's iterations
-7. Audit high-churn files (via `plet_git_check.py churn` command — new, detects files touched by many iterations)
+7. Audit high-churn files (via `git_check.py churn` command — new, detects files touched by many iterations)
 
 Rejected: quality ratchet items (ruff, McCabe, coverage) — already enforced by linter/test suite, not refactor goals. Deep nesting / high complexity — same, linter job.
 
-Note on #7: `churn` command added to PLAN_RFT scope — natural home in plet_git_check.py which already does git analysis. Lists files by commit count since workstream start, flags outliers.
+Note on #7: `churn` command added to PLAN_RFT scope — natural home in git_check.py which already does git analysis. Lists files by commit count since workstream start, flags outliers.
 
 **Still open:**
 
@@ -2536,7 +2536,7 @@ Alternative to PLAN_MSV. Run verify in parallel with the next iteration's implem
 
 #### NOTES_PLN_VOS_0: Core insight — audit tags enable safe parallelism (2026-04-11)
 
-The key enabler is that plet already creates audit tags after every implement phase (`plet_git_ops.py audit-tag`). These are immutable git refs pointing to the exact code state after implement. If verify checks out an audit tag (via worktree), it reads frozen code while implement works on the live branch. No merge conflicts possible.
+The key enabler is that plet already creates audit tags after every implement phase (`git_ops.py audit-tag`). These are immutable git refs pointing to the exact code state after implement. If verify checks out an audit tag (via worktree), it reads frozen code while implement works on the live branch. No merge conflicts possible.
 
 The second enabler: restricting verify to artifact-only writes. Current verify writes:
 - Criterion updates (per-iteration state file) ✓ safe — different file than next implement's state
@@ -3431,7 +3431,7 @@ SKILL.md had contradicting directives: Git Strategy said "Agents never commit to
 
 #### Orchestrator owns start-phase — DECIDED (2026-04-03)
 
-FOO_61: `plet_iter_state.py start-phase` was only called by subagents via prose instructions in implement.md/verify.md. In LOGA Run 2, the subagent never called it — attempt counters stayed at 0. Moved to the orchestrator: `_run_implement_phase` and `_run_verify_phase` now call `start-phase` before spawning the subagent. Attempt counting, phase timestamps, and verdict clearing are deterministic. Mock claude updated to not duplicate the increment.
+FOO_61: `iter_state.py start-phase` was only called by subagents via prose instructions in implement.md/verify.md. In LOGA Run 2, the subagent never called it — attempt counters stayed at 0. Moved to the orchestrator: `_run_implement_phase` and `_run_verify_phase` now call `start-phase` before spawning the subagent. Attempt counting, phase timestamps, and verdict clearing are deterministic. Mock claude updated to not duplicate the increment.
 
 #### Gate validates verdict values — DECIDED (2026-04-03)
 
@@ -3439,7 +3439,7 @@ FOO_63: `check_implement_verdict` and `check_verify_verdict` in gate_phase.py on
 
 #### Orchestrator validates state.json at startup — DECIDED (2026-04-03)
 
-Dead code audit found `plet_global_state.py validate` had zero production callers. Added as the first step in `_setup_session`, before preflight or fingerprint checks. If state.json is corrupt, the orchestrator exits immediately with a clear error rather than proceeding with invalid state. Also found `get-lifecycle` and `plet_trace.py query` have no production callers — kept as diagnostic/query tools for humans and GUI.
+Dead code audit found `global_state.py validate` had zero production callers. Added as the first step in `_setup_session`, before preflight or fingerprint checks. If state.json is corrupt, the orchestrator exits immediately with a clear error rather than proceeding with invalid state. Also found `get-lifecycle` and `plet_trace.py query` have no production callers — kept as diagnostic/query tools for humans and GUI.
 
 #### Emergent ID convention: EM_{iter_id}_{N} — DECIDED (2026-04-06)
 
@@ -3461,7 +3461,7 @@ LOGA R14: v0.6.2, parallel, 13/13, 1h53m. Key findings:
 - **Parallel = zero net speedup.** 8 retries (~95m) consumed the parallelism savings. Wall clock identical to R08 (sequential, 0.4.x).
 - **Sequential estimate: 2h29m.** Sum of first-attempt durations (137.3m) + overhead. 36m slower than R08, but ~18m is impl→vfy gap ceremony (post-gate artifact cleanup, pre-rebase prep) that PLAN_SEQ eliminates.
 - **Impl→vfy gaps are ceremony, not spawn time.** 20.9m total (avg 1.6m/iter) spent on 4-6 artifact cleanup commits between implement-completed and verify-start. With PLAN_SEQ: ~3m total.
-- **Learnings/emergent: 64 entries, 41 genuine (64%).** 14 were parallel-specific (rebase conflict learnings), 7 were template/filler (gate-gaming). The genuine 41 entries (3.2/iter) are a real improvement over R06 (0.2/iter), driven by PLAN_RW reference files + plet_entries.py + plet_prompt.py learnings injection.
+- **Learnings/emergent: 64 entries, 41 genuine (64%).** 14 were parallel-specific (rebase conflict learnings), 7 were template/filler (gate-gaming). The genuine 41 entries (3.2/iter) are a real improvement over R06 (0.2/iter), driven by PLAN_RW reference files + plet_entries.py + prompt.py learnings injection.
 - **Post-gate dirty worktree (EM_9)** is structurally broken — gate writes progress, dirties worktree, agent commits to fix, gate runs again. Recurring across multiple iterations.
 - **Emergent EM ID numbering broken** by parallel execution — agents from different iterations each started their own counter.
 
@@ -3485,7 +3485,7 @@ Detailed per-iteration timing analysis from transcript files. Key findings:
 
 #### Auto-build verification report from state (2026-04-04)
 
-`plet_phase.py end --summary "..."` auto-builds the verification report from criteria in the state file. Agents never construct criteriaResults JSON manually. The only new inputs are `--summary` (prose headline) and optionally `--findings` (JSON array of observation strings). Everything else is derived from `update-criterion` calls already in the state file.
+`phase.py end --summary "..."` auto-builds the verification report from criteria in the state file. Agents never construct criteriaResults JSON manually. The only new inputs are `--summary` (prose headline) and optionally `--findings` (JSON array of observation strings). Everything else is derived from `update-criterion` calls already in the state file.
 
 #### Verification report fields on update-criterion (2026-04-04)
 
@@ -3494,7 +3494,7 @@ Added `oneLiner`, `redTest`, `noTestRationale` fields to the verification object
 - `--no-test-rationale` required when `--red-test none` AND `--status fail`
 - Pass path: all fields auto-default (oneLiner from first sentence of evidence)
 
-`_build_criteria_results` in plet_phase.py reads these from state instead of hardcoding. SCHEMA_VERSION bumped to 0.4.0 (additive fields).
+`_build_criteria_results` in phase.py reads these from state instead of hardcoding. SCHEMA_VERSION bumped to 0.4.0 (additive fields).
 
 
 **Validation return convention — completed (2026-04-04):** Unified all shared validation functions in util_cli.py to a consistent return pattern:
@@ -3506,7 +3506,7 @@ Also cleaned up:
 - `get_plet_dir` → returns 3-tuple `(plet_dir, remaining, err_str)` (was 2-tuple, error printed)
 - `extract_output_flags` → returns 6-tuple with `err_msg` as 6th element (was 5-tuple, error printed)
 - `parse_command` → returns `(0, help_text, "")` for help, `(1, "", err)` for error, 6-tuple for success (was `"help"`, `None`, 6-tuple — callers needed three-way check)
-- `_load_session_state`, `_check_active_sessions` in plet_session.py → return error strings instead of printing
+- `_load_session_state`, `_check_active_sessions` in session.py → return error strings instead of printing
 - Zero `print(file=sys.stderr)` remaining in any validation path. Only dispatch() (the stdout/stderr boundary), orchestrator/invoke (streaming), and merge_driver (git-called) still print directly.
 - ~60 call sites updated across all 17 scripts. Coverage improved: 87.1% → 87.4%.
 

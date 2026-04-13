@@ -462,7 +462,7 @@ Each acceptance criterion has separate `implementation` and `verification` objec
 }
 ```
 
-**Verification-specific fields (used by `plet_phase.py end` to auto-build reports):**
+**Verification-specific fields (used by `phase.py end` to auto-build reports):**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|

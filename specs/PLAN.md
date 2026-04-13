@@ -15,7 +15,7 @@ Order of spec authoring for PLAN_PY. Each spec is written, reviewed, and approve
 
 ## FOO Traceability
 
-These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_git.py` → FOO_30, FOO_31, FOO_32, FOO_35 (git stashes, lost commits, orphaned worktrees). `plet_gate_session.py` → FOO_16, FOO_22, FOO_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FOO_11 (trace schema standardization). `plet_gate_phase.py` → FOO_29, FOO_33, FOO_11, FOO_40 (learnings/emergent enforcement, progress completeness, trace validation, lifecycle transitions). `plet_prompt.py` → FOO_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FOO_31, FOO_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FOO_17, FOO_29, FOO_44 (runtime artifact formatting, multiline content).
+These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_git.py` → FOO_30, FOO_31, FOO_32, FOO_35 (git stashes, lost commits, orphaned worktrees). `gate_session.py` → FOO_16, FOO_22, FOO_23 (spec preservation, bypassPermissions warning, CLAUDE.md bootstrap). `plet_trace.py` → FOO_11 (trace schema standardization). `gate_phase.py` → FOO_29, FOO_33, FOO_11, FOO_40 (learnings/emergent enforcement, progress completeness, trace validation, lifecycle transitions). `prompt.py` → FOO_38 (cross-iteration knowledge transfer). `plet_orchestrator.py` → FOO_31, FOO_34 (session lifecycle, first-iteration recommendation). `plet_entries.py` → FOO_17, FOO_29, FOO_44 (runtime artifact formatting, multiline content).
 
 ## Build Order
 
@@ -32,31 +32,31 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 8 | Implement `plet_trace.py` | Build from spec. |
 | 9 | `plet_git_iteration.py` spec (GTI) | Iteration git lifecycle — branch naming, creation, worktree create/remove. Leaf. |
 | 10 | Implement `plet_git_iteration.py` | Build from spec. |
-| 11 | `plet_git_ops.py` spec (GTO) | Git workflow operations — squash, audit-tag. Called by orchestrator. |
-| 12 | Implement `plet_git_ops.py` | Build from spec. |
-| 13 | `plet_git_check.py` spec (GTC) | Git compliance checks — check-iteration, check-session. Called by gate scripts and orchestrator. |
+| 11 | `git_ops.py` spec (GTO) | Git workflow operations — squash, audit-tag. Called by orchestrator. |
+| 12 | Implement `git_ops.py` | Build from spec. |
+| 13 | `git_check.py` spec (GTC) | Git compliance checks — check-iteration, check-session. Called by gate scripts and orchestrator. |
 | 14 | Implement `util_subprocess.py` + retrofit GTI/GTO | Shared subprocess wrapper (run, run_git). Retrofit existing scripts to use it. |
-| 15 | Implement `plet_git_check.py` | Build from spec. Uses util_subprocess. |
-| 16 | `plet_gate_session.py` spec (GSS, originally SES) | Depends on FPR (calls `check-fingerprints` or reimplements). Preflight checks. |
-| 17 | Implement `plet_gate_session.py` | Build from spec. |
+| 15 | Implement `git_check.py` | Build from spec. Uses util_subprocess. |
+| 16 | `gate_session.py` spec (GSS, originally SES) | Depends on FPR (calls `check-fingerprints` or reimplements). Preflight checks. |
+| 17 | Implement `gate_session.py` | Build from spec. |
 | 18 | `plet_gate_impl.py` spec (GIM) | Depends on ENT (`check`), STA (`validate`), GTC (`check-iteration`). Called by orchestrator. |
 | 19 | Implement `plet_gate_impl.py` | Build from spec. |
 | 20 | `plet_gate_verify.py` spec (GVR) | Depends on ENT (`check`), STA (`validate`), GTC (`check-iteration`). Called by orchestrator. |
 | 21 | Implement `plet_gate_verify.py` | Build from spec. |
-| 21a | Merge GIM+GVR → `plet_gate_phase.py` (GPH) | Merged into one script with `--phase implement\|verify`. Eliminated util_gate_phase.py. |
-| 22 | `plet_prompt.py` spec (PRM) | Prompt assembly for subagents. Depends on knowing what reference files exist. Called by plet_invoke.py. |
-| 23 | Implement `plet_prompt.py` | Build from spec. |
+| 21a | Merge GIM+GVR → `gate_phase.py` (GPH) | Merged into one script with `--phase implement\|verify`. Eliminated util_gate_phase.py. |
+| 22 | `prompt.py` spec (PRM) | Prompt assembly for subagents. Depends on knowing what reference files exist. Called by plet_invoke.py. |
+| 23 | Implement `prompt.py` | Build from spec. |
 | 24 | `plet_invoke.py` spec (INV) | Depends on PRM (calls assemble) and TRC (writes transcript alongside events). Subprocess launch + transcript capture. |
 | 25 | Implement `plet_invoke.py` | Build from spec. Uses util_subprocess. |
-| 26 | Rename `plet_session.py` → `plet_gate_session.py` (GSS) | Read-only session gates (detect, status, preflight) renamed to match `plet_gate_phase.py` pattern. SES prefix → GSS. Global rename across specs, scripts, tests, references. |
-| 27 | `plet_schedule.py` spec (SCH) | Loop scheduling — eligible, check-breakpoints, check-retry. All read-only. Foundation for orchestrator. |
-| 28 | Implement `plet_schedule.py` | Build from spec. |
-| 29 | `plet_session.py` spec (SES — prefix reused) | Session lifecycle — start-session, end-session. Mutating. Manages loopSessionCount, sessionHistory, workstream branches. |
-| 30 | Implement `plet_session.py` | Build from spec. |
+| 26 | Rename `session.py` → `gate_session.py` (GSS) | Read-only session gates (detect, status, preflight) renamed to match `gate_phase.py` pattern. SES prefix → GSS. Global rename across specs, scripts, tests, references. |
+| 27 | `schedule.py` spec (SCH) | Loop scheduling — eligible, check-breakpoints, check-retry. All read-only. Foundation for orchestrator. |
+| 28 | Implement `schedule.py` | Build from spec. |
+| 29 | `session.py` spec (SES — prefix reused) | Session lifecycle — start-session, end-session. Mutating. Manages loopSessionCount, sessionHistory, workstream branches. |
+| 30 | Implement `session.py` | Build from spec. |
 | 31 | Standardize NDJSON — rename .jsonl → .ndjson across repo | Sweep pass: transcript paths in util_io, plet_invoke, state-schema, tests, specs, references. ~51 references in 16 files. NDJSON for plet-produced files; preserve source format for copied files. |
 | 32 | Retrofit UNV_CMD_29 (unknown flags error) across existing scripts | Extract `validate_flags` into `util_cli`, retrofit all 11 existing scripts + 3 new scripts. Pattern proven during plet_schedule + plet_session implementation. |
 | 33 | `plet_orchestrator.py` spec (ORC) | Depends on everything above. The capstone. Toolkit + run model. Calls plet_schedule, plet_session, plet_invoke, and all existing scripts. |
-| 34 | Implement ORC-emergent script updates | 3 scripts need code changes from ORC spec review: (1) plet_gate_phase.py — lifecycle-handoff check, lifecycle-unchanged check, audit-tag existence check (GPH_PST_BHV_11-13, FOO_55). (2) plet_gate_session.py — new postflight command (FOO_56). (3) plet_schedule.py — stuck iteration detection in eligible (SCH_ELG_BHV_5). Red/green for each. |
+| 34 | Implement ORC-emergent script updates | 3 scripts need code changes from ORC spec review: (1) gate_phase.py — lifecycle-handoff check, lifecycle-unchanged check, audit-tag existence check (GPH_PST_BHV_11-13, FOO_55). (2) gate_session.py — new postflight command (FOO_56). (3) schedule.py — stuck iteration detection in eligible (SCH_ELG_BHV_5). Red/green for each. |
 | 35 | Cascade lifecycle ownership model | Sweep: update implement.md, verify.md, SKILL.md, state-schema.md, prd.md, PLET.md, plet_state.md with handoffs-vs-decisions model. Must complete before ORC implementation — subagents read these during work. |
 | 36 | Implement `plet_orchestrator.py` | Build from spec. |
 | 37 | Make plet_dir required positional (FOO_57) | Less invasive than --plet-dir flag: keep positional, remove default. `get_plet_dir` errors if missing instead of falling back to `plet/`. Update tests that rely on default. Eliminates ordering confusion + supports subplet nested paths. Plan with PLAN_EVL (subplets). |
@@ -74,27 +74,27 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 39b | PRD — SF_28 lifecycle extraction requirement | New requirement: lifecycle in state.json.lifecycles, not per-iteration files. Update SF_26/27 to reference. |
 | 39c | state-schema.md — add lifecycles field, document per-iteration schema changes | Additive (state.json gains `lifecycles`) + document planned subtractive (per-iteration loses `lifecycle`, `lastVerdict`; gains `implementVerdict`, `verifyVerdict`; renames `agentActivity` → `phaseActivity`). Migration notes. |
 | 39d | util_state.py — dual-schema migration mode | Accept BOTH old and new field names during migration. `lifecycle` becomes optional (not required). Accept `agentActivity` OR `phaseActivity`. Accept `lastVerdict` OR `implementVerdict`/`verifyVerdict`. Add `validate_global_state` lifecycle enum support for state.json.lifecycles. Existing scripts keep working; new scripts use new fields. |
-| 39e | plet_global_state.py spec (GST) | 4 commands: `init`, `update-lifecycle`, `get-lifecycle`, `validate`. Manages state.json — lifecycles, session metadata, project config. |
-| 39f | plet_global_state.py implementation | Red/green per command. Old plet_state.py kept as reference until 41c. |
-| 39g | plet_iter_state.py spec (IST) | 8 commands: `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. High-level agent-friendly commands. |
-| 39h | plet_iter_state.py implementation | Red/green per command. Natural checkpoint — test run possible after this step. |
+| 39e | global_state.py spec (GST) | 4 commands: `init`, `update-lifecycle`, `get-lifecycle`, `validate`. Manages state.json — lifecycles, session metadata, project config. |
+| 39f | global_state.py implementation | Red/green per command. Old plet_state.py kept as reference until 41c. |
+| 39g | iter_state.py spec (IST) | 8 commands: `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate`. High-level agent-friendly commands. |
+| 39h | iter_state.py implementation | Red/green per command. Natural checkpoint — test run possible after this step. |
 | 40 | Lifecycle extraction Phase 2 — Migrate consumers | Each step includes field renames + test updates for that script. |
-| 40a | plet_schedule.py — eligible() reads state.json.lifecycles | One file read instead of N. Simpler, faster. Includes: rename `agentActivity` → `phaseActivity` if referenced. Update test fixtures + assertions for this script. |
-| 40b | plet_gate_phase.py — lifecycle from state.json + verdict checks | Pre/post gates read lifecycle from state.json. `check_lifecycle_handoff` → check `implementVerdict` not null (post-implement). `check_lifecycle_unchanged` removed (orchestrator owns lifecycle). `lastVerdict` check → `verifyVerdict` not null (post-verify). **New safety net:** post-gates enforce verdict is set before subagent exits — turns "forgot to set signal" (LOGA Run 3 bug) into recoverable failure. Rename `agentActivity` → `phaseActivity`. Update test fixtures + assertions. |
-| 40c | plet_gate_session.py — lifecycle from state.json + field renames | 4 locations: `detect` (lifecycle counts), `status` (lifecycle counts + blockers + milestones), `status` (`agentActivity` → `phaseActivity`), `postflight` (transient lifecycle detection). All lifecycle reads switch to `state.json.lifecycles`. Update test fixtures + assertions. |
-| 40d | plet_git_check.py — lifecycle from state.json | `check-session` reads lifecycle from per-iteration files (active lifecycles set, complete iterations filter). Switch to `state.json.lifecycles`. Update test fixtures + assertions. |
-| 40e | plet_prompt.py — lifecycle from state.json | `assemble` includes `Lifecycle: {lifecycle}` from per-iteration state → read from state.json instead. Update test fixtures + assertions. |
+| 40a | schedule.py — eligible() reads state.json.lifecycles | One file read instead of N. Simpler, faster. Includes: rename `agentActivity` → `phaseActivity` if referenced. Update test fixtures + assertions for this script. |
+| 40b | gate_phase.py — lifecycle from state.json + verdict checks | Pre/post gates read lifecycle from state.json. `check_lifecycle_handoff` → check `implementVerdict` not null (post-implement). `check_lifecycle_unchanged` removed (orchestrator owns lifecycle). `lastVerdict` check → `verifyVerdict` not null (post-verify). **New safety net:** post-gates enforce verdict is set before subagent exits — turns "forgot to set signal" (LOGA Run 3 bug) into recoverable failure. Rename `agentActivity` → `phaseActivity`. Update test fixtures + assertions. |
+| 40c | gate_session.py — lifecycle from state.json + field renames | 4 locations: `detect` (lifecycle counts), `status` (lifecycle counts + blockers + milestones), `status` (`agentActivity` → `phaseActivity`), `postflight` (transient lifecycle detection). All lifecycle reads switch to `state.json.lifecycles`. Update test fixtures + assertions. |
+| 40d | git_check.py — lifecycle from state.json | `check-session` reads lifecycle from per-iteration files (active lifecycles set, complete iterations filter). Switch to `state.json.lifecycles`. Update test fixtures + assertions. |
+| 40e | prompt.py — lifecycle from state.json | `assemble` includes `Lifecycle: {lifecycle}` from per-iteration state → read from state.json instead. Update test fixtures + assertions. |
 | 40f | plet_orchestrator.py + util_mock_claude.py — simplify | Remove all per-iteration git checkout workarounds. Lifecycle writes → state.json via GST. **Orchestrator calls IST start-phase on worktree_plet_dir before spawning subagent** (clears stale verdicts, sets phaseActivity=setup). Verdict reads: `implementVerdict`/`verifyVerdict` instead of `lifecycle`/`lastVerdict`. **Guard assertion:** `worktree_plet_dir != global_plet_dir` before verdict reads (prevents Run 3 class of bug). **Crash recovery:** detect "implementing/verifying with no active worktree" on startup, reset to queued. Rename `agentActivity` → `phaseActivity`. **util_mock_claude.py**: write `implementVerdict`/`verifyVerdict` instead of `lifecycle`/`lastVerdict`, stop writing lifecycle to per-iteration state. Update all orchestrator test fixtures + assertions. |
 | 40g | implement.md + verify.md + SKILL.md plan phase | Remove lifecycle from subagent responsibilities. Orchestrator manages it entirely. Update plan phase instructions: call GST `update-lifecycle` (set queued/ineligible in state.json) alongside IST `init` (create per-iteration file without lifecycle). |
 | 41 | Lifecycle extraction Phase 3 — Tighten + cleanup | Remove dual-schema support, final sweep, delete old script. |
 | 41a | Tighten util_state.py + consistency grep | Remove dual-schema support: `lifecycle` no longer accepted in per-iteration files, `agentActivity` no longer accepted (only `phaseActivity`), `lastVerdict` no longer accepted (only `implementVerdict`/`verifyVerdict`). Consistency grep for stale field names across entire repo. |
 | 41b | Final test sweep — test_all.py clean | Verify all test files pass. Catch any stragglers missed during per-script updates. Full `test_all.py` run. |
 | 41c | Remove plet_state.py + deprecate spec | Delete `plet_state.py` script and `test_plet_state.py` tests. Mark `specs/plet_state.md` as deprecated at the top (keep as historical reference). Remove from SKILL.md allowed-tools, scripts CLAUDE.md inventory, and any remaining imports/references. |
-| 42 | plet_bootstrap.py — project setup script | Configures git (merge driver, .gitattributes), creates .gitignore (.plet/, settings.local.json, CLAUDE.local.md), merges allow entries into .claude/settings.json, creates CLAUDE.md stub with script discovery. Two commands: `setup` (mutating, idempotent) and `check` (read-only, empirical sandbox/permissions detection). Called by plan phase or when preflight detects missing artifacts. |
-| 42a | plet_bootstrap.py spec (BST) | Spec written. 2 commands, permissions check in `check`. |
-| 42b | plet_bootstrap.py implementation | Red/green per command. |
+| 42 | bootstrap.py — project setup script | Configures git (merge driver, .gitattributes), creates .gitignore (.plet/, settings.local.json, CLAUDE.local.md), merges allow entries into .claude/settings.json, creates CLAUDE.md stub with script discovery. Two commands: `setup` (mutating, idempotent) and `check` (read-only, empirical sandbox/permissions detection). Called by plan phase or when preflight detects missing artifacts. |
+| 42a | bootstrap.py spec (BST) | Spec written. 2 commands, permissions check in `check`. |
+| 42b | bootstrap.py implementation | Red/green per command. |
 | 43 | Audit + eliminate optional flags across all scripts | Agents forget optional arguments — if data is available to the caller, make the flag required. Audit ALL scripts (not just auto-logger) for flags that silently default when absent. For each: (a) if the caller always has the value → make required, (b) if the default is always correct → keep but document, (c) if the default is sometimes wrong → make required. Key examples: auto-logger defaults `--phase` to "implement" (wrong for plan-session), `--agent-id` was optional before IST fix. Same principle as specs/NOTES.md § Critical Insight: Prefer Required Arguments Over Optional. |
-| 44 | Script discovery — include PLET_SCRIPTS_DIR in subagent prompt | `plet_prompt.py` assembles subagent prompt with absolute path to scripts. Fallback chain: `CLAUDE_SKILL_DIR` → `CLAUDE_CONFIG_DIR` + plugin cache path → `~/.claude` + plugin cache path. Fixes LOGA Run 4 8-minute script search. One-line fix in prompt assembly. |
+| 44 | Script discovery — include PLET_SCRIPTS_DIR in subagent prompt | `prompt.py` assembles subagent prompt with absolute path to scripts. Fallback chain: `CLAUDE_SKILL_DIR` → `CLAUDE_CONFIG_DIR` + plugin cache path → `~/.claude` + plugin cache path. Fixes LOGA Run 4 8-minute script search. One-line fix in prompt assembly. |
 | 45 | Fix loopSessionCount / branch name mismatch | Gate checks expect `loop{N}` from `loopSessionCount` but branch was created with a different N (stale from failed sessions). Either: (a) gate uses the branch name from session history (not loopSessionCount), or (b) loopSessionCount is always correct. LOGA Run 4: loopSessionCount=0 but branch was loop3. |
 | 46 | Flag name discoverability — rename --phase-activity | `--phase-activity` confused the verify subagent (tried `--activity` first). Consider renaming to `--activity` for simplicity, or ensure help text is prominent. Related to seq 43 audit. |
 | 47 | Plan phase UX improvements (FOO_64–FOO_68) | Confirm before initializing (FOO_64). Create planning branch (FOO_65). Don't auto-launch loop (FOO_66). Create CLAUDE.md + .gitignore via bootstrap (FOO_67). Fix .gitignore preflight check (FOO_68). |
@@ -114,27 +114,27 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 8 | `plet_trace.py` implementation | ✓ complete |
 | 9 | `plet_git_iteration.py` spec (GTI) | ✓ complete |
 | 10 | `plet_git_iteration.py` implementation | ✓ complete |
-| 11 | `plet_git_ops.py` spec (GTO) | ✓ complete |
-| 12 | `plet_git_ops.py` implementation | ✓ complete |
-| 13 | `plet_git_check.py` spec (GTC) | ✓ complete |
+| 11 | `git_ops.py` spec (GTO) | ✓ complete |
+| 12 | `git_ops.py` implementation | ✓ complete |
+| 13 | `git_check.py` spec (GTC) | ✓ complete |
 | 14 | `util_subprocess.py` implementation + GTI/GTO retrofit | ✓ complete |
-| 15 | `plet_git_check.py` implementation | ✓ complete |
-| 16 | `plet_gate_session.py` spec (GSS, originally SES) | ✓ complete |
-| 17 | `plet_gate_session.py` implementation | ✓ complete |
+| 15 | `git_check.py` implementation | ✓ complete |
+| 16 | `gate_session.py` spec (GSS, originally SES) | ✓ complete |
+| 17 | `gate_session.py` implementation | ✓ complete |
 | 18 | `plet_gate_impl.py` spec (GIM) | ✓ complete |
 | 19 | `plet_gate_impl.py` implementation | ✓ complete |
 | 20 | `plet_gate_verify.py` spec (GVR) | ✓ complete |
 | 21 | `plet_gate_verify.py` implementation | ✓ complete |
-| 21a | Merge GIM+GVR → `plet_gate_phase.py` (GPH) | ✓ complete |
-| 22 | `plet_prompt.py` spec (PRM) | ✓ complete |
-| 23 | `plet_prompt.py` implementation | ✓ complete |
+| 21a | Merge GIM+GVR → `gate_phase.py` (GPH) | ✓ complete |
+| 22 | `prompt.py` spec (PRM) | ✓ complete |
+| 23 | `prompt.py` implementation | ✓ complete |
 | 24 | `plet_invoke.py` spec (INV) | ✓ complete |
 | 25 | `plet_invoke.py` implementation | ✓ complete |
-| 26 | Rename `plet_session.py` → `plet_gate_session.py` (GSS) | ✓ complete |
-| 27 | `plet_schedule.py` spec (SCH) | ✓ complete |
-| 28 | `plet_schedule.py` implementation | ✓ complete |
-| 29 | `plet_session.py` spec (SES reused) | ✓ complete |
-| 30 | `plet_session.py` implementation | ✓ complete |
+| 26 | Rename `session.py` → `gate_session.py` (GSS) | ✓ complete |
+| 27 | `schedule.py` spec (SCH) | ✓ complete |
+| 28 | `schedule.py` implementation | ✓ complete |
+| 29 | `session.py` spec (SES reused) | ✓ complete |
+| 30 | `session.py` implementation | ✓ complete |
 | 31 | Standardize NDJSON — rename .jsonl → .ndjson | ✓ complete |
 | 32 | Retrofit UNV_CMD_29 (unknown flags) across all scripts | ✓ complete |
 | 33 | `plet_orchestrator.py` spec (ORC) | ✓ complete |
@@ -159,18 +159,18 @@ These scripts resolve feedback items deferred from PLAN_FT. Key mappings: `plet_
 | 39f | GST implementation | ✓ complete |
 | 39g | IST spec | ✓ complete |
 | 39h | IST implementation | ✓ complete |
-| 40a | plet_schedule.py — lifecycle from state.json | ✓ complete |
-| 40b | plet_gate_phase.py — lifecycle from state.json + verdict checks | ✓ complete |
-| 40c | plet_gate_session.py — lifecycle from state.json + field renames | ✓ complete |
-| 40d | plet_git_check.py — lifecycle from state.json | ✓ complete |
-| 40e | plet_prompt.py — lifecycle from state.json | ✓ complete |
+| 40a | schedule.py — lifecycle from state.json | ✓ complete |
+| 40b | gate_phase.py — lifecycle from state.json + verdict checks | ✓ complete |
+| 40c | gate_session.py — lifecycle from state.json + field renames | ✓ complete |
+| 40d | git_check.py — lifecycle from state.json | ✓ complete |
+| 40e | prompt.py — lifecycle from state.json | ✓ complete |
 | 40f | plet_orchestrator.py + util_mock_claude — lifecycle extraction | ✓ complete |
 | 40g | implement.md + verify.md + SKILL.md plan phase | ✓ complete |
 | 41a | Tighten util_state.py — remove dual-schema | ✓ complete |
 | 41b | Final test sweep — test_all.py clean | ✓ complete |
 | 41c | Remove plet_state.py + deprecate spec | ✓ complete |
-| 42a | plet_bootstrap.py spec (BST) | ✓ complete |
-| 42b | plet_bootstrap.py implementation | ✓ complete |
+| 42a | bootstrap.py spec (BST) | ✓ complete |
+| 42b | bootstrap.py implementation | ✓ complete |
 | 43 | Audit optional flags + stale defaults | ✓ complete |
 | 44 | Script discovery — PLET_SCRIPTS_DIR in prompt | ✓ complete |
 | 45 | loopSessionCount / branch name mismatch | ✓ complete |

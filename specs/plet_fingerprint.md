@@ -505,7 +505,7 @@ fingerprint.py embed plet/ --type requirements --bump --dry-run
 |----|-----------|--------|-------------|
 | FPR_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `now_iso`, `dispatch`, `filter_fields` |
 | FPR_DEP_2 | imports | `util_io` | `load_json`, `atomic_write_json`, `load_text` |
-| FPR_DEP_3 | called by | `plet_gate_session.py` | `check` as preflight staleness gate |
+| FPR_DEP_3 | called by | `gate_session.py` | `check` as preflight staleness gate |
 | FPR_DEP_4 | called by | `plet_orchestrator.py` | `check` before loop start |
 
 No outgoing calls to other `plet_*.py` scripts — `fingerprint.py` is a leaf CLI tool.
@@ -570,7 +570,7 @@ See `specs/conventions.md` for universal requirements.
 | 1 | Command names — `generate`/`compare`/`check` (NOTES inventory) vs `extract`/`embed`/`check`? | `extract`/`embed`/`check`. `extract` is read-only (produces fingerprint), `embed` is the write operation (puts it in the file). `generate` was ambiguous (does it write?). `compare` is subsumed by `check` which does comparison across all levels. |
 | 2 | How are fingerprint blocks delimited in markdown? | `<!-- plet:fingerprint -->` HTML comment fences. Invisible in rendered markdown, machine-parseable, won't collide with content. |
 | 3 | Should `embed` auto-extract or require piping from `extract`? | Auto-extract. The common case is "scan this file and update its fingerprint." Requiring two commands adds friction for no benefit — `embed` internally calls the same scanning logic as `extract`. |
-| 4 | Should `check` also verify that all IDs in the fingerprint actually exist as definitions in the file? | Not in v1. `check` compares fingerprints between files (are they in sync?). Verifying that IDs exist in their definitions is a consistency pass concern — defer to `plet_gate_session.py` or a future `plet_consistency.py`. |
+| 4 | Should `check` also verify that all IDs in the fingerprint actually exist as definitions in the file? | Not in v1. `check` compares fingerprints between files (are they in sync?). Verifying that IDs exist in their definitions is a consistency pass concern — defer to `gate_session.py` or a future `plet_consistency.py`. |
 | 5 | How should `embed` locate sibling artifacts (e.g., requirements.md for iterations embed)? | `embed` takes `plet_dir` (same as `check`), derives all paths from there via `util_io` functions. All plet artifacts live in the same directory — no need for per-file path overrides. |
 | 6 | Should `embed --type state` also validate state.json? | No — validation is `plet_state.py validate`'s job. `embed` stays focused on fingerprints only. |
 | 7 | Should `lastNonTrivialUpdate` auto-bump when fingerprint content changes? | Yes. If ID arrays changed vs previously embedded fingerprint, auto-bump to current UTC. `--bump` becomes force-bump for prose-only changes that don't affect IDs. Rationale: requiring manual `--bump` when IDs visibly changed is compliance drift — exactly what tooling exists to eliminate. |

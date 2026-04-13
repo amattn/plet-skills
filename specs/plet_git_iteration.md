@@ -373,14 +373,14 @@ GTI owns the bookends: setup (branch-name, worktree-create) and teardown (worktr
 ### GTI_AFL_2: Orchestrator cleans up after completion
 
 1. Iteration ITR_001 reaches `complete` lifecycle
-2. Orchestrator runs merge-squash to workstream (via plet_git_ops.py)
+2. Orchestrator runs merge-squash to workstream (via git_ops.py)
 3. `plet_git_iteration.py worktree-remove --iter-id ITR_001`
 4. Worktree cleaned up (branch cleanup handled by GTO merge-squash if cleanupBranchesAutomatically)
 
 ### GTI_AFL_3: Orchestrator cleans up orphaned worktrees at session start
 
 1. New loop session starts
-2. Orchestrator scans for existing worktrees (via plet_git_check.py check-session)
+2. Orchestrator scans for existing worktrees (via git_check.py check-session)
 3. For each orphaned worktree: `plet_git_iteration.py worktree-remove --iter-id {id}`
 4. Clean state for new session
 
@@ -530,7 +530,7 @@ See `specs/conventions.md` for universal requirements.
 
 | # | Question | Context |
 |---|----------|---------|
-| 1 | ~~Should `.plet/worktrees/` be added to `.gitignore` automatically?~~ | Resolved: not GTI's job. `.plet/` should be gitignored entirely (worktrees, temp files, future caches). Preflight (`plet_gate_session.py`) checks `.gitignore` has `.plet/` and warns if not. GTI is a leaf tool, not a project setup wizard. |
+| 1 | ~~Should `.plet/worktrees/` be added to `.gitignore` automatically?~~ | Resolved: not GTI's job. `.plet/` should be gitignored entirely (worktrees, temp files, future caches). Preflight (`gate_session.py`) checks `.gitignore` has `.plet/` and warns if not. GTI is a leaf tool, not a project setup wizard. |
 | 2 | How does the subagent know its worktree path? | The orchestrator passes it as a working directory argument to `claude -p`. Need to verify `claude -p` supports `--cwd` or equivalent. If not, the orchestrator `cd`s into the worktree before spawning. |
 
 ## 15. Future Considerations (GTI_FUT)
@@ -538,7 +538,7 @@ See `specs/conventions.md` for universal requirements.
 | ID | Area | Description |
 |----|------|-------------|
 | GTI_FUT_1 | `create-branch` command | Add if non-worktree workflows are needed (e.g., sequential single-branch mode). |
-| GTI_FUT_2 | Worktree health check | A `worktree-status` command reporting the state of all active worktrees (branch, dirty/clean, last commit). May belong in plet_git_check.py instead. |
+| GTI_FUT_2 | Worktree health check | A `worktree-status` command reporting the state of all active worktrees (branch, dirty/clean, last commit). May belong in git_check.py instead. |
 | GTI_FUT_3 | Native Claude Code worktree support | If Claude Code's Agent tool adds native worktree isolation, this script may become a thin wrapper or unnecessary. Monitor `isolation: "worktree"` parameter. |
 | GTI_FUT_4 | Worktree path lookup | A `worktree-path` command that returns the worktree path for a given iteration ID (inverse of worktree-create). If subagents have trouble locating their worktree directory, this gives them a reliable way to query it from state.json + convention. |
 | GTI_FUT_5 | Monitor auto-resume edge cases | The branch-exists = resume, branch-absent = fresh heuristic covers all known scenarios (blocked→unblocked, interrupted/crashed, verify cycle-back, refine re-open). Monitor during PLAN_RW comparison runs and future case studies for edge cases where this heuristic produces the wrong behavior — e.g., stale branches from abandoned sessions, branch name collisions from session counter bugs. |

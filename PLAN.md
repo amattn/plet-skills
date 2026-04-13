@@ -276,16 +276,16 @@ Replace merge-squash with rebase + fast-forward merge. Individual wip commits fr
 | Step | Description | Status |
 |------|-------------|--------|
 | RBS_1 | Tests: `rebase-commit` tests (18 tests) — RED | ✓ done |
-| RBS_2 | `plet_git_ops.py`: implement `rebase-commit` — GREEN | ✓ done |
+| RBS_2 | `git_ops.py`: implement `rebase-commit` — GREEN | ✓ done |
 | RBS_3 | Tests: `rebase-prep` tests (7 tests) — RED | ✓ done |
-| RBS_4 | `plet_git_ops.py`: implement `rebase-prep` — GREEN | ✓ done |
+| RBS_4 | `git_ops.py`: implement `rebase-prep` — GREEN | ✓ done |
 | RBS_5 | Tests: orchestrator integration (11 real git + 3 mock) — RED | ✓ done |
 | RBS_6 | Orchestrator: rebase-commit + requeue flow — GREEN | ✓ done |
 | RBS_7 | Reference files: implement.md, verify.md, plan.md, state-schema.md | ✓ done |
 | RBS_8 | SKILL.md, cli-cheatsheet.md, scripts/CLAUDE.md | ✓ done |
 | RBS_9 | LOGA R12/R13, OLLR R01/R02 — validated rebase-commit, found conflict recovery issues | ✓ done (see case studies) |
 | RBS_10 | Tests: `wip-commit` (stages source + state, excludes trace/) — RED | ✓ done |
-| RBS_11 | `plet_git_ops.py wip-commit`: implement command — GREEN | ✓ done |
+| RBS_11 | `git_ops.py wip-commit`: implement command — GREEN | ✓ done |
 | RBS_12 | implement.md + verify.md: `wip-commit`, rebase-prep at start AND end | ✓ done |
 | RBS_13 | Tests: gate-post rebase check (`merge-base --is-ancestor`) — RED | ✓ done |
 | RBS_14 | Gate-post: enforce iter branch on top of workstream — GREEN | ✓ done |
@@ -524,7 +524,7 @@ Eliminated ~150 --help lookups/run → 0 (R08). 3h 4m → 1h 53m wall clock. See
 | HLP_1A | Inline examples in reference files | Deferred (prompt pre-fill may make redundant) |
 | HLP_1B | CLI cheat sheet reference file | ✓ done |
 | HLP_1C | Prompt assembler fills in iter_id/phase | ✓ done |
-| HLP_2A | Phase-complete composite command (plet_phase.py end) | ✓ done |
+| HLP_2A | Phase-complete composite command (phase.py end) | ✓ done |
 | HLP_2B | Orchestrator does more bookkeeping | ✓ done (start-phase moved to orchestrator) |
 | HLP_3A | --usage flag on all scripts | ✓ done |
 | HLP_3B | PLET_CLI_REF env var | ✓ done |

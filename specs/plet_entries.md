@@ -612,7 +612,7 @@ entries.py add-progress plet/ \
 | ENT_DEP_1 | imports | `util_cli` | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields` |
 | ENT_DEP_2 | imports | `util_io` | `atomic_append`, `load_text` (for `--content-file`), `DEFAULT_PLET_DIR`, path derivation functions |
 | ENT_DEP_5 | imports | `util_id` | `generate_plet_id`, `normalize_iteration` |
-| ENT_DEP_3 | called by | `plet_gate_phase.py` | `check` as post-gate for both implement and verify phases |
+| ENT_DEP_3 | called by | `gate_phase.py` | `check` as post-gate for both implement and verify phases |
 
 No outgoing calls to other `plet_*.py` scripts — `entries.py` is a leaf CLI tool.
 
