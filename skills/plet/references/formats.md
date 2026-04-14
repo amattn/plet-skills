@@ -30,7 +30,7 @@ All three runtime artifact entry types share the same structural pattern:
 
 The `**Content:**` marker is the boundary between structured metadata (parseable KV pairs) and freeform content. GUI tools split on this marker — everything above is structured, everything below is the body.
 
-**Fencing safety:** Content must not contain fence patterns (`<div id="plet-` or `<div id="END-plet-`). The `plet_entries.py` tool rejects content containing these patterns.
+**Fencing safety:** Content must not contain fence patterns (`<div id="plet-` or `<div id="END-plet-`). The `entries.py` tool rejects content containing these patterns.
 
 ### Atomic Appends (SF_17)
 
@@ -46,7 +46,7 @@ All agents read `progress.md`, `learnings.md`, and `emergent.md` at the start of
 
 ### Plet IDs (RT_11, SF_25)
 
-Every runtime artifact entry gets a globally unique plet ID per the Plet ID Scheme defined in `prd.md` (requirement `INF_RT`). Runtime artifact entries use the following context segments after the type prefix and Crockford timestamp:
+Every runtime artifact entry gets a globally unique plet ID per the Plet ID Scheme defined in `prd.md` (§ INF_RT). Runtime artifact entries use the following context segments after the type prefix and Crockford timestamp:
 
 - **Iteration:** iteration ID lowercased, underscores removed (e.g., `ITR_001` → `id001`). For project-level entries not tied to a specific iteration (e.g., refine stage summaries), use `proj`.
 - **Phase/attempt:** `p1` (plan session 1), `i1` (implement attempt 1), `v2` (verify attempt 2), `r1` (refine session 1)
@@ -368,7 +368,7 @@ Trace capture is split into two files per phase:
 plet/trace/{iteration_id}-{phase}-{attempt}-transcript.ndjson
 ```
 
-Contains all assistant text, tool use, tool results, errors, and system messages in Claude Code's native JSONL format. **Subagents do not write this file.** How it's captured depends on the invocation style: *subprocess mode* — `plet_invoke.py` captures streaming JSONL output from `claude -p --output-format stream-json` in real time; *subagent mode* (future) — the orchestrator locates the log file produced by the native subagent and copies/renames it after the subagent concludes.
+Contains all assistant text, tool use, tool results, errors, and system messages in Claude Code's native JSONL format. **Subagents do not write this file.** How it's captured depends on the invocation style: *subprocess mode* — `invoke.py` captures streaming JSONL output from `claude -p --output-format stream-json` in real time; *subagent mode* (future) — the orchestrator locates the log file produced by the native subagent and copies/renames it after the subagent concludes.
 
 Examples:
 - `ITR_001-implement-1-transcript.ndjson` — ITR_001, implementation phase, attempt 1

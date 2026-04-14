@@ -914,7 +914,7 @@ Subagents don't self-log full I/O — that's impractical and wasteful of context
 
 #### Verification reports in per-iteration state (VF_21–VF_24)
 
-Each verification attempt appends a report to the `verificationReports` array (never overwritten). Reports have `vrp` plet IDs, a verdict, compact `criteriaResults` index, and two-level `relatedEntries` (report-level for iteration-spanning concerns, criterion-level for single-AC findings). `verifyVerdict` field at the iteration state top level (formerly `lastVerdict`). Written after artifact entries so plet IDs are available for `relatedEntries`.
+Each verification attempt appends a report to the `verificationReports` array (never overwritten). Reports have `vrp` plet IDs, a verdict, compact `criteriaResults` index, and two-level `relatedEntries` (report-level for iteration-spanning concerns, criterion-level for single-AC findings). `implementVerdict`/`verifyVerdict` fields at the iteration state top level (formerly `lastVerdict`). Written after artifact entries so plet IDs are available for `relatedEntries`.
 
 #### Verification report `findings` field (VF_24)
 
@@ -2941,15 +2941,17 @@ Structural pass across entire repo. Findings:
 - CTA stale ~4KB reference updated
 - FUT #14 shortened with PT_9 cross-ref
 
-**Remaining (to fix in follow-up):**
-- `formats.md:39` — heading `### Size Limit (SF_18)` uses withdrawn ID
-- `formats.md:53` — `section 3.6` stale section reference → should be `INF_RT`
-- `refine.md:407` — `agentActivity` should be `phaseActivity`
-- `refine.md:419-421` — `parallelGroups` section is dead content (PLAN_SEQ)
-- `NOTES.md:390,918` — `lastVerdict` in current-looking content
-- `PLAN.md:19,496` — test count 1056 is stale (actual ~2245)
-- Script names in SKILL.md + reference files (`plet_fingerprint.py`, `plet_invoke.py`, `plet_trace.py`, `plet_entries.py`) — need update to current names
-- `guide/` files reference `agentActivity` — lower priority
+**Fixed in FIX_5 session (2026-04-09):**
+- `formats.md:39` — removed withdrawn SF_18 ID from heading
+- `formats.md:53` — `section 3.6` → `§ INF_RT`
+- `refine.md:407` — `agentActivity` → `phaseActivity`
+- `refine.md:419-421` — removed dead `parallelGroups` section
+- `NOTES.md:390` — `lastVerdict` → `verifyVerdict`
+- `NOTES.md:918` — `lastVerdict convenience field` → `implementVerdict/verifyVerdict fields`
+- `PLAN.md:19,496` — test count 1056 left as-is (historical marker from PLAN_COV completion, not current state claim)
+- Script names updated across SKILL.md, reference files, scripts/CLAUDE.md, formats.md, state-schema.md, plan.md, refine.md: `plet_fingerprint.py` → `plet_tools.py`/`fingerprint.py`, `plet_invoke.py` → `invoke.py`, `plet_trace.py` → `traces.py`, `plet_entries.py` → `entries.py`
+- scripts/CLAUDE.md inventory table rewritten: 3 entry points + 15 domain modules + 9 util modules
+- `guide/` files: `agentActivity` → `phaseActivity` (2 files)
 
 #### NOTES_PLAN_PRD_OQ: Open Questions
 

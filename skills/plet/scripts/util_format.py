@@ -1,6 +1,6 @@
 """Shared entry-building functions for plet runtime artifacts.
 
-Internal module — imported by plet_entries.py and util_cli.py, never called
+Internal module — imported by entries.py and util_cli.py, never called
 directly. Not listed in allowed-tools. Not executable.
 
 Provides canonical markdown templates for progress.md, learnings.md, and

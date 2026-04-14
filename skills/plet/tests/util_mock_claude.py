@@ -1,7 +1,7 @@
 """Mock claude — minimal simulation of implement/verify subagent behavior.
 
 Used by test_plet_orchestrator.py as a mock `claude` binary. Placed on PATH
-so plet_invoke.py finds it instead of the real Claude.
+so invoke.py finds it instead of the real Claude.
 
 Parses --name plet/{iter_id}/{phase}-{attempt} from argv.
 Reads MOCK_PLET_DIR and MOCK_BEHAVIOR from env.

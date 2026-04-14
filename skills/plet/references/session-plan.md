@@ -12,7 +12,7 @@ The plan phase produces three artifacts:
 
 **Critical rule: Commit after every approval.** Each approved section gets its own git commit (`plet: [plan] approve {section_name}`). This is crash recovery — if the session dies, approved work is preserved in git history. Do not batch commits to the end.
 
-**Critical rule: Progress entries.** Write a progress entry to `plet/progress.md` via `plet_entries.py add-progress` after each major plan milestone:
+**Critical rule: Progress entries.** Write a progress entry to `plet/progress.md` via `entries.py add-progress` after each major plan milestone:
 - Session start: `--phase plan --status IN_PROGRESS --content "Plan session started. Project: {name}."`
 - Each section approval: `--phase plan --status COMPLETE --content "Approved: {section_name}. {brief summary of what was decided}."`
 - Iteration decomposition complete: `--phase plan --status COMPLETE --content "Decomposed into {N} iterations across {M} milestones."`

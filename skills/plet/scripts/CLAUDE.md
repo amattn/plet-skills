@@ -84,7 +84,7 @@ Mutations (`update-criterion`, `update-field`, `add-progress`) are inherently no
 
 ### Naming
 
-- **Agent-facing CLI wrappers:** `plet_<name>.py` — `plet_agent.py`, `plet_orchestrator.py`, `plet_tools.py`. These are the entry points agents call directly. Listed in `allowed-tools`. The wrapper name may change; library scripts behind them are stable.
+- **Agent-facing CLI wrappers:** `plet_<name>.py` — `plet_agent.py`, `plet_orchestrator.py`, `plet_tools.py`, `plet_merge_driver.py`. These are the entry points agents call directly. Listed in `allowed-tools`. The wrapper name may change; library scripts behind them are stable.
 - **Library scripts:** `<domain>.py` — e.g., `entries.py`, `fingerprint.py`, `traces.py`, `global_state.py`. Callable via Bash (executable, `chmod +x`) but typically called by wrappers or the orchestrator, not directly by agents.
 - **Internal modules:** `util_<concern>.py` — e.g., `util_cli.py`, `util_io.py`, `util_id.py`. Imported by other scripts, never called directly, not executable. The `util_` prefix signals "internal dependency."
 - **Command names:** lowercase, hyphen-separated — e.g., `update-criterion`, `add-progress`, `check-stashes`
@@ -169,7 +169,7 @@ allowed-tools:
   - Bash(${CLAUDE_SKILL_DIR}/scripts/plet_tools.py *)
 ```
 
-Add new scripts to this list as they're built. The path-based pattern (`scripts/*`) approves only shipped scripts — more secure than `Bash(python *)` which would approve arbitrary Python commands.
+Only the 3 entry points are in allowed-tools. Domain modules are callable directly for plan/refine phases but not pre-approved for subagents.
 
 ## Current Inventory
 
@@ -178,39 +178,40 @@ Add new scripts to this list as they're built. The path-based pattern (`scripts/
 | Script | Purpose | Commands |
 |--------|---------|----------|
 | `plet_agent.py` | Subagent CLI — the agent's entire plet vocabulary | `update-activity`, `update-criterion`, `wip-commit`, `add-learning`, `add-emergent`, `phase-end` |
+| `plet_tools.py` | Project-level tools | `bootstrap`, `init`, `validate`, `detect`, `status`, `churn`, `fingerprint-extract`, `fingerprint-embed`, `fingerprint-check` |
 | `plet_orchestrator.py` | Main loop (the capstone) | `run` |
-| `plet_tools.py` | Project-level tools | `init`, `detect`, `status`, `preflight` |
 | `plet_merge_driver.py` | Custom git merge driver for state files | (git merge driver) |
 
 ### Library Scripts (`<domain>.py`)
 
 | Script | Purpose | Commands |
 |--------|---------|----------|
-| `global_state.py` | Global state management (state.json) | `init`, `update-lifecycle`, `get-lifecycle`, `validate` |
-| `iter_state.py` | Per-iteration state management | `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate` |
+| `bootstrap.py` | Project setup (git, .gitignore, settings) | `setup`, `check` |
 | `entries.py` | Runtime artifact entry formatting | `add-progress`, `add-learning`, `add-emergent`, `check` |
 | `fingerprint.py` | Fingerprint extraction, embedding, staleness detection | `extract`, `embed`, `check` |
-| `traces.py` | Trace NDJSON schema enforcement | `append-event`, `validate`, `query` |
-| `git_ops.py` | Git workflow operations | `audit-tag`, `wip-commit`, `rebase-commit`, `rebase-prep`, `merge-squash` |
-| `git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
+| `gate_phase.py` | Phase gate (pre/post) | `pre`, `post` |
 | `gate_session.py` | Session-level gate checks (read-only) | `detect`, `status`, `preflight`, `postflight` |
-| `gate_phase.py` | Phase gate (pre/post, `--phase implement\|verify`) | `pre`, `post` |
-| `prompt.py` | Prompt assembly for subagents | `assemble` |
+| `git_check.py` | Git compliance checks | `check-iteration`, `check-session` |
+| `git_ops.py` | Git workflow operations | `audit-tag`, `wip-commit`, `rebase-commit` |
+| `global_state.py` | Global state management (state.json) | `init`, `update-lifecycle`, `get-lifecycle`, `validate` |
 | `invoke.py` | Subprocess launch + transcript capture | `run` |
+| `iter_state.py` | Per-iteration state management | `init`, `start-phase`, `update-activity`, `update-criterion`, `set-verdict`, `heartbeat`, `add-report`, `validate` |
+| `phase.py` | Phase-end composite (gate + commit + tag) | `end` |
+| `prompt.py` | Prompt assembly for subagents | `assemble` |
 | `schedule.py` | Loop scheduling decisions (read-only) | `eligible`, `check-breakpoints`, `check-retry` |
 | `session.py` | Session lifecycle management (mutating) | `start-session`, `end-session` |
-| `phase.py` | Phase composite operations | `end` |
-| `bootstrap.py` | Project bootstrap | `init` |
+| `traces.py` | Trace NDJSON schema enforcement | `append-event`, `validate`, `query` |
 
 ### Internal Modules (`util_*.py`)
 
 | Module | Purpose | Key functions |
 |--------|---------|---------------|
 | `util_cli.py` | Argument parsing, validation, timestamps, dispatch, output filtering, shared CLI helpers | `parse_kwargs`, `require_kwargs`, `validate_enum`, `validate_int`, `now_iso`, `dispatch`, `filter_fields`, `get_plet_dir`, `extract_output_flags`, `parse_command` |
-| `util_io.py` | Atomic file I/O, path derivation, plet dir validation, convenience JSON loaders | `load_json`, `atomic_write_json`, `atomic_append`, `load_text`, `state_json_path`, `iter_state_path`, `requirements_path`, `load_global_state_json`, `load_iter_state_json`, `validate_plet_dir`, `DEFAULT_PLET_DIR` |
+| `util_io.py` | Atomic file I/O, path derivation, plet dir validation, convenience JSON loaders | `load_json`, `atomic_write_json`, `atomic_append`, `load_text`, `state_json_path`, `iter_state_path`, `requirements_path`, `load_global_state_json`, `load_iter_state_json`, `validate_plet_dir` |
 | `util_id.py` | Plet ID generation (Crockford Base32, timestamps, context segments) | `generate_plet_id`, `crockford_encode`, `crockford_timestamp`, `normalize_iteration`, `phase_attempt_segment` |
-| `util_state.py` | State file validation and validated loading (global + per-iteration) | `load_and_validate_global_state(plet_dir)`, `load_and_validate_iter_state(plet_dir, iter_id)`, `validate_global_state`, `validate_iter_state` |
+| `util_state.py` | State file validation and validated loading (global + per-iteration) | `load_and_validate_global_state`, `load_and_validate_iter_state`, `validate_global_state`, `validate_iter_state` |
 | `util_format.py` | Canonical markdown templates for runtime artifact entries | `now_iso`, `build_progress_entry`, `build_learning_entry`, `build_emergent_entry` |
 | `util_subprocess.py` | Subprocess execution with capture, error formatting, timeout | `run`, `run_git` |
 | `util_git.py` | Pure git naming conventions (branch names, no git ops) | `derive_branch_name` |
+| `util_sink.py` | Event sink for testable trace/progress side effects | `CaptureSink`, `NullSink` |
 | `util_constants.py` | Shared constants (single source of truth for versions) | `SCHEMA_VERSION`, `SKILL_VERSION` |
