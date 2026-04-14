@@ -239,15 +239,15 @@ Check if `plet/state.json` exists. This determines the path:
 **Path A — Fresh project (no state.json):**
 1. Ask: "What would you like to build?" — get a short description
 2. Ask for a project ID: 3-6 uppercase chars (e.g., LOGA, SPARK, TODO). Must match `[A-Z][A-Z0-9]{2,5}`.
-3. Create or resume plan branch: `plet/{projectId}/plan1/workstream`. If branch exists, check it out (resume). If not, create it.
-4. Proceed to clarifying questions, requirements, iterations (see `references/session-plan.md`)
+3. Proceed to clarifying questions, requirements, iterations (see `references/session-plan.md`)
 
 **Path B — Existing project (state.json exists):**
 1. Read state.json → project ID already known
-2. Create or resume plan branch: `plet/{projectId}/plan{N}/workstream`. If branch exists, check it out (resume). If not, create it.
-3. Read existing `plet/requirements.md`, `plet/iterations.md`, `plet/emergent.md`, `plet/learnings.md`
-4. Show what was found: "Found N iterations across M milestones. Review or proceed?"
-5. Do NOT silently re-initialize. Ask before making changes.
+2. Start plan session: `session.py start-session plet/ --type plan` — returns the branch name
+3. Create or check out the plan branch returned by start-session
+4. Read existing `plet/requirements.md`, `plet/iterations.md`, `plet/emergent.md`, `plet/learnings.md`
+5. Show what was found: "Found N iterations across M milestones. Review or proceed?"
+6. Do NOT silently re-initialize. Ask before making changes.
 
 **Both paths:** Read `plet/emergent.md` for pending items and `plet/learnings.md` for patterns — triage and incorporate before planning.
 
@@ -257,10 +257,13 @@ Check if `plet/state.json` exists. This determines the path:
 3. Each approved section is written to disk immediately — the file on disk is the source of truth
 4. After all iterations are approved, initialize state:
    - `plet_tools.py init plet/` to create state.json (auto-initializes lifecycles from dependency map)
+   - Start plan session if not already started: `session.py start-session plet/ --type plan` — returns branch name
+   - Create or check out the plan branch
    - `plet_tools.py fingerprint-embed plet/` to embed fingerprints across all plan artifacts
 5. Commit all plan artifacts on the plan branch
-6. **STOP.** Do NOT auto-launch the loop. Tell the user:
-   - "Plan complete on branch `plet/{projectId}/plan1/workstream`."
+6. End the plan session: `session.py end-session plet/`
+7. **STOP.** Do NOT auto-launch the loop. Tell the user:
+   - "Plan complete on branch `plet/{projectId}/plan{N}/workstream`."
    - "Run `/plet loop` to start implementation. The loop will branch from here."
    - **Never merge to main** unless the user gives direct, explicit, confirmed instruction. The loop branches from the plan workstream — merging to main is not required for any plet workflow.
 

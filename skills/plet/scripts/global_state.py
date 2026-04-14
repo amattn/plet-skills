@@ -245,6 +245,7 @@ Examples:
         "breakpoints": {"before": [], "after": []},
         "cleanupTagsAutomatically": False,
         "cleanupBranchesAutomatically": False,
+        "planSessionCount": 0,
         "loopSessionCount": 0,
         "refineSessionCount": 0,
         "sessionHistory": [],

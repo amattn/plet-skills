@@ -131,14 +131,36 @@ def test_start_session_invalid_type():
     with tempfile.TemporaryDirectory() as tmp:
         plet_dir = os.path.join(tmp, "plet")
         make_global_state(plet_dir)
-        out, err, _ = run(["start-session", plet_dir, "--type", "plan"], expect_exit=1)
+        out, err, _ = run(["start-session", plet_dir, "--type", "bogus"], expect_exit=1)
         check("invalid type exits 1", True)
-        check("error mentions valid types", "loop" in err and "refine" in err, "stderr: " + err)
+        check("error mentions valid types", "plan" in err and "loop" in err and "refine" in err, "stderr: " + err)
 
 
 # ===========================================================================
 # start-session — first loop session
 # ===========================================================================
+
+
+def test_start_session_first_plan():
+    print("\n## start-session — first plan session")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        plet_dir = os.path.join(tmp, "plet")
+        make_global_state(plet_dir, project_id="MYPR", loop_count=0)
+
+        out, err, _ = run(["start-session", plet_dir, "--type", "plan"])
+        check("text has session line", "Session: plan 1" in out, "got: " + out)
+        check("text has branch line", "plet/MYPR/plan1/workstream" in out, "got: " + out)
+        check("text has resumed no", "Resumed: no" in out, "got: " + out)
+
+        state = load_state(plet_dir)
+        check("planSessionCount incremented to 1", state.get("planSessionCount") == 1)
+        check("sessionHistory has 1 entry", len(state.get("sessionHistory", [])) == 1)
+
+        entry = state["sessionHistory"][0]
+        check("entry type is plan", entry["type"] == "plan")
+        check("entry session is 1", entry["session"] == 1)
+        check("entry branch correct", entry["branch"] == "plet/MYPR/plan1/workstream")
 
 
 def test_start_session_first_loop():
@@ -821,6 +843,7 @@ def main():
     test_start_session_missing_state_json()
     test_start_session_missing_type()
     test_start_session_invalid_type()
+    test_start_session_first_plan()
     test_start_session_first_loop()
     test_start_session_first_refine()
     test_start_session_sequential_loops()

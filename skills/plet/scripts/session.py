@@ -1,15 +1,15 @@
 """plet session tool — session lifecycle management.
 
-Starts and ends loop and refine sessions. Mutating commands that update
+Starts and ends plan, loop, and refine sessions. Mutating commands that update
 state.json (session counters, session history). Paired with
 gate_session.py which handles read-only session detection and preflight.
 
 Usage:
-    session.py start-session <plet_dir> --type loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
+    session.py start-session <plet_dir> --type plan|loop|refine [--dry-run] [--output json [--pretty] [--fields f1,f2]]
     session.py end-session <plet_dir> [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
 Commands:
-    start-session   Start a loop or refine session (increment counter, append history)
+    start-session   Start a plan, loop, or refine session (increment counter, append history)
     end-session     End the active session (set endedAt timestamp)
 """
 
@@ -36,10 +36,11 @@ from util_io import (
     state_json_path,
 )
 
-SUBMODULE_VERSION = "0.3.2"
+SUBMODULE_VERSION = "0.4.0"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 COUNTER_KEY = {
+    "plan": "planSessionCount",
     "loop": "loopSessionCount",
     "refine": "refineSessionCount",
 }
@@ -132,30 +133,29 @@ def _ensure_merge_driver(plet_dir):
 
 
 def cmd_start_session(args):
-    """Start a loop or refine session.
+    """Start a plan, loop, or refine session.
 
     IMPORTANT: This command manages state.json only — it does NOT create git
-    branches. The branch name is returned so the orchestrator can create it
-    via plet_git_iteration.py.
+    branches. The branch name is returned so the caller can create it.
 
     PITFALLS
-        - Cannot start a loop while a refine is active (or vice versa).
+        - Cannot start a session while another type is active.
           End the current session first.
         - If the same session type is already active, this resumes it
           (idempotent) rather than creating a duplicate.
 
     USAGE
-        session.py start-session <plet_dir> --type loop|refine
+        session.py start-session <plet_dir> --type plan|loop|refine
             [--dry-run] [--output json [--pretty] [--fields f1,f2]]
 
     EXAMPLES
+        session.py start-session plet/ --type plan
         session.py start-session plet/ --type loop
         session.py start-session plet/ --type refine --output json --pretty
-        session.py start-session plet/ --type loop --dry-run
 
     PURPOSE
-        Session setup for the loop orchestrator. Called once at the beginning
-        of every loop or refine session.
+        Session setup. Called once at the beginning of every plan, loop,
+        or refine session.
     """
     help_text = cmd_start_session.__doc__
     hint = _help_hint("start-session")
@@ -165,7 +165,7 @@ def cmd_start_session(args):
     plet_dir, kwargs, output_json, pretty, fields, dry_run = result
 
     session_type = kwargs["type"]
-    result = validate_enum(session_type, ["loop", "refine"], "type")
+    result = validate_enum(session_type, ["plan", "loop", "refine"], "type")
     if isinstance(result, tuple):
         return (1, "", result[2] or hint)
 
@@ -191,7 +191,7 @@ def cmd_start_session(args):
     counter_key = COUNTER_KEY[session_type]
     state[counter_key] += 1
     session_number = state[counter_key]
-    branch_type = "workstream" if session_type == "loop" else "refine"
+    branch_type = {"plan": "plan", "loop": "workstream", "refine": "refine"}[session_type]
     branch = derive_branch_name(state, branch_type)
 
     history.append(
@@ -207,8 +207,8 @@ def cmd_start_session(args):
     )
 
 
-cmd_start_session.usage = "<plet_dir> --type loop|refine"  # noqa: E501
-cmd_start_session.example = "session.py start-session plet/ --type loop"  # noqa: E501
+cmd_start_session.usage = "<plet_dir> --type plan|loop|refine"  # noqa: E501
+cmd_start_session.example = "session.py start-session plet/ --type plan"  # noqa: E501
 
 
 def _load_session_state(plet_dir, session_type):
