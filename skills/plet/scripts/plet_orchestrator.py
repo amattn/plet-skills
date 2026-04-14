@@ -42,7 +42,7 @@ from util_sink import FileSink, MultiplexSink, NdjsonSink, TextSink  # noqa: E40
 from util_state import load_and_validate_iter_state  # noqa: E402
 from util_subprocess import run_git  # noqa: E402
 
-SCRIPT_VERSION = "0.6.0"
+SCRIPT_VERSION = "0.6.1"
 from util_constants import SKILL_VERSION  # noqa: E402
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))

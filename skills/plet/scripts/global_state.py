@@ -51,7 +51,7 @@ from util_state import (
 )
 
 SCRIPT_NAME = "global_state"
-SUBMODULE_VERSION = "0.4.0"
+SUBMODULE_VERSION = "0.5.0"
 
 PROJECT_ID_RE = re.compile(r"^[A-Z][A-Z0-9]{2,5}$")
 

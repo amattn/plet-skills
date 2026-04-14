@@ -10,10 +10,10 @@ import re
 # Additive changes = minor bump. Breaking changes = major bump.
 # Written into state.json and state/{iter_id}.json by global_state.py and iter_state.py init.
 # Human reference: references/state-schema.md, references/formats.md
-SCHEMA_VERSION = "0.7.0"
+SCHEMA_VERSION = "0.7.1"
 
 # Plet skill version — matches SKILL.md frontmatter version.
-SKILL_VERSION = "0.7.0"
+SKILL_VERSION = "0.7.1-b.1"
 
 # Iteration ID pattern — accepts ITR_NNN (normal) and ITR_RFT_N (refactor).
 # Used by all validators. Import this instead of defining local regexes.
