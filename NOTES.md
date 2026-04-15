@@ -2903,7 +2903,7 @@ Reorganization separates Phases (what happens) from Infrastructure (how it works
 
 - PT_7: script name updated (prompt.py)
 - PT_8 added: phase-refactor.md reference file with ITR_RFT_* routing
-- PT_9 added: plan-templates directory with two-dimensional composition (project type × platform). Currently PL_DX/PL_TV/PL_CT/PL_SM live inline in DVX_TP — PT_9 is the future home.
+- PT_9 added: plan-templates directory with two-dimensional composition (project type × platform). Currently PL_DX/PL_TV/PL_CT/PL_SM live inline in DVX_TMPL — PT_9 is the future home.
 - PT_10 withdrawn before publication — cli-spec-template.md will become a plan-template (project type), not its own requirement
 - Section reorganized into 4 groups: subagent refs, schema refs, plan templates, prompt assembly
 
@@ -2997,7 +2997,7 @@ references/plan-templates/
 └── ...
 ```
 
-**Source-of-truth chain (2026-04-15):** PRD (`DVX_TP`, `TST_TP`, `CTA_TP`, `MET_TP`, `RCH_TP`) defines what the templates contain — this is the root source of truth. `references/plan-templates/common.md` is the implementation artifact derived from the PRD. `session-plan.md` references `plan-templates/` instead of inlining templates (eliminates three-copy problem). Two copies total: PRD (authoritative) → plan-templates/ (derived).
+**Source-of-truth chain (2026-04-15):** PRD (`DVX_TMPL`, `TST_TMPL`, `CTA_TMPL`, `MET_TMPL`, `RCH_TMPL`) defines what the templates contain — this is the root source of truth. `references/plan-templates/common.md` is the implementation artifact derived from the PRD. `session-plan.md` references `plan-templates/` instead of inlining templates (eliminates three-copy problem). Two copies total: PRD (authoritative) → plan-templates/ (derived).
 
 #### NOTES_PLAN_PRD_RATCHETS: PL_RCH Formalization (2026-04-15)
 

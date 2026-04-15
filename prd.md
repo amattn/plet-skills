@@ -454,7 +454,7 @@ Instructions, schemas, and templates that guide agent behavior, stored as bundle
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PT_9 | Plan-phase templates live in `references/plan-templates/`. The plan phase loads `common.md` plus applicable type and platform templates. Two independent dimensions: project type (common, webapp, cli, library) and platform (python, elixir, go, mac, linux). Templates compose — a Python CLI loads `common.md` + `cli.md` + `python.md`. | P0 |
+| PT_9 | Plan-phase templates live in `references/plan-templates/`. The plan phase loads `common.md` (PL_DX, PL_TV, PL_CT, PL_SM, PL_RCH) plus applicable type and platform templates. Two independent dimensions: project type (common, webapp, cli, library) and platform (python, elixir, go, mac, linux). Templates compose — a Python CLI loads `common.md` + `cli.md` + `python.md`. PRD `_TMPL` sections are the source of truth; `plan-templates/` files are derived implementation artifacts. | P0 |
 
 **Prompt assembly:**
 
@@ -620,6 +620,16 @@ Quality ratchets are metrics that can only improve — the threshold moves up wh
 
 **Adding new ratchets:** Any measurable quality metric with a monotonic improvement direction can become a ratchet. Candidates: cyclomatic complexity ceiling, maximum file size, doc coverage. Add when there's a reliable automated measurement and a meaningful threshold.
 
+### RCH_TMPL: Plan-Phase Quality Ratchets Template
+
+Quality ratchet requirements that the plan session should include in target project PRDs. Derived into `references/plan-templates/common.md` (see PT_9).
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PL_RCH_1 | Plan session defines quality ratchets — metrics that can only improve, with current threshold and enforcement mechanism | P0 |
+| PL_RCH_2 | Every project has at minimum a test coverage ratchet and a lint-clean ratchet | P0 |
+| PL_RCH_3 | Ratchet thresholds are updated upward when sustained improvement is observed | P1 |
+
 ---
 
 ## DVX: Developer Experience
@@ -636,13 +646,9 @@ Developer experience of working with the plet skill itself.
 | DX_4 | State schema and runtime artifact formats are documented with examples | P1 |
 | DX_5 | Clear error messages when plet encounters invalid state or missing artifacts | P1 |
 
-### DVX_TP: Plan-Phase Templates
+### DVX_TMPL: Plan-Phase DX Template
 
-<!-- NOTE: Will be extracted to references/plan-templates.md in a future step.
-     Two template dimensions: project type (common, webapp, cli, library) × platform (python, elixir, go, etc.)
-     See NOTES_PLAN_PRD_RESOLVED OQ_PRD_1 for full decision. -->
-
-DX items that the plan session should always consider incorporating into target project PRDs. Framed by three guiding principles:
+DX items that the plan session should always consider incorporating into target project PRDs. Derived into `references/plan-templates/common.md` (see PT_9). Framed by three guiding principles:
 
 - **Readability** — Code and related artifacts should be readable by humans and agents both. Scanning is everything. If your code cannot be understood rapidly, something is missing.
 - **Debug-ability** — Good code (and architecture and infra) makes it easy to identify where, when, and how defects occur. No silent or ignored error states.
@@ -877,9 +883,9 @@ Plet uses two testing strategies: (1) **automated tests** for enforcement script
 | TV_7 | Runtime artifact entries (progress, learnings, emergent) validated against defined formats | P1 |
 | TV_8 | Trace NDJSON files validated against schema | P1 |
 
-### TST_TP: Plan-Phase Testing Template
+### TST_TMPL: Plan-Phase Testing Template
 
-Testing and verification requirements that the plan session should include in target project PRDs. PL_TV_1 is the operational version of the PL_DX_10 principle.
+Testing and verification requirements that the plan session should include in target project PRDs. Derived into `references/plan-templates/common.md` (see PT_9). PL_TV_1 is the operational version of the PL_DX_10 principle.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -922,7 +928,9 @@ Testing and verification requirements that the plan session should include in ta
 | Resume after crash/interruption | Half-written iteration can't be picked up, lost work | Integration tests simulating mid-phase crash, verify state recovery and continuation |
 | Artifact format stability | New versions break consumers (GUI, external tools) | Regression tests verifying schema is additive-only, no removed or renamed fields |
 
-### CTA_TP: Plan-Phase Critical Test Areas Template
+### CTA_TMPL: Plan-Phase Critical Test Areas Template
+
+Derived into `references/plan-templates/common.md` (see PT_9).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -943,7 +951,9 @@ Testing and verification requirements that the plan session should include in ta
 | Artifact consistency | 0 undetected fingerprint drift between requirements/iterations/state |
 | Resume reliability | 100% of interrupted sessions resume correctly from state files |
 
-### MET_TP: Plan-Phase Success Metrics Template
+### MET_TMPL: Plan-Phase Success Metrics Template
+
+Derived into `references/plan-templates/common.md` (see PT_9).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -996,7 +1006,7 @@ No open questions at this time.
 | 11 | Self-improvement via runtime artifact analysis | A separate skill or mode that analyzes plet's own runtime artifacts (progress, learnings, emergent, trace) to identify patterns, bottlenecks, and skill deficiencies — then proposes improvements to the plet PRD itself. Approved changes get implemented and plet receives a version bump. As models improve, the skill's instructions and heuristics go stale; this closes the feedback loop so plet evolves alongside the models it runs on. |
 | 12 | Eval system | Formalize how we measure prompt effectiveness across planner, implementer, and verifier roles. Track both synthetic and emergent test cases. Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework. See PLAN_SUB. |
 | 13 | Sandboxing integration | Recommend or require Claude Code sandboxing for autonomous loop sessions. Sandbox provides OS-level filesystem/network isolation. `--permission-mode bypassPermissions` + sandbox = safe autonomous execution. See FOO_50. |
-| 14 | Plan-phase templates | Split `DVX_TP` (PL_DX/PL_TV/PL_CT/PL_SM) into per-type and per-platform template files under `references/plan-templates/`. See PT_9. |
+| 14 | Plan-phase template content | Populate type-specific (`cli.md`, `webapp.md`, `library.md`) and platform-specific (`python.md`, `elixir.md`, `go.md`) template files in `references/plan-templates/`. Folder structure and `common.md` shipped in PRD_7; stub content requires interactive review per file. See PT_9. |
 
 ---
 
