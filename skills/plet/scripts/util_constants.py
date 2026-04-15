@@ -13,7 +13,7 @@ import re
 SCHEMA_VERSION = "0.7.1"
 
 # Plet skill version — matches SKILL.md frontmatter version.
-SKILL_VERSION = "0.7.1-b.1"
+SKILL_VERSION = "0.7.1"
 
 # Iteration ID pattern — accepts ITR_NNN (normal) and ITR_RFT_N (refactor).
 # Used by all validators. Import this instead of defining local regexes.
