@@ -2746,7 +2746,9 @@ R06: 53% of implement-phase Bash calls were plet infrastructure. Dominated by di
 
 ### NOTES_PLAN_SUB: PLAN_SUB — Subplets
 
-<!-- Future — design decisions go here when work begins -->
+#### NOTES_PLAN_SUB_TEMPLATES: Project-level plan-templates
+
+Subplets should support a project-level `plan-templates/` directory for projects that define their own templates. When a target project has custom plan-templates (e.g., `plet/plan-templates/`), subplets inherit or override them rather than falling back solely to plet's built-in `references/plan-templates/`. This lets projects add domain-specific DX, testing, or ratchet requirements that apply to all subplets within the project.
 
 ### NOTES_PLAN_PRD: PLAN_PRD — PRD Reorganization & Sync
 
@@ -2980,20 +2982,52 @@ Templates are NOT plet requirements — they're templates that plet's plan phase
 
 These compose independently — a Python CLI project loads `common.md` + `cli.md` + `python.md`. A Phoenix webapp loads `common.md` + `webapp.md` + `elixir.md`.
 
-**For PLAN_PRD:** Move all PL_DX/PL_TV/PL_CT/PL_SM to a single `references/plan-templates.md` now. Split into per-type/per-platform files as a separate future task (noted in PRD Future Considerations).
+**For PRD_7 (updated 2026-04-15):** Go straight to the folder structure — no interim single file. PT_9 collapsed into PRD_7.
 
-**Structure (future):**
+**Structure:**
 ```
 references/plan-templates/
-├── common.md      — applies to ALL projects
-├── cli.md         — project type: CLI tools
-├── webapp.md      — project type: web applications
-├── library.md     — project type: libraries/packages
-├── python.md      — platform: Python
-├── elixir.md      — platform: Elixir/Phoenix
-├── go.md          — platform: Go
+├── common.md      — applies to ALL projects (PL_DX, PL_TV, PL_CT, PL_SM, PL_RCH)
+├── cli.md         — project type: CLI tools (stub)
+├── webapp.md      — project type: web applications (stub)
+├── library.md     — project type: libraries/packages (stub)
+├── python.md      — platform: Python (stub)
+├── elixir.md      — platform: Elixir/Phoenix (stub)
+├── go.md          — platform: Go (stub)
 └── ...
 ```
+
+**Source-of-truth chain (2026-04-15):** PRD (`DVX_TP`, `TST_TP`, `CTA_TP`, `MET_TP`, `RCH_TP`) defines what the templates contain — this is the root source of truth. `references/plan-templates/common.md` is the implementation artifact derived from the PRD. `session-plan.md` references `plan-templates/` instead of inlining templates (eliminates three-copy problem). Two copies total: PRD (authoritative) → plan-templates/ (derived).
+
+#### NOTES_PLAN_PRD_RATCHETS: PL_RCH Formalization (2026-04-15)
+
+**Decision:** Add PL_RCH_1–3 as a formal template section alongside PL_DX/PL_TV/PL_CT/PL_SM.
+
+FOO_73 added ratchets to the PRD template outline (§4.5) and conventions, but never created formal PL_RCH requirement IDs. Every other plan-phase template section has IDs — ratchets should too.
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PL_RCH_1 | Plan session defines quality ratchets — metrics that can only improve, with current threshold and enforcement mechanism | P0 |
+| PL_RCH_2 | Every project has at minimum a test coverage ratchet and a lint-clean ratchet | P0 |
+| PL_RCH_3 | Ratchet thresholds are updated upward when sustained improvement is observed | P1 |
+
+#### NOTES_PLAN_PRD_TEMPLATE_LABELS: Stable Labels in PRD Template (2026-04-15)
+
+**Decision:** Replace §N numbered sections in the session-plan.md PRD template with stable label prefixes. The PRD itself already uses stable labels (GCN, PER, DVX, etc.) but the template outline still used §1–§14 numbering. Mismatch caused §4.5 and §9b hacks for inserted sections.
+
+New template section headers: GCN, PER, FRQ, NFR, RCH, DVX, ARC, DAT, FLW, MIL, RFP, QES, CTA, TST, FUT, MET. Ordering preserved, just labels replace numbers.
+
+New labels introduced: FRQ (functional requirements container), DAT (data models), RFP (refactor policy — split from MIL).
+
+#### NOTES_PLAN_PRD_INLINE: Drop Inline Templates from session-plan.md (2026-04-15)
+
+**Decision:** Remove the ~150-line inline PL_ template copy from session-plan.md. Replace with a reference to `references/plan-templates/`. Eliminates the three-copy problem (PRD + plan-templates/ + session-plan.md → PRD + plan-templates/).
+
+**Why:** Three copies means three places to update when a PL_ item changes. The plan agent is interactive (human-driven), not a constrained subagent — it can read one more file. session-plan.md becomes shorter and more focused on the plan workflow.
+
+#### NOTES_PLAN_PRD_STUBS: Interactive Stub Fill-out (2026-04-15)
+
+**Decision:** Each plan-template stub (cli.md, webapp.md, library.md, python.md, elixir.md, go.md) gets its own PRD_7 line item and is filled out via interactive review session with the user. Not auto-generated — each project type and platform has domain-specific templates that need human judgment.
 
 ### NOTES_PLAN_EVL: PLAN_EVL — Eval System
 

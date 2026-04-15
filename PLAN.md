@@ -210,7 +210,8 @@ PRD is significantly out of sync with the current system after PLAN_SEQ, PLAN_RF
 - New sections: Orchestrator Loop (OL), Refactor (RFT), Bootstrap (BS)
 - Rewrite ES Script Inventory (3 entry points + modules, not 14 flat scripts)
 - Sync stale numbers (tests, script counts, field names)
-- Resolve PL_DX/PL_TV/PL_CT/PL_SM template placement
+- Extract PL_DX/PL_TV/PL_CT/PL_SM + new PL_RCH to `references/plan-templates/` folder (PT_9 collapsed into PRD_7)
+- Standardize PRD template on stable labels (replace §N numbering)
 
 | Step | Description | Status |
 |------|-------------|--------|
@@ -220,7 +221,18 @@ PRD is significantly out of sync with the current system after PLAN_SEQ, PLAN_RF
 | PRD_4 | Section-by-section review: INF (SF, RT, SY, PT, BS) | ✓ done |
 | PRD_5 | Section-by-section review: TLG (ES rewrite) | ✓ done |
 | PRD_6 | Section-by-section review: DST, NFR, RCH, DVX, ARC, FLW, MIL, TST, CTA, MET, RSQ, FUT, WDN | ✓ done |
-| PRD_7 | Extract PL_DX/PL_TV/PL_CT/PL_SM to references/plan-templates.md | not started |
+| PRD_7a | PRD: add PL_RCH_1–3 (new RCH_TP section), remove stale extraction comment, update PT_9 wording + future considerations #14 | not started |
+| PRD_7b | Create `references/plan-templates/common.md` — derived from PRD's PL_DX, PL_TV, PL_CT, PL_SM, PL_RCH | not started |
+| PRD_7c | Create stub files: `cli.md`, `webapp.md`, `library.md`, `python.md`, `elixir.md`, `go.md` | not started |
+| PRD_7d | session-plan.md: replace inline PL_ templates with reference to `plan-templates/`, replace §N with stable labels, update all §N references | not started |
+| PRD_7e | NOTES.md: verify decisions complete, update any stale entries | not started |
+| PRD_7f | Consistency pass — grep for stale §N refs, orphaned PL_ IDs, "plan-templates.md" singular | not started |
+| PRD_7g | Fill out `cli.md` — interactive review session | not started |
+| PRD_7h | Fill out `webapp.md` — interactive review session | not started |
+| PRD_7i | Fill out `library.md` — interactive review session | not started |
+| PRD_7j | Fill out `python.md` — interactive review session | not started |
+| PRD_7k | Fill out `elixir.md` — interactive review session | not started |
+| PRD_7l | Fill out `go.md` — interactive review session | not started |
 | PRD_8 | Final consistency pass | ✓ done — 1 fix (IMP_9 stale SF_18 ref), all labels/cross-refs clean |
 
 ---

@@ -48,6 +48,7 @@ To test: use this repo's skill directly (Claude Code should pick it up from the 
 | jason | JSON |
 | riddle | RIDL |
 | plett, pleat, plate, plex | plet |
+| sublet | subplet |
 | skill md | SKILL.md |
 | state jason | state.json |
 | sub agent | subagent |
