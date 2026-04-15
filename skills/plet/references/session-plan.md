@@ -194,7 +194,7 @@ The project name goes into the PRD header. The project ID goes into `state.json`
 
 Generate a structured requirements document saved to `plet/requirements.md`. Follow the conventions of the ridl-skills:prd format.
 
-**Adapt the template to the project type.** The document structure below is universal, but §3 Functional Requirements feature areas and emphasis vary by project type. See Project Type Guidance below for CLI tools, web apps, APIs, and libraries. Don't force CLI-shaped sections onto a web app or vice versa.
+**Adapt the template to the project type.** The document structure below is universal, but FRQ feature areas and emphasis vary by project type. See Project Type Guidance below for CLI tools, web apps, APIs, and libraries. Don't force CLI-shaped sections onto a web app or vice versa.
 
 ### Document Structure
 
@@ -210,15 +210,15 @@ Generate a structured requirements document saved to `plet/requirements.md`. Fol
 
 ---
 
-## 1. Overview
+## GCN: Overview
 [2-3 paragraphs: what it is, why it exists, design principles]
 
-## 2. User Personas
+## PER: User Personas
 [Table: persona, description, key need]
 
-## 3. Functional Requirements
+## FRQ: Functional Requirements
 
-### 3.N [Feature Area] (PREFIX)
+### FRQ_N: [Feature Area] (PREFIX)
 [Prose intro for the section — context, not requirements]
 
 | ID | Requirement | Priority |
@@ -228,28 +228,40 @@ Generate a structured requirements document saved to `plet/requirements.md`. Fol
 
 [Repeat for each feature area]
 
-## 4. Non-Functional Requirements
+## NFR: Non-Functional Requirements
 [Reliability, performance, compatibility, security as appropriate]
 
-## 4.5 Quality Ratchets
-[Metrics that must never go backwards. Each ratchet has a current value, a threshold, and an enforcement mechanism. Examples: test coverage (≥ threshold, enforced by CI or test runner), cyclomatic complexity (≤ threshold, enforced by linter), lint errors (zero, enforced by linter gate), test count (≥ current, tracked per release). Ratchets prevent backsliding — once a quality level is achieved, it becomes the new floor. Projects may not need all of these, but every project benefits from at least coverage + lint.]
-
-## 5. Developer Experience (DX)
-[See DX Template below]
-
-## 6. Technical Architecture
-[Component diagram, key dependencies, directory structure]
-
-## 7. Data Models
-[Agent drafts data models based on requirements — database schemas, JSON structures, API shapes, core domain types. Use best judgment for defaults. If the project has no data models, state that explicitly. During section review (Step 4), the user decides whether to keep agent defaults, specify models more precisely, or defer modeling to implementation agents (who document decisions in learnings.md). Models defined here become acceptance criteria — agents must implement against them.]
-
-## 8. User Flows
+## FLW: User Flows
 [Numbered step-by-step flows for primary use cases]
 
-## 9. Release Milestones
+## ARC: Technical Architecture
+[Component diagram, key dependencies, directory structure]
+
+## DAT: Data Models
+[Agent drafts data models based on requirements — database schemas, JSON structures, API shapes, core domain types. Use best judgment for defaults. If the project has no data models, state that explicitly. During section review (Step 4), the user decides whether to keep agent defaults, specify models more precisely, or defer modeling to implementation agents (who document decisions in learnings.md). Models defined here become acceptance criteria — agents must implement against them.]
+
+## DVX: Developer Experience
+[See plan-templates/common.md § DVX]
+
+## TST: Testing & Verification
+[See plan-templates/common.md § TST]
+
+## VFC: Verification Commands
+[See plan-templates/common.md § VFC. Platform templates provide defaults.]
+
+## CTA: Critical Test Areas
+[See plan-templates/common.md § CTA]
+
+## RCH: Quality Ratchets
+[See plan-templates/common.md § RCH]
+
+## MET: Success Metrics
+[See plan-templates/common.md § MET]
+
+## MIL: Release Milestones
 [Deferred — finalize after section-by-section review (Step 4) is complete. Requirements change during review, so milestones defined before review are based on stale input. (FOO_26)]
 
-## 9b. Refactor Policy
+## RFP: Refactor Policy
 
 Default refactor goals applied at each milestone boundary (via `ITR_RFT_N`):
 
@@ -269,23 +281,14 @@ Default refactor goals applied at each milestone boundary (via `ITR_RFT_N`):
 
 [Present defaults to user during Step 5. User approves, modifies, or adds project-specific goals. Written to requirements.md before iteration decomposition.]
 
-## 10. Resolved Questions
+## QES: Resolved Questions
 [Table: #, question, decision]
 
 ### Open Questions
 [Items deferred for later resolution]
 
-## 11. Critical Test Areas
-[See CT Template below]
-
-## 12. Testing & Verification Strategy
-[See TV Template below]
-
-## 13. Future Considerations
+## FUT: Future Considerations
 [Table: #, area, description — excluded from fingerprints]
-
-## 14. Success Metrics
-[See SM Template below]
 ```
 
 ### Requirement ID Rules (GC_1)
@@ -327,7 +330,7 @@ Include a fingerprint at the end of `requirements.md` in a fenced JSON block:
 
 ### Project Type Guidance (FOO_53)
 
-The document structure above is universal. Adapt §3 feature areas and section emphasis based on what you're building. These are starting points — use judgment to add or skip sections.
+The document structure above is universal. Adapt FRQ feature areas and section emphasis based on what you're building. These are starting points — use judgment to add or skip sections.
 
 **CLI tools / scripts:**
 
@@ -342,34 +345,34 @@ For a thorough CLI spec, use `references/cli-spec-template.md` as a reference. I
 - **Behaviors** — key behavior points with rationale
 
 Beyond per-command specs:
-- §3 Feature areas: command inventory with one-line descriptions, universal flags table, per-command sections
-- §4 NFR: startup time, memory for large inputs, signal handling, exit codes (0=success, 1=error)
-- §5 DX: installation, shell completion, help text quality, copy-pasteable examples in `--help`
-- §6 Architecture: dispatch pattern, module structure, shared utilities
-- §7 Data Models: config file format, input schemas, output schemas, state file schemas
-- §8 User Flows: multi-command workflows, piping, common sequences
+- FRQ: command inventory with one-line descriptions, universal flags table, per-command sections
+- NFR: startup time, memory for large inputs, signal handling, exit codes (0=success, 1=error)
+- DVX: installation, shell completion, help text quality, copy-pasteable examples in `--help`
+- ARC: dispatch pattern, module structure, shared utilities
+- DAT: config file format, input schemas, output schemas, state file schemas
+- FLW: multi-command workflows, piping, common sequences
 - Edge cases, error handling, agent flows, and test areas as separate sections
 
 **Web apps:**
 - Feature areas: pages/views, navigation, components, forms, real-time features (WebSocket, SSE), auth/authorization
-- §7 Data Models: database schemas, migrations, relationships, indexes
-- §8 User Flows: user journeys through pages, form submissions, error states, loading states
-- §6 Architecture: frontend/backend split, routing, middleware, asset pipeline, deployment
-- §4 NFR: response times, concurrent users, accessibility (WCAG level), responsive breakpoints, browser support
+- DAT: database schemas, migrations, relationships, indexes
+- FLW: user journeys through pages, form submissions, error states, loading states
+- ARC: frontend/backend split, routing, middleware, asset pipeline, deployment
+- NFR: response times, concurrent users, accessibility (WCAG level), responsive breakpoints, browser support
 - Additional sections to consider: API endpoints (if the app has an API layer), background jobs, email/notifications
 
 **APIs / services:**
 - Feature areas: endpoint inventory, request/response schemas, auth (API keys, OAuth, JWT), rate limiting, versioning
-- §7 Data Models: resource schemas, relationships, pagination patterns
-- §8 User Flows: API call sequences, webhook flows, error recovery
-- §4 NFR: latency targets, throughput, availability SLA, payload size limits
+- DAT: resource schemas, relationships, pagination patterns
+- FLW: API call sequences, webhook flows, error recovery
+- NFR: latency targets, throughput, availability SLA, payload size limits
 
 **Libraries / packages:**
 - Feature areas: public API surface, type signatures, configuration, extension points
-- §7 Data Models: core types, options/config structs
-- §8 User Flows: integration examples, migration from alternatives
-- §4 NFR: backwards compatibility policy, minimum language/runtime version, dependency policy, bundle size
-- §5 DX: documentation quality, error messages, type inference support
+- DAT: core types, options/config structs
+- FLW: integration examples, migration from alternatives
+- NFR: backwards compatibility policy, minimum language/runtime version, dependency policy, bundle size
+- DVX: documentation quality, error messages, type inference support
 
 ---
 
@@ -393,11 +396,11 @@ The user may batch answers or go one-by-one — follow their lead.
 
 ## Step 5: Finalize Milestones + Refactor Policy (FOO_26)
 
-After all requirement sections are reviewed and approved, finalize §9 Release Milestones and §9b Refactor Policy in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
+After all requirement sections are reviewed and approved, finalize MIL (Release Milestones) and RFP (Refactor Policy) in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
 
 1. Draft milestones based on approved requirements
 2. Present to user for review with the R/O stable tail
-3. Present the default refactor policy (§9b template). Ask if the user wants to add project-specific goals or modify defaults.
+3. Present the default refactor policy (RFP template). Ask if the user wants to add project-specific goals or modify defaults.
 4. **Silence is not approval** — re-present after changes, wait for O
 5. Write to disk, verify, commit (`plet: [plan] approve milestones + refactor policy`)
 
@@ -417,7 +420,7 @@ Before decomposing into iterations, proactively probe for gaps that will cause b
 
 4. **Ambiguous acceptance criteria candidates** — requirements where "testable" acceptance criteria are hard to write. If you can't imagine the test, the requirement needs refinement.
 
-5. **Architecture decisions not yet made** — database choice, API style, auth strategy, file format — decisions that multiple requirements depend on but that aren't captured in §6 Technical Architecture.
+5. **Architecture decisions not yet made** — database choice, API style, auth strategy, file format — decisions that multiple requirements depend on but that aren't captured in ARC (Technical Architecture).
 
 **Present as NL-formatted options with concrete proposals.** For each gap, offer lettered resolution options (e.g., A. Clarify the requirement, B. Add a new requirement, C. Defer to Open Questions, D. Dismiss). The user can batch answers (`1A, 2C, 3D`). End with the R/O stable tail. Update requirements.md and commit after each resolution.
 

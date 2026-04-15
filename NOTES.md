@@ -2779,49 +2779,59 @@ Subplets should support a project-level `plan-templates/` directory for projects
 Reorganization separates Phases (what happens) from Infrastructure (how it works) from Tooling (what enforces it).
 
 ```
-§1  Overview
-§2  User Personas
-§3  Global Conventions (GC) — promoted from buried subsection
-§4  Phases
-    4.1  Plan (PL)
-    4.2  Orchestrator Loop (OLP) — NEW
-    4.3  Implement (IMP)
-    4.4  Verify (VF)
-    4.5  Refactor (RFT) — NEW
-    4.6  Refine (RF)
-§5  Infrastructure
-    5.1  State Files (SF)
-    5.2  Runtime Artifacts (RT)
-    5.3  Artifact Sync & Fingerprints (SY)
-    5.4  Prompt & Reference Files (PT)
-    5.5  Project Bootstrap (BS) — NEW
-§6  Tooling (ES)
-    6.1  Architecture (3 entry points + modules philosophy)
-    6.2  Entry Points
-    6.3  Module Inventory
-    6.4  Utility Modules
-    6.5  Subagent Execution Pipeline
-§7  Distribution (DS)
-§8  Non-Functional Requirements (NF)
-§9  Developer Experience (DX + PL_DX)
-§10 Technical Architecture
-§11 User Flows
-§12 Release Milestones
-§13 Testing & Verification (TV + PL_TV)
-§14 Critical Test Areas (CT + PL_CT)
-§15 Success Metrics (SM + PL_SM)
-§16 Resolved Questions
-§17 Future Considerations
+OVR  Overview
+PER  User Personas
+TAX  Taxonomy
+GCN  Global Conventions — promoted from buried subsection
+PHA  Phases
+     PHA_PL   Plan
+     PHA_OLP  Orchestrator Loop — NEW
+     PHA_IMP  Implement
+     PHA_VF   Verify
+     PHA_RFT  Refactor — NEW
+     PHA_RFN  Refine
+INF  Infrastructure
+     INF_SF   State Files
+     INF_RT   Runtime Artifacts
+     INF_SY   Artifact Sync & Fingerprints
+     INF_PT   Prompt & Reference Files
+     INF_BS   Project Bootstrap — NEW
+TLG  Tooling (ES)
+     TLG_ES   Architecture (3 entry points + modules)
+     TLG_EP   Entry Points
+     TLG_MD   Module Inventory
+     TLG_UT   Utility Modules
+     TLG_PP   Subagent Execution Pipeline
+DST  Distribution
+--- What ---
+NFR  Non-Functional Requirements
+FLW  User Flows
+--- How ---
+ARC  Technical Architecture
+DVX  Developer Experience (+ DVX_TMPL)
+--- Quality ---
+TST  Testing & Verification (+ TST_TMPL)
+VFC  Verification Commands (+ VFC_TMPL)
+CTA  Critical Test Areas (+ CTA_TMPL)
+RCH  Quality Ratchets (+ RCH_TMPL)
+MET  Success Metrics (+ MET_TMPL)
+--- Delivery ---
+MIL  Release Milestones
+--- Meta ---
+QES  Questions
+FUT  Future Considerations
+WDN  Withdrawn & Deprecated
 ```
 
-**Key structural changes:**
+**Key structural changes (2026-04-08):**
 - GC promoted to top-level (governs everything)
-- New §4.2 Orchestrator Loop consolidates scattered orchestrator behavior
-- New §4.5 Refactor for shipped feature with zero coverage
-- New §5.5 Bootstrap for shipped feature with zero coverage
+- New PHA_OLP consolidates scattered orchestrator behavior
+- New PHA_RFT for shipped feature with zero coverage
+- New INF_BS for shipped feature with zero coverage
 - SY pulled out of OR (fingerprints are infrastructure, not routing)
-- ES restructured as §6 Tooling with 3-tier architecture
-- Pipeline diagram moved from ES to §6.5
+- ES restructured as TLG with 3-tier architecture
+
+**Section reorder (2026-04-15):** Tail sections (after DST) reordered by concern: What (problem) → How (solution) → Quality (verification) → Delivery (planning) → Meta. Previously used §N numbering order which had §4.5/§9b hacks.
 
 #### NOTES_PLAN_PRD_GCN: GCN Review (2026-04-08)
 
@@ -3015,7 +3025,7 @@ FOO_73 added ratchets to the PRD template outline (§4.5) and conventions, but n
 
 **Decision:** Replace §N numbered sections in the session-plan.md PRD template with stable label prefixes. The PRD itself already uses stable labels (GCN, PER, DVX, etc.) but the template outline still used §1–§14 numbering. Mismatch caused §4.5 and §9b hacks for inserted sections.
 
-New template section headers: GCN, PER, FRQ, NFR, RCH, DVX, ARC, DAT, FLW, MIL, RFP, QES, CTA, TST, FUT, MET. Ordering preserved, just labels replace numbers.
+New template section headers grouped by concern: **What** (GCN, PER, FRQ, NFR, FLW), **How** (ARC, DAT, DVX), **Quality** (TST, CTA, RCH, MET), **Delivery** (MIL, RFP), **Meta** (QES, FUT). Stable labels replace §N numbers. Same ordering applied to PRD, common.md, and session-plan.md template outline.
 
 New labels introduced: FRQ (functional requirements container), DAT (data models), RFP (refactor policy — split from MIL).
 

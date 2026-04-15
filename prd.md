@@ -454,7 +454,7 @@ Instructions, schemas, and templates that guide agent behavior, stored as bundle
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PT_9 | Plan-phase templates live in `references/plan-templates/`. The plan phase loads `common.md` (PL_DX, PL_TV, PL_CT, PL_SM, PL_RCH) plus applicable type and platform templates. Two independent dimensions: project type (common, webapp, cli, library) and platform (python, elixir, go, mac, linux). Templates compose — a Python CLI loads `common.md` + `cli.md` + `python.md`. PRD `_TMPL` sections are the source of truth; `plan-templates/` files are derived implementation artifacts. | P0 |
+| PT_9 | Plan-phase templates live in `references/plan-templates/`. The plan phase loads `common.md` (PL_DX, PL_TV, PL_VFC, PL_CT, PL_SM, PL_RCH) plus applicable type and platform templates. Two independent dimensions: project type (common, webapp, cli, library) and platform (python, elixir, go, mac, linux). Templates compose — a Python CLI loads `common.md` + `cli.md` + `python.md`. PRD `_TMPL` sections are the source of truth; `plan-templates/` files are derived implementation artifacts. | P0 |
 
 **Prompt assembly:**
 
@@ -606,81 +606,55 @@ plet has no performance requirements, which is unusual but intentional. plet's p
 
 ---
 
-## RCH: Quality Ratchets
-
-Quality ratchets are metrics that can only improve — the threshold moves up when quality improves, never down. They prevent regression by making it impossible to merge changes that reduce quality below the current bar.
-
-| ID | Metric | Current Threshold | Mechanism |
-|----|--------|-------------------|-----------|
-| RCH_1 | Test coverage | 91% (`fail_under` in pyproject.toml) | `test_all.py` runs pytest-cov. Build fails if coverage drops below threshold. After sustained improvement, ratchet the threshold up. |
-| RCH_2 | Lint warnings | 0 | `test_all.py` runs ruff as a gate. Any warning fails the build. Zero is the floor — it never goes up. |
-| RCH_3 | Test suite health | All tests pass | `test_all.py` fails on any test failure. No "known failures" or skip-without-rationale. |
-
-**Ratchet discipline:** When a metric sustainably exceeds its threshold (e.g., coverage reaches 93% across multiple commits), bump the threshold to the new floor. The cost of bumping is one line in pyproject.toml. The cost of not bumping is silent regression back to the old level.
-
-**Adding new ratchets:** Any measurable quality metric with a monotonic improvement direction can become a ratchet. Candidates: cyclomatic complexity ceiling, maximum file size, doc coverage. Add when there's a reliable automated measurement and a meaningful threshold.
-
-### RCH_TMPL: Plan-Phase Quality Ratchets Template
-
-Quality ratchet requirements that the plan session should include in target project PRDs. Derived into `references/plan-templates/common.md` (see PT_9).
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| PL_RCH_1 | Plan session defines quality ratchets — metrics that can only improve, with current threshold and enforcement mechanism | P0 |
-| PL_RCH_2 | Every project has at minimum a test coverage ratchet and a lint-clean ratchet | P0 |
-| PL_RCH_3 | Ratchet thresholds are updated upward when sustained improvement is observed | P1 |
 
 ---
 
-## DVX: Developer Experience
+## FLW: User Flows
 
-### DVX_PL: Plet Skill DX
+### FLW_NP: New Project
 
-Developer experience of working with the plet skill itself.
+1. User invokes `/plet` in a fresh project
+2. No `plet/` directory exists — skill enters a Plan session
+3. Skill asks clarifying questions about the feature/product
+4. User answers; skill generates `plet/requirements.md` draft
+5. Skill presents each feature area for review; user approves or adjusts
+6. Skill breaks requirements into iterations with dependencies, saves to `plet/iterations.md`
+7. Skill presents each iteration for review; user approves
+8. Skill initializes `plet/state.json` and creates runtime artifact files
+9. Skill asks: "Ready to start building?" — never auto-launches the loop (PL_17). User invokes `/plet loop` when ready.
 
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| DX_1 | When developing plet, the skill-creator plugin is required. Plet's development environment verifies it is loaded on session start and prompts to install if missing. Not required at runtime for end users. | P1 |
-| DX_2 | Plet reads and respects the target project's CLAUDE.md and README for conventions, context, and preferences | P0 |
-| DX_3 | SKILL.md and reference files are well-structured and navigable | P1 |
-| DX_4 | State schema and runtime artifact formats are documented with examples | P1 |
-| DX_5 | Clear error messages when plet encounters invalid state or missing artifacts | P1 |
+### FLW_LP: Loop (Implement → Verify)
 
-### DVX_TMPL: Plan-Phase DX Template
+1. User invokes `/plet` with existing state
+2. Skill reads state, identifies eligible iterations
+3. Skill spawns an implementation subagent for the next eligible iteration (one at a time in dependency order)
+4. Each subagent implements with red/green discipline, updates state and artifacts in real time
+5. On implementation completion, a verification subagent spawns in a fresh context
+6. Verification agent independently confirms acceptance criteria
+7. If verification passes, iteration marked `complete` on the workstream
+8. If verification fails, iteration cycles back to implementation with new criteria
+9. Orchestrator re-evaluates and spawns next eligible iterations
 
-DX items that the plan session should always consider incorporating into target project PRDs. Derived into `references/plan-templates/common.md` (see PT_9). Framed by three guiding principles:
+### FLW_RN: Refine
 
-- **Readability** — Code and related artifacts should be readable by humans and agents both. Scanning is everything. If your code cannot be understood rapidly, something is missing.
-- **Debug-ability** — Good code (and architecture and infra) makes it easy to identify where, when, and how defects occur. No silent or ignored error states.
-- **Resilience** — Good code proactively prevents bugs. Defects are not just resolved but made impossible to happen again through refactor, testing, documentation, etc.
+1. User invokes `/plet refine` (or `/plet` routes here when loop completes or blocks)
+2. Skill reads emergent.md and learnings.md
+3. Skill presents pending emergent items one by one for triage
+4. Skill surfaces any blocked iterations with full context
+5. User approves, modifies, rejects, or defers each item
+6. Skill updates requirements.md, emergent.md outcomes, and resolved/open questions
+7. Skill re-decomposes into iterations, preserving frozen ones
+8. User reviews new iterations; skill offers to resume execution
 
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| PL_DX_1 | Error messages include a short summary, unique error code, and contextual details (what failed, why, what to try) | P0 |
-| PL_DX_2 | Every error string and structured log call includes a unique, random 12-digit debug number as a **hardcoded literal** at the throw/call site, never reused across the codebase. Grep invariant: searching the codebase for any debug number must return exactly 1 result. Never generate debug numbers at runtime — they must be traceable by grepping the source. | P0 |
-| PL_DX_3 | No silent or ignored error states — all errors are handled or surfaced | P0 |
-| PL_DX_4 | All code must pass the project linter and formatter with zero warnings | P0 |
-| PL_DX_5 | All functions, modules, and files include language-appropriate docstrings | P0 |
-| PL_DX_6 | Functions and variables use clear, descriptive naming | P0 |
-| PL_DX_7 | Follow language and framework conventions for the target project's stack | P0 |
-| PL_DX_8 | Commit messages use prefixes and descriptive summaries | P0 |
-| PL_DX_9 | Shell scripts include `set -o nounset` and `set -o errexit` | P0 |
-| PL_DX_10 | Red/green test discipline — tests written before implementation, must fail first then pass. Red step: run only the new/changed test. Green step: run the full suite. | P0 |
-| PL_DX_11 | Defects resolved through refactor, testing, and documentation to prevent recurrence | P0 |
-| PL_DX_12 | Security is critically important — follow OWASP best practices, validate inputs at system boundaries, handle secrets safely | P0 |
-| PL_DX_13 | Target O(n) or O(n log n) or better complexity. Avoid unnecessary O(n²) or worse; document and justify when higher complexity is required. | P0 |
-| PL_DX_14 | Version displayed via appropriate mechanism; printed to log on startup. For skills, version logged in trace entries and state.json schemaVersion. | P0 |
-| PL_DX_15 | Target project has a CLAUDE.md capturing project conventions, key files, and agent-relevant context | P0 |
-| PL_DX_16 | Target project has a README with project overview, setup instructions, and how to run tests | P0 |
-| PL_DX_17 | Plan session maintains a living notes document (`NOTES.md`) that captures design decisions, rationale, rejected alternatives, key insights, and open questions as they arise during planning. Serves as institutional memory that prevents revisiting settled decisions and informs other artifacts like the README. The `/notes` skill (published in session-kit) can assist with structured notes management. | P0 |
-| PL_DX_18 | All log output uses structured key-value format with severity levels | P1 |
-| PL_DX_19 | Code uses comment blocks and dividers to aid rapid scanning | P1 |
-| PL_DX_20 | Avoid call-order dependencies and minimize side effects | P1 |
-| PL_DX_21 | Extract helper functions when cyclomatic complexity exceeds ~9; break complex modules into focused sub-modules with single responsibilities and clear public APIs | P1 |
-| PL_DX_22 | Documentation is clear, concise, and includes diagrams where they aid understanding | P1 |
-| PL_DX_23 | Plan session identifies and recommends relevant skills for the target stack | P1 |
-| PL_DX_24 | GUI applications include a debug info view behind a settings toggle showing internal state and diagnostics | P1 |
-| PL_DX_25 | UI projects include accessibility considerations (semantic markup, keyboard navigation, screen reader support) | P1 |
+### FLW_RS: Resume After Interruption
+
+1. User invokes `/plet` in a project with existing state
+2. Skill reads state files, finds iterations in various lifecycle phases
+3. Skill prints status summary: completed, in-progress, eligible, blocked
+4. Skill enters the appropriate phase based on state and resumes work
+
+---
+
 
 ---
 
@@ -796,73 +770,62 @@ Parallel execution was designed (PLAN_PAR), fully implemented, and validated acr
 
 ---
 
-## FLW: User Flows
-
-### FLW_NP: New Project
-
-1. User invokes `/plet` in a fresh project
-2. No `plet/` directory exists — skill enters a Plan session
-3. Skill asks clarifying questions about the feature/product
-4. User answers; skill generates `plet/requirements.md` draft
-5. Skill presents each feature area for review; user approves or adjusts
-6. Skill breaks requirements into iterations with dependencies, saves to `plet/iterations.md`
-7. Skill presents each iteration for review; user approves
-8. Skill initializes `plet/state.json` and creates runtime artifact files
-9. Skill asks: "Ready to start building?" — never auto-launches the loop (PL_17). User invokes `/plet loop` when ready.
-
-### FLW_LP: Loop (Implement → Verify)
-
-1. User invokes `/plet` with existing state
-2. Skill reads state, identifies eligible iterations
-3. Skill spawns an implementation subagent for the next eligible iteration (one at a time in dependency order)
-4. Each subagent implements with red/green discipline, updates state and artifacts in real time
-5. On implementation completion, a verification subagent spawns in a fresh context
-6. Verification agent independently confirms acceptance criteria
-7. If verification passes, iteration marked `complete` on the workstream
-8. If verification fails, iteration cycles back to implementation with new criteria
-9. Orchestrator re-evaluates and spawns next eligible iterations
-
-### FLW_RN: Refine
-
-1. User invokes `/plet refine` (or `/plet` routes here when loop completes or blocks)
-2. Skill reads emergent.md and learnings.md
-3. Skill presents pending emergent items one by one for triage
-4. Skill surfaces any blocked iterations with full context
-5. User approves, modifies, rejects, or defers each item
-6. Skill updates requirements.md, emergent.md outcomes, and resolved/open questions
-7. Skill re-decomposes into iterations, preserving frozen ones
-8. User reviews new iterations; skill offers to resume execution
-
-### FLW_RS: Resume After Interruption
-
-1. User invokes `/plet` in a project with existing state
-2. Skill reads state files, finds iterations in various lifecycle phases
-3. Skill prints status summary: completed, in-progress, eligible, blocked
-4. Skill enters the appropriate phase based on state and resumes work
 
 ---
 
-## MIL: Release Milestones
+## DVX: Developer Experience
 
-### MIL_SH: Shipped
+### DVX_PL: Plet Skill DX
 
-| Version | Summary |
-|---------|---------|
-| v0.1 | Skill scaffolding, orchestration routing, interactive plan session, state.json, fingerprints |
-| v0.2 | Autonomous loop (implement + verify), runtime artifacts, lifecycle tracking, retry logic |
-| v0.3 | Refine session, breakpoints, resume after interruption |
-| v0.4 | Python enforcement scripts (14 scripts, spec-driven), library+CLI testing pattern, 91% coverage |
-| v0.5–v0.6 | Parallel orchestration (attempted and abandoned — sequential outperformed) |
-| v0.7 | Sequential simplification (PLAN_SEQ), 3 entry points, lifecycle extraction, refactor iterations, ITR_ prefix |
+Developer experience of working with the plet skill itself.
 
-### MIL_NX: Next
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| DX_1 | When developing plet, the skill-creator plugin is required. Plet's development environment verifies it is loaded on session start and prompts to install if missing. Not required at runtime for end users. | P1 |
+| DX_2 | Plet reads and respects the target project's CLAUDE.md and README for conventions, context, and preferences | P0 |
+| DX_3 | SKILL.md and reference files are well-structured and navigable | P1 |
+| DX_4 | State schema and runtime artifact formats are documented with examples | P1 |
+| DX_5 | Clear error messages when plet encounters invalid state or missing artifacts | P1 |
 
-| ID | Candidate | Source | Status |
-|----|-----------|--------|--------|
-| PLAN_PRD | PRD reorganization & sync | This session | In progress |
-| PLAN_SUB | Subplets — hierarchical decomposition for large projects | PLAN.md | After PLAN_PRD |
-| PLAN_EVL | Eval system — automated measurement of prompt effectiveness | PLAN.md | After PLAN_SUB |
-| PT_9 | Plan-phase templates — split PL_DX/PL_TV/PL_CT/PL_SM into per-type/platform files | This session | Unscheduled |
+### DVX_TMPL: Plan-Phase DX Template
+
+DX items that the plan session should always consider incorporating into target project PRDs. Derived into `references/plan-templates/common.md` (see PT_9). Framed by three guiding principles:
+
+- **Readability** — Code and related artifacts should be readable by humans and agents both. Scanning is everything. If your code cannot be understood rapidly, something is missing.
+- **Debug-ability** — Good code (and architecture and infra) makes it easy to identify where, when, and how defects occur. No silent or ignored error states.
+- **Resilience** — Good code proactively prevents bugs. Defects are not just resolved but made impossible to happen again through refactor, testing, documentation, etc.
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PL_DX_1 | Error messages include a short summary, unique error code, and contextual details (what failed, why, what to try) | P0 |
+| PL_DX_2 | Every error string and structured log call includes a unique, random 12-digit debug number as a **hardcoded literal** at the throw/call site, never reused across the codebase. Grep invariant: searching the codebase for any debug number must return exactly 1 result. Never generate debug numbers at runtime — they must be traceable by grepping the source. | P0 |
+| PL_DX_3 | No silent or ignored error states — all errors are handled or surfaced | P0 |
+| PL_DX_4 | All code must pass the project linter and formatter with zero warnings | P0 |
+| PL_DX_5 | All functions, modules, and files include language-appropriate docstrings | P0 |
+| PL_DX_6 | Functions and variables use clear, descriptive naming | P0 |
+| PL_DX_7 | Follow language and framework conventions for the target project's stack | P0 |
+| PL_DX_8 | Commit messages use prefixes and descriptive summaries | P0 |
+| PL_DX_9 | Shell scripts include `set -o nounset` and `set -o errexit` | P0 |
+| PL_DX_10 | Red/green test discipline — tests written before implementation, must fail first then pass. Red step: run only the new/changed test. Green step: run the full suite. | P0 |
+| PL_DX_11 | Defects resolved through refactor, testing, and documentation to prevent recurrence | P0 |
+| PL_DX_12 | Security is critically important — follow OWASP best practices, validate inputs at system boundaries, handle secrets safely | P0 |
+| PL_DX_13 | Target O(n) or O(n log n) or better complexity. Avoid unnecessary O(n²) or worse; document and justify when higher complexity is required. | P0 |
+| PL_DX_14 | Version displayed via appropriate mechanism; printed to log on startup. For skills, version logged in trace entries and state.json schemaVersion. | P0 |
+| PL_DX_15 | Target project has a CLAUDE.md capturing project conventions, key files, and agent-relevant context | P0 |
+| PL_DX_16 | Target project has a README with project overview, setup instructions, and how to run tests | P0 |
+| PL_DX_17 | Plan session maintains a living notes document (`NOTES.md`) that captures design decisions, rationale, rejected alternatives, key insights, and open questions as they arise during planning. Serves as institutional memory that prevents revisiting settled decisions and informs other artifacts like the README. The `/notes` skill (published in session-kit) can assist with structured notes management. | P0 |
+| PL_DX_18 | All log output uses structured key-value format with severity levels | P1 |
+| PL_DX_19 | Code uses comment blocks and dividers to aid rapid scanning | P1 |
+| PL_DX_20 | Avoid call-order dependencies and minimize side effects | P1 |
+| PL_DX_21 | Extract helper functions when cyclomatic complexity exceeds ~9; break complex modules into focused sub-modules with single responsibilities and clear public APIs | P1 |
+| PL_DX_22 | Documentation is clear, concise, and includes diagrams where they aid understanding | P1 |
+| PL_DX_23 | Plan session identifies and recommends relevant skills for the target stack | P1 |
+| PL_DX_24 | GUI applications include a debug info view behind a settings toggle showing internal state and diagnostics | P1 |
+| PL_DX_25 | UI projects include accessibility considerations (semantic markup, keyboard navigation, screen reader support) | P1 |
+| PL_DX_26 | Watch for agent-specific code smells: dead code, placeholder comments (`// TODO`/`// FIXME`), hallucinated APIs, duplicate code, over-commenting, magic numbers (exception: 12-digit debug number literals per PL_DX_2 are correct and must NOT be flagged), deep nesting, swallowed errors, boilerplate inflation | P1 |
+
+---
+
 
 ---
 
@@ -899,14 +862,35 @@ Testing and verification requirements that the plan session should include in ta
 | PL_TV_8 | Full traceability chain from requirement → test → implementation; every test traces to a requirement, every requirement has a test | P0 |
 | PL_TV_9 | First test is a sanity check — a trivial passing assertion that verifies the test framework runs. If changed to assert false, it must fail. Confirms test infrastructure works before any real tests are written. | P0 |
 | PL_TV_10 | Prefer real dependencies over mocks where practical. Mocks are acceptable for external services and slow I/O, but over-mocking gives false confidence — tests pass against mocks but fail in production. Integration tests with real dependencies catch what unit tests with mocks miss. | P0 |
-| PL_TV_11 | Plan session specifies verification commands: test, format check, format fix, lint, typecheck, build, package | P0 |
-| PL_TV_12 | Build command treats warnings as errors where tooling supports it | P1 |
-| PL_TV_13 | Test names include the requirement ID they verify | P1 |
+| PL_TV_11 | Test names include the requirement ID they verify | P1 |
 | PL_TV_14 | Integration tests cover component boundaries and API surfaces | P1 |
 | PL_TV_15 | End-to-end tests cover primary user flows once fully implemented | P1 |
 | PL_TV_16 | Plan session defines appropriate coverage targets for the project | P1 |
 | PL_TV_17 | Mutation testing used to verify test quality where tooling supports it | P2 |
 | PL_TV_18 | Fuzz testing applied to input parsing, data processing, and security-sensitive paths | P2 |
+
+---
+
+## VFC: Verification Commands
+
+### VFC_TMPL: Plan-Phase Verification Commands Template
+
+Verification commands that run as gates at every phase completion (implement, verify, refactor). Derived into `references/plan-templates/common.md` (see PT_9). Platform-specific templates provide default commands for each category.
+
+| Category | Description |
+|----------|-------------|
+| **test** | Run the full test suite |
+| **format-check** | Check formatting without modifying files |
+| **format-fix** | Auto-fix formatting |
+| **lint** | Run linter |
+| **typecheck** | Run type checker (if applicable) |
+| **build** | Compile/build the project |
+| **package** | Create distributable artifact |
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PL_VFC_1 | Plan session specifies a concrete command for each applicable verification category | P0 |
+| PL_VFC_2 | Build command treats warnings as errors where tooling supports it | P1 |
 
 ---
 
@@ -940,6 +924,35 @@ Derived into `references/plan-templates/common.md` (see PT_9).
 
 ---
 
+## RCH: Quality Ratchets
+
+Quality ratchets are metrics that can only improve — the threshold moves up when quality improves, never down. They prevent regression by making it impossible to merge changes that reduce quality below the current bar.
+
+| ID | Metric | Current Threshold | Mechanism |
+|----|--------|-------------------|-----------|
+| RCH_1 | Test coverage | 91% (`fail_under` in pyproject.toml) | `test_all.py` runs pytest-cov. Build fails if coverage drops below threshold. After sustained improvement, ratchet the threshold up. |
+| RCH_2 | Lint warnings | 0 | `test_all.py` runs ruff as a gate. Any warning fails the build. Zero is the floor — it never goes up. |
+| RCH_3 | Test suite health | All tests pass | `test_all.py` fails on any test failure. No "known failures" or skip-without-rationale. |
+
+**Ratchet discipline:** When a metric sustainably exceeds its threshold (e.g., coverage reaches 93% across multiple commits), bump the threshold to the new floor. The cost of bumping is one line in pyproject.toml. The cost of not bumping is silent regression back to the old level.
+
+**Adding new ratchets:** Any measurable quality metric with a monotonic improvement direction can become a ratchet. Candidates: cyclomatic complexity ceiling, maximum file size, doc coverage. Add when there's a reliable automated measurement and a meaningful threshold.
+
+### RCH_TMPL: Plan-Phase Quality Ratchets Template
+
+Quality ratchet requirements that the plan session should include in target project PRDs. Derived into `references/plan-templates/common.md` (see PT_9).
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| PL_RCH_1 | Plan session defines quality ratchets — metrics that can only improve, with current threshold and enforcement mechanism | P0 |
+| PL_RCH_2 | Test coverage ratchet — coverage percentage must not decrease. Threshold in project config. | P0 |
+| PL_RCH_3 | Lint-clean ratchet — zero linter warnings. Any warning fails the build. | P0 |
+| PL_RCH_4 | Format compliance ratchet — 100% format compliance enforced by formatter check. | P0 |
+| PL_RCH_5 | Test pass rate ratchet — all tests pass. No "known failures" or skip-without-rationale. | P0 |
+| PL_RCH_6 | Ratchet thresholds are updated upward when sustained improvement is observed | P1 |
+
+---
+
 ## MET: Success Metrics
 
 ### MET_PL: Plet Success Metrics
@@ -957,11 +970,40 @@ Derived into `references/plan-templates/common.md` (see PT_9).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PL_SM_1 | Plan session defines measurable success metrics for the target project | P0 |
-| PL_SM_2 | Metrics cover functional correctness (test pass rate, defect rate, defect escape rate — defects found after iteration marked complete) | P0 |
-| PL_SM_3 | Metrics include specific numeric targets, not vague qualifiers | P0 |
-| PL_SM_4 | Metrics cover code quality (linter warnings, format compliance, coverage targets). Watch for agent-specific code smells: dead code, placeholder comments, hallucinated APIs, duplicate code, over-commenting, magic numbers (exception: 12-digit debug number literals per PL_DX_2 are correct and must NOT be flagged), deep nesting, swallowed errors, boilerplate inflation. | P1 |
-| PL_SM_5 | Metrics cover development velocity (blocker rate) | P1 |
+| PL_SM_1 | Plan session defines measurable success metrics with specific numeric targets | P0 |
+| PL_SM_2 | Defect rate — target number of blockers per milestone (e.g., < 2 blockers per milestone) | P0 |
+| PL_SM_3 | Defect escape rate — defects found after an iteration is marked complete. Measures verification quality. Target: 0. | P0 |
+| PL_SM_4 | Blocker rate — percentage of iterations that block. Measures planning quality. | P1 |
+
+---
+
+
+---
+
+## MIL: Release Milestones
+
+### MIL_SH: Shipped
+
+| Version | Summary |
+|---------|---------|
+| v0.1 | Skill scaffolding, orchestration routing, interactive plan session, state.json, fingerprints |
+| v0.2 | Autonomous loop (implement + verify), runtime artifacts, lifecycle tracking, retry logic |
+| v0.3 | Refine session, breakpoints, resume after interruption |
+| v0.4 | Python enforcement scripts (14 scripts, spec-driven), library+CLI testing pattern, 91% coverage |
+| v0.5–v0.6 | Parallel orchestration (attempted and abandoned — sequential outperformed) |
+| v0.7 | Sequential simplification (PLAN_SEQ), 3 entry points, lifecycle extraction, refactor iterations, ITR_ prefix |
+
+### MIL_NX: Next
+
+| ID | Candidate | Source | Status |
+|----|-----------|--------|--------|
+| PLAN_PRD | PRD reorganization & sync | This session | In progress |
+| PLAN_SUB | Subplets — hierarchical decomposition for large projects | PLAN.md | After PLAN_PRD |
+| PLAN_EVL | Eval system — automated measurement of prompt effectiveness | PLAN.md | After PLAN_SUB |
+| PT_9 | Plan-phase templates — split PL_DX/PL_TV/PL_CT/PL_SM into per-type/platform files | This session | Unscheduled |
+
+---
+
 
 ---
 
@@ -989,6 +1031,9 @@ No open questions at this time.
 
 ---
 
+
+---
+
 ## FUT: Future Considerations
 
 | # | Area | Description |
@@ -1007,6 +1052,9 @@ No open questions at this time.
 | 12 | Eval system | Formalize how we measure prompt effectiveness across planner, implementer, and verifier roles. Track both synthetic and emergent test cases. Metrics collection, comparison reports, trend tracking across runs. Inspired by skill-creator's eval framework. See PLAN_SUB. |
 | 13 | Sandboxing integration | Recommend or require Claude Code sandboxing for autonomous loop sessions. Sandbox provides OS-level filesystem/network isolation. `--permission-mode bypassPermissions` + sandbox = safe autonomous execution. See FOO_50. |
 | 14 | Plan-phase template content | Populate type-specific (`cli.md`, `webapp.md`, `library.md`) and platform-specific (`python.md`, `elixir.md`, `go.md`) template files in `references/plan-templates/`. Folder structure and `common.md` shipped in PRD_7; stub content requires interactive review per file. See PT_9. |
+
+---
+
 
 ---
 
@@ -1053,3 +1101,6 @@ Items removed from active requirements. Stable labels preserved for grep traceab
 | ID | Original | Reason |
 |----|----------|--------|
 | VF_19 | Orchestrator re-evaluates eligible iterations after verification | Moved to PHA_OLP (OLP_18). |
+
+
+---
