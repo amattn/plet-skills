@@ -3088,6 +3088,10 @@ Filled cli.md from patterns in specs/conventions.md, specs/NOTES.md (SPEC_INS_2:
 
 RCH/MET/RFP left as stubs — project-specific, covered by common.md defaults.
 
+#### NOTES_PLAN_PRD_PYTHON: python.md Template Fill-out (2026-04-16)
+
+Filled python.md from plet's own tooling choices. Key patterns: ruff for lint+format (single tool, fast), pytest+pytest-cov+pytest-xdist for testing, pyproject.toml as single config, `uv` for dependency management, shebang+chmod for direct execution, type hints on all signatures, `shell=True` prohibition, McCabe ≤15 complexity ratchet. VFC section has concrete default commands for all 7 categories.
+
 ### NOTES_PLAN_EVL: PLAN_EVL — Eval System
 
 <!-- Future — design decisions go here when work begins -->
