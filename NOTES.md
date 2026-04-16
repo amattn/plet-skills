@@ -3018,8 +3018,11 @@ FOO_73 added ratchets to the PRD template outline (§4.5) and conventions, but n
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PL_RCH_1 | Plan session defines quality ratchets — metrics that can only improve, with current threshold and enforcement mechanism | P0 |
-| PL_RCH_2 | Every project has at minimum a test coverage ratchet and a lint-clean ratchet | P0 |
-| PL_RCH_3 | Ratchet thresholds are updated upward when sustained improvement is observed | P1 |
+| PL_RCH_2 | Test coverage ratchet — coverage percentage must not decrease | P0 |
+| PL_RCH_3 | Lint-clean ratchet — zero linter warnings | P0 |
+| PL_RCH_4 | Format compliance ratchet — 100% format compliance | P0 |
+| PL_RCH_5 | Test pass rate ratchet — all tests pass | P0 |
+| PL_RCH_6 | Ratchet thresholds updated upward when sustained improvement observed | P1 |
 
 #### NOTES_PLAN_PRD_TEMPLATE_LABELS: Stable Labels in PRD Template (2026-04-15)
 
@@ -3028,6 +3031,39 @@ FOO_73 added ratchets to the PRD template outline (§4.5) and conventions, but n
 New template section headers grouped by concern: **What** (GCN, PER, FRQ, NFR, FLW), **How** (ARC, DAT, DVX), **Quality** (TST, CTA, RCH, MET), **Delivery** (MIL, RFP), **Meta** (QES, FUT). Stable labels replace §N numbers. Same ordering applied to PRD, common.md, and session-plan.md template outline.
 
 New labels introduced: FRQ (functional requirements container), DAT (data models), RFP (refactor policy — split from MIL).
+
+#### NOTES_PLAN_PRD_TMPL_RENAME: _TP → _TMPL Suffix (2026-04-15)
+
+**Decision:** Rename all `_TP` suffixes to `_TMPL` (DVX_TP → DVX_TMPL, etc.). `_TP` was too terse and not recognizable. `_TMPL` is the standard abbreviation for "template" (Go templates, etc.).
+
+#### NOTES_PLAN_PRD_VFC: VFC Extraction (2026-04-15)
+
+**Decision:** Extract verification commands from TST into a dedicated `VFC` section. These commands (test, lint, format, typecheck, build, package) run as gates at every phase completion — implement, verify, refactor. They're a quality concern, not a testing philosophy item. Placed in the Quality group: TST → VFC → CTA → RCH → MET.
+
+VFC in common.md is lean (command categories + VFC_1 for warnings-as-errors). Platform templates (`python.md`, `elixir.md`, `go.md`) will provide specific commands per category.
+
+#### NOTES_PLAN_PRD_MET_CLEANUP: MET Section Cleanup (2026-04-15)
+
+**Decision:** MET contained items that belonged elsewhere:
+- Test coverage, lint-clean, format compliance, test pass rate → **RCH** (these are ratchets)
+- Code smells checklist → **DVX** Resilience (DVX_22/PL_DX_26)
+- Test pass rate → **RCH** (always 100%, it's a ratchet)
+
+MET now contains only project-level success metrics: defect rate, defect escape rate, blocker rate.
+
+#### NOTES_PLAN_PRD_COMMON_IDS: common.md ID Convention (2026-04-15)
+
+**Decision:** IDs in common.md match their section labels, not the PRD's PL_ prefix. Users of common.md never see the plet PRD. Mapping: PL_DX → DVX, PL_TV → TST, PL_CT → CTA, PL_SM → MET, PL_RCH → RCH. All renumbered sequentially within each section. PRD keeps its PL_ prefix IDs as source of truth.
+
+#### NOTES_PLAN_PRD_META_REMOVAL: Meta-instruction Removal (2026-04-15)
+
+**Decision:** Removed "plan session defines X" meta-instructions from common.md (RCH_1, MET_1, TST_14, VFC_1, CTA_3). common.md is a template for *target project PRDs* — product requirements, not agent process instructions. The section's existence IS the instruction. Meta-instructions remain in the plet PRD (where they're plet's own requirements for how the plan agent should behave).
+
+#### NOTES_PLAN_PRD_TST_FIXES: TST Corrections (2026-04-15)
+
+**TST_2 added: Meaningful red.** The unit under test must exist as a runnable stub before tests are written. A test that fails because the file doesn't exist (`FileNotFoundError`) is not meaningful red — it proves nothing about the test's ability to catch bad behavior. The stub must return dummy values so the test fails because the answer is wrong.
+
+**TST_9 rewritten: One-directional traceability.** Every requirement must have at least one test, but not every test maps to a requirement. Sanity checks, integration tests, and regression tests are expected and welcome without requirement IDs. Previous wording ("every test traces to a requirement") was wrong.
 
 #### NOTES_PLAN_PRD_INLINE: Drop Inline Templates from session-plan.md (2026-04-15)
 
