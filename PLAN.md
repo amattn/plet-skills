@@ -224,9 +224,9 @@ PRD is significantly out of sync with the current system after PLAN_SEQ, PLAN_RF
 | PRD_7a | PRD: add RCH_TMPL + VFC_TMPL, rename _TP → _TMPL, expand PL_RCH/PL_DX, update PT_9 | ✓ done |
 | PRD_7b | Create `references/plan-templates/common.md` + reorder sections + extract VFC + MET cleanup | ✓ done |
 | PRD_7c | Create stub files: `cli.md`, `webapp.md`, `library.md`, `python.md`, `elixir.md`, `go.md` | ✓ done |
-| PRD_7d | session-plan.md: replace inline PL_ templates with reference to `plan-templates/`, replace §N with stable labels, update all §N references | partially done (§N + template refs done, inline removal remains) |
-| PRD_7e | NOTES.md: verify decisions complete, update any stale entries | not started |
-| PRD_7f | Consistency pass — grep for stale §N refs, orphaned PL_ IDs, "plan-templates.md" singular | not started |
+| PRD_7d | session-plan.md: replace inline PL_ templates with reference to `plan-templates/`, replace §N with stable labels, update all §N references | ✓ done |
+| PRD_7e | NOTES.md: verify decisions complete, update any stale entries | ✓ done |
+| PRD_7f | Consistency pass — grep for stale §N refs, orphaned PL_ IDs, "plan-templates.md" singular | ✓ done |
 | PRD_7g | Fill out `cli.md` — interactive review session | not started |
 | PRD_7h | Fill out `webapp.md` — interactive review session | not started |
 | PRD_7i | Fill out `library.md` — interactive review session | not started |

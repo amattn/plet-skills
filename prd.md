@@ -863,11 +863,11 @@ Testing and verification requirements that the plan session should include in ta
 | PL_TV_9 | First test is a sanity check — a trivial passing assertion that verifies the test framework runs. If changed to assert false, it must fail. Confirms test infrastructure works before any real tests are written. | P0 |
 | PL_TV_10 | Prefer real dependencies over mocks where practical. Mocks are acceptable for external services and slow I/O, but over-mocking gives false confidence — tests pass against mocks but fail in production. Integration tests with real dependencies catch what unit tests with mocks miss. | P0 |
 | PL_TV_11 | Test names include the requirement ID they verify | P1 |
-| PL_TV_14 | Integration tests cover component boundaries and API surfaces | P1 |
-| PL_TV_15 | End-to-end tests cover primary user flows once fully implemented | P1 |
-| PL_TV_16 | Plan session defines appropriate coverage targets for the project | P1 |
-| PL_TV_17 | Mutation testing used to verify test quality where tooling supports it | P2 |
-| PL_TV_18 | Fuzz testing applied to input parsing, data processing, and security-sensitive paths | P2 |
+| PL_TV_12 | Integration tests cover component boundaries and API surfaces | P1 |
+| PL_TV_13 | End-to-end tests cover primary user flows once fully implemented | P1 |
+| PL_TV_14 | Plan session defines appropriate coverage targets for the project | P1 |
+| PL_TV_15 | Mutation testing used to verify test quality where tooling supports it | P2 |
+| PL_TV_16 | Fuzz testing applied to input parsing, data processing, and security-sensitive paths | P2 |
 
 ---
 
