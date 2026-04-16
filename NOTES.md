@@ -2984,7 +2984,7 @@ Structural pass across entire repo. Findings:
 **OQ_PRD_1: PL_DX / PL_TV / PL_CT / PL_SM template placement.**
 **Decision:** Extract to `references/plan-templates/`. Plan phase loads `common.md` + applicable type/platform templates.
 
-Templates are NOT plet requirements — they're templates that plet's plan phase injects into *target project* PRDs. They don't belong in the PRD alongside plet's own requirements.
+Templates define what plet's plan phase injects into *target project* PRDs. The PRD's `_TMPL` sections are the source of truth (plet's own requirements for what templates contain). `plan-templates/common.md` is the derived implementation artifact that target projects consume.
 
 **Two independent template dimensions:**
 - **Project type** (what you're building): common, webapp, cli, library, mobile, etc.
@@ -2997,7 +2997,7 @@ These compose independently — a Python CLI project loads `common.md` + `cli.md
 **Structure:**
 ```
 references/plan-templates/
-├── common.md      — applies to ALL projects (PL_DX, PL_TV, PL_CT, PL_SM, PL_RCH)
+├── common.md      — applies to ALL projects (PL_DX, PL_TV, PL_VFC, PL_CT, PL_SM, PL_RCH)
 ├── cli.md         — project type: CLI tools (stub)
 ├── webapp.md      — project type: web applications (stub)
 ├── library.md     — project type: libraries/packages (stub)
@@ -3007,13 +3007,13 @@ references/plan-templates/
 └── ...
 ```
 
-**Source-of-truth chain (2026-04-15):** PRD (`DVX_TMPL`, `TST_TMPL`, `CTA_TMPL`, `MET_TMPL`, `RCH_TMPL`) defines what the templates contain — this is the root source of truth. `references/plan-templates/common.md` is the implementation artifact derived from the PRD. `session-plan.md` references `plan-templates/` instead of inlining templates (eliminates three-copy problem). Two copies total: PRD (authoritative) → plan-templates/ (derived).
+**Source-of-truth chain (2026-04-15):** PRD (`DVX_TMPL`, `TST_TMPL`, `VFC_TMPL`, `CTA_TMPL`, `RCH_TMPL`, `MET_TMPL`) defines what the templates contain — this is the root source of truth. `references/plan-templates/common.md` is the implementation artifact derived from the PRD. `session-plan.md` references `plan-templates/` instead of inlining templates (eliminates three-copy problem). Two copies total: PRD (authoritative) → plan-templates/ (derived).
 
 #### NOTES_PLAN_PRD_RATCHETS: PL_RCH Formalization (2026-04-15)
 
-**Decision:** Add PL_RCH_1–3 as a formal template section alongside PL_DX/PL_TV/PL_CT/PL_SM.
+**Decision:** Add PL_RCH as a formal template section alongside PL_DX/PL_TV/PL_VFC/PL_CT/PL_SM.
 
-FOO_73 added ratchets to the PRD template outline (§4.5) and conventions, but never created formal PL_RCH requirement IDs. Every other plan-phase template section has IDs — ratchets should too.
+FOO_73 added ratchets to the PRD template outline and conventions, but never created formal PL_RCH requirement IDs. Every other plan-phase template section has IDs — ratchets should too. Expanded from initial 3 to 6 after MET cleanup relocated specific ratchets (coverage, lint, format, test pass rate) from MET to RCH.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
