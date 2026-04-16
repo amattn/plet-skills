@@ -228,8 +228,8 @@ PRD is significantly out of sync with the current system after PLAN_SEQ, PLAN_RF
 | PRD_7e | NOTES.md: verify decisions complete, update any stale entries | ✓ done |
 | PRD_7f | Consistency pass — grep for stale §N refs, orphaned PL_ IDs, "plan-templates.md" singular | ✓ done |
 | PRD_7g | Fill out `cli.md` — interactive review session | ✓ done |
-| PRD_7h | Fill out `webapp.md` — interactive review session | not started |
-| PRD_7i | Fill out `library.md` — interactive review session | not started |
+| PRD_7h | Fill out `webapp.md` — interactive review session | ✓ done (outline only, fill-out deferred) |
+| PRD_7i | Fill out `library.md` — interactive review session | ✓ done (outline only, fill-out deferred) |
 | PRD_7j | Fill out `python.md` — interactive review session | not started |
 | PRD_7k | Fill out `elixir.md` — interactive review session | not started |
 | PRD_7l | Fill out `go.md` — interactive review session | not started |
