@@ -585,153 +585,17 @@ After all iterations are approved:
 
 ---
 
-## DX Template (PL_DX)
+## Plan-Phase Templates
 
-The plan phase incorporates these developer experience items into the target project's PRD. Not every item applies to every project — use judgment based on the project type and stack. Items marked P0 should be included unless there's a specific reason not to. Items marked P1/P2 are included when relevant.
+Template requirements for target project PRDs live in `references/plan-templates/`. Load `common.md` plus applicable type and platform templates. See PT_9.
 
-### Readability
-
-| ID | Requirement | Priority | Notes |
-|----|-------------|----------|-------|
-| PL_DX_5 | All functions, modules, and files include language-appropriate docstrings | P0 | |
-| PL_DX_6 | Functions and variables use clear, descriptive naming | P0 | |
-| PL_DX_7 | Follow language and framework conventions for the target stack | P0 | |
-| PL_DX_19 | Code uses comment blocks and dividers to aid rapid scanning | P1 | |
-| PL_DX_22 | Documentation is clear, concise, and includes diagrams where they aid understanding | P1 | |
-
-### Debug-ability
-
-| ID | Requirement | Priority | Notes |
-|----|-------------|----------|-------|
-| PL_DX_1 | Error messages include short summary, unique error code, and contextual details | P0 | |
-| PL_DX_2 | Every error string and log call includes a unique random 12-digit debug number, never reused | P0 | |
-| PL_DX_3 | No silent or ignored error states — all errors handled or surfaced | P0 | |
-| PL_DX_14 | Version displayed via appropriate mechanism; printed to log on startup | P0 | |
-| PL_DX_18 | All log output uses structured key-value format with severity levels | P1 | |
-| PL_DX_24 | GUI apps include a debug info view behind a settings toggle | P1 | GUI projects only |
-
-### Resilience
-
-| ID | Requirement | Priority | Notes |
-|----|-------------|----------|-------|
-| PL_DX_4 | All code passes the project linter and formatter with zero warnings | P0 | |
-| PL_DX_8 | Commit messages use prefixes and descriptive summaries | P0 | |
-| PL_DX_9 | Shell scripts include `set -o nounset` and `set -o errexit` | P0 | Shell scripts only |
-| PL_DX_10 | Red/green test discipline — tests written before implementation, must fail first then pass. Red step: run only the new/changed test. Green step: run the full suite. | P0 | |
-| PL_DX_11 | Defects resolved through refactor, testing, and documentation to prevent recurrence | P0 | |
-| PL_DX_12 | Security: OWASP best practices, input validation at system boundaries, safe secret handling | P0 | |
-| PL_DX_13 | Target O(n) or O(n log n) complexity; document and justify when higher complexity is required | P0 | |
-| PL_DX_20 | Avoid call-order dependencies and minimize side effects | P1 | |
-| PL_DX_21 | Extract helpers when cyclomatic complexity exceeds ~9; break complex modules into focused sub-modules | P1 | |
-| PL_DX_25 | UI projects include accessibility considerations (semantic markup, keyboard nav, screen reader) | P1 | UI projects only |
-
-### Project Infrastructure
-
-| ID | Requirement | Priority | Notes |
-|----|-------------|----------|-------|
-| PL_DX_15 | Target project has a CLAUDE.md capturing conventions, key files, agent-relevant context | P0 | |
-| PL_DX_16 | Target project has a README with overview, setup instructions, and how to run tests | P0 | |
-| PL_DX_17 | Plan session maintains a living notes document (`NOTES.md`) capturing decisions, rationale, rejected alternatives, key insights, open questions. The plet notes skill (separate, not yet written) can assist with structured notes management. | P0 | |
-| PL_DX_23 | Plan session identifies and recommends relevant skills for the target stack | P1 | |
-
----
-
-## Testing & Verification Template (PL_TV)
-
-Include these testing requirements in the target project's PRD. PL_TV_1 is the operational version of PL_DX_10.
-
-### Core Testing Discipline
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| PL_TV_1 | Red/green discipline — tests fail before implementation, pass after. For the red step, run only the new/changed test (not the full suite) to verify it fails. Run the full suite for the green step to confirm nothing is broken. | P0 |
-| PL_TV_2 | Full test suite runnable via a single command | P0 |
-| PL_TV_3 | All tests pass before iteration completion; any failure blocks | P0 |
-| PL_TV_4 | Every functional requirement has at least one automated test mapping to its ID | P0 |
-| PL_TV_5 | Tests are deterministic — no flaky tests, no external dependencies without mocks | P0 |
-| PL_TV_6 | Tests are independently runnable — no shared state, no order dependencies | P0 |
-| PL_TV_7 | Regression suite only grows; tests removed only when the requirement they verify is removed | P0 |
-| PL_TV_8 | Full traceability: requirement → test → implementation; every test traces to a requirement, every requirement has a test | P0 |
-| PL_TV_9 | First test is a sanity check — trivial passing assertion. If changed to assert false, it must fail. Confirms test infrastructure works. | P0 |
-| PL_TV_10 | Prefer real dependencies over mocks where practical. Mocks acceptable for external services and slow I/O. Over-mocking gives false confidence. | P0 |
-
-### Verification Commands (PL_TV_11)
-
-The plan phase must specify verification commands for the target project:
-
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `test` | Run full test suite | `pytest` / `go test ./...` |
-| `format_check` | Check formatting without modifying | `ruff format --check` / `gofmt -l .` |
-| `format_fix` | Auto-fix formatting | `ruff format` / `gofmt -w .` |
-| `lint` | Run linter | `ruff check` / `golangci-lint run` |
-| `typecheck` | Run type checker | `mypy .` / (Go: built into compiler) |
-| `build` | Verify it compiles/loads | `python -c "import mypackage"` / `go build ./...` |
-| `package` | Create distributable artifact | `python -m build` / `python -m zipapp` / `go build -o dist/` / `docker build .` |
-
-### Additional Testing
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| PL_TV_12 | Build command treats warnings as errors where tooling supports it | P1 |
-| PL_TV_13 | Test names include the requirement ID they verify | P1 |
-| PL_TV_14 | Integration tests cover component boundaries and API surfaces | P1 |
-| PL_TV_15 | End-to-end tests cover primary user flows once fully implemented | P1 |
-| PL_TV_16 | Plan session defines appropriate coverage targets for the project | P1 |
-| PL_TV_17 | Mutation testing to verify test quality where tooling supports it | P2 |
-| PL_TV_18 | Fuzz testing for input parsing, data processing, and security-sensitive paths | P2 |
-
----
-
-## Critical Test Areas Template (PL_CT)
-
-Identify critical test areas by analyzing the requirements for (PL_CT_1):
-
-- Core functionality (the primary thing the system does)
-- Data integrity (storage, retrieval, consistency)
-- Security boundaries (authentication, authorization, input validation)
-- State machines (lifecycle transitions, valid/invalid states)
-- External integrations (APIs, databases, file systems)
-- Concurrency (parallel access, race conditions)
-- Performance-sensitive paths (if applicable)
-- Edge cases and boundary conditions
-- Error recovery paths
-
-For each critical area, document (PL_CT_2):
-
-| Area | Risk if broken | Suggested test approach |
-|------|---------------|----------------------|
-| [area name] | [what goes wrong] | [how to test it] |
-
-Review critical test areas with the user during the plan phase (PL_CT_3).
-
----
-
-## Success Metrics Template (PL_SM)
-
-Define measurable success metrics for the target project (PL_SM_1):
-
-### Functional Correctness (PL_SM_2)
-- Test pass rate target (e.g., 100% of automated tests pass)
-- Defect rate target (e.g., < N blockers per milestone)
-- Defect escape rate — number of defects found after an iteration is marked complete (measures verification quality; target: 0)
-
-### Code Quality (PL_SM_4)
-- Linter warnings: 0
-- Format compliance: 100%
-- Coverage target: [project-appropriate percentage]
-- Code smells to watch for (especially in agent-generated code):
-  - Dead code — unused functions, variables, imports
-  - Placeholder comments — `# TODO`, `# implement later`, generic docstrings
-  - Hallucinated APIs — calls to methods/functions that don't exist in the actual dependency
-  - Duplicate code — copy-pasted blocks instead of extracted helpers
-  - Over-commenting — excessive or obvious comments that restate the code
-  - Magic numbers/strings — hardcoded values without named constants (exception: 12-digit debug number literals per PL_DX_2 are correct and must not be flagged)
-  - Deep nesting — excessive if/else/loop depth instead of early returns
-  - Swallowed errors — bare except, empty catch blocks, errors logged but not handled
-  - Boilerplate inflation — verbose code when concise alternatives exist
-
-### Development Velocity (PL_SM_5)
-- Blocker rate (% of iterations that block)
-
-All metrics must include specific numeric targets, not vague qualifiers (PL_SM_3). "High test coverage" is not a metric; ">90% line coverage" is.
+```
+references/plan-templates/
+├── common.md      — applies to ALL projects (DVX, TST, VFC, CTA, RCH, MET, RFP)
+├── cli.md         — project type: CLI tools
+├── webapp.md      — project type: web applications
+├── library.md     — project type: libraries/packages
+├── python.md      — platform: Python
+├── elixir.md      — platform: Elixir/Phoenix
+└── go.md          — platform: Go
+```
