@@ -3104,6 +3104,21 @@ RCH/MET/RFP left as stubs — project-specific, covered by common.md defaults.
 
 Filled python.md from plet's own tooling choices. Key patterns: ruff for lint+format (single tool, fast), pytest+pytest-cov+pytest-xdist for testing, pyproject.toml as single config, `uv` for dependency management, shebang+chmod for direct execution, type hints on all signatures, `shell=True` prohibition, McCabe ≤15 complexity ratchet. VFC section has concrete default commands for all 7 categories.
 
+#### NOTES_PLAN_PRD_ELIXIR: elixir.md Template Fill-out (2026-04-16)
+
+Filled elixir.md from patterns observed in havenhm/admin (mature Phoenix 1.8 + LiveView + Ecto project). Key patterns:
+
+- **Context-based organization (ARC_2):** `lib/app_name/` contexts as bounded domains with public APIs. Schemas, helpers, workers private to context directory. Direct match to Phoenix conventions.
+- **Ecto discipline (ARC_3/ARC_6):** schemas co-locate moduledoc, fields, changesets, validations. Repo access only — raw SQL justified and documented.
+- **Supervision tree (ARC_4):** all long-running processes supervised in application.ex. BEAM's "let it crash" requires explicit restart strategies.
+- **Runtime config (NFR_3):** `runtime.exs` for secrets/host config. Compile-time config for secrets is a common Elixir footgun.
+- **ExUnit ecosystem (TST):** async tests, DataCase/ConnCase helpers, SQL Sandbox isolation, fixture factories per context, tag-based filtering for external deps.
+- **VFC concrete defaults:** `mix test`, `mix format --check-formatted`, `mix credo --strict`, `mix dialyzer`, `mix compile --warnings-as-errors`, `mix release`. Credo/Dialyzer conditional on deps being present.
+- **Ratchets:** format + warnings-as-errors are universal P0. Credo/Dialyzer are P1 (common but not universal in Elixir ecosystem).
+- **Figlet banners (DVX_4):** observed in admin repo for section dividers in large modules — aids grep and scanning.
+
+FRQ/FLW/DAT/CTA/MET/RFP left as stubs — project-specific, covered by common.md defaults.
+
 ### NOTES_PLAN_EVL: PLAN_EVL — Eval System
 
 <!-- Future — design decisions go here when work begins -->

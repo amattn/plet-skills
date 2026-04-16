@@ -231,7 +231,7 @@ PRD is significantly out of sync with the current system after PLAN_SEQ, PLAN_RF
 | PRD_7h | Fill out `webapp.md` — interactive review session | ✓ done (outline only, fill-out deferred) |
 | PRD_7i | Fill out `library.md` — interactive review session | ✓ done (outline only, fill-out deferred) |
 | PRD_7j | Fill out `python.md` — interactive review session | ✓ done |
-| PRD_7k | Fill out `elixir.md` — interactive review session | not started |
+| PRD_7k | Fill out `elixir.md` — interactive review session | ✓ done |
 | PRD_7l | Fill out `go.md` — interactive review session | not started |
 | PRD_8 | Final consistency pass | ✓ done — 1 fix (IMP_9 stale SF_18 ref), all labels/cross-refs clean |
 
