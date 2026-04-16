@@ -3075,6 +3075,19 @@ MET now contains only project-level success metrics: defect rate, defect escape 
 
 **Decision:** Each plan-template stub (cli.md, webapp.md, library.md, python.md, elixir.md, go.md) gets its own PRD_7 line item and is filled out via interactive review session with the user. Not auto-generated — each project type and platform has domain-specific templates that need human judgment.
 
+#### NOTES_PLAN_PRD_CLI: cli.md Template Fill-out (2026-04-16)
+
+Filled cli.md from patterns in specs/conventions.md, specs/NOTES.md (SPEC_INS_2: Agent-First CLI Design, SPEC_INS_3: Require Arguments Never Default), and scripts/CLAUDE.md. Key patterns pulled in:
+
+- **Agent-first CLI philosophy:** tools are agent tools that humans occasionally debug, not the reverse. Predictability over ergonomics.
+- **Strict input validation (NFR_3):** reject unknown/duplicate flags, require args rather than defaulting. Silent forgiveness hides bugs.
+- **Three-tier architecture (ARC_1/ARC_4):** entry points → modules → utilities. Command functions return structured results for testability via direct import.
+- **Mutually exclusive inline/file flags (NFR_6):** `--data` for inline JSON, `--data-file` for file input. Separate flags rather than `@file` convention — cleaner for strict validation.
+- **Context window protection (DAT_3):** `--fields` limits structured output. Every unnecessary token costs.
+- **Three-tier help escalation (DVX_2):** cheat sheet → `--usage` → `--help`.
+
+RCH/MET/RFP left as stubs — project-specific, covered by common.md defaults.
+
 ### NOTES_PLAN_EVL: PLAN_EVL — Eval System
 
 <!-- Future — design decisions go here when work begins -->
