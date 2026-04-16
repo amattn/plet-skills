@@ -2,6 +2,8 @@
 
 Project type template for libraries and packages. Composes with `common.md` — a Go library loads `common.md` + `library.md` + `go.md`.
 
+**Template IDs use `_N` (literal N), not integers.** During plan composition, the agent collects items from all applicable templates and assigns sequential integer IDs in the final requirements document.
+
 To be filled out via interactive review session (PRD_7i).
 
 ---
@@ -12,7 +14,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FRQ_1 | | |
+| FRQ_N | | |
 
 ---
 
@@ -22,7 +24,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| NFR_1 | | |
+| NFR_N | | |
 
 ---
 
@@ -32,7 +34,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FLW_1 | | |
+| FLW_N | | |
 
 ---
 
@@ -40,7 +42,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ARC_1 | | |
+| ARC_N | | |
 
 ---
 
@@ -50,7 +52,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| DAT_1 | | |
+| DAT_N | | |
 
 ---
 
@@ -60,7 +62,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| DVX_1 | | |
+| DVX_N | | |
 
 ---
 
@@ -68,7 +70,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TST_1 | | |
+| TST_N | | |
 
 ---
 
@@ -90,7 +92,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| CTA_1 | | |
+| CTA_N | | |
 
 ---
 
@@ -98,7 +100,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RCH_1 | | |
+| RCH_N | | |
 
 ---
 
@@ -106,7 +108,7 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| MET_1 | | |
+| MET_N | | |
 
 ---
 
@@ -114,4 +116,4 @@ To be filled out via interactive review session (PRD_7i).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RFP_1 | | |
+| RFP_N | | |

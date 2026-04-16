@@ -6,6 +6,8 @@ Source of truth: PRD `_TMPL` sections (DVX_TMPL, TST_TMPL, CTA_TMPL, MET_TMPL, R
 
 Type-specific (`cli.md`, `webapp.md`, `library.md`) and platform-specific (`python.md`, `elixir.md`, `go.md`) templates compose with this file — a Python CLI loads `common.md` + `cli.md` + `python.md`.
 
+**Template IDs use `_N` (literal N), not integers.** During plan composition, the agent collects items from all applicable templates and assigns sequential integer IDs in the final requirements document. This prevents ID collisions across templates.
+
 ---
 
 ## GCN: Overview
@@ -28,8 +30,8 @@ Type-specific (`cli.md`, `webapp.md`, `library.md`) and platform-specific (`pyth
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| PREFIX_1 | [requirement text] | P0 |
-| PREFIX_2 | [requirement text] | P1 |
+| PREFIX_N | [requirement text] | P0 |
+| PREFIX_N | [requirement text] | P1 |
 
 [Repeat for each feature area]
 
@@ -73,78 +75,78 @@ Three guiding principles:
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| DVX_1 | All functions, modules, and files include language-appropriate docstrings | P0 | |
-| DVX_2 | Functions and variables use clear, descriptive naming | P0 | |
-| DVX_3 | Follow language and framework conventions for the target stack | P0 | |
-| DVX_4 | Code uses comment blocks and dividers to aid rapid scanning | P1 | |
-| DVX_5 | Documentation is clear, concise, and includes diagrams where they aid understanding | P1 | |
+| DVX_N | All functions, modules, and files include language-appropriate docstrings | P0 | |
+| DVX_N | Functions and variables use clear, descriptive naming | P0 | |
+| DVX_N | Follow language and framework conventions for the target stack | P0 | |
+| DVX_N | Code uses comment blocks and dividers to aid rapid scanning | P1 | |
+| DVX_N | Documentation is clear, concise, and includes diagrams where they aid understanding | P1 | |
 
 ### Debug-ability
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| DVX_6 | Error messages include short summary, unique error code, and contextual details | P0 | |
-| DVX_7 | Every error string and log call includes a unique random 12-digit debug number, never reused | P0 | |
-| DVX_8 | No silent or ignored error states — all errors handled or surfaced | P0 | |
-| DVX_9 | Version displayed via appropriate mechanism; printed to log on startup | P0 | |
-| DVX_10 | All log output uses structured key-value format with severity levels | P1 | |
-| DVX_11 | GUI apps include a debug info view behind a settings toggle | P1 | GUI projects only |
+| DVX_N | Error messages include short summary, unique error code, and contextual details | P0 | |
+| DVX_N | Every error string and log call includes a unique random 12-digit debug number, never reused | P0 | |
+| DVX_N | No silent or ignored error states — all errors handled or surfaced | P0 | |
+| DVX_N | Version displayed via appropriate mechanism; printed to log on startup | P0 | |
+| DVX_N | All log output uses structured key-value format with severity levels | P1 | |
+| DVX_N | GUI apps include a debug info view behind a settings toggle | P1 | GUI projects only |
 
 ### Resilience
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| DVX_12 | All code passes the project linter and formatter with zero warnings | P0 | |
-| DVX_13 | Commit messages use prefixes and descriptive summaries | P0 | |
-| DVX_14 | Shell scripts include `set -o nounset` and `set -o errexit` | P0 | Shell scripts only |
-| DVX_15 | Red/green test discipline — tests written before implementation, must fail first then pass. Red step: run only the new/changed test. Green step: run the full suite. | P0 | |
-| DVX_16 | Defects resolved through refactor, testing, and documentation to prevent recurrence | P0 | |
-| DVX_17 | Security: OWASP best practices, input validation at system boundaries, safe secret handling | P0 | |
-| DVX_18 | Target O(n) or O(n log n) complexity; document and justify when higher complexity is required | P0 | |
-| DVX_19 | Avoid call-order dependencies and minimize side effects | P1 | |
-| DVX_20 | Extract helpers when cyclomatic complexity exceeds ~9; break complex modules into focused sub-modules | P1 | |
-| DVX_21 | UI projects include accessibility considerations (semantic markup, keyboard nav, screen reader) | P1 | UI projects only |
-| DVX_22 | Watch for agent-specific code smells: dead code, placeholder comments (`// TODO`/`// FIXME`), hallucinated APIs, duplicate code, over-commenting, magic numbers (exception: 12-digit debug literals per DVX_7), deep nesting, swallowed errors, boilerplate inflation | P1 | |
+| DVX_N | All code passes the project linter and formatter with zero warnings | P0 | |
+| DVX_N | Commit messages use prefixes and descriptive summaries | P0 | |
+| DVX_N | Shell scripts include `set -o nounset` and `set -o errexit` | P0 | Shell scripts only |
+| DVX_N | Red/green test discipline — tests written before implementation, must fail first then pass. Red step: run only the new/changed test. Green step: run the full suite. | P0 | |
+| DVX_N | Defects resolved through refactor, testing, and documentation to prevent recurrence | P0 | |
+| DVX_N | Security: OWASP best practices, input validation at system boundaries, safe secret handling | P0 | |
+| DVX_N | Target O(n) or O(n log n) complexity; document and justify when higher complexity is required | P0 | |
+| DVX_N | Avoid call-order dependencies and minimize side effects | P1 | |
+| DVX_N | Extract helpers when cyclomatic complexity exceeds ~9; break complex modules into focused sub-modules | P1 | |
+| DVX_N | UI projects include accessibility considerations (semantic markup, keyboard nav, screen reader) | P1 | UI projects only |
+| DVX_N | Watch for agent-specific code smells: dead code, placeholder comments (`// TODO`/`// FIXME`), hallucinated APIs, duplicate code, over-commenting, magic numbers (exception: 12-digit debug literals per the DVX debug-number requirement above), deep nesting, swallowed errors, boilerplate inflation | P1 | |
 
 ### Project Infrastructure
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| DVX_23 | Target project has a CLAUDE.md capturing conventions, key files, agent-relevant context | P0 | |
-| DVX_24 | Target project has a README with overview, setup instructions, and how to run tests | P0 | |
-| DVX_25 | Plan session maintains a living notes document (`NOTES.md`) capturing decisions, rationale, rejected alternatives, key insights, open questions. The `/notes` skill (published in session-kit) can assist with structured notes management. | P0 | |
-| DVX_26 | Plan session identifies and recommends relevant skills for the target stack | P1 | |
+| DVX_N | Target project has a CLAUDE.md capturing conventions, key files, agent-relevant context | P0 | |
+| DVX_N | Target project has a README with overview, setup instructions, and how to run tests | P0 | |
+| DVX_N | Plan session maintains a living notes document (`NOTES.md`) capturing decisions, rationale, rejected alternatives, key insights, open questions. The `/notes` skill (published in session-kit) can assist with structured notes management. | P0 | |
+| DVX_N | Plan session identifies and recommends relevant skills for the target stack | P1 | |
 
 ---
 
 ## TST: Testing & Verification
 
-Testing and verification requirements for target project PRDs. TST_1 is the operational version of DVX_15.
+Testing and verification requirements for target project PRDs. The core red/green TST item is the operational version of the DVX red/green item.
 
 ### Core Testing Discipline
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TST_1 | Red/green discipline — tests fail before implementation, pass after. For the red step, run only the new/changed test (not the full suite) to verify it fails. Run the full suite for the green step to confirm nothing is broken. | P0 |
-| TST_2 | Meaningful red — the unit under test must exist as a runnable stub before tests are written. A test that fails because the file/function/class doesn't exist (`FileNotFoundError`, `ImportError`) is not meaningful red. The stub must accept inputs and return dummy values so the test fails because the *answer is wrong*, not because infrastructure is missing. | P0 |
-| TST_3 | Full test suite runnable via a single command | P0 |
-| TST_4 | All tests pass before iteration completion; any failure blocks | P0 |
-| TST_5 | Every functional requirement has at least one automated test mapping to its ID | P0 |
-| TST_6 | Tests are deterministic — no flaky tests, no external dependencies without mocks | P0 |
-| TST_7 | Tests are independently runnable — no shared state, no order dependencies | P0 |
-| TST_8 | Regression suite only grows; tests removed only when the requirement they verify is removed | P0 |
-| TST_9 | Every requirement has at least one test. Tests that verify a specific requirement include its ID in the test name or docstring for traceability. Not every test maps to a requirement — sanity checks, integration tests, and regression tests are expected and welcome. | P0 |
-| TST_10 | First test is a sanity check — trivial passing assertion. If changed to assert false, it must fail. Confirms test infrastructure works. | P0 |
-| TST_11 | Prefer real dependencies over mocks where practical. Mocks acceptable for external services and slow I/O. Over-mocking gives false confidence. | P0 |
+| TST_N | Red/green discipline — tests fail before implementation, pass after. For the red step, run only the new/changed test (not the full suite) to verify it fails. Run the full suite for the green step to confirm nothing is broken. | P0 |
+| TST_N | Meaningful red — the unit under test must exist as a runnable stub before tests are written. A test that fails because the file/function/class doesn't exist (`FileNotFoundError`, `ImportError`) is not meaningful red. The stub must accept inputs and return dummy values so the test fails because the *answer is wrong*, not because infrastructure is missing. | P0 |
+| TST_N | Full test suite runnable via a single command | P0 |
+| TST_N | All tests pass before iteration completion; any failure blocks | P0 |
+| TST_N | Every functional requirement has at least one automated test mapping to its ID | P0 |
+| TST_N | Tests are deterministic — no flaky tests, no external dependencies without mocks | P0 |
+| TST_N | Tests are independently runnable — no shared state, no order dependencies | P0 |
+| TST_N | Regression suite only grows; tests removed only when the requirement they verify is removed | P0 |
+| TST_N | Every requirement has at least one test. Tests that verify a specific requirement include its ID in the test name or docstring for traceability. Not every test maps to a requirement — sanity checks, integration tests, and regression tests are expected and welcome. | P0 |
+| TST_N | First test is a sanity check — trivial passing assertion. If changed to assert false, it must fail. Confirms test infrastructure works. | P0 |
+| TST_N | Prefer real dependencies over mocks where practical. Mocks acceptable for external services and slow I/O. Over-mocking gives false confidence. | P0 |
 
 ### Additional Testing
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TST_12 | Integration tests cover component boundaries and API surfaces | P1 |
-| TST_13 | End-to-end tests cover primary user flows once fully implemented | P1 |
-| TST_14 | Mutation testing to verify test quality where tooling supports it | P2 |
-| TST_15 | Fuzz testing for input parsing, data processing, and security-sensitive paths | P2 |
+| TST_N | Integration tests cover component boundaries and API surfaces | P1 |
+| TST_N | End-to-end tests cover primary user flows once fully implemented | P1 |
+| TST_N | Mutation testing to verify test quality where tooling supports it | P2 |
+| TST_N | Fuzz testing for input parsing, data processing, and security-sensitive paths | P2 |
 
 ---
 
@@ -164,7 +166,7 @@ The plan phase must define verification commands for the target project. These c
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| VFC_1 | Build command treats warnings as errors where tooling supports it | P1 |
+| VFC_N | Build command treats warnings as errors where tooling supports it | P1 |
 
 ---
 
@@ -174,15 +176,15 @@ Identify areas where failures would be most damaging. For each, document what it
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| CTA_1 | Core functionality — the primary thing the system does | P0 |
-| CTA_2 | Data integrity — storage, retrieval, consistency | P0 |
-| CTA_3 | Security boundaries — auth, input validation, secrets | P0 |
-| CTA_4 | State machines — lifecycle transitions, valid/invalid states | P0 |
-| CTA_5 | External integrations — APIs, databases, file systems | P0 |
-| CTA_6 | Error recovery paths — crash handling, partial failures, retry | P0 |
-| CTA_7 | Edge cases and boundary conditions | P1 |
-| CTA_8 | Concurrency — if applicable | P1 |
-| CTA_9 | Performance-sensitive paths — if applicable | P1 |
+| CTA_N | Core functionality — the primary thing the system does | P0 |
+| CTA_N | Data integrity — storage, retrieval, consistency | P0 |
+| CTA_N | Security boundaries — auth, input validation, secrets | P0 |
+| CTA_N | State machines — lifecycle transitions, valid/invalid states | P0 |
+| CTA_N | External integrations — APIs, databases, file systems | P0 |
+| CTA_N | Error recovery paths — crash handling, partial failures, retry | P0 |
+| CTA_N | Edge cases and boundary conditions | P1 |
+| CTA_N | Concurrency — if applicable | P1 |
+| CTA_N | Performance-sensitive paths — if applicable | P1 |
 
 For each applicable area, document:
 
@@ -198,11 +200,11 @@ Quality ratchets are metrics that can only improve — the threshold moves up wh
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RCH_1 | Test coverage ratchet — coverage percentage must not decrease. Threshold in project config. | P0 |
-| RCH_2 | Lint-clean ratchet — zero linter warnings. Any warning fails the build. | P0 |
-| RCH_3 | Format compliance ratchet — 100% format compliance enforced by formatter check. | P0 |
-| RCH_4 | Test pass rate ratchet — all tests pass. No "known failures" or skip-without-rationale. | P0 |
-| RCH_5 | Ratchet thresholds are updated upward when sustained improvement is observed | P1 |
+| RCH_N | Test coverage ratchet — coverage percentage must not decrease. Threshold in project config. | P0 |
+| RCH_N | Lint-clean ratchet — zero linter warnings. Any warning fails the build. | P0 |
+| RCH_N | Format compliance ratchet — 100% format compliance enforced by formatter check. | P0 |
+| RCH_N | Test pass rate ratchet — all tests pass. No "known failures" or skip-without-rationale. | P0 |
+| RCH_N | Ratchet thresholds are updated upward when sustained improvement is observed | P1 |
 
 ---
 
@@ -212,9 +214,9 @@ Project-level success metrics that measure whether the project is on track. All 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| MET_1 | Defect rate — target number of blockers per milestone (e.g., < 2 blockers per milestone) | P0 |
-| MET_2 | Defect escape rate — defects found after an iteration is marked complete. Measures verification quality. Target: 0. | P0 |
-| MET_3 | Blocker rate — percentage of iterations that block. Measures planning quality. | P1 |
+| MET_N | Defect rate — target number of blockers per milestone (e.g., < 2 blockers per milestone) | P0 |
+| MET_N | Defect escape rate — defects found after an iteration is marked complete. Measures verification quality. Target: 0. | P0 |
+| MET_N | Blocker rate — percentage of iterations that block. Measures planning quality. | P1 |
 
 ---
 
@@ -232,18 +234,18 @@ Default refactor goals applied at each milestone boundary. The user adds project
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RFP_1 | Extract duplicated logic when 3+ copies exist across files | P0 |
-| RFP_2 | Flag files over 500 lines — split only if there's a clear seam | P0 |
-| RFP_3 | Consolidate scattered constants/config into centralized locations | P0 |
-| RFP_4 | Reduce excessive special-case branching (if/elif chains that grew organically) | P0 |
+| RFP_N | Extract duplicated logic when 3+ copies exist across files | P0 |
+| RFP_N | Flag files over 500 lines — split only if there's a clear seam | P0 |
+| RFP_N | Consolidate scattered constants/config into centralized locations | P0 |
+| RFP_N | Reduce excessive special-case branching (if/elif chains that grew organically) | P0 |
 
 ### Artifact-oriented (always)
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RFP_5 | Review deferred cleanup items from this milestone | P0 |
-| RFP_6 | Review lessons learned from this milestone's iterations | P0 |
-| RFP_7 | Identify high-churn files as refactoring candidates | P1 |
+| RFP_N | Review deferred cleanup items from this milestone | P0 |
+| RFP_N | Review lessons learned from this milestone's iterations | P0 |
+| RFP_N | Identify high-churn files as refactoring candidates | P1 |
 
 ---
 

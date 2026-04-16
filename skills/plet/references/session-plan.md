@@ -599,3 +599,5 @@ references/plan-templates/
 ├── elixir.md      — platform: Elixir/Phoenix
 └── go.md          — platform: Go
 ```
+
+**Template ID renumbering.** All template IDs use `_N` (literal N) instead of integers. When composing the final requirements document, collect all items from applicable templates (e.g., `common.md` + `cli.md` + `python.md`) and assign sequential integer IDs per prefix. For example, DVX items from common.md become DVX_1 through DVX_26, then DVX items from cli.md continue as DVX_27 through DVX_33, then python.md DVX items continue from there. This prevents ID collisions across templates. The Requirement ID Rules (GC_1) above apply to the final composed IDs — once assigned, IDs are stable and never renumbered.

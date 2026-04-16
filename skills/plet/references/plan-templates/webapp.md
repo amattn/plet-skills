@@ -2,6 +2,8 @@
 
 Project type template for web applications. Composes with `common.md` — a Phoenix webapp loads `common.md` + `webapp.md` + `elixir.md`.
 
+**Template IDs use `_N` (literal N), not integers.** During plan composition, the agent collects items from all applicable templates and assigns sequential integer IDs in the final requirements document.
+
 To be filled out via interactive review session (PRD_7h).
 
 ---
@@ -12,7 +14,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FRQ_1 | | |
+| FRQ_N | | |
 
 ---
 
@@ -22,7 +24,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| NFR_1 | | |
+| NFR_N | | |
 
 ---
 
@@ -32,7 +34,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FLW_1 | | |
+| FLW_N | | |
 
 ---
 
@@ -42,7 +44,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| ARC_1 | | |
+| ARC_N | | |
 
 ---
 
@@ -52,7 +54,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| DAT_1 | | |
+| DAT_N | | |
 
 ---
 
@@ -60,7 +62,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| DVX_1 | | |
+| DVX_N | | |
 
 ---
 
@@ -68,7 +70,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| TST_1 | | |
+| TST_N | | |
 
 ---
 
@@ -90,7 +92,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| CTA_1 | | |
+| CTA_N | | |
 
 ---
 
@@ -98,7 +100,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RCH_1 | | |
+| RCH_N | | |
 
 ---
 
@@ -106,7 +108,7 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| MET_1 | | |
+| MET_N | | |
 
 ---
 
@@ -114,4 +116,4 @@ To be filled out via interactive review session (PRD_7h).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RFP_1 | | |
+| RFP_N | | |

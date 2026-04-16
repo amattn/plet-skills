@@ -1341,6 +1341,18 @@ Key decisions:
 - `session/` prefix groups them and makes them discoverable
 - Alternatives considered: `pre-squash/topic` (less informative, no date)
 
+### NOTES_DES_9: Plan Template ID Convention
+
+#### Template IDs use `_N` instead of integers (2026-04-16)
+
+All plan-phase template files (`references/plan-templates/*.md`) now use `_N` (literal N) for every requirement ID instead of integer suffixes. When the agent composes a requirements document from multiple templates (e.g., `common.md` + `cli.md` + `python.md`), it assigns sequential integers per prefix across all sources.
+
+**Problem:** Multiple templates defined the same ID (e.g., `RCH_1` in common.md, cli.md, and python.md). When composed, IDs collided silently — the agent might skip, overwrite, or produce duplicates depending on how it merged sections.
+
+**Fix:** Every ID in every template is `PREFIX_N`. The composing agent is forced to renumber because there are no pre-assigned integers. session-plan.md updated with explicit renumbering instruction.
+
+**Cross-references:** Internal cross-refs like "per DVX_7" converted to descriptive text ("per the DVX debug-number requirement") since specific IDs no longer exist in templates.
+
 ---
 
 ## NOTES_PLN: Plan Discussions
