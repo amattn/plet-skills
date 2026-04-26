@@ -2,6 +2,57 @@
 
 All notable changes to the plet skill are documented here.
 
+## 0.7.2 (2026-04-25)
+
+### Plan-Phase Templates (PLAN_PRD)
+
+Composable plan-phase templates for target project PRDs. Templates split into common (all projects), type-specific (CLI, webapp, library), and platform-specific (Python, Elixir, Go). Session-plan.md references templates instead of inlining.
+
+- `plan-templates/common.md` — DVX, TST, CTA, MET, RCH, RFP sections for all projects
+- `plan-templates/cli.md` — command inventory, NFR, ARC for CLI tools
+- `plan-templates/python.md`, `elixir.md`, `go.md` — platform VFC, RCH, ARC
+- `plan-templates/webapp.md`, `library.md` — type stubs (outlines only)
+
+### Prerelease Version Bumps (FOO_76)
+
+Iterations now bump version metadata to prerelease tags tied to milestones.
+
+- `phase-implement.md` — Version Bump step after pre-flight: `{target}-iter.{N}`
+- `phase-refactor.md` — promotes prerelease to milestone release version at milestone boundary
+- `common.md` NFR + DVX entries for version metadata identification
+- Platform templates specify where version metadata lives per ecosystem
+
+### Conventions
+
+- `UNV_CMD_31` — JSON-first output: plain text mode formats the JSON, no separate code path
+- `session-refine.md` — bold preamble: refine must not modify source code (FOO_77)
+
+## 0.7.1 (2026-04-14)
+
+Bug fixes and cleanup from OLLR R05-R07 case studies and PLAN_FIX backlog. SCHEMA_VERSION bumped to 0.7.1 (additive: `planSessionCount`).
+
+### Script Changes
+
+- **`session.py` 0.4.0:** `start-session` supports `--type plan` for plan session tracking (REC_5)
+- **`global_state.py` 0.5.0:** `init` writes `planSessionCount` to state.json
+- **`plet_orchestrator.py` 0.6.1:** Remove empty lifecycle marker commits — no more zero-diff commits cluttering history (REC_4)
+- **`invoke.py` 0.4.1:** Fix attempt numbering off-by-one — attempt 1 was logged as attempt 0 (REC_3)
+- **`plet_agent.py` 0.3.0:** Include command args in trace events for richer timeline reconstruction (REC_2)
+- **`prompt.py` 0.4.1:** Updated for reference file renames (`session-plan.md`, `phase-implement.md`, etc.)
+- **`traces.py`:** Route plan/refine trace events to project-level trace file instead of per-iteration (REC_6)
+
+### Naming Cleanup (FIX_5, FIX_6, FIX_7)
+
+- **FIX_5:** Update stale script names, field names, and references across specs, scripts/CLAUDE.md, reference files, SKILL.md
+- **FIX_6:** Rename reference files with `session-`/`phase-` prefixes: `plan.md` → `session-plan.md`, `implement.md` → `phase-implement.md`, etc.
+- **FIX_7:** Rename `NOTES_PLN_*` stable labels to `NOTES_PLAN_*` (104 replacements)
+
+### Other
+
+- PLAN_PRD: PRD reorganization and sync to current state (audit complete, outline approved)
+- PLAN_MSV/PLAN_VOS: design exploration complete, both paused — staying on per-iteration verify
+- LOGA R17 case study (MSV validation — inconclusive)
+
 ## 0.7.0 (2026-04-08)
 
 The largest release since plet's inception. Parallel orchestration (PLAN_PAR) has been reverted. Any wallclock gains from concurrency were consumed by branch management overhead, merge conflict recovery, and agent context spent on git mechanics rather than user code. Sequential execution is *surprisingly and unexpectedly* faster in practice. PLAN_SEQ strips parallel entirely: 14 CLI scripts consolidated into 3 entry points, ~1050 lines removed from agent prompts, and all reference files (implement.md, verify.md, formats.md, state-schema.md) audited and rewritten for efficacy and efficiency. Iteration IDs renamed from `ID_` to `ITR_` for grep clarity in target projects (PLAN_IDR). Milestone-boundary refactoring added as a first-class feature via synthetic iterations (PLAN_RFT). LOGA benchmarks (same project, 13/13 iterations, all runs):
