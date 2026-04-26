@@ -383,7 +383,7 @@ SPARK ID_007 notes "impl-1 lost commits; re-impl as impl-2" — the agent lost i
 
 Source: SPARK case study, ID_007 iteration table
 
-`[deferred → PLAN_PY]` — `plet_git.py` worktree isolation prevents cross-branch contamination.
+`[withdrawn]` — Worktrees removed (PLAN_SEQ), wip-commit covers incremental persistence. Root cause no longer applicable.
 
 ### FOO_36: Retry overhead consumed 24% of active execution time [timing] [efficiency]
 
@@ -801,13 +801,15 @@ The dependency graph has parallel opportunities (e.g., ID_005/ID_006/ID_007 coul
 
 **Additional finding:** 53% of implement-phase Bash calls are plet infrastructure (state updates, progress entries, trace events, gate checks), not application code. Reducing artifact overhead would compound with parallelism savings.
 
+`[withdrawn]` — PLAN_SEQ explicitly chose sequential over parallel. Parallel was built (PLAN_PAR), validated (OLLR R01-R04), and abandoned — sequential had 100% completion (39/39) vs parallel ~70%. Speed gains not worth reliability cost.
+
 ### FOO_70: Milestone boundary refactor step [orchestrator] [code-quality]
 
 Source: CASE_LOGA_R06_REC_4, CASE_LOGA_R06_F_5
 
 Run 6's main.go accumulated to 433 lines — each iteration added subcommand handling without extracting. This is the "excessive special cases" pattern from NOTES.md § Two-tier refactoring model. The Tier 2 milestone boundary refactor is designed but not implemented. The orchestrator should trigger a refactor analysis when all iterations in a milestone reach `complete`.
 
-`[deferred]` → Big change: needs a refactor→verify loop at milestone boundaries, possibly every iteration. Deferred to its own plan item (PLAN_RFT). See PLAN.md.
+`[resolved, verified]` → PLAN_RFT shipped. `ITR_RFT_N` synthetic iterations at milestone boundaries, `phase-refactor.md` reference file, `prompt.py` routing. Validated LOGA R16 (refactor agent extracted real duplication).
 
 ### FOO_71: Phase "unknown" in trace files — CLI design issue [cli] [trace]
 
@@ -840,6 +842,51 @@ Quality metrics that can never go backwards — coverage, complexity, lint error
 Ratchets formalize the floor: once a quality level is achieved, it becomes the new minimum. The enforcement mechanism (test runner gate, CI check) makes backsliding impossible. Added to plan.md requirements template as §4.5 Quality Ratchets, conventions.md as UNV_QG_1-5, and cli-spec-template.md as §10.5.
 
 `[resolved]` → Added to plan.md template, conventions.md (UNV_QG_1-5), cli-spec-template.md, script_template.md.
+
+### FOO_74: Trace files and transcripts not committed during implement/verify [git] [artifacts] [trace]
+
+Source: user observation (2026-04-25)
+
+Trace files (`plet/trace/*.ndjson`) and subagent transcripts are generated during implement and verify phases but are not committed incrementally alongside code and runtime artifacts. FOO_60 fixed `plet/` being included in `git add` for progress/learnings/emergent/state, but trace files and transcripts may still be left uncommitted until the orchestrator's final merge-squash. If the run is interrupted or the agent crashes, traces and transcripts are lost — they exist only in the worktree (which gets cleaned up) or uncommitted in the working directory.
+
+**Investigation (2026-04-25):** Confirmed in sorter project — wip-commits include `plet/progress.md` and `plet/state/` but no trace files. Traces only appear in the `implement - completed` commit at phase end. This is **by design**: `wip-commit` excludes `plet/trace/` to prevent a transcript feedback loop (committing transcripts grows the transcript, which dirties the tree, which triggers another commit). `phase.py end` uses `git add -A` which captures everything including traces.
+
+**Current tradeoff:** If a run crashes mid-phase, trace events and transcripts for that phase are lost (uncommitted). Events are small append-only NDJSON; transcripts can be large. Events could be split from transcripts in the exclusion rule (`*-events.ndjson` staged, `*-transcript.ndjson` excluded) but this adds complexity for a low-probability failure mode.
+
+**Future concern:** As runs get longer or more complex, the cost of losing an entire phase's trace data on crash increases. Revisit option B (stage events, exclude transcripts) if crash recovery becomes a real problem or if trace events are needed for mid-phase diagnostics/GUI.
+
+Related: FOO_60 (runtime artifacts not committed — resolved for progress/learnings/emergent but traces excluded by design), FOO_48 (runtime artifacts committed on iteration branches).
+
+### FOO_75: Plain text output should format the JSON, not be a separate code path [cli] [dx] [conventions]
+
+Source: user observation (2026-04-25)
+
+CLI scripts that support `--output json` often have two independent code paths: one that builds a JSON structure and one that builds plain text output from scratch. This means the plain text path can drift from the JSON path — different fields included, different calculations, different edge case handling. Two representations of the same data is two chances to diverge.
+
+**Rule:** The JSON structure is the single source of truth for command output. Plain text mode should take the JSON object and format it for human readability — not compute the output independently. This means: (1) build the JSON result first, (2) pass it to a formatter that renders it as text. The formatter is pure presentation — no business logic, no additional queries, no fields that don't exist in the JSON.
+
+**Benefits:** One code path for correctness, one for presentation. Tests can assert against JSON and know the plain text says the same thing. Adding a field to the output means adding it to the JSON structure — the formatter picks it up automatically (or with a one-line format string update).
+
+**Applies to:** All plet scripts with `--output json`/`--output text` modes. May also be worth adding to `scripts/CLAUDE.md` as a coding standard and to plan-phase templates (cli-spec-template.md) as a convention for target projects.
+
+`[resolved]` → Added as UNV_CMD_31 in `specs/conventions.md` (plet scripts) and ARC_N in `plan-templates/cli.md` (target projects). Convention going forward — existing scripts not retrofitted.
+
+### FOO_76: Iterations should bump version metadata to prerelease tags [versioning] [milestones] [planning]
+
+Source: user observation (2026-04-25)
+
+Each iteration should update the target project's version metadata to a prerelease version reflecting progress. For example, if milestone 1 targets `0.2.0`, iterations within that milestone would produce versions like `0.2.0-iter.1`, `0.2.0-iter.2`, ..., `0.2.0-iter.12`. When the milestone completes, the version is promoted to `0.2.0` (release). Next milestone's iterations start `0.3.0-iter.1`, etc.
+
+**Why:** Without this, the project version is stale throughout the entire build — it stays at whatever it was before plet started. Prerelease tags give a monotonically increasing version that reflects actual progress, makes builds distinguishable, and aligns version bumps with milestones rather than treating versioning as an afterthought.
+
+**Platform-dependent:** Where the version lives varies by ecosystem — `package.json` (Node), `pyproject.toml` (Python), `mix.exs` (Elixir), `Cargo.toml` (Rust), `version.go` or `ldflags` (Go), etc. The plan session should identify where version metadata lives (possibly as part of §7 Data Models or a new §X Build Metadata section). The orchestrator or implement phase would then update it per iteration.
+
+**SemVer prerelease format:** `MAJOR.MINOR.PATCH-iter.N` follows SemVer 2.0 prerelease rules. `iter` as the prerelease identifier is clear and sorts correctly. Alternative: `alpha.N`, `dev.N` — but `iter` directly maps to plet's iteration concept.
+
+**Open questions:**
+- Should the milestone's target version be defined during plan (in requirements.md or iterations.md)?
+- Should the version bump be part of the implement phase template, or an orchestrator post-step?
+- What if the project doesn't have version metadata yet — does plet create it?
 
 ---
 

@@ -54,6 +54,7 @@ Each command should have a one-line description, required args, and which user p
 | ARC_N | Entry point dispatch: single script dispatches to command handlers via `tool <command> [args]` pattern | P0 |
 | ARC_N | No interactive input — all input via CLI arguments. Commands must be scriptable and automatable. | P0 |
 | ARC_N | Command functions return structured results (not print directly) for testability via direct import. Entry point handles formatting and I/O. | P0 |
+| ARC_N | JSON-first output: the JSON structure is the single source of truth. Plain text mode formats the JSON for human readability — no separate code path, no independent computation. Build JSON first, pass to a text formatter. Prevents drift between `--output json` and default text output. | P0 |
 
 ---
 
