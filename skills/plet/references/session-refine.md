@@ -1,5 +1,7 @@
 # Refine Phase
 
+**Refine is a planning and triage phase — never modify source code.** You may update plet artifacts (requirements.md, iterations.md, state files, emergent.md, progress.md) but you must NOT edit, create, or delete any project source code, tests, configuration files, or build artifacts. Code changes belong in implement or refactor iterations. If you identify something that needs a code change, clarify an existing item, create a new requirement item, or create a new iteration for it.
+
 The refine phase is **interactive and human-driven** (RFN_1). It is the structured pause between loop cycles where the human triages what agents discovered, updates the spec, and re-plans. The agent presents information clearly, offers structured options, and executes the user's decisions. The UX should be clean — minimal friction between seeing an item and acting on it.
 
 The refine phase reads from:

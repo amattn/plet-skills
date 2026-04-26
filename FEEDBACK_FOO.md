@@ -857,6 +857,16 @@ Trace files (`plet/trace/*.ndjson`) and subagent transcripts are generated durin
 
 Related: FOO_60 (runtime artifacts not committed — resolved for progress/learnings/emergent but traces excluded by design), FOO_48 (runtime artifacts committed on iteration branches).
 
+### FOO_77: Refine agent made code changes — refine is read-only [refine] [autonomy]
+
+Source: user observation (2026-04-25)
+
+During a refine session, the agent started making code changes to the target project. Refine is a triage and planning phase — it reviews what happened, triages emergent items, proposes new iterations, and updates state/spec artifacts. It should never modify source code. Code changes belong in implement iterations (or refactor iterations at milestone boundaries).
+
+The refine reference file (`session-refine.md`) had only "complete iterations are frozen" (line 209) — nothing about source code broadly.
+
+`[resolved, unverified]` → Added bold preamble to `session-refine.md`: "Refine is a planning and triage phase — never modify source code." Explicit list of what's allowed (plet artifacts) and what's not (source, tests, config, build artifacts). Directive to create iterations for needed code changes instead.
+
 ### FOO_75: Plain text output should format the JSON, not be a separate code path [cli] [dx] [conventions]
 
 Source: user observation (2026-04-25)
