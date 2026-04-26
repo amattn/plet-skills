@@ -888,6 +888,8 @@ Each iteration should update the target project's version metadata to a prerelea
 - Should the version bump be part of the implement phase template, or an orchestrator post-step?
 - What if the project doesn't have version metadata yet — does plet create it?
 
+`[resolved, unverified]` → Added to four locations: (1) `common.md` NFR_N + DVX_N (universal rule + DX), (2) platform templates `python.md`, `elixir.md`, `go.md` with explicit version metadata locations, (3) `phase-implement.md` Version Bump step after pre-flight — bumps to `{target}-iter.{N}`, (4) `phase-refactor.md` Completing the Phase — promotes prerelease to milestone release version (e.g., `0.2.0-iter.12` → `0.2.0`). Skip if project has no version metadata or plan didn't define milestone target versions.
+
 ---
 
 ### Noted (not yet FOO items)

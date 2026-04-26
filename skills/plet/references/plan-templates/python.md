@@ -21,6 +21,7 @@ Platform template for Python projects. Composes with `common.md` + a project typ
 | NFR_N | Minimum Python version declared in pyproject.toml `requires-python` | P0 |
 | NFR_N | Dependency management via `uv` (preferred) or `pip` with lockfile | P0 |
 | NFR_N | Zero external dependencies for tools that ship inside other packages (plugins, skills). Stdlib only. | P1 |
+| NFR_N | **Version metadata location:** `pyproject.toml` `[project] version` field (or `__version__` in `__init__.py` if no pyproject.toml). Implement phase bumps this to prerelease (`{milestone_version}-iter.{N}`) per iteration. If using `uv`, run `uv lock` after bumping. | P0 |
 
 ---
 

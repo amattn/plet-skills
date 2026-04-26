@@ -22,7 +22,7 @@
 | PLAN_RBS | Rebase-over-Squash | ✓ COMPLETE (parallel aspects superseded by PLAN_SEQ) |
 | PLAN_IDR | Iteration ID Rename (`ID_` → `ITR_`) | ✓ COMPLETE (16/16) — validated OLLR R08 |
 | PLAN_VER | Verify Phase Rewrite | ✓ COMPLETE (9/9) — validated OLLR R07 |
-| PLAN_FIX | Small Fixes Backlog | 6/10 done (FIX_3 deferred, FIX_8-10 new) |
+| PLAN_FIX | Small Fixes Backlog | 8/10 done (FIX_3 deferred, FIX_8 deferred) |
 | PLAN_RFT | Refactor Loop | ✓ COMPLETE (6/6) — validated LOGA R16 (refactor agent extracted real code) |
 | PLAN_MSV | Milestone-Scoped Verify | Paused — R17 ran but inconclusive (milestone verify didn't check milestone ACs due to tooling gap). Staying on 0.7.0 per-iteration verify. |
 | PLAN_VOS | Verify on the Side | Paused — design exploration complete. See NOTES_PLAN_VOS |
@@ -507,7 +507,7 @@ Cross-cutting fixes surfaced by OLLR R05/R06 case studies. No dependencies, can 
 | FIX_7 | Renamed `NOTES_PLN_*` stable labels to `NOTES_PLAN_*` — resolved inconsistency between 3-letter abbreviation and full plan chunk names (PLAN_MSV, PLAN_VOS, etc.). 104 replacements across 4 files. | naming consistency | P3 | ✓ done |
 | FIX_8 | Trace files and transcripts not committed during implement/verify — by design (transcript feedback loop). Future: split events from transcripts in wip-commit exclusion | FOO_74 | P3 | deferred |
 | FIX_9 | Plain text output should format the JSON, not be a separate code path — coding convention for scripts | FOO_75 | P3 | ✓ done (UNV_CMD_31 + cli.md ARC_N) |
-| FIX_10 | Prerelease version bump per iteration (`0.x.y-iter.N`) — orchestrator/implement phase updates version metadata | FOO_76 | P2 | |
+| FIX_10 | Prerelease version bump per iteration (`0.x.y-iter.N`) — orchestrator/implement phase updates version metadata | FOO_76 | P2 | ✓ done (common.md + platform templates + phase-implement.md) |
 
 ---
 

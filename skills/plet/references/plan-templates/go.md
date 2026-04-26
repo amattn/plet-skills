@@ -20,7 +20,7 @@ To be filled out via interactive review session (PRD_7l).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| NFR_N | | |
+| NFR_N | **Version metadata location:** Typically a `version` variable in `main.go` or a dedicated `version.go` file (set via `ldflags` at build time, or as a string constant for simpler projects). Implement phase bumps this to prerelease (`{milestone_version}-iter.{N}`) per iteration. | P0 |
 
 ---
 

@@ -39,6 +39,10 @@ Type-specific (`cli.md`, `webapp.md`, `library.md`) and platform-specific (`pyth
 
 ## NFR: Non-Functional Requirements
 
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| NFR_N | **Version metadata:** Each milestone defines a target version (e.g., `0.2.0`). Iterations produce prerelease versions (`{target}-iter.{N}`, e.g., `0.2.0-iter.3`). Milestone completion promotes to the release version. Version metadata location is platform-dependent — identified during plan session (see platform template). | P0 |
+
 [Reliability, performance, compatibility, security as appropriate]
 
 ---
@@ -89,6 +93,7 @@ Three guiding principles:
 | DVX_N | Every error string and log call includes a unique random 12-digit debug number, never reused | P0 | |
 | DVX_N | No silent or ignored error states — all errors handled or surfaced | P0 | |
 | DVX_N | Version displayed via appropriate mechanism; printed to log on startup | P0 | |
+| DVX_N | Version metadata location identified — plan session records the file and field where the project version lives (platform-dependent: `pyproject.toml`, `package.json`, `mix.exs`, `Cargo.toml`, etc.). Implement phase bumps to prerelease per iteration. | P0 | |
 | DVX_N | All log output uses structured key-value format with severity levels | P1 | |
 | DVX_N | GUI apps include a debug info view behind a settings toggle | P1 | GUI projects only |
 

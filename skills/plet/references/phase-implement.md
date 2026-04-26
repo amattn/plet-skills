@@ -78,6 +78,18 @@ If pre-flight fails:
 - If resolved, log the fix and continue
 - If unresolvable, document as a blocker (see Blocker Protocol below) and return
 
+### Version Bump
+
+If the project has version metadata (identified during plan session — see `requirements.md` or `CLAUDE.md`), bump it to the prerelease tag for this iteration:
+
+```
+{milestone_target_version}-iter.{iteration_number}
+```
+
+Example: if milestone MS_1 targets `0.2.0` and you're implementing ITR_003, bump to `0.2.0-iter.3`. The version metadata location is platform-dependent (`pyproject.toml`, `mix.exs`, `main.go`, etc.). If using a lockfile (`uv.lock`, `mix.lock`), regenerate it after bumping. Commit with the first wip-commit.
+
+Skip this step if the project has no version metadata or the plan didn't define milestone target versions.
+
 ---
 
 ## Red/Green Test Discipline (IMP_4)

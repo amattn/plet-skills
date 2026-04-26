@@ -21,6 +21,7 @@ Platform template for Elixir/Phoenix projects. Composes with `common.md` + a pro
 | NFR_N | Minimum Elixir and OTP versions declared in `mix.exs` `elixir:` and `.tool-versions` or `.mise.toml` | P0 |
 | NFR_N | Dependency management via Mix + Hex with committed `mix.lock` | P0 |
 | NFR_N | Runtime configuration via `config/runtime.exs` for environment-specific values — never compile-time config for secrets or host-specific settings | P0 |
+| NFR_N | **Version metadata location:** `mix.exs` `project/0` `:version` field. Implement phase bumps this to prerelease (`{milestone_version}-iter.{N}`) per iteration. | P0 |
 
 ---
 

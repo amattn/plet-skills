@@ -167,7 +167,8 @@ When all acceptance criteria are addressed (passed or skipped):
 2. Run the linter — zero warnings
 3. Run the full test suite — all tests must pass
 4. Check test count against the baseline you recorded in Before You Start. If count decreased, document why in your evidence (consolidated redundant tests, parameterized, removed tests for extracted code). If coverage measurement is available, verify coverage held or improved.
-5. End the phase:
+5. **Promote version to release.** If the project has version metadata with a prerelease tag (e.g., `0.2.0-iter.12`), promote it to the milestone's release version (e.g., `0.2.0`). This is the milestone boundary — the prerelease tag is no longer needed. Regenerate lockfiles if applicable (`uv lock`, etc.). Commit with a wip-commit.
+6. End the phase:
 
 ```bash
 plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement \
