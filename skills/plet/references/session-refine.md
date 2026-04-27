@@ -2,7 +2,7 @@
 
 **Refine is a planning and triage phase — never modify source code.** You may update plet artifacts (requirements.md, iterations.md, state files, emergent.md, progress.md) but you must NOT edit, create, or delete any project source code, tests, configuration files, or build artifacts. Code changes belong in implement or refactor iterations. If you identify something that needs a code change, clarify an existing item, create a new requirement item, or create a new iteration for it.
 
-The refine phase is **interactive and human-driven** (RFN_1). It is the structured pause between loop cycles where the human triages what agents discovered, updates the spec, and re-plans. The agent presents information clearly, offers structured options, and executes the user's decisions. The UX should be clean — minimal friction between seeing an item and acting on it.
+The refine phase is **interactive and human-driven**. It is the structured pause between loop cycles where the human triages what agents discovered, updates the spec, and re-plans. The agent presents information clearly, offers structured options, and executes the user's decisions. The UX should be clean — minimal friction between seeing an item and acting on it.
 
 The refine phase reads from:
 - `plet/emergent.md` — pending items from agents
@@ -31,7 +31,7 @@ Check out the refine workstream branch (`plet/{projectId}/refine{N}/workstream`)
 ### Read Context
 
 1. Read `plet/emergent.md` — identify all entries with `Outcome: pending` (RT_9)
-2. Read `plet/learnings.md` — look for recurring patterns or themes that suggest spec changes (RFN_2)
+2. Read `plet/learnings.md` — look for recurring patterns or themes that suggest spec changes
 3. Read `plet/state.json` — current milestones, dependency map, fingerprints
 4. Read per-iteration state files for any `blocked` iterations — collect their lifecycle, criteria, and attempt counts
 5. Read the target project's `CLAUDE.md` and `README.md` (if they exist) for conventions and context
@@ -58,7 +58,7 @@ At every review step:
 
 ---
 
-## Step 1: Blocked Iterations (RFN_8)
+## Step 1: Blocked Iterations
 
 Blockers are the priority — they represent lost progress and require human investigation. Surface them first.
 
@@ -116,9 +116,9 @@ If there are no blocked iterations, tell the user and move to Step 2.
 
 ---
 
-## Step 2: Emergent Item Triage (RFN_2, RFN_3)
+## Step 2: Emergent Item Triage
 
-Present all remaining pending emergent items to the user for triage, **one at a time** (RFN_1). For each item:
+Present all remaining pending emergent items to the user for triage, **one at a time**. For each item:
 
 1. Show the full emergent entry (EM_N ID, source iteration, category, description)
 2. **Recommend** — state whether you think the item should be approved, modified, rejected, or deferred, and why
@@ -136,30 +136,30 @@ The user may batch answers (e.g., "1A, 2C, 3D") to speed through.
 
 ### Triage Actions
 
-For each decision, do three things: (1) update the spec, (2) update the emergent entry's `Outcome` field (RFN_7), and (3) **append to `plet/progress.md`** — a concise per-decision entry recording what was decided and why. Use phase `refine`.
+For each decision, do three things: (1) update the spec, (2) update the emergent entry's `Outcome` field, and (3) **append to `plet/progress.md`** — a concise per-decision entry recording what was decided and why. Use phase `refine`.
 
-**Approve (RFN_4):**
+**Approve:**
 - Add a new requirement or update an existing one in `plet/requirements.md`
 - Include `(EM_N)` reference in the requirement text
 - Update emergent entry: `Outcome: approved`
 - Progress entry: "EM_N approved — added as PREFIX_N" or "EM_N approved — updated PREFIX_N"
 - Write to disk immediately
 
-**Modify (RFN_4):**
+**Modify:**
 - Same as approve, but incorporate the user's requested changes
 - Include `(EM_N)` reference
 - Update emergent entry: `Outcome: approved with changes`
 - Progress entry: "EM_N approved with changes — [what changed]"
 - Write to disk immediately
 
-**Reject (RFN_5):**
+**Reject:**
 - Add an entry to the Resolved Questions section of `plet/requirements.md`
 - Format: `| N | [question from EM_N] | Rejected — [rationale] (EM_N) |`
 - Update emergent entry: `Outcome: rejected`
 - Progress entry: "EM_N rejected — [brief rationale]"
 - Write to disk immediately
 
-**Defer (RFN_6):**
+**Defer:**
 - Add an entry to Open Questions in `plet/requirements.md`
 - Update emergent entry: `Outcome: deferred`
 - Progress entry: "EM_N deferred — added to Open Questions"
@@ -170,7 +170,7 @@ After all emergent items are triaged, **append a summary entry to `plet/progress
 
 ---
 
-## Step 3: Learnings Review (RFN_2)
+## Step 3: Learnings Review
 
 After blockers and triage, review `plet/learnings.md` for patterns that suggest spec changes:
 
@@ -184,7 +184,7 @@ This step may produce additional requirements changes. Apply them to `plet/requi
 
 ---
 
-## Step 3b: Inheritance Refresh (subplets only)
+## Step 4: Inheritance Refresh (subplets only)
 
 **Skip this step if `inheritsFrom` is empty (ROOT plet).**
 
@@ -204,7 +204,7 @@ Re-read each source plet's `requirements.md` and compare against the inherited i
 
 ---
 
-## Step 4: Gap Analysis (FOO_52)
+## Step 5: Gap Analysis
 
 After blockers, triage, and learnings (and inheritance refresh if applicable), proactively probe for gaps — the same analysis as session-plan.md Step 6, but informed by what happened during the loop.
 
@@ -222,7 +222,7 @@ Present as a numbered list with concrete proposals. The user resolves each: upda
 
 ---
 
-## Step 5: Re-Decomposition (RFN_9)
+## Step 6: Re-Decomposition
 
 If any spec changes were made during triage (Steps 1–4), re-run the decomposition step to update iteration definitions.
 
@@ -231,7 +231,7 @@ If any spec changes were made during triage (Steps 1–4), re-run the decomposit
 - **Complete iterations are frozen** — never modify them. New work is new iterations.
 - IDs are stable once assigned — never renumber, never reuse (GC_1)
 
-### Partially Complete Iterations (RFN_9)
+### Partially Complete Iterations
 
 Iterations with lifecycle `implementing`, `verifying`, or `blocked` need user decision. For each:
 
@@ -303,9 +303,9 @@ Iterations with lifecycle `queued` or `ineligible` can be freely updated — mod
 
 ---
 
-## Step 6: Milestone Assignment (RFN_14, RFN_15)
+## Step 7: Milestone Assignment
 
-### Frozen Milestone Rules (RFN_14)
+### Frozen Milestone Rules
 
 A milestone is **frozen** if all its iterations are `complete`. New iterations must not be added to frozen milestones.
 
@@ -323,7 +323,7 @@ The user's answer also informs the milestone heuristics below — if they chose 
 
 Any unfrozen milestone is fair game — append to whichever is thematically appropriate. If no unfrozen milestone fits, create a new one.
 
-### Heuristics for New vs Existing Milestone (RFN_15)
+### Heuristics for New vs Existing Milestone
 
 When deciding whether to create a new milestone or append to an existing unfrozen one, apply these heuristics and **state which one you're applying** so the user can override:
 
@@ -337,11 +337,11 @@ When deciding whether to create a new milestone or append to an existing unfroze
 
 **Default:** append to the nearest thematically appropriate unfrozen milestone.
 
-**Append a stage summary to `plet/progress.md`** after milestone assignments are finalized: which milestones received new iterations, any new milestones created. Use phase `refine`. (FOO_43)
+**Append a stage summary to `plet/progress.md`** after milestone assignments are finalized: which milestones received new iterations, any new milestones created. Use phase `refine`.
 
 ---
 
-## Step 7: Breakpoint Management (RFN_13)
+## Step 8: Breakpoint Management
 
 Ask the user if they want to adjust breakpoints. If yes:
 
@@ -359,11 +359,11 @@ Add or remove breakpoints?
 
 Update `plet/state.json` → `breakpoints.before` and `breakpoints.after` arrays.
 
-**Append to `plet/progress.md`** if breakpoints were changed: what was added/removed and why. Use phase `refine`. (FOO_43)
+**Append to `plet/progress.md`** if breakpoints were changed: what was added/removed and why. Use phase `refine`.
 
 ---
 
-## Step 8: Fingerprint Updates (RFN_10)
+## Step 9: Fingerprint Updates
 
 After all spec and iteration changes, update fingerprints across all three plan artifacts:
 
@@ -417,7 +417,7 @@ After updating all three, verify:
 
 ---
 
-## Step 9: State File Updates
+## Step 10: State File Updates
 
 Use atomic writes where practical for state files — write to a temp file in the same directory, then rename (see `references/state-schema.md` SF_15, SF_16). Acceptable for v1: direct Write tool for small JSON files.
 
@@ -438,11 +438,11 @@ Update `plet/state.json` → `dependencyMap` to include new iterations and any m
 
 Update `plet/state.json` → `milestones` to reflect any new milestones or iterations added to existing milestones.
 
-**Append a stage summary to `plet/progress.md`** after state file updates: new state files created, dependency map changes, milestone updates. Use phase `refine`. (FOO_43)
+**Append a stage summary to `plet/progress.md`** after state file updates: new state files created, dependency map changes, milestone updates. Use phase `refine`.
 
 ---
 
-## Step 10: Status Summary (RFN_11)
+## Step 11: Status Summary
 
 Optionally (ask the user first), summarize overall project status:
 
@@ -454,7 +454,7 @@ Optionally (ask the user first), summarize overall project status:
 
 ---
 
-## Step 11: Cascading Consistency Pass (RFN_16)
+## Step 12: Cascading Consistency Pass
 
 The refine phase touches more files than any other phase. Before wrapping up, run a cascading consistency check following the data flow: **decisions → requirements.md → iterations.md → state files**.
 
@@ -494,7 +494,7 @@ Verify that state reflects the current iterations:
 
 If any check fails, fix it before proceeding.
 
-### Wrap Up (RFN_12)
+### Wrap Up
 
 1. Present a summary of all changes made during this refine session
 2. Offer to resume the loop: "Ready to continue building? Run `/plet loop` to resume."

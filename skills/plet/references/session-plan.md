@@ -259,7 +259,7 @@ Generate a structured requirements document saved to `plet/requirements.md`. Fol
 [See plan-templates/common.md § MET]
 
 ## MIL: Release Milestones
-[Deferred — finalize after section-by-section review (Step 4) is complete. Requirements change during review, so milestones defined before review are based on stale input. (FOO_26)]
+[Deferred — finalize after section-by-section review (Step 4) is complete. Requirements change during review, so milestones defined before review are based on stale input.]
 
 ## RFP: Refactor Policy
 
@@ -328,7 +328,7 @@ Include a fingerprint at the end of `requirements.md` in a fenced JSON block:
 - `lastNonTrivialUpdate`: ISO 8601 UTC, second resolution. Bump when requirements change in ways that affect behavior. Don't bump for typo fixes or rewording.
 - **Future Considerations and Open Questions are excluded from the fingerprint (SY_8)**
 
-### Project Type Guidance (FOO_53)
+### Project Type Guidance
 
 The document structure above is universal. Adapt FRQ feature areas and section emphasis based on what you're building. These are starting points — use judgment to add or skip sections.
 
@@ -385,8 +385,8 @@ Present each feature area's requirements to the user for review. For each sectio
 3. End with the stable tail: `R. Show me recommendations` / `O. Ok, approve`
 4. **Silence is not approval** — after any change, re-present the section with the R/O tail. Wait for O.
 5. If the user approves (O), **write the section to disk immediately** (PL_12)
-6. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until the approved text is confirmed on disk. (FOO_24)
-7. **Commit** — `plet: [plan] approve {section_name}`. Each approved section gets its own commit for crash recovery and inspectable history. (FOO_28)
+6. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until the approved text is confirmed on disk.
+7. **Commit** — `plet: [plan] approve {section_name}`. Each approved section gets its own commit for crash recovery and inspectable history.
 8. **Consistency pass** — verify the approved section is consistent with previously approved sections
 9. Move to the next section
 
@@ -394,7 +394,7 @@ The user may batch answers or go one-by-one — follow their lead.
 
 ---
 
-## Step 5: Finalize Milestones + Refactor Policy (FOO_26)
+## Step 5: Finalize Milestones + Refactor Policy
 
 After all requirement sections are reviewed and approved, finalize MIL (Release Milestones) and RFP (Refactor Policy) in `plet/requirements.md`. Milestones depend on the full set of approved requirements — defining them earlier means defining them on stale input.
 
@@ -406,7 +406,7 @@ After all requirement sections are reviewed and approved, finalize MIL (Release 
 
 ---
 
-## Step 6: Gap Analysis (FOO_52)
+## Step 6: Gap Analysis
 
 Before decomposing into iterations, proactively probe for gaps that will cause blocked iterations. Poor plans create blocked iterations; this step prevents them.
 
@@ -528,8 +528,8 @@ Present each iteration definition to the user for review:
 4. For each: end with the stable tail (`R. Show me recommendations` / `O. Ok, approve`)
 5. **Silence is not approval** — after any change, re-present and wait for O
 6. Write approved iterations to disk immediately
-7. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until confirmed. (FOO_24)
-8. **Commit** — `plet: [plan] approve iterations`. (FOO_28)
+7. **Verify on disk** — confirm the file was actually written by reading it back. Do not proceed until confirmed.
+8. **Commit** — `plet: [plan] approve iterations`.
 9. **Consistency pass** — verify iterations are consistent with requirements (all requirements covered, dependencies valid, sizing appropriate)
 
 ---
