@@ -203,6 +203,66 @@ def test_subprocess_dispatch():
 
 
 # ===========================================================================
+# create-subplet
+# ===========================================================================
+
+
+def test_create_subplet_basic():
+    print("\n## create-subplet — basic creation")
+    with tempfile.TemporaryDirectory() as d:
+        # Set up a root plet first
+        root_dir = os.path.join(d, "plet", "ROOT")
+        make_global_state(root_dir, project_id="ROOT")
+
+        # Create a subplet
+        out, err, _ = run(["create-subplet", root_dir, "--name", "AUTH"])
+        check("exits 0", True)
+        check("OK in output", "OK" in out or "OK" in err or "AUTH" in out or "AUTH" in err)
+
+        # Verify subplet directory created
+        sub_dir = os.path.join(d, "plet", "AUTH")
+        check("subplet dir exists", os.path.isdir(sub_dir))
+        check("subplet state/ exists", os.path.isdir(os.path.join(sub_dir, "state")))
+
+        # Verify state.json
+        sjp = os.path.join(sub_dir, "state.json")
+        check("state.json exists", os.path.isfile(sjp))
+        with open(sjp) as f:
+            data = json.load(f)
+        check("projectId is AUTH", data["projectId"] == "AUTH")
+        check("inheritsFrom has ROOT", data["inheritsFrom"] == ["ROOT"])
+        check("dependencyMap empty", data["dependencyMap"] == {})
+
+
+def test_create_subplet_already_exists():
+    print("\n## create-subplet — errors if subplet dir already exists")
+    with tempfile.TemporaryDirectory() as d:
+        root_dir = os.path.join(d, "plet", "ROOT")
+        make_global_state(root_dir, project_id="ROOT")
+
+        # Create AUTH dir manually
+        os.makedirs(os.path.join(d, "plet", "AUTH"))
+
+        _, err, _ = run(["create-subplet", root_dir, "--name", "AUTH"], expect_exit=1)
+        check("error mentions exists", "exists" in err.lower() or "already" in err.lower())
+
+
+def test_create_subplet_custom_inherits():
+    print("\n## create-subplet — custom inheritsFrom")
+    with tempfile.TemporaryDirectory() as d:
+        root_dir = os.path.join(d, "plet", "ROOT")
+        make_global_state(root_dir, project_id="ROOT")
+
+        out, _, _ = run(["create-subplet", root_dir, "--name", "BILL", "--inherits-from", '["ROOT", "AUTH"]'])
+        check("exits 0", True)
+
+        sjp = os.path.join(d, "plet", "BILL", "state.json")
+        with open(sjp) as f:
+            data = json.load(f)
+        check("custom inheritsFrom", data["inheritsFrom"] == ["ROOT", "AUTH"])
+
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 
@@ -218,6 +278,9 @@ def main():
     test_status_dispatches()
     test_fingerprint_check_dispatches()
     test_subprocess_dispatch()
+    test_create_subplet_basic()
+    test_create_subplet_already_exists()
+    test_create_subplet_custom_inherits()
 
     print(f"\n{passed + failed} tests: {passed} passed, {failed} failed")
     return 0 if failed == 0 else 1

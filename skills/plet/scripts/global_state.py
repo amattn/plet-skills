@@ -524,6 +524,127 @@ def _lifecycle_counts(lifecycles):
 
 
 # ---------------------------------------------------------------------------
+# create-subplet — create a new subplet directory with skeleton state.json
+# ---------------------------------------------------------------------------
+
+
+def cmd_create_subplet(args):
+    """Create a new subplet with skeleton state.json."""
+    help_text = """Usage: global_state.py create-subplet <root_plet_dir> --name AUTH
+  [--inherits-from '["ROOT"]']
+  [--output json [--pretty]]
+
+Create a new subplet directory as a sibling of the given plet dir.
+Given root_plet_dir=plet/ROOT and --name AUTH, creates plet/AUTH/
+with a skeleton state.json (inheritsFrom defaults to the root plet ID).
+
+The subplet's state.json has empty dependencyMap, milestones, and
+iterationsFingerprint — the plan session fills these in.
+
+Examples:
+  global_state.py create-subplet plet/ROOT --name AUTH
+  global_state.py create-subplet plet/ROOT --name BILLING --inherits-from '["ROOT","AUTH"]'
+"""
+    result = parse_command(
+        args,
+        help_text,
+        {"name", "inherits_from"},
+        ["name"],
+        False,
+        _help_hint("create-subplet"),
+    )
+    if len(result) == 3:
+        return result
+    plet_dir, kwargs, output_json, pretty, fields, dry_run = result
+
+    name = kwargs.pop("name")
+
+    # Validate name: same rules as projectId
+    from util_state import PROJECT_ID_RE
+
+    if not PROJECT_ID_RE.match(name):
+        return (
+            1,
+            "",
+            f"Error: --name '{name}' does not match pattern [A-Z][A-Z0-9]{{2,5}} "
+            f"(3-6 chars, starts with letter, uppercase alphanumeric)\n" + _help_hint("create-subplet"),
+        )
+
+    # Derive sibling directory
+    parent = os.path.dirname(plet_dir.rstrip(os.sep))
+    sub_dir = os.path.join(parent, name)
+
+    if os.path.exists(sub_dir):
+        return (1, "", f"Error: subplet directory already exists: {sub_dir}\n" + _help_hint("create-subplet"))
+
+    # Parse inheritsFrom — default to root plet's ID
+    root_id = os.path.basename(plet_dir.rstrip(os.sep))
+    inherits_raw = kwargs.pop("inherits_from", None)
+    if inherits_raw:
+        try:
+            inherits_from = json.loads(inherits_raw)
+        except (json.JSONDecodeError, TypeError):
+            return (
+                1,
+                "",
+                f"Error: --inherits-from must be valid JSON array, got: {inherits_raw}\n"
+                + _help_hint("create-subplet"),
+            )
+        if not isinstance(inherits_from, list):
+            return (
+                1,
+                "",
+                f"Error: --inherits-from must be a JSON array, got {type(inherits_from).__name__}\n"
+                + _help_hint("create-subplet"),
+            )
+    else:
+        inherits_from = [root_id]
+
+    # Create directory structure
+    os.makedirs(os.path.join(sub_dir, "state"), exist_ok=True)
+
+    # Create skeleton state.json
+    state = {
+        "schemaVersion": SCHEMA_VERSION,
+        "lastUpdated": now_iso(),
+        "projectId": name,
+        "project": {"name": name},
+        "inheritsFrom": inherits_from,
+        "dependencyMap": {},
+        "lifecycles": {},
+        "milestones": {},
+        "breakpoints": {"before": [], "after": []},
+        "cleanupTagsAutomatically": False,
+        "cleanupBranchesAutomatically": False,
+        "planSessionCount": 0,
+        "loopSessionCount": 0,
+        "refineSessionCount": 0,
+        "sessionHistory": [],
+        "iterationsFingerprint": {},
+    }
+
+    sjp = state_json_path(sub_dir)
+    atomic_write_json(sjp, state)
+
+    data = {
+        "status": "ok",
+        "command": "create-subplet",
+        "path": sub_dir,
+        "projectId": name,
+        "inheritsFrom": inherits_from,
+    }
+    data["submoduleVersion"] = SUBMODULE_VERSION
+
+    if output_json:
+        return (0, _to_json(data, pretty, fields), "")
+    return (0, "", f"OK — created subplet {name} at {sub_dir} (inherits from: {inherits_from})")
+
+
+cmd_create_subplet.usage = "<root_plet_dir> --name AUTH [--inherits-from '[\"ROOT\"]']"
+cmd_create_subplet.example = "global_state.py create-subplet plet/ROOT --name AUTH"
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -531,6 +652,7 @@ def _lifecycle_counts(lifecycles):
 def main():
     commands = {
         "init": cmd_init,
+        "create-subplet": cmd_create_subplet,
         "update-lifecycle": cmd_update_lifecycle,
         "get-lifecycle": cmd_get_lifecycle,
         "validate": cmd_validate,

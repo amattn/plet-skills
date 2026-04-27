@@ -41,13 +41,14 @@ from fingerprint import cmd_embed as cmd_fingerprint_embed  # noqa: E402
 from fingerprint import cmd_extract as cmd_fingerprint_extract  # noqa: E402
 from gate_session import cmd_detect, cmd_status  # noqa: E402
 from git_check import cmd_churn  # noqa: E402
-from global_state import cmd_init, cmd_validate  # noqa: E402
+from global_state import cmd_create_subplet, cmd_init, cmd_validate  # noqa: E402
 from util_constants import SKILL_VERSION  # noqa: E402
 
 
 def main():
     commands = {
         "bootstrap": cmd_bootstrap,
+        "create-subplet": cmd_create_subplet,
         "init": cmd_init,
         "validate": cmd_validate,
         "detect": cmd_detect,
