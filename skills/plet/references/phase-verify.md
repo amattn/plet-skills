@@ -46,7 +46,7 @@ You write to `plet/` in the project root. The orchestrator does NOT write per-it
 The orchestrator already called `start-phase` before spawning you. Your first action is to announce your presence:
 
 ```bash
-plet_agent.py update-activity plet/ --iter-id $PLET_ITER_ID \
+plet_agent.py update-activity $PLET_DIR --iter-id $PLET_ITER_ID \
     --phase-activity setup --activity-detail "reading context" \
     --agent-id $PLET_AGENT_ID
 ```
@@ -98,7 +98,7 @@ For each acceptance criterion:
 4. **Update the criterion:**
 
 ```bash
-plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
+plet_agent.py update-criterion $PLET_DIR --iter-id $PLET_ITER_ID \
     --criterion AC_1 --phase verification --status pass --agent-id $PLET_AGENT_ID \
     --evidence "Independently ran ./oller.sh --rev — output is 'dlrow olleh'. Cross-checked with 'echo hello world | rev'. Test at line 107 asserts exact match. Spec RV_1 satisfied."
 ```
@@ -112,7 +112,7 @@ plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
 6. **Commit:**
 
 ```bash
-plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "AC_N - verify: {short description}"
+plet_agent.py wip-commit $PLET_DIR --iter-id $PLET_ITER_ID --message "AC_N - verify: {short description}"
 ```
 
 ---
@@ -139,7 +139,7 @@ For each failed criterion:
 4. Update the criterion:
 
 ```bash
-plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
+plet_agent.py update-criterion $PLET_DIR --iter-id $PLET_ITER_ID \
     --criterion AC_1 --phase verification --status fail --agent-id $PLET_AGENT_ID \
     --evidence "Spec requires user profile with name and email. Implementation returns {ok: true}." \
     --red-test test_returns_profile
@@ -148,7 +148,7 @@ plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
 If the issue is **not test-expressible** (e.g., wrong abstraction, structural concern):
 
 ```bash
-plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
+plet_agent.py update-criterion $PLET_DIR --iter-id $PLET_ITER_ID \
     --criterion AC_1 --phase verification --status fail --agent-id $PLET_AGENT_ID \
     --evidence "Auth check baked into handler instead of middleware. Structural concern." \
     --red-test none \
@@ -173,7 +173,7 @@ Write any remaining learnings and emergent items via `plet_agent.py`.
 Call `plet_agent.py phase-end` to handle verdict, verification report (auto-built from your criteria updates), gate checks, progress entry, trace event, audit tag, and git commit:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase verify --verdict passed \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase verify --verdict passed \
     --progress-content "Verified: all AC independently confirmed." \
     --summary "All 5 criteria independently verified. Tests pass, code idiomatic."
 ```
@@ -195,7 +195,7 @@ When you must block:
 3. End the phase:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase verify --verdict blocked \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase verify --verdict blocked \
     --progress-content "Blocked: {why human input is needed}" \
     --summary "Blocked: {N} criteria verified, {M} pending. Requires human input on {issue}."
 ```
@@ -207,12 +207,12 @@ plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase verify --verdict b
 Write to runtime artifacts **as things come up**, not only at the end. Keep entries under ~4KB.
 
 ```bash
-plet_agent.py add-learning plet/ --iter-id $PLET_ITER_ID --iter-title "$TITLE" \
+plet_agent.py add-learning $PLET_DIR --iter-id $PLET_ITER_ID --iter-title "$TITLE" \
     --category gotcha --title "Test mocks DB too aggressively" \
     --content "Tests mock the entire DB, missing real query issues." \
     --phase verify --attempt $PLET_ATTEMPT
 
-plet_agent.py add-emergent plet/ --iter-id $PLET_ITER_ID --iter-title "$TITLE" \
+plet_agent.py add-emergent $PLET_DIR --iter-id $PLET_ITER_ID --iter-title "$TITLE" \
     --title "API rate limiting not specified" --phase verify \
     --category "spec gap" \
     --content "No rate limiting implemented. Requirements don't mention it." \

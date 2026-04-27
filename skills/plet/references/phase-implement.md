@@ -40,10 +40,10 @@ Trace events and progress entries are emitted automatically by `plet_agent.py` �
 The orchestrator already called `start-phase` before spawning you — attempt counters, phase timestamps, and verdict clearing are done. Your first state action is to announce your presence:
 
 ```bash
-plet_agent.py update-activity plet/ --iter-id $PLET_ITER_ID \
+plet_agent.py update-activity $PLET_DIR --iter-id $PLET_ITER_ID \
     --phase-activity setup --activity-detail "reading context" \
     --agent-id $PLET_AGENT_ID
-plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "implement-start"
+plet_agent.py wip-commit $PLET_DIR --iter-id $PLET_ITER_ID --message "implement-start"
 ```
 
 `$PLET_AGENT_ID` is set by the orchestrator — a unique ID for this subagent session. Use it for all `--agent-id` flags.
@@ -122,7 +122,7 @@ This is the core implementation loop. For each acceptance criterion:
 After the green step, update the criterion:
 
 ```bash
-plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
+plet_agent.py update-criterion $PLET_DIR --iter-id $PLET_ITER_ID \
     --criterion AC_1 --phase implementation --status pass --agent-id $PLET_AGENT_ID \
     --evidence "Test test_FR_1_valid_request passes — asserts 200 status and correct body. All 12 tests pass. Full suite green (8s)."
 ```
@@ -138,7 +138,7 @@ After each green step, ask: did you discover anything about the codebase, tools,
 Commit after each red step and after each green step at minimum. These incremental commits are your crash recovery mechanism.
 
 ```bash
-plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "AC_N - [short description]"
+plet_agent.py wip-commit $PLET_DIR --iter-id $PLET_ITER_ID --message "AC_N - [short description]"
 ```
 
 This stages source code and plet state/artifacts but excludes trace files. Do NOT use `git add plet/` — it stages transcripts, creating a feedback loop.
@@ -162,13 +162,13 @@ Use `plet_agent.py` for all runtime artifact entries:
 
 ```bash
 # Learning entry
-plet_agent.py add-learning plet/ --iter-id ITR_002 --iter-title "Core data model" \
+plet_agent.py add-learning $PLET_DIR --iter-id ITR_002 --iter-title "Core data model" \
     --category gotcha --title "SQLite WAL mode required" \
     --content "Default journal mode blocks readers during writes." \
     --phase implement --attempt 1
 
 # Emergent entry (EM_N auto-assigned)
-plet_agent.py add-emergent plet/ --iter-id ITR_002 --iter-title "Core data model" \
+plet_agent.py add-emergent $PLET_DIR --iter-id ITR_002 --iter-title "Core data model" \
     --title "Chose SQLite over PostgreSQL" --phase implement \
     --category "design decision" \
     --content "Requirements say persistent storage without specifying engine." \
@@ -206,7 +206,7 @@ When all acceptance criteria pass:
 Use `plet_agent.py phase-end` to handle verdict, gate checks, progress entry, trace event, audit tag, and git commit in one call:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement --verdict completed \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase implement --verdict completed \
     --progress-content "Implemented: {title}. {N} AC, all green."
 ```
 
@@ -229,7 +229,7 @@ When you must block, document before returning:
 Append a diagnostic entry — what you learned about the failure, what the next agent should try, any codebase knowledge gained:
 
 ```bash
-plet_agent.py add-learning plet/ --iter-id $PLET_ITER_ID --iter-title "{title}" \
+plet_agent.py add-learning $PLET_DIR --iter-id $PLET_ITER_ID --iter-title "{title}" \
     --category diagnostic --title "Blocker diagnosis: {short}" \
     --content "Root cause: {details}. Next agent should try: {suggestions}." \
     --phase implement --attempt {N}
@@ -240,7 +240,7 @@ plet_agent.py add-learning plet/ --iter-id $PLET_ITER_ID --iter-title "{title}" 
 Append a blocker entry describing what the human needs to resolve:
 
 ```bash
-plet_agent.py add-emergent plet/ --iter-id $PLET_ITER_ID --iter-title "{title}" \
+plet_agent.py add-emergent $PLET_DIR --iter-id $PLET_ITER_ID --iter-title "{title}" \
     --phase implement --category blocker \
     --title "{short description of what's blocking}" \
     --content "What needs resolving: {details}. Actions the human can take: {list}." \
@@ -250,7 +250,7 @@ plet_agent.py add-emergent plet/ --iter-id $PLET_ITER_ID --iter-title "{title}" 
 ### 3. End Phase
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement --verdict blocked \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase implement --verdict blocked \
     --progress-content "Blocked: {description of why human input is needed}"
 ```
 
@@ -275,7 +275,7 @@ A failed attempt is different from a blocker. You're not saying "I need human he
 4. End the phase:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement --verdict blocked \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase implement --verdict blocked \
     --progress-content "Failed attempt: {what failed and what to try next}"
 ```
 
@@ -291,7 +291,7 @@ If you discover that prerequisite work does not exist (a dependency was missed d
 2. Write an emergent item explaining the missing dependency and what needs to exist before this iteration can proceed:
 
 ```bash
-plet_agent.py add-emergent plet/ --iter-id $PLET_ITER_ID --iter-title "{title}" \
+plet_agent.py add-emergent $PLET_DIR --iter-id $PLET_ITER_ID --iter-title "{title}" \
     --phase implement --category "missing dependency" \
     --title "Missing dep: {what's needed}" \
     --content "Iteration requires {X} but it doesn't exist. Dependency map needs {dep_id} added. Human should fix in refine." \
@@ -302,7 +302,7 @@ plet_agent.py add-emergent plet/ --iter-id $PLET_ITER_ID --iter-title "{title}" 
 4. End the phase:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement --verdict blocked \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase implement --verdict blocked \
     --progress-content "Blocked: missing dependency. {what's needed} does not exist. Filed emergent for refine."
 ```
 
@@ -352,7 +352,7 @@ If an acceptance criterion is impossible to satisfy:
 Before returning, run `phase-end` and self-correct until it passes:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement --verdict completed \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase implement --verdict completed \
     --progress-content "Implemented: {title}. {N} AC, all green."
 ```
 

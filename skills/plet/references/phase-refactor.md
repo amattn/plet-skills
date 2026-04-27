@@ -45,7 +45,7 @@ You write to `plet/` in the project root. The orchestrator does NOT write per-it
 
 ## Before You Start
 
-1. Update activity: `plet_agent.py update-activity plet/ --iter-id $PLET_ITER_ID --phase-activity reading_context --activity-detail "reading codebase for refactoring" --agent-id $PLET_AGENT_ID`
+1. Update activity: `plet_agent.py update-activity $PLET_DIR --iter-id $PLET_ITER_ID --phase-activity reading_context --activity-detail "reading codebase for refactoring" --agent-id $PLET_AGENT_ID`
 2. Read the project's `CLAUDE.md` and `README.md` — understand conventions before changing code
 3. Read your acceptance criteria from `plet/iterations.md` — these are the refactor goals
 4. Run the full test suite — establish the green baseline. Record the test count. All tests must pass before you make any refactoring changes.
@@ -58,7 +58,7 @@ Read these three sources to build a map of where debt lives. Note which items ar
 
 1. Read `plet/emergent.md` — deferred cleanup items from this milestone's iterations
 2. Read `plet/learnings.md` — patterns, gotchas, and debt signals from this milestone
-3. Run `plet_tools.py churn plet/ --output json` — identify high-churn files and outliers
+3. Run `plet_tools.py churn $PLET_DIR --output json` — identify high-churn files and outliers
 
 ---
 
@@ -117,12 +117,12 @@ Run the test suite. All tests must pass. If any test fails:
 ### 5. Record
 
 ```bash
-plet_agent.py update-criterion plet/ --iter-id $PLET_ITER_ID \
+plet_agent.py update-criterion $PLET_DIR --iter-id $PLET_ITER_ID \
     --criterion AC_N --phase implementation --status pass \
     --evidence "Extracted duplicate_handler to util_handlers.py. 3 call sites updated. All 47 tests pass." \
     --agent-id $PLET_AGENT_ID
 
-plet_agent.py wip-commit plet/ --iter-id $PLET_ITER_ID --message "AC_N - extract duplicate handler"
+plet_agent.py wip-commit $PLET_DIR --iter-id $PLET_ITER_ID --message "AC_N - extract duplicate handler"
 ```
 
 ### 6. Reflect
@@ -171,7 +171,7 @@ When all acceptance criteria are addressed (passed or skipped):
 6. End the phase:
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase implement \
     --verdict completed \
     --progress-content "Refactored: {summary of changes}. {N} AC passed, {M} skipped. All {T} tests pass."
 ```
@@ -193,7 +193,7 @@ plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement \
 **Truly blocked (can't proceed on any criteria):**
 
 ```bash
-plet_agent.py phase-end plet/ --iter-id $PLET_ITER_ID --phase implement \
+plet_agent.py phase-end $PLET_DIR --iter-id $PLET_ITER_ID --phase implement \
     --verdict blocked \
     --progress-content "Blocked: {reason}. Completed: {list}. Deferred: {list}."
 ```

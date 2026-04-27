@@ -562,7 +562,7 @@ After all iterations are approved:
 3. Initialize global state via `plet_tools.py`:
    ```bash
    # Create state.json (auto-initializes lifecycles from dependency map)
-   plet_tools.py init plet/ --project-id PROJ --project-name "Project Name" \
+   plet_tools.py init plet/ROOT/ --project-id ROOT --project-name "Project Name" \
        --dependency-map '{"ITR_001":[],"ITR_002":["ITR_001"]}' \
        --milestones '{"MS_1":{"name":"MVP","iterations":["ITR_001","ITR_002","ITR_RFT_1"]}}' \
        --iterations-fingerprint '{...}'
@@ -571,7 +571,7 @@ After all iterations are approved:
 
 4. Initialize per-iteration state files — one per iteration, with title, dependencies, and criteria from iterations.md:
    ```bash
-   iter_state.py init plet/ --iter-id ITR_001 --title "Project scaffolding" \
+   iter_state.py init plet/ROOT/ --iter-id ITR_001 --title "Project scaffolding" \
        --dependencies '[]' \
        --criteria '[{"id":"AC_1","description":"Tests pass"}]' \
        --no-verify-deps

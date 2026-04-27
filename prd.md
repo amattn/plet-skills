@@ -69,7 +69,7 @@ project (LOGA)
 
 | Term | Refers to | Scope |
 |------|-----------|-------|
-| **requirements** / **requirements doc** | `plet/requirements.md` | plet-specific — the file plet produces and consumes |
+| **requirements** / **requirements doc** | `plet/{PLET_ID}/requirements.md` | plet-specific — the file plet produces and consumes |
 | **PRD** | A requirements document in plet's standard PRD format | Generic — any tool can produce a PRD |
 | **spec** | `requirements.md` + `iterations.md` together | plet-specific — the full plan output |
 
@@ -78,21 +78,21 @@ project (LOGA)
 ### TAX_AC: Artifact Categories
 
 **1. Spec artifacts** (human-created during plan session)
-- `plet/requirements.md` — PRD with requirement IDs, fingerprint
-- `plet/iterations.md` — iteration definitions, dependencies, acceptance criteria, fingerprint
+- `plet/{PLET_ID}/requirements.md` — PRD with requirement IDs, fingerprint
+- `plet/{PLET_ID}/iterations.md` — iteration definitions, dependencies, acceptance criteria, fingerprint
 
 **2. State artifacts** (agent-written, real-time updated)
-- `plet/state.json` — global state (dependency map, lifecycles, milestones, breakpoints)
-- `plet/state/{iteration_id}.json` — per-iteration phaseActivity, criteria status, verdicts, reports
+- `plet/{PLET_ID}/state.json` — global state (dependency map, lifecycles, milestones, breakpoints)
+- `plet/{PLET_ID}/state/{iteration_id}.json` — per-iteration phaseActivity, criteria status, verdicts, reports
 
 **3. Runtime artifacts** (agent-appended, append-only) — the **PLET** in plet
-- `plet/progress.md` — **P**rogress: activity log (audience: humans)
-- `plet/learnings.md` — **L**earnings: knowledge base (audience: agents)
-- `plet/emergent.md` — **E**mergent: triage queue (audience: humans)
+- `plet/{PLET_ID}/progress.md` — **P**rogress: activity log (audience: humans)
+- `plet/{PLET_ID}/learnings.md` — **L**earnings: knowledge base (audience: agents)
+- `plet/{PLET_ID}/emergent.md` — **E**mergent: triage queue (audience: humans)
 
 **4. Trace artifacts** (execution telemetry) — the **T** in plet
-- `plet/trace/{id}-{phase}-{attempt}-transcript.ndjson` — raw I/O (captured by `invoke.py`)
-- `plet/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (written by subagent via `traces.py`)
+- `plet/{PLET_ID}/trace/{id}-{phase}-{attempt}-transcript.ndjson` — raw I/O (captured by `invoke.py`)
+- `plet/{PLET_ID}/trace/{id}-{phase}-{attempt}-events.ndjson` — semantic events (written by subagent via `traces.py`)
 
 **5. Version control artifacts**
 - Workstream branch: `plet/{projectId}/loop{N}/workstream`
@@ -145,16 +145,16 @@ The plan session is interactive and human-driven. It is a structured conversatio
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | PL_1 | Ask as many major clarifying questions as needed with lettered options to understand the feature/product. Minor questions go to Open Questions for later resolution. | P0 |
-| PL_2 | Generate a structured requirements document saved to `plet/requirements.md` including: overview, functional requirements with IDs and priorities, non-functional requirements, technical architecture, release milestones, open questions, and resolved questions | P0 |
+| PL_2 | Generate a structured requirements document saved to `plet/{PLET_ID}/requirements.md` including: overview, functional requirements with IDs and priorities, non-functional requirements, technical architecture, release milestones, open questions, and resolved questions | P0 |
 | PL_3 | The requirements document follows plet's standard PRD format with requirement tables, architecture diagrams, and milestone definitions | P0 |
 | PL_4 | Present each feature area's requirements to the user for review before finalizing | P0 |
 | PL_5 | All requirement IDs use the `XXX_N` format (2-3 letter prefix) with append-only numbering as defined in GC_1 | P0 |
-| PL_6 | If `plet/requirements.md` already exists, read it and offer to update rather than replace | P0 |
-| PL_7 | If `plet/emergent.md` has pending items, triage them with the user. If `plet/learnings.md` exists, scan it for patterns that suggest spec changes. Incorporate results into requirements before re-planning. | P0 |
+| PL_6 | If `plet/{PLET_ID}/requirements.md` already exists, read it and offer to update rather than replace | P0 |
+| PL_7 | If `plet/{PLET_ID}/emergent.md` has pending items, triage them with the user. If `plet/{PLET_ID}/learnings.md` exists, scan it for patterns that suggest spec changes. Incorporate results into requirements before re-planning. | P0 |
 | PL_8 | Break the requirements into iteration definitions small enough to fit in a single context window without compaction, with dependency relationships. This is the single most important decomposition constraint — err aggressively on the side of smaller iterations. When in doubt about whether a dependency exists, add it — missing dependencies are dangerous (agent wastes a cycle, must self-correct per IMP_24), while false dependencies are harmless (only affect ordering slightly). | P0 |
 | PL_9 | Each iteration definition includes: title, user story, requirement references, acceptance criteria, and dependency list (which iterations must complete first) | P0 |
 | PL_10 | Present each iteration definition to the user for review before finalizing | P0 |
-| PL_11 | Save iteration definitions to `plet/iterations.md` and initialize `plet/state.json` | P0 |
+| PL_11 | Save iteration definitions to `plet/{PLET_ID}/iterations.md` and initialize `plet/{PLET_ID}/state.json` | P0 |
 | PL_12 | Each requirements section is written to disk immediately upon user approval. The file on disk is the source of truth — if context is lost, the approved text is preserved. Never defer writing approved content to the end of the session. | P0 |
 | PL_15 | At every review step, show the full content first for context, then proactively surface recommendations, concerns, and alternative approaches before asking for approval. Don't wait to be asked. | P0 |
 | PL_16 | After each approval: update NOTES.md with the decision and rationale, then run a consistency pass across all affected artifacts before moving to the next step. Catch drift early. | P0 |
@@ -171,8 +171,8 @@ The orchestrator loop is the autonomous execution engine. It reads state, determ
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| OLP_1 | `/plet` always starts by reading `plet/requirements.md` (if it exists) to establish project context | P0 |
-| OLP_2 | If no `plet/` directory or `requirements.md` exists, route to the Plan phase | P0 |
+| OLP_1 | `/plet` always starts by reading `plet/{PLET_ID}/requirements.md` (if it exists) to establish project context | P0 |
+| OLP_2 | If no `plet/{PLET_ID}/` directory or `requirements.md` exists, route to the Plan phase | P0 |
 | OLP_3 | If `requirements.md` exists but no `iterations.md` or `state.json`, route to Plan phase for iteration decomposition | P0 |
 | OLP_4 | If a state file exists with iterations in `queued`, `implementing`, or `verifying` lifecycle, route to the Loop phase. (`ineligible` iterations are not actionable — they are waiting on dependencies and do not trigger loop entry.) | P0 |
 | OLP_5 | If a state file exists and all iterations are `complete`, route to the Refine phase | P0 |
@@ -180,9 +180,9 @@ The orchestrator loop is the autonomous execution engine. It reads state, determ
 | OLP_7 | `/plet plan` forces entry into the Plan phase regardless of current state | P0 |
 | OLP_8 | `/plet loop` forces entry into the autonomous implementation→verification loop | P0 |
 | OLP_9 | `/plet refine` forces entry into the Refine phase | P0 |
-| OLP_10 | The skill creates the `plet/` directory and all runtime artifact files on first invocation if they do not exist. See INF_BS for project setup details. | P0 |
+| OLP_10 | The skill creates `plet/ROOT/` and all runtime artifact files on first invocation if they do not exist. Subplets are created via `/plet subplet {NAME}`. See INF_BS for project setup details. | P0 |
 | OLP_12 | `/plet status` prints a summary of current state: iterations, lifecycle phases, progress, active agents, pending emergent items | P1 |
-| OLP_14 | The orchestrator writes a canary entry to `plet/progress.md` after each significant action (loop start, subagent spawn, subagent completion) containing the current `projectId`, `loopSessionCount`, branch name, and iteration lifecycle counts. After context compaction, the orchestrator recovers by reading the last canary entry for immediate orientation, then re-reading `state.json` (including `sessionHistory`) and active per-iteration state files, confirming the current git branch, and resuming the loop. | P0 |
+| OLP_14 | The orchestrator writes a canary entry to `plet/{PLET_ID}/progress.md` after each significant action (loop start, subagent spawn, subagent completion) containing the current `projectId`, `loopSessionCount`, branch name, and iteration lifecycle counts. After context compaction, the orchestrator recovers by reading the last canary entry for immediate orientation, then re-reading `state.json` (including `sessionHistory`) and active per-iteration state files, confirming the current git branch, and resuming the loop. | P0 |
 | OLP_15 | `state.json` includes an append-only `sessionHistory` array tracking the sequence of loop and refine sessions. Each entry records `type`, `session`, `branch`, `startedAt`, `endedAt`. Each new session branches from the previous session's workstream (or `main` if first). `endedAt` is `null` while the session is active. The orchestrator uses the last entry to determine the current branch and the previous entry to determine the parent branch. | P0 |
 
 | OLP_16 | The orchestrator starts a loop session via `start-session`: increments `loopSessionCount`, appends to `sessionHistory`, and creates the workstream branch from the previous session's branch (or `main` if first). Preflight checks (git clean, Python version, scripts accessible) must pass before the session starts — failures abort without creating state. | P0 |
@@ -204,8 +204,8 @@ Implementation of iteration definitions using subagents with red/green test disc
 | IMP_6 | The subagent updates per-iteration state file criterion statuses in real time as it works | P0 |
 | IMP_7 | The subagent updates its `phaseActivity` and `activityDetail` in the per-iteration state file as it transitions between activities. phaseActivity is cosmetic (monitoring only) — only verdicts drive lifecycle transitions (SF_28). | P0 |
 | IMP_8 | **Lifecycle ownership:** Subagents do NOT write lifecycle — the orchestrator is the sole lifecycle writer (state.json per SF_28). Subagents signal completion via verdict fields: implement sets `implementVerdict` (`completed`/`blocked`), verify sets `verifyVerdict` (`passed`/`rejected`/`blocked`). The orchestrator reads verdicts from per-iteration state and writes lifecycle transitions to state.json. The orchestrator calls IST `start-phase` before spawning the subagent (clears stale verdicts, initializes phase state). Post-phase gates enforce that verdicts are set before the subagent exits. | P0 |
-| IMP_9 | The subagent appends to `plet/progress.md`, `plet/learnings.md`, and `plet/emergent.md` as things come up during work, not only at the end. Each append is a complete, self-contained block per SF_17. | P0 |
-| IMP_10 | Trace capture is split into two files per phase: (1) `plet/trace/{iteration_id}-{phase}-{attempt}-transcript.ndjson` — raw I/O captured automatically by `invoke.py` from the subprocess's streaming JSONL output, subagent does not write this; (2) `plet/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` — semantic events (decisions, criterion updates, activity changes, errors) written by the subagent during work via `traces.py`. Subagents run as subprocess invocations (`claude -p --output-format stream-json`), not native Agent tool subagents, to guarantee reliable transcript capture. | P0 |
+| IMP_9 | The subagent appends to `plet/{PLET_ID}/progress.md`, `plet/{PLET_ID}/learnings.md`, and `plet/{PLET_ID}/emergent.md` as things come up during work, not only at the end. Each append is a complete, self-contained block per SF_17. | P0 |
+| IMP_10 | Trace capture is split into two files per phase: (1) `plet/{PLET_ID}/trace/{iteration_id}-{phase}-{attempt}-transcript.ndjson` — raw I/O captured automatically by `invoke.py` from the subprocess's streaming JSONL output, subagent does not write this; (2) `plet/{PLET_ID}/trace/{iteration_id}-{phase}-{attempt}-events.ndjson` — semantic events (decisions, criterion updates, activity changes, errors) written by the subagent during work via `traces.py`. Subagents run as subprocess invocations (`claude -p --output-format stream-json`), not native Agent tool subagents, to guarantee reliable transcript capture. | P0 |
 | IMP_13 | If a subagent encounters a blocker, it documents the issue across ALL four artifact types before returning: (1) trace log with full detail of attempts, failures, error messages, paths explored; (2) progress.md with BLOCKED status, work completed, and what remains; (3) emergent.md with blocker category entry describing what the human needs to resolve; (4) learnings.md with diagnostic context for next agent attempt. Then sets `implementVerdict: "blocked"` — the orchestrator reads the verdict and writes lifecycle to `blocked` (per SF_28). Every blocker represents loss of progress and requires human investigation. The quality of blocker documentation determines whether the human can help. | P0 |
 | IMP_14 | Default maximum 3 retry attempts per iteration. If the failure count is strictly decreasing across attempts (trend improving), extend to a maximum of 6 attempts. Abort immediately if failures are not decreasing. | P0 |
 | IMP_17 | Agents commit incrementally during each phase for crash recovery — never use `git stash` (stashes are invisible to the orchestrator, other agents, and external tools). Incremental commits stay on the workstream branch. Audit tags mark phase boundaries: `plet/{projectId}/loop{N}/audit/{iteration_id}/{phase}-{attempt}` at phase END. Commit convention: `plet: [{iteration_id}] implement-{attempt} - {title}` | P0 |
@@ -238,7 +238,7 @@ Independent verification in a fresh context window. The verification agent verif
 | VF_15 | If issues are found that are minor and obvious to fix (typos, missing edge case tests, small corrections): add new acceptance criteria, fix with red/green discipline, then complete. For anything substantial, cycle back to implementation per VF_16. | P0 |
 | VF_16 | If issues are found that cannot be fixed in this context: add new criteria set to `fail`, write failing tests (red step) for each test-expressible issue as a concrete handoff to the next implementation agent, set `verifyVerdict: "rejected"`, document in emergent.md and learnings.md. The branch is left with intentionally failing tests — an explicit exception to the "all tests must pass" rule. For issues that aren't test-expressible (e.g., architectural concerns), document why no red test was created. The orchestrator reads `verifyVerdict` from per-iteration state and writes lifecycle → `queued` (retry) or `blocked` (retry exhausted) to state.json — the verify agent does NOT write lifecycle (SF_28). | P0 |
 | VF_17 | The verification agent appends to progress.md, learnings.md, and emergent.md following atomic write semantics | P0 |
-| VF_18 | The verification agent writes semantic event trace entries to `plet/trace/{iteration_id}-verify-{attempt}-events.ndjson` via `traces.py`. The raw I/O transcript is captured to `plet/trace/{iteration_id}-verify-{attempt}-transcript.ndjson` by `invoke.py` from the subprocess's streaming output. (Matches split trace format defined in IMP_10.) | P0 |
+| VF_18 | The verification agent writes semantic event trace entries to `plet/{PLET_ID}/trace/{iteration_id}-verify-{attempt}-events.ndjson` via `traces.py`. The raw I/O transcript is captured to `plet/{PLET_ID}/trace/{iteration_id}-verify-{attempt}-transcript.ndjson` by `invoke.py` from the subprocess's streaming output. (Matches split trace format defined in IMP_10.) | P0 |
 | VF_25 | **Per-AC reflection step.** After verifying each acceptance criterion, the agent pauses to reflect: re-read the criterion text, compare against the evidence gathered, and explicitly confirm or deny satisfaction before recording the status. This makes verification mechanical — the agent follows a fixed sequence (verify → reflect → record) rather than making a holistic judgment call at the end. Applies to both implement (after each red/green cycle) and verify (after each criterion check). | P0 |
 | VF_20 | The verification agent checks that all runtime artifacts were properly written by the implementation agent (progress, learnings, emergent entries exist for this iteration) | P1 |
 | VF_21 | The verification agent writes a consolidated verification report to the per-iteration state file's `verificationReports` array at the end of each attempt. Each report has a `vrp` plet ID and a verdict (`passed`, `rejected`, `blocked`). Reports append (never overwrite) so the full verification history is preserved. | P0 |
@@ -267,16 +267,16 @@ The refine session is human-driven. The ergonomics should be clean and clear —
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | RFN_1 | The refine session is primarily a human-driven operation. The agent's role is to present information clearly, offer structured options, and execute the user's decisions. The UX should be clean, with minimal friction between the user seeing an item and acting on it. | P0 |
-| RFN_2 | Read `plet/emergent.md` and `plet/learnings.md`. Present all pending emergent items to the user for triage one at a time. Surface any patterns from learnings that suggest spec changes. | P0 |
+| RFN_2 | Read `plet/{PLET_ID}/emergent.md` and `plet/{PLET_ID}/learnings.md`. Present all pending emergent items to the user for triage one at a time. Surface any patterns from learnings that suggest spec changes. | P0 |
 | RFN_3 | For each emergent item, the user can: Approve (incorporate into spec), Modify (incorporate with changes), Reject (agent assumption was wrong), or Defer (leave for later) | P0 |
-| RFN_4 | Approved and modified items become new or updated requirements in `plet/requirements.md` with EM_N reference | P0 |
+| RFN_4 | Approved and modified items become new or updated requirements in `plet/{PLET_ID}/requirements.md` with EM_N reference | P0 |
 | RFN_5 | Rejected items are noted in the requirements' Resolved Questions section with EM_N reference | P0 |
 | RFN_6 | Deferred items remain in emergent.md with `Outcome: deferred` and are added to Open Questions in the requirements document | P0 |
-| RFN_7 | After triage, update `plet/emergent.md` outcome fields for all triaged items | P0 |
+| RFN_7 | After triage, update `plet/{PLET_ID}/emergent.md` outcome fields for all triaged items | P0 |
 | RFN_8 | Surface any blocked iterations alongside emergent items, with full context from all four artifact types (trace, progress, emergent, learnings) | P0 |
 | RFN_9 | After spec updates, re-run the decomposition step to update iteration definitions, preserving frozen iterations. Partially complete iterations (`implementing`, `verifying`, `blocked`) are surfaced to the user for decision (preserve, reset, or replace). If no human is available, the agent makes the best decision, logs the rationale in progress.md, and creates an emergent.md entry for later human review. | P0 |
 | RFN_10 | Update fingerprints in all three artifacts after any spec or iteration changes | P0 |
-| RFN_11 | Optionally (ask the user first), read `plet/progress.md` and summarize overall project status | P1 |
+| RFN_11 | Optionally (ask the user first), read `plet/{PLET_ID}/progress.md` and summarize overall project status | P1 |
 | RFN_12 | After re-planning, offer to resume the loop with `/plet loop` | P1 |
 | RFN_13 | If the user wants to adjust breakpoints, update the global state file's breakpoint arrays | P1 |
 | RFN_14 | When adding new iterations during refine, a milestone is considered frozen if all its iterations are `complete`. New iterations must not be added to frozen milestones. Exception: the most recent milestone is never considered frozen — it is "complete for now" and can always accept new iterations. Any unfrozen milestone is fair game — append to whichever is thematically appropriate. If no unfrozen milestone fits, create a new one. | P0 |
@@ -289,12 +289,12 @@ The refine session is human-driven. The ergonomics should be clean and clear —
 
 ### INF_SF: State Files
 
-Split state architecture: global `plet/state.json` for project-wide data and per-iteration `plet/state/{iteration_id}.json` for runtime state. Clear separation of concerns — orchestrator owns global, agent owns per-iteration.
+Split state architecture: global `plet/{PLET_ID}/state.json` for project-wide data and per-iteration `plet/{PLET_ID}/state/{iteration_id}.json` for runtime state. Clear separation of concerns — orchestrator owns global, agent owns per-iteration.
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SF_1 | Global `plet/state.json` contains: project metadata, schema version, dependency map (`{iteration_id: [dependency_ids]}`), lifecycles map (`{iteration_id: lifecycle_value}` per SF_28), milestone assignments, breakpoints, refine session count, and the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
-| SF_2 | Per-iteration state files (`plet/state/{iteration_id}.json`) contain: phaseActivity (phase-specific values), agent ID, acceptance criteria with two-state model, heartbeat, phase timestamps, per-phase attempt counts, summary, files changed, verification reports (VF_21–VF_24), implementVerdict, verifyVerdict. Lifecycle is NOT stored here — see SF_28. | P0 |
+| SF_1 | Global `plet/{PLET_ID}/state.json` contains: project metadata, schema version, dependency map (`{iteration_id: [dependency_ids]}`), lifecycles map (`{iteration_id: lifecycle_value}` per SF_28), milestone assignments, breakpoints, refine session count, and the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
+| SF_2 | Per-iteration state files (`plet/{PLET_ID}/state/{iteration_id}.json`) contain: phaseActivity (phase-specific values), agent ID, acceptance criteria with two-state model, heartbeat, phase timestamps, per-phase attempt counts, summary, files changed, verification reports (VF_21–VF_24), implementVerdict, verifyVerdict. Lifecycle is NOT stored here — see SF_28. | P0 |
 | SF_3 | Each iteration tracks a **lifecycle phase**: `ineligible` (dependencies not met), `queued` (ready for pickup), `implementing`, `verifying`, `complete`, `blocked`, `withdrawn` (deliberately retired during refine — terminal state). Lifecycle is stored in `state.json.lifecycles` (per SF_28), not in per-iteration files. | P0 |
 | SF_4 | Each iteration tracks **phaseActivity** with phase-specific values. Implement: `setup`, `writing_tests`, `implementing`, `running_checks`, `committing`, `wrapping_up`, `idle`. Verify: `setup`, `verifying`, `fixing`, `writing_report`, `running_checks`, `committing`, `wrapping_up`, `idle`. Includes a human-readable `activityDetail` string (e.g., "red: writing failing test for AC_3", "green: all tests passing"). Both phaseActivity and activityDetail are cosmetic (monitoring/display only) — only verdicts (SF_28) drive lifecycle transitions. | P0 |
 | SF_5 | Each iteration has an `agentId` field identifying which agent session is working on it (null if idle) | P0 |
@@ -328,10 +328,10 @@ Formats are defined at a high level here. Detailed templates and entry schemas a
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| RT_1 | `plet/progress.md` is an append-only log of what was implemented and verified each iteration, with iteration ID, phase, attempt number, status, timestamp, files changed, and freeform content. All entries follow the unified format: KV metadata, `**Content:**` marker, freeform body. | P0 |
-| RT_2 | `plet/learnings.md` is an agent-facing append-only knowledge base: codebase patterns, tool quirks, techniques, debugging tips — each entry tagged with category (pattern, gotcha, technique, tool, debug, context), iteration ID, and timestamp. If no category fits, use the closest one and create an emergent.md entry explaining why the categories were insufficient. | P0 |
-| RT_3 | `plet/emergent.md` captures human-facing items: design decisions made without human input, requirement gaps, assumptions, scope questions, edge cases — each with a unique `EM_{iter_id}_{N}` ID (e.g., `EM_ITR_001_1`), iteration source, category, and an `Outcome: pending` field | P0 |
-| RT_4 | `plet/trace/` contains two trace files per phase per iteration: `{iteration_id}-{phase}-{attempt}-transcript.ndjson` (raw I/O in Claude Code's native JSONL format, captured by `invoke.py` from subprocess output) and `{iteration_id}-{phase}-{attempt}-events.ndjson` (semantic events, written by subagent via `traces.py`). Semantic event schema defined in `references/state-schema.md`. | P0 |
+| RT_1 | `plet/{PLET_ID}/progress.md` is an append-only log of what was implemented and verified each iteration, with iteration ID, phase, attempt number, status, timestamp, files changed, and freeform content. All entries follow the unified format: KV metadata, `**Content:**` marker, freeform body. | P0 |
+| RT_2 | `plet/{PLET_ID}/learnings.md` is an agent-facing append-only knowledge base: codebase patterns, tool quirks, techniques, debugging tips — each entry tagged with category (pattern, gotcha, technique, tool, debug, context), iteration ID, and timestamp. If no category fits, use the closest one and create an emergent.md entry explaining why the categories were insufficient. | P0 |
+| RT_3 | `plet/{PLET_ID}/emergent.md` captures human-facing items: design decisions made without human input, requirement gaps, assumptions, scope questions, edge cases — each with a unique `EM_{iter_id}_{N}` ID (e.g., `EM_ITR_001_1`), iteration source, category, and an `Outcome: pending` field | P0 |
+| RT_4 | `plet/{PLET_ID}/trace/` contains two trace files per phase per iteration: `{iteration_id}-{phase}-{attempt}-transcript.ndjson` (raw I/O in Claude Code's native JSONL format, captured by `invoke.py` from subprocess output) and `{iteration_id}-{phase}-{attempt}-events.ndjson` (semantic events, written by subagent via `traces.py`). Semantic event schema defined in `references/state-schema.md`. | P0 |
 | RT_5 | The transcript file captures all assistant text, tool use, tool results, errors, and system messages (automatic). The events file captures decisions, criterion updates, verdict updates, activity changes, and errors with recovery actions (subagent-written). A GUI merges both by timestamp for a unified view. | P0 |
 | RT_6 | All agents read learnings.md and emergent.md at the start of their work to benefit from prior knowledge | P0 |
 | RT_7 | All agents read progress.md to understand what has been completed in prior iterations | P0 |
@@ -394,9 +394,9 @@ Fingerprint-based consistency checking across the three plan artifacts. Fingerpr
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SY_1 | `plet/requirements.md` includes a fingerprint: milestones as an array, requirement IDs grouped by prefix, and a `lastNonTrivialUpdate` timestamp (ISO 8601 UTC, second resolution) | P0 |
-| SY_2 | `plet/iterations.md` stores two fingerprints: the requirements fingerprint it was generated from, and its own iterations fingerprint (iteration IDs grouped by milestone, plus its own `lastNonTrivialUpdate` timestamp) | P0 |
-| SY_3 | `plet/state.json` stores the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
+| SY_1 | `plet/{PLET_ID}/requirements.md` includes a fingerprint: milestones as an array, requirement IDs grouped by prefix, and a `lastNonTrivialUpdate` timestamp (ISO 8601 UTC, second resolution) | P0 |
+| SY_2 | `plet/{PLET_ID}/iterations.md` stores two fingerprints: the requirements fingerprint it was generated from, and its own iterations fingerprint (iteration IDs grouped by milestone, plus its own `lastNonTrivialUpdate` timestamp) | P0 |
+| SY_3 | `plet/{PLET_ID}/state.json` stores the iterations fingerprint (which embeds the requirements fingerprint) | P0 |
 | SY_4 | If the requirements fingerprint in `requirements.md` doesn't match the one stored in `iterations.md` (ID arrays or timestamp), iterations are stale | P0 |
 | SY_5 | If the iterations fingerprint in `state.json` doesn't match the one in `iterations.md` (ID arrays or timestamp), state is stale | P0 |
 | SY_6 | Stale artifacts trigger a user-facing warning with the option to regenerate or run a consistency pass | P0 |
@@ -471,6 +471,23 @@ Project setup and environment configuration. Implemented by `bootstrap.py`.
 | BS_1 | `bootstrap.py setup` configures a project for plet operation. Idempotent — safe to run multiple times. Sets up: (1) git merge driver for runtime artifacts (plet-append strategy), (2) .gitattributes with merge strategies for state.json (ours) and runtime artifacts + trace (plet-append), (3) .gitignore entries (.plet/, settings.local.json, CLAUDE.local.md), (4) CLAUDE.md stub with script discovery guidance if none exists, (5) allow entries in .claude/settings.json for plet scripts. Does not overwrite existing CLAUDE.md or user settings. | P0 |
 | BS_2 | `bootstrap.py check` verifies bootstrap state without modifying anything. Reports which setup steps have been completed and which are missing. Used by preflight (OLP_16) to detect projects that need bootstrap before a loop can start. | P0 |
 | BS_3 | Bootstrap is called by the plan phase on first invocation or when preflight detects missing configuration. The plan phase confirms with the user before running setup (PL_17 principle — never auto-mutate without asking). | P0 |
+
+### INF_SUB: Subplets
+
+Subplets enable scale management and existing codebase adaptation. Each subplet is a full plet (plan → loop → refine) with its own directory, state, and runtime artifacts. Design decisions: NOTES_SUB_1–20.
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| SUB_1 | Every plet has a directory at `plet/{PLET_ID}/`. The root plet is always `plet/ROOT/` (reserved name). Subplets are siblings: `plet/AUTH/`, `plet/BILL/`, etc. | P0 |
+| SUB_2 | `state.json` has a required `inheritsFrom` field (array of plet IDs). ROOT gets `[]`. Subplets default to `["ROOT"]`. IDs resolve to `plet/{ID}/` (sibling directory). | P0 |
+| SUB_3 | `/plet subplet {NAME}` creates a subplet directory with skeleton state.json and offers to start the plan session. Implemented by `global_state.py create-subplet`. | P0 |
+| SUB_4 | Plan phase reads `inheritsFrom` sources and incorporates NFR/RCH/DVX/TST/RFP items into the subplet's `requirements.md` with provenance markers. The subplet's requirements.md is self-contained — agents read only their own plet's artifacts. | P0 |
+| SUB_5 | Refine phase re-reads inheritance sources and surfaces any changes (additions, removals, modifications) as emergent items for user triage. | P0 |
+| SUB_6 | On inheritance conflict (same concern, different values from different sources), last-in-array wins per `inheritsFrom` ordering. Plan/refine agent warns the user. | P1 |
+| SUB_7 | Branch naming: `plet/{pletId}/loop{N}/workstream` — same pattern for ROOT and subplets. No cross-plet dependencies — git is the integration point. | P0 |
+| SUB_8 | `.gitattributes` uses `plet/*/` wildcard patterns to cover ROOT and all subplets automatically. | P0 |
+| SUB_9 | Plet IDs follow the same regex as project IDs: `[A-Z][A-Z0-9]{2,5}` (3-6 chars, uppercase alphanumeric). | P0 |
+| SUB_10 | Each subplet is driven by its own human. No cross-plet orchestration. Humans coordinate between plets through communication and git. | P0 |
 
 ---
 
@@ -601,7 +618,7 @@ plet has no performance requirements, which is unusual but intentional. plet's p
 |----|-------------|
 | NF_5 | The skill works in Claude Code CLI on macOS and Linux |
 | NF_6 | All state files are standard JSON parseable by any language or tool |
-| NF_7 | Runtime artifacts are plain markdown readable by any text editor. The `plet/` directory structure is self-contained within the project root and does not conflict with other tools or frameworks. |
+| NF_7 | Runtime artifacts are plain markdown readable by any text editor. The `plet/` directory structure is self-contained within the project root and does not conflict with other tools or frameworks. Each plet (ROOT and subplets) has its own directory under `plet/`. |
 | NF_8 | State file format and structure are designed to support external GUI consumers that read state for visualization and monitoring. Split state, heartbeats, JSON parseability, and structured lifecycle/activity fields all serve this goal. |
 
 ---
@@ -614,13 +631,13 @@ plet has no performance requirements, which is unusual but intentional. plet's p
 ### FLW_NP: New Project
 
 1. User invokes `/plet` in a fresh project
-2. No `plet/` directory exists — skill enters a Plan session
+2. No `plet/ROOT/` directory exists — skill enters a Plan session
 3. Skill asks clarifying questions about the feature/product
-4. User answers; skill generates `plet/requirements.md` draft
+4. User answers; skill generates `plet/{PLET_ID}/requirements.md` draft
 5. Skill presents each feature area for review; user approves or adjusts
-6. Skill breaks requirements into iterations with dependencies, saves to `plet/iterations.md`
+6. Skill breaks requirements into iterations with dependencies, saves to `plet/{PLET_ID}/iterations.md`
 7. Skill presents each iteration for review; user approves
-8. Skill initializes `plet/state.json` and creates runtime artifact files
+8. Skill initializes `plet/{PLET_ID}/state.json` and creates runtime artifact files
 9. Skill asks: "Ready to start building?" — never auto-launches the loop (PL_17). User invokes `/plet loop` when ready.
 
 ### FLW_LP: Loop (Implement → Verify)
@@ -675,19 +692,19 @@ plet has no performance requirements, which is unusual but intentional. plet's p
 │       │            │            │            │           │
 │       ▼            ▼            ▼            ▼           │
 │  ┌──────────────────────────────────────────────────┐    │
-│  │         plet/state.json (global)                  │    │
-│  │  + plet/state/{id}.json (per-iteration)           │    │
+│  │    plet/{PLET_ID}/state.json (global)              │    │
+│  │  + plet/{PLET_ID}/state/{id}.json (per-iter)      │    │
 │  └──────────────────────────────────────────────────┘    │
 │       │            │            │            │           │
 │       ▼            ▼            ▼            ▼           │
 │  ┌──────────────────────────────────────────────────┐    │
-│  │           Runtime Artifacts (plet/)               │    │
+│  │      Runtime Artifacts (plet/{PLET_ID}/)           │    │
 │  │  progress.md │ learnings.md │ emergent.md │ trace/│    │
 │  └──────────────────────────────────────────────────┘    │
 │       │            │            │            │           │
 │       ▼            ▼            ▼            ▼           │
 │  ┌──────────────────────────────────────────────────┐    │
-│  │           Plan Artifacts (plet/)                  │    │
+│  │       Plan Artifacts (plet/{PLET_ID}/)             │    │
 │  │  requirements.md │ iterations.md                  │    │
 │  └──────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────┘
@@ -717,23 +734,30 @@ plet has no performance requirements, which is unusual but intentional. plet's p
 
 ### ARC_DS: Directory Structure
 
+Every plet has a directory at `plet/{PLET_ID}/`. The root plet is always `plet/ROOT/`. Subplets are siblings: `plet/AUTH/`, `plet/BILL/`, etc. `ROOT` is reserved as the default inheritance source. Each plet directory has the same internal structure:
+
 ```
 plet/
-├── requirements.md          # PRD (plan artifact)
-├── iterations.md            # Iteration definitions (plan artifact)
-├── state.json               # Global state (runtime)
-├── state/
-│   ├── ITR_001.json          # Per-iteration state
-│   ├── ITR_002.json
+├── ROOT/                        # Root plet (reserved name)
+│   ├── requirements.md          # PRD (plan artifact)
+│   ├── iterations.md            # Iteration definitions (plan artifact)
+│   ├── state.json               # Global state (runtime)
+│   ├── state/
+│   │   ├── ITR_001.json         # Per-iteration state
+│   │   ├── ITR_002.json
+│   │   └── ...
+│   ├── progress.md              # What was done (runtime artifact)
+│   ├── learnings.md             # Agent-facing knowledge (runtime artifact)
+│   ├── emergent.md              # Human-facing items (runtime artifact)
+│   └── trace/
+│       ├── ITR_001-implement-1-transcript.ndjson
+│       ├── ITR_001-implement-1-events.ndjson
+│       └── ...
+├── AUTH/                        # Subplet (same internal structure)
+│   ├── requirements.md
+│   ├── state.json               # inheritsFrom: ["ROOT"]
 │   └── ...
-├── progress.md              # What was done (runtime artifact)
-├── learnings.md             # Agent-facing knowledge (runtime artifact)
-├── emergent.md              # Human-facing items (runtime artifact)
-└── trace/
-    ├── ITR_001-implement-1-transcript.ndjson  # Raw I/O (captured by invoke.py)
-    ├── ITR_001-implement-1-events.ndjson     # Semantic events (written by subagent)
-    ├── ITR_001-verify-1-transcript.ndjson
-    ├── ITR_001-verify-1-events.ndjson
+└── BILL/                        # Another subplet
     └── ...
 ```
 
@@ -992,6 +1016,7 @@ Derived into `references/plan-templates/common.md` (see PT_9).
 | v0.4 | Python enforcement scripts (14 scripts, spec-driven), library+CLI testing pattern, 91% coverage |
 | v0.5–v0.6 | Parallel orchestration (attempted and abandoned — sequential outperformed) |
 | v0.7 | Sequential simplification (PLAN_SEQ), 3 entry points, lifecycle extraction, refactor iterations, ITR_ prefix |
+| v0.8 | Subplets (PLAN_SUB) — `plet/{PLET_ID}/` directory layout, inheritance, `/plet subplet` command. Breaking change: `plet/` → `plet/ROOT/`. |
 
 ### MIL_NX: Next
 
@@ -1016,7 +1041,7 @@ Derived into `references/plan-templates/common.md` (see PT_9).
 | QES_1 | ID format: hyphens or underscores? | **Underscores (`XXX_N`, 2-3 letter prefix).** Easier to copy-paste. Follows /stable-label convention. |
 | QES_2 | ID stability when editing PRDs? | **Append-only with gaps.** Never renumber, never reuse. Gaps visually signal evolution. |
 | QES_3 | Where do fingerprints live? | **Nested in each artifact.** requirements.md → iterations.md → state.json chain. Future Considerations and Open Questions excluded. |
-| QES_4 | Should state be one file or split? | **Split.** Global `plet/state.json` + per-iteration `plet/state/{iteration_id}.json`. Clear separation of concerns — orchestrator owns global, agent owns per-iteration. |
+| QES_4 | Should state be one file or split? | **Split.** Global `plet/{PLET_ID}/state.json` + per-iteration `plet/{PLET_ID}/state/{iteration_id}.json`. Clear separation of concerns — orchestrator owns global, agent owns per-iteration. |
 | QES_5 | Runtime artifacts: split per-iteration or single file? | **Single file each.** Humans scan one file better than multiple. POSIX atomic appends for write safety. |
 | QES_6 | Trace log format? | **NDJSON**, per-iteration per-phase files. Schema in `references/state-schema.md`. |
 | QES_7 | Performance requirements? | **None.** Plet's performance depends on Claude Code platform, not the skill. This is unusual but intentional. |
@@ -1039,7 +1064,7 @@ No open questions at this time.
 | # | Area | Description |
 |---|------|-------------|
 | 1 | AI model selection per phase | Different models for implementation vs verification — e.g., a faster model for implement, a more careful model for verify |
-| 2 | GUI/monitoring app | Separate repo that reads `plet/state.json` and per-iteration state files to provide a visual dashboard of progress, agent activity, and iteration status |
+| 2 | GUI/monitoring app | Separate repo that reads `plet/{PLET_ID}/state.json` and per-iteration state files to provide a visual dashboard of progress, agent activity, and iteration status |
 | 3 | Multi-project orchestration | A meta-orchestrator that manages plet loops across multiple repositories |
 | 4 | Formal verification tooling | Integration with formal verification tools (Kani, Dafny, TLA+) for critical invariants |
 | 5 | Custom phase plugins | Allow users to add custom phases (e.g., a "deploy" phase after verify) via plugin hooks |

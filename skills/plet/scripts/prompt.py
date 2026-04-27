@@ -145,7 +145,7 @@ def _build_cli_quick_ref(iter_id, phase, attempt, plet_dir=None):
     All commands go through plet_agent.py — the agent's entire plet vocabulary.
     """
     ag = "plet_agent.py"
-    p = plet_dir if plet_dir else "plet/ROOT/"
+    p = "$PLET_DIR"
     a = str(attempt)
     crit_phase = "implementation" if phase == "implement" else "verification"
 
@@ -244,7 +244,7 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
 
     # 8. Per-AC reflection prompt (learnings/emergent)
     ent = "entries.py"
-    p = plet_dir
+    p = "$PLET_DIR"
     reflection = "\n".join(
         [
             "# Per-AC Reflection",
