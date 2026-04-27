@@ -213,9 +213,9 @@ Do as its own branch — isolate the breaking change before adding subplet featu
 
 | Step | Description | Status |
 |------|-------------|--------|
-| SUB_8 | RED: tests for `plet_tools.py create-subplet` — creates `plet/{NAME}/`, state.json with inheritsFrom defaulting to `["../ROOT"]` | |
-| SUB_9 | GREEN: implement `create-subplet` command | |
-| SUB_10 | SKILL.md: `/plet subplet {NAME}` interactive flow — calls create-subplet, offers to start plan | |
+| SUB_8 | RED: tests for `plet_tools.py create-subplet` — creates `plet/{NAME}/`, state.json with inheritsFrom defaulting to `["ROOT"]` | ✓ done |
+| SUB_9 | GREEN: implement `create-subplet` in global_state.py, wire into plet_tools.py. 1069 tests pass. | ✓ done |
+| SUB_10 | SKILL.md: `/plet subplet {NAME}` interactive flow + migrate all `plet/` → `plet/ROOT/` references | ✓ done |
 
 ### Phase 3: Inheritance
 
