@@ -201,11 +201,11 @@ Do as its own branch — isolate the breaking change before adding subplet featu
 
 | Step | Description | Status |
 |------|-------------|--------|
-| SUB_1 | RED: tests assert `plet/ROOT/` paths — util_io path derivation, bootstrap creates `plet/ROOT/`, .gitignore still works | |
-| SUB_2 | GREEN: migrate `plet/` → `plet/ROOT/` in util_io.py, bootstrap.py. Update all path derivation. Ensure .gitignore covers `.plet/`. | |
-| SUB_3 | RED: tests assert `inheritsFrom` field in state schema (array of strings, default []) | |
-| SUB_4 | GREEN: add `inheritsFrom` to state schema, global_state.py init, validator. SCHEMA_VERSION bump. | |
-| SUB_5 | Bulk fixture update: `make_plet_dir()` in util_fixture.py defaults to `plet/ROOT/` — most tests auto-fix | |
+| SUB_1 | RED: tests assert `plet/ROOT/` paths — util_io path derivation, bootstrap creates `plet/ROOT/`, .gitignore still works | ✓ done |
+| SUB_2 | GREEN: migrate `plet/` → `plet/ROOT/` in util_io.py, bootstrap.py, prompt.py. 1064 tests pass. | ✓ done |
+| SUB_3 | RED: tests assert `inheritsFrom` required field in state schema (array of plet IDs, default []) | ✓ done |
+| SUB_4 | GREEN: add `inheritsFrom` to REQUIRED_FIELDS, global_state.py init (--inherits-from), all test fixtures. 1066 tests pass. | ✓ done |
+| SUB_5 | Bulk fixture update: `make_plet_dir()` in util_fixture.py defaults to `plet/ROOT/` — most tests auto-fix | ✓ done (included in SUB_2/SUB_4) |
 | SUB_6 | Branch naming update: `util_git.py derive_branch_name` uses `plet/{pletId}/...` pattern | |
 | SUB_7 | **Checkpoint:** full test suite green, coverage ≥ 87% | |
 
