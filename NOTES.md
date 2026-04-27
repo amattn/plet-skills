@@ -3941,6 +3941,18 @@ Examples:
 - `plet/{projectId}/{pletId}/loop{N}/...` — extra segment that's identical for every branch in the repo
 - Keeping `subplet/` segment — contradicts flat directory layout
 
+### NOTES_SUB_19: Gitattributes wildcard for subplets (2026-04-27)
+
+**Decision:** `.gitattributes` patterns use `plet/*/` wildcard instead of `plet/ROOT/`. Covers ROOT and all subplets automatically — no per-subplet entries needed. Patterns: `plet/*/state.json merge=ours`, `plet/*/progress.md merge=plet-append`, etc.
+
+### NOTES_SUB_20: Project ID regex kept at 3-6 chars (2026-04-27)
+
+**Decision:** Keep `^[A-Z][A-Z0-9]{2,5}$` for both root project IDs and subplet names. The constraint forces short, greppable IDs and keeps branch names and paths compact. Longer descriptive names go in `project.name`. E.g., subplet name `BILL`, project.name `Billing Service`.
+
+**Rejected:**
+- Relaxing to 3-12 chars — defeats the brevity purpose
+- Different regex for subplets vs root — unnecessary complexity
+
 ### NOTES_SUB_16: Survey re-run behavior (2026-04-26)
 
 **Decision:** Diff against previous survey, but lightweight — a note at the end of the survey prompt telling the agent to compare against the existing `survey.md` and highlight what changed. No dedicated diff tooling. This is rare enough that a prompt-level instruction suffices.

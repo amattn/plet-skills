@@ -184,13 +184,15 @@ Drop per-iteration verify, move verification to milestone boundaries. Case study
 
 Every plet gets a project ID directory: `plet/ROOT/`, `plet/AUTH/`, `plet/BILLING/`. ROOT is reserved as the default inheritance source. Subplets inherit via `state.json` `"inheritsFrom": ["../ROOT"]` (array of relative paths, last-in-array wins on conflict with warning). Each subplet is a full plet (plan → loop → refine) driven by its own human. No cross-plet dependencies — git is the integration point. Branch convention: `plet/{pletId}/loop{N}/workstream` — mirrors directory layout, no projectId in branches.
 
-Design decisions: NOTES_SUB_1–18. Key settled points:
+Design decisions: NOTES_SUB_1–20. Key settled points:
 - Directory layout: `plet/{PLET_ID}/` — flat siblings, ROOT reserved (NOTES_SUB_17)
 - Branch naming: `plet/{pletId}/loop{N}/workstream` (NOTES_SUB_18)
 - Inheritance: array of relative paths in state.json (NOTES_SUB_11)
 - Conflict resolution: last-in-array wins with warning (NOTES_SUB_12)
 - Creation flow: `/plet subplet AUTH` interactive (NOTES_SUB_14)
 - No external backlog integration (NOTES_SUB_15)
+- Gitattributes: `plet/*/` wildcard covers all plets (NOTES_SUB_19)
+- Project ID regex 3-6 chars kept for subplets too (NOTES_SUB_20)
 - Breaking change from `plet/` → `plet/ROOT/` → 0.8.0
 
 **Depends on:** Survey (Phase 5) extracted to PLAN_SRV — independent, can be deferred.
@@ -206,8 +208,8 @@ Do as its own branch — isolate the breaking change before adding subplet featu
 | SUB_3 | RED: tests assert `inheritsFrom` required field in state schema (array of plet IDs, default []) | ✓ done |
 | SUB_4 | GREEN: add `inheritsFrom` to REQUIRED_FIELDS, global_state.py init (--inherits-from), all test fixtures. 1066 tests pass. | ✓ done |
 | SUB_5 | Bulk fixture update: `make_plet_dir()` in util_fixture.py defaults to `plet/ROOT/` — most tests auto-fix | ✓ done (included in SUB_2/SUB_4) |
-| SUB_6 | Branch naming update: `util_git.py derive_branch_name` uses `plet/{pletId}/...` pattern | |
-| SUB_7 | **Checkpoint:** full test suite green, coverage ≥ 87% | |
+| SUB_6 | Branch naming: `util_git.py derive_branch_name` already uses `state["projectId"]` — flat model means projectId=pletId, no code change needed | ✓ done (already correct) |
+| SUB_7 | **Checkpoint:** 1069 tests pass. Gitattributes wildcard `plet/*/` covers all subplets (NOTES_SUB_19). SKILL.md fully migrated. prompt.py uses dynamic plet_dir. | ✓ done |
 
 ### Phase 2: Subplet Creation
 
