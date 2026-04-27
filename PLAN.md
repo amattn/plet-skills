@@ -223,12 +223,7 @@ Do as its own branch — isolate the breaking change before adding subplet featu
 
 | Step | Description | Status |
 |------|-------------|--------|
-| SUB_11 | RED: tests for plan phase reading `inheritsFrom` sources, incorporating NFR/RCH/DVX into subplet requirements.md with source markers | |
-| SUB_12 | GREEN: plan phase inheritance — read sources, incorporate, mark items | |
-| SUB_13 | RED: tests for refine phase re-reading inheritance sources, surfacing changes as emergent items | |
-| SUB_14 | GREEN: refine phase inheritance refresh | |
-| SUB_15 | RED: tests for conflict handling — last-in-array wins, warning emitted | |
-| SUB_16 | GREEN: conflict detection and warning in plan/refine | |
+| SUB_11-16 | Prose-driven inheritance (option A). Plan: per-section collect→merge→dedup→present→edit→write workflow in session-plan.md. Refine: Step 3b inheritance refresh in session-refine.md. Conflict: last-in-array wins with warning (inline). No new scripts — escalate to tooling if agents drift. | ✓ done |
 
 ### Phase 4: Branch Model
 
