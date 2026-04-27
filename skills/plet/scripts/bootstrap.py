@@ -50,11 +50,11 @@ GITIGNORE_ENTRIES = [
 ]
 
 GITATTR_PATTERNS = [
-    "plet/state.json merge=ours",
-    "plet/progress.md merge=plet-append",
-    "plet/learnings.md merge=plet-append",
-    "plet/emergent.md merge=plet-append",
-    "plet/trace/*.ndjson merge=plet-append",
+    "plet/ROOT/state.json merge=ours",
+    "plet/ROOT/progress.md merge=plet-append",
+    "plet/ROOT/learnings.md merge=plet-append",
+    "plet/ROOT/emergent.md merge=plet-append",
+    "plet/ROOT/trace/*.ndjson merge=plet-append",
 ]
 
 # Allow patterns for .claude/settings.json
@@ -83,14 +83,14 @@ Call scripts as: `$PLET_SCRIPTS_DIR/iter_state.py ...`
 
 ## Project State
 
-Runtime state lives in `plet/` (committed to git):
-- `plet/state.json` — global state (lifecycles, dependencies)
-- `plet/state/*.json` — per-iteration state
-- `plet/progress.md` — append-only progress log
-- `plet/learnings.md` — cross-iteration knowledge base
-- `plet/emergent.md` — items for human review
-- `plet/requirements.md` — project requirements
-- `plet/iterations.md` — iteration definitions
+Runtime state lives in `plet/ROOT/` (committed to git):
+- `plet/ROOT/state.json` — global state (lifecycles, dependencies)
+- `plet/ROOT/state/*.json` — per-iteration state
+- `plet/ROOT/progress.md` — append-only progress log
+- `plet/ROOT/learnings.md` — cross-iteration knowledge base
+- `plet/ROOT/emergent.md` — items for human review
+- `plet/ROOT/requirements.md` — project requirements
+- `plet/ROOT/iterations.md` — iteration definitions
 """
 
 

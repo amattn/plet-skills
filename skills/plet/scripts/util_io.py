@@ -62,7 +62,7 @@ from util_cli import now_iso
 # Path derivation — single source of truth for plet directory layout
 # ---------------------------------------------------------------------------
 
-DEFAULT_PLET_DIR = "plet/"
+DEFAULT_PLET_DIR = "plet/ROOT/"
 
 
 def state_json_path(global_plet_dir):

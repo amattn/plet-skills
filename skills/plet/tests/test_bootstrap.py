@@ -97,6 +97,7 @@ def test_setup_fresh():
             ga = f.read()
         check("plet-append in gitattributes", "plet-append" in ga)
         check("progress.md in gitattributes", "progress.md" in ga)
+        check("plet/ROOT/ in gitattributes", "plet/ROOT/" in ga)
 
         # merge driver configured
         result = subprocess.run(

@@ -337,7 +337,25 @@ def test_path_derivation():
         "custom plet_dir",
         util_io.state_json_path("/tmp/myproject/plet") == os.path.join("/tmp/myproject/plet", "state.json"),
     )
-    check("DEFAULT_PLET_DIR", util_io.DEFAULT_PLET_DIR == "plet/")
+    check("DEFAULT_PLET_DIR", util_io.DEFAULT_PLET_DIR == "plet/ROOT/")
+    # Path derivation with new default
+    check(
+        "state_json with ROOT default",
+        util_io.state_json_path("plet/ROOT") == os.path.join("plet/ROOT", "state.json"),
+    )
+    check(
+        "iter_state with ROOT default",
+        util_io.iter_state_path("plet/ROOT", "ITR_001") == os.path.join("plet/ROOT", "state", "ITR_001.json"),
+    )
+    # Subplet paths work the same way
+    check(
+        "subplet state_json",
+        util_io.state_json_path("plet/AUTH") == os.path.join("plet/AUTH", "state.json"),
+    )
+    check(
+        "subplet iter_state",
+        util_io.iter_state_path("plet/AUTH", "ITR_001") == os.path.join("plet/AUTH", "state", "ITR_001.json"),
+    )
 
 
 def test_validate_plet_dir():
