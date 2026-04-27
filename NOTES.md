@@ -1306,6 +1306,32 @@ Scanned CLAUDE.md, PLET.md, NOTES.md, and reference files for generalizable patt
 - **Includes /notes** — the notes skill moves into this repo alongside the other extractable skills.
 - **EX_1 renamed /nl → /chatux** — NL is one of 10 bundled patterns. Added standard review prompt with lettered options (A. Add, B. Change, C. Remove, D. Recommendations, E. Ok). The "Recommendations" option lets the user ask the agent for suggestions with a single letter.
 
+#### JSON-first output convention — UNV_CMD_31 (2026-04-25)
+
+**Decision:** CLI scripts with `--output json` must use the JSON structure as the single source of truth. Plain text mode formats the JSON for human readability — no separate code path, no independent computation. Pattern: build JSON result first, pass to a text formatter. Prevents drift between text and JSON outputs.
+
+Added as UNV_CMD_31 in `specs/conventions.md` (plet scripts) and ARC_N in `plan-templates/cli.md` (target projects). Convention going forward — existing scripts not retrofitted.
+
+#### Prerelease version bumps per iteration — FOO_76 (2026-04-25)
+
+**Decision:** Iterations bump version metadata to prerelease tags tied to milestones. Format: `{milestone_target_version}-iter.{N}` (e.g., `0.2.0-iter.3`). Refactor iterations at milestone boundaries promote to the release version (e.g., `0.2.0`).
+
+Three layers: (1) `common.md` NFR + DVX entries — universal rule and DX guidance, (2) platform templates (`python.md`, `elixir.md`, `go.md`) — explicit version metadata locations per ecosystem, (3) `phase-implement.md` Version Bump step after pre-flight + `phase-refactor.md` version promote in Completing the Phase.
+
+Version metadata location is platform-dependent — plan session identifies where it lives. Skip if project has no version metadata or plan didn't define milestone target versions.
+
+#### Refine phase is read-only for source code — FOO_77 (2026-04-25)
+
+**Decision:** Refine must not modify source code, tests, configuration files, or build artifacts. Refine updates plet artifacts only (requirements.md, iterations.md, state files, emergent.md, progress.md). If the refine agent identifies something that needs a code change, it should clarify an existing item, create a new requirement item, or create a new iteration for it.
+
+Added as bold preamble to `session-refine.md`. Previous guard was only "complete iterations are frozen" — nothing about source code broadly.
+
+#### Trace files excluded from wip-commit by design — FOO_74 (2026-04-25)
+
+**Decision:** Keep current behavior — `wip-commit` excludes `plet/trace/` to prevent transcript feedback loop. Traces committed only at phase-end via `git add -A`. If a run crashes mid-phase, trace events and transcripts for that phase are lost.
+
+**Future concern:** If crash recovery becomes a real problem, split the exclusion: stage `*-events.ndjson` (small, no feedback loop) but continue excluding `*-transcript.ndjson`.
+
 ### NOTES_DES_7: Vocabulary and taxonomy — DECIDED
 
 Standardized hierarchy to eliminate overloaded terms. See **Taxonomy > Vocabulary Hierarchy** for the canonical definitions.
