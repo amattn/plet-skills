@@ -95,6 +95,7 @@ GLOBAL_STATE = {
     "lastUpdated": "2026-03-07T14:00:00Z",
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer"},
+    "inheritsFrom": [],
     "dependencyMap": {},
     "lifecycles": {},
     "milestones": {},

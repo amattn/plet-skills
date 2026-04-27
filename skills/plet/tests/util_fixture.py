@@ -108,6 +108,7 @@ def make_global_state(
         "lastUpdated": "2026-03-07T14:00:00Z",
         "projectId": project_id,
         "project": {"name": "Test Project"},
+        "inheritsFrom": [],
         "dependencyMap": dep_map if dep_map is not None else {},
         "lifecycles": lifecycles if lifecycles is not None else {},
         "milestones": {},

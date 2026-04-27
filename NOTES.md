@@ -3835,7 +3835,7 @@ The flexible inheritance model fixes these issues while retaining the "subplet" 
 - Emergent/blocker ownership: `assignee` field on emergent entries (additive to current format)
 - Refine is naturally single-threaded — one human refines at a time, others consume updated spec
 - The `proj` sentinel in plet IDs is scoped to a single plet directory. If cross-plet IDs ever need disambiguation, the format will need a plet-qualified alternative.
-- ~~How does the inheritance pointer work concretely?~~ → resolved: `state.json` field `"inheritsFrom": ["../../plet"]` — array of relative paths. See NOTES_SUB_11.
+- ~~How does the inheritance pointer work concretely?~~ → resolved: `state.json` required field `"inheritsFrom": ["ROOT"]` — array of plet IDs. See NOTES_SUB_11.
 - ~~What happens when an inheritance chain has a conflict?~~ → resolved: last-in-array wins with warning. See NOTES_SUB_12.
 - ~~Subplet orchestrator discovery~~ → resolved: each plet has its own human driver (NOTES_SUB_8)
 - ~~Subplet completion rollup~~ → resolved: human-driven (NOTES_SUB_8). Optional status command could scan sibling `plet/state.json` files.
@@ -3878,16 +3878,19 @@ Worktrees are optional and at the developer's discretion. plet operates on whate
 
 ### NOTES_SUB_11: Inheritance pointer mechanism (2026-04-26)
 
-**Decision:** `state.json` field `"inheritsFrom": ["../../plet", "../auth/plet"]` — array of relative paths to source plet directories. Empty array or missing field means no inheritance (root plet).
+**Decision:** `state.json` required field `"inheritsFrom": ["ROOT"]` — array of plet IDs. Each ID resolves to `plet/{ID}/` (sibling directory). Empty array means no inheritance (root plet). `inheritsFrom` is required (not optional) — ROOT gets `[]`, subplets get `["ROOT"]` by default.
 
 **Mechanism:** Plan/refine reads each source's `requirements.md` and incorporates relevant items (NFR, RCH, DVX sections) into the subplet's own `requirements.md`, marking inherited items with their source. The subplet's `requirements.md` IS the snapshot — no separate snapshot file needed.
 
 **Why array:** Supports inheriting from multiple sources (root template + a sibling's API contract). Single inheritance is the common case but multi-source is needed for real scenarios (e.g., feature plet inherits from root template AND from the auth plet's API contract).
 
+**Why IDs not paths:** With the flat `plet/{PLET_ID}/` layout (NOTES_SUB_17), every plet is a sibling. `"ROOT"` is cleaner than `"../ROOT"` and the resolution rule is trivial: join with the parent of the current plet dir.
+
 **Rejected:**
 - Convention file (`plet/inherits.md`) — over-engineered, the pointer is just "where to look"
 - Separate snapshot file — the subplet's requirements.md already captures what was inherited
 - Single path instead of array — artificially limits inheritance to one source
+- Relative paths (`"../ROOT"`) — ugly for the common case, IDs are sufficient given flat layout
 
 ### NOTES_SUB_17: Directory layout (2026-04-26)
 

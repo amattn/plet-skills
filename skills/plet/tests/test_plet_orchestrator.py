@@ -88,6 +88,7 @@ def setup_project(tmpdir, iterations=None, dep_map=None):
         "schemaVersion": "0.2.0",
         "projectId": "TEST",
         "project": {"name": "Test Project"},
+        "inheritsFrom": [],
         "loopSessionCount": 0,
         "refineSessionCount": 0,
         "dependencyMap": dep_map,

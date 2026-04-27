@@ -207,6 +207,7 @@ Examples:
             "milestones_file",
             "iterations_fingerprint",
             "iterations_fingerprint_file",
+            "inherits_from",
         },
         ["project_id", "project_name"],
         True,
@@ -228,6 +229,27 @@ Examples:
     if err:
         return (1, "", err + "\n" + _help_hint("init"))
 
+    # inheritsFrom: optional CLI arg, defaults to empty list (root plet)
+    inherits_raw = kwargs.pop("inherits_from", None)
+    if inherits_raw:
+        try:
+            inherits_from = json.loads(inherits_raw)
+        except (json.JSONDecodeError, TypeError):
+            return (
+                1,
+                "",
+                f"Error: --inherits-from must be valid JSON array, got: {inherits_raw}\n" + _help_hint("init"),
+            )
+        if not isinstance(inherits_from, list):
+            return (
+                1,
+                "",
+                f"Error: --inherits-from must be a JSON array, got {type(inherits_from).__name__}\n"
+                + _help_hint("init"),
+            )
+    else:
+        inherits_from = []
+
     lifecycles = {iter_id: ("queued" if not deps else "ineligible") for iter_id, deps in dep_map.items()}
 
     project = {"name": project_name}
@@ -239,6 +261,7 @@ Examples:
         "lastUpdated": now_iso(),
         "projectId": project_id,
         "project": project,
+        "inheritsFrom": inherits_from,
         "dependencyMap": dep_map,
         "lifecycles": lifecycles,
         "milestones": milestones,

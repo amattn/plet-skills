@@ -62,6 +62,7 @@ VALID_STATE = {
     "lastUpdated": "2026-03-07T14:00:00Z",
     "projectId": "LOGA",
     "project": {"name": "Log Analyzer"},
+    "inheritsFrom": [],
     "dependencyMap": {"ITR_001": [], "ITR_002": ["ITR_001"]},
     "milestones": {"MS_1": {"name": "MVP", "iterations": ["ITR_001", "ITR_002"]}},
     "lifecycles": {"ITR_001": "queued", "ITR_002": "ineligible"},
@@ -143,6 +144,37 @@ def test_validate_invalid_json_output():
         check("status error", data["status"] == "error")
         check("errorCount > 0", data["errorCount"] > 0)
         check("errors non-empty", len(data["errors"]) > 0)
+
+
+def test_validate_inherits_from():
+    print("\n## validate — inheritsFrom field validation")
+    # Missing inheritsFrom should fail
+    state_no_inherits = {k: v for k, v in VALID_STATE.items() if k != "inheritsFrom"}
+    with tempfile.TemporaryDirectory() as d:
+        write_raw_state(d, state_no_inherits)
+        _, err, _ = run(["validate", d], expect_exit=1)
+        check("missing inheritsFrom caught", "inheritsFrom" in err or "INVALID" in err)
+
+    # Wrong type should fail
+    state_bad_type = dict(VALID_STATE, inheritsFrom="../ROOT")  # string, not list
+    with tempfile.TemporaryDirectory() as d:
+        write_raw_state(d, state_bad_type)
+        _, err, _ = run(["validate", d], expect_exit=1)
+        check("wrong type inheritsFrom caught", "inheritsFrom" in err or "INVALID" in err)
+
+    # Valid inheritsFrom should pass
+    state_valid = dict(VALID_STATE, inheritsFrom=["ROOT"])
+    with tempfile.TemporaryDirectory() as d:
+        write_raw_state(d, state_valid)
+        out, _, _ = run(["validate", d])
+        check("valid inheritsFrom passes", "OK" in out or "VALID" in out)
+
+    # Empty array (root plet) should pass
+    state_root = dict(VALID_STATE, inheritsFrom=[])
+    with tempfile.TemporaryDirectory() as d:
+        write_raw_state(d, state_root)
+        out, _, _ = run(["validate", d])
+        check("empty inheritsFrom passes", "OK" in out or "VALID" in out)
 
 
 def test_validate_missing_file():
@@ -283,6 +315,34 @@ def test_init_defaults():
         check("cleanupTagsAutomatically false", data.get("cleanupTagsAutomatically") is False)
         check("cleanupBranchesAutomatically false", data.get("cleanupBranchesAutomatically") is False)
         check("lastUpdated present", "lastUpdated" in data)
+        check("inheritsFrom required and default empty", data["inheritsFrom"] == [])
+
+
+def test_init_inherits_from():
+    print("\n## init — inheritsFrom field")
+    with tempfile.TemporaryDirectory() as d:
+        run(
+            [
+                "init",
+                d,
+                "--project-id",
+                "AUTH",
+                "--project-name",
+                "Auth",
+                "--dependency-map",
+                "{}",
+                "--milestones",
+                "{}",
+                "--iterations-fingerprint",
+                "{}",
+                "--inherits-from",
+                '["ROOT"]',
+            ]
+        )
+        with open(os.path.join(d, "state.json")) as f:
+            data = json.load(f)
+
+        check("inheritsFrom set", data.get("inheritsFrom") == ["ROOT"])
 
 
 def test_init_exists_error():
@@ -847,6 +907,7 @@ def main():
     test_validate_valid()
     test_validate_valid_json()
     test_validate_invalid()
+    test_validate_inherits_from()
     test_validate_invalid_json_output()
     test_validate_missing_file()
     test_validate_missing_file_json()
@@ -857,6 +918,7 @@ def main():
     test_init_lifecycles_auto()
     test_init_creates_state_dir()
     test_init_defaults()
+    test_init_inherits_from()
     test_init_exists_error()
     test_init_invalid_project_id()
     test_init_invalid_json_arg()

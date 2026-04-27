@@ -46,6 +46,7 @@ REQUIRED_FIELDS = {
     "dependencyMap": dict,
     "milestones": dict,
     "iterationsFingerprint": dict,
+    "inheritsFrom": list,
 }
 
 # Optional fields with expected types (when present)

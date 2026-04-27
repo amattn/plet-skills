@@ -78,6 +78,7 @@ def write_global_state(plet_dir, lifecycles=None, dep_map=None):
         "lastUpdated": "2026-04-06T00:00:00Z",
         "projectId": "TEST",
         "project": {"name": "Test Project"},
+        "inheritsFrom": [],
         "dependencyMap": dep_map or {},
         "lifecycles": lifecycles or {},
         "milestones": {},
