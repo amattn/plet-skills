@@ -50,11 +50,11 @@ GITIGNORE_ENTRIES = [
 ]
 
 GITATTR_PATTERNS = [
-    "plet/ROOT/state.json merge=ours",
-    "plet/ROOT/progress.md merge=plet-append",
-    "plet/ROOT/learnings.md merge=plet-append",
-    "plet/ROOT/emergent.md merge=plet-append",
-    "plet/ROOT/trace/*.ndjson merge=plet-append",
+    "plet/*/state.json merge=ours",
+    "plet/*/progress.md merge=plet-append",
+    "plet/*/learnings.md merge=plet-append",
+    "plet/*/emergent.md merge=plet-append",
+    "plet/*/trace/*.ndjson merge=plet-append",
 ]
 
 # Allow patterns for .claude/settings.json
