@@ -61,7 +61,7 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 
 ## The Job
 
-1. Detect the current phase via `plet_tools.py detect plet/`
+1. Detect the current phase via `plet_tools.py detect plet/ROOT/`
 2. Route to the correct workflow
 3. For loop: call `plet_orchestrator.py run` — it handles preflight, prompt assembly, subagent invocation, and all lifecycle transitions internally
 
@@ -73,7 +73,8 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 | `/plet plan` | Force entry into Plan phase |
 | `/plet loop` | Force entry into autonomous loop |
 | `/plet refine` | Force entry into Refine phase |
-| `/plet status` | Print status via `plet_tools.py status plet/` |
+| `/plet subplet {NAME}` | Create a new subplet and optionally start its plan session |
+| `/plet status` | Print status via `plet_tools.py status plet/ROOT/` |
 
 ---
 
@@ -82,7 +83,7 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 Phase detection is implemented by `plet_tools.py detect`, but the skill should understand the logic it encodes:
 
 ```bash
-SESSION=$(plet_tools.py detect plet/)
+SESSION=$(plet_tools.py detect plet/ROOT/)
 # Returns: plan, loop, or refine
 ```
 
@@ -90,21 +91,21 @@ SESSION=$(plet_tools.py detect plet/)
 START
   │
   ▼
-Does plet/requirements.md exist?
+Does plet/ROOT/requirements.md exist?
   │
   NO ──► PLAN phase (new project)
   │
   YES
   │
   ▼
-Does plet/iterations.md AND plet/state.json exist?
+Does plet/ROOT/iterations.md AND plet/ROOT/state.json exist?
   │
   NO ──► PLAN phase (need iteration decomposition)
   │
   YES
   │
   ▼
-Read plet/state.json and per-iteration state files
+Read plet/ROOT/state.json and per-iteration state files
   │
   ▼
 Any iterations with lifecycle: queued, implementing, or verifying?
@@ -137,7 +138,7 @@ Any iterations lifecycle: blocked AND none queued/implementing?
 Before entering any session, run preflight:
 
 ```bash
-plet_tools.py validate plet/
+plet_tools.py validate plet/ROOT/
 ```
 
 Checks: scripts installed, git health, CLAUDE.md exists, .gitignore configured, spec artifacts exist, state valid, fingerprints consistent.
@@ -203,13 +204,13 @@ Each level stores the fingerprint of the level above. Staleness detection: if th
 
 ```bash
 # Check consistency across all three
-plet_tools.py fingerprint-check plet/ --output json
+plet_tools.py fingerprint-check plet/ROOT/ --output json
 
 # Extract fingerprint from an artifact
-plet_tools.py fingerprint-extract plet/ --type requirements
+plet_tools.py fingerprint-extract plet/ROOT/ --type requirements
 
 # Embed updated fingerprint after changes
-plet_tools.py fingerprint-embed plet/ --type requirements
+plet_tools.py fingerprint-embed plet/ROOT/ --type requirements
 # Then: embed --type iterations, then --type state (cascade order)
 ```
 
@@ -231,7 +232,7 @@ plet_tools.py fingerprint-embed plet/ --type requirements
 Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`, and initializes `plet/state.json`.
 
 **Step 0 — Bootstrap:**
-Run `plet_tools.py bootstrap plet/` to configure the project. This sets up git merge driver, .gitattributes, .gitignore, .claude/settings.json, and CLAUDE.md stub. Idempotent — safe to re-run.
+Run `plet_tools.py bootstrap plet/ROOT/` to configure the project. This sets up git merge driver, .gitattributes, .gitignore, .claude/settings.json, and CLAUDE.md stub. Idempotent — safe to re-run.
 
 **Step 1 — Detect project state:**
 Check if `plet/state.json` exists. This determines the path:
@@ -243,7 +244,7 @@ Check if `plet/state.json` exists. This determines the path:
 
 **Path B — Existing project (state.json exists):**
 1. Read state.json → project ID already known
-2. Start plan session: `session.py start-session plet/ --type plan` — returns the branch name
+2. Start plan session: `session.py start-session plet/ROOT/ --type plan` — returns the branch name
 3. Create or check out the plan branch returned by start-session
 4. Read existing `plet/requirements.md`, `plet/iterations.md`, `plet/emergent.md`, `plet/learnings.md`
 5. Show what was found: "Found N iterations across M milestones. Review or proceed?"
@@ -256,12 +257,12 @@ Check if `plet/state.json` exists. This determines the path:
 2. Follow its instructions for clarifying questions, requirements generation, iteration decomposition, and review
 3. Each approved section is written to disk immediately — the file on disk is the source of truth
 4. After all iterations are approved, initialize state:
-   - `plet_tools.py init plet/` to create state.json (auto-initializes lifecycles from dependency map)
-   - Start plan session if not already started: `session.py start-session plet/ --type plan` — returns branch name
+   - `plet_tools.py init plet/ROOT/` to create state.json (auto-initializes lifecycles from dependency map)
+   - Start plan session if not already started: `session.py start-session plet/ROOT/ --type plan` — returns branch name
    - Create or check out the plan branch
-   - `plet_tools.py fingerprint-embed plet/` to embed fingerprints across all plan artifacts
+   - `plet_tools.py fingerprint-embed plet/ROOT/` to embed fingerprints across all plan artifacts
 5. Commit all plan artifacts on the plan branch
-6. End the plan session: `session.py end-session plet/`
+6. End the plan session: `session.py end-session plet/ROOT/`
 7. **STOP.** Do NOT auto-launch the loop. Tell the user:
    - "Plan complete on branch `plet/{projectId}/plan{N}/workstream`."
    - "Run `/plet loop` to start implementation. The loop will branch from here."
@@ -313,7 +314,7 @@ Interactive, human-driven. Triages emergent items, updates spec, re-plans.
 1. Session setup: increment `refineSessionCount`, branch, update `sessionHistory`
 2. Read `references/session-refine.md` for the full workflow
 3. Follow instructions for emergent triage, blocked iteration review, spec updates, re-planning
-4. After changes, update fingerprints: `plet_tools.py fingerprint-embed plet/ --type requirements` (then iterations, then state)
+4. After changes, update fingerprints: `plet_tools.py fingerprint-embed plet/ROOT/ --type requirements` (then iterations, then state)
 5. Offer to resume the loop with `/plet loop`
 
 ### Compaction Recovery Protocol
@@ -332,12 +333,12 @@ The orchestrator is the longest-lived agent and most vulnerable to context compa
 
 **Recovery procedure:**
 1. Re-read this file (`SKILL.md`) — recover behavioral instructions
-2. Re-read `plet/state.json` — recover `projectId`, `loopSessionCount`, `sessionHistory`, dependency map
+2. Re-read `plet/ROOT/state.json` — recover `projectId`, `loopSessionCount`, `sessionHistory`, dependency map
 3. Re-read all per-iteration state files with `lifecycle` not in `complete` or `withdrawn` — recover what's in flight
 4. Read the last entry in `sessionHistory` to determine current phase and branch
 5. Run `git branch --show-current` to confirm branch matches expected state
-6. Run `plet_tools.py status plet/` for a quick overview of current state
-7. Write a new canary entry to `plet/progress.md` noting recovery
+6. Run `plet_tools.py status plet/ROOT/` for a quick overview of current state
+7. Write a new canary entry to `plet/ROOT/progress.md` noting recovery
 8. Resume from step 2 of the loop session (identify eligible iterations)
 
 ---
@@ -345,12 +346,49 @@ The orchestrator is the longest-lived agent and most vulnerable to context compa
 ## Status
 
 ```bash
-plet_tools.py status plet/
+plet_tools.py status plet/ROOT/
 ```
 
 Prints: project name, session type, progress percentage, iteration counts by lifecycle, blockers, fingerprint consistency, milestones.
 
-JSON output available: `plet_tools.py status plet/ --output json --pretty`
+JSON output available: `plet_tools.py status plet/ROOT/ --output json --pretty`
+
+---
+
+## Subplet Creation
+
+`/plet subplet {NAME}` creates a new subplet and guides the user into its plan session.
+
+### Flow
+
+1. **Validate the name** — must match project ID pattern (3-6 uppercase alphanumeric, starts with letter)
+2. **Check ROOT exists** — `plet/ROOT/state.json` must exist. If not, tell the user to run `/plet plan` first to set up the root plet.
+3. **Create the subplet:**
+   ```bash
+   plet_tools.py create-subplet plet/ROOT/ --name {NAME}
+   ```
+   This creates `plet/{NAME}/` with a skeleton `state.json` (`inheritsFrom: ["ROOT"]`, empty dependencies/milestones/iterations).
+4. **Show what was created** — subplet directory, inheritance source, next steps.
+5. **Offer to start planning:**
+   - "Subplet {NAME} created. Start plan session? (Y/n)"
+   - If yes: enter the plan phase for `plet/{NAME}/` — the plan agent reads ROOT's `requirements.md` to incorporate inherited NFR/RCH/DVX items.
+   - If no: tell the user they can start later with `/plet plan` while in the subplet's context.
+
+### Custom Inheritance
+
+If the user specifies inheritance sources: `/plet subplet AUTH --inherits-from '["ROOT", "CORE"]'`
+
+Pass through to create-subplet:
+```bash
+plet_tools.py create-subplet plet/ROOT/ --name AUTH --inherits-from '["ROOT", "CORE"]'
+```
+
+### Notes
+
+- Every subplet is a full plet — plan → loop → refine, independently driven
+- The root plet (`plet/ROOT/`) must exist before creating subplets
+- Subplets are siblings on disk: `plet/ROOT/`, `plet/AUTH/`, `plet/BILL/`
+- Branch naming: `plet/{pletId}/loop{N}/workstream` — same pattern for ROOT and subplets
 
 ---
 
@@ -422,20 +460,20 @@ All scripts live under `skills/plet/scripts/`. Three entry points:
 
 ```bash
 # The loop (SKILL.md calls this, orchestrator handles everything)
-plet_orchestrator.py run plet/ --output ndjson
-plet_orchestrator.py run plet/ --allow-stale --output ndjson
-plet_orchestrator.py run plet/ --max-iterations 1 --output ndjson
+plet_orchestrator.py run plet/ROOT/ --output ndjson
+plet_orchestrator.py run plet/ROOT/ --allow-stale --output ndjson
+plet_orchestrator.py run plet/ROOT/ --max-iterations 1 --output ndjson
 
 # Phase detection + diagnostics
-plet_tools.py detect plet/
-plet_tools.py status plet/
-plet_tools.py status plet/ --output json --pretty
-plet_tools.py validate plet/
+plet_tools.py detect plet/ROOT/
+plet_tools.py status plet/ROOT/
+plet_tools.py status plet/ROOT/ --output json --pretty
+plet_tools.py validate plet/ROOT/
 
 # Plan phase setup
-plet_tools.py bootstrap plet/
-plet_tools.py init plet/
-plet_tools.py fingerprint-embed plet/
+plet_tools.py bootstrap plet/ROOT/
+plet_tools.py init plet/ROOT/
+plet_tools.py fingerprint-embed plet/ROOT/
 ```
 
 ---
@@ -453,8 +491,8 @@ Semantic versioning in frontmatter `version`:
 
 Before entering any phase:
 
-- [ ] Run `plet_tools.py detect plet/` to determine phase
-- [ ] Run `plet_tools.py validate plet/` to verify environment
+- [ ] Run `plet_tools.py detect plet/ROOT/` to determine phase
+- [ ] Run `plet_tools.py validate plet/ROOT/` to verify environment
 - [ ] Warn user if preflight has failures or warnings
 - [ ] Read `plet/requirements.md` for project context (if it exists)
 - [ ] Read the appropriate reference file
