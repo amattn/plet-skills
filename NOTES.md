@@ -3835,18 +3835,18 @@ The flexible inheritance model fixes these issues while retaining the "subplet" 
 - Emergent/blocker ownership: `assignee` field on emergent entries (additive to current format)
 - Refine is naturally single-threaded — one human refines at a time, others consume updated spec
 - The `proj` sentinel in plet IDs is scoped to a single plet directory. If cross-plet IDs ever need disambiguation, the format will need a plet-qualified alternative.
-- How does the inheritance pointer work concretely? A field in `plet/` config? A convention (relative path)? A file that lists sources?
-- What happens when an inheritance chain has a conflict (plet A says coverage 80%, plet B in the chain says 90%)? Strictest wins? Error?
+- ~~How does the inheritance pointer work concretely?~~ → resolved: `state.json` field `"inheritsFrom": ["../../plet"]` — array of relative paths. See NOTES_SUB_11.
+- ~~What happens when an inheritance chain has a conflict?~~ → resolved: last-in-array wins with warning. See NOTES_SUB_12.
 - ~~Subplet orchestrator discovery~~ → resolved: each plet has its own human driver (NOTES_SUB_8)
 - ~~Subplet completion rollup~~ → resolved: human-driven (NOTES_SUB_8). Optional status command could scan sibling `plet/state.json` files.
 - ~~Does the orchestrator need to know about siblings?~~ → resolved: no (NOTES_SUB_8). Zero sibling awareness.
 - ~~Naming convention: `{feature-name}` or `{developer-name}`?~~ → resolved: `{feature-name}`. Plets are feature decomposition, not developer assignment.
 - ~~Parent plet doesn't loop~~ → resolved: no parent/child hierarchy (NOTES_SUB_1). A template plet can loop or not — it's just a plet.
-- What does the concrete `survey.md` artifact look like? Sections, format, level of detail? (NOTES_SUB_10)
-- How does plan phase consume `survey.md`? Explicit input, or auto-detected? (NOTES_SUB_10)
-- When re-running survey, does it diff against the previous survey? Or full re-scan? (NOTES_SUB_10)
-- Subplet creation flow — CLI command? Manual setup? (NOTES_SUB_10)
-- External backlog integration — does plet read from issue trackers, or manual copy? (NOTES_SUB_10)
+- ~~What does the concrete `survey.md` artifact look like?~~ → resolved: See NOTES_SUB_13.
+- ~~How does plan phase consume `survey.md`?~~ → resolved: See NOTES_SUB_13.
+- ~~When re-running survey, diff or re-scan?~~ → resolved: diff, lightweight. See NOTES_SUB_16.
+- ~~Subplet creation flow~~ → resolved: `/plet subplet AUTH` interactive flow. See NOTES_SUB_14.
+- ~~External backlog integration~~ → resolved: manual only, no external integrations. See NOTES_SUB_15.
 
 ### NOTES_SUB_6: No cross-plet dependencies (2026-04-05)
 
@@ -3876,6 +3876,64 @@ Worktrees are optional and at the developer's discretion. plet operates on whate
 3. Plet runs independently (plan → loop → refine), reading inheritance source at plan and refine
 4. When done, developer merges branch back to the shared integration branch via git
 
+### NOTES_SUB_11: Inheritance pointer mechanism (2026-04-26)
+
+**Decision:** `state.json` field `"inheritsFrom": ["../../plet", "../auth/plet"]` — array of relative paths to source plet directories. Empty array or missing field means no inheritance (root plet).
+
+**Mechanism:** Plan/refine reads each source's `requirements.md` and incorporates relevant items (NFR, RCH, DVX sections) into the subplet's own `requirements.md`, marking inherited items with their source. The subplet's `requirements.md` IS the snapshot — no separate snapshot file needed.
+
+**Why array:** Supports inheriting from multiple sources (root template + a sibling's API contract). Single inheritance is the common case but multi-source is needed for real scenarios (e.g., feature plet inherits from root template AND from the auth plet's API contract).
+
+**Rejected:**
+- Convention file (`plet/inherits.md`) — over-engineered, the pointer is just "where to look"
+- Separate snapshot file — the subplet's requirements.md already captures what was inherited
+- Single path instead of array — artificially limits inheritance to one source
+
+### NOTES_SUB_16: Survey re-run behavior (2026-04-26)
+
+**Decision:** Diff against previous survey, but lightweight — a note at the end of the survey prompt telling the agent to compare against the existing `survey.md` and highlight what changed. No dedicated diff tooling. This is rare enough that a prompt-level instruction suffices.
+
+**Rejected:**
+- Full re-scan (overwrite) — loses visibility into what changed
+- Dedicated diff tooling — over-engineered for a rare operation
+
+### NOTES_SUB_15: External backlog integration (2026-04-26)
+
+**Decision:** Manual only. Developer reads their backlog (GitHub Issues, Linear, etc.), creates a subplet, and writes requirements during the plan phase. No external integrations.
+
+**Rationale:** Matches plet's zero-external-dependencies philosophy. The developer is the filter — not every issue becomes a subplet. MCP integration could be added later if real usage shows the need, but it's not blocking.
+
+### NOTES_SUB_14: Subplet creation flow (2026-04-26)
+
+**Decision:** `/plet subplet AUTH` starts an interactive flow in SKILL.md. Creates the subplet directory structure, sets up `state.json` with `inheritsFrom`, creates the branch, and offers to start plan immediately. CLI tooling (`plet_tools.py`) does the mechanical work under the hood.
+
+**Rationale:** Subplet creation is a one-time setup that benefits from guidance — inheritance source, naming, branch creation. The interactive flow ensures nothing is missed. Power users can call the underlying CLI directly.
+
+**Rejected:**
+- Raw CLI only — no guidance for first-time users
+- Manual setup + plan detection — too easy to miss steps (inheritance pointer, branch naming)
+
+### NOTES_SUB_13: survey.md format (2026-04-26)
+
+**Decision:** `survey.md` uses structured sections matching `common.md` template categories — NFR, RCH, DVX, ARC, etc. Each section contains discovered values with evidence (where in the codebase the convention was found). Plan agent reads `survey.md` and lifts items directly into `requirements.md` during the plan phase.
+
+**Rationale:** Survey's purpose is to inform requirements. Matching the structure means plan can consume it mechanically — no interpretation step needed. The evidence subsections (e.g., "coverage threshold 85% — from `pyproject.toml` `fail_under`") give the human traceability during plan review.
+
+**Rejected:**
+- Free-form by discovery method — requires plan agent to interpret and categorize, adding a lossy translation step
+- Defer — the format is straightforward given the decision that survey feeds requirements
+
+### NOTES_SUB_12: Inheritance conflict resolution (2026-04-26)
+
+**Decision:** Last-in-array wins. Order of `inheritsFrom` determines priority — later entries override earlier ones. Plan/refine agent warns when it detects a conflict (e.g., "Source A says 80% coverage, Source B says 90% — using 90% from B since it's later in inheritsFrom"). Human can reorder or override during the interactive session.
+
+**Rationale:** Conflicts are rare in practice. Most subplets inherit from one source. When multiple sources exist, the array order is an explicit, visible decision the developer made. Adding complexity (strictest-wins logic, error handling) for a rare case isn't worth it.
+
+**Rejected:**
+- Strictest wins — adds implicit logic that's hard to reason about ("which direction is stricter for a naming convention?")
+- Error on conflict — too much friction for a rare case
+- Explicit override with justification — over-engineered when array ordering + a warning suffices
+
 ### NOTES_SUB_10: `/plet survey` — existing codebase adaptation (2026-04-10)
 
 **Decision:** Existing codebase adaptation is a new plet command (`/plet survey`), not a separate skill or project. The output of a survey is exactly what the root plet template needs, and keeping it inside plet means the inheritance mechanism works without glue.
@@ -3897,13 +3955,13 @@ Worktrees are optional and at the developer's discretion. plet operates on whate
 
 **Deferred:**
 - How survey handles context window limits on a large codebase (implementation detail)
-- Subplet creation flow (CLI command? manual setup?)
-- External backlog integration (does plet read from issue trackers, or manual?)
+- ~~Subplet creation flow~~ → resolved: See NOTES_SUB_14.
+- ~~External backlog integration~~ → resolved: See NOTES_SUB_15.
 
 **Open questions added to NOTES_SUB_5:**
-- What does the concrete `survey.md` artifact look like? Sections, format, level of detail?
-- How does plan phase consume `survey.md`? Explicit input, or auto-detected?
-- When re-running survey, does it diff against the previous survey? Or full re-scan?
+- ~~What does the concrete `survey.md` artifact look like?~~ → resolved: See NOTES_SUB_13.
+- ~~How does plan phase consume `survey.md`?~~ → resolved: See NOTES_SUB_13.
+- ~~When re-running survey, diff or re-scan?~~ → resolved: See NOTES_SUB_16.
 
 ---
 
