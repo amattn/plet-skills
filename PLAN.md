@@ -26,7 +26,8 @@
 | PLAN_RFT | Refactor Loop | ✓ COMPLETE (6/6) — validated LOGA R16 (refactor agent extracted real code) |
 | PLAN_MSV | Milestone-Scoped Verify | Paused — R17 ran but inconclusive (milestone verify didn't check milestone ACs due to tooling gap). Staying on 0.7.0 per-iteration verify. |
 | PLAN_VOS | Verify on the Side | Paused — design exploration complete. See NOTES_PLAN_VOS |
-| PLAN_SUB | Subplets | After RFT — hierarchical decomposition for large projects |
+| PLAN_SUB | Subplets | Design complete (NOTES_SUB_1-18), implementation not started |
+| PLAN_SRV | Survey | After SUB — `/plet survey` for existing codebase adaptation |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
 | PLAN_PRD | PRD Reorganization & Sync | In progress — audit complete, outline approved |
@@ -181,21 +182,82 @@ Drop per-iteration verify, move verification to milestone boundaries. Case study
 
 ## PLAN_SUB: Subplets
 
-Hierarchical decomposition — a plet loop can spawn sub-plets for iterations that are themselves complex enough to warrant their own plan→loop→refine cycle. Subplets have their own `plet/` directory, state files, and runtime artifacts, namespaced under the parent project.
+Every plet gets a project ID directory: `plet/ROOT/`, `plet/AUTH/`, `plet/BILLING/`. ROOT is reserved as the default inheritance source. Subplets inherit via `state.json` `"inheritsFrom": ["../ROOT"]` (array of relative paths, last-in-array wins on conflict with warning). Each subplet is a full plet (plan → loop → refine) driven by its own human. No cross-plet dependencies — git is the integration point. Branch convention: `plet/{pletId}/loop{N}/workstream` — mirrors directory layout, no projectId in branches.
 
-Design thinking exists in NOTES.md (§ Multi-Developer Analysis, subplet branch conventions). Key decisions already made:
-- Branch convention: `plet/{projectId}/subplet/{subId}/loop{N}/...`
-- `subplet/` path segment makes hierarchy self-documenting
-- No sub-sub-plets (one level of nesting only)
-- Required `--plet-dir` (FOO_57) — enables nested paths like `plet/subplets/AUTH/plet/`
+Design decisions: NOTES_SUB_1–18. Key settled points:
+- Directory layout: `plet/{PLET_ID}/` — flat siblings, ROOT reserved (NOTES_SUB_17)
+- Branch naming: `plet/{pletId}/loop{N}/workstream` (NOTES_SUB_18)
+- Inheritance: array of relative paths in state.json (NOTES_SUB_11)
+- Conflict resolution: last-in-array wins with warning (NOTES_SUB_12)
+- Creation flow: `/plet subplet AUTH` interactive (NOTES_SUB_14)
+- No external backlog integration (NOTES_SUB_15)
+- Breaking change from `plet/` → `plet/ROOT/` → 0.8.0
 
-### Phases
+**Depends on:** Survey (Phase 5) extracted to PLAN_SRV — independent, can be deferred.
 
-- **PLAN_SUBa:** Formalize subplet requirements in PRD
-- **PLAN_SUBb:** Subplet lifecycle — how parent iterations spawn, monitor, and integrate subplets
-- **PLAN_SUBc:** State file extensions — subplet references in parent state, subplet directory layout
-- **PLAN_SUBd:** Script updates — GTI/GTO/GTC need subplet awareness for branch naming and compliance checks
-- **PLAN_SUBe:** SKILL.md + reference file updates for subplet support
+### Phase 1: Migration (breaking change → 0.8.0)
+
+Do as its own branch — isolate the breaking change before adding subplet features.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| SUB_1 | RED: tests assert `plet/ROOT/` paths — util_io path derivation, bootstrap creates `plet/ROOT/`, .gitignore still works | |
+| SUB_2 | GREEN: migrate `plet/` → `plet/ROOT/` in util_io.py, bootstrap.py. Update all path derivation. Ensure .gitignore covers `.plet/`. | |
+| SUB_3 | RED: tests assert `inheritsFrom` field in state schema (array of strings, default []) | |
+| SUB_4 | GREEN: add `inheritsFrom` to state schema, global_state.py init, validator. SCHEMA_VERSION bump. | |
+| SUB_5 | Bulk fixture update: `make_plet_dir()` in util_fixture.py defaults to `plet/ROOT/` — most tests auto-fix | |
+| SUB_6 | Branch naming update: `util_git.py derive_branch_name` uses `plet/{pletId}/...` pattern | |
+| SUB_7 | **Checkpoint:** full test suite green, coverage ≥ 87% | |
+
+### Phase 2: Subplet Creation
+
+| Step | Description | Status |
+|------|-------------|--------|
+| SUB_8 | RED: tests for `plet_tools.py create-subplet` — creates `plet/{NAME}/`, state.json with inheritsFrom defaulting to `["../ROOT"]` | |
+| SUB_9 | GREEN: implement `create-subplet` command | |
+| SUB_10 | SKILL.md: `/plet subplet {NAME}` interactive flow — calls create-subplet, offers to start plan | |
+
+### Phase 3: Inheritance
+
+| Step | Description | Status |
+|------|-------------|--------|
+| SUB_11 | RED: tests for plan phase reading `inheritsFrom` sources, incorporating NFR/RCH/DVX into subplet requirements.md with source markers | |
+| SUB_12 | GREEN: plan phase inheritance — read sources, incorporate, mark items | |
+| SUB_13 | RED: tests for refine phase re-reading inheritance sources, surfacing changes as emergent items | |
+| SUB_14 | GREEN: refine phase inheritance refresh | |
+| SUB_15 | RED: tests for conflict handling — last-in-array wins, warning emitted | |
+| SUB_16 | GREEN: conflict detection and warning in plan/refine | |
+
+### Phase 4: Branch Model
+
+| Step | Description | Status |
+|------|-------------|--------|
+| SUB_17 | RED: tests assert branch naming `plet/{pletId}/loop{N}/workstream` for ROOT and subplets | |
+| SUB_18 | GREEN: validate multiple concurrent subplets on separate branches, no cross-contamination | |
+
+### Phase 5: Docs & Validate
+
+| Step | Description | Status |
+|------|-------------|--------|
+| SUB_19 | PRD updates — subplet requirements, directory layout, inheritance model | |
+| SUB_20 | Reference file updates — session-plan.md, session-refine.md for inheritance | |
+| SUB_21 | Validate with real project — create ROOT + 2 subplets, run loops, verify isolation | |
+
+---
+
+## PLAN_SRV: Survey
+
+`/plet survey` for existing codebase adaptation. Scans the codebase, produces `plet/ROOT/survey.md` with sections matching `common.md` template categories (NFR, RCH, DVX, ARC, etc.). Plan phase lifts items into `requirements.md`. Re-runs diff against previous survey (lightweight, prompt-level instruction). See NOTES_SUB_10, NOTES_SUB_13, NOTES_SUB_16.
+
+Independent of subplets — useful for ROOT-only projects adapting an existing codebase.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| SRV_1 | Define survey.md format — sections, evidence subsections, examples | |
+| SRV_2 | `/plet survey` SKILL.md flow — interactive, scans codebase, writes survey.md | |
+| SRV_3 | Plan phase: detect and consume survey.md when present | |
+| SRV_4 | Re-run: diff against previous survey, highlight changes | |
+| SRV_5 | Validate on a real existing codebase | |
 
 ---
 

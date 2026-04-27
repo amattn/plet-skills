@@ -3921,6 +3921,23 @@ myproject/
 - Sibling layout outside `plet/` — splits plet artifacts across top-level dirs
 - User-picked root name — ambiguous which plet is root without a marker; ROOT as reserved is unambiguous
 
+### NOTES_SUB_18: Branch naming — flat, no projectId (2026-04-26)
+
+**Decision:** `plet/{pletId}/loop{N}/workstream`. Mirrors the directory layout 1:1. No project-level ID in branches — plet ID (ROOT, AUTH) is sufficient since branches are repo-scoped.
+
+Examples:
+- `plet/ROOT/loop1/workstream`
+- `plet/AUTH/loop1/workstream`
+- `plet/AUTH/loop1/ITR_003`
+- `plet/ROOT/plan1/workstream`
+- `plet/ROOT/refine1/workstream`
+
+**Supersedes:** Old convention `plet/{projectId}/subplet/{subId}/loop{N}/workstream` — designed for parent/child hierarchy which was replaced by flat sibling model (NOTES_SUB_17).
+
+**Rejected:**
+- `plet/{projectId}/{pletId}/loop{N}/...` — extra segment that's identical for every branch in the repo
+- Keeping `subplet/` segment — contradicts flat directory layout
+
 ### NOTES_SUB_16: Survey re-run behavior (2026-04-26)
 
 **Decision:** Diff against previous survey, but lightweight — a note at the end of the survey prompt telling the agent to compare against the existing `survey.md` and highlight what changed. No dedicated diff tooling. This is rare enough that a prompt-level instruction suffices.
