@@ -30,7 +30,7 @@ Plan interactively, implement autonomously, verify independently, refine iterati
 
 | Directory | Committed? | Purpose |
 |-----------|------------|---------|
-| `plet/` | **Yes** | Runtime state and artifacts. `state.json`, `state/*.json`, `progress.md`, `learnings.md`, `emergent.md`, `trace/`, `requirements.md`, `iterations.md`. Shared across sessions. |
+| `plet/ROOT/` | **Yes** | Root plet runtime state and artifacts. `state.json`, `state/*.json`, `progress.md`, `learnings.md`, `emergent.md`, `trace/`, `requirements.md`, `iterations.md`. Subplets are siblings: `plet/AUTH/`, `plet/BILL/`, etc. |
 | `.plet/` | **No** (gitignored) | Local infrastructure. Scratch space for plet internals. Not committed — `.gitignore` excludes it. **Do not `git add`.** |
 | `.claude/` | Depends | Claude Code settings. May or may not be committed depending on project conventions. |
 
@@ -171,15 +171,16 @@ Adapt the `allow` list to the project's toolchain (e.g., `go:*` for Go, `python3
 
 ### First Invocation Bootstrap
 
-If `plet/` doesn't exist, create the directory structure and empty runtime artifact files before entering Plan:
+If `plet/ROOT/` doesn't exist, create the directory structure and empty runtime artifact files before entering Plan:
 
 ```
 plet/
-├── state/                   # per-iteration state files (created during plan)
-├── trace/                   # trace files (created during loop)
-├── progress.md              # "# Progress\n\n"
-├── learnings.md             # "# Learnings\n\n"
-└── emergent.md              # "# Emergent Items\n\n"
+└── ROOT/
+    ├── state/                   # per-iteration state files (created during plan)
+    ├── trace/                   # trace files (created during loop)
+    ├── progress.md              # "# Progress\n\n"
+    ├── learnings.md             # "# Learnings\n\n"
+    └── emergent.md              # "# Emergent Items\n\n"
 ```
 
 Plan artifacts (`requirements.md`, `iterations.md`, `state.json`) are created during the Plan session.
@@ -229,13 +230,13 @@ plet_tools.py fingerprint-embed plet/ROOT/ --type requirements
 
 **Reference:** `references/session-plan.md`
 
-Interactive, human-driven. Produces `plet/requirements.md`, `plet/iterations.md`, and initializes `plet/state.json`.
+Interactive, human-driven. Produces `plet/ROOT/requirements.md`, `plet/ROOT/iterations.md`, and initializes `plet/ROOT/state.json`.
 
 **Step 0 — Bootstrap:**
 Run `plet_tools.py bootstrap plet/ROOT/` to configure the project. This sets up git merge driver, .gitattributes, .gitignore, .claude/settings.json, and CLAUDE.md stub. Idempotent — safe to re-run.
 
 **Step 1 — Detect project state:**
-Check if `plet/state.json` exists. This determines the path:
+Check if `plet/ROOT/state.json` exists. This determines the path:
 
 **Path A — Fresh project (no state.json):**
 1. Ask: "What would you like to build?" — get a short description
@@ -246,11 +247,11 @@ Check if `plet/state.json` exists. This determines the path:
 1. Read state.json → project ID already known
 2. Start plan session: `session.py start-session plet/ROOT/ --type plan` — returns the branch name
 3. Create or check out the plan branch returned by start-session
-4. Read existing `plet/requirements.md`, `plet/iterations.md`, `plet/emergent.md`, `plet/learnings.md`
+4. Read existing `plet/ROOT/requirements.md`, `plet/ROOT/iterations.md`, `plet/ROOT/emergent.md`, `plet/ROOT/learnings.md`
 5. Show what was found: "Found N iterations across M milestones. Review or proceed?"
 6. Do NOT silently re-initialize. Ask before making changes.
 
-**Both paths:** Read `plet/emergent.md` for pending items and `plet/learnings.md` for patterns — triage and incorporate before planning.
+**Both paths:** Read `plet/ROOT/emergent.md` for pending items and `plet/ROOT/learnings.md` for patterns — triage and incorporate before planning.
 
 **Orchestrator actions:**
 1. Read `references/session-plan.md` for the full plan session workflow
@@ -329,7 +330,7 @@ The orchestrator is the longest-lived agent and most vulnerable to context compa
 **Summary:** Loop {N} active. Project: {projectId}. Branch: plet/{projectId}/loop{N}/workstream. {counts by lifecycle}.
 ```
 
-**Detection:** After compaction, you will not remember writing the canary. If you cannot recall your current `projectId`, `loopSessionCount`, which iterations are in flight, or which branch you're on — you were compacted. Read the last orchestrator `ACTIVE` entry from `plet/progress.md` for immediate orientation.
+**Detection:** After compaction, you will not remember writing the canary. If you cannot recall your current `projectId`, `loopSessionCount`, which iterations are in flight, or which branch you're on — you were compacted. Read the last orchestrator `ACTIVE` entry from `plet/ROOT/progress.md` for immediate orientation.
 
 **Recovery procedure:**
 1. Re-read this file (`SKILL.md`) — recover behavioral instructions
@@ -494,5 +495,5 @@ Before entering any phase:
 - [ ] Run `plet_tools.py detect plet/ROOT/` to determine phase
 - [ ] Run `plet_tools.py validate plet/ROOT/` to verify environment
 - [ ] Warn user if preflight has failures or warnings
-- [ ] Read `plet/requirements.md` for project context (if it exists)
+- [ ] Read `plet/ROOT/requirements.md` for project context (if it exists)
 - [ ] Read the appropriate reference file

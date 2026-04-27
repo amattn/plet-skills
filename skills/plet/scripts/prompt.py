@@ -139,13 +139,13 @@ def _load_required(content, error_msg):
     return None
 
 
-def _build_cli_quick_ref(iter_id, phase, attempt):
+def _build_cli_quick_ref(iter_id, phase, attempt, plet_dir=None):
     """Build CLI quick reference with iter_id and phase pre-filled.
 
     All commands go through plet_agent.py — the agent's entire plet vocabulary.
     """
     ag = "plet_agent.py"
-    p = "plet/ROOT/"
+    p = plet_dir if plet_dir else "plet/ROOT/"
     a = str(attempt)
     crit_phase = "implementation" if phase == "implement" else "verification"
 
@@ -203,7 +203,7 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
     attempt = 1
     if state_for_attempt:
         attempt = state_for_attempt.get("attempts", {}).get(phase, 1) or 1
-    cli_ref = _build_cli_quick_ref(iter_id, phase, attempt)
+    cli_ref = _build_cli_quick_ref(iter_id, phase, attempt, plet_dir=plet_dir)
     sections.append({"name": "cli-quick-reference", "source": "generated", "content": cli_ref})
 
     # 2. Iteration definition
@@ -244,7 +244,7 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
 
     # 8. Per-AC reflection prompt (learnings/emergent)
     ent = "entries.py"
-    p = "plet/ROOT/"
+    p = plet_dir
     reflection = "\n".join(
         [
             "# Per-AC Reflection",
