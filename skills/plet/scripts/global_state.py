@@ -543,7 +543,7 @@ iterationsFingerprint — the plan session fills these in.
 
 Examples:
   global_state.py create-subplet plet/ROOT --name AUTH
-  global_state.py create-subplet plet/ROOT --name BILLING --inherits-from '["ROOT","AUTH"]'
+  global_state.py create-subplet plet/ROOT --name BILL --inherits-from '["ROOT","AUTH"]'
 """
     result = parse_command(
         args,

@@ -139,10 +139,11 @@ def _load_required(content, error_msg):
     return None
 
 
-def _build_cli_quick_ref(iter_id, phase, attempt, plet_dir=None):
+def _build_cli_quick_ref(iter_id, phase, attempt):
     """Build CLI quick reference with iter_id and phase pre-filled.
 
     All commands go through plet_agent.py — the agent's entire plet vocabulary.
+    Uses $PLET_DIR env var (set by orchestrator) so examples work for ROOT and subplets.
     """
     ag = "plet_agent.py"
     p = "$PLET_DIR"
@@ -203,7 +204,7 @@ def _build_prompt_sections(plet_dir, iter_id, phase):
     attempt = 1
     if state_for_attempt:
         attempt = state_for_attempt.get("attempts", {}).get(phase, 1) or 1
-    cli_ref = _build_cli_quick_ref(iter_id, phase, attempt, plet_dir=plet_dir)
+    cli_ref = _build_cli_quick_ref(iter_id, phase, attempt)
     sections.append({"name": "cli-quick-reference", "source": "generated", "content": cli_ref})
 
     # 2. Iteration definition
