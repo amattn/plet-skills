@@ -26,7 +26,7 @@
 | PLAN_RFT | Refactor Loop | ✓ COMPLETE (6/6) — validated LOGA R16 (refactor agent extracted real code) |
 | PLAN_MSV | Milestone-Scoped Verify | Paused — R17 ran but inconclusive (milestone verify didn't check milestone ACs due to tooling gap). Staying on 0.7.0 per-iteration verify. |
 | PLAN_VOS | Verify on the Side | Paused — design exploration complete. See NOTES_PLAN_VOS |
-| PLAN_SUB | Subplets | Design complete (NOTES_SUB_1-18), implementation not started |
+| PLAN_SUB | Subplets | 20/21 done (SUB_21 deferred to real run validation) |
 | PLAN_SRV | Survey | After SUB — `/plet survey` for existing codebase adaptation |
 | PLAN_EVL | Eval System + Comparison Runs | After SUB — automated evaluation framework |
 | PLAN_OVH | Plet Infrastructure Overhead | deferred — may be moot (R08: 8.8m/iter, down from 14.2m) |
@@ -236,9 +236,9 @@ Do as its own branch — isolate the breaking change before adding subplet featu
 
 | Step | Description | Status |
 |------|-------------|--------|
-| SUB_19 | PRD updates — subplet requirements, directory layout, inheritance model | |
-| SUB_20 | Reference file updates — session-plan.md, session-refine.md for inheritance | |
-| SUB_21 | Validate with real project — create ROOT + 2 subplets, run loops, verify isolation | |
+| SUB_19 | PRD: INF_SUB section (10 reqs), plet/{PLET_ID}/ paths, ARC_DS tree, v0.8 milestone | ✓ done |
+| SUB_20 | Reference files: $PLET_DIR in all CLI examples (implement, verify, refactor), session-plan init examples | ✓ done |
+| SUB_21 | Validate with real project — create ROOT + 2 subplets, run loops, verify isolation | deferred to real run |
 
 ---
 
