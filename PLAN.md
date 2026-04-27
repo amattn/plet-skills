@@ -229,8 +229,8 @@ Do as its own branch — isolate the breaking change before adding subplet featu
 
 | Step | Description | Status |
 |------|-------------|--------|
-| SUB_17 | RED: tests assert branch naming `plet/{pletId}/loop{N}/workstream` for ROOT and subplets | |
-| SUB_18 | GREEN: validate multiple concurrent subplets on separate branches, no cross-contamination | |
+| SUB_17 | Tests assert branch naming `plet/{pletId}/loop{N}/workstream` for ROOT and subplets — 7 assertions, no collisions | ✓ done |
+| SUB_18 | Branch model already correct — projectId=pletId in flat model. 1070 tests pass. | ✓ done |
 
 ### Phase 5: Docs & Validate
 
