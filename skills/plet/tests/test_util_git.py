@@ -255,6 +255,41 @@ def test_derive_branch_name_unknown_type():
     check("returns None", result is None)
 
 
+def test_derive_branch_name_subplet():
+    """Subplet branches use pletId (projectId) — same pattern as root."""
+    print("\n## derive_branch_name — ROOT and subplet branches")
+    import util_git
+
+    root_state = {"projectId": "ROOT", "loopSessionCount": 1, "refineSessionCount": 0}
+    auth_state = {"projectId": "AUTH", "loopSessionCount": 1, "refineSessionCount": 0}
+    bill_state = {"projectId": "BILL", "loopSessionCount": 2, "refineSessionCount": 1}
+
+    # ROOT branches
+    check("ROOT workstream", util_git.derive_branch_name(root_state, "workstream") == "plet/ROOT/loop1/workstream")
+    check("ROOT plan", util_git.derive_branch_name(root_state, "plan") == "plet/ROOT/plan1/workstream")
+
+    # Subplet branches — same pattern, different pletId
+    check("AUTH workstream", util_git.derive_branch_name(auth_state, "workstream") == "plet/AUTH/loop1/workstream")
+    check(
+        "AUTH iteration",
+        util_git.derive_branch_name(auth_state, "iteration", iter_id="ITR_001") == "plet/AUTH/loop1/ITR_001",
+    )
+
+    # Different session counts
+    check(
+        "BILL workstream loop2", util_git.derive_branch_name(bill_state, "workstream") == "plet/BILL/loop2/workstream"
+    )
+    check("BILL refine", util_git.derive_branch_name(bill_state, "refine") == "plet/BILL/refine1/workstream")
+
+    # All branches are distinct — no collisions between ROOT and subplets
+    branches = [
+        util_git.derive_branch_name(root_state, "workstream"),
+        util_git.derive_branch_name(auth_state, "workstream"),
+        util_git.derive_branch_name(bill_state, "workstream"),
+    ]
+    check("no branch collisions", len(set(branches)) == 3)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -280,6 +315,7 @@ def main():
     test_derive_branch_name_plan()
     test_derive_branch_name_refine()
     test_derive_branch_name_unknown_type()
+    test_derive_branch_name_subplet()
 
     print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
