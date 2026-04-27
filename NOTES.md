@@ -3889,6 +3889,38 @@ Worktrees are optional and at the developer's discretion. plet operates on whate
 - Separate snapshot file — the subplet's requirements.md already captures what was inherited
 - Single path instead of array — artificially limits inheritance to one source
 
+### NOTES_SUB_17: Directory layout (2026-04-26)
+
+**Decision:** Every plet gets a project ID directory under `plet/`. Root plet is always `plet/ROOT/`. Subplets are siblings: `plet/AUTH/`, `plet/BILLING/`, etc.
+
+```
+myproject/
+  plet/
+    ROOT/          ← root plet (reserved name)
+      state.json
+      requirements.md
+      iterations.md
+      ...
+    AUTH/           ← subplet
+      state.json   ← inheritsFrom: ["../ROOT"]
+      ...
+    BILLING/        ← subplet
+      state.json
+      ...
+```
+
+- `plet_dir` is always `plet/{PROJECT_ID}` — uniform, no special cases
+- `ROOT` is reserved — it's the default inheritance source
+- Subplets get `inheritsFrom: ["../ROOT"]` by default on creation
+- During plan, user can opt out of ROOT inheritance or add other subplets
+- Breaking change from current `plet/` layout → 0.8.0
+
+**Rejected:**
+- `plet/subplets/{name}/plet/` — double-nested, ugly paths
+- `plet/subplets/{name}/` as plet dir — breaks "plet dir is always called plet/" convention (moot now — plet dir is `plet/{ID}`)
+- Sibling layout outside `plet/` — splits plet artifacts across top-level dirs
+- User-picked root name — ambiguous which plet is root without a marker; ROOT as reserved is unambiguous
+
 ### NOTES_SUB_16: Survey re-run behavior (2026-04-26)
 
 **Decision:** Diff against previous survey, but lightweight — a note at the end of the survey prompt telling the agent to compare against the existing `survey.md` and highlight what changed. No dedicated diff tooling. This is rare enough that a prompt-level instruction suffices.
