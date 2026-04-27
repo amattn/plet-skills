@@ -184,9 +184,29 @@ This step may produce additional requirements changes. Apply them to `plet/requi
 
 ---
 
+## Step 3b: Inheritance Refresh (subplets only)
+
+**Skip this step if `inheritsFrom` is empty (ROOT plet).**
+
+Re-read each source plet's `requirements.md` and compare against the inherited items in this subplet's `requirements.md`. Surface any differences as emergent items for the user to triage.
+
+1. For each ID in `state.json` `inheritsFrom`, read `plet/{ID}/requirements.md`
+2. Compare inherited sections (NFR, DVX, TST, RCH, RFP) against what was captured at plan time
+3. For any diff — additions, removals, or changes — present to the user:
+   - "ROOT added RCH_6 (mutation testing threshold 80%) since your last plan. Incorporate?"
+   - "ROOT tightened RCH_1 coverage from 85% to 90%. Update?"
+   - "ROOT removed NFR_3 (minimum Python 3.8). Remove from this subplet too?"
+4. Use standard NL options (A. Incorporate, B. Skip, C. Discuss) with R/O tail
+5. Apply approved changes to `plet/requirements.md`, write to disk, commit
+6. Append a progress entry summarizing inheritance changes
+
+**Any diff is surfaced.** The user decides what matters — don't filter by type or severity.
+
+---
+
 ## Step 4: Gap Analysis (FOO_52)
 
-After blockers, triage, and learnings, proactively probe for gaps — the same analysis as session-plan.md Step 6, but informed by what happened during the loop.
+After blockers, triage, and learnings (and inheritance refresh if applicable), proactively probe for gaps — the same analysis as session-plan.md Step 6, but informed by what happened during the loop.
 
 **Surface these categories:**
 

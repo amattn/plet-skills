@@ -601,3 +601,36 @@ references/plan-templates/
 ```
 
 **Template ID renumbering.** All template IDs use `_N` (literal N) instead of integers. When composing the final requirements document, collect all items from applicable templates (e.g., `common.md` + `cli.md` + `python.md`) and assign sequential integer IDs per prefix. For example, DVX items from common.md become DVX_1 through DVX_26, then DVX items from cli.md continue as DVX_27 through DVX_33, then python.md DVX items continue from there. This prevents ID collisions across templates. The Requirement ID Rules (GC_1) above apply to the final composed IDs — once assigned, IDs are stable and never renumbered.
+
+## Inheritance (subplets only)
+
+When planning a subplet (state.json `inheritsFrom` is non-empty), each section collects items from inherited plets in addition to templates and user input. This applies to sections where inherited constraints are meaningful: NFR, DVX, TST, RCH, RFP, and sometimes ARC and FRQ.
+
+### Per-section inheritance workflow
+
+For each section during Step 3 drafting and Step 4 review:
+
+1. **Collect** — gather items from all sources:
+   - Built-in plan templates (`common.md` + type + platform)
+   - Inherited plets — for each ID in `inheritsFrom`, read `plet/{ID}/requirements.md` and extract items for this section. Track provenance: `[template]`, `[ROOT]`, `[AUTH]`, `[user]`.
+   - User-provided items from conversation
+
+2. **Merge** — combine into one list. On conflict (same concern, different values from different sources): last-in-array wins per `inheritsFrom` ordering. Flag the conflict to the user: "ROOT says coverage 85%, AUTH says 90% — using 90% from AUTH (last in inheritsFrom)."
+
+3. **Deduplicate** — remove items that say the same thing from different sources. Keep the most specific version. Note what was dropped.
+
+4. **Present** — show the merged, deduped list grouped by provenance. Use the standard R/O review prompt.
+
+5. **Edit** — user adds, removes, reorders, modifies. Inherited items can be tightened, relaxed (with justification noted), or removed entirely. The subplet's `requirements.md` is the final authority.
+
+6. **Assign IDs** — keep source IDs where possible. If ROOT has RCH_1 through RCH_5, the subplet keeps those IDs. New items added by the user get the next available number. Never renumber inherited IDs.
+
+7. **Write** — approved section to disk per Step 4 discipline (write, verify, commit).
+
+### What the subplet's requirements.md must be
+
+**Self-contained.** The subplet's `requirements.md` must include all inherited items verbatim — not references to the source. During implement and verify phases, agents read only the subplet's own `plet/{ID}/requirements.md`. They may be on a branch where the source plet's files aren't present or are at a different version. The subplet's requirements.md IS the snapshot of inherited constraints at plan time.
+
+### When inheritsFrom is empty
+
+ROOT plets have `inheritsFrom: []`. The inheritance workflow is skipped — items come from templates and user input only. This is the default path and matches the existing plan flow exactly.
